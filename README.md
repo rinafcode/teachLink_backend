@@ -14,8 +14,34 @@ This repository contains the core backend logic using **NestJS**, **TypeORM**, a
 - **WebSockets** for real-time messaging
 - **Bull + Redis** for notifications/queue jobs
 - **Web3.js** or **ethers.js** for blockchain integration
+- 
+ Project Structure
+src/ ├── auth/ ├── users/ ├── knowledge/ ├── notifications/ ├── messaging/ ├── file-upload/ └── common/
 
----
+bash
+Copy
+Edit
+
+## 🧪 Running Locally
+
+```bash
+git clone https://github.com/your-org/teachlink-backend.git
+cd teachlink-backend
+cp .env.example .env
+npm install
+npm run start:dev
+📌 Features
+User authentication (JWT + refresh tokens)
+
+Knowledge sharing module
+
+Real-time messaging with file uploads
+
+Notification system
+
+Role-based access control
+
+API documentation with Swagger
 
 ## 📊 Modules Overview by User Type
 
