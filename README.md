@@ -181,3 +181,4 @@ Community launch & onboarding flow
 Web3 rewards & referral program (optional)
 
 
+Let make our code clean, maintainable, scalable and up to standard
