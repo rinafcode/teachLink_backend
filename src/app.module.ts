@@ -2,14 +2,15 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
-import { appConfigSchema } from './config/appConfigSchema'; 
+import { appConfigSchema } from './config/appConfigSchema';
+import { GamificationModule } from './gamification/gamification.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      validationSchema: appConfigSchema, 
+      validationSchema: appConfigSchema,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -25,6 +26,7 @@ import { appConfigSchema } from './config/appConfigSchema';
       }),
       inject: [ConfigService],
     }),
+    GamificationModule, 
   ],
 })
 export class AppModule {}
