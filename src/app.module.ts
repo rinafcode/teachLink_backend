@@ -6,6 +6,8 @@ import { UsersModule } from './users/users.module';
 import { MediaModule } from './media/media.module';
 import { User } from './users/entities/user.entity';
 import { Media } from './media/entities/media.entity';
+import { AssessmentsModule } from './assessments/assessments.module';
+
 
 @Module({
   imports: [
@@ -25,6 +27,9 @@ import { Media } from './media/entities/media.entity';
     AuthModule,
     UsersModule,
     MediaModule,
+
+    AssessmentsModule,
+
   ],
 })
 export class AppModule {}
