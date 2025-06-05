@@ -5,6 +5,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { AssessmentsModule } from './assessments/assessments.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
+import { UserPreference } from './recommendations/entities/user-preference.entity';
+import { CourseInteraction } from './recommendations/entities/course-interaction.entity';
 
 @Module({
   imports: [
@@ -18,12 +21,13 @@ import { AssessmentsModule } from './assessments/assessments.module';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      entities: [User],
+      entities: [User, UserPreference, CourseInteraction],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
     AuthModule,
     UsersModule,
     AssessmentsModule,
+    RecommendationsModule,
   ],
 })
 export class AppModule {}
