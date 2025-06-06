@@ -10,6 +10,7 @@ import { AssessmentsModule } from './assessments/assessments.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
 import { UserPreference } from './recommendations/entities/user-preference.entity';
 import { CourseInteraction } from './recommendations/entities/course-interaction.entity';
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CourseInteraction } from './recommendations/entities/course-interaction
     MediaModule,
     AssessmentsModule,
     RecommendationsModule,
+    CoursesModule,
   ],
 })
 export class AppModule {}
