@@ -158,7 +158,7 @@ export class EnrollmentsService {
     if (result && result.averageRating) {
       await this.coursesRepository.update(
         { id: courseId },
-        { averageRating: Number.parseFloat(result.averageRating).toFixed(1) },
+        { averageRating: +Number.parseFloat(result.averageRating).toFixed(1) },
       )
     }
   }
