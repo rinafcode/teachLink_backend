@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException } from "@nestjs/common"
-import type { Repository } from "typeorm"
-import type { Module } from "./entities/module.entity"
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
+import { Module } from "./entities/module.entity"
 import type { CreateModuleDto } from "./dto/create-module.dto"
 import type { UpdateModuleDto } from "./dto/update-module.dto"
 
 @Injectable()
 export class ModulesService {
-  constructor(private modulesRepository: Repository<Module>) {}
+  constructor(
+    @InjectRepository(Module)
+    private modulesRepository: Repository<Module>
+  ) {}
 
   async create(createModuleDto: CreateModuleDto): Promise<Module> {
     const module = this.modulesRepository.create(createModuleDto)

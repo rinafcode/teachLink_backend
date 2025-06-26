@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException } from "@nestjs/common"
-import type { Repository } from "typeorm"
-import type { Lesson } from "./entities/lesson.entity"
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
+import { Lesson } from "./entities/lesson.entity"
 import type { CreateLessonDto } from "./dto/create-lesson.dto"
 import type { UpdateLessonDto } from "./dto/update-lesson.dto"
 
 @Injectable()
 export class LessonsService {
-  constructor(private lessonsRepository: Repository<Lesson>) {}
+  constructor(
+    @InjectRepository(Lesson)
+    private lessonsRepository: Repository<Lesson>
+  ) {}
 
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
     const lesson = this.lessonsRepository.create(createLessonDto)

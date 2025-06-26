@@ -11,6 +11,8 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
 import { UserPreference } from './recommendations/entities/user-preference.entity';
 import { CourseInteraction } from './recommendations/entities/course-interaction.entity';
 import { CoursesModule } from './courses/courses.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { Notification } from './notifications/entities/notification.entity';
 
 @Module({
   imports: [
@@ -24,7 +26,7 @@ import { CoursesModule } from './courses/courses.module';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      entities: [User, Media, UserPreference, CourseInteraction],
+      entities: [User, Media, UserPreference, CourseInteraction, Notification],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
     AuthModule,
@@ -33,6 +35,7 @@ import { CoursesModule } from './courses/courses.module';
     AssessmentsModule,
     RecommendationsModule,
     CoursesModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
