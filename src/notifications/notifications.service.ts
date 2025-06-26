@@ -18,8 +18,8 @@ export class NotificationsService {
       return null;
     }
     const notification = this.notificationRepo.create({ userId, type, content });
-    await this.notificationRepo.save(notification);
-    return notification;
+    const saved = await this.notificationRepo.save(notification);
+    return saved;
   }
 
   async getUserNotifications(userId: string): Promise<NotificationDto[]> {
@@ -33,4 +33,4 @@ export class NotificationsService {
   async markAllAsRead(userId: string): Promise<void> {
     await this.notificationRepo.update({ userId, isRead: false }, { isRead: true });
   }
-} 
+}

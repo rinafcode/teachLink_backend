@@ -16,7 +16,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   @WebSocketServer()
   server: Server;
 
-  private userSockets: Map<string, string> = new Map(); // userId -> socketId
+  private userSockets: Map<string, string> = new Map();
 
   constructor(private readonly notificationsService: NotificationsService) {}
 
