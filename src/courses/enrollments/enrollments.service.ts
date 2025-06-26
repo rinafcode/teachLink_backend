@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common"
-import type { Repository } from "typeorm"
-import type { Enrollment } from "./entities/enrollment.entity"
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
+import { Enrollment } from "./entities/enrollment.entity"
+import { Course } from "../entities/course.entity"
 import type { CreateEnrollmentDto } from "./dto/create-enrollment.dto"
 import type { UpdateEnrollmentDto } from "./dto/update-enrollment.dto"
-import type { Course } from "../entities/course.entity"
 
 @Injectable()
 export class EnrollmentsService {
   constructor(
+    @InjectRepository(Enrollment)
     private enrollmentsRepository: Repository<Enrollment>,
+    @InjectRepository(Course)
     private coursesRepository: Repository<Course>,
   ) {}
 

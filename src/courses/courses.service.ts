@@ -5,11 +5,14 @@ import { Course } from "./entities/course.entity"
 import type { CreateCourseDto } from "./dto/create-course.dto"
 import type { UpdateCourseDto } from "./dto/update-course.dto"
 import type { QueryCourseDto } from "./dto/query-course.dto"
+import { NotificationsService } from '../notifications/notifications.service'
+import { NotificationType } from '../notifications/entities/notification.entity'
 
 @Injectable()
 export class CoursesService {
   constructor(
     @InjectRepository(Course) private coursesRepository: Repository<Course>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createCourseDto: CreateCourseDto): Promise<Course> {
@@ -79,8 +82,18 @@ export class CoursesService {
     const course = await this.findOne(id)
 
     Object.assign(course, updateCourseDto)
+    const updatedCourse = await this.coursesRepository.save(course)
 
-    return this.coursesRepository.save(course)
+    // Send notification to instructor
+    if (updatedCourse.instructorId) {
+      await this.notificationsService.createNotification(
+        updatedCourse.instructorId,
+        NotificationType.COURSE_UPDATE,
+        `Your course "${updatedCourse.title}" has been updated.`
+      )
+    }
+
+    return updatedCourse
   }
 
   async remove(id: string): Promise<void> {
