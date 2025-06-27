@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { appConfigSchema } from './config/appConfigSchema'; 
+import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { appConfigSchema } from './config/appConfigSchema';
       }),
       inject: [ConfigService],
     }),
+    RateLimitingModule,
   ],
 })
 export class AppModule {}
