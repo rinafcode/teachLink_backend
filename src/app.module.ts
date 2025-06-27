@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { appConfigSchema } from './config/appConfigSchema'; 
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
       inject: [ConfigService],
     }),
     RateLimitingModule,
+    SecurityModule,
   ],
 })
 export class AppModule {}
