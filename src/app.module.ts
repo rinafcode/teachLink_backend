@@ -18,6 +18,9 @@ import { CourseInteraction } from './recommendations/entities/course-interaction
 import { CoursesModule } from './courses/courses.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Notification } from './notifications/entities/notification.entity';
+import { PaymentsModule } from './payments/payments.module';
+import { Payment } from './payments/entities/payment.entity';
+import { Subscription } from './payments/entities/subscription.entity';
 
 
 @Module({
@@ -32,7 +35,7 @@ import { Notification } from './notifications/entities/notification.entity';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      entities: [User, Media, UserPreference, CourseInteraction, Notification],
+      entities: [User, Media, UserPreference, CourseInteraction, Notification, Payment, Subscription],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
     RateLimitingModule,
@@ -44,6 +47,7 @@ import { Notification } from './notifications/entities/notification.entity';
     RecommendationsModule,
     CoursesModule,
     NotificationsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}
