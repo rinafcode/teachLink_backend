@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { appConfigSchema } from './config/appConfigSchema'; 
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
