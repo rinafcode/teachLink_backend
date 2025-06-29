@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsUUID, Min, IsObject } from 'class-validator';
-import { PaymentMethod } from '../entities/payment.entity';
+import { PaymentMethod } from '../enums';
 
 export class CreatePaymentDto {
   @IsNotEmpty()

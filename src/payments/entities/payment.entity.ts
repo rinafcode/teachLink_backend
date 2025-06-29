@@ -1,21 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
-
-export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  REFUNDED = 'REFUNDED',
-  CANCELLED = 'CANCELLED',
-}
-
-export enum PaymentMethod {
-  STRIPE = 'STRIPE',
-  PAYPAL = 'PAYPAL',
-  CRYPTO = 'CRYPTO',
-}
+import { PaymentStatus, PaymentMethod } from '../enums';
 
 @Entity('payments')
 export class Payment {
