@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { appConfigSchema } from './config/appConfigSchema'; 
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
+import { SecurityModule } from './security/security.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MediaModule } from './media/media.module';
@@ -35,6 +36,7 @@ import { Notification } from './notifications/entities/notification.entity';
       synchronize: process.env.NODE_ENV !== 'production',
     }),
     RateLimitingModule,
+    SecurityModule,
     AuthModule,
     UsersModule,
     MediaModule,
