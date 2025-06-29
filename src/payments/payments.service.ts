@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Payment, PaymentStatus, PaymentMethod } from './entities/payment.entity';
+import { Payment } from './entities/payment.entity';
+import { PaymentStatus, PaymentMethod } from './enums';
 import { StripeService } from './providers/stripe.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 

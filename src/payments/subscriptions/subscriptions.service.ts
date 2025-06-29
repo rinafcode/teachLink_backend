@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Subscription, SubscriptionStatus, BillingInterval } from '../entities/subscription.entity';
+import { Subscription } from '../entities/subscription.entity';
+import { SubscriptionStatus, BillingInterval } from '../enums';
 import { StripeService } from '../providers/stripe.service';
 import { CreateSubscriptionDto } from '../dto/create-subscription.dto';
 

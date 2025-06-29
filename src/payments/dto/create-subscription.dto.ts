@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsUUID, Min, IsObject, IsDateString } from 'class-validator';
-import { BillingInterval } from '../entities/subscription.entity';
+import { BillingInterval } from '../enums';
 
 export class CreateSubscriptionDto {
   @IsNotEmpty()

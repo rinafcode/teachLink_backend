@@ -3,8 +3,8 @@ import { Request, Response } from 'express';
 import { StripeService } from '../providers/stripe.service';
 import { PaymentsService } from '../payments.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { PaymentStatus } from '../entities/payment.entity';
-import { SubscriptionStatus } from '../entities/subscription.entity';
+import { PaymentStatus } from '../enums';
+import { SubscriptionStatus } from '../enums';
 
 @Controller('payments/webhooks')
 export class WebhookController {

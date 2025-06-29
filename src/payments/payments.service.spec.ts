@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentsService } from './payments.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Payment, PaymentStatus, PaymentMethod } from './entities/payment.entity';
+import { Payment } from './entities/payment.entity';
+import { PaymentStatus, PaymentMethod } from './enums';
 import { StripeService } from './providers/stripe.service';
 import { Repository } from 'typeorm';
 

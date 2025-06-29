@@ -1,20 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
-
-export enum SubscriptionStatus {
-  ACTIVE = 'ACTIVE',
-  CANCELLED = 'CANCELLED',
-  PAST_DUE = 'PAST_DUE',
-  UNPAID = 'UNPAID',
-  TRIAL = 'TRIAL',
-}
-
-export enum BillingInterval {
-  MONTHLY = 'MONTHLY',
-  QUARTERLY = 'QUARTERLY',
-  YEARLY = 'YEARLY',
-}
+import { SubscriptionStatus, BillingInterval } from '../enums';
 
 @Entity('subscriptions')
 export class Subscription {
