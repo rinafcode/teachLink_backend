@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import configuration from './config/configuration';
+import { appConfigSchema } from './config/appConfigSchema'; 
+import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MediaModule } from './media/media.module';
@@ -13,6 +17,7 @@ import { CourseInteraction } from './recommendations/entities/course-interaction
 import { CoursesModule } from './courses/courses.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { Notification } from './notifications/entities/notification.entity';
+
 
 @Module({
   imports: [
@@ -29,6 +34,7 @@ import { Notification } from './notifications/entities/notification.entity';
       entities: [User, Media, UserPreference, CourseInteraction, Notification],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
+    RateLimitingModule,
     AuthModule,
     UsersModule,
     MediaModule,
