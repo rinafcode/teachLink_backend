@@ -180,12 +180,7 @@ export class CacheAnalyticsService implements OnModuleInit {
     analytics.avgResponseTime = (analytics.avgResponseTime + responseTime) / 2
   }
 
-  private updateStrategyAnalytics(
-    strategy: string,
-    operation: string,
-    responseTime: number,
-    size: number,
-  ): void {
+  private updateStrategyAnalytics(strategy: string, operation: string, responseTime: number, size: number): void {
     let analytics = this.strategyAnalytics.get(strategy)
 
     if (!analytics) {
@@ -236,9 +231,7 @@ export class CacheAnalyticsService implements OnModuleInit {
     const missRatio = 100 - hitRatio
 
     const avgResponseTime =
-      recentMetrics.length > 0
-        ? recentMetrics.reduce((sum, m) => sum + m.responseTime, 0) / recentMetrics.length
-        : 0
+      recentMetrics.length > 0 ? recentMetrics.reduce((sum, m) => sum + m.responseTime, 0) / recentMetrics.length : 0
 
     const memoryUsage = Array.from(this.keyAnalytics.values()).reduce((sum, ka) => sum + ka.size, 0)
 
@@ -312,4 +305,34 @@ export class CacheAnalyticsService implements OnModuleInit {
     }
 
     // Strategy-specific recommendations
-    const topStrategy = Array.from(this.strategyAnalytics.values()).sort((a, b) => b.usage - a\
+    const topStrategy = Array.from(this.strategyAnalytics.values()).sort((a, b) => b.usage - a.usage)[0]
+    if (topStrategy && topStrategy.hitRatio < 70) {
+      recommendations.push(`Consider optimizing ${topStrategy.strategy} strategy performance`)
+    }
+
+    return recommendations
+  }
+
+  async getPopularContentIds(limit: number): Promise<string[]> {
+    // Simulate getting popular content IDs from analytics
+    const popularContent = Array.from(this.keyAnalytics.entries())
+      .filter(([key]) => key.startsWith("content:"))
+      .sort(([, a], [, b]) => b.frequency - a.frequency)
+      .slice(0, limit)
+      .map(([key]) => key.split(":")[1])
+
+    return popularContent
+  }
+
+  async getActiveUserIds(limit: number): Promise<string[]> {
+    // Simulate getting active user IDs
+    const activeUsers = Array.from(this.keyAnalytics.entries())
+      .filter(([key]) => key.startsWith("user:"))
+      .sort(([, a], [, b]) => b.frequency - a.frequency)
+      .slice(0, limit)
+      .map(([key]) => key.split(":")[2] || key.split(":")[1])
+      .filter(Boolean)
+
+    return [...new Set(activeUsers)] // Remove duplicates
+  }
+}
