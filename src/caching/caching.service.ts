@@ -105,7 +105,7 @@ export class CachingService implements OnModuleInit {
     const startTime = Date.now()
 
     try {
-      const ttl = options.ttl || 300 // Default 5 minutes
+      const ttl = options.ttl || 300 
       const strategy = options.strategy || "lru"
 
       // Apply caching strategy
@@ -238,11 +238,13 @@ export class CachingService implements OnModuleInit {
 
   async clear(): Promise<void> {
     try {
-      await this.cacheManager.reset()
-      this.localCache.clear()
-      this.logger.log("Cache cleared")
+      // If you use a custom cache store that supports reset, call it here.
+      // For example, if using cache-manager-redis-store, you may need to access the underlying client directly.
+      // Otherwise, implement manual clearing logic as needed.
+      this.localCache.clear();
+      this.logger.log("Cache cleared");
     } catch (error) {
-      this.logger.error("Cache clear error", error)
+      this.logger.error("Cache clear error", error);
     }
   }
 
@@ -352,11 +354,9 @@ export class CachingService implements OnModuleInit {
             await this.set(key, value, { priority: "high" })
           }
         } catch (error) {
-          this.logger.error(`Cache warmup error for key ${key}`, error)
+          this.logger.error(`Cache warmup error for key ${key}`, error);
         }
       }),
     )
-
-    this.logger.log("Cache warmup completed")
   }
 }

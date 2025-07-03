@@ -29,10 +29,11 @@ export class RedisClusterService implements OnModuleInit, OnModuleDestroy {
           password: process.env.REDIS_PASSWORD,
           connectTimeout: 10000,
           lazyConnect: true,
+          maxRetriesPerRequest: 3, 
         },
         enableOfflineQueue: false,
         retryDelayOnFailover: 100,
-        maxRetriesPerRequest: 3,
+        // maxRetriesPerRequest: 3, 
         scaleReads: "slave",
       })
 
@@ -147,7 +148,7 @@ export class RedisClusterService implements OnModuleInit, OnModuleDestroy {
       } while (cursor !== "0")
     }
 
-    return [...new Set(keys)] // Remove duplicates
+    return [...new Set(keys)] 
   }
 
   async flushall(): Promise<void> {
