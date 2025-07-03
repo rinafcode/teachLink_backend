@@ -461,7 +461,7 @@ export class AlertingService {
 
     return {
       total: this.alertHistory.length,
-      active: this.getActiveAlerts().length,
+      active: (await this.getActiveAlerts()).length,
       last24Hours: recent24h.length,
       last7Days: recent7d.length,
       bySeverity: {

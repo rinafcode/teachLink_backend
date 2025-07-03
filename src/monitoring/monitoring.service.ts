@@ -55,8 +55,8 @@ export class MonitoringService implements OnModuleInit {
   async startMonitoring() {
     this.logger.log("Starting performance monitoring...")
 
-    // Initialize metrics collection
-    await this.metricsCollection.initialize()
+    // Initialize metrics collection (no initialize method, so just proceed)
+    // await this.metricsCollection.initialize();
 
     // Start real-time monitoring
     this.collectMetrics()
@@ -87,7 +87,7 @@ export class MonitoringService implements OnModuleInit {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async performDeepAnalysis() {
     try {
-      const recentMetrics = this.getRecentMetrics(300) // Last 5 minutes
+      const recentMetrics = this.getRecentMetrics(300) 
       const deepAnalysis = await this.performanceAnalysis.performDeepAnalysis(recentMetrics)
 
       if (deepAnalysis.regressionDetected) {
@@ -127,7 +127,7 @@ export class MonitoringService implements OnModuleInit {
 
   async getPerformanceReport() {
     const currentMetrics = this.getCurrentMetrics()
-    const recentMetrics = this.getRecentMetrics(3600) // Last hour
+    const recentMetrics = this.getRecentMetrics(3600) 
 
     if (!currentMetrics) {
       return null

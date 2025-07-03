@@ -43,7 +43,7 @@ export class MetricsCollectionService {
       }
     })
 
-    this.performanceObserver.observe({ entryTypes: ["measure", "navigation", "resource"] })
+    this.performanceObserver.observe({ entryTypes: ["measure", "resource"] })
   }
 
   private setupEventLoopMonitoring() {
@@ -52,7 +52,7 @@ export class MetricsCollectionService {
     histogram.enable()
 
     setInterval(() => {
-      this.eventLoopDelay = histogram.mean / 1000000 // Convert to milliseconds
+      this.eventLoopDelay = histogram.mean / 1000000 
       histogram.reset()
     }, 1000)
   }
@@ -179,7 +179,7 @@ export class MetricsCollectionService {
   private calculateEventLoopUtilization(): number {
     // Simplified event loop utilization calculation
     // In a real implementation, you might use more sophisticated methods
-    return Math.min(this.eventLoopDelay / 10, 100) // Cap at 100%
+    return Math.min(this.eventLoopDelay / 10, 100) 
   }
 
   // Methods to be called by HTTP interceptors
