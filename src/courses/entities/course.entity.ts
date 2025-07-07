@@ -43,12 +43,6 @@ export class Course {
   @Column({ default: 0 })
   averageRating: number
 
-  @Column({ default: false })
-  isRemoved: boolean;
-
-  @Column({ default: false })
-  isHidden: boolean;
-
   @OneToMany(
     () => Module,
     (module) => module.course,

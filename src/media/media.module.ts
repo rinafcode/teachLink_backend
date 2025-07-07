@@ -17,6 +17,11 @@ import { DocumentProcessingService } from './processing/document-processing.serv
     VideoProcessingService,
     DocumentProcessingService,
   ],
-  exports: [MediaService],
+  exports: [
+    MediaService,
+    FileStorageService,
+    VideoProcessingService,
+    DocumentProcessingService,
+  ],
 })
 export class MediaModule {}

@@ -20,12 +20,6 @@ import { Notification } from './notifications/entities/notification.entity';
 import { PaymentsModule } from './payments/payments.module';
 import { Payment } from './payments/entities/payment.entity';
 import { Subscription } from './payments/entities/subscription.entity';
-import { ModerationModule } from './moderation/moderation.module';
-import { ContentReport } from './moderation/entities/content-report.entity';
-import { ModerationQueue } from './moderation/entities/moderation-queue.entity';
-import { ModerationAction } from './moderation/entities/moderation-action.entity';
-import { SafetyScore } from './moderation/entities/safety-score.entity';
-import { ModerationAnalytics } from './moderation/entities/moderation-analytics.entity';
 
 
 @Module({
@@ -40,7 +34,7 @@ import { ModerationAnalytics } from './moderation/entities/moderation-analytics.
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      entities: [User, Media, UserPreference, CourseInteraction, Notification, Payment, Subscription, ContentReport, ModerationQueue, ModerationAction, SafetyScore, ModerationAnalytics],
+      entities: [User, Media, UserPreference, CourseInteraction, Notification, Payment, Subscription],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
     RateLimitingModule,
@@ -53,7 +47,6 @@ import { ModerationAnalytics } from './moderation/entities/moderation-analytics.
     CoursesModule,
     NotificationsModule,
     PaymentsModule,
-    ModerationModule,
   ],
 })
 export class AppModule {}

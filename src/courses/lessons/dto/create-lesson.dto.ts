@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsObject, IsBoolean } from "class-validator"
+import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsObject } from "class-validator"
 import { LessonType } from "../entities/lesson.entity"
 
 export class CreateLessonDto {
@@ -25,14 +25,6 @@ export class CreateLessonDto {
   @IsOptional()
   @IsNumber()
   duration?: number
-
-  @IsOptional()
-  @IsBoolean()
-  isRemoved?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isHidden?: boolean;
 
   @IsNotEmpty()
   @IsString()
