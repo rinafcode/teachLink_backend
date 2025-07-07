@@ -150,6 +150,17 @@ export class MediaService {
     return this.fileStorageService.getSignedUrl(streamingKey, 3600); // 1 hour expiry
   }
 
+  async update(id: string, updateFields: Partial<Media>): Promise<Media> {
+    const media = await this.mediaRepository.findOne({ where: { id } });
+    if (!media) throw new NotFoundException('Media not found');
+    Object.assign(media, updateFields);
+    return this.mediaRepository.save(media);
+  }
+
+  async findOne(id: string): Promise<Media | null> {
+    return this.mediaRepository.findOne({ where: { id } });
+  }
+
   private async processFile(media: Media, fileBuffer: Buffer): Promise<void> {
     try {
       media.status = MediaStatus.PROCESSING;

@@ -18,6 +18,14 @@ export class CreateCourseDto {
   isPublished?: boolean
 
   @IsOptional()
+  @IsBoolean()
+  isRemoved?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isHidden?: boolean;
+
+  @IsOptional()
   @IsNumber()
   price?: number
 
