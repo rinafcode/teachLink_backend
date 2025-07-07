@@ -35,12 +35,6 @@ export class Lesson {
   @Column({ default: 0 })
   duration: number
 
-  @Column({ default: false })
-  isRemoved: boolean;
-
-  @Column({ default: false })
-  isHidden: boolean;
-
   @ManyToOne(
     () => Module,
     (module) => module.lessons,

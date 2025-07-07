@@ -53,11 +53,4 @@ export class UsersService {
     }
     await this.usersRepository.update(id, { password: hashedPassword });
   }
-
-  async update(id: string, updateFields: Partial<User>): Promise<User> {
-    const user = await this.findById(id);
-    if (!user) throw new NotFoundException('User not found');
-    Object.assign(user, updateFields);
-    return this.usersRepository.save(user);
-  }
 } 

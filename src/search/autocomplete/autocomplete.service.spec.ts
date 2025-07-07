@@ -31,14 +31,13 @@ describe('AutoCompleteService', () => {
         ],
       },
     });
-
     const suggestions = await service.getSuggestions('f');
     expect(suggestions).toEqual(['foo', 'bar']);
     expect(esService.search).toHaveBeenCalled();
   });
 
   it('should throw if elasticsearch fails', async () => {
-    esService.search.mockRejectedValue(new Error('fail'));
-    await expect(service.getSuggestions('fail')).rejects.toThrow();
+    esService.search.mockRejectedValue(new Error('ES error'));
+    await expect(service.getSuggestions('f')).rejects.toThrow();
   });
 }); 

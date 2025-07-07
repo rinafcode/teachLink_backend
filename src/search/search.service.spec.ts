@@ -34,10 +34,7 @@ describe('SearchService', () => {
 
   it('should perform a search and return results', async () => {
     filtersService.buildFilterQuery.mockReturnValue([]);
-    esService.search.mockResolvedValue({
-      hits: { hits: [{ _source: { title: 'Test Course' } }] },
-    });
-
+    esService.search.mockResolvedValue({ hits: { hits: [{ _source: { title: 'Test Course' } }] } });
     const results = await service.search('test', {}, 0, 10);
     expect(results).toEqual([{ title: 'Test Course' }]);
     expect(esService.search).toHaveBeenCalled();
@@ -46,7 +43,6 @@ describe('SearchService', () => {
   it('should throw BadRequestException on search error', async () => {
     filtersService.buildFilterQuery.mockReturnValue([]);
     esService.search.mockRejectedValue(new Error('ES error'));
-
     await expect(service.search('test', {}, 0, 10)).rejects.toThrow(BadRequestException);
   });
 
