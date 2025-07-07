@@ -83,6 +83,12 @@ export class Media {
   @JoinColumn({ name: 'uploadedById' })
   uploadedBy: User;
 
+  @Column({ default: false })
+  isRemoved: boolean;
+
+  @Column({ default: false })
+  isHidden: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

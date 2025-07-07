@@ -36,6 +36,12 @@ export class User {
   @Exclude()
   refreshToken: string;
 
+  @Column({ default: false })
+  isSuspended: boolean;
+
+  @Column({ default: false })
+  isBanned: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
