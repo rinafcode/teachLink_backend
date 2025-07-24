@@ -23,7 +23,6 @@ export class AssetOptimizationService {
         case "webp":
           pipeline = pipeline.webp({
             quality: options.quality || 80,
-            progressive: options.progressive,
             lossless: options.lossless,
           })
           break

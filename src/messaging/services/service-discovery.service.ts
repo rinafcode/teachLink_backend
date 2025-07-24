@@ -6,6 +6,7 @@ import type { ServiceInfo } from "../interfaces/messaging.interfaces"
 import type { HealthCheckService } from "./health-check.service"
 import * as crypto from "crypto"
 import * as os from "os"
+import { LessThan } from 'typeorm';
 
 @Injectable()
 export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
@@ -192,7 +193,7 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     const staleThreshold = new Date(Date.now() - 5 * 60 * 1000) // 5 minutes ago
 
     const result = await this.serviceRegistryRepository.delete({
-      lastHeartbeat: { $lt: staleThreshold },
+      lastHeartbeat: LessThan(staleThreshold),
     })
 
     if (result.affected && result.affected > 0) {
