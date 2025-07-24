@@ -4,6 +4,7 @@ import { Cron, CronExpression } from "@nestjs/schedule"
 import { type ReplicationStatus, ReplicationState } from "../entities/replication-status.entity"
 import type { SyncEvent } from "../entities/sync-event.entity"
 import type { ReplicationConfig } from "../interfaces/sync.interfaces"
+import { MoreThan } from 'typeorm';
 
 @Injectable()
 export class ReplicationService {
@@ -79,7 +80,7 @@ export class ReplicationService {
     })
 
     // Trigger catch-up replication
-    await this.performCatchUpReplication(entityType, sourceRegion, targetRegion)
+    await this.performCatchUpReplicationForTarget(entityType, sourceRegion, targetRegion)
 
     this.logger.log(`Replication resumed for ${entityType} from ${sourceRegion} to ${targetRegion}`)
   }
@@ -134,7 +135,7 @@ export class ReplicationService {
     for (const replication of laggedReplications) {
       if (replication.lagSeconds > 60) {
         // More than 1 minute lag
-        await this.performCatchUpReplication(replication.entityType, replication.sourceRegion, replication.targetRegion)
+        await this.performCatchUpReplicationForTarget(replication.entityType, replication.sourceRegion, replication.targetRegion)
       }
     }
   }
@@ -188,42 +189,34 @@ export class ReplicationService {
     return Math.floor(lagMs / 1000)
   }
 
-  private async performCatchUpReplication(
-    entityType: string,
-    sourceRegion: string,
-    targetRegion: string,
-  ): Promise<void> {
+  private async performCatchUpReplicationForTarget(entityType: string, sourceRegion: string, targetRegion: string): Promise<void> {
     const status = await this.replicationStatusRepository.findOne({
       where: { entityType, sourceRegion, targetRegion },
-    })
-
-    if (!status) return
-
+    });
+    if (!status) return;
     // Get events since last sync
     const missedEvents = await this.syncEventRepository.find({
       where: {
         entityType,
         region: sourceRegion,
-        version: { $gt: status.lastSyncedVersion },
+        version: MoreThan(status.lastSyncedVersion),
       },
       order: { version: "ASC" },
       take: 1000, // Process in batches
-    })
-
+    });
     this.logger.log(
       `Performing catch-up replication: ${missedEvents.length} events for ${entityType} ${sourceRegion}->${targetRegion}`,
-    )
-
+    );
     for (const event of missedEvents) {
       try {
-        await this.replicateToRegion(event, targetRegion, status.configuration as ReplicationConfig)
+        await this.replicateToRegion(event, targetRegion, status.configuration as ReplicationConfig);
         await this.updateReplicationStatus(entityType, sourceRegion, targetRegion, {
           lastSyncedVersion: event.version,
           lastSyncTime: new Date(),
-        })
+        });
       } catch (error) {
-        this.logger.error(`Catch-up replication failed for event ${event.id}: ${error.message}`)
-        break // Stop on first error to maintain order
+        this.logger.error(`Catch-up replication failed for event ${event.id}: ${error.message}`);
+        break; // Stop on first error to maintain order
       }
     }
   }

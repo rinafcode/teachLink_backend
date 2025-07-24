@@ -5,6 +5,8 @@ import { type IntegrityCheck, CheckStatus } from "../entities/integrity-check.en
 import type { ConflictLog } from "../entities/conflict-log.entity"
 import { type SyncEvent, SyncStatus } from "../entities/sync-event.entity"
 import type { DataConsistencyService } from "./data-consistency.service"
+import { MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
+import { ConflictStatus } from '../entities/conflict-log.entity';
 
 export interface IntegrityAlert {
   id: string
@@ -70,10 +72,7 @@ export class IntegrityMonitoringService {
     const whereCondition: any = {}
     if (entityType) whereCondition.entityType = entityType
     if (timeRange) {
-      whereCondition.createdAt = {
-        $gte: timeRange.start,
-        $lte: timeRange.end,
-      }
+      whereCondition.createdAt = Between(timeRange.start, timeRange.end)
     }
 
     // Calculate consistency score
@@ -161,7 +160,7 @@ export class IntegrityMonitoringService {
     const recentFailures = await this.integrityCheckRepository.count({
       where: {
         status: CheckStatus.FAILED,
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }, // Last hour
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)), // Last hour
       },
     })
 
@@ -172,7 +171,7 @@ export class IntegrityMonitoringService {
 
     // Check unresolved conflicts
     const unresolvedConflicts = await this.conflictLogRepository.count({
-      where: { status: "detected" },
+      where: { status: ConflictStatus.DETECTED },
     })
 
     if (unresolvedConflicts > 10) {
@@ -184,7 +183,7 @@ export class IntegrityMonitoringService {
     const failedSyncs = await this.syncEventRepository.count({
       where: {
         status: SyncStatus.FAILED,
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)),
       },
     })
 
@@ -204,7 +203,7 @@ export class IntegrityMonitoringService {
   private async checkConsistencyHealth(): Promise<void> {
     const recentChecks = await this.integrityCheckRepository.find({
       where: {
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }, // Last hour
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)), // Last hour
       },
     })
 
@@ -233,13 +232,14 @@ export class IntegrityMonitoringService {
   private async checkConflictRates(): Promise<void> {
     const recentConflicts = await this.conflictLogRepository.count({
       where: {
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)),
+        status: ConflictStatus.DETECTED,
       },
     })
 
     const recentSyncs = await this.syncEventRepository.count({
       where: {
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)),
       },
     })
 
@@ -267,7 +267,7 @@ export class IntegrityMonitoringService {
   private async checkSyncHealth(): Promise<void> {
     const recentSyncs = await this.syncEventRepository.find({
       where: {
-        createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) },
+        createdAt: MoreThanOrEqual(new Date(Date.now() - 60 * 60 * 1000)),
       },
     })
 

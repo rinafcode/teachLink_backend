@@ -3,7 +3,7 @@ import type { Repository } from "typeorm"
 import {
   type ConflictLog,
   ConflictType,
-  type ResolutionStrategy,
+  ResolutionStrategy,
   ConflictStatus,
 } from "../entities/conflict-log.entity"
 import type { ConflictResolutionConfig, ConflictResolutionResult } from "../interfaces/sync.interfaces"
@@ -21,26 +21,27 @@ export class ConflictResolutionService {
     conflictingData: Record<string, any>,
     config: ConflictResolutionConfig,
   ): Promise<ConflictResolutionResult> {
-    const conflictId = await this.logConflict(entityType, entityId, conflictingData, config.strategy)
+    const strategy = config.strategy as ResolutionStrategy;
+    const conflictId = await this.logConflict(entityType, entityId, conflictingData, strategy)
 
     try {
       let result: ConflictResolutionResult
 
-      switch (config.strategy) {
-        case "last_write_wins":
+      switch (strategy) {
+        case ResolutionStrategy.LAST_WRITE_WINS:
           result = await this.resolveLastWriteWins(conflictingData)
           break
-        case "first_write_wins":
+        case ResolutionStrategy.FIRST_WRITE_WINS:
           result = await this.resolveFirstWriteWins(conflictingData)
           break
-        case "merge":
+        case ResolutionStrategy.MERGE:
           result = await this.resolveMerge(conflictingData, config.mergeFields, config.ignoreFields)
           break
-        case "custom":
+        case ResolutionStrategy.CUSTOM:
           result = await this.resolveCustom(entityType, entityId, conflictingData, config.customResolver)
           break
         default:
-          throw new Error(`Unsupported resolution strategy: ${config.strategy}`)
+          throw new Error(`Unsupported resolution strategy: ${strategy}`)
       }
 
       // Update conflict log
@@ -167,7 +168,7 @@ export class ConflictResolutionService {
 
     return {
       resolved: true,
-      strategy: "last_write_wins",
+      strategy: ResolutionStrategy.LAST_WRITE_WINS,
       resolvedData: latestData,
       reason: `Selected data with latest timestamp: ${latestTimestamp.toISOString()}`,
     }
@@ -190,7 +191,7 @@ export class ConflictResolutionService {
 
     return {
       resolved: true,
-      strategy: "first_write_wins",
+      strategy: ResolutionStrategy.FIRST_WRITE_WINS,
       resolvedData: earliestData,
       reason: `Selected data with earliest timestamp: ${earliestTimestamp.toISOString()}`,
     }
@@ -227,7 +228,7 @@ export class ConflictResolutionService {
 
     return {
       resolved: true,
-      strategy: "merge",
+      strategy: ResolutionStrategy.MERGE,
       resolvedData: baseData,
       reason: "Merged non-conflicting fields and used latest values for conflicts",
     }
@@ -250,14 +251,14 @@ export class ConflictResolutionService {
 
       return {
         resolved: true,
-        strategy: "custom",
+        strategy: ResolutionStrategy.CUSTOM,
         resolvedData,
         reason: `Resolved using custom resolver: ${customResolver || entityType}`,
       }
     } catch (error) {
       return {
         resolved: false,
-        strategy: "custom",
+        strategy: ResolutionStrategy.CUSTOM,
         resolvedData: {},
         reason: `Custom resolver failed: ${error.message}`,
       }

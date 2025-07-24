@@ -28,7 +28,6 @@ export class EventBusService {
       metadata: {
         traceId: traceContext?.traceId || crypto.randomUUID(),
         correlationId: crypto.randomUUID(),
-        ...event.metadata,
       },
     }
 
@@ -78,7 +77,6 @@ export class EventBusService {
         metadata: {
           traceId: traceContext?.traceId || crypto.randomUUID(),
           correlationId: crypto.randomUUID(),
-          ...event.metadata,
         },
       }
 

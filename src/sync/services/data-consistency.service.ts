@@ -3,6 +3,7 @@ import type { Repository } from "typeorm"
 import { Cron, CronExpression } from "@nestjs/schedule"
 import { type IntegrityCheck, CheckType, CheckStatus } from "../entities/integrity-check.entity"
 import type { IntegrityCheckResult } from "../interfaces/sync.interfaces"
+import { MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
 
 @Injectable()
 export class DataConsistencyService {
@@ -48,8 +49,8 @@ export class DataConsistencyService {
         recordsChecked: result.recordsChecked,
         inconsistenciesFound: result.inconsistencies.length,
         details: {
-          errors: result.inconsistencies,
-          warnings: result.warnings,
+          errors: result.inconsistencies.map(e => ({ ...e, source: e.sources[0] || 'unknown' })),
+          warnings: result.warnings.map(w => ({ entityId: '', message: w, source: 'unknown' })),
         },
         endTime: new Date(),
         durationMs: Date.now() - startTime.getTime(),
@@ -269,8 +270,13 @@ export class DataConsistencyService {
   }> {
     const whereCondition: any = {}
     if (entityType) whereCondition.entityType = entityType
-    if (startDate) whereCondition.createdAt = { $gte: startDate }
-    if (endDate) whereCondition.createdAt = { ...whereCondition.createdAt, $lte: endDate }
+    if (startDate && endDate) {
+      whereCondition.createdAt = Between(startDate, endDate)
+    } else if (startDate) {
+      whereCondition.createdAt = MoreThanOrEqual(startDate)
+    } else if (endDate) {
+      whereCondition.createdAt = LessThanOrEqual(endDate)
+    }
 
     const [totalChecks, passedChecks, failedChecks] = await Promise.all([
       this.integrityCheckRepository.count({ where: whereCondition }),
