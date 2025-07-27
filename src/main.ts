@@ -7,6 +7,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 // import { Resource } from '@opentelemetry/resources'; // Not used due to version/type issues
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { PerformanceInterceptor } from './monitoring/interceptors/performance.interceptor';
+import { MetricsCollectionService } from './monitoring/metrics/metrics-collection.service';
 
 async function bootstrap() {
   // OpenTelemetry setup
@@ -27,6 +29,10 @@ async function bootstrap() {
 
   // Enable validation
   app.useGlobalPipes(new ValidationPipe());
+
+  // Apply global performance interceptor for monitoring/logging
+  const metricsCollectionService = app.get(MetricsCollectionService);
+  app.useGlobalInterceptors(new PerformanceInterceptor(metricsCollectionService));
 
   // Configure Swagger
   const config = new DocumentBuilder()
