@@ -20,5 +20,14 @@ export class IndexingService {
     });
   }
 
-  // Add bulk indexing, update, etc. as needed
+  async bulkIndexCourses(courses: any[]) {
+    if (!Array.isArray(courses) || courses.length === 0) return;
+    const body = courses.flatMap(course => [
+      { index: { _index: 'courses', _id: course.id } },
+      course,
+    ]);
+    await this.esService.bulk({ refresh: true, body });
+  }
+
+
 } 

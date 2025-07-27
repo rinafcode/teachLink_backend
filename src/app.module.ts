@@ -22,6 +22,7 @@ import { Payment } from './payments/entities/payment.entity';
 import { Subscription } from './payments/entities/subscription.entity';
 import { APIGatewayModule } from './api-gateway/api-gateway.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { SearchEngineModule } from './search-engine/search-engine.module';
 
 
 @Module({
@@ -51,6 +52,7 @@ import { MessagingModule } from './messaging/messaging.module';
     PaymentsModule,
     MessagingModule,
     APIGatewayModule,
+    SearchEngineModule,
   ],
 })
 export class AppModule {}
