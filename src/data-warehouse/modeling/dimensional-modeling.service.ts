@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '../../users/entities/user.entity';
 
-// Example of a dimension and fact model
+// Example of a dimension and fact models interface
 export interface UserDimension {
   userId: string;
   email: string;
