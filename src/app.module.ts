@@ -23,6 +23,11 @@ import { Subscription } from './payments/entities/subscription.entity';
 import { APIGatewayModule } from './api-gateway/api-gateway.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { SearchEngineModule } from './search-engine/search-engine.module';
+import { ObservabilityModule } from './observability/observability.module';
+import { TraceSpan } from './observability/entities/trace-span.entity';
+import { LogEntry } from './observability/entities/log-entry.entity';
+import { MetricEntry } from './observability/entities/metric-entry.entity';
+import { AnomalyAlert } from './observability/entities/anomaly-alert.entity';
 
 
 @Module({
@@ -37,7 +42,7 @@ import { SearchEngineModule } from './search-engine/search-engine.module';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      entities: [User, Media, UserPreference, CourseInteraction, Notification, Payment, Subscription],
+      entities: [User, Media, UserPreference, CourseInteraction, Notification, Payment, Subscription, TraceSpan, LogEntry, MetricEntry, AnomalyAlert],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
     RateLimitingModule,
@@ -53,6 +58,7 @@ import { SearchEngineModule } from './search-engine/search-engine.module';
     MessagingModule,
     APIGatewayModule,
     SearchEngineModule,
+    ObservabilityModule,
   ],
 })
 export class AppModule {}
