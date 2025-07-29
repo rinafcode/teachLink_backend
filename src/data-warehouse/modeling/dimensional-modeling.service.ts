@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { User } from '../../users/entities/user.entity';
 
-// Example of a dimension and fact models interface
+// Example of a dimension and fact models interfaces in the data-warehouse modeling
 export interface UserDimension {
   userId: string;
   email: string;
