@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 export class DistributedLockService {
   private locks: Set<string> = new Set();
 
-  // Acquire a distributed lock
+  // Acquired a distributed lock
   async acquireLock(resource: string): Promise<boolean> {
     // TODO: Implement distributed lock acquisition
     if (this.locks.has(resource)) return false;
@@ -12,9 +12,9 @@ export class DistributedLockService {
     return true;
   }
 
-  // Release a distributed lock
+  // Released a distributed lock
   async releaseLock(resource: string): Promise<boolean> {
-    // TODO: Implement distributed lock release
+    // TODO: Implemented distributed lock release
     return this.locks.delete(resource);
   }
 } 
