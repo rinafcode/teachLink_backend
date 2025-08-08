@@ -7,11 +7,15 @@ import { AutoScalingService } from './scaling/auto-scaling.service';
 import { LoadBalancingService } from './balancing/load-balancing.service';
 import { DeploymentService } from './deployment/deployment.service';
 import { ContainerMonitoringService } from './monitoring/container-monitoring.service';
+import { ContainersController } from './containers.controller';
 import { Container } from './entities/container.entity';
 import { ContainerCluster } from './entities/container-cluster.entity';
 import { Deployment } from './entities/deployment.entity';
 import { LoadBalancer } from './entities/load-balancer.entity';
 import { ContainerMetrics } from './entities/container-metrics.entity';
+import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
+import { DistributedTracingService } from '../observability/tracing/distributed-tracing.service';
+import { MonitoringInterceptor } from '../common/interceptors/monitoring.interceptor';
 
 @Global()
 @Module({
@@ -62,12 +66,16 @@ import { ContainerMetrics } from './entities/container-metrics.entity';
       }
     ),
   ],
+  controllers: [ContainersController],
   providers: [
     OrchestrationService,
     AutoScalingService,
     LoadBalancingService,
     DeploymentService,
     ContainerMonitoringService,
+    MetricsCollectionService,
+    DistributedTracingService,
+    MonitoringInterceptor,
   ],
   exports: [
     OrchestrationService,

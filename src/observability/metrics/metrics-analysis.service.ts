@@ -117,7 +117,7 @@ export class MetricsAnalysisService {
                 timestamp: { type: 'date' },
                 metricName: { type: 'keyword' },
                 metricType: { type: 'keyword' },
-                value: { type: 'double' },
+                value: { type: 'float' },
                 serviceName: { type: 'keyword' },
                 tags: { type: 'object' },
                 labels: { type: 'object' },
@@ -126,7 +126,7 @@ export class MetricsAnalysisService {
                 userId: { type: 'keyword' },
               },
             },
-          },
+          } as any,
         });
         this.logger.log('Elasticsearch index created for metrics');
       }
@@ -160,7 +160,20 @@ export class MetricsAnalysisService {
     // Index in Elasticsearch
     await this.elasticsearchService.index({
       index: 'metric_entries',
-      body: metricEntry,
+      id: metricEntry.id,
+      body: {
+        timestamp: metricEntry.timestamp,
+        metricName: metricEntry.metricName,
+        metricType: metricEntry.metricType,
+        value: metricEntry.value,
+        serviceName: metricEntry.serviceName,
+        tags: metricEntry.tags,
+        labels: metricEntry.labels,
+        correlationId: metricEntry.correlationId,
+        traceId: metricEntry.traceId,
+        userId: metricEntry.userId,
+        createdAt: metricEntry.createdAt
+      },
     });
 
     this.logger.debug(`Metric recorded: ${name} = ${value}`);
@@ -337,22 +350,38 @@ export class MetricsAnalysisService {
     endTime?: Date;
     services?: string[];
   }): Promise<any[]> {
+    const mustClauses: any[] = [];
+    
+    if (query.text) {
+      mustClauses.push({ match: { metricName: query.text } });
+    }
+    
+    if (query.correlationId) {
+      mustClauses.push({ match: { correlationId: query.correlationId } });
+    }
+    
+    if (query.startTime && query.endTime) {
+      mustClauses.push({ 
+        range: { 
+          timestamp: { 
+            gte: query.startTime, 
+            lte: query.endTime 
+          } 
+        } 
+      });
+    }
+    
+    if (query.services && query.services.length > 0) {
+      mustClauses.push({ terms: { serviceName: query.services } });
+    }
+
+    const searchQuery = mustClauses.length > 0 
+      ? { bool: { must: mustClauses } }
+      : { match_all: {} };
+
     const searchResults = await this.elasticsearchService.search({
       index: 'metric_entries',
-      body: {
-        query: {
-          bool: {
-            must: [
-              query.text ? { match: { metricName: query.text } } : {},
-              query.correlationId ? { match: { correlationId: query.correlationId } } : {},
-              query.startTime && query.endTime
-                ? { range: { timestamp: { gte: query.startTime, lte: query.endTime } } }
-                : {},
-              query.services ? { terms: { serviceName: query.services } } : {},
-            ],
-          },
-        },
-      },
+      query: searchQuery,
     });
     return searchResults.hits.hits;
   }
