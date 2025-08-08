@@ -125,7 +125,7 @@ export class ObservabilityService implements OnModuleInit {
    * Start a new trace span
    */
   async startSpan(operationName: string, parentSpanId?: string, tags?: Record<string, any>) {
-    return this.tracingService.startSpan(operationName, parentSpanId, tags);
+    return this.tracingService.startSpan({ operationName, parentSpanId, tags });
   }
 
   /**

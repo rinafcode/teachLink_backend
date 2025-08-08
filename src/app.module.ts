@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import configuration from './config/configuration';
 import { appConfigSchema } from './config/appConfigSchema'; 
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
@@ -28,12 +29,17 @@ import { TraceSpan } from './observability/entities/trace-span.entity';
 import { LogEntry } from './observability/entities/log-entry.entity';
 import { MetricEntry } from './observability/entities/metric-entry.entity';
 import { AnomalyAlert } from './observability/entities/anomaly-alert.entity';
-
+import { ContainerModule } from './containers/container.module';
+import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { CachingModule } from './caching/caching.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [configuration],
+      validationSchema: appConfigSchema,
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -42,8 +48,21 @@ import { AnomalyAlert } from './observability/entities/anomaly-alert.entity';
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      entities: [User, Media, UserPreference, CourseInteraction, Notification, Payment, Subscription, TraceSpan, LogEntry, MetricEntry, AnomalyAlert],
+      entities: [
+        User, 
+        Media, 
+        UserPreference, 
+        CourseInteraction, 
+        Notification, 
+        Payment, 
+        Subscription, 
+        TraceSpan, 
+        LogEntry, 
+        MetricEntry, 
+        AnomalyAlert
+      ],
       synchronize: process.env.NODE_ENV !== 'production',
+      logging: process.env.NODE_ENV === 'development',
     }),
     RateLimitingModule,
     SecurityModule,
@@ -59,6 +78,15 @@ import { AnomalyAlert } from './observability/entities/anomaly-alert.entity';
     APIGatewayModule,
     SearchEngineModule,
     ObservabilityModule,
+    ContainerModule,
+    MonitoringModule,
+    CachingModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MonitoringInterceptor,
+    },
   ],
 })
 export class AppModule {}

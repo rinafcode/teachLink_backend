@@ -18,9 +18,9 @@ export class DeploymentService {
 
   async deployNewVersion(containerId: string, newImageTag: string): Promise<void> {
     try {
-      const container = await this.containerRepository.findOne(containerId);
+      const container = await this.containerRepository.findOne({ where: { id: containerId } });
       if (container) {
-        container.imageTag = newImageTag;
+        container.tag = newImageTag;
         await this.containerRepository.save(container);
         await this.deploymentQueue.add('deploy-version', { containerId, newImageTag });
         this.logger.log(`Deployed new version for container: ${container.name}`);

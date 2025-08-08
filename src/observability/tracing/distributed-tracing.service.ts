@@ -6,7 +6,6 @@ import * as os from 'os';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository, Between } from 'typeorm';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
-import { ResourceAttributes } from '@opentelemetry/semantic-conventions';
 import {
   trace,
   Tracer,
@@ -15,7 +14,6 @@ import {
   SpanKind,
   SpanStatusCode,
   context as otelContext,
-  ROOT_SPAN,
   SpanOptions,
   SpanAttributes,
 } from '@opentelemetry/api';
@@ -65,10 +63,6 @@ export class DistributedTracingService {
     'http://localhost:4317'); // Set your OpenTelemetry Collector endpoint
 
     this.sdk = new NodeSDK({
-      // Configure the OpenTelemetry Prometheus exporter
-      metricsExporter: new PrometheusExporter({
-        port: 9464,
-      }),
       // Configure OpenTelemetry's span processor
       spanProcessor: new SimpleSpanProcessor(
         new (class implements SpanExporter {
@@ -77,7 +71,7 @@ export class DistributedTracingService {
             console.log('Exporting spans:', spans);
             resultCallback({ code: 0 }); // OK status
           }
-          shutdown(): void {
+          async shutdown(): Promise<void> {
             // Implement shutdown logic if needed
           }
         })(),
@@ -122,7 +116,7 @@ export class DistributedTracingService {
     }
 
     try {
-      const parentSpan = ROOT_SPAN;
+      const parentSpan = trace.getActiveSpan();
       const spanOptions: SpanOptions = {
         kind: SpanKind.CLIENT,
         attributes: {
@@ -132,9 +126,9 @@ export class DistributedTracingService {
       };
       const span = this.tracer.startSpan(operationName, spanOptions, ROOT_CONTEXT);
       
-      span.setAttribute(ResourceAttributes.SERVICE_NAME, this.configService.get<string>('OBSERVABILITY_SERVICE_NAME') ?? os.hostname());
-      span.setAttribute(ResourceAttributes.SERVICE_VERSION, this.configService.get<string>('OBSERVABILITY_VERSION'));
-      span.setAttribute(ResourceAttributes.DEPLOYMENT_ENVIRONMENT, this.configService.get<string>('NODE_ENV'));
+      span.setAttribute('service.name', this.configService.get<string>('OBSERVABILITY_SERVICE_NAME') ?? os.hostname());
+      span.setAttribute('service.version', this.configService.get<string>('OBSERVABILITY_VERSION'));
+      span.setAttribute('deployment.environment', this.configService.get<string>('NODE_ENV'));
       span.addEvent(`span started - ${operationName}`);
 
       // Complete other OpenTelemetry trace setup activities...
@@ -214,23 +208,42 @@ export class DistributedTracingService {
     endTime?: Date;
     services?: string[];
   }): Promise<any[]> {
+    const mustClauses: any[] = [];
+    
+    if (query.text) {
+      mustClauses.push({ match: { message: query.text } });
+    }
+    
+    if (query.correlationId) {
+      mustClauses.push({ match: { correlationId: query.correlationId } });
+    }
+    
+    if (query.traceId) {
+      mustClauses.push({ match: { traceId: query.traceId } });
+    }
+    
+    if (query.startTime && query.endTime) {
+      mustClauses.push({ 
+        range: { 
+          timestamp: { 
+            gte: query.startTime, 
+            lte: query.endTime 
+          } 
+        } 
+      });
+    }
+    
+    if (query.services && query.services.length > 0) {
+      mustClauses.push({ terms: { serviceName: query.services } });
+    }
+
+    const searchQuery = mustClauses.length > 0 
+      ? { bool: { must: mustClauses } }
+      : { match_all: {} };
+
     const searchResults = await this.elasticsearchService.search({
       index: 'trace_spans',
-      body: {
-        query: {
-          bool: {
-            must: [
-              query.text ? { match: { message: query.text } } : {},
-              query.correlationId ? { match: { correlationId: query.correlationId } } : {},
-              query.traceId ? { match: { traceId: query.traceId } } : {},
-              query.startTime && query.endTime
-                ? { range: { timestamp: { gte: query.startTime, lte: query.endTime } } }
-                : {},
-              query.services ? { terms: { serviceName: query.services } } : {},
-            ],
-          },
-        },
-      },
+      query: searchQuery,
     });
     return searchResults.hits.hits;
   }
