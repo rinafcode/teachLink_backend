@@ -29,10 +29,16 @@ import { TraceSpan } from './observability/entities/trace-span.entity';
 import { LogEntry } from './observability/entities/log-entry.entity';
 import { MetricEntry } from './observability/entities/metric-entry.entity';
 import { AnomalyAlert } from './observability/entities/anomaly-alert.entity';
+import { MLModel } from './ml-models/entities/ml-model.entity';
+import { ModelVersion } from './ml-models/entities/model-version.entity';
+import { ModelDeployment } from './ml-models/entities/model-deployment.entity';
+import { ModelPerformance } from './ml-models/entities/model-performance.entity';
+import { ABTest } from './ml-models/entities/ab-test.entity';
 import { ContainerModule } from './containers/container.module';
 import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { CachingModule } from './caching/caching.module';
+import { MLModelsModule } from './ml-models/ml-models.module';
 
 @Module({
   imports: [
@@ -59,7 +65,12 @@ import { CachingModule } from './caching/caching.module';
         TraceSpan, 
         LogEntry, 
         MetricEntry, 
-        AnomalyAlert
+        AnomalyAlert,
+        MLModel,
+        ModelVersion,
+        ModelDeployment,
+        ModelPerformance,
+        ABTest
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
@@ -81,6 +92,7 @@ import { CachingModule } from './caching/caching.module';
     ContainerModule,
     MonitoringModule,
     CachingModule,
+    MLModelsModule,
   ],
   providers: [
     {
