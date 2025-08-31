@@ -17,7 +17,10 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:ml-models": "jest src/ml-models --maxWorkers=1 --max-old-space-size=2048",
+    "test:ml-models-basic": "jest src/ml-models/ml-models.service.basic.spec.ts --maxWorkers=1 --max-old-space-size=2048",
+    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.0.3",
@@ -111,22 +114,5 @@
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.3"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }

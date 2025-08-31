@@ -1,493 +1,617 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModelDeployment } from '../entities/model-deployment.entity';
-import { DeploymentStatus, DeploymentEnvironment } from '../enums';
 import { MLModel } from '../entities/ml-model.entity';
 import { ModelVersion } from '../entities/model-version.entity';
+import { DeploymentStatus, DeploymentEnvironment } from '../enums';
 import { DeployModelDto } from '../dto/deploy-model.dto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ModelDeploymentService {
+  private readonly logger = new Logger(ModelDeploymentService.name);
+  private readonly DEPLOYMENT_BASE_PATH = './deployments';
+  private readonly HEALTH_CHECK_INTERVAL = 30000; // 30 seconds
+  private readonly MAX_ROLLBACK_ATTEMPTS = 3;
+
   constructor(
     @InjectRepository(ModelDeployment)
     private readonly deploymentRepository: Repository<ModelDeployment>,
+    @InjectRepository(MLModel)
+    private readonly modelRepository: Repository<MLModel>,
+    @InjectRepository(ModelVersion)
+    private readonly versionRepository: Repository<ModelVersion>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async deployModel(
     model: MLModel,
     version: ModelVersion,
-    deployment: ModelDeployment,
     deployModelDto: DeployModelDto,
-  ): Promise<any> {
+  ): Promise<ModelDeployment> {
+    const deploymentId = crypto.randomUUID();
+    
     try {
-      // Update deployment status to deploying
-      deployment.status = DeploymentStatus.DEPLOYING;
-      await this.deploymentRepository.save(deployment);
+      this.logger.log(`Starting deployment for model ${model.id}, version ${version.id}`);
+      
+      // Validate deployment prerequisites
+      await this.validateDeploymentPrerequisites(model, version, deployModelDto);
 
-      // Generate deployment configuration
-      const deploymentConfig = this.generateDeploymentConfig(model, version, deployModelDto);
+      // Create deployment record
+      const deployment = this.deploymentRepository.create({
+        id: deploymentId,
+        modelId: model.id,
+        versionId: version.id,
+        environment: deployModelDto.environment || DeploymentEnvironment.STAGING,
+        status: DeploymentStatus.DEPLOYING,
+        deploymentConfig: deployModelDto.deploymentConfig || {},
+        healthCheckConfig: deployModelDto.healthCheckConfig || this.getDefaultHealthCheckConfig(),
+        scalingConfig: deployModelDto.scalingConfig || this.getDefaultScalingConfig(),
+        monitoringConfig: deployModelDto.monitoringConfig || this.getDefaultMonitoringConfig(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-      // Create deployment infrastructure
-      const infrastructureResult = await this.createDeploymentInfrastructure(deploymentConfig);
+      const savedDeployment = await this.deploymentRepository.save(deployment);
 
-      // Deploy model artifacts
-      const artifactResult = await this.deployModelArtifacts(version, deploymentConfig);
+      // Emit deployment started event
+      this.eventEmitter.emit('deployment.started', {
+        deploymentId,
+        modelId: model.id,
+        versionId: version.id,
+        environment: deployment.environment,
+      });
 
-      // Configure model serving
-      const servingResult = await this.configureModelServing(model, version, deploymentConfig);
+      // Perform deployment
+      const deploymentResult = await this.performDeployment(deployment, model, version, deployModelDto);
 
-      // Set up monitoring and health checks
-      const monitoringResult = await this.setupMonitoring(deployment, deploymentConfig);
+      // Update deployment status
+      deployment.status = DeploymentStatus.ACTIVE;
+      deployment.deployedAt = new Date();
+      deployment.endpoint = deploymentResult.endpoint;
+      deployment.deploymentLogs = deploymentResult.logs;
+      deployment.updatedAt = new Date();
 
-      // Generate endpoint URLs
-      const endpoint = this.generateEndpoint(deployment.id, deploymentConfig.environment);
-      const serviceUrl = this.generateServiceUrl(deployment.id, deploymentConfig.environment);
+      const finalDeployment = await this.deploymentRepository.save(deployment);
 
-      return {
-        endpoint,
-        serviceUrl,
-        deploymentConfig,
-        infrastructureResult,
-        artifactResult,
-        servingResult,
-        monitoringResult,
-      };
+      // Start health monitoring
+      this.startHealthMonitoring(deployment);
+
+      // Emit deployment completed event
+      this.eventEmitter.emit('deployment.completed', {
+        deploymentId,
+        modelId: model.id,
+        versionId: version.id,
+        endpoint: deploymentResult.endpoint,
+      });
+
+      // Update model status
+      await this.updateModelDeploymentStatus(model.id, true);
+
+      this.logger.log(`Deployment completed for model ${model.id}, version ${version.id}`);
+      return finalDeployment;
+
     } catch (error) {
       // Update deployment status to failed
-      deployment.status = DeploymentStatus.FAILED;
-      deployment.failureReason = error.message;
-      await this.deploymentRepository.save(deployment);
+      await this.updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, error.message);
+      
+      this.logger.error(`Deployment failed for model ${model.id}: ${error.message}`, error.stack);
+      throw new BadRequestException(`Deployment failed: ${error.message}`);
+    }
+  }
+
+  async rollbackToVersion(
+    model: MLModel,
+    version: ModelVersion,
+  ): Promise<ModelDeployment> {
+    try {
+      this.logger.log(`Starting rollback for model ${model.id} to version ${version.id}`);
+
+      // Get current active deployment
+      const currentDeployment = await this.deploymentRepository.findOne({
+        where: { 
+          modelId: model.id, 
+          status: DeploymentStatus.ACTIVE 
+        },
+        order: { deployedAt: 'DESC' }
+      });
+
+      if (!currentDeployment) {
+        throw new NotFoundException('No active deployment found for rollback');
+      }
+
+      // Validate rollback version
+      if (currentDeployment.versionId === version.id) {
+        throw new BadRequestException('Cannot rollback to the same version');
+      }
+
+      // Perform zero-downtime rollback
+      const rollbackDeployment = await this.performZeroDowntimeRollback(
+        currentDeployment,
+        version,
+        model
+      );
+
+      this.logger.log(`Rollback completed for model ${model.id} to version ${version.id}`);
+      return rollbackDeployment;
+
+    } catch (error) {
+      this.logger.error(`Rollback failed for model ${model.id}: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  async rollbackModel(
-    currentDeployment: ModelDeployment,
-    rollbackDeployment: ModelDeployment,
-  ): Promise<void> {
+  async undeployModel(modelId: string, deploymentId?: string): Promise<void> {
     try {
-      // Update current deployment status
-      currentDeployment.status = DeploymentStatus.ROLLED_BACK;
-      currentDeployment.rolledBackAt = new Date();
-      await this.deploymentRepository.save(currentDeployment);
+      let deployment: ModelDeployment;
 
-      // Activate rollback deployment
-      rollbackDeployment.status = DeploymentStatus.ACTIVE;
-      rollbackDeployment.activatedAt = new Date();
-      await this.deploymentRepository.save(rollbackDeployment);
+      if (deploymentId) {
+        deployment = await this.deploymentRepository.findOne({
+          where: { id: deploymentId, modelId }
+        });
+      } else {
+        deployment = await this.deploymentRepository.findOne({
+          where: { modelId, status: DeploymentStatus.ACTIVE },
+          order: { deployedAt: 'DESC' }
+        });
+      }
 
-      // Perform infrastructure rollback
-      await this.rollbackInfrastructure(currentDeployment, rollbackDeployment);
+      if (!deployment) {
+        throw new NotFoundException('No deployment found to undeploy');
+      }
 
-      // Update routing to point to rollback deployment
-      await this.updateRouting(rollbackDeployment);
+      // Perform undeployment
+      await this.performUndeployment(deployment);
 
-      // Verify rollback success
-      await this.verifyRollback(rollbackDeployment);
-    } catch (error) {
-      throw new BadRequestException(`Rollback failed: ${error.message}`);
-    }
-  }
-
-  async getDeployment(deploymentId: string): Promise<ModelDeployment> {
-    const deployment = await this.deploymentRepository.findOne({
-      where: { id: deploymentId },
-      relations: ['model', 'version'],
-    });
-
-    if (!deployment) {
-      throw new NotFoundException(`Deployment with ID ${deploymentId} not found`);
-    }
-
-    return deployment;
-  }
-
-  async getModelDeployments(
-    modelId: string,
-    environment?: DeploymentEnvironment,
-    status?: DeploymentStatus,
-  ): Promise<ModelDeployment[]> {
-    const query = this.deploymentRepository.createQueryBuilder('deployment')
-      .where('deployment.modelId = :modelId', { modelId })
-      .orderBy('deployment.createdAt', 'DESC');
-
-    if (environment) {
-      query.andWhere('deployment.environment = :environment', { environment });
-    }
-
-    if (status) {
-      query.andWhere('deployment.status = :status', { status });
-    }
-
-    return await query.getMany();
-  }
-
-  async updateDeployment(
-    deploymentId: string,
-    updates: Partial<ModelDeployment>,
-  ): Promise<ModelDeployment> {
-    const deployment = await this.getDeployment(deploymentId);
-    
-    Object.assign(deployment, updates);
-    return await this.deploymentRepository.save(deployment);
-  }
-
-  async scaleDeployment(
-    deploymentId: string,
-    replicas: number,
-  ): Promise<ModelDeployment> {
-    const deployment = await this.getDeployment(deploymentId);
-    
-    if (deployment.status !== DeploymentStatus.ACTIVE) {
-      throw new BadRequestException('Can only scale active deployments');
-    }
-
-    // Update scaling configuration
-    const scalingConfig = deployment.scalingConfig || {};
-    scalingConfig.minReplicas = replicas;
-    scalingConfig.maxReplicas = replicas * 2;
-
-    deployment.scalingConfig = scalingConfig;
-    
-    // Apply scaling to infrastructure
-    await this.applyScaling(deployment, replicas);
-    
-    return await this.deploymentRepository.save(deployment);
-  }
-
-  async healthCheck(deploymentId: string): Promise<any> {
-    const deployment = await this.getDeployment(deploymentId);
-    
-    if (!deployment.serviceUrl) {
-      throw new BadRequestException('Deployment has no service URL');
-    }
-
-    try {
-      // Perform health check
-      const healthResult = await this.performHealthCheck(deployment);
-      
-      // Update deployment metrics
-      deployment.performanceMetrics = {
-        ...deployment.performanceMetrics,
-        lastHealthCheck: new Date(),
-        healthStatus: healthResult.status,
-        responseTime: healthResult.responseTime,
-      };
-      
+      // Update deployment status
+      deployment.status = DeploymentStatus.UNDEPLOYED;
+      deployment.undeployedAt = new Date();
+      deployment.updatedAt = new Date();
       await this.deploymentRepository.save(deployment);
-      
-      return healthResult;
+
+      // Update model status
+      await this.updateModelDeploymentStatus(modelId, false);
+
+      // Emit undeployment event
+      this.eventEmitter.emit('deployment.undeployed', {
+        deploymentId: deployment.id,
+        modelId,
+        versionId: deployment.versionId,
+      });
+
+      this.logger.log(`Undeployment completed for model ${modelId}`);
+
     } catch (error) {
-      // Update deployment with failed health check
-      deployment.performanceMetrics = {
-        ...deployment.performanceMetrics,
-        lastHealthCheck: new Date(),
-        healthStatus: 'unhealthy',
-        error: error.message,
-      };
-      
-      await this.deploymentRepository.save(deployment);
-      
+      this.logger.error(`Undeployment failed for model ${modelId}: ${error.message}`, error.stack);
       throw error;
     }
   }
 
-  async getDeploymentMetrics(deploymentId: string, timeRange: string = '24h'): Promise<any> {
-    const deployment = await this.getDeployment(deploymentId);
-    
-    // Collect metrics from monitoring system
-    const metrics = await this.collectDeploymentMetrics(deployment, timeRange);
-    
-    return {
-      deploymentId,
-      timeRange,
-      metrics,
-      summary: this.calculateMetricsSummary(metrics),
-    };
+  async getDeploymentStatus(deploymentId: string): Promise<any> {
+    try {
+      const deployment = await this.deploymentRepository.findOne({
+        where: { id: deploymentId },
+        relations: ['model', 'version']
+      });
+
+      if (!deployment) {
+        throw new NotFoundException(`Deployment ${deploymentId} not found`);
+      }
+
+      const healthStatus = await this.checkDeploymentHealth(deployment);
+      const metrics = await this.getDeploymentMetrics(deployment);
+
+      return {
+        deployment,
+        health: healthStatus,
+        metrics,
+        uptime: this.calculateUptime(deployment),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get deployment status ${deploymentId}: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
-  private generateDeploymentConfig(
+  async scaleDeployment(deploymentId: string, scalingConfig: any): Promise<ModelDeployment> {
+    try {
+      const deployment = await this.deploymentRepository.findOne({
+        where: { id: deploymentId }
+      });
+
+      if (!deployment) {
+        throw new NotFoundException(`Deployment ${deploymentId} not found`);
+      }
+
+      if (deployment.status !== DeploymentStatus.ACTIVE) {
+        throw new BadRequestException('Can only scale active deployments');
+      }
+
+      // Perform scaling
+      await this.performScaling(deployment, scalingConfig);
+
+      // Update deployment configuration
+      deployment.scalingConfig = { ...deployment.scalingConfig, ...scalingConfig };
+      deployment.updatedAt = new Date();
+      
+      const updatedDeployment = await this.deploymentRepository.save(deployment);
+
+      this.eventEmitter.emit('deployment.scaled', {
+        deploymentId,
+        scalingConfig,
+      });
+
+      return updatedDeployment;
+    } catch (error) {
+      this.logger.error(`Failed to scale deployment ${deploymentId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async getDeploymentHistory(modelId: string, limit: number = 10): Promise<ModelDeployment[]> {
+    try {
+      return await this.deploymentRepository.find({
+        where: { modelId },
+        order: { deployedAt: 'DESC' },
+        take: limit,
+        relations: ['version'],
+      });
+    } catch (error) {
+      this.logger.error(`Failed to get deployment history for model ${modelId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  // Private helper methods
+  private async validateDeploymentPrerequisites(
     model: MLModel,
     version: ModelVersion,
     deployModelDto: DeployModelDto,
-  ): any {
-    const baseConfig = {
-      modelId: model.id,
-      versionId: version.id,
-      modelType: model.type,
-      framework: model.framework,
-      environment: deployModelDto.environment,
-      replicas: deployModelDto.deploymentConfig?.replicas || 1,
-      resources: deployModelDto.deploymentConfig?.resources || {
-        cpu: '500m',
-        memory: '1Gi',
-      },
-      autoscaling: deployModelDto.deploymentConfig?.autoscaling || {
-        minReplicas: 1,
-        maxReplicas: 5,
-        targetCPUUtilization: 70,
-      },
-      healthCheck: deployModelDto.healthCheckConfig || {
-        path: '/health',
-        initialDelaySeconds: 30,
-        periodSeconds: 10,
-        timeoutSeconds: 5,
-        failureThreshold: 3,
-      },
-    };
-
-    // Add environment-specific configurations
-    if (deployModelDto.environment === DeploymentEnvironment.PRODUCTION) {
-      baseConfig.replicas = Math.max(baseConfig.replicas, 2);
-      baseConfig.autoscaling.minReplicas = 2;
-      baseConfig.autoscaling.maxReplicas = 10;
+  ): Promise<void> {
+    // Check if model is trained
+    if (model.status !== 'TRAINED') {
+      throw new BadRequestException('Model must be trained before deployment');
     }
 
-    return baseConfig;
-  }
-
-  private async createDeploymentInfrastructure(config: any): Promise<any> {
-    // This is a simplified implementation
-    // In a real scenario, you would integrate with Kubernetes, AWS, or other cloud providers
-    
-    const infrastructure = {
-      namespace: `ml-models-${config.environment}`,
-      deployment: {
-        name: `model-${config.modelId}-${config.versionId}`,
-        replicas: config.replicas,
-        resources: config.resources,
-      },
-      service: {
-        name: `service-${config.modelId}-${config.versionId}`,
-        port: 8080,
-        targetPort: 8080,
-      },
-      ingress: {
-        name: `ingress-${config.modelId}-${config.versionId}`,
-        host: `${config.modelId}.${config.environment}.ml.example.com`,
-      },
-    };
-
-    // Simulate infrastructure creation
-    await this.simulateInfrastructureCreation(infrastructure);
-
-    return infrastructure;
-  }
-
-  private async deployModelArtifacts(version: ModelVersion, config: any): Promise<any> {
-    if (!version.artifactPath) {
-      throw new BadRequestException('No model artifacts found for deployment');
+    // Check if version is ready
+    if (version.status !== 'READY') {
+      throw new BadRequestException('Version must be ready before deployment');
     }
 
-    // Load model artifacts
-    const artifactPath = path.join(process.cwd(), 'artifacts', version.artifactPath);
-    const modelData = await fs.readFile(artifactPath);
+    // Check for conflicting deployments
+    const activeDeployment = await this.deploymentRepository.findOne({
+      where: { 
+        modelId: model.id, 
+        environment: deployModelDto.environment,
+        status: DeploymentStatus.ACTIVE 
+      }
+    });
 
-    // Deploy artifacts to serving infrastructure
-    const artifactDeployment = {
-      modelPath: `/models/${config.modelId}/${version.version}`,
-      modelSize: modelData.length,
-      modelHash: version.modelHash,
-      deployedAt: new Date(),
-    };
+    if (activeDeployment && !deployModelDto.force) {
+      throw new BadRequestException(
+        `Active deployment exists in ${deployModelDto.environment} environment. Use force=true to override.`
+      );
+    }
 
-    // Simulate artifact deployment
-    await this.simulateArtifactDeployment(artifactDeployment);
-
-    return artifactDeployment;
+    // Validate deployment configuration
+    this.validateDeploymentConfig(deployModelDto.deploymentConfig);
   }
 
-  private async configureModelServing(
+  private validateDeploymentConfig(config: any): void {
+    if (config?.resources) {
+      if (config.resources.memory && config.resources.memory < 512) {
+        throw new BadRequestException('Minimum memory requirement is 512MB');
+      }
+      if (config.resources.cpu && config.resources.cpu < 0.5) {
+        throw new BadRequestException('Minimum CPU requirement is 0.5 cores');
+      }
+    }
+  }
+
+  private async performDeployment(
+    deployment: ModelDeployment,
     model: MLModel,
     version: ModelVersion,
-    config: any,
+    deployModelDto: DeployModelDto,
   ): Promise<any> {
-    const servingConfig = {
-      modelType: model.type,
-      framework: model.framework,
-      inputSchema: model.features,
-      outputSchema: model.targetVariable,
-      preprocessing: this.generatePreprocessingConfig(model),
-      postprocessing: this.generatePostprocessingConfig(model),
-      batching: {
-        enabled: true,
-        maxBatchSize: 32,
-        timeoutMs: 1000,
-      },
+    // Simulate deployment process
+    const deploymentSteps = [
+      'Preparing deployment environment',
+      'Copying model artifacts',
+      'Starting model service',
+      'Configuring load balancer',
+      'Running health checks',
+      'Activating deployment'
+    ];
+
+    const logs = [];
+    const startTime = Date.now();
+
+    for (const step of deploymentSteps) {
+      logs.push(`[${new Date().toISOString()}] ${step}`);
+      await this.simulateDeploymentStep(step);
+    }
+
+    const endpoint = this.generateEndpoint(deployment.id, deployModelDto.environment);
+    
+    return {
+      endpoint,
+      logs,
+      deploymentTime: Date.now() - startTime,
     };
-
-    // Simulate serving configuration
-    await this.simulateServingConfiguration(servingConfig);
-
-    return servingConfig;
   }
 
-  private async setupMonitoring(deployment: ModelDeployment, config: any): Promise<any> {
-    const monitoringConfig = {
-      metrics: [
-        'request_count',
-        'request_latency',
-        'error_rate',
-        'model_accuracy',
-        'prediction_drift',
-      ],
-      alerts: [
-        {
-          name: 'high_error_rate',
-          condition: 'error_rate > 0.05',
-          severity: 'critical',
-        },
-        {
-          name: 'high_latency',
-          condition: 'request_latency > 1000ms',
-          severity: 'warning',
-        },
-        {
-          name: 'model_drift',
-          condition: 'prediction_drift > 0.1',
-          severity: 'critical',
-        },
-      ],
-      dashboards: [
-        {
-          name: 'model_performance',
-          metrics: ['request_count', 'request_latency', 'error_rate'],
-        },
-        {
-          name: 'model_quality',
-          metrics: ['model_accuracy', 'prediction_drift'],
-        },
-      ],
-    };
-
-    // Simulate monitoring setup
-    await this.simulateMonitoringSetup(monitoringConfig);
-
-    return monitoringConfig;
-  }
-
-  private generateEndpoint(deploymentId: string, environment: string): string {
-    return `https://api.${environment}.ml.example.com/v1/models/${deploymentId}`;
-  }
-
-  private generateServiceUrl(deploymentId: string, environment: string): string {
-    return `https://${deploymentId}.${environment}.ml.example.com`;
-  }
-
-  private async rollbackInfrastructure(
+  private async performZeroDowntimeRollback(
     currentDeployment: ModelDeployment,
-    rollbackDeployment: ModelDeployment,
+    targetVersion: ModelVersion,
+    model: MLModel,
+  ): Promise<ModelDeployment> {
+    const rollbackId = crypto.randomUUID();
+    
+    try {
+      // Create new deployment with target version
+      const rollbackDeployment = this.deploymentRepository.create({
+        id: rollbackId,
+        modelId: model.id,
+        versionId: targetVersion.id,
+        environment: currentDeployment.environment,
+        status: DeploymentStatus.DEPLOYING,
+        deploymentConfig: currentDeployment.deploymentConfig,
+        healthCheckConfig: currentDeployment.healthCheckConfig,
+        scalingConfig: currentDeployment.scalingConfig,
+        monitoringConfig: currentDeployment.monitoringConfig,
+        isRollback: true,
+        rollbackFromDeploymentId: currentDeployment.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const savedRollbackDeployment = await this.deploymentRepository.save(rollbackDeployment);
+
+      // Perform blue-green deployment
+      await this.performBlueGreenDeployment(currentDeployment, savedRollbackDeployment, model, targetVersion);
+
+      // Update deployment status
+      savedRollbackDeployment.status = DeploymentStatus.ACTIVE;
+      savedRollbackDeployment.deployedAt = new Date();
+      savedRollbackDeployment.endpoint = currentDeployment.endpoint; // Keep same endpoint
+      savedRollbackDeployment.updatedAt = new Date();
+
+      const finalRollbackDeployment = await this.deploymentRepository.save(savedRollbackDeployment);
+
+      // Mark old deployment as inactive
+      currentDeployment.status = DeploymentStatus.INACTIVE;
+      currentDeployment.updatedAt = new Date();
+      await this.deploymentRepository.save(currentDeployment);
+
+      // Start health monitoring for new deployment
+      this.startHealthMonitoring(finalRollbackDeployment);
+
+      this.eventEmitter.emit('deployment.rollback.completed', {
+        rollbackDeploymentId: rollbackId,
+        originalDeploymentId: currentDeployment.id,
+        modelId: model.id,
+        targetVersionId: targetVersion.id,
+      });
+
+      return finalRollbackDeployment;
+
+    } catch (error) {
+      // Rollback failed - attempt to restore original deployment
+      await this.attemptRollbackRecovery(currentDeployment, error.message);
+      throw error;
+    }
+  }
+
+  private async performBlueGreenDeployment(
+    blueDeployment: ModelDeployment,
+    greenDeployment: ModelDeployment,
+    model: MLModel,
+    targetVersion: ModelVersion,
   ): Promise<void> {
-    // Simulate infrastructure rollback
-    await this.simulateInfrastructureRollback(currentDeployment, rollbackDeployment);
+    // Simulate blue-green deployment process
+    const steps = [
+      'Deploying green environment',
+      'Running health checks on green environment',
+      'Switching traffic to green environment',
+      'Verifying green environment stability',
+      'Decommissioning blue environment'
+    ];
+
+    for (const step of steps) {
+      await this.simulateDeploymentStep(step);
+      
+      // Simulate health check
+      const isHealthy = await this.simulateHealthCheck(greenDeployment);
+      if (!isHealthy && step.includes('health checks')) {
+        throw new Error('Health check failed during blue-green deployment');
+      }
+    }
   }
 
-  private async updateRouting(rollbackDeployment: ModelDeployment): Promise<void> {
-    // Simulate routing update
-    await this.simulateRoutingUpdate(rollbackDeployment);
+  private async attemptRollbackRecovery(
+    originalDeployment: ModelDeployment,
+    errorMessage: string,
+  ): Promise<void> {
+    this.logger.warn(`Attempting rollback recovery for deployment ${originalDeployment.id}`);
+    
+    try {
+      // Attempt to restore original deployment
+      originalDeployment.status = DeploymentStatus.ACTIVE;
+      originalDeployment.updatedAt = new Date();
+      await this.deploymentRepository.save(originalDeployment);
+      
+      this.logger.log(`Rollback recovery successful for deployment ${originalDeployment.id}`);
+    } catch (recoveryError) {
+      this.logger.error(`Rollback recovery failed: ${recoveryError.message}`, recoveryError.stack);
+    }
   }
 
-  private async verifyRollback(rollbackDeployment: ModelDeployment): Promise<void> {
-    // Simulate rollback verification
-    await this.simulateRollbackVerification(rollbackDeployment);
+  private async performUndeployment(deployment: ModelDeployment): Promise<void> {
+    const steps = [
+      'Stopping model service',
+      'Removing from load balancer',
+      'Cleaning up resources',
+      'Updating DNS records'
+    ];
+
+    for (const step of steps) {
+      await this.simulateDeploymentStep(step);
+    }
   }
 
-  private async applyScaling(deployment: ModelDeployment, replicas: number): Promise<void> {
-    // Simulate scaling application
-    await this.simulateScaling(deployment, replicas);
+  private async performScaling(deployment: ModelDeployment, scalingConfig: any): Promise<void> {
+    const steps = [
+      'Analyzing current load',
+      'Calculating required resources',
+      'Scaling up/down instances',
+      'Updating load balancer configuration',
+      'Verifying scaling operation'
+    ];
+
+    for (const step of steps) {
+      await this.simulateDeploymentStep(step);
+    }
   }
 
-  private async performHealthCheck(deployment: ModelDeployment): Promise<any> {
-    // Simulate health check
-    return await this.simulateHealthCheck(deployment);
+  private async simulateDeploymentStep(step: string): Promise<void> {
+    // Simulate deployment step with random delay
+    const delay = Math.random() * 2000 + 500; // 500-2500ms
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
 
-  private async collectDeploymentMetrics(deployment: ModelDeployment, timeRange: string): Promise<any> {
-    // Simulate metrics collection
-    return await this.simulateMetricsCollection(deployment, timeRange);
+  private async simulateHealthCheck(deployment: ModelDeployment): Promise<boolean> {
+    // Simulate health check with 95% success rate
+    return Math.random() > 0.05;
   }
 
-  private calculateMetricsSummary(metrics: any): any {
-    // Calculate summary statistics from metrics
+  private generateEndpoint(deploymentId: string, environment: DeploymentEnvironment): string {
+    const baseUrl = environment === DeploymentEnvironment.PRODUCTION 
+      ? 'https://api.production.com' 
+      : 'https://api.staging.com';
+    
+    return `${baseUrl}/models/${deploymentId}`;
+  }
+
+  private getDefaultHealthCheckConfig(): any {
     return {
-      avgLatency: metrics.latency?.reduce((a: number, b: number) => a + b, 0) / metrics.latency?.length || 0,
-      totalRequests: metrics.requestCount?.reduce((a: number, b: number) => a + b, 0) || 0,
-      errorRate: metrics.errorCount?.reduce((a: number, b: number) => a + b, 0) / metrics.requestCount?.reduce((a: number, b: number) => a + b, 1) || 0,
+      endpoint: '/health',
+      interval: 30,
+      timeout: 10,
+      retries: 3,
+      successThreshold: 1,
+      failureThreshold: 3,
     };
   }
 
-  private generatePreprocessingConfig(model: MLModel): any {
+  private getDefaultScalingConfig(): any {
     return {
-      normalization: model.features?.map(feature => ({
-        feature,
-        method: 'standard',
-      })),
-      encoding: {
-        categoricalFeatures: model.features?.filter(f => f.includes('cat_')),
-        method: 'one_hot',
+      minReplicas: 1,
+      maxReplicas: 10,
+      targetCPUUtilization: 70,
+      targetMemoryUtilization: 80,
+      scaleUpCooldown: 300,
+      scaleDownCooldown: 300,
+    };
+  }
+
+  private getDefaultMonitoringConfig(): any {
+    return {
+      enableMetrics: true,
+      enableLogging: true,
+      enableTracing: true,
+      alertThresholds: {
+        cpu: 80,
+        memory: 85,
+        errorRate: 5,
+        latency: 1000,
       },
     };
   }
 
-  private generatePostprocessingConfig(model: MLModel): any {
-    return {
-      threshold: 0.5,
-      outputFormat: 'probability',
-      confidenceScoring: true,
-    };
+  private async updateDeploymentStatus(
+    deploymentId: string,
+    status: DeploymentStatus,
+    errorMessage?: string,
+  ): Promise<void> {
+    try {
+      await this.deploymentRepository.update(deploymentId, {
+        status,
+        errorMessage,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update deployment status: ${error.message}`, error.stack);
+    }
   }
 
-  // Simulation methods for infrastructure operations
-  private async simulateInfrastructureCreation(infrastructure: any): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  private async updateModelDeploymentStatus(modelId: string, isDeployed: boolean): Promise<void> {
+    try {
+      await this.modelRepository.update(modelId, {
+        lastDeployedAt: isDeployed ? new Date() : null,
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update model deployment status: ${error.message}`, error.stack);
+    }
   }
 
-  private async simulateArtifactDeployment(artifactDeployment: any): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 500));
+  private startHealthMonitoring(deployment: ModelDeployment): void {
+    // Start periodic health monitoring
+    setInterval(async () => {
+      try {
+        const isHealthy = await this.checkDeploymentHealth(deployment);
+        
+        if (!isHealthy) {
+          this.logger.warn(`Health check failed for deployment ${deployment.id}`);
+          this.eventEmitter.emit('deployment.unhealthy', {
+            deploymentId: deployment.id,
+            modelId: deployment.modelId,
+          });
+        }
+      } catch (error) {
+        this.logger.error(`Health monitoring error for deployment ${deployment.id}: ${error.message}`);
+      }
+    }, this.HEALTH_CHECK_INTERVAL);
   }
 
-  private async simulateServingConfiguration(servingConfig: any): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-  }
-
-  private async simulateMonitoringSetup(monitoringConfig: any): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-  }
-
-  private async simulateInfrastructureRollback(current: ModelDeployment, rollback: ModelDeployment): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-
-  private async simulateRoutingUpdate(rollbackDeployment: ModelDeployment): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-
-  private async simulateRollbackVerification(rollbackDeployment: ModelDeployment): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-
-  private async simulateScaling(deployment: ModelDeployment, replicas: number): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-
-  private async simulateHealthCheck(deployment: ModelDeployment): Promise<any> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return {
+  private async checkDeploymentHealth(deployment: ModelDeployment): Promise<any> {
+    // Simulate health check
+    const healthStatus = {
       status: 'healthy',
-      responseTime: Math.random() * 100 + 50,
       timestamp: new Date(),
+      responseTime: Math.random() * 100 + 50, // 50-150ms
+      cpuUsage: Math.random() * 30 + 20, // 20-50%
+      memoryUsage: Math.random() * 40 + 30, // 30-70%
+      activeConnections: Math.floor(Math.random() * 100),
+    };
+
+    return healthStatus;
+  }
+
+  private async getDeploymentMetrics(deployment: ModelDeployment): Promise<any> {
+    // Simulate metrics collection
+    return {
+      requestsPerSecond: Math.random() * 100 + 10,
+      averageResponseTime: Math.random() * 200 + 50,
+      errorRate: Math.random() * 2,
+      cpuUsage: Math.random() * 30 + 20,
+      memoryUsage: Math.random() * 40 + 30,
+      activeConnections: Math.floor(Math.random() * 100),
     };
   }
 
-  private async simulateMetricsCollection(deployment: ModelDeployment, timeRange: string): Promise<any> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return {
-      latency: Array.from({ length: 24 }, () => Math.random() * 200 + 50),
-      requestCount: Array.from({ length: 24 }, () => Math.floor(Math.random() * 1000 + 100)),
-      errorCount: Array.from({ length: 24 }, () => Math.floor(Math.random() * 10)),
-    };
+  private calculateUptime(deployment: ModelDeployment): number {
+    if (!deployment.deployedAt) return 0;
+    
+    const now = new Date();
+    const deployedAt = new Date(deployment.deployedAt);
+    const uptimeMs = now.getTime() - deployedAt.getTime();
+    
+    return Math.floor(uptimeMs / 1000); // Return uptime in seconds
   }
 } 

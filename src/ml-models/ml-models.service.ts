@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In, QueryBuilder, Not } from 'typeorm';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MLModel } from './entities/ml-model.entity';
 import { ModelVersion } from './entities/model-version.entity';
 import { ModelDeployment } from './entities/model-deployment.entity';
@@ -19,6 +23,10 @@ import { TrainingPipelineService } from './training/training-pipeline.service';
 
 @Injectable()
 export class MLModelsService {
+  private readonly logger = new Logger(MLModelsService.name);
+  private readonly CACHE_TTL = 300; // 5 minutes
+  private readonly CACHE_PREFIX = 'ml_model';
+
   constructor(
     @InjectRepository(MLModel)
     private readonly modelRepository: Repository<MLModel>,
@@ -30,18 +38,47 @@ export class MLModelsService {
     private readonly performanceRepository: Repository<ModelPerformance>,
     @InjectRepository(ABTest)
     private readonly abTestRepository: Repository<ABTest>,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
     private readonly versioningService: ModelVersioningService,
     private readonly deploymentService: ModelDeploymentService,
     private readonly monitoringService: ModelMonitoringService,
     private readonly trainingService: TrainingPipelineService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async createModel(createModelDto: CreateModelDto): Promise<MLModel> {
-    const model = this.modelRepository.create({
-      ...createModelDto,
-      status: ModelStatus.DRAFT,
-    });
-    return await this.modelRepository.save(model);
+    try {
+      // Validate model name uniqueness
+      const existingModel = await this.modelRepository.findOne({
+        where: { name: createModelDto.name }
+      });
+
+      if (existingModel) {
+        throw new BadRequestException(`Model with name '${createModelDto.name}' already exists`);
+      }
+
+      const model = this.modelRepository.create({
+        ...createModelDto,
+        status: ModelStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const savedModel = await this.modelRepository.save(model);
+      
+      // Clear cache
+      await this.clearModelCache();
+      
+      // Emit event
+      this.eventEmitter.emit('model.created', { modelId: savedModel.id, model: savedModel });
+      
+      this.logger.log(`Created model: ${savedModel.id} - ${savedModel.name}`);
+      return savedModel;
+    } catch (error) {
+      this.logger.error(`Failed to create model: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 
   async findAllModels(
@@ -50,7 +87,383 @@ export class MLModelsService {
     status?: ModelStatus,
     type?: ModelType,
     framework?: ModelFramework,
-  ): Promise<{ models: MLModel[]; total: number }> {
+    search?: string,
+  ): Promise<{ models: MLModel[]; total: number; page: number; limit: number; totalPages: number }> {
+    try {
+      const cacheKey = `${this.CACHE_PREFIX}:list:${page}:${limit}:${status}:${type}:${framework}:${search}`;
+      const cached = await this.cacheManager.get(cacheKey);
+      
+      if (cached) {
+        return cached as any;
+      }
+
+      const query = this.buildModelQuery(status, type, framework, search);
+
+      const [models, total] = await query
+        .skip((page - 1) * limit)
+        .take(limit)
+        .orderBy('model.createdAt', 'DESC')
+        .getManyAndCount();
+
+      const result = {
+        models,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+
+      // Cache the result
+      await this.cacheManager.set(cacheKey, result, this.CACHE_TTL);
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to fetch models: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async findModelById(id: string): Promise<MLModel> {
+    try {
+      const cacheKey = `${this.CACHE_PREFIX}:${id}`;
+      const cached = await this.cacheManager.get(cacheKey);
+      
+      if (cached) {
+        return cached as MLModel;
+      }
+
+      const model = await this.modelRepository.findOne({
+        where: { id },
+        relations: ['versions', 'deployments', 'performances'],
+      });
+
+      if (!model) {
+        throw new NotFoundException(`Model with ID ${id} not found`);
+      }
+
+      // Cache the model
+      await this.cacheManager.set(cacheKey, model, this.CACHE_TTL);
+      
+      return model;
+    } catch (error) {
+      this.logger.error(`Failed to fetch model ${id}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async updateModel(id: string, updateModelDto: UpdateModelDto): Promise<MLModel> {
+    try {
+      const model = await this.findModelById(id);
+      
+      // Check if name is being updated and if it's unique
+      if (updateModelDto.name && updateModelDto.name !== model.name) {
+        const existingModel = await this.modelRepository.findOne({
+          where: { name: updateModelDto.name, id: Not(id) }
+        });
+
+        if (existingModel) {
+          throw new BadRequestException(`Model with name '${updateModelDto.name}' already exists`);
+        }
+      }
+      
+      Object.assign(model, updateModelDto, { updatedAt: new Date() });
+      const updatedModel = await this.modelRepository.save(model);
+      
+      // Clear cache
+      await this.clearModelCache(id);
+      
+      // Emit event
+      this.eventEmitter.emit('model.updated', { modelId: id, model: updatedModel });
+      
+      this.logger.log(`Updated model: ${id}`);
+      return updatedModel;
+    } catch (error) {
+      this.logger.error(`Failed to update model ${id}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async deleteModel(id: string): Promise<void> {
+    try {
+      const model = await this.findModelById(id);
+      
+      // Check if model can be deleted
+      if (model.status === ModelStatus.DEPLOYED) {
+        throw new BadRequestException('Cannot delete a deployed model. Please undeploy it first.');
+      }
+
+      // Check for active deployments
+      const activeDeployments = await this.deploymentRepository.count({
+        where: { modelId: id, status: In([DeploymentStatus.ACTIVE, DeploymentStatus.DEPLOYING]) }
+      });
+
+      if (activeDeployments > 0) {
+        throw new BadRequestException('Cannot delete model with active deployments');
+      }
+
+      // Check for active A/B tests
+      const activeTests = await this.abTestRepository.count({
+        where: { 
+          status: ABTestStatus.RUNNING,
+          modelAId: id 
+        }
+      });
+
+      if (activeTests > 0) {
+        throw new BadRequestException('Cannot delete model that is part of an active A/B test');
+      }
+
+      await this.modelRepository.remove(model);
+      
+      // Clear cache
+      await this.clearModelCache(id);
+      
+      // Emit event
+      this.eventEmitter.emit('model.deleted', { modelId: id });
+      
+      this.logger.log(`Deleted model: ${id}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete model ${id}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async trainModel(modelId: string, trainModelDto: TrainModelDto): Promise<any> {
+    try {
+      const model = await this.findModelById(modelId);
+      
+      if (model.status === ModelStatus.TRAINING) {
+        throw new BadRequestException('Model is already being trained');
+      }
+
+      // Update model status
+      await this.updateModel(modelId, { status: ModelStatus.TRAINING });
+
+      // Create new version
+      const version = await this.versioningService.createVersion(
+        modelId,
+        this.generateVersionNumber(model),
+        trainModelDto.description || 'Auto-generated version from training'
+      );
+
+      // Start training asynchronously
+      this.eventEmitter.emit('model.training.started', { 
+        modelId, 
+        versionId: version.id, 
+        trainModelDto 
+      });
+
+      return {
+        modelId,
+        versionId: version.id,
+        status: 'training_started',
+        message: 'Training has been initiated. You will be notified when it completes.'
+      };
+    } catch (error) {
+      this.logger.error(`Failed to start training for model ${modelId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async deployModel(modelId: string, deployModelDto: DeployModelDto): Promise<any> {
+    try {
+      const model = await this.findModelById(modelId);
+      
+      if (model.status !== ModelStatus.TRAINED) {
+        throw new BadRequestException('Model must be trained before deployment');
+      }
+
+      // Get the latest version
+      const latestVersion = await this.versioningService.getLatestVersion(modelId);
+      if (!latestVersion || latestVersion.status !== VersionStatus.READY) {
+        throw new BadRequestException('No ready version available for deployment');
+      }
+
+      // Start deployment
+      const deployment = await this.deploymentService.deployModel(
+        model,
+        latestVersion,
+        deployModelDto
+      );
+
+      return deployment;
+    } catch (error) {
+      this.logger.error(`Failed to deploy model ${modelId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async createABTest(createABTestDto: CreateABTestDto): Promise<ABTest> {
+    try {
+      // Validate models exist and are deployed
+      const [modelA, modelB] = await Promise.all([
+        this.findModelById(createABTestDto.modelAId),
+        this.findModelById(createABTestDto.modelBId)
+      ]);
+
+      if (modelA.status !== ModelStatus.DEPLOYED || modelB.status !== ModelStatus.DEPLOYED) {
+        throw new BadRequestException('Both models must be deployed to create an A/B test');
+      }
+
+      // Validate traffic split
+      if (createABTestDto.trafficSplit <= 0 || createABTestDto.trafficSplit >= 1) {
+        throw new BadRequestException('Traffic split must be between 0 and 1');
+      }
+
+      const abTest = this.abTestRepository.create({
+        ...createABTestDto,
+        status: ABTestStatus.DRAFT,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const savedTest = await this.abTestRepository.save(abTest);
+      
+      this.logger.log(`Created A/B test: ${savedTest.id}`);
+      return savedTest;
+    } catch (error) {
+      this.logger.error(`Failed to create A/B test: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async startABTest(testId: string): Promise<ABTest> {
+    try {
+      const test = await this.abTestRepository.findOne({
+        where: { id: testId },
+        relations: ['modelA', 'modelB']
+      });
+
+      if (!test) {
+        throw new NotFoundException(`A/B test with ID ${testId} not found`);
+      }
+
+      if (test.status !== ABTestStatus.DRAFT) {
+        throw new BadRequestException('A/B test can only be started from DRAFT status');
+      }
+
+      test.status = ABTestStatus.RUNNING;
+      test.startedAt = new Date();
+      test.updatedAt = new Date();
+
+      const updatedTest = await this.abTestRepository.save(test);
+      
+      // Start monitoring
+      this.eventEmitter.emit('abtest.started', { testId, test: updatedTest });
+      
+      this.logger.log(`Started A/B test: ${testId}`);
+      return updatedTest;
+    } catch (error) {
+      this.logger.error(`Failed to start A/B test ${testId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async getModelPerformance(modelId: string, days: number = 30): Promise<any> {
+    try {
+      const cacheKey = `${this.CACHE_PREFIX}:performance:${modelId}:${days}`;
+      const cached = await this.cacheManager.get(cacheKey);
+      
+      if (cached) {
+        return cached;
+      }
+
+      const performance = await this.monitoringService.getModelPerformance(modelId, days);
+      
+      // Cache the result
+      await this.cacheManager.set(cacheKey, performance, this.CACHE_TTL);
+      
+      return performance;
+    } catch (error) {
+      this.logger.error(`Failed to get performance for model ${modelId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async getModelDrift(modelId: string): Promise<any> {
+    try {
+      return await this.monitoringService.detectModelDrift(modelId);
+    } catch (error) {
+      this.logger.error(`Failed to detect drift for model ${modelId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async rollbackModel(modelId: string, versionId: string): Promise<any> {
+    try {
+      const model = await this.findModelById(modelId);
+      const version = await this.versioningService.getVersion(versionId);
+
+      if (version.modelId !== modelId) {
+        throw new BadRequestException('Version does not belong to the specified model');
+      }
+
+      const rollback = await this.deploymentService.rollbackToVersion(model, version);
+      
+      this.logger.log(`Rolled back model ${modelId} to version ${versionId}`);
+      return rollback;
+    } catch (error) {
+      this.logger.error(`Failed to rollback model ${modelId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async getModelStatistics(): Promise<any> {
+    try {
+      const cacheKey = `${this.CACHE_PREFIX}:statistics`;
+      const cached = await this.cacheManager.get(cacheKey);
+      
+      if (cached) {
+        return cached;
+      }
+
+      const [
+        totalModels,
+        deployedModels,
+        trainingModels,
+        draftModels,
+        totalVersions,
+        totalDeployments,
+        activeTests
+      ] = await Promise.all([
+        this.modelRepository.count(),
+        this.modelRepository.count({ where: { status: ModelStatus.DEPLOYED } }),
+        this.modelRepository.count({ where: { status: ModelStatus.TRAINING } }),
+        this.modelRepository.count({ where: { status: ModelStatus.DRAFT } }),
+        this.versionRepository.count(),
+        this.deploymentRepository.count({ where: { status: DeploymentStatus.ACTIVE } }),
+        this.abTestRepository.count({ where: { status: ABTestStatus.RUNNING } })
+      ]);
+
+      const statistics = {
+        totalModels,
+        deployedModels,
+        trainingModels,
+        draftModels,
+        totalVersions,
+        totalDeployments,
+        activeTests,
+        deploymentRate: totalModels > 0 ? (deployedModels / totalModels) * 100 : 0,
+        averageVersionsPerModel: totalModels > 0 ? totalVersions / totalModels : 0,
+      };
+
+      // Cache the result
+      await this.cacheManager.set(cacheKey, statistics, this.CACHE_TTL);
+      
+      return statistics;
+    } catch (error) {
+      this.logger.error(`Failed to get model statistics: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  // Private helper methods
+  private buildModelQuery(
+    status?: ModelStatus,
+    type?: ModelType,
+    framework?: ModelFramework,
+    search?: string
+  ): QueryBuilder<MLModel> {
     const query = this.modelRepository.createQueryBuilder('model')
       .leftJoinAndSelect('model.versions', 'versions')
       .leftJoinAndSelect('model.deployments', 'deployments')
@@ -65,406 +478,34 @@ export class MLModelsService {
     if (framework) {
       query.andWhere('model.framework = :framework', { framework });
     }
-
-    const total = await query.getCount();
-    const models = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('model.createdAt', 'DESC')
-      .getMany();
-
-    return { models, total };
-  }
-
-  async findModelById(id: string): Promise<MLModel> {
-    const model = await this.modelRepository.findOne({
-      where: { id },
-      relations: ['versions', 'deployments', 'performances'],
-    });
-
-    if (!model) {
-      throw new NotFoundException(`Model with ID ${id} not found`);
-    }
-
-    return model;
-  }
-
-  async updateModel(id: string, updateModelDto: UpdateModelDto): Promise<MLModel> {
-    const model = await this.findModelById(id);
-    
-    Object.assign(model, updateModelDto);
-    return await this.modelRepository.save(model);
-  }
-
-  async deleteModel(id: string): Promise<void> {
-    const model = await this.findModelById(id);
-    
-    // Check if model has active deployments
-    const activeDeployments = await this.deploymentRepository.count({
-      where: { modelId: id, status: DeploymentStatus.ACTIVE },
-    });
-
-    if (activeDeployments > 0) {
-      throw new BadRequestException('Cannot delete model with active deployments');
-    }
-
-    await this.modelRepository.remove(model);
-  }
-
-  async trainModel(trainModelDto: TrainModelDto): Promise<ModelVersion> {
-    const model = await this.findModelById(trainModelDto.modelId);
-    
-    // Update model status to training
-    model.status = ModelStatus.TRAINING;
-    await this.modelRepository.save(model);
-
-    try {
-      // Create new version
-      const version = this.versionRepository.create({
-        modelId: model.id,
-        version: trainModelDto.version || `v${Date.now()}`,
-        description: trainModelDto.description,
-        hyperparameters: trainModelDto.hyperparameters,
-        trainingConfig: trainModelDto.trainingConfig,
-        dataConfig: trainModelDto.dataConfig,
-        parentVersionId: trainModelDto.parentVersionId,
-        status: VersionStatus.TRAINING,
-        createdBy: trainModelDto.trainedBy,
-      });
-
-      const savedVersion = await this.versionRepository.save(version);
-
-      // Start training pipeline
-      const trainingResult = await this.trainingService.trainModel(
-        model,
-        savedVersion,
-        trainModelDto,
+    if (search) {
+      query.andWhere(
+        '(model.name ILIKE :search OR model.description ILIKE :search)',
+        { search: `%${search}%` }
       );
-
-      // Update version with training results
-      savedVersion.status = VersionStatus.TRAINED;
-      savedVersion.trainingMetrics = trainingResult.trainingMetrics;
-      savedVersion.validationMetrics = trainingResult.validationMetrics;
-      savedVersion.testMetrics = trainingResult.testMetrics;
-      savedVersion.accuracy = trainingResult.accuracy;
-      savedVersion.precision = trainingResult.precision;
-      savedVersion.recall = trainingResult.recall;
-      savedVersion.f1Score = trainingResult.f1Score;
-      savedVersion.featureImportance = trainingResult.featureImportance;
-      savedVersion.confusionMatrix = trainingResult.confusionMatrix;
-      savedVersion.rocCurve = trainingResult.rocCurve;
-      savedVersion.artifactPath = trainingResult.artifactPath;
-      savedVersion.modelHash = trainingResult.modelHash;
-      savedVersion.trainedAt = new Date();
-
-      const updatedVersion = await this.versionRepository.save(savedVersion);
-
-      // Update model with latest metrics
-      model.status = ModelStatus.TRAINED;
-      model.currentAccuracy = trainingResult.accuracy;
-      model.currentPrecision = trainingResult.precision;
-      model.currentRecall = trainingResult.recall;
-      model.currentF1Score = trainingResult.f1Score;
-      model.trainingMetrics = trainingResult.trainingMetrics;
-      model.validationMetrics = trainingResult.validationMetrics;
-      model.lastTrainedAt = new Date();
-      model.artifactPath = trainingResult.artifactPath;
-      model.modelHash = trainingResult.modelHash;
-
-      await this.modelRepository.save(model);
-
-      return updatedVersion;
-    } catch (error) {
-      // Update model status to failed
-      model.status = ModelStatus.FAILED;
-      await this.modelRepository.save(model);
-      throw error;
     }
+
+    return query;
   }
 
-  async deployModel(deployModelDto: DeployModelDto): Promise<ModelDeployment> {
-    const model = await this.findModelById(deployModelDto.modelId);
-    const version = await this.versionRepository.findOne({
-      where: { id: deployModelDto.versionId, modelId: deployModelDto.modelId },
-    });
-
-    if (!version) {
-      throw new NotFoundException('Model version not found');
+  private async clearModelCache(modelId?: string): Promise<void> {
+    if (modelId) {
+      await this.cacheManager.del(`${this.CACHE_PREFIX}:${modelId}`);
     }
-
-    if (version.status !== VersionStatus.TRAINED && version.status !== VersionStatus.VALIDATED) {
-      throw new BadRequestException('Model version must be trained or validated before deployment');
+    
+    // Clear list cache patterns
+    const keys = await this.cacheManager.store.keys(`${this.CACHE_PREFIX}:list:*`);
+    if (keys.length > 0) {
+      await Promise.all(keys.map(key => this.cacheManager.del(key)));
     }
-
-    // Create deployment record
-    const deployment = this.deploymentRepository.create({
-      modelId: model.id,
-      versionId: version.id,
-      name: deployModelDto.name || `${model.name}-${version.version}`,
-      description: deployModelDto.description,
-      environment: deployModelDto.environment,
-      status: DeploymentStatus.PENDING,
-      deploymentConfig: deployModelDto.deploymentConfig,
-      scalingConfig: deployModelDto.scalingConfig,
-      healthCheckConfig: deployModelDto.healthCheckConfig,
-      deployedBy: deployModelDto.deployedBy,
-    });
-
-    const savedDeployment = await this.deploymentRepository.save(deployment);
-
-    try {
-      // Deploy model using deployment service
-      const deploymentResult = await this.deploymentService.deployModel(
-        model,
-        version,
-        savedDeployment,
-        deployModelDto,
-      );
-
-      // Update deployment with results
-      savedDeployment.status = DeploymentStatus.ACTIVE;
-      savedDeployment.endpoint = deploymentResult.endpoint;
-      savedDeployment.serviceUrl = deploymentResult.serviceUrl;
-      savedDeployment.deployedAt = new Date();
-      savedDeployment.activatedAt = new Date();
-
-      const updatedDeployment = await this.deploymentRepository.save(savedDeployment);
-
-      // Update model status
-      model.status = ModelStatus.DEPLOYED;
-      model.lastDeployedAt = new Date();
-      await this.modelRepository.save(model);
-
-      return updatedDeployment;
-    } catch (error) {
-      // Update deployment status to failed
-      savedDeployment.status = DeploymentStatus.FAILED;
-      savedDeployment.failureReason = error.message;
-      await this.deploymentRepository.save(savedDeployment);
-      throw error;
-    }
+    
+    // Clear statistics cache
+    await this.cacheManager.del(`${this.CACHE_PREFIX}:statistics`);
   }
 
-  async rollbackDeployment(deploymentId: string, rollbackToDeploymentId: string): Promise<ModelDeployment> {
-    const currentDeployment = await this.deploymentRepository.findOne({
-      where: { id: deploymentId },
-      relations: ['model', 'version'],
-    });
-
-    if (!currentDeployment) {
-      throw new NotFoundException('Deployment not found');
-    }
-
-    const rollbackDeployment = await this.deploymentRepository.findOne({
-      where: { id: rollbackToDeploymentId },
-      relations: ['model', 'version'],
-    });
-
-    if (!rollbackDeployment) {
-      throw new NotFoundException('Rollback deployment not found');
-    }
-
-    try {
-      // Perform rollback using deployment service
-      await this.deploymentService.rollbackModel(
-        currentDeployment,
-        rollbackDeployment,
-      );
-
-      // Update current deployment status
-      currentDeployment.status = DeploymentStatus.ROLLED_BACK;
-      currentDeployment.rolledBackAt = new Date();
-      currentDeployment.rollbackToDeploymentId = rollbackToDeploymentId;
-
-      // Activate rollback deployment
-      rollbackDeployment.status = DeploymentStatus.ACTIVE;
-      rollbackDeployment.activatedAt = new Date();
-
-      await this.deploymentRepository.save([currentDeployment, rollbackDeployment]);
-
-      return rollbackDeployment;
-    } catch (error) {
-      throw new BadRequestException(`Rollback failed: ${error.message}`);
-    }
-  }
-
-  async getModelPerformance(modelId: string, days: number = 30): Promise<ModelPerformance[]> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    return await this.performanceRepository.find({
-      where: {
-        modelId,
-        recordedAt: startDate,
-      },
-      order: { recordedAt: 'ASC' },
-    });
-  }
-
-  async createABTest(createABTestDto: CreateABTestDto): Promise<ABTest> {
-    // Validate that both models exist and are deployed
-    const modelA = await this.findModelById(createABTestDto.modelAId);
-    const modelB = await this.findModelById(createABTestDto.modelBId);
-
-    if (modelA.status !== ModelStatus.DEPLOYED || modelB.status !== ModelStatus.DEPLOYED) {
-      throw new BadRequestException('Both models must be deployed for A/B testing');
-    }
-
-    const abTest = this.abTestRepository.create({
-      ...createABTestDto,
-      status: ABTestStatus.DRAFT,
-    });
-
-    return await this.abTestRepository.save(abTest);
-  }
-
-  async startABTest(abTestId: string): Promise<ABTest> {
-    const abTest = await this.abTestRepository.findOne({
-      where: { id: abTestId },
-      relations: ['modelA', 'modelB'],
-    });
-
-    if (!abTest) {
-      throw new NotFoundException('A/B test not found');
-    }
-
-    if (abTest.status !== ABTestStatus.DRAFT) {
-      throw new BadRequestException('A/B test can only be started from draft status');
-    }
-
-    abTest.status = ABTestStatus.RUNNING;
-    abTest.startedAt = new Date();
-    abTest.scheduledEndAt = abTest.maxDurationDays 
-      ? new Date(Date.now() + abTest.maxDurationDays * 24 * 60 * 60 * 1000)
-      : null;
-
-    return await this.abTestRepository.save(abTest);
-  }
-
-  async stopABTest(abTestId: string, stopReason: string): Promise<ABTest> {
-    const abTest = await this.abTestRepository.findOne({
-      where: { id: abTestId },
-    });
-
-    if (!abTest) {
-      throw new NotFoundException('A/B test not found');
-    }
-
-    if (abTest.status !== ABTestStatus.RUNNING) {
-      throw new BadRequestException('A/B test is not running');
-    }
-
-    // Calculate final results
-    const results = await this.calculateABTestResults(abTest);
-
-    abTest.status = ABTestStatus.COMPLETED;
-    abTest.endedAt = new Date();
-    abTest.results = results;
-    abTest.winnerModelId = results.winner;
-    abTest.isStatisticallySignificant = results.isStatisticallySignificant;
-    abTest.confidenceLevel = results.confidenceLevel;
-    abTest.stopReason = stopReason;
-
-    return await this.abTestRepository.save(abTest);
-  }
-
-  private async calculateABTestResults(abTest: ABTest): Promise<any> {
-    // This is a simplified implementation
-    // In a real scenario, you would collect actual metrics from both models
-    const modelAMetrics = {
-      accuracy: 0.95,
-      precision: 0.94,
-      recall: 0.93,
-      f1Score: 0.935,
-    };
-
-    const modelBMetrics = {
-      accuracy: 0.93,
-      precision: 0.92,
-      recall: 0.91,
-      f1Score: 0.915,
-    };
-
-    // Simple comparison based on F1 score
-    const winner = modelAMetrics.f1Score > modelBMetrics.f1Score ? abTest.modelAId : abTest.modelBId;
-    const isStatisticallySignificant = Math.abs(modelAMetrics.f1Score - modelBMetrics.f1Score) > 0.01;
-    const confidenceLevel = 0.95;
-
-    return {
-      winner,
-      isStatisticallySignificant,
-      confidenceLevel,
-      modelAMetrics,
-      modelBMetrics,
-    };
-  }
-
-  async getModelLineage(modelId: string): Promise<any> {
-    const model = await this.findModelById(modelId);
-    const versions = await this.versionRepository.find({
-      where: { modelId },
-      order: { createdAt: 'ASC' },
-    });
-
-    const deployments = await this.deploymentRepository.find({
-      where: { modelId },
-      order: { createdAt: 'ASC' },
-    });
-
-    return {
-      model,
-      versions,
-      deployments,
-      lineage: this.buildLineageGraph(versions, deployments),
-    };
-  }
-
-  private buildLineageGraph(versions: ModelVersion[], deployments: ModelDeployment[]): any {
-    // Build a graph representation of model lineage
-    const nodes = [];
-    const edges = [];
-
-    // Add model versions as nodes
-    versions.forEach(version => {
-      nodes.push({
-        id: version.id,
-        type: 'version',
-        label: version.version,
-        status: version.status,
-        metrics: {
-          accuracy: version.accuracy,
-          f1Score: version.f1Score,
-        },
-      });
-
-      // Add edges for parent-child relationships
-      if (version.parentVersionId) {
-        edges.push({
-          from: version.parentVersionId,
-          to: version.id,
-          type: 'parent-child',
-        });
-      }
-    });
-
-    // Add deployments as nodes
-    deployments.forEach(deployment => {
-      nodes.push({
-        id: deployment.id,
-        type: 'deployment',
-        label: deployment.name,
-        status: deployment.status,
-        environment: deployment.environment,
-      });
-
-      // Add edges for version-deployment relationships
-      edges.push({
-        from: deployment.versionId,
-        to: deployment.id,
-        type: 'version-deployment',
-      });
-    });
-
-    return { nodes, edges };
+  private generateVersionNumber(model: MLModel): string {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    return `v${model.versions?.length + 1 || 1}.${timestamp}.${random}`;
   }
 } 
