@@ -5,12 +5,14 @@ import { WhiteboardService } from './whiteboard/whiteboard.service';
 import { VersionControlService } from './versioning/version-control.service';
 import { CollaborationPermissionsService } from './permissions/collaboration-permissions.service';
 import { ConflictResolutionService } from './conflict/conflict-resolution.service';
+import { CollaborationController } from './controllers/collaboration.controller';
 
 /**
  * Module for real-time collaboration features including shared documents,
  * whiteboards, version control, and permission management
  */
 @Module({
+  controllers: [CollaborationController],
   providers: [
     CollaborationService,
     SharedDocumentService,
