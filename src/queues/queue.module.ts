@@ -9,6 +9,7 @@ import { QueueAnalyticsService } from './analytics/queue-analytics.service';
 import { QueueEventPipelineService } from './streaming/queue-event-pipeline.service';
 import { QueueDashboardService } from './dashboard/queue-dashboard.service';
 import { QueueOptimizationService } from './optimization/queue-optimization.service';
+import { QueueAnalyticsController } from './controllers/queue-analytics.controller';
 import { StreamingModule } from '../streaming/streaming.module';
 
 /**
@@ -30,6 +31,9 @@ import { StreamingModule } from '../streaming/streaming.module';
     QueueAnalyticsService,
     QueueEventPipelineService,
     QueueDashboardService,
+  ],
+  controllers: [
+    QueueAnalyticsController,
   ],
   exports: [
     QueueService,
