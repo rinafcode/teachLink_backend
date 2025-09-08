@@ -6,6 +6,7 @@ import { VersionControlService } from './versioning/version-control.service';
 import { CollaborationPermissionsService } from './permissions/collaboration-permissions.service';
 import { ConflictResolutionService } from './conflict/conflict-resolution.service';
 import { CollaborationController } from './controllers/collaboration.controller';
+import { CollaborationIntegrationService } from './integration/collaboration-integration.service';
 
 /**
  * Module for real-time collaboration features including shared documents,
@@ -20,6 +21,7 @@ import { CollaborationController } from './controllers/collaboration.controller'
     VersionControlService,
     CollaborationPermissionsService,
     ConflictResolutionService,
+    CollaborationIntegrationService,
   ],
   exports: [
     CollaborationService,
@@ -28,6 +30,7 @@ import { CollaborationController } from './controllers/collaboration.controller'
     VersionControlService,
     CollaborationPermissionsService,
     ConflictResolutionService,
+    CollaborationIntegrationService,
   ],
 })
 export class CollaborationModule {}
