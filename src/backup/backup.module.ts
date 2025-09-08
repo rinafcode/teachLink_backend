@@ -5,6 +5,7 @@ import { DataIntegrityService } from './integrity/data-integrity.service';
 import { RecoveryTestingService } from './testing/recovery-testing.service';
 import { BackupMonitoringService } from './monitoring/backup-monitoring.service';
 import { BackupController } from './controllers/backup.controller';
+import { BackupIntegrationService } from './integration/backup-integration.service';
 
 /**
  * BackupModule provides comprehensive backup and disaster recovery capabilities
@@ -20,6 +21,7 @@ import { BackupController } from './controllers/backup.controller';
     DataIntegrityService,
     RecoveryTestingService,
     BackupMonitoringService,
+    BackupIntegrationService,
   ],
   exports: [
     BackupService,
@@ -27,6 +29,7 @@ import { BackupController } from './controllers/backup.controller';
     DataIntegrityService,
     RecoveryTestingService,
     BackupMonitoringService,
+    BackupIntegrationService,
   ],
 })
 export class BackupModule {}
