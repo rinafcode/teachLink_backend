@@ -4,6 +4,7 @@ import { DisasterRecoveryService } from './disaster-recovery/disaster-recovery.s
 import { DataIntegrityService } from './integrity/data-integrity.service';
 import { RecoveryTestingService } from './testing/recovery-testing.service';
 import { BackupMonitoringService } from './monitoring/backup-monitoring.service';
+import { BackupController } from './controllers/backup.controller';
 
 /**
  * BackupModule provides comprehensive backup and disaster recovery capabilities
@@ -12,7 +13,7 @@ import { BackupMonitoringService } from './monitoring/backup-monitoring.service'
  */
 @Module({
   imports: [],
-  controllers: [],
+  controllers: [BackupController],
   providers: [
     BackupService,
     DisasterRecoveryService,
