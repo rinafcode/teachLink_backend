@@ -34,4 +34,4 @@ import { RateLimitingModule } from '../rate-limiting/rate-limiting.module';
     PolicyEnforcementService,
   ],
 })
-export class APIGatewayModule {} 
+export class APIGatewayModule {}

@@ -14,14 +14,14 @@ import { ModelVersion } from './entities/model-version.entity';
 import { ModelDeployment } from './entities/model-deployment.entity';
 import { ModelPerformance } from './entities/model-performance.entity';
 import { ABTest } from './entities/ab-test.entity';
-import { 
-  ModelStatus, 
-  ModelType, 
-  ModelFramework, 
-  VersionStatus, 
-  DeploymentStatus, 
+import {
+  ModelStatus,
+  ModelType,
+  ModelFramework,
+  VersionStatus,
+  DeploymentStatus,
   ABTestStatus,
-  ABTestType 
+  ABTestType,
 } from './enums';
 import { CreateModelDto } from './dto/create-model.dto';
 import { TrainModelDto } from './dto/train-model.dto';
@@ -53,7 +53,13 @@ describe('MLModelsService - Integration Tests', () => {
             username: configService.get('DB_USERNAME', 'test'),
             password: configService.get('DB_PASSWORD', 'test'),
             database: configService.get('DB_DATABASE', 'teachlink_test'),
-            entities: [MLModel, ModelVersion, ModelDeployment, ModelPerformance, ABTest],
+            entities: [
+              MLModel,
+              ModelVersion,
+              ModelDeployment,
+              ModelPerformance,
+              ABTest,
+            ],
             synchronize: true,
             dropSchema: true,
           }),
@@ -69,10 +75,18 @@ describe('MLModelsService - Integration Tests', () => {
     }).compile();
 
     mlModelsService = module.get<MLModelsService>(MLModelsService);
-    versioningService = module.get<ModelVersioningService>(ModelVersioningService);
-    deploymentService = module.get<ModelDeploymentService>(ModelDeploymentService);
-    monitoringService = module.get<ModelMonitoringService>(ModelMonitoringService);
-    trainingService = module.get<TrainingPipelineService>(TrainingPipelineService);
+    versioningService = module.get<ModelVersioningService>(
+      ModelVersioningService,
+    );
+    deploymentService = module.get<ModelDeploymentService>(
+      ModelDeploymentService,
+    );
+    monitoringService = module.get<ModelMonitoringService>(
+      ModelMonitoringService,
+    );
+    trainingService = module.get<TrainingPipelineService>(
+      TrainingPipelineService,
+    );
   });
 
   afterAll(async () => {
@@ -114,13 +128,17 @@ describe('MLModelsService - Integration Tests', () => {
       expect(createdModel.type).toBe(ModelType.CLASSIFICATION);
       expect(createdModel.framework).toBe(ModelFramework.SCIKIT_LEARN);
       expect(createdModel.status).toBe(ModelStatus.DRAFT);
-      expect(createdModel.hyperparameters).toEqual(createModelDto.hyperparameters);
+      expect(createdModel.hyperparameters).toEqual(
+        createModelDto.hyperparameters,
+      );
       expect(createdModel.features).toEqual(createModelDto.features);
       expect(createdModel.targetVariable).toBe(createModelDto.targetVariable);
     });
 
     it('should retrieve the created model by ID', async () => {
-      const retrievedModel = await mlModelsService.findModelById(createdModel.id);
+      const retrievedModel = await mlModelsService.findModelById(
+        createdModel.id,
+      );
 
       expect(retrievedModel).toBeDefined();
       expect(retrievedModel.id).toBe(createdModel.id);
@@ -128,7 +146,11 @@ describe('MLModelsService - Integration Tests', () => {
     });
 
     it('should list models with pagination and filters', async () => {
-      const result = await mlModelsService.findAllModels(1, 10, ModelStatus.DRAFT);
+      const result = await mlModelsService.findAllModels(
+        1,
+        10,
+        ModelStatus.DRAFT,
+      );
 
       expect(result).toBeDefined();
       expect(result.models).toBeInstanceOf(Array);
@@ -136,7 +158,9 @@ describe('MLModelsService - Integration Tests', () => {
       expect(result.page).toBe(1);
       expect(result.limit).toBe(10);
       expect(result.totalPages).toBeGreaterThan(0);
-      expect(result.models.some(model => model.id === createdModel.id)).toBe(true);
+      expect(result.models.some((model) => model.id === createdModel.id)).toBe(
+        true,
+      );
     });
 
     it('should start model training', async () => {
@@ -159,7 +183,10 @@ describe('MLModelsService - Integration Tests', () => {
         },
       };
 
-      const trainingResult = await mlModelsService.trainModel(createdModel.id, trainModelDto);
+      const trainingResult = await mlModelsService.trainModel(
+        createdModel.id,
+        trainModelDto,
+      );
 
       expect(trainingResult).toBeDefined();
       expect(trainingResult.modelId).toBe(createdModel.id);
@@ -182,28 +209,31 @@ describe('MLModelsService - Integration Tests', () => {
     });
 
     it('should update model version status to ready', async () => {
-      const updatedVersion = await versioningService.updateVersion(createdVersion.id, {
-        status: VersionStatus.READY,
-        artifactPath: '/path/to/model/artifact.pkl',
-        modelHash: 'abc123def456',
-        trainingMetrics: {
-          accuracy: 0.85,
-          precision: 0.83,
-          recall: 0.87,
-          f1_score: 0.85,
+      const updatedVersion = await versioningService.updateVersion(
+        createdVersion.id,
+        {
+          status: VersionStatus.READY,
+          artifactPath: '/path/to/model/artifact.pkl',
+          modelHash: 'abc123def456',
+          trainingMetrics: {
+            accuracy: 0.85,
+            precision: 0.83,
+            recall: 0.87,
+            f1_score: 0.85,
+          },
+          validationMetrics: {
+            accuracy: 0.83,
+            precision: 0.81,
+            recall: 0.85,
+            f1_score: 0.83,
+          },
+          hyperparameters: {
+            n_estimators: 100,
+            max_depth: 10,
+            random_state: 42,
+          },
         },
-        validationMetrics: {
-          accuracy: 0.83,
-          precision: 0.81,
-          recall: 0.85,
-          f1_score: 0.83,
-        },
-        hyperparameters: {
-          n_estimators: 100,
-          max_depth: 10,
-          random_state: 42,
-        },
-      });
+      );
 
       expect(updatedVersion.status).toBe(VersionStatus.READY);
       expect(updatedVersion.artifactPath).toBeDefined();
@@ -278,7 +308,10 @@ describe('MLModelsService - Integration Tests', () => {
         },
       };
 
-      createdDeployment = await mlModelsService.deployModel(createdModel.id, deployModelDto);
+      createdDeployment = await mlModelsService.deployModel(
+        createdModel.id,
+        deployModelDto,
+      );
 
       expect(createdDeployment).toBeDefined();
       expect(createdDeployment.modelId).toBe(createdModel.id);
@@ -294,14 +327,14 @@ describe('MLModelsService - Integration Tests', () => {
         createdModel.id,
         { prediction: 1, confidence: 0.95 },
         { actual: 1 },
-        { requestId: 'req-1', timestamp: new Date() }
+        { requestId: 'req-1', timestamp: new Date() },
       );
 
       await monitoringService.recordPrediction(
         createdModel.id,
         { prediction: 0, confidence: 0.88 },
         { actual: 0 },
-        { requestId: 'req-2', timestamp: new Date() }
+        { requestId: 'req-2', timestamp: new Date() },
       );
 
       // Record performance metrics
@@ -315,11 +348,14 @@ describe('MLModelsService - Integration Tests', () => {
           latency: 150,
           throughput: 100,
         },
-        { batchSize: 100, timestamp: new Date() }
+        { batchSize: 100, timestamp: new Date() },
       );
 
       // Verify metrics are recorded
-      const performance = await mlModelsService.getModelPerformance(createdModel.id, 1);
+      const performance = await mlModelsService.getModelPerformance(
+        createdModel.id,
+        1,
+      );
       expect(performance).toBeDefined();
       expect(performance.summary).toBeDefined();
     });
@@ -355,11 +391,17 @@ describe('MLModelsService - Integration Tests', () => {
       };
 
       const model2 = await mlModelsService.createModel(createModelDto2);
-      
+
       // Update model 2 to trained and deployed status
-      await mlModelsService.updateModel(model2.id, { status: ModelStatus.TRAINED });
-      await mlModelsService.updateModel(createdModel.id, { status: ModelStatus.DEPLOYED });
-      await mlModelsService.updateModel(model2.id, { status: ModelStatus.DEPLOYED });
+      await mlModelsService.updateModel(model2.id, {
+        status: ModelStatus.TRAINED,
+      });
+      await mlModelsService.updateModel(createdModel.id, {
+        status: ModelStatus.DEPLOYED,
+      });
+      await mlModelsService.updateModel(model2.id, {
+        status: ModelStatus.DEPLOYED,
+      });
 
       // Create A/B test
       const createABTestDto: CreateABTestDto = {
@@ -398,7 +440,9 @@ describe('MLModelsService - Integration Tests', () => {
     });
 
     it('should get deployment status', async () => {
-      const deploymentStatus = await deploymentService.getDeploymentStatus(createdDeployment.id);
+      const deploymentStatus = await deploymentService.getDeploymentStatus(
+        createdDeployment.id,
+      );
 
       expect(deploymentStatus).toBeDefined();
       expect(deploymentStatus.deployment).toBeDefined();
@@ -434,7 +478,10 @@ describe('MLModelsService - Integration Tests', () => {
         modelHash: 'xyz789',
       });
 
-      const rollbackResult = await mlModelsService.rollbackModel(createdModel.id, newVersion.id);
+      const rollbackResult = await mlModelsService.rollbackModel(
+        createdModel.id,
+        newVersion.id,
+      );
 
       expect(rollbackResult).toBeDefined();
       expect(rollbackResult.modelId).toBe(createdModel.id);
@@ -445,19 +492,25 @@ describe('MLModelsService - Integration Tests', () => {
       await mlModelsService.undeployModel(createdModel.id);
 
       // Verify deployment is marked as undeployed
-      const deploymentStatus = await deploymentService.getDeploymentStatus(createdDeployment.id);
-      expect(deploymentStatus.deployment.status).toBe(DeploymentStatus.UNDEPLOYED);
+      const deploymentStatus = await deploymentService.getDeploymentStatus(
+        createdDeployment.id,
+      );
+      expect(deploymentStatus.deployment.status).toBe(
+        DeploymentStatus.UNDEPLOYED,
+      );
     });
 
     it('should delete the model', async () => {
       // First undeploy if still active
       await mlModelsService.undeployModel(createdModel.id);
-      
+
       // Then delete
       await mlModelsService.deleteModel(createdModel.id);
 
       // Verify model is deleted
-      await expect(mlModelsService.findModelById(createdModel.id)).rejects.toThrow(NotFoundException);
+      await expect(
+        mlModelsService.findModelById(createdModel.id),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -473,7 +526,9 @@ describe('MLModelsService - Integration Tests', () => {
       await mlModelsService.createModel(createModelDto);
 
       // Try to create second model with same name
-      await expect(mlModelsService.createModel(createModelDto)).rejects.toThrow(BadRequestException);
+      await expect(mlModelsService.createModel(createModelDto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should handle training on already training model', async () => {
@@ -484,12 +539,16 @@ describe('MLModelsService - Integration Tests', () => {
       };
 
       const model = await mlModelsService.createModel(createModelDto);
-      
+
       // Update model to training status
-      await mlModelsService.updateModel(model.id, { status: ModelStatus.TRAINING });
+      await mlModelsService.updateModel(model.id, {
+        status: ModelStatus.TRAINING,
+      });
 
       // Try to start training again
-      await expect(mlModelsService.trainModel(model.id, {} as TrainModelDto)).rejects.toThrow(BadRequestException);
+      await expect(
+        mlModelsService.trainModel(model.id, {} as TrainModelDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle deployment of untrained model', async () => {
@@ -502,7 +561,9 @@ describe('MLModelsService - Integration Tests', () => {
       const model = await mlModelsService.createModel(createModelDto);
 
       // Try to deploy untrained model
-      await expect(mlModelsService.deployModel(model.id, {} as DeployModelDto)).rejects.toThrow(BadRequestException);
+      await expect(
+        mlModelsService.deployModel(model.id, {} as DeployModelDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle A/B test with undeployed models', async () => {
@@ -527,15 +588,23 @@ describe('MLModelsService - Integration Tests', () => {
       };
 
       // Try to create A/B test with undeployed models
-      await expect(mlModelsService.createABTest(createABTestDto)).rejects.toThrow(BadRequestException);
+      await expect(
+        mlModelsService.createABTest(createABTestDto),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle invalid model ID gracefully', async () => {
       const invalidId = 'invalid-uuid-id';
 
-      await expect(mlModelsService.findModelById(invalidId)).rejects.toThrow(NotFoundException);
-      await expect(mlModelsService.updateModel(invalidId, {})).rejects.toThrow(NotFoundException);
-      await expect(mlModelsService.deleteModel(invalidId)).rejects.toThrow(NotFoundException);
+      await expect(mlModelsService.findModelById(invalidId)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(mlModelsService.updateModel(invalidId, {})).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(mlModelsService.deleteModel(invalidId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

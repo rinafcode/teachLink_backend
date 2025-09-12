@@ -1,7 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
-import { PaymentMethod, PaymentStatus, BillingInterval, SubscriptionStatus } from '../enums';
+import {
+  PaymentMethod,
+  PaymentStatus,
+  BillingInterval,
+  SubscriptionStatus,
+} from '../enums';
 
 @Injectable()
 export class StripeService {
@@ -18,10 +23,14 @@ export class StripeService {
     });
   }
 
-  async createPaymentIntent(amount: number, currency: string, metadata: any): Promise<Stripe.PaymentIntent> {
+  async createPaymentIntent(
+    amount: number,
+    currency: string,
+    metadata: any,
+  ): Promise<Stripe.PaymentIntent> {
     try {
       const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), 
+        amount: Math.round(amount * 100),
         currency: currency.toLowerCase(),
         metadata,
         automatic_payment_methods: {
@@ -37,7 +46,8 @@ export class StripeService {
 
   async confirmPayment(paymentIntentId: string): Promise<Stripe.PaymentIntent> {
     try {
-      const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
+      const paymentIntent =
+        await this.stripe.paymentIntents.retrieve(paymentIntentId);
       if (paymentIntent.status === 'succeeded') {
         return paymentIntent;
       }
@@ -87,7 +97,9 @@ export class StripeService {
     }
   }
 
-  async cancelSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  async cancelSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
     try {
       return await this.stripe.subscriptions.cancel(subscriptionId);
     } catch (error) {
@@ -96,7 +108,10 @@ export class StripeService {
     }
   }
 
-  async createRefund(paymentIntentId: string, amount?: number): Promise<Stripe.Refund> {
+  async createRefund(
+    paymentIntentId: string,
+    amount?: number,
+  ): Promise<Stripe.Refund> {
     try {
       const refundData: Stripe.RefundCreateParams = {
         payment_intent: paymentIntentId,
@@ -111,7 +126,12 @@ export class StripeService {
     }
   }
 
-  async createInvoice(customerId: string, amount: number, currency: string, description: string): Promise<Stripe.Invoice> {
+  async createInvoice(
+    customerId: string,
+    amount: number,
+    currency: string,
+    description: string,
+  ): Promise<Stripe.Invoice> {
     try {
       const invoice = await this.stripe.invoices.create({
         customer: customerId,
@@ -134,16 +154,27 @@ export class StripeService {
     }
   }
 
-  async handleWebhook(payload: Buffer, signature: string): Promise<Stripe.Event> {
+  async handleWebhook(
+    payload: Buffer,
+    signature: string,
+  ): Promise<Stripe.Event> {
     try {
-      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+      const webhookSecret = this.configService.get<string>(
+        'STRIPE_WEBHOOK_SECRET',
+      );
       if (!webhookSecret) {
         throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
       }
-      return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      return this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        webhookSecret,
+      );
     } catch (error) {
-      this.logger.error(`Webhook signature verification failed: ${error.message}`);
+      this.logger.error(
+        `Webhook signature verification failed: ${error.message}`,
+      );
       throw new BadRequestException('Invalid webhook signature');
     }
   }
-} 
+}

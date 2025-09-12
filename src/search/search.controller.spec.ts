@@ -37,7 +37,9 @@ describe('SearchController', () => {
   it('should throw BadRequestException on search error', async () => {
     service.search.mockRejectedValue(new BadRequestException('error'));
     const query: SearchQueryDto = { q: 'test', from: 0, size: 10 };
-    await expect(controller.search(query, {})).rejects.toThrow(BadRequestException);
+    await expect(controller.search(query, {})).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should call suggest service', async () => {
@@ -50,6 +52,8 @@ describe('SearchController', () => {
   it('should throw BadRequestException on suggest error', async () => {
     service.getSuggestions.mockRejectedValue(new BadRequestException('error'));
     const query: SuggestQueryDto = { prefix: 'te' };
-    await expect(controller.suggest(query)).rejects.toThrow(BadRequestException);
+    await expect(controller.suggest(query)).rejects.toThrow(
+      BadRequestException,
+    );
   });
-}); 
+});

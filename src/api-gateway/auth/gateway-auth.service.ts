@@ -10,7 +10,8 @@ export class GatewayAuthService {
    * Returns true if valid, false otherwise.
    */
   async authenticate(request: any): Promise<boolean> {
-    const authHeader = request.headers['authorization'] || request.headers['Authorization'];
+    const authHeader =
+      request.headers['authorization'] || request.headers['Authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return false;
     }
@@ -26,4 +27,4 @@ export class GatewayAuthService {
       return false;
     }
   }
-} 
+}

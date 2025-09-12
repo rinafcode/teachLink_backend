@@ -13,4 +13,4 @@ export class ServiceMeshService {
     // TODO: Implement service routing
     return { status: 'routed', path, payload };
   }
-} 
+}

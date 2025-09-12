@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum NotificationType {
   COURSE_UPDATE = 'COURSE_UPDATE',
@@ -28,4 +34,4 @@ export class Notification {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}

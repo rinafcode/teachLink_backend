@@ -16,14 +16,24 @@ export class DeploymentService {
     private deploymentQueue: Queue,
   ) {}
 
-  async deployNewVersion(containerId: string, newImageTag: string): Promise<void> {
+  async deployNewVersion(
+    containerId: string,
+    newImageTag: string,
+  ): Promise<void> {
     try {
-      const container = await this.containerRepository.findOne({ where: { id: containerId } });
+      const container = await this.containerRepository.findOne({
+        where: { id: containerId },
+      });
       if (container) {
         container.tag = newImageTag;
         await this.containerRepository.save(container);
-        await this.deploymentQueue.add('deploy-version', { containerId, newImageTag });
-        this.logger.log(`Deployed new version for container: ${container.name}`);
+        await this.deploymentQueue.add('deploy-version', {
+          containerId,
+          newImageTag,
+        });
+        this.logger.log(
+          `Deployed new version for container: ${container.name}`,
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to deploy new version: ${error.message}`);
@@ -31,4 +41,3 @@ export class DeploymentService {
     }
   }
 }
-

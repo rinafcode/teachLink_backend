@@ -1,4 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { ContainerCluster } from './container-cluster.entity';
 import { ContainerMetrics } from './container-metrics.entity';
 
@@ -149,7 +159,9 @@ export class Container {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => ContainerCluster, (cluster) => cluster.containers, { nullable: true })
+  @ManyToOne(() => ContainerCluster, (cluster) => cluster.containers, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'clusterId' })
   cluster: ContainerCluster;
 

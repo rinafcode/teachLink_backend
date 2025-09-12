@@ -17,4 +17,4 @@ export class DistributedLockService {
     // TODO: Implemented distributed lock release
     return this.locks.delete(resource);
   }
-} 
+}

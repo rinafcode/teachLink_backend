@@ -10,7 +10,7 @@ describe('MLModelsService - Minimal Tests', () => {
     // Test that the service has the expected methods
     const { MLModelsService } = require('./ml-models.service');
     const service = new MLModelsService();
-    
+
     expect(typeof service.createModel).toBe('function');
     expect(typeof service.findModelById).toBe('function');
     expect(typeof service.findAllModels).toBe('function');
@@ -20,11 +20,11 @@ describe('MLModelsService - Minimal Tests', () => {
 
   it('should have proper enums', () => {
     const { ModelStatus, ModelType, ModelFramework } = require('./enums');
-    
+
     expect(ModelStatus).toBeDefined();
     expect(ModelType).toBeDefined();
     expect(ModelFramework).toBeDefined();
-    
+
     expect(ModelStatus.DRAFT).toBe('DRAFT');
     expect(ModelType.CLASSIFICATION).toBe('CLASSIFICATION');
     expect(ModelFramework.SCIKIT_LEARN).toBe('SCIKIT_LEARN');

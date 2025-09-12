@@ -7,4 +7,4 @@ export { DeploymentEnvironment } from './deployment-environment.enum';
 export { PerformanceMetricType } from './performance-metric-type.enum';
 export { DriftSeverity } from './drift-severity.enum';
 export { ABTestStatus } from './ab-test-status.enum';
-export { ABTestType } from './ab-test-type.enum'; 
+export { ABTestType } from './ab-test-type.enum';

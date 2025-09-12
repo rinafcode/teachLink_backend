@@ -25,11 +25,18 @@ export class AutomationService {
    * Triggers all enabled workflows for a given event and executes their actions.
    * Returns an array of results for each workflow triggered.
    */
-  triggerWorkflow(event: string, payload: any): { workflow: AutomationWorkflow; actionResults: any[] }[] {
-    const triggered = this.workflows.filter(wf => wf.enabled && wf.triggerEvent === event);
-    return triggered.map(wf => ({
+  triggerWorkflow(
+    event: string,
+    payload: any,
+  ): { workflow: AutomationWorkflow; actionResults: any[] }[] {
+    const triggered = this.workflows.filter(
+      (wf) => wf.enabled && wf.triggerEvent === event,
+    );
+    return triggered.map((wf) => ({
       workflow: wf,
-      actionResults: wf.actions.map(action => this.executeAction(action, payload)),
+      actionResults: wf.actions.map((action) =>
+        this.executeAction(action, payload),
+      ),
     }));
   }
 
@@ -47,7 +54,7 @@ export class AutomationService {
   }
 
   enableWorkflow(id: string): boolean {
-    const wf = this.workflows.find(w => w.id === id);
+    const wf = this.workflows.find((w) => w.id === id);
     if (wf) {
       wf.enabled = true;
       return true;
@@ -56,7 +63,7 @@ export class AutomationService {
   }
 
   disableWorkflow(id: string): boolean {
-    const wf = this.workflows.find(w => w.id === id);
+    const wf = this.workflows.find((w) => w.id === id);
     if (wf) {
       wf.enabled = false;
       return true;

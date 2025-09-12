@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsEnum, IsObject, IsArray, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsObject,
+  IsArray,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { ABTestType } from '../enums';
 
 export class CreateABTestDto {
@@ -58,4 +67,4 @@ export class CreateABTestDto {
   @IsOptional()
   @IsString()
   createdBy?: string;
-} 
+}

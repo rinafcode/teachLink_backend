@@ -51,14 +51,16 @@ export class OrchestrationService {
     private orchestrationQueue: Queue,
   ) {}
 
-  async listPods(namespace: string = 'default'): Promise<{ items: KubernetesPod[] }> {
+  async listPods(
+    namespace: string = 'default',
+  ): Promise<{ items: KubernetesPod[] }> {
     try {
       // In a real implementation, this would call Kubernetes API
       const containers = await this.containerRepository.find({
         where: { namespace },
       });
 
-      const pods = containers.map(container => ({
+      const pods = containers.map((container) => ({
         metadata: {
           name: container.name,
           namespace: container.namespace,
@@ -92,10 +94,12 @@ export class OrchestrationService {
             name: container.name,
             image: `${container.image}:${container.tag}`,
             ports: container.ports || [],
-            env: Object.entries(container.environment || {}).map(([key, value]) => ({
-              name: key,
-              value,
-            })),
+            env: Object.entries(container.environment || {}).map(
+              ([key, value]) => ({
+                name: key,
+                value,
+              }),
+            ),
             resources: container.resources || {},
           },
         ],
@@ -133,7 +137,10 @@ export class OrchestrationService {
     }
   }
 
-  async deletePod(namespace: string, podName: string): Promise<{ status: string }> {
+  async deletePod(
+    namespace: string,
+    podName: string,
+  ): Promise<{ status: string }> {
     try {
       const container = await this.containerRepository.findOne({
         where: { name: podName, namespace },
@@ -179,7 +186,9 @@ export class OrchestrationService {
         replicas,
       });
 
-      this.logger.log(`Deployment scaled: ${deploymentName} to ${replicas} replicas`);
+      this.logger.log(
+        `Deployment scaled: ${deploymentName} to ${replicas} replicas`,
+      );
     } catch (error) {
       this.logger.error(`Failed to scale deployment: ${error.message}`);
       throw new Error(`Failed to scale deployment: ${error.message}`);

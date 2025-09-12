@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  forwardRef,
+  Logger,
+} from '@nestjs/common';
 import { SemanticSearchService } from '../search/semantic/semantic-search.service';
 import { IndexingService } from '../search/indexing/indexing.service';
 import { DiscoveryAlgorithmService } from '../search/discovery/discovery-algorithm.service';
@@ -23,57 +29,89 @@ export class SearchEngineService {
     private readonly cachingService: CachingService,
   ) {}
 
-  async search(query: string, filters: any, from = 0, size = 10, userId?: string, semantic = false) {
+  async search(
+    query: string,
+    filters: any,
+    from = 0,
+    size = 10,
+    userId?: string,
+    semantic = false,
+  ) {
     const cacheKey = `search:${semantic ? 'semantic' : 'fulltext'}:${userId || 'anon'}:${JSON.stringify(query)}:${JSON.stringify(filters)}:${from}:${size}`;
-    return this.cachingService.getOrSet(cacheKey, async () => {
-      try {
-        this.analyticsService.logSearch(userId || 'anonymous', query, filters);
-        let results: any[] = [];
-        if (semantic) {
-          // Semantic search with embeddings
-          results = await this.semanticSearchService.semanticSearch(query, filters, from, size);
-        } else {
-          // Full-text search with ranking
-          const filterQuery = this.filtersService.buildFilterQuery(filters);
-          const params = {
-            index: 'courses',
-            from,
-            size,
-            body: {
-              query: {
-                bool: {
-                  must: [
-                    { multi_match: { query, fields: ['title^3', 'description', 'content'] } },
-                  ],
-                  filter: filterQuery,
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        try {
+          this.analyticsService.logSearch(
+            userId || 'anonymous',
+            query,
+            filters,
+          );
+          let results: any[] = [];
+          if (semantic) {
+            // Semantic search with embeddings
+            results = await this.semanticSearchService.semanticSearch(
+              query,
+              filters,
+              from,
+              size,
+            );
+          } else {
+            // Full-text search with ranking
+            const filterQuery = this.filtersService.buildFilterQuery(filters);
+            const params = {
+              index: 'courses',
+              from,
+              size,
+              body: {
+                query: {
+                  bool: {
+                    must: [
+                      {
+                        multi_match: {
+                          query,
+                          fields: ['title^3', 'description', 'content'],
+                        },
+                      },
+                    ],
+                    filter: filterQuery,
+                  },
                 },
+                sort: [
+                  { _score: { order: 'desc' } },
+                  { popularity: { order: 'desc' } },
+                ],
               },
-              sort: [
-                { _score: { order: 'desc' } },
-                { popularity: { order: 'desc' } },
-              ],
-            }
-          } as any;
-          const result = await this.esService.search(params);
-          results = result.hits.hits.map(hit => hit._source);
+            } as any;
+            const result = await this.esService.search(params);
+            results = result.hits.hits.map((hit) => hit._source);
+          }
+          // Personalize results if userId is provided
+          if (userId) {
+            results = await this.discoveryAlgorithmService.personalizeResults(
+              userId,
+              results,
+            );
+          }
+          return results;
+        } catch (error) {
+          this.logger.error('Search failed', error);
+          throw error;
         }
-        // Personalize results if userId is provided
-        if (userId) {
-          results = await this.discoveryAlgorithmService.personalizeResults(userId, results);
-        }
-        return results;
-      } catch (error) {
-        this.logger.error('Search failed', error);
-        throw error;
-      }
-    }, { ttl: 60 });
+      },
+      { ttl: 60 },
+    );
   }
 
   async autocomplete(prefix: string) {
     return this.autoCompleteService.getSuggestions(prefix);
   }
 
-  async indexContent(id: string, content: string, metadata: Record<string, any> = {}) {
+  async indexContent(
+    id: string,
+    content: string,
+    metadata: Record<string, any> = {},
+  ) {
     return this.semanticSearchService.indexDocument(id, content, metadata);
   }
 
@@ -93,11 +131,15 @@ export class SearchEngineService {
     return this.indexingService.bulkIndexCourses(courses);
   }
 
-  async getAnalytics(timeRange: { from: Date; to: Date }, userRole?: string, userIp?: string) {
+  async getAnalytics(
+    timeRange: { from: Date; to: Date },
+    userRole?: string,
+    userIp?: string,
+  ) {
     return this.analyticsService.getAnalytics(timeRange, userRole, userIp);
   }
 
   async getPersonalizationStats(userId: string) {
     return this.discoveryAlgorithmService.getPersonalizationStats(userId);
   }
-} 
+}

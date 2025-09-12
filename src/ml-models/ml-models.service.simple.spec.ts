@@ -184,7 +184,9 @@ describe('MLModelsService - Simple Tests', () => {
     }).compile();
 
     service = module.get<MLModelsService>(MLModelsService);
-    modelRepository = module.get<Repository<MLModel>>(getRepositoryToken(MLModel));
+    modelRepository = module.get<Repository<MLModel>>(
+      getRepositoryToken(MLModel),
+    );
   });
 
   describe('createModel', () => {
@@ -243,7 +245,9 @@ describe('MLModelsService - Simple Tests', () => {
     it('should throw NotFoundException if model not found', async () => {
       jest.spyOn(modelRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.findModelById('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.findModelById('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -281,7 +285,7 @@ describe('MLModelsService - Simple Tests', () => {
   describe('deleteModel', () => {
     it('should delete model successfully', async () => {
       const draftModel = { ...mockModel, status: ModelStatus.DRAFT };
-      
+
       jest.spyOn(service, 'findModelById').mockResolvedValue(draftModel);
       jest.spyOn(modelRepository, 'remove').mockResolvedValue(draftModel);
 
@@ -292,10 +296,12 @@ describe('MLModelsService - Simple Tests', () => {
 
     it('should throw error if model is deployed', async () => {
       const deployedModel = { ...mockModel, status: ModelStatus.DEPLOYED };
-      
+
       jest.spyOn(service, 'findModelById').mockResolvedValue(deployedModel);
 
-      await expect(service.deleteModel('test-model-1')).rejects.toThrow(BadRequestException);
+      await expect(service.deleteModel('test-model-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -313,10 +319,11 @@ describe('MLModelsService - Simple Tests', () => {
         averageVersionsPerModel: 2.5,
       };
 
-      jest.spyOn(modelRepository, 'count')
+      jest
+        .spyOn(modelRepository, 'count')
         .mockResolvedValueOnce(10) // totalModels
-        .mockResolvedValueOnce(5)  // deployedModels
-        .mockResolvedValueOnce(2)  // trainingModels
+        .mockResolvedValueOnce(5) // deployedModels
+        .mockResolvedValueOnce(2) // trainingModels
         .mockResolvedValueOnce(3); // draftModels
 
       const result = await service.getModelStatistics();

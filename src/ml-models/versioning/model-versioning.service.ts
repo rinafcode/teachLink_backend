@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ModelVersion } from '../entities/model-version.entity';
@@ -23,7 +27,9 @@ export class ModelVersioningService {
     description?: string,
     parentVersionId?: string,
   ): Promise<ModelVersion> {
-    const model = await this.modelRepository.findOne({ where: { id: modelId } });
+    const model = await this.modelRepository.findOne({
+      where: { id: modelId },
+    });
     if (!model) {
       throw new NotFoundException(`Model with ID ${modelId} not found`);
     }
@@ -34,7 +40,9 @@ export class ModelVersioningService {
     });
 
     if (existingVersion) {
-      throw new BadRequestException(`Version ${version} already exists for this model`);
+      throw new BadRequestException(
+        `Version ${version} already exists for this model`,
+      );
     }
 
     // Validate parent version if provided
@@ -43,7 +51,9 @@ export class ModelVersioningService {
         where: { id: parentVersionId, modelId },
       });
       if (!parentVersion) {
-        throw new NotFoundException(`Parent version ${parentVersionId} not found`);
+        throw new NotFoundException(
+          `Parent version ${parentVersionId} not found`,
+        );
       }
     }
 
@@ -77,7 +87,8 @@ export class ModelVersioningService {
     limit: number = 10,
     status?: VersionStatus,
   ): Promise<{ versions: ModelVersion[]; total: number }> {
-    const query = this.versionRepository.createQueryBuilder('version')
+    const query = this.versionRepository
+      .createQueryBuilder('version')
       .where('version.modelId = :modelId', { modelId })
       .orderBy('version.createdAt', 'DESC');
 
@@ -99,7 +110,7 @@ export class ModelVersioningService {
     updates: Partial<ModelVersion>,
   ): Promise<ModelVersion> {
     const version = await this.getVersion(versionId);
-    
+
     Object.assign(version, updates);
     return await this.versionRepository.save(version);
   }
@@ -110,10 +121,12 @@ export class ModelVersioningService {
     // Check if version is deployed
     if (version.deployments && version.deployments.length > 0) {
       const activeDeployments = version.deployments.filter(
-        d => d.status === 'active',
+        (d) => d.status === 'active',
       );
       if (activeDeployments.length > 0) {
-        throw new BadRequestException('Cannot delete version with active deployments');
+        throw new BadRequestException(
+          'Cannot delete version with active deployments',
+        );
       }
     }
 
@@ -131,33 +144,38 @@ export class ModelVersioningService {
     metadata: Record<string, any>,
   ): Promise<string> {
     const version = await this.getVersion(versionId);
-    
+
     // Generate artifact path
-    const artifactPath = this.generateArtifactPath(version.modelId, version.version);
-    
+    const artifactPath = this.generateArtifactPath(
+      version.modelId,
+      version.version,
+    );
+
     // Save model artifact
     await this.saveArtifact(artifactPath, modelData);
-    
+
     // Calculate model hash
     const modelHash = this.calculateModelHash(modelData);
-    
+
     // Update version with artifact information
     version.artifactPath = artifactPath;
     version.modelHash = modelHash;
     version.metadata = { ...version.metadata, ...metadata };
-    
+
     await this.versionRepository.save(version);
-    
+
     return artifactPath;
   }
 
-  async loadModelArtifact(versionId: string): Promise<{ data: Buffer; metadata: Record<string, any> }> {
+  async loadModelArtifact(
+    versionId: string,
+  ): Promise<{ data: Buffer; metadata: Record<string, any> }> {
     const version = await this.getVersion(versionId);
-    
+
     if (!version.artifactPath) {
       throw new NotFoundException('No artifact found for this version');
     }
-    
+
     const data = await this.loadArtifact(version.artifactPath);
     return { data, metadata: version.metadata || {} };
   }
@@ -173,7 +191,9 @@ export class ModelVersioningService {
     const version2 = await this.getVersion(versionId2);
 
     if (version1.modelId !== version2.modelId) {
-      throw new BadRequestException('Cannot compare versions from different models');
+      throw new BadRequestException(
+        'Cannot compare versions from different models',
+      );
     }
 
     return {
@@ -212,19 +232,22 @@ export class ModelVersioningService {
 
   async tagVersion(versionId: string, tag: string): Promise<ModelVersion> {
     const version = await this.getVersion(versionId);
-    
+
     const metadata = version.metadata || {};
     metadata.tags = metadata.tags || [];
-    
+
     if (!metadata.tags.includes(tag)) {
       metadata.tags.push(tag);
     }
-    
+
     version.metadata = metadata;
     return await this.versionRepository.save(version);
   }
 
-  async getVersionsByTag(modelId: string, tag: string): Promise<ModelVersion[]> {
+  async getVersionsByTag(
+    modelId: string,
+    tag: string,
+  ): Promise<ModelVersion[]> {
     return await this.versionRepository
       .createQueryBuilder('version')
       .where('version.modelId = :modelId', { modelId })
@@ -233,35 +256,58 @@ export class ModelVersioningService {
       .getMany();
   }
 
-  async promoteVersion(versionId: string, targetEnvironment: string): Promise<ModelVersion> {
+  async promoteVersion(
+    versionId: string,
+    targetEnvironment: string,
+  ): Promise<ModelVersion> {
     const version = await this.getVersion(versionId);
-    
-    if (version.status !== VersionStatus.TRAINED && version.status !== VersionStatus.VALIDATED) {
-      throw new BadRequestException('Version must be trained or validated before promotion');
+
+    if (
+      version.status !== VersionStatus.TRAINED &&
+      version.status !== VersionStatus.VALIDATED
+    ) {
+      throw new BadRequestException(
+        'Version must be trained or validated before promotion',
+      );
     }
-    
+
     const metadata = version.metadata || {};
     metadata.promotedTo = metadata.promotedTo || [];
-    
+
     if (!metadata.promotedTo.includes(targetEnvironment)) {
       metadata.promotedTo.push(targetEnvironment);
     }
-    
+
     version.metadata = metadata;
     return await this.versionRepository.save(version);
   }
 
-  private generateArtifactPath(modelId: string, version: string): string {
-    const timestamp = Date.now();
-    const sanitizedModelId = modelId.replace(/[^a-zA-Z0-9]/g, '_');
-    const sanitizedVersion = version.replace(/[^a-zA-Z0-9._-]/g, '_');
-    return `models/${sanitizedModelId}/${sanitizedVersion}_${timestamp}.model`;
+  async getLatestVersion(
+    modelId: string,
+    status?: VersionStatus,
+  ): Promise<ModelVersion | null> {
+    const query = this.versionRepository
+      .createQueryBuilder('version')
+      .where('version.modelId = :modelId', { modelId })
+      .orderBy('version.createdAt', 'DESC');
+
+    if (status) {
+      query.andWhere('version.status = :status', { status });
+    }
+
+    return await query.getOne();
   }
 
-  private async saveArtifact(artifactPath: string, data: Buffer): Promise<void> {
+  private generateArtifactPath(modelId: string, version: string): string {
+    return `models/${modelId}/versions/${version}/model.bin`;
+  }
+
+  private async saveArtifact(
+    artifactPath: string,
+    data: Buffer,
+  ): Promise<void> {
     const fullPath = path.join(process.cwd(), 'artifacts', artifactPath);
     const dir = path.dirname(fullPath);
-    
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, data);
   }
@@ -313,7 +359,7 @@ export class ModelVersioningService {
       const siblings = await this.versionRepository.find({
         where: { parentVersionId: version.parentVersionId },
       });
-      lineage.siblings = siblings.filter(s => s.id !== version.id);
+      lineage.siblings = siblings.filter((s) => s.id !== version.id);
     }
 
     return lineage;
@@ -328,7 +374,8 @@ export class ModelVersioningService {
       ...Object.keys(hyperparams2 || {}),
     ]);
 
-    const comparison: Record<string, { old: any; new: any; changed: boolean }> = {};
+    const comparison: Record<string, { old: any; new: any; changed: boolean }> =
+      {};
 
     for (const key of allKeys) {
       const oldValue = hyperparams1?.[key];
@@ -344,4 +391,4 @@ export class ModelVersioningService {
 
     return comparison;
   }
-} 
+}

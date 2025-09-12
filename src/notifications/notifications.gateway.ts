@@ -12,7 +12,9 @@ import { NotificationsService } from './notifications.service';
 import { NotificationType } from './entities/notification.entity';
 
 @WebSocketGateway({ cors: true })
-export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -36,8 +38,16 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     }
   }
 
-  async sendNotification(userId: string, type: NotificationType, content: string) {
-    const notification = await this.notificationsService.createNotification(userId, type, content);
+  async sendNotification(
+    userId: string,
+    type: NotificationType,
+    content: string,
+  ) {
+    const notification = await this.notificationsService.createNotification(
+      userId,
+      type,
+      content,
+    );
     if (notification) {
       const socketId = this.userSockets.get(userId);
       if (socketId) {
@@ -52,8 +62,12 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   @SubscribeMessage('getNotifications')
-  async handleGetNotifications(@MessageBody() userId: string, @ConnectedSocket() client: Socket) {
-    const notifications = await this.notificationsService.getUserNotifications(userId);
+  async handleGetNotifications(
+    @MessageBody() userId: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const notifications =
+      await this.notificationsService.getUserNotifications(userId);
     client.emit('notifications', notifications);
   }
-} 
+}

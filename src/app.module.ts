@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import configuration from './config/configuration';
-import { appConfigSchema } from './config/appConfigSchema'; 
+import { appConfigSchema } from './config/appConfigSchema';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { SecurityModule } from './security/security.module';
 import { AuthModule } from './auth/auth.module';
@@ -55,22 +55,22 @@ import { MLModelsModule } from './ml-models/ml-models.module';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
       entities: [
-        User, 
-        Media, 
-        UserPreference, 
-        CourseInteraction, 
-        Notification, 
-        Payment, 
-        Subscription, 
-        TraceSpan, 
-        LogEntry, 
-        MetricEntry, 
+        User,
+        Media,
+        UserPreference,
+        CourseInteraction,
+        Notification,
+        Payment,
+        Subscription,
+        TraceSpan,
+        LogEntry,
+        MetricEntry,
         AnomalyAlert,
         MLModel,
         ModelVersion,
         ModelDeployment,
         ModelPerformance,
-        ABTest
+        ABTest,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',

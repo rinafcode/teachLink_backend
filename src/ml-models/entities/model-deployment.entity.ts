@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { MLModel } from './ml-model.entity';
 import { ModelVersion } from './model-version.entity';
 import { DeploymentStatus, DeploymentEnvironment } from '../enums';
@@ -17,14 +25,14 @@ export class ModelDeployment {
   @Column({
     type: 'enum',
     enum: DeploymentStatus,
-    default: DeploymentStatus.PENDING
+    default: DeploymentStatus.PENDING,
   })
   status: DeploymentStatus;
 
   @Column({
     type: 'enum',
     enum: DeploymentEnvironment,
-    default: DeploymentEnvironment.DEVELOPMENT
+    default: DeploymentEnvironment.DEVELOPMENT,
   })
   environment: DeploymentEnvironment;
 
@@ -45,6 +53,9 @@ export class ModelDeployment {
 
   @Column({ type: 'jsonb', nullable: true })
   healthCheckConfig: Record<string, any>;
+
+  @Column({ type: 'jsonb', nullable: true })
+  monitoringConfig: Record<string, any>;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   previousDeploymentId: string;
@@ -82,6 +93,9 @@ export class ModelDeployment {
   @Column({ type: 'timestamp', nullable: true })
   rolledBackAt: Date;
 
+  @Column({ type: 'timestamp', nullable: true })
+  undeployedAt: Date;
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   deployedBy: string;
 
@@ -94,6 +108,18 @@ export class ModelDeployment {
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
+  @Column({ type: 'jsonb', nullable: true })
+  deploymentLogs: string[];
+
+  @Column({ type: 'boolean', default: false })
+  isRollback: boolean;
+
+  @Column({ type: 'uuid', nullable: true })
+  rollbackFromDeploymentId: string;
+
+  @Column({ type: 'text', nullable: true })
+  errorMessage: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -101,17 +127,17 @@ export class ModelDeployment {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => MLModel, model => model.deployments)
+  @ManyToOne(() => MLModel, (model) => model.deployments)
   @JoinColumn({ name: 'modelId' })
   model: MLModel;
 
   @Column({ type: 'uuid' })
   modelId: string;
 
-  @ManyToOne(() => ModelVersion, version => version.deployments)
+  @ManyToOne(() => ModelVersion, (version) => version.deployments)
   @JoinColumn({ name: 'versionId' })
   version: ModelVersion;
 
   @Column({ type: 'uuid' })
   versionId: string;
-} 
+}

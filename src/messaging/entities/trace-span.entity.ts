@@ -1,71 +1,77 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from "typeorm"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum SpanKind {
-  SERVER = "server",
-  CLIENT = "client",
-  PRODUCER = "producer",
-  CONSUMER = "consumer",
-  INTERNAL = "internal",
+  SERVER = 'server',
+  CLIENT = 'client',
+  PRODUCER = 'producer',
+  CONSUMER = 'consumer',
+  INTERNAL = 'internal',
 }
 
-@Entity("trace_spans")
-@Index(["traceId"])
-@Index(["parentSpanId"])
-@Index(["serviceName", "operationName"])
+@Entity('trace_spans')
+@Index(['traceId'])
+@Index(['parentSpanId'])
+@Index(['serviceName', 'operationName'])
 export class TraceSpan {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  traceId: string
+  traceId: string;
 
   @Column()
-  spanId: string
+  spanId: string;
 
   @Column({ nullable: true })
-  parentSpanId: string
+  parentSpanId: string;
 
   @Column()
-  serviceName: string
+  serviceName: string;
 
   @Column()
-  operationName: string
+  operationName: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: SpanKind,
   })
-  kind: SpanKind
+  kind: SpanKind;
 
-  @Column("timestamp")
-  startTime: Date
+  @Column('timestamp')
+  startTime: Date;
 
-  @Column("timestamp", { nullable: true })
-  endTime: Date
+  @Column('timestamp', { nullable: true })
+  endTime: Date;
 
-  @Column("int", { nullable: true })
-  duration: number
+  @Column('int', { nullable: true })
+  duration: number;
 
-  @Column("jsonb", { nullable: true })
-  tags: Record<string, any>
+  @Column('jsonb', { nullable: true })
+  tags: Record<string, any>;
 
-  @Column("jsonb", { nullable: true })
+  @Column('jsonb', { nullable: true })
   logs: Array<{
-    timestamp: Date
-    level: string
-    message: string
-    fields: Record<string, any>
-  }>
+    timestamp: Date;
+    level: string;
+    message: string;
+    fields: Record<string, any>;
+  }>;
 
-  @Column("jsonb", { nullable: true })
-  baggage: Record<string, string>
+  @Column('jsonb', { nullable: true })
+  baggage: Record<string, string>;
 
   @Column({ nullable: true })
-  status: string
+  status: string;
 
-  @Column("text", { nullable: true })
-  errorMessage: string
+  @Column('text', { nullable: true })
+  errorMessage: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 }

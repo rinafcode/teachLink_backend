@@ -1,8 +1,17 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
-import { RegisterDto, LoginDto, ResetPasswordDto, UpdatePasswordDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ResetPasswordDto,
+  UpdatePasswordDto,
+} from './dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../users/entities/user.entity';
 
@@ -16,7 +25,10 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const hashedPassword = await bcrypt.hash(dto.password, 12);
-    const user = await this.usersService.create({ ...dto, password: hashedPassword });
+    const user = await this.usersService.create({
+      ...dto,
+      password: hashedPassword,
+    });
     const tokens = await this.generateTokens(user.id, user.role);
     await this.usersService.updateRefreshToken(user.id, tokens.refresh_token);
     return tokens;
@@ -50,7 +62,10 @@ export class AuthService {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       // Don't reveal that the email doesn't exist
-      return { message: 'If an account exists, a password reset link has been sent to your email' };
+      return {
+        message:
+          'If an account exists, a password reset link has been sent to your email',
+      };
     }
 
     const resetToken = this.jwt.sign(

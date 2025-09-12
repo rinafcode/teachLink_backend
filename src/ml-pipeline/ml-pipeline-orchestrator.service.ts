@@ -17,7 +17,8 @@ export class MLPipelineOrchestratorService {
 
   async runFullPipeline(trainingData: any, testData: any) {
     // 1. Train model
-    const { model, metrics } = await this.trainingService.trainModel(trainingData);
+    const { model, metrics } =
+      await this.trainingService.trainModel(trainingData);
 
     // 2. Version the model
     const versionId = await this.versioningService.saveVersion(model);
@@ -26,7 +27,8 @@ export class MLPipelineOrchestratorService {
     const deploymentId = await this.deploymentService.deployModel(model);
 
     // 4. Monitor the model
-    const monitoringResult = await this.monitoringService.monitorPerformance(deploymentId);
+    const monitoringResult =
+      await this.monitoringService.monitorPerformance(deploymentId);
 
     // 5. (Optional) A/B test with another model
     // const abTestResult = await this.testingService.abTest(modelA, modelB, testData);
@@ -43,4 +45,4 @@ export class MLPipelineOrchestratorService {
       // abTestResult,
     };
   }
-} 
+}

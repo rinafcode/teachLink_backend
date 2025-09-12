@@ -1,11 +1,21 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModelDeployment } from '../entities/model-deployment.entity';
 import { MLModel } from '../entities/ml-model.entity';
 import { ModelVersion } from '../entities/model-version.entity';
-import { DeploymentStatus, DeploymentEnvironment } from '../enums';
+import {
+  DeploymentStatus,
+  DeploymentEnvironment,
+  ModelStatus,
+  VersionStatus,
+} from '../enums';
 import { DeployModelDto } from '../dto/deploy-model.dto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -34,24 +44,35 @@ export class ModelDeploymentService {
     deployModelDto: DeployModelDto,
   ): Promise<ModelDeployment> {
     const deploymentId = crypto.randomUUID();
-    
+
     try {
-      this.logger.log(`Starting deployment for model ${model.id}, version ${version.id}`);
-      
+      this.logger.log(
+        `Starting deployment for model ${model.id}, version ${version.id}`,
+      );
+
       // Validate deployment prerequisites
-      await this.validateDeploymentPrerequisites(model, version, deployModelDto);
+      await this.validateDeploymentPrerequisites(
+        model,
+        version,
+        deployModelDto,
+      );
 
       // Create deployment record
       const deployment = this.deploymentRepository.create({
         id: deploymentId,
         modelId: model.id,
         versionId: version.id,
-        environment: deployModelDto.environment || DeploymentEnvironment.STAGING,
+        environment:
+          deployModelDto.environment || DeploymentEnvironment.STAGING,
         status: DeploymentStatus.DEPLOYING,
         deploymentConfig: deployModelDto.deploymentConfig || {},
-        healthCheckConfig: deployModelDto.healthCheckConfig || this.getDefaultHealthCheckConfig(),
-        scalingConfig: deployModelDto.scalingConfig || this.getDefaultScalingConfig(),
-        monitoringConfig: deployModelDto.monitoringConfig || this.getDefaultMonitoringConfig(),
+        healthCheckConfig:
+          deployModelDto.healthCheckConfig ||
+          this.getDefaultHealthCheckConfig(),
+        scalingConfig:
+          deployModelDto.scalingConfig || this.getDefaultScalingConfig(),
+        monitoringConfig:
+          deployModelDto.monitoringConfig || this.getDefaultMonitoringConfig(),
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -67,7 +88,12 @@ export class ModelDeploymentService {
       });
 
       // Perform deployment
-      const deploymentResult = await this.performDeployment(deployment, model, version, deployModelDto);
+      const deploymentResult = await this.performDeployment(
+        deployment,
+        model,
+        version,
+        deployModelDto,
+      );
 
       // Update deployment status
       deployment.status = DeploymentStatus.ACTIVE;
@@ -92,14 +118,22 @@ export class ModelDeploymentService {
       // Update model status
       await this.updateModelDeploymentStatus(model.id, true);
 
-      this.logger.log(`Deployment completed for model ${model.id}, version ${version.id}`);
+      this.logger.log(
+        `Deployment completed for model ${model.id}, version ${version.id}`,
+      );
       return finalDeployment;
-
     } catch (error) {
       // Update deployment status to failed
-      await this.updateDeploymentStatus(deploymentId, DeploymentStatus.FAILED, error.message);
-      
-      this.logger.error(`Deployment failed for model ${model.id}: ${error.message}`, error.stack);
+      await this.updateDeploymentStatus(
+        deploymentId,
+        DeploymentStatus.FAILED,
+        error.message,
+      );
+
+      this.logger.error(
+        `Deployment failed for model ${model.id}: ${error.message}`,
+        error.stack,
+      );
       throw new BadRequestException(`Deployment failed: ${error.message}`);
     }
   }
@@ -109,15 +143,17 @@ export class ModelDeploymentService {
     version: ModelVersion,
   ): Promise<ModelDeployment> {
     try {
-      this.logger.log(`Starting rollback for model ${model.id} to version ${version.id}`);
+      this.logger.log(
+        `Starting rollback for model ${model.id} to version ${version.id}`,
+      );
 
       // Get current active deployment
       const currentDeployment = await this.deploymentRepository.findOne({
-        where: { 
-          modelId: model.id, 
-          status: DeploymentStatus.ACTIVE 
+        where: {
+          modelId: model.id,
+          status: DeploymentStatus.ACTIVE,
         },
-        order: { deployedAt: 'DESC' }
+        order: { deployedAt: 'DESC' },
       });
 
       if (!currentDeployment) {
@@ -133,14 +169,18 @@ export class ModelDeploymentService {
       const rollbackDeployment = await this.performZeroDowntimeRollback(
         currentDeployment,
         version,
-        model
+        model,
       );
 
-      this.logger.log(`Rollback completed for model ${model.id} to version ${version.id}`);
+      this.logger.log(
+        `Rollback completed for model ${model.id} to version ${version.id}`,
+      );
       return rollbackDeployment;
-
     } catch (error) {
-      this.logger.error(`Rollback failed for model ${model.id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Rollback failed for model ${model.id}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -151,12 +191,12 @@ export class ModelDeploymentService {
 
       if (deploymentId) {
         deployment = await this.deploymentRepository.findOne({
-          where: { id: deploymentId, modelId }
+          where: { id: deploymentId, modelId },
         });
       } else {
         deployment = await this.deploymentRepository.findOne({
           where: { modelId, status: DeploymentStatus.ACTIVE },
-          order: { deployedAt: 'DESC' }
+          order: { deployedAt: 'DESC' },
         });
       }
 
@@ -184,9 +224,11 @@ export class ModelDeploymentService {
       });
 
       this.logger.log(`Undeployment completed for model ${modelId}`);
-
     } catch (error) {
-      this.logger.error(`Undeployment failed for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Undeployment failed for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -195,7 +237,7 @@ export class ModelDeploymentService {
     try {
       const deployment = await this.deploymentRepository.findOne({
         where: { id: deploymentId },
-        relations: ['model', 'version']
+        relations: ['model', 'version'],
       });
 
       if (!deployment) {
@@ -212,15 +254,21 @@ export class ModelDeploymentService {
         uptime: this.calculateUptime(deployment),
       };
     } catch (error) {
-      this.logger.error(`Failed to get deployment status ${deploymentId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get deployment status ${deploymentId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async scaleDeployment(deploymentId: string, scalingConfig: any): Promise<ModelDeployment> {
+  async scaleDeployment(
+    deploymentId: string,
+    scalingConfig: any,
+  ): Promise<ModelDeployment> {
     try {
       const deployment = await this.deploymentRepository.findOne({
-        where: { id: deploymentId }
+        where: { id: deploymentId },
       });
 
       if (!deployment) {
@@ -235,10 +283,14 @@ export class ModelDeploymentService {
       await this.performScaling(deployment, scalingConfig);
 
       // Update deployment configuration
-      deployment.scalingConfig = { ...deployment.scalingConfig, ...scalingConfig };
+      deployment.scalingConfig = {
+        ...deployment.scalingConfig,
+        ...scalingConfig,
+      };
       deployment.updatedAt = new Date();
-      
-      const updatedDeployment = await this.deploymentRepository.save(deployment);
+
+      const updatedDeployment =
+        await this.deploymentRepository.save(deployment);
 
       this.eventEmitter.emit('deployment.scaled', {
         deploymentId,
@@ -247,12 +299,18 @@ export class ModelDeploymentService {
 
       return updatedDeployment;
     } catch (error) {
-      this.logger.error(`Failed to scale deployment ${deploymentId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to scale deployment ${deploymentId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async getDeploymentHistory(modelId: string, limit: number = 10): Promise<ModelDeployment[]> {
+  async getDeploymentHistory(
+    modelId: string,
+    limit: number = 10,
+  ): Promise<ModelDeployment[]> {
     try {
       return await this.deploymentRepository.find({
         where: { modelId },
@@ -261,7 +319,10 @@ export class ModelDeploymentService {
         relations: ['version'],
       });
     } catch (error) {
-      this.logger.error(`Failed to get deployment history for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get deployment history for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -273,27 +334,27 @@ export class ModelDeploymentService {
     deployModelDto: DeployModelDto,
   ): Promise<void> {
     // Check if model is trained
-    if (model.status !== 'TRAINED') {
+    if (model.status !== ModelStatus.TRAINED) {
       throw new BadRequestException('Model must be trained before deployment');
     }
 
     // Check if version is ready
-    if (version.status !== 'READY') {
+    if (version.status !== VersionStatus.READY) {
       throw new BadRequestException('Version must be ready before deployment');
     }
 
     // Check for conflicting deployments
     const activeDeployment = await this.deploymentRepository.findOne({
-      where: { 
-        modelId: model.id, 
+      where: {
+        modelId: model.id,
         environment: deployModelDto.environment,
-        status: DeploymentStatus.ACTIVE 
-      }
+        status: DeploymentStatus.ACTIVE,
+      },
     });
 
     if (activeDeployment && !deployModelDto.force) {
       throw new BadRequestException(
-        `Active deployment exists in ${deployModelDto.environment} environment. Use force=true to override.`
+        `Active deployment exists in ${deployModelDto.environment} environment. Use force=true to override.`,
       );
     }
 
@@ -325,7 +386,7 @@ export class ModelDeploymentService {
       'Starting model service',
       'Configuring load balancer',
       'Running health checks',
-      'Activating deployment'
+      'Activating deployment',
     ];
 
     const logs = [];
@@ -336,8 +397,11 @@ export class ModelDeploymentService {
       await this.simulateDeploymentStep(step);
     }
 
-    const endpoint = this.generateEndpoint(deployment.id, deployModelDto.environment);
-    
+    const endpoint = this.generateEndpoint(
+      deployment.id,
+      deployModelDto.environment,
+    );
+
     return {
       endpoint,
       logs,
@@ -351,7 +415,7 @@ export class ModelDeploymentService {
     model: MLModel,
   ): Promise<ModelDeployment> {
     const rollbackId = crypto.randomUUID();
-    
+
     try {
       // Create new deployment with target version
       const rollbackDeployment = this.deploymentRepository.create({
@@ -370,10 +434,16 @@ export class ModelDeploymentService {
         updatedAt: new Date(),
       });
 
-      const savedRollbackDeployment = await this.deploymentRepository.save(rollbackDeployment);
+      const savedRollbackDeployment =
+        await this.deploymentRepository.save(rollbackDeployment);
 
       // Perform blue-green deployment
-      await this.performBlueGreenDeployment(currentDeployment, savedRollbackDeployment, model, targetVersion);
+      await this.performBlueGreenDeployment(
+        currentDeployment,
+        savedRollbackDeployment,
+        model,
+        targetVersion,
+      );
 
       // Update deployment status
       savedRollbackDeployment.status = DeploymentStatus.ACTIVE;
@@ -381,7 +451,9 @@ export class ModelDeploymentService {
       savedRollbackDeployment.endpoint = currentDeployment.endpoint; // Keep same endpoint
       savedRollbackDeployment.updatedAt = new Date();
 
-      const finalRollbackDeployment = await this.deploymentRepository.save(savedRollbackDeployment);
+      const finalRollbackDeployment = await this.deploymentRepository.save(
+        savedRollbackDeployment,
+      );
 
       // Mark old deployment as inactive
       currentDeployment.status = DeploymentStatus.INACTIVE;
@@ -399,7 +471,6 @@ export class ModelDeploymentService {
       });
 
       return finalRollbackDeployment;
-
     } catch (error) {
       // Rollback failed - attempt to restore original deployment
       await this.attemptRollbackRecovery(currentDeployment, error.message);
@@ -419,12 +490,12 @@ export class ModelDeploymentService {
       'Running health checks on green environment',
       'Switching traffic to green environment',
       'Verifying green environment stability',
-      'Decommissioning blue environment'
+      'Decommissioning blue environment',
     ];
 
     for (const step of steps) {
       await this.simulateDeploymentStep(step);
-      
+
       // Simulate health check
       const isHealthy = await this.simulateHealthCheck(greenDeployment);
       if (!isHealthy && step.includes('health checks')) {
@@ -437,26 +508,35 @@ export class ModelDeploymentService {
     originalDeployment: ModelDeployment,
     errorMessage: string,
   ): Promise<void> {
-    this.logger.warn(`Attempting rollback recovery for deployment ${originalDeployment.id}`);
-    
+    this.logger.warn(
+      `Attempting rollback recovery for deployment ${originalDeployment.id}`,
+    );
+
     try {
       // Attempt to restore original deployment
       originalDeployment.status = DeploymentStatus.ACTIVE;
       originalDeployment.updatedAt = new Date();
       await this.deploymentRepository.save(originalDeployment);
-      
-      this.logger.log(`Rollback recovery successful for deployment ${originalDeployment.id}`);
+
+      this.logger.log(
+        `Rollback recovery successful for deployment ${originalDeployment.id}`,
+      );
     } catch (recoveryError) {
-      this.logger.error(`Rollback recovery failed: ${recoveryError.message}`, recoveryError.stack);
+      this.logger.error(
+        `Rollback recovery failed: ${recoveryError.message}`,
+        recoveryError.stack,
+      );
     }
   }
 
-  private async performUndeployment(deployment: ModelDeployment): Promise<void> {
+  private async performUndeployment(
+    deployment: ModelDeployment,
+  ): Promise<void> {
     const steps = [
       'Stopping model service',
       'Removing from load balancer',
       'Cleaning up resources',
-      'Updating DNS records'
+      'Updating DNS records',
     ];
 
     for (const step of steps) {
@@ -464,13 +544,16 @@ export class ModelDeploymentService {
     }
   }
 
-  private async performScaling(deployment: ModelDeployment, scalingConfig: any): Promise<void> {
+  private async performScaling(
+    deployment: ModelDeployment,
+    scalingConfig: any,
+  ): Promise<void> {
     const steps = [
       'Analyzing current load',
       'Calculating required resources',
       'Scaling up/down instances',
       'Updating load balancer configuration',
-      'Verifying scaling operation'
+      'Verifying scaling operation',
     ];
 
     for (const step of steps) {
@@ -481,19 +564,25 @@ export class ModelDeploymentService {
   private async simulateDeploymentStep(step: string): Promise<void> {
     // Simulate deployment step with random delay
     const delay = Math.random() * 2000 + 500; // 500-2500ms
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
-  private async simulateHealthCheck(deployment: ModelDeployment): Promise<boolean> {
+  private async simulateHealthCheck(
+    deployment: ModelDeployment,
+  ): Promise<boolean> {
     // Simulate health check with 95% success rate
     return Math.random() > 0.05;
   }
 
-  private generateEndpoint(deploymentId: string, environment: DeploymentEnvironment): string {
-    const baseUrl = environment === DeploymentEnvironment.PRODUCTION 
-      ? 'https://api.production.com' 
-      : 'https://api.staging.com';
-    
+  private generateEndpoint(
+    deploymentId: string,
+    environment: DeploymentEnvironment,
+  ): string {
+    const baseUrl =
+      environment === DeploymentEnvironment.PRODUCTION
+        ? 'https://api.production.com'
+        : 'https://api.staging.com';
+
     return `${baseUrl}/models/${deploymentId}`;
   }
 
@@ -545,18 +634,27 @@ export class ModelDeploymentService {
         updatedAt: new Date(),
       });
     } catch (error) {
-      this.logger.error(`Failed to update deployment status: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update deployment status: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
-  private async updateModelDeploymentStatus(modelId: string, isDeployed: boolean): Promise<void> {
+  private async updateModelDeploymentStatus(
+    modelId: string,
+    isDeployed: boolean,
+  ): Promise<void> {
     try {
       await this.modelRepository.update(modelId, {
         lastDeployedAt: isDeployed ? new Date() : null,
         updatedAt: new Date(),
       });
     } catch (error) {
-      this.logger.error(`Failed to update model deployment status: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update model deployment status: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -565,21 +663,27 @@ export class ModelDeploymentService {
     setInterval(async () => {
       try {
         const isHealthy = await this.checkDeploymentHealth(deployment);
-        
+
         if (!isHealthy) {
-          this.logger.warn(`Health check failed for deployment ${deployment.id}`);
+          this.logger.warn(
+            `Health check failed for deployment ${deployment.id}`,
+          );
           this.eventEmitter.emit('deployment.unhealthy', {
             deploymentId: deployment.id,
             modelId: deployment.modelId,
           });
         }
       } catch (error) {
-        this.logger.error(`Health monitoring error for deployment ${deployment.id}: ${error.message}`);
+        this.logger.error(
+          `Health monitoring error for deployment ${deployment.id}: ${error.message}`,
+        );
       }
     }, this.HEALTH_CHECK_INTERVAL);
   }
 
-  private async checkDeploymentHealth(deployment: ModelDeployment): Promise<any> {
+  private async checkDeploymentHealth(
+    deployment: ModelDeployment,
+  ): Promise<any> {
     // Simulate health check
     const healthStatus = {
       status: 'healthy',
@@ -593,7 +697,9 @@ export class ModelDeploymentService {
     return healthStatus;
   }
 
-  private async getDeploymentMetrics(deployment: ModelDeployment): Promise<any> {
+  private async getDeploymentMetrics(
+    deployment: ModelDeployment,
+  ): Promise<any> {
     // Simulate metrics collection
     return {
       requestsPerSecond: Math.random() * 100 + 10,
@@ -607,11 +713,11 @@ export class ModelDeploymentService {
 
   private calculateUptime(deployment: ModelDeployment): number {
     if (!deployment.deployedAt) return 0;
-    
+
     const now = new Date();
     const deployedAt = new Date(deployment.deployedAt);
     const uptimeMs = now.getTime() - deployedAt.getTime();
-    
+
     return Math.floor(uptimeMs / 1000); // Return uptime in seconds
   }
-} 
+}

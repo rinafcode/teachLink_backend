@@ -1,4 +1,7 @@
-import { NotificationDelivery, DeliveryStatus } from './notification-delivery.entity';
+import {
+  NotificationDelivery,
+  DeliveryStatus,
+} from './notification-delivery.entity';
 
 describe('NotificationDelivery Entity', () => {
   it('should instantiate with correct status', () => {
@@ -13,4 +16,4 @@ describe('NotificationDelivery Entity', () => {
     delivery.status = DeliveryStatus.SENT;
     expect(delivery.status).toBe(DeliveryStatus.SENT);
   });
-}); 
+});

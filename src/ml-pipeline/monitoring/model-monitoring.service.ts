@@ -7,4 +7,4 @@ export class ModelMonitoringService {
     // TODO: Implement performance monitoring logic
     return { modelId, driftDetected: false, metrics: { accuracy: 0.94 } };
   }
-} 
+}

@@ -13,8 +13,11 @@ export class PolicyEnforcementService {
     const userId = request.user?.sub || null;
     const tier = request.user?.role || 'free';
     const endpoint = request.path;
-    const ip = request.ip || request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+    const ip =
+      request.ip ||
+      request.headers['x-forwarded-for'] ||
+      request.connection.remoteAddress;
     // Use rate limiting service
     return this.rateLimitingService.isAllowed(userId || ip, tier, endpoint, ip);
   }
-} 
+}

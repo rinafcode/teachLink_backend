@@ -183,7 +183,8 @@ describe('ObservabilityModule', () => {
       ],
     }).compile();
 
-    observabilityService = module.get<ObservabilityService>(ObservabilityService);
+    observabilityService =
+      module.get<ObservabilityService>(ObservabilityService);
   });
 
   afterEach(async () => {
@@ -200,10 +201,18 @@ describe('ObservabilityModule', () => {
   });
 
   it('should provide all required services', () => {
-    const tracingService = module.get<DistributedTracingService>(DistributedTracingService);
-    const loggingService = module.get<LogAggregationService>(LogAggregationService);
-    const metricsService = module.get<MetricsAnalysisService>(MetricsAnalysisService);
-    const anomalyService = module.get<AnomalyDetectionService>(AnomalyDetectionService);
+    const tracingService = module.get<DistributedTracingService>(
+      DistributedTracingService,
+    );
+    const loggingService = module.get<LogAggregationService>(
+      LogAggregationService,
+    );
+    const metricsService = module.get<MetricsAnalysisService>(
+      MetricsAnalysisService,
+    );
+    const anomalyService = module.get<AnomalyDetectionService>(
+      AnomalyDetectionService,
+    );
 
     expect(tracingService).toBeDefined();
     expect(loggingService).toBeDefined();
@@ -213,10 +222,18 @@ describe('ObservabilityModule', () => {
 
   it('should initialize observability service', async () => {
     // Mock the initialization methods
-    const tracingService = module.get<DistributedTracingService>(DistributedTracingService);
-    const loggingService = module.get<LogAggregationService>(LogAggregationService);
-    const metricsService = module.get<MetricsAnalysisService>(MetricsAnalysisService);
-    const anomalyService = module.get<AnomalyDetectionService>(AnomalyDetectionService);
+    const tracingService = module.get<DistributedTracingService>(
+      DistributedTracingService,
+    );
+    const loggingService = module.get<LogAggregationService>(
+      LogAggregationService,
+    );
+    const metricsService = module.get<MetricsAnalysisService>(
+      MetricsAnalysisService,
+    );
+    const anomalyService = module.get<AnomalyDetectionService>(
+      AnomalyDetectionService,
+    );
 
     jest.spyOn(tracingService, 'initialize').mockResolvedValue();
     jest.spyOn(loggingService, 'initialize').mockResolvedValue();
@@ -250,15 +267,31 @@ describe('ObservabilityModule', () => {
 
   it('should get health status', async () => {
     // Mock health status for all services
-    const tracingService = module.get<DistributedTracingService>(DistributedTracingService);
-    const loggingService = module.get<LogAggregationService>(LogAggregationService);
-    const metricsService = module.get<MetricsAnalysisService>(MetricsAnalysisService);
-    const anomalyService = module.get<AnomalyDetectionService>(AnomalyDetectionService);
+    const tracingService = module.get<DistributedTracingService>(
+      DistributedTracingService,
+    );
+    const loggingService = module.get<LogAggregationService>(
+      LogAggregationService,
+    );
+    const metricsService = module.get<MetricsAnalysisService>(
+      MetricsAnalysisService,
+    );
+    const anomalyService = module.get<AnomalyDetectionService>(
+      AnomalyDetectionService,
+    );
 
-    jest.spyOn(tracingService, 'getHealthStatus').mockResolvedValue({ status: 'healthy' });
-    jest.spyOn(loggingService, 'getHealthStatus').mockResolvedValue({ status: 'healthy' });
-    jest.spyOn(metricsService, 'getHealthStatus').mockResolvedValue({ status: 'healthy' });
-    jest.spyOn(anomalyService, 'getHealthStatus').mockResolvedValue({ status: 'healthy' });
+    jest
+      .spyOn(tracingService, 'getHealthStatus')
+      .mockResolvedValue({ status: 'healthy' });
+    jest
+      .spyOn(loggingService, 'getHealthStatus')
+      .mockResolvedValue({ status: 'healthy' });
+    jest
+      .spyOn(metricsService, 'getHealthStatus')
+      .mockResolvedValue({ status: 'healthy' });
+    jest
+      .spyOn(anomalyService, 'getHealthStatus')
+      .mockResolvedValue({ status: 'healthy' });
 
     const healthStatus = await observabilityService.getHealthStatus();
 
@@ -270,10 +303,18 @@ describe('ObservabilityModule', () => {
 
   it('should get observability statistics', async () => {
     // Mock statistics for all services
-    const tracingService = module.get<DistributedTracingService>(DistributedTracingService);
-    const loggingService = module.get<LogAggregationService>(LogAggregationService);
-    const metricsService = module.get<MetricsAnalysisService>(MetricsAnalysisService);
-    const anomalyService = module.get<AnomalyDetectionService>(AnomalyDetectionService);
+    const tracingService = module.get<DistributedTracingService>(
+      DistributedTracingService,
+    );
+    const loggingService = module.get<LogAggregationService>(
+      LogAggregationService,
+    );
+    const metricsService = module.get<MetricsAnalysisService>(
+      MetricsAnalysisService,
+    );
+    const anomalyService = module.get<AnomalyDetectionService>(
+      AnomalyDetectionService,
+    );
 
     jest.spyOn(tracingService, 'getTraceCount').mockResolvedValue(10);
     jest.spyOn(loggingService, 'getLogCount').mockResolvedValue(100);

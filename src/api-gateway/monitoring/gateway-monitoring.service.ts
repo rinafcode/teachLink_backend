@@ -34,7 +34,9 @@ export class GatewayMonitoringService {
    * Log incoming requests, collect metrics, and start tracing span.
    */
   logRequest(request: any): void {
-    this.logger.log(`Incoming request: ${request.method} ${request.originalUrl}`);
+    this.logger.log(
+      `Incoming request: ${request.method} ${request.originalUrl}`,
+    );
     const route = request.route?.path || request.path || 'unknown';
     const method = request.method;
     // Start timer for Prometheus
@@ -98,4 +100,4 @@ export class GatewayMonitoringService {
   async getMetrics(): Promise<string> {
     return await register.metrics();
   }
-} 
+}

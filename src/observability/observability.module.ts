@@ -17,12 +17,7 @@ import { AnomalyAlert } from './entities/anomaly-alert.entity';
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([
-      TraceSpan,
-      LogEntry,
-      MetricEntry,
-      AnomalyAlert,
-    ]),
+    TypeOrmModule.forFeature([TraceSpan, LogEntry, MetricEntry, AnomalyAlert]),
     ElasticsearchModule.register({
       node: process.env.ELASTICSEARCH_NODE || 'http://localhost:9200',
       auth: {
@@ -54,7 +49,7 @@ import { AnomalyAlert } from './entities/anomaly-alert.entity';
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379'),
         },
-      }
+      },
     ),
   ],
   providers: [

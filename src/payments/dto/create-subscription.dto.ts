@@ -1,4 +1,14 @@
-import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsUUID, Min, IsObject, IsDateString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  Min,
+  IsObject,
+  IsDateString,
+} from 'class-validator';
 import { BillingInterval } from '../enums';
 
 export class CreateSubscriptionDto {
@@ -30,4 +40,4 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
-} 
+}

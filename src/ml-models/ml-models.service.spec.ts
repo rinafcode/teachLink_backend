@@ -11,7 +11,14 @@ import { ModelVersion } from './entities/model-version.entity';
 import { ModelDeployment } from './entities/model-deployment.entity';
 import { ModelPerformance } from './entities/model-performance.entity';
 import { ABTest } from './entities/ab-test.entity';
-import { ModelStatus, ModelType, ModelFramework, VersionStatus, DeploymentStatus, ABTestStatus } from './enums';
+import {
+  ModelStatus,
+  ModelType,
+  ModelFramework,
+  VersionStatus,
+  DeploymentStatus,
+  ABTestStatus,
+} from './enums';
 import { CreateModelDto } from './dto/create-model.dto';
 import { TrainModelDto } from './dto/train-model.dto';
 import { DeployModelDto } from './dto/deploy-model.dto';
@@ -150,15 +157,33 @@ describe('MLModelsService', () => {
     }).compile();
 
     service = module.get<MLModelsService>(MLModelsService);
-    modelRepository = module.get<Repository<MLModel>>(getRepositoryToken(MLModel));
-    versionRepository = module.get<Repository<ModelVersion>>(getRepositoryToken(ModelVersion));
-    deploymentRepository = module.get<Repository<ModelDeployment>>(getRepositoryToken(ModelDeployment));
-    performanceRepository = module.get<Repository<ModelPerformance>>(getRepositoryToken(ModelPerformance));
-    abTestRepository = module.get<Repository<ABTest>>(getRepositoryToken(ABTest));
-    versioningService = module.get<ModelVersioningService>(ModelVersioningService);
-    deploymentService = module.get<ModelDeploymentService>(ModelDeploymentService);
-    monitoringService = module.get<ModelMonitoringService>(ModelMonitoringService);
-    trainingService = module.get<TrainingPipelineService>(TrainingPipelineService);
+    modelRepository = module.get<Repository<MLModel>>(
+      getRepositoryToken(MLModel),
+    );
+    versionRepository = module.get<Repository<ModelVersion>>(
+      getRepositoryToken(ModelVersion),
+    );
+    deploymentRepository = module.get<Repository<ModelDeployment>>(
+      getRepositoryToken(ModelDeployment),
+    );
+    performanceRepository = module.get<Repository<ModelPerformance>>(
+      getRepositoryToken(ModelPerformance),
+    );
+    abTestRepository = module.get<Repository<ABTest>>(
+      getRepositoryToken(ABTest),
+    );
+    versioningService = module.get<ModelVersioningService>(
+      ModelVersioningService,
+    );
+    deploymentService = module.get<ModelDeploymentService>(
+      ModelDeploymentService,
+    );
+    monitoringService = module.get<ModelMonitoringService>(
+      ModelMonitoringService,
+    );
+    trainingService = module.get<TrainingPipelineService>(
+      TrainingPipelineService,
+    );
   });
 
   afterEach(() => {
@@ -183,8 +208,12 @@ describe('MLModelsService', () => {
       };
 
       const createdModel = { ...mockModel, ...createModelDto };
-      jest.spyOn(modelRepository, 'create').mockReturnValue(createdModel as MLModel);
-      jest.spyOn(modelRepository, 'save').mockResolvedValue(createdModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'create')
+        .mockReturnValue(createdModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'save')
+        .mockResolvedValue(createdModel as MLModel);
 
       const result = await service.createModel(createModelDto);
 
@@ -199,7 +228,9 @@ describe('MLModelsService', () => {
 
   describe('findModelById', () => {
     it('should return a model by ID', async () => {
-      jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockResolvedValue(mockModel as MLModel);
 
       const result = await service.findModelById('model-1');
 
@@ -213,7 +244,9 @@ describe('MLModelsService', () => {
     it('should throw NotFoundException when model not found', async () => {
       jest.spyOn(modelRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.findModelById('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.findModelById('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -222,8 +255,12 @@ describe('MLModelsService', () => {
       const updateModelDto = { name: 'Updated Model' };
       const updatedModel = { ...mockModel, ...updateModelDto };
 
-      jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
-      jest.spyOn(modelRepository, 'save').mockResolvedValue(updatedModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'save')
+        .mockResolvedValue(updatedModel as MLModel);
 
       const result = await service.updateModel('model-1', updateModelDto);
 
@@ -234,9 +271,13 @@ describe('MLModelsService', () => {
 
   describe('deleteModel', () => {
     it('should delete a model', async () => {
-      jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockResolvedValue(mockModel as MLModel);
       jest.spyOn(deploymentRepository, 'count').mockResolvedValue(0);
-      jest.spyOn(modelRepository, 'remove').mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'remove')
+        .mockResolvedValue(mockModel as MLModel);
 
       await service.deleteModel('model-1');
 
@@ -244,10 +285,14 @@ describe('MLModelsService', () => {
     });
 
     it('should throw BadRequestException when model has active deployments', async () => {
-      jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockResolvedValue(mockModel as MLModel);
       jest.spyOn(deploymentRepository, 'count').mockResolvedValue(1);
 
-      await expect(service.deleteModel('model-1')).rejects.toThrow(BadRequestException);
+      await expect(service.deleteModel('model-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -271,16 +316,27 @@ describe('MLModelsService', () => {
         recall: 0.93,
         f1Score: 0.935,
         featureImportance: { feature1: 0.6, feature2: 0.4 },
-        confusionMatrix: [[90, 10], [5, 95]],
+        confusionMatrix: [
+          [90, 10],
+          [5, 95],
+        ],
         rocCurve: { fpr: [0, 1], tpr: [0, 1] },
         artifactPath: '/models/model-1/v1.0.0.model',
         modelHash: 'hash123',
       };
 
-      jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
-      jest.spyOn(versionRepository, 'create').mockReturnValue(mockVersion as ModelVersion);
-      jest.spyOn(versionRepository, 'save').mockResolvedValue(mockVersion as ModelVersion);
-      jest.spyOn(trainingService, 'trainModel').mockResolvedValue(trainingResult);
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(versionRepository, 'create')
+        .mockReturnValue(mockVersion as ModelVersion);
+      jest
+        .spyOn(versionRepository, 'save')
+        .mockResolvedValue(mockVersion as ModelVersion);
+      jest
+        .spyOn(trainingService, 'trainModel')
+        .mockResolvedValue(trainingResult);
 
       const result = await service.trainModel(trainModelDto);
 
@@ -313,11 +369,21 @@ describe('MLModelsService', () => {
         monitoringResult: {},
       };
 
-      jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
-      jest.spyOn(versionRepository, 'findOne').mockResolvedValue(mockVersion as ModelVersion);
-      jest.spyOn(deploymentRepository, 'create').mockReturnValue(mockDeployment as ModelDeployment);
-      jest.spyOn(deploymentRepository, 'save').mockResolvedValue(mockDeployment as ModelDeployment);
-      jest.spyOn(deploymentService, 'deployModel').mockResolvedValue(deploymentResult);
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockResolvedValue(mockModel as MLModel);
+      jest
+        .spyOn(versionRepository, 'findOne')
+        .mockResolvedValue(mockVersion as ModelVersion);
+      jest
+        .spyOn(deploymentRepository, 'create')
+        .mockReturnValue(mockDeployment as ModelDeployment);
+      jest
+        .spyOn(deploymentRepository, 'save')
+        .mockResolvedValue(mockDeployment as ModelDeployment);
+      jest
+        .spyOn(deploymentService, 'deployModel')
+        .mockResolvedValue(deploymentResult);
 
       const result = await service.deployModel(deployModelDto);
 
@@ -351,15 +417,24 @@ describe('MLModelsService', () => {
         updatedAt: new Date(),
       };
 
-      jest.spyOn(modelRepository, 'findOne')
+      jest
+        .spyOn(modelRepository, 'findOne')
         .mockResolvedValueOnce(mockModel as MLModel)
-        .mockResolvedValueOnce({ ...mockModel, id: 'model-2', status: ModelStatus.DEPLOYED } as MLModel);
-      jest.spyOn(abTestRepository, 'create').mockReturnValue(mockABTest as ABTest);
-      jest.spyOn(abTestRepository, 'save').mockResolvedValue(mockABTest as ABTest);
+        .mockResolvedValueOnce({
+          ...mockModel,
+          id: 'model-2',
+          status: ModelStatus.DEPLOYED,
+        } as MLModel);
+      jest
+        .spyOn(abTestRepository, 'create')
+        .mockReturnValue(mockABTest as ABTest);
+      jest
+        .spyOn(abTestRepository, 'save')
+        .mockResolvedValue(mockABTest as ABTest);
 
       const result = await service.createABTest(createABTestDto);
 
       expect(result).toEqual(mockABTest);
     });
   });
-}); 
+});

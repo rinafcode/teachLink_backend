@@ -9,57 +9,57 @@ import {
   IsDateString,
   MaxLength,
   MinLength,
-} from "class-validator"
-import { CertificateType } from "../entities/certificate.entity"
+} from 'class-validator';
+import { CertificateType } from '../entities/certificate.entity';
 
 export class CreateCertificateDto {
   @IsString()
   @MinLength(3)
   @MaxLength(255)
-  title: string
+  title: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(1000)
-  description?: string
+  description?: string;
 
   @IsEnum(CertificateType)
-  type: CertificateType
+  type: CertificateType;
 
   @IsUUID()
-  recipientId: string
+  recipientId: string;
 
   @IsString()
   @MinLength(2)
   @MaxLength(255)
-  recipientName: string
+  recipientName: string;
 
   @IsEmail()
-  recipientEmail: string
+  recipientEmail: string;
 
   @IsUUID()
-  issuerId: string
+  issuerId: string;
 
   @IsString()
   @MinLength(2)
   @MaxLength(255)
-  issuerName: string
+  issuerName: string;
 
   @IsString()
   @MinLength(2)
   @MaxLength(255)
-  issuerOrganization: string
+  issuerOrganization: string;
 
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  skills?: string[]
+  skills?: string[];
 
   @IsOptional()
   @IsObject()
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>;
 
   @IsOptional()
   @IsDateString()
-  expiresAt?: string
+  expiresAt?: string;
 }

@@ -1,4 +1,9 @@
-import { Injectable, Logger, Inject, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -47,7 +52,7 @@ export class SearchAnalyticsService {
   private readonly searchIndex = 'search_analytics';
   private readonly performanceIndex = 'search_performance';
   private readonly errorIndex = 'search_errors';
-  
+
   private readonly adminRoles = ['admin', 'analytics_admin'];
   private readonly allowedIps = new Set<string>();
 
@@ -59,9 +64,12 @@ export class SearchAnalyticsService {
   }
 
   private initializeAllowedIps() {
-    const allowedIpsConfig = this.configService.get<string>('ANALYTICS_ALLOWED_IPS', '');
+    const allowedIpsConfig = this.configService.get<string>(
+      'ANALYTICS_ALLOWED_IPS',
+      '',
+    );
     if (allowedIpsConfig) {
-      allowedIpsConfig.split(',').forEach(ip => {
+      allowedIpsConfig.split(',').forEach((ip) => {
         this.allowedIps.add(ip.trim());
       });
     }
@@ -81,7 +89,7 @@ export class SearchAnalyticsService {
     } = {},
   ) {
     const startTime = Date.now();
-    
+
     try {
       const searchEvent: SearchEvent = {
         id: this.generateEventId(),
@@ -106,7 +114,9 @@ export class SearchAnalyticsService {
       });
 
       const duration = Date.now() - startTime;
-      this.logger.debug(`Logged search event in ${duration}ms for user ${userId}`);
+      this.logger.debug(
+        `Logged search event in ${duration}ms for user ${userId}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to log search event for user ${userId}`, error);
       // Don't throw error to avoid breaking search functionality
@@ -146,10 +156,16 @@ export class SearchAnalyticsService {
 
       // Update the original search event with clicked results
       if (context.sessionId && context.query) {
-        await this.updateSearchEventWithClick(context.sessionId, context.query, resultId);
+        await this.updateSearchEventWithClick(
+          context.sessionId,
+          context.query,
+          resultId,
+        );
       }
 
-      this.logger.debug(`Logged click event for user ${userId} on result ${resultId}`);
+      this.logger.debug(
+        `Logged click event for user ${userId} on result ${resultId}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to log click event for user ${userId}`, error);
     }
@@ -191,7 +207,10 @@ export class SearchAnalyticsService {
   }
 
   async getAnalytics(
-    timeRange: { from: Date; to: Date } = { from: new Date(Date.now() - 24 * 60 * 60 * 1000), to: new Date() },
+    timeRange: { from: Date; to: Date } = {
+      from: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      to: new Date(),
+    },
     userRole?: string,
     userIp?: string,
   ): Promise<SearchAnalytics> {
@@ -243,7 +262,10 @@ export class SearchAnalyticsService {
     }
   }
 
-  async getPerformanceMetrics(timeRange: { from: Date; to: Date }): Promise<PerformanceMetrics> {
+  async getPerformanceMetrics(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<PerformanceMetrics> {
     try {
       const [
         responseTimePercentiles,
@@ -286,11 +308,17 @@ export class SearchAnalyticsService {
     }
 
     // Check environment variable for public access
-    const publicAccess = this.configService.get<boolean>('ANALYTICS_PUBLIC_ACCESS', false);
+    const publicAccess = this.configService.get<boolean>(
+      'ANALYTICS_PUBLIC_ACCESS',
+      false,
+    );
     return publicAccess;
   }
 
-  private async getTotalSearches(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getTotalSearches(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.count({
       index: this.searchIndex,
       body: {
@@ -308,7 +336,10 @@ export class SearchAnalyticsService {
     return result.count;
   }
 
-  private async getUniqueUsers(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getUniqueUsers(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -332,7 +363,10 @@ export class SearchAnalyticsService {
     return aggs?.unique_users?.value || 0;
   }
 
-  private async getAverageResponseTime(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getAverageResponseTime(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -356,7 +390,10 @@ export class SearchAnalyticsService {
     return aggs2?.avg_response_time?.value || 0;
   }
 
-  private async getTopQueries(timeRange: { from: Date; to: Date }): Promise<Array<{ query: string; count: number }>> {
+  private async getTopQueries(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<Array<{ query: string; count: number }>> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -380,13 +417,18 @@ export class SearchAnalyticsService {
       } as any,
     });
     const aggs3 = result.aggregations as any;
-    return aggs3?.top_queries?.buckets?.map((bucket: any) => ({
-      query: bucket.key,
-      count: bucket.doc_count,
-    })) || [];
+    return (
+      aggs3?.top_queries?.buckets?.map((bucket: any) => ({
+        query: bucket.key,
+        count: bucket.doc_count,
+      })) || []
+    );
   }
 
-  private async getTopFilters(timeRange: { from: Date; to: Date }): Promise<Array<{ filter: string; count: number }>> {
+  private async getTopFilters(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<Array<{ filter: string; count: number }>> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -412,13 +454,18 @@ export class SearchAnalyticsService {
       } as any,
     });
     const aggs4 = result.aggregations as any;
-    return aggs4?.top_filters?.filter_keys?.buckets?.map((bucket: any) => ({
-      filter: bucket.key,
-      count: bucket.doc_count,
-    })) || [];
+    return (
+      aggs4?.top_filters?.filter_keys?.buckets?.map((bucket: any) => ({
+        filter: bucket.key,
+        count: bucket.doc_count,
+      })) || []
+    );
   }
 
-  private async getClickThroughRate(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getClickThroughRate(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const [totalSearches, totalClicks] = await Promise.all([
       this.getTotalSearches(timeRange),
       this.getTotalClicks(timeRange),
@@ -427,7 +474,10 @@ export class SearchAnalyticsService {
     return totalSearches > 0 ? totalClicks / totalSearches : 0;
   }
 
-  private async getZeroResultRate(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getZeroResultRate(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -466,7 +516,10 @@ export class SearchAnalyticsService {
     return totalSearches > 0 ? zeroResults / totalSearches : 0;
   }
 
-  private async getPopularContent(timeRange: { from: Date; to: Date }): Promise<Array<{ contentId: string; clicks: number }>> {
+  private async getPopularContent(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<Array<{ contentId: string; clicks: number }>> {
     const result = await this.esService.search({
       index: `${this.searchIndex}_clicks`,
       body: {
@@ -491,13 +544,18 @@ export class SearchAnalyticsService {
     });
 
     const aggs6 = result.aggregations as any;
-    return aggs6?.popular_content?.buckets?.map((bucket: any) => ({
-      contentId: bucket.key,
-      clicks: bucket.doc_count,
-    })) || [];
+    return (
+      aggs6?.popular_content?.buckets?.map((bucket: any) => ({
+        contentId: bucket.key,
+        clicks: bucket.doc_count,
+      })) || []
+    );
   }
 
-  private async getTimeDistribution(timeRange: { from: Date; to: Date }): Promise<Record<string, number>> {
+  private async getTimeDistribution(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<Record<string, number>> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -530,7 +588,10 @@ export class SearchAnalyticsService {
     return distribution;
   }
 
-  private async getErrorRate(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getErrorRate(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const [totalSearches, totalErrors] = await Promise.all([
       this.getTotalSearches(timeRange),
       this.getSearchErrorCount(timeRange),
@@ -539,7 +600,10 @@ export class SearchAnalyticsService {
     return totalSearches > 0 ? totalErrors / totalSearches : 0;
   }
 
-  private async getResponseTimePercentiles(timeRange: { from: Date; to: Date }) {
+  private async getResponseTimePercentiles(timeRange: {
+    from: Date;
+    to: Date;
+  }) {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -571,7 +635,10 @@ export class SearchAnalyticsService {
     };
   }
 
-  private async getAverageQueryLength(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getAverageQueryLength(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.search({
       index: this.searchIndex,
       body: {
@@ -600,7 +667,10 @@ export class SearchAnalyticsService {
     return aggs9?.avg_query_length?.value || 0;
   }
 
-  private async getCacheHitRate(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getCacheHitRate(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     // This would need to be implemented based on your caching strategy
     // For now, return a placeholder value
     return 0.85;
@@ -614,7 +684,10 @@ export class SearchAnalyticsService {
     return result.indices[this.searchIndex]?.total?.store?.size_in_bytes || 0;
   }
 
-  private async getSearchErrorCount(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getSearchErrorCount(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.count({
       index: this.errorIndex,
       body: {
@@ -632,7 +705,10 @@ export class SearchAnalyticsService {
     return result.count;
   }
 
-  private async getTotalClicks(timeRange: { from: Date; to: Date }): Promise<number> {
+  private async getTotalClicks(timeRange: {
+    from: Date;
+    to: Date;
+  }): Promise<number> {
     const result = await this.esService.count({
       index: `${this.searchIndex}_clicks`,
       body: {
@@ -650,17 +726,18 @@ export class SearchAnalyticsService {
     return result.count;
   }
 
-  private async updateSearchEventWithClick(sessionId: string, query: string, resultId: string) {
+  private async updateSearchEventWithClick(
+    sessionId: string,
+    query: string,
+    resultId: string,
+  ) {
     try {
       await this.esService.updateByQuery({
         index: this.searchIndex,
         body: {
           query: {
             bool: {
-              must: [
-                { term: { sessionId } },
-                { term: { query } },
-              ],
+              must: [{ term: { sessionId } }, { term: { query } }],
             },
           },
           script: {
@@ -671,7 +748,10 @@ export class SearchAnalyticsService {
         } as any,
       });
     } catch (error) {
-      this.logger.error(`Failed to update search event with click for session ${sessionId}, query ${query}`, error);
+      this.logger.error(
+        `Failed to update search event with click for session ${sessionId}, query ${query}`,
+        error,
+      );
     }
   }
 
@@ -686,8 +766,13 @@ export class SearchAnalyticsService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupOldData() {
     try {
-      const retentionDays = this.configService.get<number>('ANALYTICS_RETENTION_DAYS', 90);
-      const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+      const retentionDays = this.configService.get<number>(
+        'ANALYTICS_RETENTION_DAYS',
+        90,
+      );
+      const cutoffDate = new Date(
+        Date.now() - retentionDays * 24 * 60 * 60 * 1000,
+      );
 
       // Clean up old search events
       await this.esService.deleteByQuery({
@@ -731,9 +816,11 @@ export class SearchAnalyticsService {
         },
       } as unknown as import('@elastic/elasticsearch/lib/api/types').DeleteByQueryRequest);
 
-      this.logger.log(`Cleaned up analytics data older than ${retentionDays} days`);
+      this.logger.log(
+        `Cleaned up analytics data older than ${retentionDays} days`,
+      );
     } catch (error) {
       this.logger.error('Failed to cleanup old analytics data', error);
     }
   }
-} 
+}

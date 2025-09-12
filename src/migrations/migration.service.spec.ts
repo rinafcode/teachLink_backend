@@ -3,7 +3,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { MigrationService } from './migration.service';
-import { Migration, MigrationStatus, MigrationType } from './entities/migration.entity';
+import {
+  Migration,
+  MigrationStatus,
+  MigrationType,
+} from './entities/migration.entity';
 import { SchemaSnapshot } from './entities/schema-snapshot.entity';
 import { SchemaValidationService } from './validation/schema-validation.service';
 import { ConflictResolutionService } from './conflicts/conflict-resolution.service';
@@ -40,7 +44,7 @@ describe('MigrationService', () => {
     updatedAt: new Date(),
     timestamp: new Date(),
     executedAt: null,
-    rolledBackAt: null
+    rolledBackAt: null,
   };
 
   const mockQueryRunner = {
@@ -49,11 +53,11 @@ describe('MigrationService', () => {
     commitTransaction: jest.fn(),
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
-    query: jest.fn()
+    query: jest.fn(),
   };
 
   const mockDataSource = {
-    createQueryRunner: jest.fn(() => mockQueryRunner)
+    createQueryRunner: jest.fn(() => mockQueryRunner),
   };
 
   beforeEach(async () => {
@@ -68,8 +72,8 @@ describe('MigrationService', () => {
             save: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
-            delete: jest.fn()
-          }
+            delete: jest.fn(),
+          },
         },
         {
           provide: getRepositoryToken(SchemaSnapshot),
@@ -77,40 +81,48 @@ describe('MigrationService', () => {
             find: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
-            create: jest.fn()
-          }
+            create: jest.fn(),
+          },
         },
         {
           provide: DataSource,
-          useValue: mockDataSource
+          useValue: mockDataSource,
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn()
-          }
+            get: jest.fn(),
+          },
         },
         {
           provide: SchemaValidationService,
           useValue: {
-            validateMigration: jest.fn()
-          }
+            validateMigration: jest.fn(),
+          },
         },
         {
           provide: ConflictResolutionService,
           useValue: {
-            checkForConflicts: jest.fn()
-          }
-        }
-      ]
+            checkForConflicts: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<MigrationService>(MigrationService);
-    migrationRepository = module.get<Repository<Migration>>(getRepositoryToken(Migration));
-    snapshotRepository = module.get<Repository<SchemaSnapshot>>(getRepositoryToken(SchemaSnapshot));
+    migrationRepository = module.get<Repository<Migration>>(
+      getRepositoryToken(Migration),
+    );
+    snapshotRepository = module.get<Repository<SchemaSnapshot>>(
+      getRepositoryToken(SchemaSnapshot),
+    );
     dataSource = module.get<DataSource>(DataSource);
-    schemaValidationService = module.get<SchemaValidationService>(SchemaValidationService);
-    conflictResolutionService = module.get<ConflictResolutionService>(ConflictResolutionService);
+    schemaValidationService = module.get<SchemaValidationService>(
+      SchemaValidationService,
+    );
+    conflictResolutionService = module.get<ConflictResolutionService>(
+      ConflictResolutionService,
+    );
     queryRunner = mockQueryRunner as any;
   });
 
@@ -121,29 +133,41 @@ describe('MigrationService', () => {
   describe('runMigrations', () => {
     it('should run pending migrations successfully', async () => {
       const pendingMigrations = [mockMigration];
-      
-      jest.spyOn(migrationRepository, 'find').mockResolvedValue(pendingMigrations);
-      jest.spyOn(conflictResolutionService, 'checkForConflicts').mockResolvedValue();
-      jest.spyOn(schemaValidationService, 'validateMigration').mockResolvedValue({
-        isValid: true,
-        errors: [],
-        warnings: [],
-        breakingChanges: []
-      });
-      jest.spyOn(migrationRepository, 'save').mockResolvedValue(mockMigration as Migration);
+
+      jest
+        .spyOn(migrationRepository, 'find')
+        .mockResolvedValue(pendingMigrations);
+      jest
+        .spyOn(conflictResolutionService, 'checkForConflicts')
+        .mockResolvedValue();
+      jest
+        .spyOn(schemaValidationService, 'validateMigration')
+        .mockResolvedValue({
+          isValid: true,
+          errors: [],
+          warnings: [],
+          breakingChanges: [],
+        });
+      jest
+        .spyOn(migrationRepository, 'save')
+        .mockResolvedValue(mockMigration as Migration);
       jest.spyOn(queryRunner, 'query').mockResolvedValue([]);
-      jest.spyOn(service as any, 'createSchemaSnapshot').mockResolvedValue(undefined);
+      jest
+        .spyOn(service as any, 'createSchemaSnapshot')
+        .mockResolvedValue(undefined);
 
       await service.runMigrations('test');
 
       expect(migrationRepository.find).toHaveBeenCalledWith({
         where: {
           environment: 'test',
-          status: MigrationStatus.PENDING
+          status: MigrationStatus.PENDING,
         },
-        order: { version: 'ASC' }
+        order: { version: 'ASC' },
       });
-      expect(conflictResolutionService.checkForConflicts).toHaveBeenCalledWith(pendingMigrations);
+      expect(conflictResolutionService.checkForConflicts).toHaveBeenCalledWith(
+        pendingMigrations,
+      );
       expect(queryRunner.query).toHaveBeenCalledWith(mockMigration.upSql);
     });
 
@@ -153,25 +177,37 @@ describe('MigrationService', () => {
       await service.runMigrations('test');
 
       expect(migrationRepository.find).toHaveBeenCalled();
-      expect(conflictResolutionService.checkForConflicts).not.toHaveBeenCalled();
+      expect(
+        conflictResolutionService.checkForConflicts,
+      ).not.toHaveBeenCalled();
     });
 
     it('should handle migration execution failure', async () => {
       const pendingMigrations = [mockMigration];
       const error = new Error('SQL execution failed');
-      
-      jest.spyOn(migrationRepository, 'find').mockResolvedValue(pendingMigrations);
-      jest.spyOn(conflictResolutionService, 'checkForConflicts').mockResolvedValue();
-      jest.spyOn(schemaValidationService, 'validateMigration').mockResolvedValue({
-        isValid: true,
-        errors: [],
-        warnings: [],
-        breakingChanges: []
-      });
-      jest.spyOn(migrationRepository, 'save').mockResolvedValue(mockMigration as Migration);
+
+      jest
+        .spyOn(migrationRepository, 'find')
+        .mockResolvedValue(pendingMigrations);
+      jest
+        .spyOn(conflictResolutionService, 'checkForConflicts')
+        .mockResolvedValue();
+      jest
+        .spyOn(schemaValidationService, 'validateMigration')
+        .mockResolvedValue({
+          isValid: true,
+          errors: [],
+          warnings: [],
+          breakingChanges: [],
+        });
+      jest
+        .spyOn(migrationRepository, 'save')
+        .mockResolvedValue(mockMigration as Migration);
       jest.spyOn(queryRunner, 'query').mockRejectedValue(error);
 
-      await expect(service.runMigrations('test')).rejects.toThrow('SQL execution failed');
+      await expect(service.runMigrations('test')).rejects.toThrow(
+        'SQL execution failed',
+      );
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
   });
@@ -185,26 +221,35 @@ describe('MigrationService', () => {
       upSql: 'CREATE TABLE test (id INT);',
       downSql: 'DROP TABLE test;',
       dependencies: [],
-      metadata: {}
+      metadata: {},
     };
 
     it('should register a new migration', async () => {
       jest.spyOn(migrationRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(migrationRepository, 'save').mockResolvedValue(mockMigration as Migration);
+      jest
+        .spyOn(migrationRepository, 'save')
+        .mockResolvedValue(mockMigration as Migration);
 
       const result = await service.registerMigration(migrationData, 'test');
 
       expect(migrationRepository.findOne).toHaveBeenCalledWith({
-        where: { version: '1.0.0', environment: 'test' }
+        where: { version: '1.0.0', environment: 'test' },
       });
       expect(migrationRepository.save).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
     it('should return existing migration if unchanged', async () => {
-      const existingMigration = { ...mockMigration, checksum: 'existing-checksum' };
-      jest.spyOn(migrationRepository, 'findOne').mockResolvedValue(existingMigration as Migration);
-      jest.spyOn(service as any, 'calculateChecksum').mockReturnValue('existing-checksum');
+      const existingMigration = {
+        ...mockMigration,
+        checksum: 'existing-checksum',
+      };
+      jest
+        .spyOn(migrationRepository, 'findOne')
+        .mockResolvedValue(existingMigration as Migration);
+      jest
+        .spyOn(service as any, 'calculateChecksum')
+        .mockReturnValue('existing-checksum');
 
       const result = await service.registerMigration(migrationData, 'test');
 
@@ -214,24 +259,31 @@ describe('MigrationService', () => {
 
     it('should throw error if migration has been modified', async () => {
       const existingMigration = { ...mockMigration, checksum: 'old-checksum' };
-      jest.spyOn(migrationRepository, 'findOne').mockResolvedValue(existingMigration as Migration);
-      jest.spyOn(service as any, 'calculateChecksum').mockReturnValue('new-checksum');
+      jest
+        .spyOn(migrationRepository, 'findOne')
+        .mockResolvedValue(existingMigration as Migration);
+      jest
+        .spyOn(service as any, 'calculateChecksum')
+        .mockReturnValue('new-checksum');
 
-      await expect(service.registerMigration(migrationData, 'test'))
-        .rejects.toThrow('Migration 1.0.0 has been modified after registration');
+      await expect(
+        service.registerMigration(migrationData, 'test'),
+      ).rejects.toThrow('Migration 1.0.0 has been modified after registration');
     });
   });
 
   describe('getMigrationHistory', () => {
     it('should return migration history for environment', async () => {
       const migrations = [mockMigration];
-      jest.spyOn(migrationRepository, 'find').mockResolvedValue(migrations as Migration[]);
+      jest
+        .spyOn(migrationRepository, 'find')
+        .mockResolvedValue(migrations as Migration[]);
 
       const result = await service.getMigrationHistory('test');
 
       expect(migrationRepository.find).toHaveBeenCalledWith({
         where: { environment: 'test' },
-        order: { executedAt: 'DESC' }
+        order: { executedAt: 'DESC' },
       });
       expect(result).toEqual(migrations);
     });
@@ -239,12 +291,14 @@ describe('MigrationService', () => {
 
   describe('getMigrationStatus', () => {
     it('should return migration status', async () => {
-      jest.spyOn(migrationRepository, 'findOne').mockResolvedValue(mockMigration as Migration);
+      jest
+        .spyOn(migrationRepository, 'findOne')
+        .mockResolvedValue(mockMigration as Migration);
 
       const result = await service.getMigrationStatus('1.0.0', 'test');
 
       expect(migrationRepository.findOne).toHaveBeenCalledWith({
-        where: { version: '1.0.0', environment: 'test' }
+        where: { version: '1.0.0', environment: 'test' },
       });
       expect(result).toEqual(mockMigration);
     });
@@ -261,8 +315,12 @@ describe('MigrationService', () => {
   describe('validateMigrationIntegrity', () => {
     it('should validate migration integrity successfully', async () => {
       const migrations = [mockMigration];
-      jest.spyOn(migrationRepository, 'find').mockResolvedValue(migrations as Migration[]);
-      jest.spyOn(service as any, 'calculateChecksum').mockReturnValue(mockMigration.checksum);
+      jest
+        .spyOn(migrationRepository, 'find')
+        .mockResolvedValue(migrations as Migration[]);
+      jest
+        .spyOn(service as any, 'calculateChecksum')
+        .mockReturnValue(mockMigration.checksum);
 
       const result = await service.validateMigrationIntegrity();
 
@@ -271,8 +329,12 @@ describe('MigrationService', () => {
 
     it('should fail validation if checksum mismatch', async () => {
       const migrations = [mockMigration];
-      jest.spyOn(migrationRepository, 'find').mockResolvedValue(migrations as Migration[]);
-      jest.spyOn(service as any, 'calculateChecksum').mockReturnValue('different-checksum');
+      jest
+        .spyOn(migrationRepository, 'find')
+        .mockResolvedValue(migrations as Migration[]);
+      jest
+        .spyOn(service as any, 'calculateChecksum')
+        .mockReturnValue('different-checksum');
 
       const result = await service.validateMigrationIntegrity();
 
@@ -284,7 +346,7 @@ describe('MigrationService', () => {
     it('should calculate checksum correctly', () => {
       const data = { test: 'data' };
       const checksum = (service as any).calculateChecksum(data);
-      
+
       expect(checksum).toBeDefined();
       expect(typeof checksum).toBe('string');
       expect(checksum.length).toBe(64); // SHA256 hash length
@@ -292,7 +354,7 @@ describe('MigrationService', () => {
 
     it('should get current user', () => {
       const user = (service as any).getCurrentUser();
-      
+
       expect(user).toBeDefined();
       expect(typeof user).toBe('string');
     });

@@ -1,11 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUUID, IsNotEmpty, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsUUID,
+  IsNotEmpty,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class ScaleContainerDto {
   @ApiProperty({
     description: 'Reason for scaling operation',
     example: 'High traffic load',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -14,7 +22,7 @@ export class ScaleContainerDto {
   @ApiProperty({
     description: 'Additional metadata for the scaling operation',
     example: { triggeredBy: 'auto-scaling', loadThreshold: 80 },
-    required: false
+    required: false,
   })
   @IsOptional()
   metadata?: Record<string, any>;
@@ -24,7 +32,7 @@ export class DeployContainerDto {
   @ApiProperty({
     description: 'New image tag for deployment',
     example: 'v1.2.3',
-    required: true
+    required: true,
   })
   @IsString()
   @IsNotEmpty()
@@ -33,7 +41,7 @@ export class DeployContainerDto {
   @ApiProperty({
     description: 'Deployment strategy',
     example: 'rolling',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -42,7 +50,7 @@ export class DeployContainerDto {
   @ApiProperty({
     description: 'Additional deployment configuration',
     example: { replicas: 3, resources: { cpu: '500m', memory: '1Gi' } },
-    required: false
+    required: false,
   })
   @IsOptional()
   config?: Record<string, any>;
@@ -51,41 +59,41 @@ export class DeployContainerDto {
 export class ContainerResponseDto {
   @ApiProperty({
     description: 'Container ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
   id: string;
 
   @ApiProperty({
     description: 'Operation performed',
-    example: 'scale-up'
+    example: 'scale-up',
   })
   @IsString()
   operation: string;
 
   @ApiProperty({
     description: 'Operation status',
-    example: 'success'
+    example: 'success',
   })
   @IsString()
   status: string;
 
   @ApiProperty({
     description: 'Response message',
-    example: 'Container scaled up successfully'
+    example: 'Container scaled up successfully',
   })
   @IsString()
   message: string;
 
   @ApiProperty({
     description: 'Operation timestamp',
-    example: '2024-01-01T00:00:00.000Z'
+    example: '2024-01-01T00:00:00.000Z',
   })
   timestamp: Date;
 
   @ApiProperty({
     description: 'Additional metadata',
-    required: false
+    required: false,
   })
   @IsOptional()
   metadata?: Record<string, any>;
@@ -94,41 +102,41 @@ export class ContainerResponseDto {
 export class ScalingHistoryDto {
   @ApiProperty({
     description: 'Job ID',
-    example: 'job-123'
+    example: 'job-123',
   })
   @IsString()
   id: string;
 
   @ApiProperty({
     description: 'Scaling operation type',
-    example: 'scale-up'
+    example: 'scale-up',
   })
   @IsString()
   type: string;
 
   @ApiProperty({
     description: 'Job status',
-    example: 'completed'
+    example: 'completed',
   })
   @IsString()
   status: string;
 
   @ApiProperty({
     description: 'Operation timestamp',
-    example: '2024-01-01T00:00:00.000Z'
+    example: '2024-01-01T00:00:00.000Z',
   })
   timestamp: Date;
 
   @ApiProperty({
     description: 'Previous number of replicas',
-    example: 2
+    example: 2,
   })
   @IsNumber()
   previousReplicas: number;
 
   @ApiProperty({
     description: 'New number of replicas',
-    example: 3
+    example: 3,
   })
   @IsNumber()
   newReplicas: number;
@@ -136,7 +144,7 @@ export class ScalingHistoryDto {
   @ApiProperty({
     description: 'Operation duration in milliseconds',
     example: 1500,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
@@ -146,27 +154,27 @@ export class ScalingHistoryDto {
 export class ContainerHealthDto {
   @ApiProperty({
     description: 'Container ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
   id: string;
 
   @ApiProperty({
     description: 'Health status',
-    example: 'healthy'
+    example: 'healthy',
   })
   @IsString()
   status: string;
 
   @ApiProperty({
     description: 'Health check timestamp',
-    example: '2024-01-01T00:00:00.000Z'
+    example: '2024-01-01T00:00:00.000Z',
   })
   timestamp: Date;
 
   @ApiProperty({
     description: 'Health check details',
-    example: { uptime: 3600, lastCheck: '2024-01-01T00:00:00.000Z' }
+    example: { uptime: 3600, lastCheck: '2024-01-01T00:00:00.000Z' },
   })
   details: Record<string, any>;
 }
@@ -174,28 +182,28 @@ export class ContainerHealthDto {
 export class ContainerMetricsDto {
   @ApiProperty({
     description: 'Container ID',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @IsUUID()
   id: string;
 
   @ApiProperty({
     description: 'CPU usage percentage',
-    example: 45.2
+    example: 45.2,
   })
   @IsNumber()
   cpuUsage: number;
 
   @ApiProperty({
     description: 'Memory usage percentage',
-    example: 67.8
+    example: 67.8,
   })
   @IsNumber()
   memoryUsage: number;
 
   @ApiProperty({
     description: 'Network I/O in bytes',
-    example: { bytesIn: 1024000, bytesOut: 512000 }
+    example: { bytesIn: 1024000, bytesOut: 512000 },
   })
   networkIO: {
     bytesIn: number;
@@ -204,7 +212,7 @@ export class ContainerMetricsDto {
 
   @ApiProperty({
     description: 'Disk I/O in bytes',
-    example: { bytesRead: 2048000, bytesWritten: 1024000 }
+    example: { bytesRead: 2048000, bytesWritten: 1024000 },
   })
   diskIO: {
     bytesRead: number;
@@ -213,7 +221,7 @@ export class ContainerMetricsDto {
 
   @ApiProperty({
     description: 'Metrics timestamp',
-    example: '2024-01-01T00:00:00.000Z'
+    example: '2024-01-01T00:00:00.000Z',
   })
   timestamp: Date;
 }
@@ -222,7 +230,7 @@ export class ContainerListQueryDto {
   @ApiProperty({
     description: 'Filter by container status',
     example: 'running',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -231,7 +239,7 @@ export class ContainerListQueryDto {
   @ApiProperty({
     description: 'Filter by cluster ID',
     example: 'cluster-123',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -240,7 +248,7 @@ export class ContainerListQueryDto {
   @ApiProperty({
     description: 'Page number',
     example: 1,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
@@ -250,11 +258,11 @@ export class ContainerListQueryDto {
   @ApiProperty({
     description: 'Items per page',
     example: 10,
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(100)
   limit?: number;
-} 
+}

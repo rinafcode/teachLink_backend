@@ -13,14 +13,19 @@ export class LearningPathsService {
   ) {}
 
   async createPath(dto: CreateLearningPathDto) {
-    const assessmentResult = await this.assessmentService.evaluate(dto.userId, dto.answers);
-    const path = await this.generationService.generate(dto.goal, assessmentResult);
+    const assessmentResult = await this.assessmentService.evaluate(
+      dto.userId,
+      dto.answers,
+    );
+    const path = await this.generationService.generate(
+      dto.goal,
+      assessmentResult,
+    );
     await this.milestoneService.initializeMilestones(dto.userId, path);
     return path;
   }
 
   async getPathForUser(userId: string) {
-    
     return {
       userId,
       path: [],

@@ -1,43 +1,50 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber, IsArray } from "class-validator"
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 
 export class CreateCourseDto {
   @IsNotEmpty()
   @IsString()
-  title: string
+  title: string;
 
   @IsNotEmpty()
   @IsString()
-  description: string
+  description: string;
 
   @IsOptional()
   @IsString()
-  thumbnail?: string
+  thumbnail?: string;
 
   @IsOptional()
   @IsBoolean()
-  isPublished?: boolean
+  isPublished?: boolean;
 
   @IsOptional()
   @IsNumber()
-  price?: number
+  price?: number;
 
   @IsOptional()
   @IsString()
-  duration?: string
+  duration?: string;
 
   @IsOptional()
   @IsString()
-  level?: string
+  level?: string;
 
   @IsOptional()
   @IsArray()
-  requirements?: string[]
+  requirements?: string[];
 
   @IsOptional()
   @IsArray()
-  learningOutcomes?: string[]
+  learningOutcomes?: string[];
 
   @IsNotEmpty()
   @IsString()
-  instructorId: string
+  instructorId: string;
 }

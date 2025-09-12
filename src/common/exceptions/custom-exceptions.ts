@@ -1,12 +1,12 @@
-import { 
-  BadRequestException, 
-  NotFoundException, 
-  UnauthorizedException, 
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
   ForbiddenException,
   InternalServerErrorException,
   ConflictException,
   ServiceUnavailableException,
-  GatewayTimeoutException
+  GatewayTimeoutException,
 } from '@nestjs/common';
 
 // Custom exceptions for specific business logic
@@ -24,7 +24,9 @@ export class InvalidScalingRequestException extends BadRequestException {
 
 export class InsufficientPermissionsException extends ForbiddenException {
   constructor(userId: string, operation: string) {
-    super(`User '${userId}' has insufficient permissions for operation '${operation}'`);
+    super(
+      `User '${userId}' has insufficient permissions for operation '${operation}'`,
+    );
   }
 }
 
@@ -78,6 +80,8 @@ export class PaymentProcessingException extends BadRequestException {
 
 export class NotificationDeliveryException extends InternalServerErrorException {
   constructor(userId: string, type: string, reason: string) {
-    super(`Failed to deliver ${type} notification to user '${userId}': ${reason}`);
+    super(
+      `Failed to deliver ${type} notification to user '${userId}': ${reason}`,
+    );
   }
-} 
+}

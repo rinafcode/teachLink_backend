@@ -56,4 +56,21 @@ export class DeployModelDto {
   @IsOptional()
   @IsString()
   deployedBy?: string;
-} 
+
+  @IsOptional()
+  @IsObject()
+  monitoringConfig?: {
+    enableMetrics?: boolean;
+    enableLogging?: boolean;
+    enableTracing?: boolean;
+    alertThresholds?: {
+      cpu?: number;
+      memory?: number;
+      errorRate?: number;
+      latency?: number;
+    };
+  };
+
+  @IsOptional()
+  force?: boolean;
+}

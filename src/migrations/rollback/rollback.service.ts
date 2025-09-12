@@ -16,14 +16,18 @@ export class RollbackService {
   ) {}
 
   async rollbackMigration(version: string, environment: string): Promise<void> {
-    this.logger.log(`Rolling back migration version: ${version} for environment: ${environment}`);
+    this.logger.log(
+      `Rolling back migration version: ${version} for environment: ${environment}`,
+    );
 
     const migration = await this.migrationRepository.findOne({
-      where: { version, environment }
+      where: { version, environment },
     });
 
     if (!migration) {
-      throw new Error(`Migration ${version} not found for environment: ${environment}`);
+      throw new Error(
+        `Migration ${version} not found for environment: ${environment}`,
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -32,7 +36,9 @@ export class RollbackService {
 
     try {
       if (migration.status !== MigrationStatus.COMPLETED) {
-        throw new Error(`Cannot rollback migration ${version} because it is not completed`);
+        throw new Error(
+          `Cannot rollback migration ${version} because it is not completed`,
+        );
       }
 
       const startTime = Date.now();
@@ -48,11 +54,14 @@ export class RollbackService {
       await this.migrationRepository.save(migration);
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Migration ${version} rolled back successfully in ${executionTime}ms`);
-
+      this.logger.log(
+        `Migration ${version} rolled back successfully in ${executionTime}ms`,
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Rollback failed for migration ${version}: ${error.message}`);
+      this.logger.error(
+        `Rollback failed for migration ${version}: ${error.message}`,
+      );
       throw error;
     } finally {
       await queryRunner.release();
@@ -60,14 +69,16 @@ export class RollbackService {
   }
 
   async rollbackAllMigrations(environment: string): Promise<void> {
-    this.logger.log(`Rolling back all migrations for environment: ${environment}`);
+    this.logger.log(
+      `Rolling back all migrations for environment: ${environment}`,
+    );
 
     const completedMigrations = await this.migrationRepository.find({
       where: {
         environment,
-        status: MigrationStatus.COMPLETED
+        status: MigrationStatus.COMPLETED,
       },
-      order: { version: 'DESC' }
+      order: { version: 'DESC' },
     });
 
     for (const migration of completedMigrations) {
@@ -77,11 +88,16 @@ export class RollbackService {
     this.logger.log('All migrations rolled back successfully');
   }
 
-  async rollbackToVersion(targetVersion: string, environment: string): Promise<void> {
-    this.logger.log(`Rolling back to version: ${targetVersion} for environment: ${environment}`);
-    
+  async rollbackToVersion(
+    targetVersion: string,
+    environment: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Rolling back to version: ${targetVersion} for environment: ${environment}`,
+    );
+
     const targetMigration = await this.migrationRepository.findOne({
-      where: { version: targetVersion, environment }
+      where: { version: targetVersion, environment },
     });
 
     if (!targetMigration) {
@@ -91,14 +107,15 @@ export class RollbackService {
     const migrationsToRollback = await this.migrationRepository.find({
       where: {
         environment,
-        status: MigrationStatus.COMPLETED
+        status: MigrationStatus.COMPLETED,
       },
-      order: { version: 'DESC' }
+      order: { version: 'DESC' },
     });
 
     // Filter migrations that are newer than target version
-    const rolledBackMigrations = migrationsToRollback
-      .filter(migration => migration.version > targetVersion);
+    const rolledBackMigrations = migrationsToRollback.filter(
+      (migration) => migration.version > targetVersion,
+    );
 
     for (const migration of rolledBackMigrations) {
       await this.rollbackMigration(migration.version, environment);
@@ -107,11 +124,14 @@ export class RollbackService {
     this.logger.log(`Successfully rolled back to version: ${targetVersion}`);
   }
 
-  async validateRollbackSafety(version: string, environment: string): Promise<boolean> {
+  async validateRollbackSafety(
+    version: string,
+    environment: string,
+  ): Promise<boolean> {
     this.logger.log(`Validating rollback safety for version: ${version}`);
 
     const migration = await this.migrationRepository.findOne({
-      where: { version, environment }
+      where: { version, environment },
     });
 
     if (!migration) {
@@ -128,42 +148,54 @@ export class RollbackService {
     const dependentMigrations = await this.migrationRepository.find({
       where: {
         environment,
-        status: MigrationStatus.COMPLETED
-      }
+        status: MigrationStatus.COMPLETED,
+      },
     });
 
-    const hasDependents = dependentMigrations.some(m => 
-      m.dependencies && m.dependencies.includes(version) && m.version > version
+    const hasDependents = dependentMigrations.some(
+      (m) =>
+        m.dependencies &&
+        m.dependencies.includes(version) &&
+        m.version > version,
     );
 
     if (hasDependents) {
-      this.logger.warn(`Migration ${version} has dependent migrations that would be affected`);
+      this.logger.warn(
+        `Migration ${version} has dependent migrations that would be affected`,
+      );
       return false;
     }
 
     return true;
   }
 
-  async createRollbackPlan(targetVersion: string, environment: string): Promise<Migration[]> {
+  async createRollbackPlan(
+    targetVersion: string,
+    environment: string,
+  ): Promise<Migration[]> {
     const migrationsToRollback = await this.migrationRepository.find({
       where: {
         environment,
-        status: MigrationStatus.COMPLETED
+        status: MigrationStatus.COMPLETED,
       },
-      order: { version: 'DESC' }
+      order: { version: 'DESC' },
     });
 
     return migrationsToRollback
-      .filter(migration => migration.version > targetVersion)
+      .filter((migration) => migration.version > targetVersion)
       .sort((a, b) => b.version.localeCompare(a.version)); // Rollback in reverse order
   }
 
-  async performSafeRollback(version: string, environment: string, options: {
-    createBackup?: boolean;
-    validateData?: boolean;
-  } = {}): Promise<void> {
+  async performSafeRollback(
+    version: string,
+    environment: string,
+    options: {
+      createBackup?: boolean;
+      validateData?: boolean;
+    } = {},
+  ): Promise<void> {
     const { createBackup = true, validateData = true } = options;
-    
+
     // Validate rollback safety first
     const isSafe = await this.validateRollbackSafety(version, environment);
     if (!isSafe) {
@@ -196,23 +228,28 @@ export class RollbackService {
     }
   }
 
-  private async createDataBackup(queryRunner: QueryRunner, version: string): Promise<void> {
-    this.logger.log(`Creating data backup before rollback of version: ${version}`);
-    
+  private async createDataBackup(
+    queryRunner: QueryRunner,
+    version: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Creating data backup before rollback of version: ${version}`,
+    );
+
     // This would implement database-specific backup logic
     // For example, creating a schema dump or table snapshots
     const backupQuery = `
       CREATE SCHEMA IF NOT EXISTS backup_${version.replace(/\./g, '_')};
       -- Additional backup logic would go here
     `;
-    
+
     await queryRunner.query(backupQuery);
     this.logger.log('Data backup created successfully');
   }
 
   private async validateDataIntegrity(queryRunner: QueryRunner): Promise<void> {
     this.logger.log('Validating data integrity after rollback');
-    
+
     // This would implement data integrity checks
     // For example, checking foreign key constraints, data consistency, etc.
     const integrityQuery = `
@@ -221,7 +258,7 @@ export class RollbackService {
       FROM information_schema.table_constraints 
       WHERE constraint_type = 'FOREIGN KEY';
     `;
-    
+
     const result = await queryRunner.query(integrityQuery);
     this.logger.log('Data integrity validation completed');
   }

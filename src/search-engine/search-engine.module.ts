@@ -10,10 +10,7 @@ import { SearchFiltersService } from '../search/filters/search-filters.service';
 import { ElasticsearchModule } from '@nestjs/elasticsearch';
 
 @Module({
-  imports: [
-    forwardRef(() => SearchModule),
-    ElasticsearchModule,
-  ],
+  imports: [forwardRef(() => SearchModule), ElasticsearchModule],
   providers: [
     SearchEngineService,
     SemanticSearchService,
@@ -25,4 +22,4 @@ import { ElasticsearchModule } from '@nestjs/elasticsearch';
   ],
   exports: [SearchEngineService],
 })
-export class SearchEngineModule {} 
+export class SearchEngineModule {}

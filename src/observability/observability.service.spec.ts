@@ -52,10 +52,18 @@ describe('ObservabilityService', () => {
   });
 
   it('should initialize services', async () => {
-    const metricsService = module.get<MetricsAnalysisService>(MetricsAnalysisService);
-    const loggingService = module.get<LogAggregationService>(LogAggregationService);
-    const tracingService = module.get<DistributedTracingService>(DistributedTracingService);
-    const anomalyService = module.get<AnomalyDetectionService>(AnomalyDetectionService);
+    const metricsService = module.get<MetricsAnalysisService>(
+      MetricsAnalysisService,
+    );
+    const loggingService = module.get<LogAggregationService>(
+      LogAggregationService,
+    );
+    const tracingService = module.get<DistributedTracingService>(
+      DistributedTracingService,
+    );
+    const anomalyService = module.get<AnomalyDetectionService>(
+      AnomalyDetectionService,
+    );
 
     await service.onModuleInit();
 
@@ -65,4 +73,3 @@ describe('ObservabilityService', () => {
     expect(anomalyService.initialize).toHaveBeenCalled();
   });
 });
-

@@ -1,7 +1,13 @@
 import { Controller, Get, Param, Body, Post } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { NotificationPreferencesService, NotificationPreferences } from './preferences/preferences.service';
-import { NotificationDelivery, DeliveryStatus } from './entities/notification-delivery.entity';
+import {
+  NotificationPreferencesService,
+  NotificationPreferences,
+} from './preferences/preferences.service';
+import {
+  NotificationDelivery,
+  DeliveryStatus,
+} from './entities/notification-delivery.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -20,7 +26,10 @@ export class NotificationsController {
   }
 
   @Post('preferences/:userId')
-  setPreferences(@Param('userId') userId: string, @Body() prefs: NotificationPreferences) {
+  setPreferences(
+    @Param('userId') userId: string,
+    @Body() prefs: NotificationPreferences,
+  ) {
     this.preferencesService.setPreferences(userId, prefs);
     return { success: true };
   }
@@ -37,7 +46,7 @@ export class NotificationsController {
     const deliveries = await this.deliveryRepo.find();
     const byType: Record<string, number> = {};
     const byStatus: Record<string, number> = {};
-    deliveries.forEach(d => {
+    deliveries.forEach((d) => {
       byType[d.channel] = (byType[d.channel] || 0) + 1;
       byStatus[d.status] = (byStatus[d.status] || 0) + 1;
     });
@@ -47,11 +56,13 @@ export class NotificationsController {
   // Admin: Get user engagement (number of opened notifications per user)
   @Get('admin/engagement')
   async getEngagement() {
-    const deliveries = await this.deliveryRepo.find({ where: { status: DeliveryStatus.OPENED } });
+    const deliveries = await this.deliveryRepo.find({
+      where: { status: DeliveryStatus.OPENED },
+    });
     const engagement: Record<string, number> = {};
-    deliveries.forEach(d => {
+    deliveries.forEach((d) => {
       engagement[d.userId] = (engagement[d.userId] || 0) + 1;
     });
     return engagement;
   }
-} 
+}

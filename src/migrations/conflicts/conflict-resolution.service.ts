@@ -11,7 +11,7 @@ export class ConflictResolutionService {
     // Logic to detect migration conflicts
     const conflictMap = new Map<string, number>();
 
-    migrations.forEach(migration => {
+    migrations.forEach((migration) => {
       const envVersion = `${migration.environment}_${migration.version}`;
       conflictMap.set(envVersion, (conflictMap.get(envVersion) || 0) + 1);
     });
@@ -31,16 +31,27 @@ export class ConflictResolutionService {
     this.logger.log('Resolving migration conflicts');
 
     // Simplified logic to resolve conflicts by choosing the latest migration
-    const resolvedMigrations = migrations.reduce((acc: Migration[], curr: Migration) => {
-      const existing = acc.find(m => m.version === curr.version && m.environment === curr.environment);
-      if (!existing || existing.timestamp < curr.timestamp) {
-        acc = acc.filter(m => m.version !== curr.version || m.environment !== curr.environment);
-        acc.push(curr);
-      }
-      return acc;
-    }, []);
+    const resolvedMigrations = migrations.reduce(
+      (acc: Migration[], curr: Migration) => {
+        const existing = acc.find(
+          (m) =>
+            m.version === curr.version && m.environment === curr.environment,
+        );
+        if (!existing || existing.timestamp < curr.timestamp) {
+          acc = acc.filter(
+            (m) =>
+              m.version !== curr.version || m.environment !== curr.environment,
+          );
+          acc.push(curr);
+        }
+        return acc;
+      },
+      [],
+    );
 
-    this.logger.log(`Resolved conflicts, remaining migrations: ${resolvedMigrations.length}`);
+    this.logger.log(
+      `Resolved conflicts, remaining migrations: ${resolvedMigrations.length}`,
+    );
     return resolvedMigrations;
   }
 
@@ -48,7 +59,7 @@ export class ConflictResolutionService {
     const strategies = [
       'Manual review for concurrent modifications.',
       'Use schema snapshots to determine valid state.',
-      'Apply conflict resolution through custom scripts.'
+      'Apply conflict resolution through custom scripts.',
     ];
 
     this.logger.log('Suggesting conflict resolution strategies');

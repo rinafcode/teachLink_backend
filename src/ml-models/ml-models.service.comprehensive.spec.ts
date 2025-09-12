@@ -13,14 +13,14 @@ import { ModelVersion } from './entities/model-version.entity';
 import { ModelDeployment } from './entities/model-deployment.entity';
 import { ModelPerformance } from './entities/model-performance.entity';
 import { ABTest } from './entities/ab-test.entity';
-import { 
-  ModelStatus, 
-  ModelType, 
-  ModelFramework, 
-  VersionStatus, 
-  DeploymentStatus, 
+import {
+  ModelStatus,
+  ModelType,
+  ModelFramework,
+  VersionStatus,
+  DeploymentStatus,
   ABTestStatus,
-  ABTestType 
+  ABTestType,
 } from './enums';
 import { CreateModelDto } from './dto/create-model.dto';
 import { TrainModelDto } from './dto/train-model.dto';
@@ -247,7 +247,9 @@ describe('MLModelsService - Comprehensive Tests', () => {
             createVersion: jest.fn().mockResolvedValue(mockVersion),
             getVersion: jest.fn().mockResolvedValue(mockVersion),
             getLatestVersion: jest.fn().mockResolvedValue(mockVersion),
-            getModelVersions: jest.fn().mockResolvedValue({ versions: [mockVersion], total: 1 }),
+            getModelVersions: jest
+              .fn()
+              .mockResolvedValue({ versions: [mockVersion], total: 1 }),
             updateVersion: jest.fn().mockResolvedValue(mockVersion),
             deleteVersion: jest.fn().mockResolvedValue(true),
           },
@@ -258,7 +260,9 @@ describe('MLModelsService - Comprehensive Tests', () => {
             deployModel: jest.fn().mockResolvedValue(mockDeployment),
             rollbackToVersion: jest.fn().mockResolvedValue(mockDeployment),
             undeployModel: jest.fn().mockResolvedValue(undefined),
-            getDeploymentStatus: jest.fn().mockResolvedValue({ deployment: mockDeployment }),
+            getDeploymentStatus: jest
+              .fn()
+              .mockResolvedValue({ deployment: mockDeployment }),
             scaleDeployment: jest.fn().mockResolvedValue(mockDeployment),
             getDeploymentHistory: jest.fn().mockResolvedValue([mockDeployment]),
           },
@@ -268,7 +272,9 @@ describe('MLModelsService - Comprehensive Tests', () => {
           useValue: {
             recordPrediction: jest.fn(),
             recordPerformanceMetrics: jest.fn(),
-            detectModelDrift: jest.fn().mockResolvedValue({ driftDetected: false }),
+            detectModelDrift: jest
+              .fn()
+              .mockResolvedValue({ driftDetected: false }),
             getModelPerformance: jest.fn().mockResolvedValue({ summary: {} }),
             detectAnomalies: jest.fn().mockResolvedValue({}),
             generateMonitoringReport: jest.fn().mockResolvedValue({}),
@@ -278,8 +284,12 @@ describe('MLModelsService - Comprehensive Tests', () => {
           provide: TrainingPipelineService,
           useValue: {
             trainModel: jest.fn().mockResolvedValue({ trainingId: 'train-1' }),
-            hyperparameterTuning: jest.fn().mockResolvedValue({ bestParams: {} }),
-            crossValidation: jest.fn().mockResolvedValue({ meanAccuracy: 0.85 }),
+            hyperparameterTuning: jest
+              .fn()
+              .mockResolvedValue({ bestParams: {} }),
+            crossValidation: jest
+              .fn()
+              .mockResolvedValue({ meanAccuracy: 0.85 }),
             validateModel: jest.fn().mockResolvedValue({ accuracy: 0.85 }),
           },
         },
@@ -287,17 +297,35 @@ describe('MLModelsService - Comprehensive Tests', () => {
     }).compile();
 
     service = module.get<MLModelsService>(MLModelsService);
-    modelRepository = module.get<Repository<MLModel>>(getRepositoryToken(MLModel));
-    versionRepository = module.get<Repository<ModelVersion>>(getRepositoryToken(ModelVersion));
-    deploymentRepository = module.get<Repository<ModelDeployment>>(getRepositoryToken(ModelDeployment));
-    performanceRepository = module.get<Repository<ModelPerformance>>(getRepositoryToken(ModelPerformance));
-    abTestRepository = module.get<Repository<ABTest>>(getRepositoryToken(ABTest));
+    modelRepository = module.get<Repository<MLModel>>(
+      getRepositoryToken(MLModel),
+    );
+    versionRepository = module.get<Repository<ModelVersion>>(
+      getRepositoryToken(ModelVersion),
+    );
+    deploymentRepository = module.get<Repository<ModelDeployment>>(
+      getRepositoryToken(ModelDeployment),
+    );
+    performanceRepository = module.get<Repository<ModelPerformance>>(
+      getRepositoryToken(ModelPerformance),
+    );
+    abTestRepository = module.get<Repository<ABTest>>(
+      getRepositoryToken(ABTest),
+    );
     cacheManager = module.get(CACHE_MANAGER);
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
-    versioningService = module.get<ModelVersioningService>(ModelVersioningService);
-    deploymentService = module.get<ModelDeploymentService>(ModelDeploymentService);
-    monitoringService = module.get<ModelMonitoringService>(ModelMonitoringService);
-    trainingService = module.get<TrainingPipelineService>(TrainingPipelineService);
+    versioningService = module.get<ModelVersioningService>(
+      ModelVersioningService,
+    );
+    deploymentService = module.get<ModelDeploymentService>(
+      ModelDeploymentService,
+    );
+    monitoringService = module.get<ModelMonitoringService>(
+      ModelMonitoringService,
+    );
+    trainingService = module.get<TrainingPipelineService>(
+      TrainingPipelineService,
+    );
   });
 
   describe('Model Management', () => {
@@ -363,7 +391,12 @@ describe('MLModelsService - Comprehensive Tests', () => {
         jest.spyOn(cacheManager, 'get').mockResolvedValue(null);
         jest.spyOn(cacheManager, 'set').mockResolvedValue(undefined);
 
-        const result = await service.findAllModels(1, 10, ModelStatus.DRAFT, ModelType.CLASSIFICATION);
+        const result = await service.findAllModels(
+          1,
+          10,
+          ModelStatus.DRAFT,
+          ModelType.CLASSIFICATION,
+        );
 
         expect(result).toEqual(expectedResult);
         expect(cacheManager.set).toHaveBeenCalled();
@@ -401,7 +434,9 @@ describe('MLModelsService - Comprehensive Tests', () => {
         jest.spyOn(cacheManager, 'get').mockResolvedValue(null);
         jest.spyOn(modelRepository, 'findOne').mockResolvedValue(null);
 
-        await expect(service.findModelById('nonexistent')).rejects.toThrow(NotFoundException);
+        await expect(service.findModelById('nonexistent')).rejects.toThrow(
+          NotFoundException,
+        );
       });
     });
 
@@ -428,7 +463,7 @@ describe('MLModelsService - Comprehensive Tests', () => {
     describe('deleteModel', () => {
       it('should delete model successfully', async () => {
         const draftModel = { ...mockModel, status: ModelStatus.DRAFT };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(draftModel);
         jest.spyOn(deploymentRepository, 'count').mockResolvedValue(0);
         jest.spyOn(abTestRepository, 'count').mockResolvedValue(0);
@@ -445,10 +480,12 @@ describe('MLModelsService - Comprehensive Tests', () => {
 
       it('should throw error if model is deployed', async () => {
         const deployedModel = { ...mockModel, status: ModelStatus.DEPLOYED };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(deployedModel);
 
-        await expect(service.deleteModel('model-1')).rejects.toThrow(BadRequestException);
+        await expect(service.deleteModel('model-1')).rejects.toThrow(
+          BadRequestException,
+        );
       });
     });
   });
@@ -465,7 +502,7 @@ describe('MLModelsService - Comprehensive Tests', () => {
         };
 
         const trainedModel = { ...mockModel, status: ModelStatus.TRAINED };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(trainedModel);
         jest.spyOn(service, 'updateModel').mockResolvedValue(trainedModel);
 
@@ -475,23 +512,27 @@ describe('MLModelsService - Comprehensive Tests', () => {
           modelId: 'model-1',
           versionId: mockVersion.id,
           status: 'training_started',
-          message: 'Training has been initiated. You will be notified when it completes.',
+          message:
+            'Training has been initiated. You will be notified when it completes.',
         });
-        expect(eventEmitter.emit).toHaveBeenCalledWith('model.training.started', {
-          modelId: 'model-1',
-          versionId: mockVersion.id,
-          trainModelDto,
-        });
+        expect(eventEmitter.emit).toHaveBeenCalledWith(
+          'model.training.started',
+          {
+            modelId: 'model-1',
+            versionId: mockVersion.id,
+            trainModelDto,
+          },
+        );
       });
 
       it('should throw error if model is already training', async () => {
         const trainingModel = { ...mockModel, status: ModelStatus.TRAINING };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(trainingModel);
 
-        await expect(service.trainModel('model-1', {} as TrainModelDto)).rejects.toThrow(
-          BadRequestException,
-        );
+        await expect(
+          service.trainModel('model-1', {} as TrainModelDto),
+        ).rejects.toThrow(BadRequestException);
       });
     });
   });
@@ -506,7 +547,7 @@ describe('MLModelsService - Comprehensive Tests', () => {
         };
 
         const trainedModel = { ...mockModel, status: ModelStatus.TRAINED };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(trainedModel);
 
         const result = await service.deployModel('model-1', deployModelDto);
@@ -521,12 +562,12 @@ describe('MLModelsService - Comprehensive Tests', () => {
 
       it('should throw error if model is not trained', async () => {
         const draftModel = { ...mockModel, status: ModelStatus.DRAFT };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(draftModel);
 
-        await expect(service.deployModel('model-1', {} as DeployModelDto)).rejects.toThrow(
-          BadRequestException,
-        );
+        await expect(
+          service.deployModel('model-1', {} as DeployModelDto),
+        ).rejects.toThrow(BadRequestException);
       });
     });
 
@@ -565,9 +606,14 @@ describe('MLModelsService - Comprehensive Tests', () => {
         };
 
         const deployedModelA = { ...mockModel, status: ModelStatus.DEPLOYED };
-        const deployedModelB = { ...mockModel, id: 'model-2', status: ModelStatus.DEPLOYED };
-        
-        jest.spyOn(service, 'findModelById')
+        const deployedModelB = {
+          ...mockModel,
+          id: 'model-2',
+          status: ModelStatus.DEPLOYED,
+        };
+
+        jest
+          .spyOn(service, 'findModelById')
           .mockResolvedValueOnce(deployedModelA)
           .mockResolvedValueOnce(deployedModelB);
         jest.spyOn(abTestRepository, 'create').mockReturnValue(mockABTest);
@@ -588,17 +634,19 @@ describe('MLModelsService - Comprehensive Tests', () => {
         };
 
         const draftModel = { ...mockModel, status: ModelStatus.DRAFT };
-        
+
         jest.spyOn(service, 'findModelById').mockResolvedValue(draftModel);
 
-        await expect(service.createABTest(createABTestDto)).rejects.toThrow(BadRequestException);
+        await expect(service.createABTest(createABTestDto)).rejects.toThrow(
+          BadRequestException,
+        );
       });
     });
 
     describe('startABTest', () => {
       it('should start A/B test successfully', async () => {
         const runningTest = { ...mockABTest, status: ABTestStatus.RUNNING };
-        
+
         jest.spyOn(abTestRepository, 'findOne').mockResolvedValue(mockABTest);
         jest.spyOn(abTestRepository, 'save').mockResolvedValue(runningTest);
 
@@ -613,10 +661,12 @@ describe('MLModelsService - Comprehensive Tests', () => {
 
       it('should throw error if test is not in draft status', async () => {
         const runningTest = { ...mockABTest, status: ABTestStatus.RUNNING };
-        
+
         jest.spyOn(abTestRepository, 'findOne').mockResolvedValue(runningTest);
 
-        await expect(service.startABTest('abtest-1')).rejects.toThrow(BadRequestException);
+        await expect(service.startABTest('abtest-1')).rejects.toThrow(
+          BadRequestException,
+        );
       });
     });
   });
@@ -631,7 +681,9 @@ describe('MLModelsService - Comprehensive Tests', () => {
 
         jest.spyOn(cacheManager, 'get').mockResolvedValue(null);
         jest.spyOn(cacheManager, 'set').mockResolvedValue(undefined);
-        jest.spyOn(monitoringService, 'getModelPerformance').mockResolvedValue(performanceData);
+        jest
+          .spyOn(monitoringService, 'getModelPerformance')
+          .mockResolvedValue(performanceData);
 
         const result = await service.getModelPerformance('model-1', 30);
 
@@ -647,7 +699,9 @@ describe('MLModelsService - Comprehensive Tests', () => {
           severity: 'LOW',
         };
 
-        jest.spyOn(monitoringService, 'detectModelDrift').mockResolvedValue(driftResults);
+        jest
+          .spyOn(monitoringService, 'detectModelDrift')
+          .mockResolvedValue(driftResults);
 
         const result = await service.getModelDrift('model-1');
 
@@ -671,10 +725,11 @@ describe('MLModelsService - Comprehensive Tests', () => {
 
         jest.spyOn(cacheManager, 'get').mockResolvedValue(null);
         jest.spyOn(cacheManager, 'set').mockResolvedValue(undefined);
-        jest.spyOn(modelRepository, 'count')
+        jest
+          .spyOn(modelRepository, 'count')
           .mockResolvedValueOnce(10) // totalModels
-          .mockResolvedValueOnce(5)  // deployedModels
-          .mockResolvedValueOnce(2)  // trainingModels
+          .mockResolvedValueOnce(5) // deployedModels
+          .mockResolvedValueOnce(2) // trainingModels
           .mockResolvedValueOnce(3); // draftModels
         jest.spyOn(versionRepository, 'count').mockResolvedValue(25);
         jest.spyOn(deploymentRepository, 'count').mockResolvedValue(8);
@@ -689,13 +744,17 @@ describe('MLModelsService - Comprehensive Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle database errors gracefully', async () => {
-      jest.spyOn(modelRepository, 'findOne').mockRejectedValue(new Error('Database connection failed'));
+      jest
+        .spyOn(modelRepository, 'findOne')
+        .mockRejectedValue(new Error('Database connection failed'));
 
       await expect(service.findModelById('model-1')).rejects.toThrow();
     });
 
     it('should handle cache errors gracefully', async () => {
-      jest.spyOn(cacheManager, 'get').mockRejectedValue(new Error('Cache connection failed'));
+      jest
+        .spyOn(cacheManager, 'get')
+        .mockRejectedValue(new Error('Cache connection failed'));
       jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel);
 
       // Should still work even if cache fails

@@ -14,4 +14,4 @@ import { PaymentsController } from './payments.controller';
   controllers: [WebhookController, PaymentsController],
   exports: [PaymentsService, SubscriptionsService, StripeService],
 })
-export class PaymentsModule {} 
+export class PaymentsModule {}

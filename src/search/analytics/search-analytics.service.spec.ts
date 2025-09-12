@@ -21,4 +21,4 @@ describe('SearchAnalyticsService', () => {
     const analytics = service.getAnalytics();
     expect(analytics.totalSearches).toBeGreaterThan(0);
   });
-}); 
+});

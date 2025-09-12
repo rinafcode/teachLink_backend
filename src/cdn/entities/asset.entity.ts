@@ -1,63 +1,70 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum AssetType {
-  IMAGE = "image",
-  VIDEO = "video",
-  DOCUMENT = "document",
-  STATIC = "static",
+  IMAGE = 'image',
+  VIDEO = 'video',
+  DOCUMENT = 'document',
+  STATIC = 'static',
 }
 
 export enum OptimizationStatus {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  COMPLETED = "completed",
-  FAILED = "failed",
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
 }
 
-@Entity("assets")
-@Index(["type", "status"])
-@Index(["originalUrl"])
+@Entity('assets')
+@Index(['type', 'status'])
+@Index(['originalUrl'])
 export class Asset {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  originalUrl: string
+  originalUrl: string;
 
   @Column({ nullable: true })
-  optimizedUrl: string
+  optimizedUrl: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: AssetType,
   })
-  type: AssetType
+  type: AssetType;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: OptimizationStatus,
     default: OptimizationStatus.PENDING,
   })
-  status: OptimizationStatus
+  status: OptimizationStatus;
 
-  @Column("bigint")
-  originalSize: number
+  @Column('bigint')
+  originalSize: number;
 
-  @Column("bigint", { nullable: true })
-  optimizedSize: number
+  @Column('bigint', { nullable: true })
+  optimizedSize: number;
 
-  @Column("json", { nullable: true })
-  metadata: Record<string, any>
+  @Column('json', { nullable: true })
+  metadata: Record<string, any>;
 
-  @Column("simple-array", { nullable: true })
-  cdnUrls: string[]
+  @Column('simple-array', { nullable: true })
+  cdnUrls: string[];
 
   @Column({ nullable: true })
-  contentHash: string
+  contentHash: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

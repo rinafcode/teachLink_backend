@@ -87,7 +87,9 @@ describe('AuthService', () => {
     it('should throw ConflictException if email already exists', async () => {
       mockUsersService.findByEmail.mockResolvedValue({ id: '1' });
 
-      await expect(service.register(registerDto)).rejects.toThrow(ConflictException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -101,7 +103,8 @@ describe('AuthService', () => {
       const mockUser = {
         id: '1',
         email: loginDto.email,
-        password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBAQNQxwQJ5K6i', // hashed 'password123'
+        password:
+          '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBAQNQxwQJ5K6i', // hashed 'password123'
         role: UserRole.STUDENT,
       };
 
@@ -118,7 +121,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid credentials', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -150,7 +155,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       mockUsersService.findById.mockResolvedValue(null);
 
-      await expect(service.refreshTokens('1', 'invalid-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens('1', 'invalid-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

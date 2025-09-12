@@ -1,5 +1,15 @@
-import { IsString, IsOptional, IsObject, IsArray, IsNumber, Min, Max, IsEnum } from 'class-validator';
-import { ModelFramework } from '../entities/ml-model.entity';
+import {
+  IsString,
+  IsOptional,
+  IsObject,
+  IsArray,
+  IsNumber,
+  Min,
+  Max,
+  IsEnum,
+  IsBoolean,
+} from 'class-validator';
+import { ModelFramework } from '../enums';
 
 export class TrainModelDto {
   @IsString()
@@ -8,6 +18,44 @@ export class TrainModelDto {
   @IsOptional()
   @IsString()
   version?: string;
+
+  @IsOptional()
+  @IsString()
+  trainingDataPath?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  validationSplit?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  testSplit?: number;
+
+  @IsOptional()
+  @IsNumber()
+  randomState?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  enableEarlyStopping?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enableHyperparameterOptimization?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxTrials?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(2)
+  crossValidationFolds?: number;
 
   @IsOptional()
   @IsObject()
@@ -34,6 +82,14 @@ export class TrainModelDto {
   };
 
   @IsOptional()
+  @IsObject()
+  preprocessing?: Record<string, any>;
+
+  @IsOptional()
+  @IsObject()
+  augmentation?: Record<string, any>;
+
+  @IsOptional()
   @IsString()
   description?: string;
 
@@ -44,4 +100,4 @@ export class TrainModelDto {
   @IsOptional()
   @IsString()
   trainedBy?: string;
-} 
+}

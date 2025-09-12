@@ -1,10 +1,4 @@
-import {
-  Controller,
-  All,
-  Req,
-  Res,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, All, Req, Res, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { RoutingService } from './routing/routing.service';
 import { GatewayAuthService } from './auth/gateway-auth.service';
@@ -28,14 +22,22 @@ export class APIGatewayController {
       // 1. Authenticate
       const isAuthenticated = await this.authService.authenticate(req);
       if (!isAuthenticated) {
-        this.monitoringService.logError(req, { message: 'Unauthorized', status: HttpStatus.UNAUTHORIZED });
-        return res.status(HttpStatus.UNAUTHORIZED).json({ error: 'Unauthorized' });
+        this.monitoringService.logError(req, {
+          message: 'Unauthorized',
+          status: HttpStatus.UNAUTHORIZED,
+        });
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: 'Unauthorized' });
       }
 
       // 2. Enforce policies (rate limiting, endpoint access, etc.)
       const allowed = await this.policyService.enforcePolicies(req);
       if (!allowed) {
-        this.monitoringService.logError(req, { message: 'Rate limit exceeded', status: 429 });
+        this.monitoringService.logError(req, {
+          message: 'Rate limit exceeded',
+          status: 429,
+        });
         return res.status(429).json({ error: 'Rate limit exceeded' });
       }
 
@@ -43,7 +45,8 @@ export class APIGatewayController {
       const transformedRequest = this.transformService.transformRequest(req);
 
       // 4. Route request (simulate forwarding)
-      const routeResult = await this.routingService.routeRequest(transformedRequest);
+      const routeResult =
+        await this.routingService.routeRequest(transformedRequest);
 
       // 5. Simulate microservice response
       const response = {
@@ -57,7 +60,8 @@ export class APIGatewayController {
       };
 
       // 6. Transform response
-      const transformedResponse = this.transformService.transformResponse(response);
+      const transformedResponse =
+        this.transformService.transformResponse(response);
 
       // 7. Monitoring
       this.monitoringService.logRequest(req);

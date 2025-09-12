@@ -20,12 +20,14 @@ export class WebhookController {
   async handleStripeWebhook(@Req() req: Request, @Res() res: Response) {
     const sig = req.headers['stripe-signature'] as string;
     let event;
-    
+
     try {
       event = this.stripeService.handleWebhook(req.body, sig);
     } catch (err) {
       this.logger.error('Webhook signature verification failed', err);
-      return res.status(HttpStatus.BAD_REQUEST).send(`Webhook Error: ${err.message}`);
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .send(`Webhook Error: ${err.message}`);
     }
 
     // Handle event types
@@ -34,12 +36,12 @@ export class WebhookController {
         const paymentIntent = event.data.object;
         if (paymentIntent.metadata?.paymentId) {
           await this.paymentsService.updatePaymentStatus(
-            paymentIntent.metadata.paymentId, 
-            PaymentStatus.COMPLETED, 
+            paymentIntent.metadata.paymentId,
+            PaymentStatus.COMPLETED,
             {
               providerTransactionId: paymentIntent.id,
               receiptUrl: paymentIntent.charges?.data[0]?.receipt_url,
-            }
+            },
           );
         }
         break;
@@ -48,8 +50,8 @@ export class WebhookController {
         const paymentIntent = event.data.object;
         if (paymentIntent.metadata?.paymentId) {
           await this.paymentsService.updatePaymentStatus(
-            paymentIntent.metadata.paymentId, 
-            PaymentStatus.FAILED
+            paymentIntent.metadata.paymentId,
+            PaymentStatus.FAILED,
           );
         }
         break;
@@ -79,4 +81,4 @@ export class WebhookController {
 
     res.status(HttpStatus.OK).json({ received: true });
   }
-} 
+}

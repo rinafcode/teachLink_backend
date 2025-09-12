@@ -34,7 +34,9 @@ describe('SearchService', () => {
 
   it('should perform a search and return results', async () => {
     filtersService.buildFilterQuery.mockReturnValue([]);
-    esService.search.mockResolvedValue({ hits: { hits: [{ _source: { title: 'Test Course' } }] } });
+    esService.search.mockResolvedValue({
+      hits: { hits: [{ _source: { title: 'Test Course' } }] },
+    });
     const results = await service.search('test', {}, 0, 10);
     expect(results).toEqual([{ title: 'Test Course' }]);
     expect(esService.search).toHaveBeenCalled();
@@ -43,18 +45,27 @@ describe('SearchService', () => {
   it('should throw BadRequestException on search error', async () => {
     filtersService.buildFilterQuery.mockReturnValue([]);
     esService.search.mockRejectedValue(new Error('ES error'));
-    await expect(service.search('test', {}, 0, 10)).rejects.toThrow(BadRequestException);
+    await expect(service.search('test', {}, 0, 10)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('should get suggestions', async () => {
-    autoCompleteService.getSuggestions.mockResolvedValue(['suggestion1', 'suggestion2']);
+    autoCompleteService.getSuggestions.mockResolvedValue([
+      'suggestion1',
+      'suggestion2',
+    ]);
     const suggestions = await service.getSuggestions('sug');
     expect(suggestions).toEqual(['suggestion1', 'suggestion2']);
     expect(autoCompleteService.getSuggestions).toHaveBeenCalledWith('sug');
   });
 
   it('should throw BadRequestException on suggestion error', async () => {
-    autoCompleteService.getSuggestions.mockRejectedValue(new Error('Suggest error'));
-    await expect(service.getSuggestions('sug')).rejects.toThrow(BadRequestException);
+    autoCompleteService.getSuggestions.mockRejectedValue(
+      new Error('Suggest error'),
+    );
+    await expect(service.getSuggestions('sug')).rejects.toThrow(
+      BadRequestException,
+    );
   });
-}); 
+});

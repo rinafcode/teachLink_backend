@@ -22,7 +22,11 @@ describe('SubscriptionsService', () => {
             save: jest.fn(),
             findOne: jest.fn(),
             find: jest.fn(),
-            createQueryBuilder: jest.fn().mockReturnValue({ where: jest.fn().mockReturnThis(), andWhere: jest.fn().mockReturnThis(), getMany: jest.fn() }),
+            createQueryBuilder: jest.fn().mockReturnValue({
+              where: jest.fn().mockReturnThis(),
+              andWhere: jest.fn().mockReturnThis(),
+              getMany: jest.fn(),
+            }),
           },
         },
         {
@@ -48,9 +52,16 @@ describe('SubscriptionsService', () => {
   it('should create a subscription', async () => {
     stripe.createCustomer.mockResolvedValue({ id: 'cus_123' } as any);
     service['createPriceId'] = jest.fn().mockResolvedValue('price_123');
-    stripe.createSubscription.mockResolvedValue({ id: 'sub_123', current_period_start: 1, current_period_end: 2 } as any);
+    stripe.createSubscription.mockResolvedValue({
+      id: 'sub_123',
+      current_period_start: 1,
+      current_period_end: 2,
+    } as any);
     repo.create.mockReturnValue({} as any);
-    repo.save.mockResolvedValue({ id: 's1', status: SubscriptionStatus.ACTIVE } as any);
+    repo.save.mockResolvedValue({
+      id: 's1',
+      status: SubscriptionStatus.ACTIVE,
+    } as any);
     const result = await service.createSubscription({
       userId: 'u1',
       amount: 10,
@@ -61,11 +72,22 @@ describe('SubscriptionsService', () => {
   });
 
   it('should cancel a subscription', async () => {
-    repo.findOne.mockResolvedValue({ id: 's1', status: SubscriptionStatus.ACTIVE, providerSubscriptionId: 'sub_123' } as any);
+    repo.findOne.mockResolvedValue({
+      id: 's1',
+      status: SubscriptionStatus.ACTIVE,
+      providerSubscriptionId: 'sub_123',
+    } as any);
     stripe.cancelSubscription.mockResolvedValue({ id: 'sub_123' } as any);
-    repo.save.mockResolvedValue({ id: 's1', status: SubscriptionStatus.CANCELLED } as any);
-    service.getSubscription = jest.fn().mockResolvedValue({ id: 's1', status: SubscriptionStatus.ACTIVE, providerSubscriptionId: 'sub_123' } as any);
+    repo.save.mockResolvedValue({
+      id: 's1',
+      status: SubscriptionStatus.CANCELLED,
+    } as any);
+    service.getSubscription = jest.fn().mockResolvedValue({
+      id: 's1',
+      status: SubscriptionStatus.ACTIVE,
+      providerSubscriptionId: 'sub_123',
+    } as any);
     const result = await service.cancelSubscription('s1');
     expect(result.status).toBe(SubscriptionStatus.CANCELLED);
   });
-}); 
+});

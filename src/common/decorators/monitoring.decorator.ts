@@ -18,7 +18,10 @@ export interface DatabaseMonitorOptions {
 export const MONITOR_OPERATION_KEY = 'monitor_operation';
 export const MONITOR_DATABASE_KEY = 'monitor_database';
 
-export const MonitorOperation = (operation: string, options: Partial<MonitorOptions> = {}) => {
+export const MonitorOperation = (
+  operation: string,
+  options: Partial<MonitorOptions> = {},
+) => {
   return SetMetadata(MONITOR_OPERATION_KEY, {
     operation,
     tags: options.tags || {},
@@ -28,7 +31,10 @@ export const MonitorOperation = (operation: string, options: Partial<MonitorOpti
   });
 };
 
-export const MonitorDatabase = (operation: string, options: Partial<DatabaseMonitorOptions> = {}) => {
+export const MonitorDatabase = (
+  operation: string,
+  options: Partial<DatabaseMonitorOptions> = {},
+) => {
   return SetMetadata(MONITOR_DATABASE_KEY, {
     operation,
     table: options.table,
@@ -42,15 +48,18 @@ export const MonitorCache = (operationName: string) => {
     tags: { type: 'cache' },
     recordMetrics: true,
     recordTraces: true,
-    recordLogs: true
+    recordLogs: true,
   });
 };
 
-export const MonitorExternalService = (serviceName: string, operationName: string) => {
+export const MonitorExternalService = (
+  serviceName: string,
+  operationName: string,
+) => {
   return MonitorOperation(`external_${serviceName}_${operationName}`, {
     tags: { type: 'external', service: serviceName },
     recordMetrics: true,
     recordTraces: true,
-    recordLogs: true
+    recordLogs: true,
   });
-}; 
+};

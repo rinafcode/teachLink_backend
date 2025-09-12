@@ -52,7 +52,7 @@ describe('PaymentsService', () => {
       providerPaymentIntentId: undefined,
     } as Payment;
     repo.create.mockReturnValue(paymentObj);
-    repo.save.mockImplementation(async (p) => ({ ...p, id: 'p1' } as Payment));
+    repo.save.mockImplementation(async (p) => ({ ...p, id: 'p1' }) as Payment);
     stripe.createPaymentIntent.mockResolvedValue({ id: 'pi_123' } as any);
 
     // Act
@@ -79,8 +79,11 @@ describe('PaymentsService', () => {
       receiptUrl: undefined,
     } as Payment;
     repo.findOne.mockResolvedValue(paymentObj);
-    stripe.confirmPayment.mockResolvedValue({ id: 'pi_123', charges: { data: [{ receipt_url: 'url' }] } } as any);
-    repo.save.mockImplementation(async (p) => ({ ...p, id: 'p1' } as Payment));
+    stripe.confirmPayment.mockResolvedValue({
+      id: 'pi_123',
+      charges: { data: [{ receipt_url: 'url' }] },
+    } as any);
+    repo.save.mockImplementation(async (p) => ({ ...p, id: 'p1' }) as Payment);
 
     // Act
     const result = await service.confirmPayment('p1', 'pi_123');
@@ -101,7 +104,10 @@ describe('PaymentsService', () => {
     } as Payment;
     repo.findOne.mockResolvedValue(paymentObj);
     stripe.createRefund.mockResolvedValue({ id: 'r1' } as any);
-    repo.save.mockImplementation(async (p) => ({ ...p, id: 'p1', status: PaymentStatus.REFUNDED } as Payment));
+    repo.save.mockImplementation(
+      async (p) =>
+        ({ ...p, id: 'p1', status: PaymentStatus.REFUNDED }) as Payment,
+    );
 
     // Act
     const result = await service.refundPayment('p1');

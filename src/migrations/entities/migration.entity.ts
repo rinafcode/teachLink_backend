@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum MigrationStatus {
   PENDING = 'pending',
@@ -37,7 +44,11 @@ export class Migration {
   @Column({ type: 'enum', enum: MigrationType })
   type: MigrationType;
 
-  @Column({ type: 'enum', enum: MigrationStatus, default: MigrationStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: MigrationStatus,
+    default: MigrationStatus.PENDING,
+  })
   status: MigrationStatus;
 
   @Column()

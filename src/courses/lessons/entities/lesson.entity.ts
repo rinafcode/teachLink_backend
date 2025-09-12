@@ -1,53 +1,56 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from "typeorm"
-import { Module } from "../../modules/entities/module.entity"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Module } from '../../modules/entities/module.entity';
 
 export enum LessonType {
-  VIDEO = "video",
-  TEXT = "text",
-  QUIZ = "quiz",
-  ASSIGNMENT = "assignment",
+  VIDEO = 'video',
+  TEXT = 'text',
+  QUIZ = 'quiz',
+  ASSIGNMENT = 'assignment',
 }
 
-@Entity("lessons")
+@Entity('lessons')
 export class Lesson {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  title: string
+  title: string;
 
-  @Column("text", { nullable: true })
-  description: string
+  @Column('text', { nullable: true })
+  description: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: LessonType,
     default: LessonType.VIDEO,
   })
-  type: LessonType
+  type: LessonType;
 
-  @Column("jsonb", { nullable: true })
-  content: any
+  @Column('jsonb', { nullable: true })
+  content: any;
 
   @Column()
-  order: number
+  order: number;
 
   @Column({ default: 0 })
-  duration: number
+  duration: number;
 
-  @ManyToOne(
-    () => Module,
-    (module) => module.lessons,
-    { onDelete: "CASCADE" },
-  )
-  module: Module
+  @ManyToOne(() => Module, (module) => module.lessons, { onDelete: 'CASCADE' })
+  module: Module;
 
   @Column()
-  moduleId: string
+  moduleId: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

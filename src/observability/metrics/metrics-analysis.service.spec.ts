@@ -73,8 +73,11 @@ describe('MetricsAnalysisService', () => {
     }).compile();
 
     service = module.get<MetricsAnalysisService>(MetricsAnalysisService);
-    metricEntryRepository = module.get<Repository<MetricEntry>>(getRepositoryToken(MetricEntry));
-    elasticsearchService = module.get<ElasticsearchService>(ElasticsearchService);
+    metricEntryRepository = module.get<Repository<MetricEntry>>(
+      getRepositoryToken(MetricEntry),
+    );
+    elasticsearchService =
+      module.get<ElasticsearchService>(ElasticsearchService);
     configService = module.get<ConfigService>(ConfigService);
 
     await service.initialize(config);
@@ -92,12 +95,14 @@ describe('MetricsAnalysisService', () => {
 
     await service.recordMetric(metricName, value, type, tags);
 
-    expect(metricEntryRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-      metricName,
-      value,
-      metricType: type,
-      tags,
-    }));
+    expect(metricEntryRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metricName,
+        value,
+        metricType: type,
+        tags,
+      }),
+    );
 
     expect(elasticsearchService.index).toHaveBeenCalledWith({
       index: 'metric_entries',
@@ -106,7 +111,9 @@ describe('MetricsAnalysisService', () => {
   });
 
   it('should record user registration', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.recordUserRegistration('email', 'success');
 
@@ -114,12 +121,14 @@ describe('MetricsAnalysisService', () => {
       'user_registrations',
       1,
       MetricType.COUNTER,
-      { method: 'email', status: 'success' }
+      { method: 'email', status: 'success' },
     );
   });
 
   it('should record course enrollment', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.recordCourseEnrollment('course-123', 'student');
 
@@ -127,12 +136,14 @@ describe('MetricsAnalysisService', () => {
       'course_enrollments',
       1,
       MetricType.COUNTER,
-      { courseId: 'course-123', userType: 'student' }
+      { courseId: 'course-123', userType: 'student' },
     );
   });
 
   it('should record assessment completion', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.recordAssessmentCompletion('assessment-123', 85);
 
@@ -140,12 +151,14 @@ describe('MetricsAnalysisService', () => {
       'assessment_completions',
       1,
       MetricType.COUNTER,
-      { assessmentId: 'assessment-123', score: 85, scoreRange: '80-89' }
+      { assessmentId: 'assessment-123', score: 85, scoreRange: '80-89' },
     );
   });
 
   it('should record payment transaction', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.recordPaymentTransaction('stripe', 'success', 99.99);
 
@@ -153,12 +166,14 @@ describe('MetricsAnalysisService', () => {
       'payment_transactions',
       99.99,
       MetricType.COUNTER,
-      { method: 'stripe', status: 'success', amountRange: '50-99' }
+      { method: 'stripe', status: 'success', amountRange: '50-99' },
     );
   });
 
   it('should update active users', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.updateActiveUsers(150);
 
@@ -166,12 +181,14 @@ describe('MetricsAnalysisService', () => {
       'active_users',
       150,
       MetricType.GAUGE,
-      { timePeriod: 'current' }
+      { timePeriod: 'current' },
     );
   });
 
   it('should record request duration', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.recordRequestDuration('GET', '/api/users', 200, 1500);
 
@@ -179,12 +196,14 @@ describe('MetricsAnalysisService', () => {
       'request_duration',
       1500,
       MetricType.HISTOGRAM,
-      { method: 'GET', route: '/api/users', statusCode: 200 }
+      { method: 'GET', route: '/api/users', statusCode: 200 },
     );
   });
 
   it('should record error', async () => {
-    const recordMetricSpy = jest.spyOn(service, 'recordMetric').mockResolvedValue();
+    const recordMetricSpy = jest
+      .spyOn(service, 'recordMetric')
+      .mockResolvedValue();
 
     await service.recordError('validation_error', 'auth-service', 'medium');
 
@@ -192,7 +211,11 @@ describe('MetricsAnalysisService', () => {
       'errors',
       1,
       MetricType.COUNTER,
-      { errorType: 'validation_error', service: 'auth-service', severity: 'medium' }
+      {
+        errorType: 'validation_error',
+        service: 'auth-service',
+        severity: 'medium',
+      },
     );
   });
 
@@ -208,7 +231,7 @@ describe('MetricsAnalysisService', () => {
     const analytics = await service.getMetricAnalytics(
       'test_metric',
       new Date('2023-01-01T00:00:00Z'),
-      new Date('2023-01-01T03:00:00Z')
+      new Date('2023-01-01T03:00:00Z'),
     );
 
     expect(analytics).toEqual({
@@ -231,7 +254,7 @@ describe('MetricsAnalysisService', () => {
 
     const count = await service.getMetricCount(
       new Date('2023-01-01'),
-      new Date('2023-01-02')
+      new Date('2023-01-02'),
     );
 
     expect(count).toBe(10);

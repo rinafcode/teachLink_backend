@@ -26,12 +26,20 @@ describe('OrchestrationModule', () => {
 
   it('should send a message via service mesh', async () => {
     const result = await mesh.sendMessage('test-service', { foo: 'bar' });
-    expect(result).toEqual({ status: 'sent', serviceName: 'test-service', payload: { foo: 'bar' } });
+    expect(result).toEqual({
+      status: 'sent',
+      serviceName: 'test-service',
+      payload: { foo: 'bar' },
+    });
   });
 
   it('should start a workflow', async () => {
     const result = await workflow.startWorkflow('test-workflow', { input: 1 });
-    expect(result).toEqual({ workflow: 'test-workflow', status: 'started', input: { input: 1 } });
+    expect(result).toEqual({
+      workflow: 'test-workflow',
+      status: 'started',
+      input: { input: 1 },
+    });
   });
 
   it('should acquire and release a lock', async () => {
@@ -49,4 +57,4 @@ describe('OrchestrationModule', () => {
     const result = await health.checkHealth('svc');
     expect(result).toEqual({ healthy: true });
   });
-}); 
+});

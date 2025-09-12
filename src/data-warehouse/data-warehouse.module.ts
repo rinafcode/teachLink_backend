@@ -21,4 +21,4 @@ import { IncrementalLoaderService } from './loading/incremental-loader.service';
     IncrementalLoaderService,
   ],
 })
-export class DataWarehouseModule {} 
+export class DataWarehouseModule {}

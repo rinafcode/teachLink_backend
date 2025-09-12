@@ -13,4 +13,4 @@ export class WorkflowEngineService {
     // TODO: Implement step advancement
     return { workflowId, status: 'step-advanced', stepData };
   }
-} 
+}

@@ -1,82 +1,88 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from "typeorm"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum ConflictType {
-  VERSION_CONFLICT = "version_conflict",
-  CONCURRENT_UPDATE = "concurrent_update",
-  DATA_INCONSISTENCY = "data_inconsistency",
-  SCHEMA_MISMATCH = "schema_mismatch",
+  VERSION_CONFLICT = 'version_conflict',
+  CONCURRENT_UPDATE = 'concurrent_update',
+  DATA_INCONSISTENCY = 'data_inconsistency',
+  SCHEMA_MISMATCH = 'schema_mismatch',
 }
 
 export enum ResolutionStrategy {
-  LAST_WRITE_WINS = "last_write_wins",
-  FIRST_WRITE_WINS = "first_write_wins",
-  MERGE = "merge",
-  MANUAL = "manual",
-  CUSTOM = "custom",
+  LAST_WRITE_WINS = 'last_write_wins',
+  FIRST_WRITE_WINS = 'first_write_wins',
+  MERGE = 'merge',
+  MANUAL = 'manual',
+  CUSTOM = 'custom',
 }
 
 export enum ConflictStatus {
-  DETECTED = "detected",
-  RESOLVING = "resolving",
-  RESOLVED = "resolved",
-  FAILED = "failed",
+  DETECTED = 'detected',
+  RESOLVING = 'resolving',
+  RESOLVED = 'resolved',
+  FAILED = 'failed',
 }
 
-@Entity("conflict_logs")
-@Index(["entityType", "entityId"])
-@Index(["conflictType", "status"])
-@Index(["createdAt"])
+@Entity('conflict_logs')
+@Index(['entityType', 'entityId'])
+@Index(['conflictType', 'status'])
+@Index(['createdAt'])
 export class ConflictLog {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  entityType: string
+  entityType: string;
 
   @Column()
-  entityId: string
+  entityId: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: ConflictType,
   })
-  conflictType: ConflictType
+  conflictType: ConflictType;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: ResolutionStrategy,
   })
-  resolutionStrategy: ResolutionStrategy
+  resolutionStrategy: ResolutionStrategy;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: ConflictStatus,
     default: ConflictStatus.DETECTED,
   })
-  status: ConflictStatus
+  status: ConflictStatus;
 
-  @Column("jsonb")
+  @Column('jsonb')
   conflictingData: {
-    source1: Record<string, any>
-    source2: Record<string, any>
-    metadata: Record<string, any>
-  }
+    source1: Record<string, any>;
+    source2: Record<string, any>;
+    metadata: Record<string, any>;
+  };
 
-  @Column("jsonb", { nullable: true })
-  resolvedData: Record<string, any>
+  @Column('jsonb', { nullable: true })
+  resolvedData: Record<string, any>;
 
-  @Column("text", { nullable: true })
-  resolutionReason: string
+  @Column('text', { nullable: true })
+  resolutionReason: string;
 
-  @Column("timestamp")
-  detectedAt: Date
+  @Column('timestamp')
+  detectedAt: Date;
 
-  @Column("timestamp", { nullable: true })
-  resolvedAt: Date
+  @Column('timestamp', { nullable: true })
+  resolvedAt: Date;
 
-  @Column("simple-array")
-  affectedSources: string[]
+  @Column('simple-array')
+  affectedSources: string[];
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 }

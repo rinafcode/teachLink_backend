@@ -30,16 +30,16 @@ import { DeploymentService } from '../deployment/deployment.service';
 import { ContainerMonitoringService } from '../monitoring/container-monitoring.service';
 import { LoadBalancingService } from '../balancing/load-balancing.service';
 import { OrchestrationService } from '../orchestration/orchestration.service';
-import { 
-  ScaleContainerDto, 
-  DeployContainerDto, 
+import {
+  ScaleContainerDto,
+  DeployContainerDto,
   ContainerResponseDto,
-  ScalingHistoryDto 
+  ScalingHistoryDto,
 } from './dto/containers.dto';
-import { 
+import {
   ContainerNotFoundException,
   InvalidScalingRequestException,
-  InsufficientPermissionsException 
+  InsufficientPermissionsException,
 } from '../../common/exceptions/custom-exceptions';
 
 @ApiTags('Containers')
@@ -57,28 +57,28 @@ export class ContainersController {
 
   @Post(':id/scale-up')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Scale up a container',
-    description: 'Increase the number of replicas for a container'
+    description: 'Increase the number of replicas for a container',
   })
   @ApiParam({ name: 'id', description: 'Container ID', type: 'string' })
   @ApiBody({ type: ScaleContainerDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Container scaled up successfully',
-    type: ContainerResponseDto 
+    type: ContainerResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid scaling request' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid scaling request',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Container not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'Container not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions' 
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
   })
   async scaleUp(
     @Param('id', ParseUUIDPipe) containerId: string,
@@ -86,7 +86,7 @@ export class ContainersController {
   ): Promise<ContainerResponseDto> {
     try {
       await this.autoScalingService.scaleUp(containerId);
-      
+
       return {
         id: containerId,
         operation: 'scale-up',
@@ -107,28 +107,28 @@ export class ContainersController {
 
   @Post(':id/scale-down')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Scale down a container',
-    description: 'Decrease the number of replicas for a container'
+    description: 'Decrease the number of replicas for a container',
   })
   @ApiParam({ name: 'id', description: 'Container ID', type: 'string' })
   @ApiBody({ type: ScaleContainerDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Container scaled down successfully',
-    type: ContainerResponseDto 
+    type: ContainerResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid scaling request' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid scaling request',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Container not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'Container not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions' 
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
   })
   async scaleDown(
     @Param('id', ParseUUIDPipe) containerId: string,
@@ -136,7 +136,7 @@ export class ContainersController {
   ): Promise<ContainerResponseDto> {
     try {
       await this.autoScalingService.scaleDown(containerId);
-      
+
       return {
         id: containerId,
         operation: 'scale-down',
@@ -157,36 +157,43 @@ export class ContainersController {
 
   @Get(':id/scaling-history')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get scaling history for a container',
-    description: 'Retrieve the scaling operation history for a specific container'
+    description:
+      'Retrieve the scaling operation history for a specific container',
   })
   @ApiParam({ name: 'id', description: 'Container ID', type: 'string' })
-  @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Number of records to return' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: 'number',
+    description: 'Number of records to return',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'Scaling history retrieved successfully',
-    type: [ScalingHistoryDto] 
+    type: [ScalingHistoryDto],
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Container not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'Container not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions' 
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
   })
   async getScalingHistory(
     @Param('id', ParseUUIDPipe) containerId: string,
     @Query('limit') limit?: number,
   ): Promise<ScalingHistoryDto[]> {
     try {
-      const history = await this.autoScalingService.getScalingHistory(containerId);
-      
+      const history =
+        await this.autoScalingService.getScalingHistory(containerId);
+
       if (limit) {
         return history.slice(0, limit);
       }
-      
+
       return history;
     } catch (error) {
       if (error instanceof ContainerNotFoundException) {
@@ -198,36 +205,39 @@ export class ContainersController {
 
   @Post(':id/deploy')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Deploy a new version of a container',
-    description: 'Deploy a new version with the specified image tag'
+    description: 'Deploy a new version with the specified image tag',
   })
   @ApiParam({ name: 'id', description: 'Container ID', type: 'string' })
   @ApiBody({ type: DeployContainerDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Container deployed successfully',
-    type: ContainerResponseDto 
+    type: ContainerResponseDto,
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid deployment request' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid deployment request',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Container not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'Container not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions - Admin only' 
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions - Admin only',
   })
   async deployNewVersion(
     @Param('id', ParseUUIDPipe) containerId: string,
     @Body(ValidationPipe) deployDto: DeployContainerDto,
   ): Promise<ContainerResponseDto> {
     try {
-      await this.deploymentService.deployNewVersion(containerId, deployDto.imageTag);
-      
+      await this.deploymentService.deployNewVersion(
+        containerId,
+        deployDto.imageTag,
+      );
+
       return {
         id: containerId,
         operation: 'deploy',
@@ -248,22 +258,22 @@ export class ContainersController {
 
   @Get(':id/health')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get container health status',
-    description: 'Retrieve the current health status of a container'
+    description: 'Retrieve the current health status of a container',
   })
   @ApiParam({ name: 'id', description: 'Container ID', type: 'string' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Container health status retrieved successfully' 
+  @ApiResponse({
+    status: 200,
+    description: 'Container health status retrieved successfully',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Container not found' 
+  @ApiResponse({
+    status: 404,
+    description: 'Container not found',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions' 
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
   })
   async getContainerHealth(@Param('id', ParseUUIDPipe) containerId: string) {
     try {
@@ -278,23 +288,28 @@ export class ContainersController {
 
   @Get(':id/metrics')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get container metrics',
-    description: 'Retrieve performance metrics for a container'
+    description: 'Retrieve performance metrics for a container',
   })
   @ApiParam({ name: 'id', description: 'Container ID', type: 'string' })
-  @ApiQuery({ name: 'period', required: false, type: 'string', description: 'Time period for metrics (1h, 24h, 7d)' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Container metrics retrieved successfully' 
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    type: 'string',
+    description: 'Time period for metrics (1h, 24h, 7d)',
   })
-  @ApiResponse({ 
-    status: 404, 
-    description: 'Container not found' 
+  @ApiResponse({
+    status: 200,
+    description: 'Container metrics retrieved successfully',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Insufficient permissions' 
+  @ApiResponse({
+    status: 404,
+    description: 'Container not found',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions',
   })
   async getContainerMetrics(
     @Param('id', ParseUUIDPipe) containerId: string,
@@ -309,4 +324,4 @@ export class ContainersController {
       throw error;
     }
   }
-} 
+}

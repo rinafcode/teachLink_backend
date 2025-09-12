@@ -13,17 +13,28 @@ export class NotificationsService {
     private readonly preferencesService: NotificationPreferencesService,
   ) {}
 
-  async createNotification(userId: string, type: NotificationType, content: string): Promise<NotificationDto | null> {
+  async createNotification(
+    userId: string,
+    type: NotificationType,
+    content: string,
+  ): Promise<NotificationDto | null> {
     if (!this.preferencesService.isEnabled(userId, type)) {
       return null;
     }
-    const notification = this.notificationRepo.create({ userId, type, content });
+    const notification = this.notificationRepo.create({
+      userId,
+      type,
+      content,
+    });
     const saved = await this.notificationRepo.save(notification);
     return saved;
   }
 
   async getUserNotifications(userId: string): Promise<NotificationDto[]> {
-    return this.notificationRepo.find({ where: { userId }, order: { createdAt: 'DESC' } });
+    return this.notificationRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async markAsRead(notificationId: string): Promise<void> {
@@ -31,6 +42,9 @@ export class NotificationsService {
   }
 
   async markAllAsRead(userId: string): Promise<void> {
-    await this.notificationRepo.update({ userId, isRead: false }, { isRead: true });
+    await this.notificationRepo.update(
+      { userId, isRead: false },
+      { isRead: true },
+    );
   }
 }

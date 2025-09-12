@@ -30,4 +30,3 @@ import { SchemaSnapshot } from './entities/schema-snapshot.entity';
   ],
 })
 export class MigrationModule {}
-

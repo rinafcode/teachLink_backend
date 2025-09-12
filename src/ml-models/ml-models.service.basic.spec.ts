@@ -136,7 +136,9 @@ describe('MLModelsService - Basic Tests', () => {
     }).compile();
 
     service = module.get<MLModelsService>(MLModelsService);
-    modelRepository = module.get<Repository<MLModel>>(getRepositoryToken(MLModel));
+    modelRepository = module.get<Repository<MLModel>>(
+      getRepositoryToken(MLModel),
+    );
   });
 
   it('should be defined', () => {
@@ -156,8 +158,12 @@ describe('MLModelsService - Basic Tests', () => {
     };
 
     const createdModel = { ...mockModel, ...createModelDto };
-    jest.spyOn(modelRepository, 'create').mockReturnValue(createdModel as MLModel);
-    jest.spyOn(modelRepository, 'save').mockResolvedValue(createdModel as MLModel);
+    jest
+      .spyOn(modelRepository, 'create')
+      .mockReturnValue(createdModel as MLModel);
+    jest
+      .spyOn(modelRepository, 'save')
+      .mockResolvedValue(createdModel as MLModel);
 
     const result = await service.createModel(createModelDto);
 
@@ -169,7 +175,9 @@ describe('MLModelsService - Basic Tests', () => {
   });
 
   it('should find a model by ID', async () => {
-    jest.spyOn(modelRepository, 'findOne').mockResolvedValue(mockModel as MLModel);
+    jest
+      .spyOn(modelRepository, 'findOne')
+      .mockResolvedValue(mockModel as MLModel);
 
     const result = await service.findModelById('model-1');
 
@@ -183,7 +191,9 @@ describe('MLModelsService - Basic Tests', () => {
   it('should throw NotFoundException when model not found', async () => {
     jest.spyOn(modelRepository, 'findOne').mockResolvedValue(null);
 
-    await expect(service.findModelById('nonexistent')).rejects.toThrow(NotFoundException);
+    await expect(service.findModelById('nonexistent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should get all models with pagination', async () => {
@@ -194,4 +204,4 @@ describe('MLModelsService - Basic Tests', () => {
       total: 1,
     });
   });
-}); 
+});

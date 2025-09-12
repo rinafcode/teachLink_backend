@@ -21,4 +21,4 @@ import { ModelTestingService } from './testing/model-testing.service';
     ModelTestingService,
   ],
 })
-export class MLPipelineModule {} 
+export class MLPipelineModule {}

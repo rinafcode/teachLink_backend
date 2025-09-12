@@ -16,15 +16,15 @@ export class EmailAnalyticsService {
   }
 
   getEventsByCampaign(campaignId: string): EmailEvent[] {
-    return this.events.filter(e => e.campaignId === campaignId);
+    return this.events.filter((e) => e.campaignId === campaignId);
   }
 
   getStats(campaignId: string) {
     const events = this.getEventsByCampaign(campaignId);
     return {
-      opens: events.filter(e => e.type === 'open').length,
-      clicks: events.filter(e => e.type === 'click').length,
-      conversions: events.filter(e => e.type === 'conversion').length,
+      opens: events.filter((e) => e.type === 'open').length,
+      clicks: events.filter((e) => e.type === 'click').length,
+      conversions: events.filter((e) => e.type === 'conversion').length,
     };
   }
 

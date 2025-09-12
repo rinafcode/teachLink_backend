@@ -34,12 +34,14 @@ describe('EnvironmentSyncService', () => {
             findOne: jest.fn(),
             save: jest.fn(),
           },
-        }
+        },
       ],
     }).compile();
 
     service = module.get<EnvironmentSyncService>(EnvironmentSyncService);
-    snapshotRepository = module.get<Repository<SchemaSnapshot>>(getRepositoryToken(SchemaSnapshot));
+    snapshotRepository = module.get<Repository<SchemaSnapshot>>(
+      getRepositoryToken(SchemaSnapshot),
+    );
   });
 
   it('should be defined', () => {
@@ -48,43 +50,64 @@ describe('EnvironmentSyncService', () => {
 
   describe('synchronizeSchema', () => {
     it('should synchronize schema successfully', async () => {
-      jest.spyOn(snapshotRepository, 'findOne').mockResolvedValue(mockSnapshot as SchemaSnapshot);
-      jest.spyOn(snapshotRepository, 'save').mockResolvedValue(mockSnapshot as SchemaSnapshot);
+      jest
+        .spyOn(snapshotRepository, 'findOne')
+        .mockResolvedValue(mockSnapshot as SchemaSnapshot);
+      jest
+        .spyOn(snapshotRepository, 'save')
+        .mockResolvedValue(mockSnapshot as SchemaSnapshot);
 
       await service.synchronizeSchema('sourceEnv', 'targetEnv');
 
       expect(snapshotRepository.findOne).toHaveBeenCalledWith({
         where: { environment: 'sourceEnv' },
-        order: { timestamp: 'DESC' }
+        order: { timestamp: 'DESC' },
       });
     });
 
     it('should throw error if source snapshot not found', async () => {
       jest.spyOn(snapshotRepository, 'findOne').mockResolvedValue(null);
 
-      await expect(service.synchronizeSchema('sourceEnv', 'targetEnv'))
-        .rejects.toThrow('No schema snapshot found for source environment: sourceEnv');
+      await expect(
+        service.synchronizeSchema('sourceEnv', 'targetEnv'),
+      ).rejects.toThrow(
+        'No schema snapshot found for source environment: sourceEnv',
+      );
     });
   });
 
   describe('validateSynchronization', () => {
     it('should validate synchronization successfully', async () => {
-      jest.spyOn(snapshotRepository, 'findOne').mockResolvedValue(mockSnapshot as SchemaSnapshot);
+      jest
+        .spyOn(snapshotRepository, 'findOne')
+        .mockResolvedValue(mockSnapshot as SchemaSnapshot);
 
-      const result = await service.validateSynchronization('sourceEnv', 'targetEnv');
+      const result = await service.validateSynchronization(
+        'sourceEnv',
+        'targetEnv',
+      );
 
       expect(result).toBe(true);
     });
 
     it('should return false if checksums differ', async () => {
-      const differentSnapshot = { ...mockSnapshot, checksum: 'different-checksum' };
-      jest.spyOn(snapshotRepository, 'findOne').mockResolvedValueOnce(mockSnapshot as SchemaSnapshot);
-      jest.spyOn(snapshotRepository, 'findOne').mockResolvedValueOnce(differentSnapshot as SchemaSnapshot);
+      const differentSnapshot = {
+        ...mockSnapshot,
+        checksum: 'different-checksum',
+      };
+      jest
+        .spyOn(snapshotRepository, 'findOne')
+        .mockResolvedValueOnce(mockSnapshot as SchemaSnapshot);
+      jest
+        .spyOn(snapshotRepository, 'findOne')
+        .mockResolvedValueOnce(differentSnapshot as SchemaSnapshot);
 
-      const result = await service.validateSynchronization('sourceEnv', 'targetEnv');
+      const result = await service.validateSynchronization(
+        'sourceEnv',
+        'targetEnv',
+      );
 
       expect(result).toBe(false);
     });
   });
 });
-

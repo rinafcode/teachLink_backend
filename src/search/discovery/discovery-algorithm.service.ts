@@ -37,30 +37,43 @@ export class DiscoveryAlgorithmService {
     algorithm: 'hybrid' | 'collaborative' | 'content' | 'popularity' = 'hybrid',
   ): Promise<PersonalizedResult[]> {
     const startTime = Date.now();
-    
+
     try {
-      this.logger.debug(`Personalizing ${results.length} results for user ${userId} using ${algorithm} algorithm`);
+      this.logger.debug(
+        `Personalizing ${results.length} results for user ${userId} using ${algorithm} algorithm`,
+      );
 
       let personalizedResults: PersonalizedResult[] = [];
 
       switch (algorithm) {
         case 'collaborative':
-          personalizedResults = await this.collaborativeFiltering(userId, results);
+          personalizedResults = await this.collaborativeFiltering(
+            userId,
+            results,
+          );
           break;
         case 'content':
-          personalizedResults = await this.contentBasedFiltering(userId, results);
+          personalizedResults = await this.contentBasedFiltering(
+            userId,
+            results,
+          );
           break;
         case 'popularity':
           personalizedResults = await this.popularityBasedRanking(results);
           break;
         case 'hybrid':
         default:
-          personalizedResults = await this.hybridPersonalization(userId, results);
+          personalizedResults = await this.hybridPersonalization(
+            userId,
+            results,
+          );
           break;
       }
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Personalization completed in ${duration}ms for user ${userId}`);
+      this.logger.log(
+        `Personalization completed in ${duration}ms for user ${userId}`,
+      );
 
       return personalizedResults;
     } catch (error) {
@@ -68,7 +81,7 @@ export class DiscoveryAlgorithmService {
       // Fallback to original results with basic scoring
       return results.map((result, index) => ({
         id: result.id,
-        score: 1.0 - (index * 0.1),
+        score: 1.0 - index * 0.1,
         reason: 'fallback',
         metadata: result,
       }));
@@ -82,20 +95,23 @@ export class DiscoveryAlgorithmService {
     try {
       // Find similar users based on interaction patterns
       const similarUsers = await this.findSimilarUsers(userId);
-      
+
       // Get recommendations from similar users
-      const recommendations = await this.getRecommendationsFromSimilarUsers(similarUsers);
-      
+      const recommendations =
+        await this.getRecommendationsFromSimilarUsers(similarUsers);
+
       // Score results based on collaborative recommendations
-      return results.map(result => {
-        const collaborativeScore = recommendations[result.id] || 0;
-        return {
-          id: result.id,
-          score: collaborativeScore,
-          reason: 'collaborative_filtering',
-          metadata: result,
-        };
-      }).sort((a, b) => b.score - a.score);
+      return results
+        .map((result) => {
+          const collaborativeScore = recommendations[result.id] || 0;
+          return {
+            id: result.id,
+            score: collaborativeScore,
+            reason: 'collaborative_filtering',
+            metadata: result,
+          };
+        })
+        .sort((a, b) => b.score - a.score);
     } catch (error) {
       this.logger.error('Collaborative filtering failed', error);
       throw error;
@@ -109,18 +125,21 @@ export class DiscoveryAlgorithmService {
     try {
       // Get user profile and preferences
       const userProfile = await this.getUserProfile(userId);
-      
+
       // Calculate content similarity scores
       const contentScores = await Promise.all(
         results.map(async (result) => {
-          const similarity = await this.calculateContentSimilarity(userProfile, result);
+          const similarity = await this.calculateContentSimilarity(
+            userProfile,
+            result,
+          );
           return {
             id: result.id,
             score: similarity,
             reason: 'content_based',
             metadata: result,
           };
-        })
+        }),
       );
 
       return contentScores.sort((a, b) => b.score - a.score);
@@ -130,7 +149,9 @@ export class DiscoveryAlgorithmService {
     }
   }
 
-  private async popularityBasedRanking(results: any[]): Promise<PersonalizedResult[]> {
+  private async popularityBasedRanking(
+    results: any[],
+  ): Promise<PersonalizedResult[]> {
     try {
       // Score based on popularity metrics
       const popularityScores = await Promise.all(
@@ -142,7 +163,7 @@ export class DiscoveryAlgorithmService {
             reason: 'popularity_based',
             metadata: result,
           };
-        })
+        }),
       );
 
       return popularityScores.sort((a, b) => b.score - a.score);
@@ -158,11 +179,12 @@ export class DiscoveryAlgorithmService {
   ): Promise<PersonalizedResult[]> {
     try {
       // Get scores from different algorithms
-      const [collaborativeScores, contentScores, popularityScores] = await Promise.all([
-        this.collaborativeFiltering(userId, results),
-        this.contentBasedFiltering(userId, results),
-        this.popularityBasedRanking(results),
-      ]);
+      const [collaborativeScores, contentScores, popularityScores] =
+        await Promise.all([
+          this.collaborativeFiltering(userId, results),
+          this.contentBasedFiltering(userId, results),
+          this.popularityBasedRanking(results),
+        ]);
 
       // Combine scores with weights
       const weights = {
@@ -171,12 +193,15 @@ export class DiscoveryAlgorithmService {
         popularity: 0.2,
       };
 
-      const hybridScores = results.map(result => {
-        const collaborative = collaborativeScores.find(s => s.id === result.id)?.score || 0;
-        const content = contentScores.find(s => s.id === result.id)?.score || 0;
-        const popularity = popularityScores.find(s => s.id === result.id)?.score || 0;
+      const hybridScores = results.map((result) => {
+        const collaborative =
+          collaborativeScores.find((s) => s.id === result.id)?.score || 0;
+        const content =
+          contentScores.find((s) => s.id === result.id)?.score || 0;
+        const popularity =
+          popularityScores.find((s) => s.id === result.id)?.score || 0;
 
-        const hybridScore = 
+        const hybridScore =
           collaborative * weights.collaborative +
           content * weights.content +
           popularity * weights.popularity;
@@ -199,7 +224,7 @@ export class DiscoveryAlgorithmService {
   private async findSimilarUsers(userId: string): Promise<string[]> {
     try {
       const userProfile = await this.getUserProfile(userId);
-      
+
       const result = await this.esService.search({
         index: this.userIndex,
         body: {
@@ -233,21 +258,23 @@ export class DiscoveryAlgorithmService {
         } as any,
       });
 
-      return result.hits.hits.map(hit => hit._id);
+      return result.hits.hits.map((hit) => hit._id);
     } catch (error) {
       this.logger.error('Failed to find similar users', error);
       return [];
     }
   }
 
-  private async getRecommendationsFromSimilarUsers(similarUsers: string[]): Promise<Record<string, number>> {
+  private async getRecommendationsFromSimilarUsers(
+    similarUsers: string[],
+  ): Promise<Record<string, number>> {
     try {
       const recommendations: Record<string, number> = {};
-      
+
       for (const userId of similarUsers) {
         const interactions = await this.getUserInteractions(userId);
-        
-        interactions.forEach(interaction => {
+
+        interactions.forEach((interaction) => {
           if (!recommendations[interaction.contentId]) {
             recommendations[interaction.contentId] = 0;
           }
@@ -257,7 +284,10 @@ export class DiscoveryAlgorithmService {
 
       return recommendations;
     } catch (error) {
-      this.logger.error('Failed to get recommendations from similar users', error);
+      this.logger.error(
+        'Failed to get recommendations from similar users',
+        error,
+      );
       return {};
     }
   }
@@ -323,7 +353,7 @@ export class DiscoveryAlgorithmService {
       });
       const aggs = result.aggregations as any;
       const popularity = aggs?.popularity_score?.value || 0;
-      return Math.min(popularity / 100, 1.0); 
+      return Math.min(popularity / 100, 1.0);
     } catch (error) {
       this.logger.error('Failed to get content popularity', error);
       return 0.0;
@@ -337,7 +367,7 @@ export class DiscoveryAlgorithmService {
         body: {
           userId,
           contentId: interaction.contentId,
-          type: interaction.type, 
+          type: interaction.type,
           score: interaction.score || 1.0,
           timestamp: new Date().toISOString(),
         },
@@ -345,8 +375,10 @@ export class DiscoveryAlgorithmService {
 
       // Update user profile based on interaction
       await this.updateUserPreferences(userId, interaction);
-      
-      this.logger.debug(`Updated user profile for ${userId} with interaction ${interaction.type}`);
+
+      this.logger.debug(
+        `Updated user profile for ${userId} with interaction ${interaction.type}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to update user profile for ${userId}`, error);
     }
@@ -355,7 +387,7 @@ export class DiscoveryAlgorithmService {
   private async updateUserPreferences(userId: string, interaction: any) {
     try {
       const userProfile = await this.getUserProfile(userId);
-      
+
       // Update preferences based on interaction type
       switch (interaction.type) {
         case 'click':
@@ -377,7 +409,10 @@ export class DiscoveryAlgorithmService {
         body: profileBody,
       });
     } catch (error) {
-      this.logger.error(`Failed to update user preferences for ${userId}`, error);
+      this.logger.error(
+        `Failed to update user preferences for ${userId}`,
+        error,
+      );
     }
   }
 
@@ -387,7 +422,7 @@ export class DiscoveryAlgorithmService {
 
     // Update category preference
     if (content.category) {
-      profile.categories[content.category] = 
+      profile.categories[content.category] =
         (profile.categories[content.category] || 0) + 0.1;
     }
 
@@ -411,7 +446,7 @@ export class DiscoveryAlgorithmService {
     if (!content) return;
 
     if (content.category) {
-      profile.categories[content.category] = 
+      profile.categories[content.category] =
         (profile.categories[content.category] || 0) + 0.2;
     }
 
@@ -462,10 +497,10 @@ export class DiscoveryAlgorithmService {
           query: { term: { userId } },
           sort: [{ timestamp: { order: 'desc' } }],
           size: 100,
-        }
+        },
       } as unknown as SearchRequest);
 
-      return result.hits.hits.map(hit => hit._source);
+      return result.hits.hits.map((hit) => hit._source);
     } catch (error) {
       this.logger.error(`Failed to get interactions for user ${userId}`, error);
       return [];
@@ -481,17 +516,20 @@ export class DiscoveryAlgorithmService {
         userId,
         totalInteractions: interactions.length,
         topCategories: Object.entries(profile.categories)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .slice(0, 5)
           .map(([category, score]) => ({ category, score })),
         topTags: Object.entries(profile.tags)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .slice(0, 10)
           .map(([tag, score]) => ({ tag, score })),
         recentSearches: profile.searchHistory.slice(-10),
       };
     } catch (error) {
-      this.logger.error(`Failed to get personalization stats for user ${userId}`, error);
+      this.logger.error(
+        `Failed to get personalization stats for user ${userId}`,
+        error,
+      );
       return null;
     }
   }

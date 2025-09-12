@@ -4,4 +4,4 @@ export enum SubscriptionStatus {
   PAST_DUE = 'PAST_DUE',
   UNPAID = 'UNPAID',
   TRIAL = 'TRIAL',
-} 
+}

@@ -20,4 +20,4 @@ export class NotificationPreferencesService {
     const prefs = this.getPreferences(userId);
     return prefs[type] !== false; // default to true if not set
   }
-} 
+}

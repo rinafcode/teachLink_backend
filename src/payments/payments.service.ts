@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from './entities/payment.entity';
@@ -18,7 +23,15 @@ export class PaymentsService {
 
   async createPayment(createPaymentDto: CreatePaymentDto): Promise<Payment> {
     try {
-      const { userId, courseId, amount, currency, paymentMethod, description, metadata } = createPaymentDto;
+      const {
+        userId,
+        courseId,
+        amount,
+        currency,
+        paymentMethod,
+        description,
+        metadata,
+      } = createPaymentDto;
 
       // Create payment record
       const payment = this.paymentRepo.create({
@@ -36,12 +49,16 @@ export class PaymentsService {
 
       // Create payment intent with provider
       if (paymentMethod === PaymentMethod.STRIPE) {
-        const paymentIntent = await this.stripeService.createPaymentIntent(amount, currency, {
-          paymentId: savedPayment.id,
-          userId,
-          courseId,
-          ...metadata,
-        });
+        const paymentIntent = await this.stripeService.createPaymentIntent(
+          amount,
+          currency,
+          {
+            paymentId: savedPayment.id,
+            userId,
+            courseId,
+            ...metadata,
+          },
+        );
 
         savedPayment.providerPaymentIntentId = paymentIntent.id;
         savedPayment.status = PaymentStatus.PROCESSING;
@@ -55,7 +72,10 @@ export class PaymentsService {
     }
   }
 
-  async confirmPayment(paymentId: string, paymentIntentId?: string): Promise<Payment> {
+  async confirmPayment(
+    paymentId: string,
+    paymentIntentId?: string,
+  ): Promise<Payment> {
     const payment = await this.getPayment(paymentId);
 
     if (payment.status === PaymentStatus.COMPLETED) {
@@ -64,16 +84,21 @@ export class PaymentsService {
 
     try {
       if (payment.paymentMethod === PaymentMethod.STRIPE && paymentIntentId) {
-        const paymentIntent = await this.stripeService.confirmPayment(paymentIntentId);
-        
+        const paymentIntent =
+          await this.stripeService.confirmPayment(paymentIntentId);
+
         payment.status = PaymentStatus.COMPLETED;
         payment.providerTransactionId = paymentIntent.id;
-        payment.receiptUrl = (paymentIntent as any).charges?.data[0]?.receipt_url;
-        
+        payment.receiptUrl = (
+          paymentIntent as any
+        ).charges?.data[0]?.receipt_url;
+
         return await this.paymentRepo.save(payment);
       }
 
-      throw new BadRequestException('Invalid payment method or missing payment intent');
+      throw new BadRequestException(
+        'Invalid payment method or missing payment intent',
+      );
     } catch (error) {
       this.logger.error(`Failed to confirm payment: ${error.message}`);
       payment.status = PaymentStatus.FAILED;
@@ -115,9 +140,15 @@ export class PaymentsService {
     }
 
     try {
-      if (payment.paymentMethod === PaymentMethod.STRIPE && payment.providerPaymentIntentId) {
-        await this.stripeService.createRefund(payment.providerPaymentIntentId, amount);
-        
+      if (
+        payment.paymentMethod === PaymentMethod.STRIPE &&
+        payment.providerPaymentIntentId
+      ) {
+        await this.stripeService.createRefund(
+          payment.providerPaymentIntentId,
+          amount,
+        );
+
         payment.status = PaymentStatus.REFUNDED;
         return await this.paymentRepo.save(payment);
       }
@@ -136,22 +167,36 @@ export class PaymentsService {
     byMethod: Record<PaymentMethod, number>;
   }> {
     const payments = await this.paymentRepo.find();
-    
+
     const totalPayments = payments.length;
-    const totalAmount = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
-    
-    const byStatus: Record<PaymentStatus, number> = {} as Record<PaymentStatus, number>;
-    const byMethod: Record<PaymentMethod, number> = {} as Record<PaymentMethod, number>;
-    
-    payments.forEach(payment => {
+    const totalAmount = payments.reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+
+    const byStatus: Record<PaymentStatus, number> = {} as Record<
+      PaymentStatus,
+      number
+    >;
+    const byMethod: Record<PaymentMethod, number> = {} as Record<
+      PaymentMethod,
+      number
+    >;
+
+    payments.forEach((payment) => {
       byStatus[payment.status] = (byStatus[payment.status] || 0) + 1;
-      byMethod[payment.paymentMethod] = (byMethod[payment.paymentMethod] || 0) + 1;
+      byMethod[payment.paymentMethod] =
+        (byMethod[payment.paymentMethod] || 0) + 1;
     });
 
     return { totalPayments, totalAmount, byStatus, byMethod };
   }
 
-  async updatePaymentStatus(paymentId: string, status: PaymentStatus, metadata?: any): Promise<Payment> {
+  async updatePaymentStatus(
+    paymentId: string,
+    status: PaymentStatus,
+    metadata?: any,
+  ): Promise<Payment> {
     const payment = await this.getPayment(paymentId);
     payment.status = status;
     if (metadata) {
@@ -159,4 +204,4 @@ export class PaymentsService {
     }
     return await this.paymentRepo.save(payment);
   }
-} 
+}

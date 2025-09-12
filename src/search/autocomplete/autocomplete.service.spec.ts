@@ -26,9 +26,7 @@ describe('AutoCompleteService', () => {
   it('should return suggestions', async () => {
     esService.search.mockResolvedValue({
       suggest: {
-        course_suggest: [
-          { options: [{ text: 'foo' }, { text: 'bar' }] },
-        ],
+        course_suggest: [{ options: [{ text: 'foo' }, { text: 'bar' }] }],
       },
     });
     const suggestions = await service.getSuggestions('f');
@@ -40,4 +38,4 @@ describe('AutoCompleteService', () => {
     esService.search.mockRejectedValue(new Error('ES error'));
     await expect(service.getSuggestions('f')).rejects.toThrow();
   });
-}); 
+});

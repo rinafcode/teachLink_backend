@@ -21,9 +21,15 @@ export interface UserEventFact {
 @Injectable()
 export class DimensionalModelingService {
   // Dimensional modeling logic for analytics
-  async buildModel(users: User[], events: any[]): Promise<{ userDimension: UserDimension[]; userEventFact: UserEventFact[] }> {
+  async buildModel(
+    users: User[],
+    events: any[],
+  ): Promise<{
+    userDimension: UserDimension[];
+    userEventFact: UserEventFact[];
+  }> {
     // Build user dimension table
-    const userDimension: UserDimension[] = users.map(user => ({
+    const userDimension: UserDimension[] = users.map((user) => ({
       userId: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -32,7 +38,7 @@ export class DimensionalModelingService {
     }));
 
     // Build user event fact table
-    const userEventFact: UserEventFact[] = events.map(event => ({
+    const userEventFact: UserEventFact[] = events.map((event) => ({
       eventType: event.eventType,
       userId: event.userId,
       courseId: event.courseId,
@@ -43,4 +49,4 @@ export class DimensionalModelingService {
     // In a real implementation, these would be loaded into warehouse tables
     return { userDimension, userEventFact };
   }
-} 
+}

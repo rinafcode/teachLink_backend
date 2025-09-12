@@ -23,4 +23,4 @@ describe('SearchFiltersService', () => {
   it('should return empty array if no filters', () => {
     expect(service.buildFilterQuery({})).toEqual([]);
   });
-}); 
+});

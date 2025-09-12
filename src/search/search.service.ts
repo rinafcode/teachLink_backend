@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
@@ -18,13 +23,25 @@ export class SearchService {
     private readonly analyticsService: SearchAnalyticsService,
   ) {}
 
-  async search(query: string, filters: any, from = 0, size = 10, userId?: string, semantic = false) {
+  async search(
+    query: string,
+    filters: any,
+    from = 0,
+    size = 10,
+    userId?: string,
+    semantic = false,
+  ) {
     try {
       this.analyticsService.logSearch(userId || 'anonymous', query, filters);
       let results: any[] = [];
       if (semantic) {
         // Semantic search with embeddings
-        results = await this.semanticSearchService.semanticSearch(query, filters, from, size);
+        results = await this.semanticSearchService.semanticSearch(
+          query,
+          filters,
+          from,
+          size,
+        );
       } else {
         // Full-text search with ranking
         const filterQuery = this.filtersService.buildFilterQuery(filters);
@@ -36,7 +53,12 @@ export class SearchService {
             query: {
               bool: {
                 must: [
-                  { multi_match: { query, fields: ['title^3', 'description', 'content'] } },
+                  {
+                    multi_match: {
+                      query,
+                      fields: ['title^3', 'description', 'content'],
+                    },
+                  },
                 ],
                 filter: filterQuery,
               },
@@ -45,14 +67,17 @@ export class SearchService {
               { _score: { order: 'desc' } },
               { popularity: { order: 'desc' } },
             ],
-          }
+          },
         } as any;
         const result = await this.esService.search(params);
-        results = result.hits.hits.map(hit => hit._source);
+        results = result.hits.hits.map((hit) => hit._source);
       }
       // Personalize results
       if (userId) {
-        results = await this.discoveryAlgorithmService.personalizeResults(userId, results);
+        results = await this.discoveryAlgorithmService.personalizeResults(
+          userId,
+          results,
+        );
       }
       return results;
     } catch (error) {

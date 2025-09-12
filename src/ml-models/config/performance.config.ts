@@ -216,7 +216,11 @@ export const defaultPerformanceConfig: PerformanceConfig = {
         enabled: true,
         ttl: 300,
         maxSize: 100,
-        invalidationPatterns: ['model:created', 'model:updated', 'model:deleted'],
+        invalidationPatterns: [
+          'model:created',
+          'model:updated',
+          'model:deleted',
+        ],
       },
       modelDetails: {
         enabled: true,
@@ -240,7 +244,12 @@ export const defaultPerformanceConfig: PerformanceConfig = {
         enabled: true,
         ttl: 900, // 15 minutes
         maxSize: 50,
-        invalidationPatterns: ['model:created', 'model:deleted', 'deployment:created', 'deployment:deleted'],
+        invalidationPatterns: [
+          'model:created',
+          'model:deleted',
+          'deployment:created',
+          'deployment:deleted',
+        ],
       },
     },
   },
@@ -501,7 +510,7 @@ export const defaultPerformanceConfig: PerformanceConfig = {
 // Environment-specific configurations
 export const getPerformanceConfig = (): PerformanceConfig => {
   const env = process.env.NODE_ENV || 'development';
-  
+
   switch (env) {
     case 'production':
       return {
@@ -542,6 +551,14 @@ export const getPerformanceConfig = (): PerformanceConfig => {
               memoryLimit: '4Gi',
               cpuLimit: '2',
             },
+            monitoring: {
+              ...defaultPerformanceConfig.async.workers.monitoring,
+              concurrency: 10,
+            },
+            driftDetection: {
+              ...defaultPerformanceConfig.async.workers.driftDetection,
+              concurrency: 4,
+            },
           },
         },
         training: {
@@ -560,7 +577,7 @@ export const getPerformanceConfig = (): PerformanceConfig => {
           },
         },
       };
-    
+
     case 'test':
       return {
         ...defaultPerformanceConfig,
@@ -587,7 +604,7 @@ export const getPerformanceConfig = (): PerformanceConfig => {
           },
         },
       };
-    
+
     default: // development
       return defaultPerformanceConfig;
   }
@@ -602,23 +619,41 @@ export const createCachePattern = (prefix: string, pattern: string): string => {
   return `${prefix}:${pattern}`;
 };
 
-export const shouldUseCache = (config: PerformanceConfig, strategy: keyof typeof config.caching.strategies): boolean => {
+export const shouldUseCache = (
+  config: PerformanceConfig,
+  strategy: keyof typeof config.caching.strategies,
+): boolean => {
   return config.caching.enabled && config.caching.strategies[strategy].enabled;
 };
 
-export const getCacheTTL = (config: PerformanceConfig, strategy: keyof typeof config.caching.strategies): number => {
+export const getCacheTTL = (
+  config: PerformanceConfig,
+  strategy: keyof typeof config.caching.strategies,
+): number => {
   return config.caching.strategies[strategy].ttl;
 };
 
-export const isSlowQuery = (duration: number, config: PerformanceConfig): boolean => {
+export const isSlowQuery = (
+  duration: number,
+  config: PerformanceConfig,
+): boolean => {
   return duration > config.database.queryOptimization.slowQueryThreshold;
 };
 
-export const shouldBatchOperation = (config: PerformanceConfig, operationCount: number): boolean => {
-  return config.database.batchOperations.enabled && operationCount >= config.database.batchOperations.batchSize;
+export const shouldBatchOperation = (
+  config: PerformanceConfig,
+  operationCount: number,
+): boolean => {
+  return (
+    config.database.batchOperations.enabled &&
+    operationCount >= config.database.batchOperations.batchSize
+  );
 };
 
-export const getWorkerConfig = (config: PerformanceConfig, workerType: keyof typeof config.async.workers): WorkerConfig => {
+export const getWorkerConfig = (
+  config: PerformanceConfig,
+  workerType: keyof typeof config.async.workers,
+): WorkerConfig => {
   return config.async.workers[workerType];
 };
 
@@ -626,6 +661,8 @@ export const isDriftDetectionEnabled = (config: PerformanceConfig): boolean => {
   return config.monitoring.driftDetection.enabled;
 };
 
-export const getDriftDetectionInterval = (config: PerformanceConfig): number => {
+export const getDriftDetectionInterval = (
+  config: PerformanceConfig,
+): number => {
   return config.monitoring.driftDetection.checkInterval;
 };

@@ -1,80 +1,87 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum ServiceStatus {
-  HEALTHY = "healthy",
-  UNHEALTHY = "unhealthy",
-  DEGRADED = "degraded",
-  MAINTENANCE = "maintenance",
+  HEALTHY = 'healthy',
+  UNHEALTHY = 'unhealthy',
+  DEGRADED = 'degraded',
+  MAINTENANCE = 'maintenance',
 }
 
-@Entity("service_registry")
-@Index(["serviceName", "version"])
-@Index(["status", "lastHeartbeat"])
+@Entity('service_registry')
+@Index(['serviceName', 'version'])
+@Index(['status', 'lastHeartbeat'])
 export class ServiceRegistry {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  serviceName: string
+  serviceName: string;
 
   @Column()
-  serviceId: string
+  serviceId: string;
 
   @Column()
-  version: string
+  version: string;
 
   @Column()
-  host: string
+  host: string;
 
-  @Column("int")
-  port: number
+  @Column('int')
+  port: number;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: ServiceStatus,
     default: ServiceStatus.HEALTHY,
   })
-  status: ServiceStatus
+  status: ServiceStatus;
 
-  @Column("jsonb")
+  @Column('jsonb')
   metadata: {
-    tags: string[]
-    capabilities: string[]
+    tags: string[];
+    capabilities: string[];
     endpoints: Array<{
-      path: string
-      method: string
-      description: string
-    }>
+      path: string;
+      method: string;
+      description: string;
+    }>;
     resources: {
-      cpu: number
-      memory: number
-      disk: number
-    }
-  }
+      cpu: number;
+      memory: number;
+      disk: number;
+    };
+  };
 
-  @Column("jsonb")
+  @Column('jsonb')
   healthCheck: {
-    endpoint: string
-    interval: number
-    timeout: number
-    retries: number
-  }
+    endpoint: string;
+    interval: number;
+    timeout: number;
+    retries: number;
+  };
 
-  @Column("timestamp")
-  lastHeartbeat: Date
+  @Column('timestamp')
+  lastHeartbeat: Date;
 
-  @Column("int", { default: 0 })
-  failureCount: number
+  @Column('int', { default: 0 })
+  failureCount: number;
 
-  @Column("decimal", { precision: 5, scale: 2, default: 0 })
-  responseTime: number
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  responseTime: number;
 
-  @Column("int", { default: 0 })
-  requestCount: number
+  @Column('int', { default: 0 })
+  requestCount: number;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

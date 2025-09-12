@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+} from 'typeorm';
 import { ContainerCluster } from './container-cluster.entity';
 
 export enum LoadBalancerType {
@@ -204,7 +213,9 @@ export class LoadBalancer {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => ContainerCluster, (cluster) => cluster.loadBalancers, { nullable: true })
+  @ManyToOne(() => ContainerCluster, (cluster) => cluster.loadBalancers, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'clusterId' })
   cluster: ContainerCluster;
 }

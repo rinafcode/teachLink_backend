@@ -1,7 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThan } from 'typeorm';
-import { AnomalyAlert, AnomalySeverity, AnomalyStatus, AnomalyType } from '../entities/anomaly-alert.entity';
+import {
+  AnomalyAlert,
+  AnomalySeverity,
+  AnomalyStatus,
+  AnomalyType,
+} from '../entities/anomaly-alert.entity';
 import { MetricEntry } from '../entities/metric-entry.entity';
 import { LogEntry, LogLevel } from '../entities/log-entry.entity';
 import { ObservabilityConfig } from '../observability.service';
@@ -125,7 +130,7 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
   async runAnomalyDetection(): Promise<void> {
     this.logger.debug('Running anomaly detection');
 
-    for (const rule of this.anomalyRules.filter(r => r.enabled)) {
+    for (const rule of this.anomalyRules.filter((r) => r.enabled)) {
       try {
         await this.checkRule(rule);
       } catch (error) {
@@ -156,11 +161,15 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
 
       if (metrics.length === 0) return;
 
-      const values = metrics.map(m => Number(m.value));
+      const values = metrics.map((m) => Number(m.value));
       const isAnomaly = this.evaluateRule(rule, values);
 
       if (isAnomaly) {
-        await this.createAnomalyAlert(rule, values[values.length - 1], metrics[0].correlationId);
+        await this.createAnomalyAlert(
+          rule,
+          values[values.length - 1],
+          metrics[0].correlationId,
+        );
       }
     }
   }
@@ -200,11 +209,16 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
   /**
    * Detect statistical anomalies using z-score
    */
-  detectStatisticalAnomalies(values: number[], threshold: number = 2.0): boolean {
+  detectStatisticalAnomalies(
+    values: number[],
+    threshold: number = 2.0,
+  ): boolean {
     if (values.length < 10) return false;
 
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const variance =
+      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      values.length;
     const stdDev = Math.sqrt(variance);
 
     if (stdDev === 0) return false;
@@ -224,8 +238,10 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
     const recentValues = values.slice(-windowSize);
     const previousValues = values.slice(-windowSize * 2, -windowSize);
 
-    const recentAvg = recentValues.reduce((sum, val) => sum + val, 0) / recentValues.length;
-    const previousAvg = previousValues.reduce((sum, val) => sum + val, 0) / previousValues.length;
+    const recentAvg =
+      recentValues.reduce((sum, val) => sum + val, 0) / recentValues.length;
+    const previousAvg =
+      previousValues.reduce((sum, val) => sum + val, 0) / previousValues.length;
 
     // Check for significant change (more than 50% difference)
     const changePercentage = Math.abs((recentAvg - previousAvg) / previousAvg);
@@ -258,8 +274,10 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
 
     // Check for unusual error patterns
     const previousEndTime = startTime;
-    const previousStartTime = new Date(previousEndTime.getTime() - 10 * 60 * 1000);
-    
+    const previousStartTime = new Date(
+      previousEndTime.getTime() - 10 * 60 * 1000,
+    );
+
     const previousErrorLogs = await this.logEntryRepository.count({
       where: {
         level: LogLevel.ERROR,
@@ -267,7 +285,8 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
       },
     });
 
-    if (errorLogs > previousErrorLogs * 3) { // 3x increase
+    if (errorLogs > previousErrorLogs * 3) {
+      // 3x increase
       await this.createAnomalyAlert(
         {
           id: 'error-log-spike',
@@ -318,7 +337,8 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
           operator: 'gt',
           timeWindow: 60,
           severity: AnomalySeverity.MEDIUM,
-          description: 'Unusually high enrollment to registration ratio detected',
+          description:
+            'Unusually high enrollment to registration ratio detected',
           enabled: true,
         },
         courseEnrollments / userRegistrations,
@@ -364,7 +384,8 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
     alert.detectionAlgorithm = 'statistical_analysis';
 
     if (rule.threshold) {
-      alert.deviationPercentage = Math.abs((actualValue - rule.threshold) / rule.threshold) * 100;
+      alert.deviationPercentage =
+        Math.abs((actualValue - rule.threshold) / rule.threshold) * 100;
     }
 
     await this.anomalyAlertRepository.save(alert);
@@ -377,13 +398,19 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
       description: alert.description,
     });
 
-    this.logger.warn(`Anomaly detected: ${rule.name} - Actual: ${actualValue}, Threshold: ${rule.threshold}`);
+    this.logger.warn(
+      `Anomaly detected: ${rule.name} - Actual: ${actualValue}, Threshold: ${rule.threshold}`,
+    );
   }
 
   /**
    * Acknowledge an anomaly alert
    */
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string, notes?: string): Promise<void> {
+  async acknowledgeAlert(
+    alertId: string,
+    acknowledgedBy: string,
+    notes?: string,
+  ): Promise<void> {
     await this.anomalyAlertRepository.update(alertId, {
       status: AnomalyStatus.ACKNOWLEDGED,
       acknowledgedBy,
@@ -391,13 +418,19 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
       resolutionNotes: notes,
     });
 
-    this.logger.log(`Anomaly alert ${alertId} acknowledged by ${acknowledgedBy}`);
+    this.logger.log(
+      `Anomaly alert ${alertId} acknowledged by ${acknowledgedBy}`,
+    );
   }
 
   /**
    * Resolve an anomaly alert
    */
-  async resolveAlert(alertId: string, resolvedBy: string, notes?: string): Promise<void> {
+  async resolveAlert(
+    alertId: string,
+    resolvedBy: string,
+    notes?: string,
+  ): Promise<void> {
     await this.anomalyAlertRepository.update(alertId, {
       status: AnomalyStatus.RESOLVED,
       resolvedBy,
@@ -425,7 +458,10 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
   /**
    * Get anomaly statistics
    */
-  async getAnomalyStats(startTime: Date, endTime: Date): Promise<{
+  async getAnomalyStats(
+    startTime: Date,
+    endTime: Date,
+  ): Promise<{
     total: number;
     bySeverity: Record<AnomalySeverity, number>;
     byType: Record<AnomalyType, number>;
@@ -460,10 +496,10 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
       open: 0,
     };
 
-    alerts.forEach(alert => {
+    alerts.forEach((alert) => {
       stats.bySeverity[alert.severity]++;
       stats.byType[alert.alertType]++;
-      
+
       switch (alert.status) {
         case AnomalyStatus.RESOLVED:
           stats.resolved++;
@@ -516,9 +552,10 @@ export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
 
     // Filter by text if provided
     if (query.text) {
-      return results.filter(alert =>
-        alert.title.toLowerCase().includes(query.text.toLowerCase()) ||
-        alert.description.toLowerCase().includes(query.text.toLowerCase())
+      return results.filter(
+        (alert) =>
+          alert.title.toLowerCase().includes(query.text.toLowerCase()) ||
+          alert.description.toLowerCase().includes(query.text.toLowerCase()),
       );
     }
 

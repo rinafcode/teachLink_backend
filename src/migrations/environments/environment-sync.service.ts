@@ -12,25 +12,37 @@ export class EnvironmentSyncService {
     private snapshotRepository: Repository<SchemaSnapshot>,
   ) {}
 
-  async synchronizeSchema(sourceEnvironment: string, targetEnvironment: string): Promise<void> {
-    this.logger.log(`Synchronizing schema from ${sourceEnvironment} to ${targetEnvironment}`);
+  async synchronizeSchema(
+    sourceEnvironment: string,
+    targetEnvironment: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Synchronizing schema from ${sourceEnvironment} to ${targetEnvironment}`,
+    );
     try {
       const sourceSnapshot = await this.snapshotRepository.findOne({
         where: { environment: sourceEnvironment },
-        order: { timestamp: 'DESC' }
+        order: { timestamp: 'DESC' },
       });
 
       if (!sourceSnapshot) {
-        throw new Error(`No schema snapshot found for source environment: ${sourceEnvironment}`);
+        throw new Error(
+          `No schema snapshot found for source environment: ${sourceEnvironment}`,
+        );
       }
 
       const targetSnapshot = await this.snapshotRepository.findOne({
         where: { environment: targetEnvironment },
-        order: { timestamp: 'DESC' }
+        order: { timestamp: 'DESC' },
       });
 
-      if (!targetSnapshot || sourceSnapshot.checksum !== targetSnapshot.checksum) {
-        this.logger.warn(`Schemas are not synchronized: Initiating synchronization process`);
+      if (
+        !targetSnapshot ||
+        sourceSnapshot.checksum !== targetSnapshot.checksum
+      ) {
+        this.logger.warn(
+          `Schemas are not synchronized: Initiating synchronization process`,
+        );
         await this.applySchemaChanges(sourceSnapshot, targetEnvironment);
       } else {
         this.logger.log('Schemas are already synchronized');
@@ -41,27 +53,37 @@ export class EnvironmentSyncService {
     }
   }
 
-  private async applySchemaChanges(sourceSnapshot: SchemaSnapshot, targetEnvironment: string): Promise<void> {
+  private async applySchemaChanges(
+    sourceSnapshot: SchemaSnapshot,
+    targetEnvironment: string,
+  ): Promise<void> {
     this.logger.log(`Applying schema changes to ${targetEnvironment}`);
-    
+
     // This is where the logic to update the target environment to match the source snapshot would go.
     // This will require generating and executing the necessary SQL changes
-    
+
     // For example purposes, log the schema change intent
-    this.logger.log(`Copying schema definition from ${sourceSnapshot.version} in environment ${sourceSnapshot.environment}`);
+    this.logger.log(
+      `Copying schema definition from ${sourceSnapshot.version} in environment ${sourceSnapshot.environment}`,
+    );
   }
 
-  async validateSynchronization(sourceEnvironment: string, targetEnvironment: string): Promise<boolean> {
-    this.logger.log(`Validating schema synchronization from ${sourceEnvironment} to ${targetEnvironment}`);
+  async validateSynchronization(
+    sourceEnvironment: string,
+    targetEnvironment: string,
+  ): Promise<boolean> {
+    this.logger.log(
+      `Validating schema synchronization from ${sourceEnvironment} to ${targetEnvironment}`,
+    );
 
     const sourceSnapshot = await this.snapshotRepository.findOne({
       where: { environment: sourceEnvironment },
-      order: { timestamp: 'DESC' }
+      order: { timestamp: 'DESC' },
     });
 
     const targetSnapshot = await this.snapshotRepository.findOne({
       where: { environment: targetEnvironment },
-      order: { timestamp: 'DESC' }
+      order: { timestamp: 'DESC' },
     });
 
     if (!sourceSnapshot || !targetSnapshot) {

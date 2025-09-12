@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { MLModel } from './ml-model.entity';
 import { ABTestStatus, ABTestType } from '../enums';
 
@@ -16,14 +24,14 @@ export class ABTest {
   @Column({
     type: 'enum',
     enum: ABTestStatus,
-    default: ABTestStatus.DRAFT
+    default: ABTestStatus.DRAFT,
   })
   status: ABTestStatus;
 
   @Column({
     type: 'enum',
     enum: ABTestType,
-    default: ABTestType.TRAFFIC_SPLIT
+    default: ABTestType.TRAFFIC_SPLIT,
   })
   type: ABTestType;
 
@@ -111,4 +119,4 @@ export class ABTest {
   @ManyToOne(() => MLModel)
   @JoinColumn({ name: 'winnerModelId' })
   winnerModel: MLModel;
-} 
+}

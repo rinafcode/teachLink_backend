@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Migration, MigrationStatus, MigrationType } from './entities/migration.entity';
+import {
+  Migration,
+  MigrationStatus,
+  MigrationType,
+} from './entities/migration.entity';
 import { SchemaSnapshot } from './entities/schema-snapshot.entity';
 import { SchemaValidationService } from './validation/schema-validation.service';
 import { ConflictResolutionService } from './conflicts/conflict-resolution.service';
@@ -42,7 +46,7 @@ export class MigrationService {
     try {
       // Get pending migrations
       const pendingMigrations = await this.getPendingMigrations(environment);
-      
+
       if (pendingMigrations.length === 0) {
         this.logger.log('No pending migrations found');
         return;
@@ -59,7 +63,9 @@ export class MigrationService {
       // Create schema snapshot after successful migrations
       await this.createSchemaSnapshot(environment);
 
-      this.logger.log(`Successfully completed ${pendingMigrations.length} migrations`);
+      this.logger.log(
+        `Successfully completed ${pendingMigrations.length} migrations`,
+      );
     } catch (error) {
       this.logger.error(`Migration failed: ${error.message}`, error.stack);
       throw error;
@@ -68,17 +74,20 @@ export class MigrationService {
 
   async loadMigrationsFromFiles(migrationsPath: string): Promise<Migration[]> {
     this.logger.log(`Loading migrations from: ${migrationsPath}`);
-    
-    const migrationFiles = fs.readdirSync(migrationsPath)
-      .filter(file => file.endsWith('.migration.json'))
+
+    const migrationFiles = fs
+      .readdirSync(migrationsPath)
+      .filter((file) => file.endsWith('.migration.json'))
       .sort();
 
     const migrations: Migration[] = [];
 
     for (const file of migrationFiles) {
       const filePath = path.join(migrationsPath, file);
-      const migrationData: MigrationFile = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      
+      const migrationData: MigrationFile = JSON.parse(
+        fs.readFileSync(filePath, 'utf8'),
+      );
+
       const migration = new Migration();
       migration.version = migrationData.version;
       migration.name = migrationData.name;
@@ -98,16 +107,21 @@ export class MigrationService {
     return migrations;
   }
 
-  async registerMigration(migrationData: MigrationFile, environment: string): Promise<Migration> {
+  async registerMigration(
+    migrationData: MigrationFile,
+    environment: string,
+  ): Promise<Migration> {
     const existingMigration = await this.migrationRepository.findOne({
-      where: { version: migrationData.version, environment }
+      where: { version: migrationData.version, environment },
     });
 
     if (existingMigration) {
       // Check if migration has changed
       const newChecksum = this.calculateChecksum(migrationData);
       if (existingMigration.checksum !== newChecksum) {
-        throw new Error(`Migration ${migrationData.version} has been modified after registration`);
+        throw new Error(
+          `Migration ${migrationData.version} has been modified after registration`,
+        );
       }
       return existingMigration;
     }
@@ -129,13 +143,18 @@ export class MigrationService {
     return await this.migrationRepository.save(migration);
   }
 
-  private async executeMigration(migration: Migration, environment: string): Promise<void> {
+  private async executeMigration(
+    migration: Migration,
+    environment: string,
+  ): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      this.logger.log(`Executing migration: ${migration.version} - ${migration.name}`);
+      this.logger.log(
+        `Executing migration: ${migration.version} - ${migration.name}`,
+      );
 
       // Update status to running
       migration.status = MigrationStatus.RUNNING;
@@ -157,43 +176,51 @@ export class MigrationService {
       await this.migrationRepository.save(migration);
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Migration ${migration.version} completed successfully in ${executionTime}ms`);
-
+      this.logger.log(
+        `Migration ${migration.version} completed successfully in ${executionTime}ms`,
+      );
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      
+
       // Update status to failed
       migration.status = MigrationStatus.FAILED;
       migration.error = error.message;
       await this.migrationRepository.save(migration);
 
-      this.logger.error(`Migration ${migration.version} failed: ${error.message}`);
+      this.logger.error(
+        `Migration ${migration.version} failed: ${error.message}`,
+      );
       throw error;
     } finally {
       await queryRunner.release();
     }
   }
 
-  private async getPendingMigrations(environment: string): Promise<Migration[]> {
+  private async getPendingMigrations(
+    environment: string,
+  ): Promise<Migration[]> {
     return await this.migrationRepository.find({
       where: {
         environment,
-        status: MigrationStatus.PENDING
+        status: MigrationStatus.PENDING,
       },
-      order: { version: 'ASC' }
+      order: { version: 'ASC' },
     });
   }
 
   async getMigrationHistory(environment: string): Promise<Migration[]> {
     return await this.migrationRepository.find({
       where: { environment },
-      order: { executedAt: 'DESC' }
+      order: { executedAt: 'DESC' },
     });
   }
 
-  async getMigrationStatus(version: string, environment: string): Promise<Migration | null> {
+  async getMigrationStatus(
+    version: string,
+    environment: string,
+  ): Promise<Migration | null> {
     return await this.migrationRepository.findOne({
-      where: { version, environment }
+      where: { version, environment },
     });
   }
 
@@ -214,7 +241,7 @@ export class MigrationService {
         tables,
         views,
         procedures,
-        functions
+        functions,
       };
 
       const snapshot = new SchemaSnapshot();
@@ -231,7 +258,6 @@ export class MigrationService {
 
       await this.snapshotRepository.save(snapshot);
       this.logger.log(`Schema snapshot created successfully`);
-
     } finally {
       await queryRunner.release();
     }
@@ -272,7 +298,9 @@ export class MigrationService {
     return await queryRunner.query(viewsQuery);
   }
 
-  private async getProcedureInformation(queryRunner: QueryRunner): Promise<any[]> {
+  private async getProcedureInformation(
+    queryRunner: QueryRunner,
+  ): Promise<any[]> {
     const proceduresQuery = `
       SELECT 
         routine_name as name,
@@ -284,7 +312,9 @@ export class MigrationService {
     return await queryRunner.query(proceduresQuery);
   }
 
-  private async getFunctionInformation(queryRunner: QueryRunner): Promise<any[]> {
+  private async getFunctionInformation(
+    queryRunner: QueryRunner,
+  ): Promise<any[]> {
     const functionsQuery = `
       SELECT 
         routine_name as name,
@@ -299,20 +329,22 @@ export class MigrationService {
   private async getCurrentVersion(environment: string): Promise<string> {
     const latestMigration = await this.migrationRepository.findOne({
       where: { environment, status: MigrationStatus.COMPLETED },
-      order: { version: 'DESC' }
+      order: { version: 'DESC' },
     });
 
     return latestMigration ? latestMigration.version : '0.0.0';
   }
 
   private calculateChecksum(data: any): string {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash('sha256')
       .update(JSON.stringify(data))
       .digest('hex');
   }
 
   private calculateSchemaChecksum(schema: any): string {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash('sha256')
       .update(JSON.stringify(schema))
       .digest('hex');
   }
@@ -324,9 +356,9 @@ export class MigrationService {
 
   async validateMigrationIntegrity(): Promise<boolean> {
     this.logger.log('Validating migration integrity...');
-    
+
     const allMigrations = await this.migrationRepository.find({
-      order: { version: 'ASC' }
+      order: { version: 'ASC' },
     });
 
     for (const migration of allMigrations) {
@@ -338,11 +370,13 @@ export class MigrationService {
         upSql: migration.upSql,
         downSql: migration.downSql,
         dependencies: migration.dependencies,
-        metadata: migration.metadata
+        metadata: migration.metadata,
       });
 
       if (migration.checksum !== expectedChecksum) {
-        this.logger.error(`Migration integrity check failed for version: ${migration.version}`);
+        this.logger.error(
+          `Migration integrity check failed for version: ${migration.version}`,
+        );
         return false;
       }
     }

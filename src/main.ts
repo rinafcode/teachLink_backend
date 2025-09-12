@@ -32,7 +32,9 @@ async function bootstrap() {
 
   // Apply global performance interceptor for monitoring/logging
   const metricsCollectionService = app.get(MetricsCollectionService);
-  app.useGlobalInterceptors(new PerformanceInterceptor(metricsCollectionService));
+  app.useGlobalInterceptors(
+    new PerformanceInterceptor(metricsCollectionService),
+  );
 
   // Configure Swagger
   const config = new DocumentBuilder()
@@ -46,12 +48,17 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   // Expose /metrics endpoint for Prometheus
-  const { GatewayMonitoringService } = await import('./api-gateway/monitoring/gateway-monitoring.service');
+  const { GatewayMonitoringService } = await import(
+    './api-gateway/monitoring/gateway-monitoring.service'
+  );
   const monitoringService = app.get(GatewayMonitoringService);
-  app.getHttpAdapter().getInstance().get('/metrics', async (req, res) => {
-    res.set('Content-Type', 'text/plain');
-    res.send(await monitoringService.getMetrics());
-  });
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .get('/metrics', async (req, res) => {
+      res.set('Content-Type', 'text/plain');
+      res.send(await monitoringService.getMetrics());
+    });
 
   await app.listen(3000);
   // Prometheus metrics also available at http://localhost:9464/metrics

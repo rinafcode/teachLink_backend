@@ -22,12 +22,10 @@ export class IndexingService {
 
   async bulkIndexCourses(courses: any[]) {
     if (!Array.isArray(courses) || courses.length === 0) return;
-    const body = courses.flatMap(course => [
+    const body = courses.flatMap((course) => [
       { index: { _index: 'courses', _id: course.id } },
       course,
     ]);
     await this.esService.bulk({ refresh: true, body });
   }
-
-
-} 
+}

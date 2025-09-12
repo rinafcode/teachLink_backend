@@ -5,6 +5,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MLModelsService } from './ml-models.service';
 import { MLModel } from './entities/ml-model.entity';
+import { ModelVersion } from './entities/model-version.entity';
+import { ModelDeployment } from './entities/model-deployment.entity';
+import { ModelPerformance } from './entities/model-performance.entity';
+import { ABTest } from './entities/ab-test.entity';
 import { ModelStatus, ModelType, ModelFramework } from './enums';
 import { CreateModelDto } from './dto/create-model.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
@@ -71,20 +75,30 @@ describe('MLModelsService - Basic Tests', () => {
           },
         },
         {
-          provide: getRepositoryToken('ModelVersion'),
+          provide: getRepositoryToken(ModelVersion),
           useValue: { create: jest.fn(), save: jest.fn(), findOne: jest.fn() },
         },
         {
-          provide: getRepositoryToken('ModelDeployment'),
-          useValue: { create: jest.fn(), save: jest.fn(), findOne: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+          provide: getRepositoryToken(ModelDeployment),
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findOne: jest.fn(),
+            count: jest.fn().mockResolvedValue(0),
+          },
         },
         {
-          provide: getRepositoryToken('ModelPerformance'),
+          provide: getRepositoryToken(ModelPerformance),
           useValue: { create: jest.fn(), save: jest.fn(), find: jest.fn() },
         },
         {
-          provide: getRepositoryToken('ABTest'),
-          useValue: { create: jest.fn(), save: jest.fn(), findOne: jest.fn(), count: jest.fn().mockResolvedValue(0) },
+          provide: getRepositoryToken(ABTest),
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findOne: jest.fn(),
+            count: jest.fn().mockResolvedValue(0),
+          },
         },
         {
           provide: CACHE_MANAGER,
@@ -145,7 +159,9 @@ describe('MLModelsService - Basic Tests', () => {
     }).compile();
 
     service = module.get<MLModelsService>(MLModelsService);
-    modelRepository = module.get<Repository<MLModel>>(getRepositoryToken(MLModel));
+    modelRepository = module.get<Repository<MLModel>>(
+      getRepositoryToken(MLModel),
+    );
   });
 
   it('should be defined', () => {
@@ -189,7 +205,9 @@ describe('MLModelsService - Basic Tests', () => {
   it('should throw error when model not found', async () => {
     jest.spyOn(modelRepository, 'findOne').mockResolvedValue(null);
 
-    await expect(service.findModelById('nonexistent')).rejects.toThrow(NotFoundException);
+    await expect(service.findModelById('nonexistent')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('should return paginated models', async () => {

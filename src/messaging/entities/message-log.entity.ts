@@ -1,11 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from "typeorm"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum MessageStatus {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  DEAD_LETTER = "dead_letter",
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  DEAD_LETTER = 'dead_letter',
 }
 
 export enum MessagePriority {
@@ -15,68 +21,68 @@ export enum MessagePriority {
   CRITICAL = 4,
 }
 
-@Entity("message_logs")
-@Index(["messageId"])
-@Index(["status", "createdAt"])
-@Index(["sourceService", "targetService"])
+@Entity('message_logs')
+@Index(['messageId'])
+@Index(['status', 'createdAt'])
+@Index(['sourceService', 'targetService'])
 export class MessageLog {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  messageId: string
+  messageId: string;
 
   @Column()
-  messageType: string
+  messageType: string;
 
   @Column()
-  sourceService: string
+  sourceService: string;
 
   @Column()
-  targetService: string
+  targetService: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: MessageStatus,
     default: MessageStatus.PENDING,
   })
-  status: MessageStatus
+  status: MessageStatus;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: MessagePriority,
     default: MessagePriority.NORMAL,
   })
-  priority: MessagePriority
+  priority: MessagePriority;
 
-  @Column("jsonb")
-  payload: Record<string, any>
+  @Column('jsonb')
+  payload: Record<string, any>;
 
-  @Column("jsonb", { nullable: true })
-  headers: Record<string, string>
+  @Column('jsonb', { nullable: true })
+  headers: Record<string, string>;
 
-  @Column("jsonb", { nullable: true })
+  @Column('jsonb', { nullable: true })
   metadata: {
-    traceId: string
-    spanId: string
-    correlationId: string
-    retryCount: number
-    maxRetries: number
-    delay: number
-  }
+    traceId: string;
+    spanId: string;
+    correlationId: string;
+    retryCount: number;
+    maxRetries: number;
+    delay: number;
+  };
 
-  @Column("timestamp", { nullable: true })
-  scheduledAt: Date
+  @Column('timestamp', { nullable: true })
+  scheduledAt: Date;
 
-  @Column("timestamp", { nullable: true })
-  processedAt: Date
+  @Column('timestamp', { nullable: true })
+  processedAt: Date;
 
-  @Column("text", { nullable: true })
-  errorMessage: string
+  @Column('text', { nullable: true })
+  errorMessage: string;
 
-  @Column("int", { default: 0 })
-  processingTime: number
+  @Column('int', { default: 0 })
+  processingTime: number;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 }

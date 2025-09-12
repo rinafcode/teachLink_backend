@@ -43,9 +43,22 @@ describe('NotificationsService', () => {
 
   it('should create a notification if preference is enabled', async () => {
     prefs.isEnabled.mockReturnValue(true);
-    repo.create.mockReturnValue({ userId: '1', type: NotificationType.GENERAL, content: 'Test' } as any);
-    repo.save.mockResolvedValue({ id: 'n1', userId: '1', type: NotificationType.GENERAL, content: 'Test' } as any);
-    const result = await service.createNotification('1', NotificationType.GENERAL, 'Test');
+    repo.create.mockReturnValue({
+      userId: '1',
+      type: NotificationType.GENERAL,
+      content: 'Test',
+    } as any);
+    repo.save.mockResolvedValue({
+      id: 'n1',
+      userId: '1',
+      type: NotificationType.GENERAL,
+      content: 'Test',
+    } as any);
+    const result = await service.createNotification(
+      '1',
+      NotificationType.GENERAL,
+      'Test',
+    );
     expect(result).toHaveProperty('id');
     expect(repo.create).toHaveBeenCalled();
     expect(repo.save).toHaveBeenCalled();
@@ -53,8 +66,12 @@ describe('NotificationsService', () => {
 
   it('should not create a notification if preference is disabled', async () => {
     prefs.isEnabled.mockReturnValue(false);
-    const result = await service.createNotification('1', NotificationType.GENERAL, 'Test');
+    const result = await service.createNotification(
+      '1',
+      NotificationType.GENERAL,
+      'Test',
+    );
     expect(result).toBeNull();
     expect(repo.create).not.toHaveBeenCalled();
   });
-}); 
+});

@@ -1,128 +1,138 @@
-import { ApiProperty } from "@nestjs/swagger"
-import { JobType } from "../entities/video-processing-job.entity"
+import { ApiProperty } from '@nestjs/swagger';
+import { JobType } from '../entities/video-processing-job.entity';
 
 export class QueueHealthDto {
-  @ApiProperty({ example: "high-priority" })
-  queueName: string
+  @ApiProperty({ example: 'high-priority' })
+  queueName: string;
 
-  @ApiProperty({ example: "active" })
-  status: string
+  @ApiProperty({ example: 'active' })
+  status: string;
 
   @ApiProperty({ example: 2 })
-  activeJobs: number
+  activeJobs: number;
 
   @ApiProperty({ example: 5 })
-  maxJobs: number
+  maxJobs: number;
 
   @ApiProperty({ example: 40 })
-  utilizationPercent: number
+  utilizationPercent: number;
 
   @ApiProperty({ example: 120 })
-  avgWaitTime: number
+  avgWaitTime: number;
 }
 
 export class SystemMetricsDto {
   @ApiProperty({ example: 1250 })
-  totalVideos: number
+  totalVideos: number;
 
   @ApiProperty({ example: 15 })
-  processingVideos: number
+  processingVideos: number;
 
   @ApiProperty({ example: 1200 })
-  completedVideos: number
+  completedVideos: number;
 
   @ApiProperty({ example: 35 })
-  failedVideos: number
+  failedVideos: number;
 
   @ApiProperty({ example: 8500 })
-  totalJobs: number
+  totalJobs: number;
 
   @ApiProperty({ example: 45 })
-  queuedJobs: number
+  queuedJobs: number;
 
   @ApiProperty({ example: 12 })
-  processingJobs: number
+  processingJobs: number;
 
   @ApiProperty({ example: 8200 })
-  completedJobs: number
+  completedJobs: number;
 
   @ApiProperty({ example: 243 })
-  failedJobs: number
+  failedJobs: number;
 
   @ApiProperty({ example: 180 })
-  averageProcessingTime: number
+  averageProcessingTime: number;
 
   @ApiProperty({ example: 25.5 })
-  systemLoad: number
+  systemLoad: number;
 
   @ApiProperty({ type: [QueueHealthDto] })
-  queueHealth: QueueHealthDto[]
+  queueHealth: QueueHealthDto[];
 }
 
 export class JobTypeMetricsDto {
   @ApiProperty({ enum: JobType, example: JobType.TRANSCODE })
-  type: JobType
+  type: JobType;
 
   @ApiProperty({ example: 2500 })
-  total: number
+  total: number;
 
   @ApiProperty({ example: 2350 })
-  completed: number
+  completed: number;
 
   @ApiProperty({ example: 150 })
-  failed: number
+  failed: number;
 
   @ApiProperty({ example: 240 })
-  averageTime: number
+  averageTime: number;
 
   @ApiProperty({ example: 94.0 })
-  successRate: number
+  successRate: number;
 }
 
 export class ProcessingTrendDto {
-  @ApiProperty({ example: "2024-01-15" })
-  date: string
+  @ApiProperty({ example: '2024-01-15' })
+  date: string;
 
   @ApiProperty({ example: 125 })
-  totalJobs: number
+  totalJobs: number;
 
   @ApiProperty({ example: 118 })
-  completedJobs: number
+  completedJobs: number;
 
   @ApiProperty({ example: 7 })
-  failedJobs: number
+  failedJobs: number;
 
   @ApiProperty({ example: 195 })
-  avgDuration: number
+  avgDuration: number;
 
   @ApiProperty({ example: 94.4 })
-  successRate: number
+  successRate: number;
 }
 
 export class ErrorAnalysisDto {
-  @ApiProperty({ example: "FFmpeg Error" })
-  error: string
+  @ApiProperty({ example: 'FFmpeg Error' })
+  error: string;
 
   @ApiProperty({ example: 45 })
-  count: number
+  count: number;
 
   @ApiProperty({ example: 18.5 })
-  percentage: number
+  percentage: number;
 
   @ApiProperty({
-    example: [{ id: "job-1", type: "transcode", error: "FFmpeg process failed", createdAt: "2024-01-15T10:00:00Z" }],
+    example: [
+      {
+        id: 'job-1',
+        type: 'transcode',
+        error: 'FFmpeg process failed',
+        createdAt: '2024-01-15T10:00:00Z',
+      },
+    ],
   })
   recentJobs: Array<{
-    id: string
-    type: string
-    error: string
-    createdAt: Date
-  }>
+    id: string;
+    type: string;
+    error: string;
+    createdAt: Date;
+  }>;
 }
 
 export class HealthCheckDto {
-  @ApiProperty({ example: "healthy", enum: ["healthy", "degraded", "unhealthy"] })
-  status: string
+  @ApiProperty({
+    example: 'healthy',
+    enum: ['healthy', 'degraded', 'unhealthy'],
+  })
+  status: string;
 
   @ApiProperty({
     example: {
@@ -133,9 +143,9 @@ export class HealthCheckDto {
     },
   })
   details: {
-    systemLoad: number
-    failureRate: number
-    processingVideos: number
-    queuedJobs: number
-  }
+    systemLoad: number;
+    failureRate: number;
+    processingVideos: number;
+    queuedJobs: number;
+  };
 }

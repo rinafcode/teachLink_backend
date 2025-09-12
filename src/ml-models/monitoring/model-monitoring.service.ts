@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModelPerformance } from '../entities/model-performance.entity';
 import { MLModel } from '../entities/ml-model.entity';
 import { ModelDeployment } from '../entities/model-deployment.entity';
-import { PerformanceMetricType, DriftSeverity } from '../enums';
+import {
+  PerformanceMetricType,
+  DriftSeverity,
+  DeploymentStatus,
+} from '../enums';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -14,8 +18,8 @@ import * as crypto from 'crypto';
 export class ModelMonitoringService {
   private readonly logger = new Logger(ModelMonitoringService.name);
   private readonly MONITORING_DATA_PATH = './monitoring_data';
-  private readonly DRIFT_THRESHOLD = 0.1; // 10% drift threshold
-  private readonly PERFORMANCE_DECAY_THRESHOLD = 0.05; // 5% performance decay threshold
+  private readonly DRIFT_THRESHOLD = 0.1;
+  private readonly PERFORMANCE_DECAY_THRESHOLD = 0.05;
 
   constructor(
     @InjectRepository(ModelPerformance)
@@ -36,11 +40,13 @@ export class ModelMonitoringService {
     try {
       const performance = this.performanceRepository.create({
         modelId,
+        metricName: 'prediction',
         metricType: PerformanceMetricType.PREDICTION,
-        value: prediction,
-        actualValue,
+        value: typeof prediction === 'number' ? prediction : 0,
         metadata: {
           ...metadata,
+          prediction,
+          actualValue,
           timestamp: new Date().toISOString(),
           predictionId: crypto.randomUUID(),
         },
@@ -59,9 +65,11 @@ export class ModelMonitoringService {
 
       // Check for drift after recording prediction
       await this.checkForDrift(modelId);
-
     } catch (error) {
-      this.logger.error(`Failed to record prediction for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to record prediction for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -71,17 +79,20 @@ export class ModelMonitoringService {
     metadata?: any,
   ): Promise<void> {
     try {
-      const performanceEntries = Object.entries(metrics).map(([metricName, value]) => ({
-        modelId,
-        metricType: this.mapMetricType(metricName),
-        value: value as number,
-        metadata: {
-          ...metadata,
+      const performanceEntries = Object.entries(metrics).map(
+        ([metricName, value]) => ({
+          modelId,
           metricName,
-          timestamp: new Date().toISOString(),
-        },
-        recordedAt: new Date(),
-      }));
+          metricType: this.mapMetricType(metricName),
+          value: value as number,
+          metadata: {
+            ...metadata,
+            metricName,
+            timestamp: new Date().toISOString(),
+          },
+          recordedAt: new Date(),
+        }),
+      );
 
       await this.performanceRepository.save(performanceEntries);
 
@@ -94,9 +105,11 @@ export class ModelMonitoringService {
 
       // Check for performance decay
       await this.checkForPerformanceDecay(modelId);
-
     } catch (error) {
-      this.logger.error(`Failed to record performance metrics for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to record performance metrics for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -104,7 +117,9 @@ export class ModelMonitoringService {
     try {
       this.logger.log(`Starting drift detection for model ${modelId}`);
 
-      const model = await this.modelRepository.findOne({ where: { id: modelId } });
+      const model = await this.modelRepository.findOne({
+        where: { id: modelId },
+      });
       if (!model) {
         throw new Error(`Model ${modelId} not found`);
       }
@@ -114,14 +129,27 @@ export class ModelMonitoringService {
       const trainingData = await this.getTrainingDataReference(modelId);
 
       if (recentPredictions.length === 0) {
-        return { driftDetected: false, message: 'No recent predictions available for drift detection' };
+        return {
+          driftDetected: false,
+          message: 'No recent predictions available for drift detection',
+        };
       }
 
       // Perform different types of drift detection
-      const featureDrift = await this.detectFeatureDrift(recentPredictions, trainingData);
-      const labelDrift = await this.detectLabelDrift(recentPredictions, trainingData);
-      const conceptDrift = await this.detectConceptDrift(recentPredictions, trainingData);
-      const dataQualityDrift = await this.detectDataQualityDrift(recentPredictions);
+      const featureDrift = await this.detectFeatureDrift(
+        recentPredictions,
+        trainingData,
+      );
+      const labelDrift = await this.detectLabelDrift(
+        recentPredictions,
+        trainingData,
+      );
+      const conceptDrift = await this.detectConceptDrift(
+        recentPredictions,
+        trainingData,
+      );
+      const dataQualityDrift =
+        await this.detectDataQualityDrift(recentPredictions);
 
       const driftResults = {
         modelId,
@@ -130,8 +158,18 @@ export class ModelMonitoringService {
         labelDrift,
         conceptDrift,
         dataQualityDrift,
-        overallDriftScore: this.calculateOverallDriftScore(featureDrift, labelDrift, conceptDrift, dataQualityDrift),
-        severity: this.determineDriftSeverity(featureDrift, labelDrift, conceptDrift, dataQualityDrift),
+        overallDriftScore: this.calculateOverallDriftScore(
+          featureDrift,
+          labelDrift,
+          conceptDrift,
+          dataQualityDrift,
+        ),
+        severity: this.determineDriftSeverity(
+          featureDrift,
+          labelDrift,
+          conceptDrift,
+          dataQualityDrift,
+        ),
       };
 
       // Save drift detection results
@@ -147,9 +185,11 @@ export class ModelMonitoringService {
 
       this.logger.log(`Drift detection completed for model ${modelId}`);
       return driftResults;
-
     } catch (error) {
-      this.logger.error(`Drift detection failed for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Drift detection failed for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -162,14 +202,15 @@ export class ModelMonitoringService {
       const performances = await this.performanceRepository.find({
         where: {
           modelId,
-          recordedAt: { $gte: startDate } as any,
+          recordedAt: MoreThanOrEqual(startDate),
         },
         order: { recordedAt: 'ASC' },
       });
 
       // Group metrics by type and calculate statistics
       const metricsByType = this.groupMetricsByType(performances);
-      const performanceSummary = this.calculatePerformanceSummary(metricsByType);
+      const performanceSummary =
+        this.calculatePerformanceSummary(metricsByType);
 
       // Calculate trends
       const trends = this.calculatePerformanceTrends(performances);
@@ -181,14 +222,19 @@ export class ModelMonitoringService {
         trends,
         rawData: performances,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to get performance for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get performance for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async detectAnomalies(modelId: string, timeWindow: number = 24): Promise<any> {
+  async detectAnomalies(
+    modelId: string,
+    timeWindow: number = 24,
+  ): Promise<any> {
     try {
       const startTime = new Date();
       startTime.setHours(startTime.getHours() - timeWindow);
@@ -196,7 +242,7 @@ export class ModelMonitoringService {
       const recentData = await this.performanceRepository.find({
         where: {
           modelId,
-          recordedAt: { $gte: startTime } as any,
+          recordedAt: MoreThanOrEqual(startTime),
         },
         order: { recordedAt: 'ASC' },
       });
@@ -211,7 +257,9 @@ export class ModelMonitoringService {
       };
 
       // Emit anomaly detection event if anomalies are found
-      const totalAnomalies = Object.values(anomalies).filter(Array.isArray).reduce((sum, arr) => sum + arr.length, 0);
+      const totalAnomalies = Object.values(anomalies)
+        .filter(Array.isArray)
+        .reduce((sum, arr) => sum + arr.length, 0);
       if (totalAnomalies > 0) {
         this.eventEmitter.emit('model.anomalies.detected', {
           modelId,
@@ -220,23 +268,30 @@ export class ModelMonitoringService {
       }
 
       return anomalies;
-
     } catch (error) {
-      this.logger.error(`Anomaly detection failed for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Anomaly detection failed for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async generateMonitoringReport(modelId: string, reportType: 'daily' | 'weekly' | 'monthly' = 'daily'): Promise<any> {
+  async generateMonitoringReport(
+    modelId: string,
+    reportType: 'daily' | 'weekly' | 'monthly' = 'daily',
+  ): Promise<any> {
     try {
-      const days = reportType === 'daily' ? 1 : reportType === 'weekly' ? 7 : 30;
-      
-      const [performance, driftResults, anomalies, deployments] = await Promise.all([
-        this.getModelPerformance(modelId, days),
-        this.detectModelDrift(modelId),
-        this.detectAnomalies(modelId, 24),
-        this.getActiveDeployments(modelId),
-      ]);
+      const days =
+        reportType === 'daily' ? 1 : reportType === 'weekly' ? 7 : 30;
+
+      const [performance, driftResults, anomalies, deployments] =
+        await Promise.all([
+          this.getModelPerformance(modelId, days),
+          this.detectModelDrift(modelId),
+          this.detectAnomalies(modelId, 24),
+          this.getActiveDeployments(modelId),
+        ]);
 
       const report = {
         modelId,
@@ -247,7 +302,11 @@ export class ModelMonitoringService {
         drift: driftResults,
         anomalies,
         deployments,
-        recommendations: this.generateRecommendations(performance, driftResults, anomalies),
+        recommendations: this.generateRecommendations(
+          performance,
+          driftResults,
+          anomalies,
+        ),
         alerts: this.generateAlerts(performance, driftResults, anomalies),
       };
 
@@ -255,9 +314,11 @@ export class ModelMonitoringService {
       await this.saveMonitoringReport(modelId, report);
 
       return report;
-
     } catch (error) {
-      this.logger.error(`Failed to generate monitoring report for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to generate monitoring report for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -265,10 +326,12 @@ export class ModelMonitoringService {
   async checkForDrift(modelId: string): Promise<void> {
     try {
       const driftResults = await this.detectModelDrift(modelId);
-      
+
       if (driftResults.overallDriftScore > this.DRIFT_THRESHOLD) {
-        this.logger.warn(`Drift detected for model ${modelId}: ${driftResults.overallDriftScore}`);
-        
+        this.logger.warn(
+          `Drift detected for model ${modelId}: ${driftResults.overallDriftScore}`,
+        );
+
         // Trigger automatic retraining if drift is severe
         if (driftResults.severity === DriftSeverity.HIGH) {
           this.eventEmitter.emit('model.retrain.required', {
@@ -279,7 +342,10 @@ export class ModelMonitoringService {
         }
       }
     } catch (error) {
-      this.logger.error(`Drift check failed for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Drift check failed for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -289,11 +355,16 @@ export class ModelMonitoringService {
       const baselinePerformance = await this.getBaselinePerformance(modelId);
 
       if (baselinePerformance) {
-        const decayScore = this.calculatePerformanceDecay(performance.summary, baselinePerformance);
-        
+        const decayScore = this.calculatePerformanceDecay(
+          performance.summary,
+          baselinePerformance,
+        );
+
         if (decayScore > this.PERFORMANCE_DECAY_THRESHOLD) {
-          this.logger.warn(`Performance decay detected for model ${modelId}: ${decayScore}`);
-          
+          this.logger.warn(
+            `Performance decay detected for model ${modelId}: ${decayScore}`,
+          );
+
           this.eventEmitter.emit('model.performance.decay', {
             modelId,
             decayScore,
@@ -303,12 +374,18 @@ export class ModelMonitoringService {
         }
       }
     } catch (error) {
-      this.logger.error(`Performance decay check failed for model ${modelId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Performance decay check failed for model ${modelId}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   // Private helper methods
-  private async getRecentPredictions(modelId: string, limit: number): Promise<any[]> {
+  private async getRecentPredictions(
+    modelId: string,
+    limit: number,
+  ): Promise<any[]> {
     return await this.performanceRepository.find({
       where: { modelId, metricType: PerformanceMetricType.PREDICTION },
       order: { recordedAt: 'DESC' },
@@ -326,7 +403,10 @@ export class ModelMonitoringService {
     };
   }
 
-  private async detectFeatureDrift(predictions: any[], trainingData: any): Promise<any> {
+  private async detectFeatureDrift(
+    predictions: any[],
+    trainingData: any,
+  ): Promise<any> {
     // Implement feature drift detection using statistical tests
     const featureDrift = {
       detected: false,
@@ -336,14 +416,17 @@ export class ModelMonitoringService {
     };
 
     // Simulate feature drift detection
-    const driftScore = Math.random() * 0.3; // 0-30% drift
+    const driftScore = Math.random() * 0.3;
     featureDrift.score = driftScore;
     featureDrift.detected = driftScore > this.DRIFT_THRESHOLD;
 
     return featureDrift;
   }
 
-  private async detectLabelDrift(predictions: any[], trainingData: any): Promise<any> {
+  private async detectLabelDrift(
+    predictions: any[],
+    trainingData: any,
+  ): Promise<any> {
     // Implement label drift detection
     const labelDrift = {
       detected: false,
@@ -352,14 +435,17 @@ export class ModelMonitoringService {
     };
 
     // Simulate label drift detection
-    const driftScore = Math.random() * 0.2; // 0-20% drift
+    const driftScore = Math.random() * 0.2;
     labelDrift.score = driftScore;
     labelDrift.detected = driftScore > this.DRIFT_THRESHOLD;
 
     return labelDrift;
   }
 
-  private async detectConceptDrift(predictions: any[], trainingData: any): Promise<any> {
+  private async detectConceptDrift(
+    predictions: any[],
+    trainingData: any,
+  ): Promise<any> {
     // Implement concept drift detection
     const conceptDrift = {
       detected: false,
@@ -368,7 +454,7 @@ export class ModelMonitoringService {
     };
 
     // Simulate concept drift detection
-    const driftScore = Math.random() * 0.25; // 0-25% drift
+    const driftScore = Math.random() * 0.25;
     conceptDrift.score = driftScore;
     conceptDrift.detected = driftScore > this.DRIFT_THRESHOLD;
 
@@ -385,7 +471,7 @@ export class ModelMonitoringService {
     };
 
     // Simulate data quality issues
-    const qualityScore = Math.random() * 0.15; // 0-15% quality issues
+    const qualityScore = Math.random() * 0.15;
     dataQualityDrift.score = qualityScore;
     dataQualityDrift.detected = qualityScore > this.DRIFT_THRESHOLD;
 
@@ -428,7 +514,12 @@ export class ModelMonitoringService {
     conceptDrift: any,
     dataQualityDrift: any,
   ): DriftSeverity {
-    const overallScore = this.calculateOverallDriftScore(featureDrift, labelDrift, conceptDrift, dataQualityDrift);
+    const overallScore = this.calculateOverallDriftScore(
+      featureDrift,
+      labelDrift,
+      conceptDrift,
+      dataQualityDrift,
+    );
 
     if (overallScore > 0.3) return DriftSeverity.HIGH;
     if (overallScore > 0.15) return DriftSeverity.MEDIUM;
@@ -451,10 +542,12 @@ export class ModelMonitoringService {
     return metricMap[metricName] || PerformanceMetricType.CUSTOM;
   }
 
-  private groupMetricsByType(performances: ModelPerformance[]): Record<string, ModelPerformance[]> {
+  private groupMetricsByType(
+    performances: ModelPerformance[],
+  ): Record<string, ModelPerformance[]> {
     const grouped: Record<string, ModelPerformance[]> = {};
-    
-    performances.forEach(performance => {
+
+    performances.forEach((performance) => {
       const type = performance.metricType;
       if (!grouped[type]) {
         grouped[type] = [];
@@ -465,12 +558,16 @@ export class ModelMonitoringService {
     return grouped;
   }
 
-  private calculatePerformanceSummary(metricsByType: Record<string, ModelPerformance[]>): any {
+  private calculatePerformanceSummary(
+    metricsByType: Record<string, ModelPerformance[]>,
+  ): any {
     const summary: any = {};
 
     Object.entries(metricsByType).forEach(([type, performances]) => {
-      const values = performances.map(p => p.value as number).filter(v => !isNaN(v));
-      
+      const values = performances
+        .map((p) => p.value as number)
+        .filter((v) => !isNaN(v));
+
       if (values.length > 0) {
         summary[type] = {
           mean: values.reduce((sum, val) => sum + val, 0) / values.length,
@@ -487,8 +584,9 @@ export class ModelMonitoringService {
 
   private calculateStandardDeviation(values: number[]): number {
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
-    const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
+    const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
+    const variance =
+      squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
     return Math.sqrt(variance);
   }
 
@@ -498,15 +596,17 @@ export class ModelMonitoringService {
 
     // Group by metric type and calculate trend
     const metricsByType = this.groupMetricsByType(performances);
-    
+
     Object.entries(metricsByType).forEach(([type, typePerformances]) => {
-      const sortedPerformances = typePerformances.sort((a, b) => 
-        new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
+      const sortedPerformances = typePerformances.sort(
+        (a, b) =>
+          new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime(),
       );
 
       if (sortedPerformances.length >= 2) {
         const firstValue = sortedPerformances[0].value as number;
-        const lastValue = sortedPerformances[sortedPerformances.length - 1].value as number;
+        const lastValue = sortedPerformances[sortedPerformances.length - 1]
+          .value as number;
         const change = lastValue - firstValue;
         const changePercent = (change / firstValue) * 100;
 
@@ -524,7 +624,7 @@ export class ModelMonitoringService {
   private detectPredictionAnomalies(data: ModelPerformance[]): any[] {
     // Implement prediction anomaly detection
     const anomalies: any[] = [];
-    
+
     // Simulate anomaly detection
     if (Math.random() > 0.8) {
       anomalies.push({
@@ -541,7 +641,7 @@ export class ModelMonitoringService {
   private detectPerformanceAnomalies(data: ModelPerformance[]): any[] {
     // Implement performance anomaly detection
     const anomalies: any[] = [];
-    
+
     // Simulate performance anomalies
     if (Math.random() > 0.9) {
       anomalies.push({
@@ -558,7 +658,7 @@ export class ModelMonitoringService {
   private detectDataQualityAnomalies(data: ModelPerformance[]): any[] {
     // Implement data quality anomaly detection
     const anomalies: any[] = [];
-    
+
     // Simulate data quality issues
     if (Math.random() > 0.85) {
       anomalies.push({
@@ -572,9 +672,11 @@ export class ModelMonitoringService {
     return anomalies;
   }
 
-  private async getActiveDeployments(modelId: string): Promise<ModelDeployment[]> {
+  private async getActiveDeployments(
+    modelId: string,
+  ): Promise<ModelDeployment[]> {
     return await this.deploymentRepository.find({
-      where: { modelId, status: 'ACTIVE' },
+      where: { modelId, status: DeploymentStatus.ACTIVE },
       order: { deployedAt: 'DESC' },
     });
   }
@@ -595,17 +697,20 @@ export class ModelMonitoringService {
     return null;
   }
 
-  private calculatePerformanceDecay(currentPerformance: any, baselinePerformance: any): number {
+  private calculatePerformanceDecay(
+    currentPerformance: any,
+    baselinePerformance: any,
+  ): number {
     // Calculate performance decay score
     let totalDecay = 0;
     let metricCount = 0;
 
-    Object.keys(baselinePerformance).forEach(metric => {
+    Object.keys(baselinePerformance).forEach((metric) => {
       if (currentPerformance[metric] && baselinePerformance[metric]) {
         const currentValue = currentPerformance[metric].mean;
         const baselineValue = baselinePerformance[metric].mean;
         const decay = (baselineValue - currentValue) / baselineValue;
-        totalDecay += Math.max(0, decay); // Only consider performance degradation
+        totalDecay += Math.max(0, decay);
         metricCount++;
       }
     });
@@ -613,16 +718,24 @@ export class ModelMonitoringService {
     return metricCount > 0 ? totalDecay / metricCount : 0;
   }
 
-  private generateRecommendations(performance: any, driftResults: any, anomalies: any): string[] {
+  private generateRecommendations(
+    performance: any,
+    driftResults: any,
+    anomalies: any,
+  ): string[] {
     const recommendations: string[] = [];
 
     // Performance-based recommendations
     if (performance.trends) {
-      Object.entries(performance.trends).forEach(([metric, trend]: [string, any]) => {
-        if (trend.trend === 'declining' && trend.changePercent < -5) {
-          recommendations.push(`Consider retraining model due to declining ${metric} performance`);
-        }
-      });
+      Object.entries(performance.trends).forEach(
+        ([metric, trend]: [string, any]) => {
+          if (trend.trend === 'declining' && trend.changePercent < -5) {
+            recommendations.push(
+              `Consider retraining model due to declining ${metric} performance`,
+            );
+          }
+        },
+      );
     }
 
     // Drift-based recommendations
@@ -631,7 +744,9 @@ export class ModelMonitoringService {
     }
 
     // Anomaly-based recommendations
-    const totalAnomalies = Object.values(anomalies).filter(Array.isArray).reduce((sum, arr) => sum + arr.length, 0);
+    const totalAnomalies = Object.values(anomalies)
+      .filter(Array.isArray)
+      .reduce((sum, arr) => sum + arr.length, 0);
     if (totalAnomalies > 0) {
       recommendations.push('Investigate detected anomalies');
     }
@@ -639,7 +754,11 @@ export class ModelMonitoringService {
     return recommendations;
   }
 
-  private generateAlerts(performance: any, driftResults: any, anomalies: any): any[] {
+  private generateAlerts(
+    performance: any,
+    driftResults: any,
+    anomalies: any,
+  ): any[] {
     const alerts: any[] = [];
 
     // High drift alert
@@ -654,22 +773,27 @@ export class ModelMonitoringService {
 
     // Performance decay alert
     if (performance.trends) {
-      Object.entries(performance.trends).forEach(([metric, trend]: [string, any]) => {
-        if (trend.changePercent < -10) {
-          alerts.push({
-            type: 'performance_decay',
-            severity: 'medium',
-            message: `Significant performance decay in ${metric}`,
-            timestamp: new Date(),
-          });
-        }
-      });
+      Object.entries(performance.trends).forEach(
+        ([metric, trend]: [string, any]) => {
+          if (trend.changePercent < -10) {
+            alerts.push({
+              type: 'performance_decay',
+              severity: 'medium',
+              message: `Significant performance decay in ${metric}`,
+              timestamp: new Date(),
+            });
+          }
+        },
+      );
     }
 
     return alerts;
   }
 
-  private async saveDriftDetectionResults(modelId: string, results: any): Promise<void> {
+  private async saveDriftDetectionResults(
+    modelId: string,
+    results: any,
+  ): Promise<void> {
     const driftData = {
       modelId,
       results,
@@ -678,16 +802,25 @@ export class ModelMonitoringService {
 
     const driftPath = path.join(this.MONITORING_DATA_PATH, 'drift_detection');
     await fs.mkdir(driftPath, { recursive: true });
-    
+
     const filename = `${modelId}_drift_${Date.now()}.json`;
-    await fs.writeFile(path.join(driftPath, filename), JSON.stringify(driftData, null, 2));
+    await fs.writeFile(
+      path.join(driftPath, filename),
+      JSON.stringify(driftData, null, 2),
+    );
   }
 
-  private async saveMonitoringReport(modelId: string, report: any): Promise<void> {
+  private async saveMonitoringReport(
+    modelId: string,
+    report: any,
+  ): Promise<void> {
     const reportPath = path.join(this.MONITORING_DATA_PATH, 'reports');
     await fs.mkdir(reportPath, { recursive: true });
-    
+
     const filename = `${modelId}_report_${Date.now()}.json`;
-    await fs.writeFile(path.join(reportPath, filename), JSON.stringify(report, null, 2));
+    await fs.writeFile(
+      path.join(reportPath, filename),
+      JSON.stringify(report, null, 2),
+    );
   }
-} 
+}

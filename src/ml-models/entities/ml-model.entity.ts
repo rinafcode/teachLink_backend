@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { ModelVersion } from './model-version.entity';
 import { ModelDeployment } from './model-deployment.entity';
 import { ModelPerformance } from './model-performance.entity';
@@ -18,21 +27,21 @@ export class MLModel {
   @Column({
     type: 'enum',
     enum: ModelType,
-    default: ModelType.CLASSIFICATION
+    default: ModelType.CLASSIFICATION,
   })
   type: ModelType;
 
   @Column({
     type: 'enum',
     enum: ModelFramework,
-    default: ModelFramework.SCIKIT_LEARN
+    default: ModelFramework.SCIKIT_LEARN,
   })
   framework: ModelFramework;
 
   @Column({
     type: 'enum',
     enum: ModelStatus,
-    default: ModelStatus.DRAFT
+    default: ModelStatus.DRAFT,
   })
   status: ModelStatus;
 
@@ -91,12 +100,12 @@ export class MLModel {
   updatedAt: Date;
 
   // Relations
-  @OneToMany(() => ModelVersion, version => version.model)
+  @OneToMany(() => ModelVersion, (version) => version.model)
   versions: ModelVersion[];
 
-  @OneToMany(() => ModelDeployment, deployment => deployment.model)
+  @OneToMany(() => ModelDeployment, (deployment) => deployment.model)
   deployments: ModelDeployment[];
 
-  @OneToMany(() => ModelPerformance, performance => performance.model)
+  @OneToMany(() => ModelPerformance, (performance) => performance.model)
   performances: ModelPerformance[];
-} 
+}

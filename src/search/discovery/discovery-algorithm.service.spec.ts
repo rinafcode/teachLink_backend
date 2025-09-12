@@ -17,8 +17,11 @@ describe('DiscoveryAlgorithmService', () => {
   });
 
   it('should personalize results (returns array)', async () => {
-    const results = await service.personalizeResults('user1', [{ id: 1 }, { id: 2 }]);
+    const results = await service.personalizeResults('user1', [
+      { id: 1 },
+      { id: 2 },
+    ]);
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBe(2);
   });
-}); 
+});

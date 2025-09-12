@@ -8,7 +8,10 @@ import {
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
-import { MONITOR_OPERATION_KEY, MONITOR_DATABASE_KEY } from '../decorators/monitoring.decorator';
+import {
+  MONITOR_OPERATION_KEY,
+  MONITOR_DATABASE_KEY,
+} from '../decorators/monitoring.decorator';
 import { MetricsCollectionService } from '../../monitoring/metrics/metrics-collection.service';
 import { DistributedTracingService } from '../../observability/tracing/distributed-tracing.service';
 
@@ -32,7 +35,8 @@ export class MonitoringInterceptor implements NestInterceptor {
     const monitorOperation = this.reflector.get(MONITOR_OPERATION_KEY, handler);
     const monitorDatabase = this.reflector.get(MONITOR_DATABASE_KEY, handler);
 
-    const operationName = monitorOperation?.operation || `${className}.${methodName}`;
+    const operationName =
+      monitorOperation?.operation || `${className}.${methodName}`;
     const tags = monitorOperation?.tags || {};
     const userId = request.user?.id || 'anonymous';
     const startTime = Date.now();
@@ -58,24 +62,36 @@ export class MonitoringInterceptor implements NestInterceptor {
 
         // Record metrics if enabled
         if (monitorOperation?.recordMetrics) {
-          this.metricsService.recordCustomMetric(`${operationName}_duration`, duration);
+          this.metricsService.recordCustomMetric(
+            `${operationName}_duration`,
+            duration,
+          );
           this.metricsService.recordCustomMetric(`${operationName}_success`, 1);
-          this.metricsService.recordCustomMetric(`${operationName}_status_${statusCode}`, 1);
+          this.metricsService.recordCustomMetric(
+            `${operationName}_status_${statusCode}`,
+            1,
+          );
         }
 
         // Record database metrics if enabled
         if (monitorDatabase?.recordQueryTime) {
-          this.metricsService.recordCustomMetric(`db_${monitorDatabase.operation}_duration`, duration);
+          this.metricsService.recordCustomMetric(
+            `db_${monitorDatabase.operation}_duration`,
+            duration,
+          );
         }
 
         // Log success if enabled
         if (monitorOperation?.recordLogs) {
-          this.logger.log(`Operation ${operationName} completed successfully in ${duration}ms`, {
-            userId,
-            duration,
-            statusCode,
-            tags,
-          });
+          this.logger.log(
+            `Operation ${operationName} completed successfully in ${duration}ms`,
+            {
+              userId,
+              duration,
+              statusCode,
+              tags,
+            },
+          );
         }
 
         // End tracing span
@@ -89,25 +105,37 @@ export class MonitoringInterceptor implements NestInterceptor {
 
         // Record error metrics if enabled
         if (monitorOperation?.recordMetrics) {
-          this.metricsService.recordCustomMetric(`${operationName}_duration`, duration);
+          this.metricsService.recordCustomMetric(
+            `${operationName}_duration`,
+            duration,
+          );
           this.metricsService.recordCustomMetric(`${operationName}_error`, 1);
-          this.metricsService.recordCustomMetric(`${operationName}_status_${statusCode}`, 1);
+          this.metricsService.recordCustomMetric(
+            `${operationName}_status_${statusCode}`,
+            1,
+          );
         }
 
         // Record database error metrics if enabled
         if (monitorDatabase?.recordQueryTime) {
-          this.metricsService.recordCustomMetric(`db_${monitorDatabase.operation}_error`, 1);
+          this.metricsService.recordCustomMetric(
+            `db_${monitorDatabase.operation}_error`,
+            1,
+          );
         }
 
         // Log error if enabled
         if (monitorOperation?.recordLogs) {
-          this.logger.error(`Operation ${operationName} failed after ${duration}ms`, {
-            userId,
-            duration,
-            statusCode,
-            error: error.message,
-            tags,
-          });
+          this.logger.error(
+            `Operation ${operationName} failed after ${duration}ms`,
+            {
+              userId,
+              duration,
+              statusCode,
+              error: error.message,
+              tags,
+            },
+          );
         }
 
         // End tracing span with error
@@ -119,4 +147,4 @@ export class MonitoringInterceptor implements NestInterceptor {
       }),
     );
   }
-} 
+}

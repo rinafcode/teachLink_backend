@@ -17,7 +17,7 @@ export class TenancyService {
   }
 
   getTenantById(id: string): Tenant | undefined {
-    return this.tenants.find(t => t.id === id);
+    return this.tenants.find((t) => t.id === id);
   }
 
   listTenants(): Tenant[] {

@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { MLModel } from './ml-model.entity';
 import { PerformanceMetricType, DriftSeverity } from '../enums';
 
@@ -13,7 +21,7 @@ export class ModelPerformance {
   @Column({
     type: 'enum',
     enum: PerformanceMetricType,
-    default: PerformanceMetricType.ACCURACY
+    default: PerformanceMetricType.ACCURACY,
   })
   metricType: PerformanceMetricType;
 
@@ -32,7 +40,7 @@ export class ModelPerformance {
   @Column({
     type: 'enum',
     enum: DriftSeverity,
-    default: DriftSeverity.NONE
+    default: DriftSeverity.NONE,
   })
   driftSeverity: DriftSeverity;
 
@@ -58,10 +66,10 @@ export class ModelPerformance {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => MLModel, model => model.performances)
+  @ManyToOne(() => MLModel, (model) => model.performances)
   @JoinColumn({ name: 'modelId' })
   model: MLModel;
 
   @Column({ type: 'uuid' })
   modelId: string;
-} 
+}

@@ -1,43 +1,43 @@
-import { IsOptional, IsString, IsBoolean, IsNumber } from "class-validator"
+import { IsOptional, IsString, IsBoolean, IsNumber } from 'class-validator';
 
 export class QueryCourseDto {
   @IsOptional()
   @IsString()
-  search?: string
+  search?: string;
 
   @IsOptional()
   @IsString()
-  level?: string
+  level?: string;
 
   @IsOptional()
   @IsBoolean()
-  isPublished?: boolean
+  isPublished?: boolean;
 
   @IsOptional()
   @IsString()
-  instructorId?: string
+  instructorId?: string;
 
   @IsOptional()
   @IsNumber()
-  minPrice?: number
+  minPrice?: number;
 
   @IsOptional()
   @IsNumber()
-  maxPrice?: number
+  maxPrice?: number;
 
   @IsOptional()
   @IsNumber()
-  page?: number = 1
+  page?: number = 1;
 
   @IsOptional()
   @IsNumber()
-  limit?: number = 10
+  limit?: number = 10;
 
   @IsOptional()
   @IsString()
-  sortBy?: string = "createdAt"
+  sortBy?: string = 'createdAt';
 
   @IsOptional()
   @IsString()
-  sortOrder?: "ASC" | "DESC" = "DESC"
+  sortOrder?: 'ASC' | 'DESC' = 'DESC';
 }
