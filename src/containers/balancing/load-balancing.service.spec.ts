@@ -21,9 +21,7 @@ describe('LoadBalancingService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        BullModule.registerQueue({ name: 'load-balancing' }),
-      ],
+      imports: [BullModule.registerQueue({ name: 'load-balancing' })],
       providers: [
         LoadBalancingService,
         {
@@ -37,8 +35,11 @@ describe('LoadBalancingService', () => {
       ],
     }).compile();
 
-    loadBalancingService = module.get<LoadBalancingService>(LoadBalancingService);
-    containerRepository = module.get<Repository<Container>>(getRepositoryToken(Container));
+    loadBalancingService =
+      module.get<LoadBalancingService>(LoadBalancingService);
+    containerRepository = module.get<Repository<Container>>(
+      getRepositoryToken(Container),
+    );
     balancingQueue = module.get<Queue>(getQueueToken('load-balancing'));
   });
 
@@ -46,8 +47,9 @@ describe('LoadBalancingService', () => {
     it('should balance traffic among containers', async () => {
       containerRepository.findByIds.mockResolvedValue([]); // Mocked empty for simplicity
       await loadBalancingService.balanceTraffic(['container-1', 'container-2']);
-      expect(balancingQueue.add).toHaveBeenCalledWith('balance-traffic', { containerIds: ['container-1', 'container-2'] });
+      expect(balancingQueue.add).toHaveBeenCalledWith('balance-traffic', {
+        containerIds: ['container-1', 'container-2'],
+      });
     });
   });
 });
-

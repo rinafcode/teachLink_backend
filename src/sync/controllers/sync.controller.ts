@@ -1,15 +1,23 @@
-import { Controller, Post, Get, Put, Param, Query, BadRequestException } from "@nestjs/common"
-import type { DataSyncService } from "../services/data-sync.service"
-import type { DataConsistencyService } from "../services/data-consistency.service"
-import type { ConflictResolutionService } from "../services/conflict-resolution.service"
-import type { CacheInvalidationService } from "../services/cache-invalidation.service"
-import type { ReplicationService } from "../services/replication.service"
-import type { IntegrityMonitoringService } from "../services/integrity-monitoring.service"
-import type { SyncEventType, DataSource } from "../entities/sync-event.entity"
-import type { CheckType } from "../entities/integrity-check.entity"
-import type { SyncConfiguration } from "../interfaces/sync.interfaces"
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Param,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
+import type { DataSyncService } from '../services/data-sync.service';
+import type { DataConsistencyService } from '../services/data-consistency.service';
+import type { ConflictResolutionService } from '../services/conflict-resolution.service';
+import type { CacheInvalidationService } from '../services/cache-invalidation.service';
+import type { ReplicationService } from '../services/replication.service';
+import type { IntegrityMonitoringService } from '../services/integrity-monitoring.service';
+import type { SyncEventType, DataSource } from '../entities/sync-event.entity';
+import type { CheckType } from '../entities/integrity-check.entity';
+import type { SyncConfiguration } from '../interfaces/sync.interfaces';
 
-@Controller("sync")
+@Controller('sync')
 export class SyncController {
   constructor(
     private readonly dataSyncService: DataSyncService,
@@ -21,23 +29,24 @@ export class SyncController {
   ) {}
 
   registerSyncConfiguration(config: SyncConfiguration) {
-    this.dataSyncService.registerSyncConfiguration(config)
-    return { message: "Sync configuration registered successfully" }
+    this.dataSyncService.registerSyncConfiguration(config);
+    return { message: 'Sync configuration registered successfully' };
   }
 
-  @Post("event")
+  @Post('event')
   async createSyncEvent(body: {
-    entityType: string
-    entityId: string
-    eventType: SyncEventType
-    payload: Record<string, any>
-    dataSource?: DataSource
-    region?: string
+    entityType: string;
+    entityId: string;
+    eventType: SyncEventType;
+    payload: Record<string, any>;
+    dataSource?: DataSource;
+    region?: string;
   }) {
-    const { entityType, entityId, eventType, payload, dataSource, region } = body
+    const { entityType, entityId, eventType, payload, dataSource, region } =
+      body;
 
     if (!entityType || !entityId || !eventType || !payload) {
-      throw new BadRequestException("Missing required fields")
+      throw new BadRequestException('Missing required fields');
     }
 
     const syncEventId = await this.dataSyncService.createSyncEvent(
@@ -47,216 +56,256 @@ export class SyncController {
       payload,
       dataSource,
       region,
-    )
+    );
 
-    return { syncEventId, message: "Sync event created successfully" }
+    return { syncEventId, message: 'Sync event created successfully' };
   }
 
-  @Post("entity/:entityType/:entityId")
+  @Post('entity/:entityType/:entityId')
   async syncEntity(
-    @Param("entityType") entityType: string,
-    @Param("entityId") entityId: string,
-    @Query("source") sourceDataSource: DataSource,
-    @Query("targets") targetDataSources?: string,
+    @Param('entityType') entityType: string,
+    @Param('entityId') entityId: string,
+    @Query('source') sourceDataSource: DataSource,
+    @Query('targets') targetDataSources?: string,
   ) {
-    const targets = targetDataSources ? (targetDataSources.split(",") as DataSource[]) : undefined
+    const targets = targetDataSources
+      ? (targetDataSources.split(',') as DataSource[])
+      : undefined;
 
-    const result = await this.dataSyncService.syncEntity(entityType, entityId, sourceDataSource, targets)
+    const result = await this.dataSyncService.syncEntity(
+      entityType,
+      entityId,
+      sourceDataSource,
+      targets,
+    );
 
-    return result
+    return result;
   }
 
-  @Post("bulk")
+  @Post('bulk')
   async bulkSync(body: {
-    entityType: string
-    entityIds: string[]
-    sourceDataSource: DataSource
+    entityType: string;
+    entityIds: string[];
+    sourceDataSource: DataSource;
   }) {
-    const { entityType, entityIds, sourceDataSource } = body
+    const { entityType, entityIds, sourceDataSource } = body;
 
     if (!entityType || !entityIds || !sourceDataSource) {
-      throw new BadRequestException("Missing required fields")
+      throw new BadRequestException('Missing required fields');
     }
 
-    const result = await this.dataSyncService.bulkSync(entityType, entityIds, sourceDataSource)
+    const result = await this.dataSyncService.bulkSync(
+      entityType,
+      entityIds,
+      sourceDataSource,
+    );
 
-    return result
+    return result;
   }
 
-  @Get("events/pending")
-  async getPendingSyncEvents(@Query("limit") limit?: string) {
-    const limitNum = limit ? Number.parseInt(limit) : 100
-    return this.dataSyncService.getPendingSyncEvents(limitNum)
+  @Get('events/pending')
+  async getPendingSyncEvents(@Query('limit') limit?: string) {
+    const limitNum = limit ? Number.parseInt(limit) : 100;
+    return this.dataSyncService.getPendingSyncEvents(limitNum);
   }
 
-  @Post("event/:id/retry")
-  async retrySyncEvent(@Param("id") syncEventId: string) {
-    const result = await this.dataSyncService.retrySyncEvent(syncEventId)
-    return result
+  @Post('event/:id/retry')
+  async retrySyncEvent(@Param('id') syncEventId: string) {
+    const result = await this.dataSyncService.retrySyncEvent(syncEventId);
+    return result;
   }
 
-  @Post("consistency/check")
+  @Post('consistency/check')
   async performConsistencyCheck(body: {
-    entityType: string
-    dataSources: string[]
-    checkType?: CheckType
+    entityType: string;
+    dataSources: string[];
+    checkType?: CheckType;
   }) {
-    const { entityType, dataSources, checkType } = body
+    const { entityType, dataSources, checkType } = body;
 
     if (!entityType || !dataSources) {
-      throw new BadRequestException("Missing required fields")
+      throw new BadRequestException('Missing required fields');
     }
 
-    const result = await this.dataConsistencyService.performConsistencyCheck(entityType, dataSources, checkType)
+    const result = await this.dataConsistencyService.performConsistencyCheck(
+      entityType,
+      dataSources,
+      checkType,
+    );
 
-    return result
+    return result;
   }
 
-  @Get("consistency/report")
+  @Get('consistency/report')
   async getConsistencyReport(
-    @Query("entityType") entityType?: string,
-    @Query("startDate") startDate?: string,
-    @Query("endDate") endDate?: string,
+    @Query('entityType') entityType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    const start = startDate ? new Date(startDate) : undefined
-    const end = endDate ? new Date(endDate) : undefined
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
 
-    return this.dataConsistencyService.getConsistencyReport(entityType, start, end)
+    return this.dataConsistencyService.getConsistencyReport(
+      entityType,
+      start,
+      end,
+    );
   }
 
-  @Get("conflicts/history")
+  @Get('conflicts/history')
   async getConflictHistory(
-    @Query("entityType") entityType?: string,
-    @Query("entityId") entityId?: string,
-    @Query("limit") limit?: string,
+    @Query('entityType') entityType?: string,
+    @Query('entityId') entityId?: string,
+    @Query('limit') limit?: string,
   ) {
-    const limitNum = limit ? Number.parseInt(limit) : 100
-    return this.conflictResolutionService.getConflictHistory(entityType, entityId, limitNum)
+    const limitNum = limit ? Number.parseInt(limit) : 100;
+    return this.conflictResolutionService.getConflictHistory(
+      entityType,
+      entityId,
+      limitNum,
+    );
   }
 
-  @Post("cache/invalidate")
+  @Post('cache/invalidate')
   async invalidateCache(body: {
-    entityType: string
-    entityId: string
-    strategy?: "immediate" | "lazy" | "scheduled"
+    entityType: string;
+    entityId: string;
+    strategy?: 'immediate' | 'lazy' | 'scheduled';
   }) {
-    const { entityType, entityId, strategy } = body
+    const { entityType, entityId, strategy } = body;
 
     if (!entityType || !entityId) {
-      throw new BadRequestException("Missing required fields")
+      throw new BadRequestException('Missing required fields');
     }
 
-    await this.cacheInvalidationService.invalidateEntity(entityType, entityId, strategy)
+    await this.cacheInvalidationService.invalidateEntity(
+      entityType,
+      entityId,
+      strategy,
+    );
 
-    return { message: "Cache invalidation initiated" }
+    return { message: 'Cache invalidation initiated' };
   }
 
-  @Post("cache/invalidate/tags")
+  @Post('cache/invalidate/tags')
   async invalidateCacheByTags(body: { tags: string[] }) {
-    const { tags } = body
+    const { tags } = body;
 
     if (!tags || !Array.isArray(tags)) {
-      throw new BadRequestException("Tags array is required")
+      throw new BadRequestException('Tags array is required');
     }
 
-    await this.cacheInvalidationService.invalidateByTags(tags)
+    await this.cacheInvalidationService.invalidateByTags(tags);
 
-    return { message: "Cache invalidation by tags initiated" }
+    return { message: 'Cache invalidation by tags initiated' };
   }
 
-  @Post("cache/invalidate/pattern")
+  @Post('cache/invalidate/pattern')
   async invalidateCacheByPattern(body: { pattern: string }) {
-    const { pattern } = body
+    const { pattern } = body;
 
     if (!pattern) {
-      throw new BadRequestException("Pattern is required")
+      throw new BadRequestException('Pattern is required');
     }
 
-    await this.cacheInvalidationService.invalidatePattern(pattern)
+    await this.cacheInvalidationService.invalidatePattern(pattern);
 
-    return { message: "Cache invalidation by pattern initiated" }
+    return { message: 'Cache invalidation by pattern initiated' };
   }
 
-  @Post("cache/warm")
-  async warmCache(body: {
-    entityType: string
-    entityId: string
-    data: any
-  }) {
-    const { entityType, entityId, data } = body
+  @Post('cache/warm')
+  async warmCache(body: { entityType: string; entityId: string; data: any }) {
+    const { entityType, entityId, data } = body;
 
     if (!entityType || !entityId || !data) {
-      throw new BadRequestException("Missing required fields")
+      throw new BadRequestException('Missing required fields');
     }
 
-    await this.cacheInvalidationService.warmCache(entityType, entityId, data)
+    await this.cacheInvalidationService.warmCache(entityType, entityId, data);
 
-    return { message: "Cache warming initiated" }
+    return { message: 'Cache warming initiated' };
   }
 
-  @Get("cache/stats")
+  @Get('cache/stats')
   async getCacheStats() {
-    return this.cacheInvalidationService.getCacheStats()
+    return this.cacheInvalidationService.getCacheStats();
   }
 
-  @Post("replication/setup")
+  @Post('replication/setup')
   async setupReplication(body: {
-    entityType: string
-    sourceRegion: string
-    targetRegions: string[]
-    config: any
+    entityType: string;
+    sourceRegion: string;
+    targetRegions: string[];
+    config: any;
   }) {
-    const { entityType, sourceRegion, targetRegions, config } = body
+    const { entityType, sourceRegion, targetRegions, config } = body;
 
     if (!entityType || !sourceRegion || !targetRegions || !config) {
-      throw new BadRequestException("Missing required fields")
+      throw new BadRequestException('Missing required fields');
     }
 
-    await this.replicationService.setupReplication(entityType, sourceRegion, targetRegions, config)
+    await this.replicationService.setupReplication(
+      entityType,
+      sourceRegion,
+      targetRegions,
+      config,
+    );
 
-    return { message: "Replication setup completed" }
+    return { message: 'Replication setup completed' };
   }
 
-  @Put("replication/:entityType/:sourceRegion/:targetRegion/pause")
+  @Put('replication/:entityType/:sourceRegion/:targetRegion/pause')
   async pauseReplication(
-    @Param("entityType") entityType: string,
-    @Param("sourceRegion") sourceRegion: string,
-    @Param("targetRegion") targetRegion: string,
+    @Param('entityType') entityType: string,
+    @Param('sourceRegion') sourceRegion: string,
+    @Param('targetRegion') targetRegion: string,
   ) {
-    await this.replicationService.pauseReplication(entityType, sourceRegion, targetRegion)
-    return { message: "Replication paused" }
+    await this.replicationService.pauseReplication(
+      entityType,
+      sourceRegion,
+      targetRegion,
+    );
+    return { message: 'Replication paused' };
   }
 
-  @Put("replication/:entityType/:sourceRegion/:targetRegion/resume")
+  @Put('replication/:entityType/:sourceRegion/:targetRegion/resume')
   async resumeReplication(
-    @Param("entityType") entityType: string,
-    @Param("sourceRegion") sourceRegion: string,
-    @Param("targetRegion") targetRegion: string,
+    @Param('entityType') entityType: string,
+    @Param('sourceRegion') sourceRegion: string,
+    @Param('targetRegion') targetRegion: string,
   ) {
-    await this.replicationService.resumeReplication(entityType, sourceRegion, targetRegion)
-    return { message: "Replication resumed" }
+    await this.replicationService.resumeReplication(
+      entityType,
+      sourceRegion,
+      targetRegion,
+    );
+    return { message: 'Replication resumed' };
   }
 
-  @Get("replication/status")
-  async getReplicationStatus(@Query("entityType") entityType?: string) {
-    return this.replicationService.getReplicationStatus(entityType)
+  @Get('replication/status')
+  async getReplicationStatus(@Query('entityType') entityType?: string) {
+    return this.replicationService.getReplicationStatus(entityType);
   }
 
-  @Get("replication/lag/:entityType/:sourceRegion/:targetRegion")
+  @Get('replication/lag/:entityType/:sourceRegion/:targetRegion')
   async getReplicationLag(
-    @Param("entityType") entityType: string,
-    @Param("sourceRegion") sourceRegion: string,
-    @Param("targetRegion") targetRegion: string,
+    @Param('entityType') entityType: string,
+    @Param('sourceRegion') sourceRegion: string,
+    @Param('targetRegion') targetRegion: string,
   ) {
-    const lag = await this.replicationService.getReplicationLag(entityType, sourceRegion, targetRegion)
-    return { lag }
+    const lag = await this.replicationService.getReplicationLag(
+      entityType,
+      sourceRegion,
+      targetRegion,
+    );
+    return { lag };
   }
 
-  @Get("monitoring/metrics")
+  @Get('monitoring/metrics')
   async getIntegrityMetrics(
-    @Query("entityType") entityType?: string,
-    @Query("startDate") startDate?: string,
-    @Query("endDate") endDate?: string,
+    @Query('entityType') entityType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     const timeRange =
       startDate && endDate
@@ -264,13 +313,16 @@ export class SyncController {
             start: new Date(startDate),
             end: new Date(endDate),
           }
-        : undefined
+        : undefined;
 
-    return this.integrityMonitoringService.getIntegrityMetrics(entityType, timeRange)
+    return this.integrityMonitoringService.getIntegrityMetrics(
+      entityType,
+      timeRange,
+    );
   }
 
-  @Get("monitoring/health")
+  @Get('monitoring/health')
   async performHealthCheck() {
-    return this.integrityMonitoringService.performHealthCheck()
+    return this.integrityMonitoringService.performHealthCheck();
   }
 }

@@ -7,4 +7,4 @@ export class TrainingService {
     // TODO: Implement model training logic
     return { model: 'trained-model', metrics: { accuracy: 0.95 } };
   }
-} 
+}

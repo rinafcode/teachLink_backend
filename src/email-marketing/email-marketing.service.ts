@@ -25,7 +25,12 @@ export class EmailMarketingService {
     private readonly analyticsService: EmailAnalyticsService,
   ) {}
 
-  createCampaign(name: string, templateId: string, segmentId: string, abTestGroup?: string): Campaign {
+  createCampaign(
+    name: string,
+    templateId: string,
+    segmentId: string,
+    abTestGroup?: string,
+  ): Campaign {
     const campaign: Campaign = {
       id: Math.random().toString(36).substring(2),
       name,
@@ -40,18 +45,26 @@ export class EmailMarketingService {
   }
 
   sendCampaign(campaignId: string, users: any[]): boolean {
-    const campaign = this.campaigns.find(c => c.id === campaignId);
+    const campaign = this.campaigns.find((c) => c.id === campaignId);
     if (!campaign) return false;
     const template = this.templateService.getTemplate(campaign.templateId);
     if (!template) return false;
-    const segmentUsers = this.segmentationService.applySegment(campaign.segmentId, users);
+    const segmentUsers = this.segmentationService.applySegment(
+      campaign.segmentId,
+      users,
+    );
     // Here, send emails to segmentUsers using the template
     campaign.status = 'sent';
     // Track send event (not implemented in analytics for brevity)
     return true;
   }
 
-  abTestCampaign(name: string, templateIds: string[], segmentId: string, users: any[]): Campaign[] {
+  abTestCampaign(
+    name: string,
+    templateIds: string[],
+    segmentId: string,
+    users: any[],
+  ): Campaign[] {
     // Split users into groups for A/B test
     const half = Math.ceil(users.length / 2);
     const groupA = users.slice(0, half);

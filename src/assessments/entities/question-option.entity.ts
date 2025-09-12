@@ -1,31 +1,35 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm"
-import { Question } from "./question.entity"
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { Question } from './question.entity';
 
-@Entity("question_options")
+@Entity('question_options')
 export class QuestionOption {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  questionId: string
+  questionId: string;
 
-  @ManyToOne(
-    () => Question,
-    (question) => question.options,
-    { onDelete: "CASCADE" },
-  )
-  @JoinColumn({ name: "questionId" })
-  question: Question
+  @ManyToOne(() => Question, (question) => question.options, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'questionId' })
+  question: Question;
 
-  @Column({ type: "text" })
-  optionText: string
+  @Column({ type: 'text' })
+  optionText: string;
 
-  @Column({ type: "boolean", default: false })
-  isCorrect: boolean
+  @Column({ type: 'boolean', default: false })
+  isCorrect: boolean;
 
-  @Column({ type: "int", default: 0 })
-  orderIndex: number
+  @Column({ type: 'int', default: 0 })
+  orderIndex: number;
 
-  @Column({ type: "text", nullable: true })
-  explanation: string
+  @Column({ type: 'text', nullable: true })
+  explanation: string;
 }

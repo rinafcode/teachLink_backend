@@ -1,8 +1,26 @@
-import { Controller, Post, Body, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ResetPasswordDto, UpdatePasswordDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ResetPasswordDto,
+  UpdatePasswordDto,
+} from './dto/auth.dto';
 import { Public } from './decorators/public.decorator';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { RefreshTokenGuard } from './guards/refresh.guard';
 

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum DeliveryStatus {
   PENDING = 'PENDING',
@@ -21,7 +27,11 @@ export class NotificationDelivery {
   @Column()
   channel: string; // e.g., EMAIL, SMS, IN_APP
 
-  @Column({ type: 'enum', enum: DeliveryStatus, default: DeliveryStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: DeliveryStatus,
+    default: DeliveryStatus.PENDING,
+  })
   status: DeliveryStatus;
 
   @Column('jsonb', { nullable: true })
@@ -32,4 +42,4 @@ export class NotificationDelivery {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}

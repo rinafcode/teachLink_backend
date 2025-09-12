@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum AnomalySeverity {
   LOW = 'low',
@@ -59,16 +66,40 @@ export class AnomalyAlert {
   @Column({ name: 'metric_name', nullable: true })
   metricName: string;
 
-  @Column({ name: 'threshold_value', type: 'decimal', precision: 20, scale: 8, nullable: true })
+  @Column({
+    name: 'threshold_value',
+    type: 'decimal',
+    precision: 20,
+    scale: 8,
+    nullable: true,
+  })
   thresholdValue: number;
 
-  @Column({ name: 'actual_value', type: 'decimal', precision: 20, scale: 8, nullable: true })
+  @Column({
+    name: 'actual_value',
+    type: 'decimal',
+    precision: 20,
+    scale: 8,
+    nullable: true,
+  })
   actualValue: number;
 
-  @Column({ name: 'deviation_percentage', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({
+    name: 'deviation_percentage',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
   deviationPercentage: number;
 
-  @Column({ name: 'confidence_score', type: 'decimal', precision: 3, scale: 2, nullable: true })
+  @Column({
+    name: 'confidence_score',
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    nullable: true,
+  })
   confidenceScore: number;
 
   @Column({ type: 'jsonb', nullable: true })

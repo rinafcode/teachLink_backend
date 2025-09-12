@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsUUID, Min, IsObject } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  Min,
+  IsObject,
+} from 'class-validator';
 import { PaymentMethod } from '../enums';
 
 export class CreatePaymentDto {
@@ -30,4 +39,4 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, any>;
-} 
+}

@@ -16,7 +16,7 @@ export class ETLPipelineService {
     const users = await this.userRepository.find();
 
     // Transform: Placeholder for transformation logic
-    const transformedUsers = users.map(user => ({
+    const transformedUsers = users.map((user) => ({
       ...user,
       // Example transformation: add a new field or modify existing
       extractedAt: new Date(),
@@ -26,4 +26,4 @@ export class ETLPipelineService {
     // await this.warehouseRepository.save(transformedUsers);
     console.log('ETL complete. Transformed users:', transformedUsers.length);
   }
-} 
+}

@@ -4,5 +4,7 @@ export enum DeploymentStatus {
   ACTIVE = 'active',
   FAILED = 'failed',
   ROLLED_BACK = 'rolled_back',
-  ARCHIVED = 'archived'
-} 
+  ARCHIVED = 'archived',
+  UNDEPLOYED = 'undeployed',
+  INACTIVE = 'inactive',
+}

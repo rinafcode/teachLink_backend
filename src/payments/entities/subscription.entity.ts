@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
 import { SubscriptionStatus, BillingInterval } from '../enums';
@@ -20,7 +28,11 @@ export class Subscription {
   @Column()
   currency: string;
 
-  @Column({ type: 'enum', enum: SubscriptionStatus, default: SubscriptionStatus.ACTIVE })
+  @Column({
+    type: 'enum',
+    enum: SubscriptionStatus,
+    default: SubscriptionStatus.ACTIVE,
+  })
   status: SubscriptionStatus;
 
   @Column({ type: 'enum', enum: BillingInterval })
@@ -60,4 +72,4 @@ export class Subscription {
   @ManyToOne(() => Course, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'courseId' })
   course: Course;
-} 
+}

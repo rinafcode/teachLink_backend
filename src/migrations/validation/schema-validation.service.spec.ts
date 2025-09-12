@@ -69,7 +69,7 @@ describe('SchemaValidationService', () => {
           provide: getRepositoryToken(SchemaSnapshot),
           useValue: {
             find: jest.fn(),
-            findOne: jest.fn()
+            findOne: jest.fn(),
           },
         },
         {
@@ -80,7 +80,9 @@ describe('SchemaValidationService', () => {
     }).compile();
 
     service = module.get<SchemaValidationService>(SchemaValidationService);
-    snapshotRepository = module.get<Repository<SchemaSnapshot>>(getRepositoryToken(SchemaSnapshot));
+    snapshotRepository = module.get<Repository<SchemaSnapshot>>(
+      getRepositoryToken(SchemaSnapshot),
+    );
     dataSource = module.get<DataSource>(DataSource);
   });
 
@@ -94,21 +96,28 @@ describe('SchemaValidationService', () => {
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
-      expect(result.warnings).toContain('Migration contains 0 potential breaking changes');
+      expect(result.warnings).toContain(
+        'Migration contains 0 potential breaking changes',
+      );
     });
 
     it('should detect DROP TABLE in migration', async () => {
       const migrationWithDrop = { ...mockMigration, upSql: 'DROP TABLE test;' };
 
-      await expect(service.validateMigration(migrationWithDrop)).rejects.toThrow(
-        'Migration validation failed: No DROP TABLE: Dropping tables is not allowed'
+      await expect(
+        service.validateMigration(migrationWithDrop),
+      ).rejects.toThrow(
+        'Migration validation failed: No DROP TABLE: Dropping tables is not allowed',
       );
     });
   });
 
   describe('validateSchemaCompatibility', () => {
     it('should validate schema compatibility successfully', async () => {
-      const result = await service.validateSchemaCompatibility(mockSnapshot.schema, mockSnapshot.schema);
+      const result = await service.validateSchemaCompatibility(
+        mockSnapshot.schema,
+        mockSnapshot.schema,
+      );
 
       expect(result.isValid).toBe(true);
       expect(result.errors).toHaveLength(0);
@@ -119,7 +128,10 @@ describe('SchemaValidationService', () => {
       const currentSchema = { tables: [{ name: 'table1' }] };
       const newSchema = { tables: [] };
 
-      const result = await service.validateSchemaCompatibility(currentSchema, newSchema);
+      const result = await service.validateSchemaCompatibility(
+        currentSchema,
+        newSchema,
+      );
 
       expect(result.breakingChanges).toContain('Removed tables: table1');
     });
@@ -132,4 +144,3 @@ describe('SchemaValidationService', () => {
     });
   });
 });
-

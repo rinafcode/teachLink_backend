@@ -15,4 +15,4 @@ export class ServiceDiscoveryService {
     // TODO: Implement service discoverys
     return this.registry.get(name);
   }
-} 
+}

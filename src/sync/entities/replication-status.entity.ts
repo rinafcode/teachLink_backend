@@ -1,59 +1,66 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from "typeorm"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum ReplicationState {
-  ACTIVE = "active",
-  PAUSED = "paused",
-  ERROR = "error",
-  SYNCING = "syncing",
+  ACTIVE = 'active',
+  PAUSED = 'paused',
+  ERROR = 'error',
+  SYNCING = 'syncing',
 }
 
-@Entity("replication_status")
-@Index(["sourceRegion", "targetRegion"])
-@Index(["entityType"])
+@Entity('replication_status')
+@Index(['sourceRegion', 'targetRegion'])
+@Index(['entityType'])
 export class ReplicationStatus {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  entityType: string
+  entityType: string;
 
   @Column()
-  sourceRegion: string
+  sourceRegion: string;
 
   @Column()
-  targetRegion: string
+  targetRegion: string;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: ReplicationState,
     default: ReplicationState.ACTIVE,
   })
-  state: ReplicationState
+  state: ReplicationState;
 
-  @Column("bigint", { default: 0 })
-  lastSyncedVersion: number
+  @Column('bigint', { default: 0 })
+  lastSyncedVersion: number;
 
-  @Column("timestamp", { nullable: true })
-  lastSyncTime: Date
+  @Column('timestamp', { nullable: true })
+  lastSyncTime: Date;
 
-  @Column("int", { default: 0 })
-  pendingEvents: number
+  @Column('int', { default: 0 })
+  pendingEvents: number;
 
-  @Column("int", { default: 0 })
-  failedEvents: number
+  @Column('int', { default: 0 })
+  failedEvents: number;
 
-  @Column("decimal", { precision: 5, scale: 2, default: 0 })
-  lagSeconds: number
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  lagSeconds: number;
 
-  @Column("jsonb", { nullable: true })
-  configuration: Record<string, any>
+  @Column('jsonb', { nullable: true })
+  configuration: Record<string, any>;
 
-  @Column("text", { nullable: true })
-  lastError: string
+  @Column('text', { nullable: true })
+  lastError: string;
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

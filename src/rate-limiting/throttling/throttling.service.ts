@@ -16,7 +16,12 @@ const TIER_LIMITS = {
 export class ThrottlingService {
   private userWindows: Map<string, SlidingWindow> = new Map();
 
-  isAllowed(userId: string, tier: string, endpoint: string, ip: string): boolean {
+  isAllowed(
+    userId: string,
+    tier: string,
+    endpoint: string,
+    ip: string,
+  ): boolean {
     if (tier === 'premium') return true;
     const key = `${userId}:${endpoint}`;
     const now = Date.now();

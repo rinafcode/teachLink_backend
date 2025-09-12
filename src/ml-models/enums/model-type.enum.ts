@@ -5,5 +5,5 @@ export enum ModelType {
   RECOMMENDATION = 'recommendation',
   NLP = 'nlp',
   COMPUTER_VISION = 'computer_vision',
-  REINFORCEMENT_LEARNING = 'reinforcement_learning'
-} 
+  REINFORCEMENT_LEARNING = 'reinforcement_learning',
+}

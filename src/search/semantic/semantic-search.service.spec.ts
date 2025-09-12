@@ -20,4 +20,4 @@ describe('SemanticSearchService', () => {
     const results = await service.semanticSearch('test', {}, 0, 10);
     expect(Array.isArray(results)).toBe(true);
   });
-}); 
+});

@@ -20,7 +20,7 @@ export class SegmentationService {
   }
 
   getSegment(id: string): Segment | undefined {
-    return this.segments.find(s => s.id === id);
+    return this.segments.find((s) => s.id === id);
   }
 
   listSegments(): Segment[] {
@@ -32,6 +32,6 @@ export class SegmentationService {
     const segment = this.getSegment(segmentId);
     if (!segment) return [];
     // In a real system, apply segment.criteria to filter users
-    return users.filter(u => true); // Placeholder
+    return users.filter((u) => true); // Placeholder
   }
 }

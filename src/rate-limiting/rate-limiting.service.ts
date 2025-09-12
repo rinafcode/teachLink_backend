@@ -13,15 +13,22 @@ export class RateLimitingService {
     private readonly distributedService: DistributedLimiterService,
   ) {}
 
-  async isAllowed(userId: string, tier: string, endpoint: string, ip: string): Promise<boolean> {
+  async isAllowed(
+    userId: string,
+    tier: string,
+    endpoint: string,
+    ip: string,
+  ): Promise<boolean> {
     // Bypass for premium users
     if (tier === 'premium') return true;
     // Distributed check
-    if (!(await this.distributedService.isAllowed(userId, endpoint))) return false;
+    if (!(await this.distributedService.isAllowed(userId, endpoint)))
+      return false;
     // Adaptive check
     if (!(await this.adaptiveService.isAllowed(userId, endpoint))) return false;
     // Quota check
-    if (!(await this.quotaService.isAllowed(userId, tier, endpoint))) return false;
+    if (!(await this.quotaService.isAllowed(userId, tier, endpoint)))
+      return false;
     // Throttling (sliding window)
     return this.throttlingService.isAllowed(userId, tier, endpoint, ip);
   }

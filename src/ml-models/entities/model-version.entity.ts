@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { MLModel } from './ml-model.entity';
 import { ModelDeployment } from './model-deployment.entity';
 import { VersionStatus } from '../enums';
@@ -17,7 +26,7 @@ export class ModelVersion {
   @Column({
     type: 'enum',
     enum: VersionStatus,
-    default: VersionStatus.DRAFT
+    default: VersionStatus.DRAFT,
   })
   status: VersionStatus;
 
@@ -91,13 +100,13 @@ export class ModelVersion {
   updatedAt: Date;
 
   // Relations
-  @ManyToOne(() => MLModel, model => model.versions)
+  @ManyToOne(() => MLModel, (model) => model.versions)
   @JoinColumn({ name: 'modelId' })
   model: MLModel;
 
   @Column({ type: 'uuid' })
   modelId: string;
 
-  @OneToMany(() => ModelDeployment, deployment => deployment.version)
+  @OneToMany(() => ModelDeployment, (deployment) => deployment.version)
   deployments: ModelDeployment[];
-} 
+}

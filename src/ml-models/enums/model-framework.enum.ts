@@ -4,5 +4,5 @@ export enum ModelFramework {
   SCIKIT_LEARN = 'scikit-learn',
   XGBOOST = 'xgboost',
   LIGHTGBM = 'lightgbm',
-  CUSTOM = 'custom'
-} 
+  CUSTOM = 'custom',
+}

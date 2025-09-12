@@ -32,7 +32,9 @@ export class ContainerMonitoringService {
 
   async checkContainerHealth(containerId: string): Promise<ContainerHealth> {
     try {
-      const container = await this.containerRepository.findOne({ where: { id: containerId } });
+      const container = await this.containerRepository.findOne({
+        where: { id: containerId },
+      });
       if (!container) {
         throw new Error(`Container ${containerId} not found`);
       }
@@ -40,13 +42,16 @@ export class ContainerMonitoringService {
       // Logic to check container health
       const isHealthy = container.status === 'running';
       const status = container.status;
-      
-      await this.monitoringQueue.add('health-check', { containerId, isHealthy });
+
+      await this.monitoringQueue.add('health-check', {
+        containerId,
+        isHealthy,
+      });
       this.logger.log(`Checked health for container: ${container.name}`);
-      
+
       return {
         status,
-        healthy: isHealthy
+        healthy: isHealthy,
       };
     } catch (error) {
       this.logger.error(`Failed to check container health: ${error.message}`);
@@ -56,7 +61,9 @@ export class ContainerMonitoringService {
 
   async getContainerMetrics(containerId: string): Promise<ContainerMetrics> {
     try {
-      const container = await this.containerRepository.findOne({ where: { id: containerId } });
+      const container = await this.containerRepository.findOne({
+        where: { id: containerId },
+      });
       if (!container) {
         throw new Error(`Container ${containerId} not found`);
       }
@@ -68,12 +75,15 @@ export class ContainerMonitoringService {
         network: {
           bytesIn: Math.random() * 1000000,
           bytesOut: Math.random() * 1000000,
-        }
+        },
       };
 
-      await this.monitoringQueue.add('metrics-collection', { containerId, metrics });
+      await this.monitoringQueue.add('metrics-collection', {
+        containerId,
+        metrics,
+      });
       this.logger.log(`Collected metrics for container: ${container.name}`);
-      
+
       return metrics;
     } catch (error) {
       this.logger.error(`Failed to get container metrics: ${error.message}`);
@@ -81,4 +91,3 @@ export class ContainerMonitoringService {
     }
   }
 }
-

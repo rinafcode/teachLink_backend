@@ -69,9 +69,12 @@ describe('DistributedTracingService', () => {
     }).compile();
 
     service = module.get<DistributedTracingService>(DistributedTracingService);
-    traceSpanRepository = module.get<Repository<TraceSpan>>(getRepositoryToken(TraceSpan));
+    traceSpanRepository = module.get<Repository<TraceSpan>>(
+      getRepositoryToken(TraceSpan),
+    );
     configService = module.get<ConfigService>(ConfigService);
-    elasticsearchService = module.get<ElasticsearchService>(ElasticsearchService);
+    elasticsearchService =
+      module.get<ElasticsearchService>(ElasticsearchService);
   });
 
   it('should be defined', () => {
@@ -93,7 +96,7 @@ describe('DistributedTracingService', () => {
 
   it('should generate correlation ID', () => {
     const correlationId = service.generateCorrelationId();
-    
+
     expect(correlationId).toBeDefined();
     expect(typeof correlationId).toBe('string');
     expect(correlationId.length).toBeGreaterThan(0);
@@ -121,7 +124,7 @@ describe('DistributedTracingService', () => {
   it('should get trace count', async () => {
     const from = new Date('2023-01-01');
     const to = new Date('2023-01-02');
-    
+
     mockTraceSpanRepository.count.mockResolvedValue(5);
 
     const count = await service.getTraceCount(from, to);

@@ -22,9 +22,7 @@ describe('DeploymentService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        BullModule.registerQueue({ name: 'deployment-management' }),
-      ],
+      imports: [BullModule.registerQueue({ name: 'deployment-management' })],
       providers: [
         DeploymentService,
         {
@@ -39,17 +37,29 @@ describe('DeploymentService', () => {
     }).compile();
 
     deploymentService = module.get<DeploymentService>(DeploymentService);
-    containerRepository = module.get<Repository<Container>>(getRepositoryToken(Container));
+    containerRepository = module.get<Repository<Container>>(
+      getRepositoryToken(Container),
+    );
     deploymentQueue = module.get<Queue>(getQueueToken('deployment-management'));
   });
 
   describe('deployNewVersion', () => {
     it('should deploy a new version of the container', async () => {
-      containerRepository.findOne.mockResolvedValue({ id: 'container-id', name: 'test-container', imageTag: 'v1' });
+      containerRepository.findOne.mockResolvedValue({
+        id: 'container-id',
+        name: 'test-container',
+        imageTag: 'v1',
+      });
       await deploymentService.deployNewVersion('container-id', 'v2');
-      expect(containerRepository.save).toHaveBeenCalledWith({ id: 'container-id', name: 'test-container', imageTag: 'v2' });
-      expect(deploymentQueue.add).toHaveBeenCalledWith('deploy-version', { containerId: 'container-id', newImageTag: 'v2' });
+      expect(containerRepository.save).toHaveBeenCalledWith({
+        id: 'container-id',
+        name: 'test-container',
+        imageTag: 'v2',
+      });
+      expect(deploymentQueue.add).toHaveBeenCalledWith('deploy-version', {
+        containerId: 'container-id',
+        newImageTag: 'v2',
+      });
     });
   });
 });
-

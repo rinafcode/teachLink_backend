@@ -1,9 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from "@nestjs/common"
-import type { EnrollmentsService } from "./enrollments.service"
-import type { CreateEnrollmentDto } from "./dto/create-enrollment.dto"
-import type { UpdateEnrollmentDto } from "./dto/update-enrollment.dto"
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
+import type { EnrollmentsService } from './enrollments.service';
+import type { CreateEnrollmentDto } from './dto/create-enrollment.dto';
+import type { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 
-@Controller("enrollments")
+@Controller('enrollments')
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
@@ -13,8 +22,11 @@ export class EnrollmentsController {
   }
 
   @Get()
-  findAll(@Query('courseId') courseId?: string, @Query('userId') userId?: string) {
-    return this.enrollmentsService.findAll(courseId, userId)
+  findAll(
+    @Query('courseId') courseId?: string,
+    @Query('userId') userId?: string,
+  ) {
+    return this.enrollmentsService.findAll(courseId, userId);
   }
 
   @Get(':id')
@@ -22,14 +34,20 @@ export class EnrollmentsController {
     return this.enrollmentsService.findOne(id);
   }
 
-  @Get("user/:userId/course/:courseId")
-  findByUserAndCourse(@Param('userId') userId: string, @Param('courseId') courseId: string) {
-    return this.enrollmentsService.findByUserAndCourse(userId, courseId)
+  @Get('user/:userId/course/:courseId')
+  findByUserAndCourse(
+    @Param('userId') userId: string,
+    @Param('courseId') courseId: string,
+  ) {
+    return this.enrollmentsService.findByUserAndCourse(userId, courseId);
   }
 
-  @Patch(":id")
-  update(@Param('id') id: string, @Body() updateEnrollmentDto: UpdateEnrollmentDto) {
-    return this.enrollmentsService.update(id, updateEnrollmentDto)
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateEnrollmentDto: UpdateEnrollmentDto,
+  ) {
+    return this.enrollmentsService.update(id, updateEnrollmentDto);
   }
 
   @Delete(':id')
@@ -37,8 +55,12 @@ export class EnrollmentsController {
     return this.enrollmentsService.remove(id);
   }
 
-  @Post(":id/progress/:lessonId")
-  updateProgress(@Param('id') id: string, @Param('lessonId') lessonId: string, @Body() body: { completed: boolean }) {
-    return this.enrollmentsService.updateProgress(id, lessonId, body.completed)
+  @Post(':id/progress/:lessonId')
+  updateProgress(
+    @Param('id') id: string,
+    @Param('lessonId') lessonId: string,
+    @Body() body: { completed: boolean },
+  ) {
+    return this.enrollmentsService.updateProgress(id, lessonId, body.completed);
   }
 }

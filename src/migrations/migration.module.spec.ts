@@ -30,14 +30,14 @@ describe('MigrationModule Integration', () => {
         save: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
-        delete: jest.fn()
+        delete: jest.fn(),
       })
       .overrideProvider(getRepositoryToken(SchemaSnapshot))
       .useValue({
         find: jest.fn(),
         findOne: jest.fn(),
         save: jest.fn(),
-        create: jest.fn()
+        create: jest.fn(),
       })
       .overrideProvider(DataSource)
       .useValue({
@@ -47,20 +47,26 @@ describe('MigrationModule Integration', () => {
           commitTransaction: jest.fn(),
           rollbackTransaction: jest.fn(),
           release: jest.fn(),
-          query: jest.fn()
-        }))
+          query: jest.fn(),
+        })),
       })
       .overrideProvider(ConfigService)
       .useValue({
-        get: jest.fn()
+        get: jest.fn(),
       })
       .compile();
 
     migrationService = module.get<MigrationService>(MigrationService);
     rollbackService = module.get<RollbackService>(RollbackService);
-    schemaValidationService = module.get<SchemaValidationService>(SchemaValidationService);
-    environmentSyncService = module.get<EnvironmentSyncService>(EnvironmentSyncService);
-    conflictResolutionService = module.get<ConflictResolutionService>(ConflictResolutionService);
+    schemaValidationService = module.get<SchemaValidationService>(
+      SchemaValidationService,
+    );
+    environmentSyncService = module.get<EnvironmentSyncService>(
+      EnvironmentSyncService,
+    );
+    conflictResolutionService = module.get<ConflictResolutionService>(
+      ConflictResolutionService,
+    );
   });
 
   afterEach(async () => {
@@ -88,7 +94,9 @@ describe('MigrationModule Integration', () => {
       expect(rollbackService).toBeInstanceOf(RollbackService);
       expect(schemaValidationService).toBeInstanceOf(SchemaValidationService);
       expect(environmentSyncService).toBeInstanceOf(EnvironmentSyncService);
-      expect(conflictResolutionService).toBeInstanceOf(ConflictResolutionService);
+      expect(conflictResolutionService).toBeInstanceOf(
+        ConflictResolutionService,
+      );
     });
   });
 
@@ -103,7 +111,7 @@ describe('MigrationModule Integration', () => {
     it('should handle end-to-end migration workflow', async () => {
       // This test would simulate a complete migration workflow
       // including validation, execution, and rollback capabilities
-      
+
       const mockMigrationData = {
         version: '1.0.0',
         name: 'test-migration',
@@ -112,18 +120,18 @@ describe('MigrationModule Integration', () => {
         upSql: 'CREATE TABLE integration_test (id INT);',
         downSql: 'DROP TABLE integration_test;',
         dependencies: [],
-        metadata: {}
+        metadata: {},
       };
 
       // Mock the repository methods for this integration test
       const migrationRepo = module.get(getRepositoryToken(Migration));
       const snapshotRepo = module.get(getRepositoryToken(SchemaSnapshot));
-      
+
       jest.spyOn(migrationRepo, 'findOne').mockResolvedValue(null);
       jest.spyOn(migrationRepo, 'save').mockResolvedValue({
         ...mockMigrationData,
         id: '1',
-        environment: 'test'
+        environment: 'test',
       });
       jest.spyOn(migrationRepo, 'find').mockResolvedValue([]);
       jest.spyOn(snapshotRepo, 'findOne').mockResolvedValue(null);
@@ -131,23 +139,27 @@ describe('MigrationModule Integration', () => {
       // Test migration registration
       const registeredMigration = await migrationService.registerMigration(
         mockMigrationData,
-        'test'
+        'test',
       );
-      
+
       expect(registeredMigration).toBeDefined();
       expect(registeredMigration.version).toBe('1.0.0');
 
       // Test conflict resolution
       await expect(
-        conflictResolutionService.checkForConflicts([registeredMigration])
+        conflictResolutionService.checkForConflicts([registeredMigration]),
       ).resolves.not.toThrow();
 
       // Test schema validation
-      const validationResult = await schemaValidationService.validateMigration(registeredMigration);
+      const validationResult =
+        await schemaValidationService.validateMigration(registeredMigration);
       expect(validationResult).toBeDefined();
 
       // Test environment sync validation
-      const syncResult = await environmentSyncService.validateSynchronization('dev', 'test');
+      const syncResult = await environmentSyncService.validateSynchronization(
+        'dev',
+        'test',
+      );
       expect(typeof syncResult).toBe('boolean');
     });
   });
@@ -156,10 +168,12 @@ describe('MigrationModule Integration', () => {
     it('should handle service interdependency errors gracefully', async () => {
       // Test error propagation between services
       const migrationRepo = module.get(getRepositoryToken(Migration));
-      jest.spyOn(migrationRepo, 'findOne').mockRejectedValue(new Error('Database connection failed'));
+      jest
+        .spyOn(migrationRepo, 'findOne')
+        .mockRejectedValue(new Error('Database connection failed'));
 
       await expect(
-        migrationService.getMigrationStatus('1.0.0', 'test')
+        migrationService.getMigrationStatus('1.0.0', 'test'),
       ).rejects.toThrow('Database connection failed');
     });
   });

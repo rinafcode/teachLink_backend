@@ -21,4 +21,4 @@ import { HealthCheckerService } from './health/health-checker.service';
     HealthCheckerService,
   ],
 })
-export class OrchestrationModule {} 
+export class OrchestrationModule {}

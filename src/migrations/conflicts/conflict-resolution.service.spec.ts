@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictResolutionService } from './conflict-resolution.service';
-import { Migration, MigrationStatus, MigrationType } from '../entities/migration.entity';
+import {
+  Migration,
+  MigrationStatus,
+  MigrationType,
+} from '../entities/migration.entity';
 
 describe('ConflictResolutionService', () => {
   let service: ConflictResolutionService;
@@ -28,7 +32,7 @@ describe('ConflictResolutionService', () => {
     updatedAt: new Date('2023-01-01'),
     timestamp: new Date('2023-01-01'),
     executedAt: null,
-    rolledBackAt: null
+    rolledBackAt: null,
   };
 
   const mockMigration2: Migration = {
@@ -54,7 +58,7 @@ describe('ConflictResolutionService', () => {
     updatedAt: new Date('2023-01-02'),
     timestamp: new Date('2023-01-02'),
     executedAt: null,
-    rolledBackAt: null
+    rolledBackAt: null,
   };
 
   beforeEach(async () => {
@@ -73,17 +77,20 @@ describe('ConflictResolutionService', () => {
     it('should pass when no conflicts exist', async () => {
       const migrations = [
         { ...mockMigration1, version: '1.0.0' },
-        { ...mockMigration2, version: '2.0.0' }
+        { ...mockMigration2, version: '2.0.0' },
       ];
 
-      await expect(service.checkForConflicts(migrations)).resolves.not.toThrow();
+      await expect(
+        service.checkForConflicts(migrations),
+      ).resolves.not.toThrow();
     });
 
     it('should throw error when conflicts exist', async () => {
       const migrations = [mockMigration1, mockMigration2]; // Both have same version '1.0.0'
 
-      await expect(service.checkForConflicts(migrations))
-        .rejects.toThrow('Conflict detected for version test_1.0.0');
+      await expect(service.checkForConflicts(migrations)).rejects.toThrow(
+        'Conflict detected for version test_1.0.0',
+      );
     });
 
     it('should handle empty migrations array', async () => {
@@ -104,7 +111,7 @@ describe('ConflictResolutionService', () => {
     it('should handle migrations with different versions', async () => {
       const migrations = [
         { ...mockMigration1, version: '1.0.0' },
-        { ...mockMigration2, version: '2.0.0' }
+        { ...mockMigration2, version: '2.0.0' },
       ];
 
       const resolved = await service.resolveConflicts(migrations);

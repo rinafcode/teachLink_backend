@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subscription } from '../entities/subscription.entity';
@@ -16,18 +21,34 @@ export class SubscriptionsService {
     private readonly stripeService: StripeService,
   ) {}
 
-  async createSubscription(createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
+  async createSubscription(
+    createSubscriptionDto: CreateSubscriptionDto,
+  ): Promise<Subscription> {
     try {
-      const { userId, courseId, amount, currency, billingInterval, trialEnd, metadata } = createSubscriptionDto;
+      const {
+        userId,
+        courseId,
+        amount,
+        currency,
+        billingInterval,
+        trialEnd,
+        metadata,
+      } = createSubscriptionDto;
 
       // Create or get Stripe customer
       const customer = await this.stripeService.createCustomer(userId);
 
       // Create price ID based on billing interval (in production, you'd have predefined prices)
-      const priceId = await this.createPriceId(amount, currency, billingInterval);
+      const priceId = await this.createPriceId(
+        amount,
+        currency,
+        billingInterval,
+      );
 
       // Calculate trial end timestamp if provided
-      const trialEndTimestamp = trialEnd ? Math.floor(new Date(trialEnd).getTime() / 1000) : undefined;
+      const trialEndTimestamp = trialEnd
+        ? Math.floor(new Date(trialEnd).getTime() / 1000)
+        : undefined;
 
       // Create subscription in Stripe
       const stripeSubscription = await this.stripeService.createSubscription(
@@ -47,8 +68,12 @@ export class SubscriptionsService {
         status: SubscriptionStatus.ACTIVE,
         providerSubscriptionId: stripeSubscription.id,
         providerCustomerId: customer.id,
-        currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
-        currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
+        currentPeriodStart: new Date(
+          (stripeSubscription as any).current_period_start * 1000,
+        ),
+        currentPeriodEnd: new Date(
+          (stripeSubscription as any).current_period_end * 1000,
+        ),
         trialEnd: trialEnd ? new Date(trialEnd) : null,
         metadata,
       });
@@ -90,7 +115,9 @@ export class SubscriptionsService {
 
     try {
       // Cancel in Stripe
-      await this.stripeService.cancelSubscription(subscription.providerSubscriptionId);
+      await this.stripeService.cancelSubscription(
+        subscription.providerSubscriptionId,
+      );
 
       // Update local record
       subscription.status = SubscriptionStatus.CANCELLED;
@@ -114,11 +141,14 @@ export class SubscriptionsService {
     });
 
     if (!subscription) {
-      throw new NotFoundException(`Subscription with provider ID ${providerSubscriptionId} not found`);
+      throw new NotFoundException(
+        `Subscription with provider ID ${providerSubscriptionId} not found`,
+      );
     }
 
     subscription.status = status;
-    if (currentPeriodStart) subscription.currentPeriodStart = currentPeriodStart;
+    if (currentPeriodStart)
+      subscription.currentPeriodStart = currentPeriodStart;
     if (currentPeriodEnd) subscription.currentPeriodEnd = currentPeriodEnd;
 
     return await this.subscriptionRepo.save(subscription);
@@ -138,11 +168,17 @@ export class SubscriptionsService {
     return this.subscriptionRepo
       .createQueryBuilder('subscription')
       .where('subscription.currentPeriodEnd <= :expiryDate', { expiryDate })
-      .andWhere('subscription.status = :status', { status: SubscriptionStatus.ACTIVE })
+      .andWhere('subscription.status = :status', {
+        status: SubscriptionStatus.ACTIVE,
+      })
       .getMany();
   }
 
-  private async createPriceId(amount: number, currency: string, interval: BillingInterval): Promise<string> {
+  private async createPriceId(
+    amount: number,
+    currency: string,
+    interval: BillingInterval,
+  ): Promise<string> {
     // In production, you'd create and cache price IDs
     // For now, return a mock price ID
     const intervalMap = {
@@ -155,4 +191,4 @@ export class SubscriptionsService {
     // For demo purposes, return a mock ID
     return `price_${currency}_${amount}_${intervalMap[interval]}`;
   }
-} 
+}

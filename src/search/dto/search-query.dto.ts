@@ -13,4 +13,4 @@ export class SearchQueryDto {
   @IsInt()
   @Min(1)
   size?: number = 10;
-} 
+}

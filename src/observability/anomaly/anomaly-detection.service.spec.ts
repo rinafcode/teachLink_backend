@@ -4,7 +4,12 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bull';
 import { AnomalyDetectionService } from './anomaly-detection.service';
-import { AnomalyAlert, AnomalySeverity, AnomalyStatus, AnomalyType } from '../entities/anomaly-alert.entity';
+import {
+  AnomalyAlert,
+  AnomalySeverity,
+  AnomalyStatus,
+  AnomalyType,
+} from '../entities/anomaly-alert.entity';
 import { MetricEntry } from '../entities/metric-entry.entity';
 import { LogEntry, LogLevel } from '../entities/log-entry.entity';
 import { ObservabilityConfig } from '../observability.service';
@@ -91,9 +96,15 @@ describe('AnomalyDetectionService', () => {
     }).compile();
 
     service = module.get<AnomalyDetectionService>(AnomalyDetectionService);
-    anomalyAlertRepository = module.get<Repository<AnomalyAlert>>(getRepositoryToken(AnomalyAlert));
-    metricEntryRepository = module.get<Repository<MetricEntry>>(getRepositoryToken(MetricEntry));
-    logEntryRepository = module.get<Repository<LogEntry>>(getRepositoryToken(LogEntry));
+    anomalyAlertRepository = module.get<Repository<AnomalyAlert>>(
+      getRepositoryToken(AnomalyAlert),
+    );
+    metricEntryRepository = module.get<Repository<MetricEntry>>(
+      getRepositoryToken(MetricEntry),
+    );
+    logEntryRepository = module.get<Repository<LogEntry>>(
+      getRepositoryToken(LogEntry),
+    );
     anomalyQueue = module.get<Queue>('BullQueue_anomaly-detection');
 
     await service.initialize(config);
@@ -110,11 +121,15 @@ describe('AnomalyDetectionService', () => {
 
     // Test with outlier
     const valuesWithOutlier = [10, 11, 9, 12, 8, 10, 11, 9, 10, 50];
-    expect(service.detectStatisticalAnomalies(valuesWithOutlier, 2.0)).toBe(true);
+    expect(service.detectStatisticalAnomalies(valuesWithOutlier, 2.0)).toBe(
+      true,
+    );
 
     // Test with insufficient data
     const insufficientValues = [10, 11, 9];
-    expect(service.detectStatisticalAnomalies(insufficientValues, 2.0)).toBe(false);
+    expect(service.detectStatisticalAnomalies(insufficientValues, 2.0)).toBe(
+      false,
+    );
   });
 
   it('should detect trend anomalies', () => {

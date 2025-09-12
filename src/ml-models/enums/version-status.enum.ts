@@ -3,7 +3,8 @@ export enum VersionStatus {
   TRAINING = 'training',
   TRAINED = 'trained',
   VALIDATED = 'validated',
+  READY = 'ready',
   DEPLOYED = 'deployed',
   ARCHIVED = 'archived',
-  FAILED = 'failed'
-} 
+  FAILED = 'failed',
+}

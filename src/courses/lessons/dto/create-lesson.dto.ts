@@ -1,32 +1,39 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsObject } from "class-validator"
-import { LessonType } from "../entities/lesson.entity"
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsEnum,
+  IsObject,
+} from 'class-validator';
+import { LessonType } from '../entities/lesson.entity';
 
 export class CreateLessonDto {
   @IsNotEmpty()
   @IsString()
-  title: string
+  title: string;
 
   @IsOptional()
   @IsString()
-  description?: string
+  description?: string;
 
   @IsNotEmpty()
   @IsEnum(LessonType)
-  type: LessonType
+  type: LessonType;
 
   @IsOptional()
   @IsObject()
-  content?: any
+  content?: any;
 
   @IsNotEmpty()
   @IsNumber()
-  order: number
+  order: number;
 
   @IsOptional()
   @IsNumber()
-  duration?: number
+  duration?: number;
 
   @IsNotEmpty()
   @IsString()
-  moduleId: string
+  moduleId: string;
 }

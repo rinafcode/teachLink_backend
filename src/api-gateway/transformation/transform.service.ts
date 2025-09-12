@@ -15,7 +15,10 @@ export class TransformService {
     request.headers['x-gateway'] = 'teachlink-api-gateway';
 
     // XML to JSON transformation
-    if (request.headers['content-type'] === 'application/xml' && typeof request.body === 'string') {
+    if (
+      request.headers['content-type'] === 'application/xml' &&
+      typeof request.body === 'string'
+    ) {
       try {
         request.body = this.xmlParser.parse(request.body);
         request.headers['content-type'] = 'application/json';
@@ -61,4 +64,4 @@ export class TransformService {
 
     return response;
   }
-} 
+}

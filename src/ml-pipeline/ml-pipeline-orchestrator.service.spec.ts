@@ -20,7 +20,12 @@ describe('MLPipelineOrchestratorService', () => {
         MLPipelineOrchestratorService,
         {
           provide: TrainingService,
-          useValue: { trainModel: jest.fn().mockResolvedValue({ model: 'mock-model', metrics: { accuracy: 0.99 } }) },
+          useValue: {
+            trainModel: jest.fn().mockResolvedValue({
+              model: 'mock-model',
+              metrics: { accuracy: 0.99 },
+            }),
+          },
         },
         {
           provide: ModelDeploymentService,
@@ -31,11 +36,19 @@ describe('MLPipelineOrchestratorService', () => {
         },
         {
           provide: ModelMonitoringService,
-          useValue: { monitorPerformance: jest.fn().mockResolvedValue({ modelId: 'mock-deployment-id', driftDetected: false, metrics: { accuracy: 0.99 } }) },
+          useValue: {
+            monitorPerformance: jest.fn().mockResolvedValue({
+              modelId: 'mock-deployment-id',
+              driftDetected: false,
+              metrics: { accuracy: 0.99 },
+            }),
+          },
         },
         {
           provide: ModelVersioningService,
-          useValue: { saveVersion: jest.fn().mockResolvedValue('mock-version-id') },
+          useValue: {
+            saveVersion: jest.fn().mockResolvedValue('mock-version-id'),
+          },
         },
         {
           provide: ModelTestingService,
@@ -44,20 +57,35 @@ describe('MLPipelineOrchestratorService', () => {
       ],
     }).compile();
 
-    service = module.get<MLPipelineOrchestratorService>(MLPipelineOrchestratorService);
+    service = module.get<MLPipelineOrchestratorService>(
+      MLPipelineOrchestratorService,
+    );
     trainingService = module.get<TrainingService>(TrainingService);
-    deploymentService = module.get<ModelDeploymentService>(ModelDeploymentService);
-    monitoringService = module.get<ModelMonitoringService>(ModelMonitoringService);
-    versioningService = module.get<ModelVersioningService>(ModelVersioningService);
+    deploymentService = module.get<ModelDeploymentService>(
+      ModelDeploymentService,
+    );
+    monitoringService = module.get<ModelMonitoringService>(
+      ModelMonitoringService,
+    );
+    versioningService = module.get<ModelVersioningService>(
+      ModelVersioningService,
+    );
     testingService = module.get<ModelTestingService>(ModelTestingService);
   });
 
   it('should run the full pipeline and return results', async () => {
-    const result = await service.runFullPipeline({ some: 'trainingData' }, { some: 'testData' });
+    const result = await service.runFullPipeline(
+      { some: 'trainingData' },
+      { some: 'testData' },
+    );
     expect(result).toEqual({
       versionId: 'mock-version-id',
       deploymentId: 'mock-deployment-id',
-      monitoringResult: { modelId: 'mock-deployment-id', driftDetected: false, metrics: { accuracy: 0.99 } },
+      monitoringResult: {
+        modelId: 'mock-deployment-id',
+        driftDetected: false,
+        metrics: { accuracy: 0.99 },
+      },
       // abTestResult: undefined,
     });
     expect(trainingService.trainModel).toHaveBeenCalled();
@@ -65,4 +93,4 @@ describe('MLPipelineOrchestratorService', () => {
     expect(deploymentService.deployModel).toHaveBeenCalled();
     expect(monitoringService.monitorPerformance).toHaveBeenCalled();
   });
-}); 
+});

@@ -53,8 +53,11 @@ describe('LogAggregationService', () => {
     }).compile();
 
     service = module.get<LogAggregationService>(LogAggregationService);
-    logEntryRepository = module.get<Repository<LogEntry>>(getRepositoryToken(LogEntry));
-    elasticsearchService = module.get<ElasticsearchService>(ElasticsearchService);
+    logEntryRepository = module.get<Repository<LogEntry>>(
+      getRepositoryToken(LogEntry),
+    );
+    elasticsearchService =
+      module.get<ElasticsearchService>(ElasticsearchService);
 
     await service.initialize(config);
   });
@@ -70,11 +73,13 @@ describe('LogAggregationService', () => {
 
     await service.log(level, message, context);
 
-    expect(logEntryRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-      message,
-      level,
-      context,
-    }));
+    expect(logEntryRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message,
+        level,
+        context,
+      }),
+    );
     expect(elasticsearchService.index).toHaveBeenCalledWith(expect.anything());
   });
 
@@ -113,4 +118,3 @@ describe('LogAggregationService', () => {
     expect(elasticsearchService.search).toHaveBeenCalledWith(expect.anything());
   });
 });
-

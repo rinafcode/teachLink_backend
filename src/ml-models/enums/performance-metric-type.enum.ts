@@ -7,5 +7,11 @@ export enum PerformanceMetricType {
   THROUGHPUT = 'throughput',
   ERROR_RATE = 'error_rate',
   DRIFT_SCORE = 'drift_score',
-  DATA_QUALITY = 'data_quality'
-} 
+  DATA_QUALITY = 'data_quality',
+  PREDICTION = 'prediction',
+  AUC = 'auc',
+  MSE = 'mse',
+  MAE = 'mae',
+  RMSE = 'rmse',
+  CUSTOM = 'custom',
+}

@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsEnum, IsObject, IsArray, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsObject,
+  IsArray,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { ModelType, ModelFramework } from '../enums';
 
 export class CreateModelDto {
@@ -35,4 +44,4 @@ export class CreateModelDto {
   @IsOptional()
   @IsString()
   createdBy?: string;
-} 
+}

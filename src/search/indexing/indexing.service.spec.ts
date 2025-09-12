@@ -39,4 +39,4 @@ describe('IndexingService', () => {
       id: '1',
     });
   });
-}); 
+});

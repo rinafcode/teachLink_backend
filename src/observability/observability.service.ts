@@ -39,7 +39,7 @@ export class ObservabilityService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     this.logger.log('Initializing Observability Service');
-    
+
     if (this.config.enableMetrics) {
       await this.initializeMetrics();
     }
@@ -61,15 +61,36 @@ export class ObservabilityService implements OnModuleInit {
 
   private initializeConfig(): void {
     this.config = {
-      serviceName: this.configService.get<string>('OBSERVABILITY_SERVICE_NAME', 'teachlink-backend'),
+      serviceName: this.configService.get<string>(
+        'OBSERVABILITY_SERVICE_NAME',
+        'teachlink-backend',
+      ),
       version: this.configService.get<string>('OBSERVABILITY_VERSION', '1.0.0'),
       environment: this.configService.get<string>('NODE_ENV', 'development'),
-      enableTracing: this.configService.get<boolean>('OBSERVABILITY_ENABLE_TRACING', true),
-      enableMetrics: this.configService.get<boolean>('OBSERVABILITY_ENABLE_METRICS', true),
-      enableLogging: this.configService.get<boolean>('OBSERVABILITY_ENABLE_LOGGING', true),
-      enableAnomalyDetection: this.configService.get<boolean>('OBSERVABILITY_ENABLE_ANOMALY_DETECTION', true),
-      metricsExportInterval: this.configService.get<number>('OBSERVABILITY_METRICS_INTERVAL', 15000),
-      logLevel: this.configService.get<LogLevel>('OBSERVABILITY_LOG_LEVEL', LogLevel.INFO),
+      enableTracing: this.configService.get<boolean>(
+        'OBSERVABILITY_ENABLE_TRACING',
+        true,
+      ),
+      enableMetrics: this.configService.get<boolean>(
+        'OBSERVABILITY_ENABLE_METRICS',
+        true,
+      ),
+      enableLogging: this.configService.get<boolean>(
+        'OBSERVABILITY_ENABLE_LOGGING',
+        true,
+      ),
+      enableAnomalyDetection: this.configService.get<boolean>(
+        'OBSERVABILITY_ENABLE_ANOMALY_DETECTION',
+        true,
+      ),
+      metricsExportInterval: this.configService.get<number>(
+        'OBSERVABILITY_METRICS_INTERVAL',
+        15000,
+      ),
+      logLevel: this.configService.get<LogLevel>(
+        'OBSERVABILITY_LOG_LEVEL',
+        LogLevel.INFO,
+      ),
     };
   }
 
@@ -124,14 +145,23 @@ export class ObservabilityService implements OnModuleInit {
   /**
    * Start a new trace span
    */
-  async startSpan(operationName: string, parentSpanId?: string, tags?: Record<string, any>) {
+  async startSpan(
+    operationName: string,
+    parentSpanId?: string,
+    tags?: Record<string, any>,
+  ) {
     return this.tracingService.startSpan({ operationName, parentSpanId, tags });
   }
 
   /**
    * Log structured message
    */
-  async log(level: LogLevel, message: string, context?: Record<string, any>, correlationId?: string) {
+  async log(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, any>,
+    correlationId?: string,
+  ) {
     return this.loggingService.log(level, message, context, correlationId);
   }
 
@@ -143,9 +173,15 @@ export class ObservabilityService implements OnModuleInit {
     value: number,
     type: MetricType,
     tags?: Record<string, any>,
-    correlationId?: string
+    correlationId?: string,
   ) {
-    return this.metricsService.recordMetric(name, value, type, tags, correlationId);
+    return this.metricsService.recordMetric(
+      name,
+      value,
+      type,
+      tags,
+      correlationId,
+    );
   }
 
   /**
@@ -168,10 +204,18 @@ export class ObservabilityService implements OnModuleInit {
       anomalyDetection: anomalyHealth,
     };
 
-    const allHealthy = Object.values(components).every(c => c.status === 'healthy');
-    const anyUnhealthy = Object.values(components).some(c => c.status === 'unhealthy');
+    const allHealthy = Object.values(components).every(
+      (c) => c.status === 'healthy',
+    );
+    const anyUnhealthy = Object.values(components).some(
+      (c) => c.status === 'unhealthy',
+    );
 
-    const status = anyUnhealthy ? 'unhealthy' : allHealthy ? 'healthy' : 'degraded';
+    const status = anyUnhealthy
+      ? 'unhealthy'
+      : allHealthy
+        ? 'healthy'
+        : 'degraded';
 
     return {
       status,

@@ -40,4 +40,4 @@ import { ABTest } from './entities/ab-test.entity';
     TrainingPipelineService,
   ],
 })
-export class MLModelsModule {} 
+export class MLModelsModule {}

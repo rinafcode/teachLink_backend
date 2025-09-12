@@ -48,11 +48,11 @@ import { SearchAnalyticsEnhancedService } from './analytics/search-analytics-enh
     },
   ],
   exports: [
-    SearchService, 
+    SearchService,
     IndexingService,
     SemanticSearchService,
     DiscoveryAlgorithmEnhancedService,
     SearchAnalyticsEnhancedService,
   ],
 })
-export class SearchModule {} 
+export class SearchModule {}

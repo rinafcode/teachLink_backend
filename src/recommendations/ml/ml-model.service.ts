@@ -13,7 +13,10 @@ export class MLModelService {
     private userPreferenceRepository: Repository<UserPreference>,
   ) {}
 
-  async generateRecommendations(userId: string, limit: number = 5): Promise<string[]> {
+  async generateRecommendations(
+    userId: string,
+    limit: number = 5,
+  ): Promise<string[]> {
     // Get user preferences and interactions
     const userPreference = await this.userPreferenceRepository.findOne({
       where: { userId },
@@ -40,7 +43,9 @@ export class MLModelService {
       .map(([courseId]) => courseId);
   }
 
-  private async collaborativeFiltering(userId: string): Promise<Record<string, number>> {
+  private async collaborativeFiltering(
+    userId: string,
+  ): Promise<Record<string, number>> {
     const userInteractions = await this.courseInteractionRepository.find({
       where: { userId },
     });
@@ -49,13 +54,15 @@ export class MLModelService {
     for (const interaction of userInteractions) {
       const similarUsers = await this.findSimilarUsers(interaction.courseId);
       for (const similarUser of similarUsers) {
-        const similarUserInteractions = await this.courseInteractionRepository.find({
-          where: { userId: similarUser },
-        });
+        const similarUserInteractions =
+          await this.courseInteractionRepository.find({
+            where: { userId: similarUser },
+          });
 
         for (const similarInteraction of similarUserInteractions) {
-          scores[similarInteraction.courseId] = (scores[similarInteraction.courseId] || 0) +
-            (similarInteraction.rating * interaction.rating);
+          scores[similarInteraction.courseId] =
+            (scores[similarInteraction.courseId] || 0) +
+            similarInteraction.rating * interaction.rating;
         }
       }
     }
@@ -73,7 +80,8 @@ export class MLModelService {
 
     for (const interaction of allInteractions) {
       const score = this.calculateContentScore(interaction, userPreference);
-      scores[interaction.courseId] = (scores[interaction.courseId] || 0) + score;
+      scores[interaction.courseId] =
+        (scores[interaction.courseId] || 0) + score;
     }
 
     return scores;
@@ -92,7 +100,7 @@ export class MLModelService {
     const interactions = await this.courseInteractionRepository.find({
       where: { courseId },
     });
-    return [...new Set(interactions.map(i => i.userId))];
+    return [...new Set(interactions.map((i) => i.userId))];
   }
 
   private async getPopularCourses(limit: number): Promise<string[]> {
@@ -105,7 +113,7 @@ export class MLModelService {
       .limit(limit)
       .getRawMany();
 
-    return popularCourses.map(course => course.courseId);
+    return popularCourses.map((course) => course.courseId);
   }
 
   private combineScores(
@@ -127,4 +135,4 @@ export class MLModelService {
 
     return combinedScores;
   }
-} 
+}

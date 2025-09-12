@@ -39,4 +39,4 @@ export class OrchestrationController {
   checkHealth(@Body() body: { serviceName: string }) {
     return this.health.checkHealth(body.serviceName);
   }
-} 
+}

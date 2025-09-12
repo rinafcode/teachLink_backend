@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 
 export enum MetricType {
   COUNTER = 'counter',
@@ -59,7 +65,13 @@ export class MetricEntry {
   @Column({ type: 'varchar', length: 100, nullable: true })
   unit: string;
 
-  @Column({ name: 'sample_rate', type: 'decimal', precision: 5, scale: 4, default: 1.0 })
+  @Column({
+    name: 'sample_rate',
+    type: 'decimal',
+    precision: 5,
+    scale: 4,
+    default: 1.0,
+  })
   sampleRate: number;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -68,19 +80,43 @@ export class MetricEntry {
   @Column({ type: 'jsonb', nullable: true })
   quantiles: Record<string, number>;
 
-  @Column({ name: 'sum_value', type: 'decimal', precision: 20, scale: 8, nullable: true })
+  @Column({
+    name: 'sum_value',
+    type: 'decimal',
+    precision: 20,
+    scale: 8,
+    nullable: true,
+  })
   sumValue: number;
 
   @Column({ name: 'count_value', type: 'bigint', nullable: true })
   countValue: number;
 
-  @Column({ name: 'min_value', type: 'decimal', precision: 20, scale: 8, nullable: true })
+  @Column({
+    name: 'min_value',
+    type: 'decimal',
+    precision: 20,
+    scale: 8,
+    nullable: true,
+  })
   minValue: number;
 
-  @Column({ name: 'max_value', type: 'decimal', precision: 20, scale: 8, nullable: true })
+  @Column({
+    name: 'max_value',
+    type: 'decimal',
+    precision: 20,
+    scale: 8,
+    nullable: true,
+  })
   maxValue: number;
 
-  @Column({ name: 'avg_value', type: 'decimal', precision: 20, scale: 8, nullable: true })
+  @Column({
+    name: 'avg_value',
+    type: 'decimal',
+    precision: 20,
+    scale: 8,
+    nullable: true,
+  })
   avgValue: number;
 
   @CreateDateColumn({ name: 'created_at' })

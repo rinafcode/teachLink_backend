@@ -13,7 +13,7 @@ export class LogAggregationService {
   constructor(
     @InjectRepository(LogEntry)
     private readonly logEntryRepository: Repository<LogEntry>,
-    private readonly elasticsearchService: ElasticsearchService
+    private readonly elasticsearchService: ElasticsearchService,
   ) {}
 
   async initialize(config: ObservabilityConfig): Promise<void> {
@@ -25,7 +25,7 @@ export class LogAggregationService {
     level: LogEntry['level'],
     message: string,
     context?: Record<string, any>,
-    correlationId?: string
+    correlationId?: string,
   ): Promise<void> {
     const entry = new LogEntry();
     entry.timestamp = new Date();
@@ -58,7 +58,7 @@ export class LogAggregationService {
         hostName: entry.hostName,
         processId: entry.processId,
         threadId: entry.threadId,
-        createdAt: entry.createdAt
+        createdAt: entry.createdAt,
       },
     });
 
@@ -79,33 +79,34 @@ export class LogAggregationService {
     services?: string[];
   }): Promise<any[]> {
     const mustClauses: any[] = [];
-    
+
     if (query.text) {
       mustClauses.push({ match: { message: query.text } });
     }
-    
+
     if (query.correlationId) {
       mustClauses.push({ match: { correlationId: query.correlationId } });
     }
-    
+
     if (query.startTime && query.endTime) {
-      mustClauses.push({ 
-        range: { 
-          timestamp: { 
-            gte: query.startTime, 
-            lte: query.endTime 
-          } 
-        } 
+      mustClauses.push({
+        range: {
+          timestamp: {
+            gte: query.startTime,
+            lte: query.endTime,
+          },
+        },
       });
     }
-    
+
     if (query.services && query.services.length > 0) {
       mustClauses.push({ terms: { serviceName: query.services } });
     }
 
-    const searchQuery = mustClauses.length > 0 
-      ? { bool: { must: mustClauses } }
-      : { match_all: {} };
+    const searchQuery =
+      mustClauses.length > 0
+        ? { bool: { must: mustClauses } }
+        : { match_all: {} };
 
     const searchResults = await this.elasticsearchService.search({
       index: 'log_entries',
@@ -118,4 +119,3 @@ export class LogAggregationService {
     return { status: 'healthy' };
   }
 }
-

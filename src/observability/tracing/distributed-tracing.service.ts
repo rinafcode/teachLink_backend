@@ -59,14 +59,19 @@ export class DistributedTracingService {
   }
 
   private async initializeTracer() {
-    const endpoint = this.configService.get<string>('OTEL_EXPORTER_OTLP_ENDPOINT',
-    'http://localhost:4317'); // Set your OpenTelemetry Collector endpoint
+    const endpoint = this.configService.get<string>(
+      'OTEL_EXPORTER_OTLP_ENDPOINT',
+      'http://localhost:4317',
+    ); // Set your OpenTelemetry Collector endpoint
 
     this.sdk = new NodeSDK({
       // Configure OpenTelemetry's span processor
       spanProcessor: new SimpleSpanProcessor(
         new (class implements SpanExporter {
-          export(spans: ReadableSpan[], resultCallback: (result: any) => void): void {
+          export(
+            spans: ReadableSpan[],
+            resultCallback: (result: any) => void,
+          ): void {
             // Process and export spans to your desired destination such as Elasticsearch
             console.log('Exporting spans:', spans);
             resultCallback({ code: 0 }); // OK status
@@ -124,11 +129,25 @@ export class DistributedTracingService {
           ...tags,
         },
       };
-      const span = this.tracer.startSpan(operationName, spanOptions, ROOT_CONTEXT);
-      
-      span.setAttribute('service.name', this.configService.get<string>('OBSERVABILITY_SERVICE_NAME') ?? os.hostname());
-      span.setAttribute('service.version', this.configService.get<string>('OBSERVABILITY_VERSION'));
-      span.setAttribute('deployment.environment', this.configService.get<string>('NODE_ENV'));
+      const span = this.tracer.startSpan(
+        operationName,
+        spanOptions,
+        ROOT_CONTEXT,
+      );
+
+      span.setAttribute(
+        'service.name',
+        this.configService.get<string>('OBSERVABILITY_SERVICE_NAME') ??
+          os.hostname(),
+      );
+      span.setAttribute(
+        'service.version',
+        this.configService.get<string>('OBSERVABILITY_VERSION'),
+      );
+      span.setAttribute(
+        'deployment.environment',
+        this.configService.get<string>('NODE_ENV'),
+      );
       span.addEvent(`span started - ${operationName}`);
 
       // Complete other OpenTelemetry trace setup activities...
@@ -209,37 +228,38 @@ export class DistributedTracingService {
     services?: string[];
   }): Promise<any[]> {
     const mustClauses: any[] = [];
-    
+
     if (query.text) {
       mustClauses.push({ match: { message: query.text } });
     }
-    
+
     if (query.correlationId) {
       mustClauses.push({ match: { correlationId: query.correlationId } });
     }
-    
+
     if (query.traceId) {
       mustClauses.push({ match: { traceId: query.traceId } });
     }
-    
+
     if (query.startTime && query.endTime) {
-      mustClauses.push({ 
-        range: { 
-          timestamp: { 
-            gte: query.startTime, 
-            lte: query.endTime 
-          } 
-        } 
+      mustClauses.push({
+        range: {
+          timestamp: {
+            gte: query.startTime,
+            lte: query.endTime,
+          },
+        },
       });
     }
-    
+
     if (query.services && query.services.length > 0) {
       mustClauses.push({ terms: { serviceName: query.services } });
     }
 
-    const searchQuery = mustClauses.length > 0 
-      ? { bool: { must: mustClauses } }
-      : { match_all: {} };
+    const searchQuery =
+      mustClauses.length > 0
+        ? { bool: { must: mustClauses } }
+        : { match_all: {} };
 
     const searchResults = await this.elasticsearchService.search({
       index: 'trace_spans',
@@ -248,4 +268,3 @@ export class DistributedTracingService {
     return searchResults.hits.hits;
   }
 }
-

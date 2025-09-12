@@ -97,7 +97,7 @@ global.testUtils = {
     update: jest.fn(),
     delete: jest.fn(),
   }),
-  
+
   createMockElasticsearchService: () => ({
     search: jest.fn().mockResolvedValue({
       hits: { hits: [] },
@@ -108,7 +108,7 @@ global.testUtils = {
       create: jest.fn(),
     },
   }),
-  
+
   createMockQueue: () => ({
     add: jest.fn(),
     process: jest.fn(),

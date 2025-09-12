@@ -3,5 +3,5 @@ export enum ABTestStatus {
   RUNNING = 'running',
   PAUSED = 'paused',
   COMPLETED = 'completed',
-  STOPPED = 'stopped'
-} 
+  STOPPED = 'stopped',
+}

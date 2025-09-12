@@ -13,4 +13,4 @@ export class SearchFiltersService {
     // Add more filters as needed
     return filterClauses;
   }
-} 
+}

@@ -47,4 +47,4 @@ export class UpdatePasswordDto {
   })
   @IsString()
   token: string;
-} 
+}

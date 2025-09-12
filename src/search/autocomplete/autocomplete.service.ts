@@ -22,6 +22,8 @@ export class AutoCompleteService {
       },
     } as any;
     const result = await this.esService.search(params);
-    return (result.suggest.course_suggest[0].options as any[]).map(opt => opt.text);
+    return (result.suggest.course_suggest[0].options as any[]).map(
+      (opt) => opt.text,
+    );
   }
-} 
+}

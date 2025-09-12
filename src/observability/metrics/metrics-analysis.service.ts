@@ -3,7 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { MetricEntry, MetricType } from '../entities/metric-entry.entity';
 import { ObservabilityConfig } from '../observability.service';
-import { register, Counter, Gauge, Histogram, Summary, Registry } from 'prom-client';
+import {
+  register,
+  Counter,
+  Gauge,
+  Histogram,
+  Summary,
+  Registry,
+} from 'prom-client';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
@@ -172,7 +179,7 @@ export class MetricsAnalysisService {
         correlationId: metricEntry.correlationId,
         traceId: metricEntry.traceId,
         userId: metricEntry.userId,
-        createdAt: metricEntry.createdAt
+        createdAt: metricEntry.createdAt,
       },
     });
 
@@ -184,42 +191,104 @@ export class MetricsAnalysisService {
    */
   async recordUserRegistration(method: string, status: string): Promise<void> {
     this.businessMetrics.userRegistrations.inc({ method, status });
-    await this.recordMetric('user_registrations', 1, MetricType.COUNTER, { method, status });
+    await this.recordMetric('user_registrations', 1, MetricType.COUNTER, {
+      method,
+      status,
+    });
   }
 
-  async recordCourseEnrollment(courseId: string, userType: string): Promise<void> {
-    this.businessMetrics.courseEnrollments.inc({ course_id: courseId, user_type: userType });
-    await this.recordMetric('course_enrollments', 1, MetricType.COUNTER, { courseId, userType });
+  async recordCourseEnrollment(
+    courseId: string,
+    userType: string,
+  ): Promise<void> {
+    this.businessMetrics.courseEnrollments.inc({
+      course_id: courseId,
+      user_type: userType,
+    });
+    await this.recordMetric('course_enrollments', 1, MetricType.COUNTER, {
+      courseId,
+      userType,
+    });
   }
 
-  async recordAssessmentCompletion(assessmentId: string, score: number): Promise<void> {
+  async recordAssessmentCompletion(
+    assessmentId: string,
+    score: number,
+  ): Promise<void> {
     const scoreRange = this.getScoreRange(score);
-    this.businessMetrics.assessmentCompletions.inc({ assessment_id: assessmentId, score_range: scoreRange });
-    await this.recordMetric('assessment_completions', 1, MetricType.COUNTER, { assessmentId, score, scoreRange });
+    this.businessMetrics.assessmentCompletions.inc({
+      assessment_id: assessmentId,
+      score_range: scoreRange,
+    });
+    await this.recordMetric('assessment_completions', 1, MetricType.COUNTER, {
+      assessmentId,
+      score,
+      scoreRange,
+    });
   }
 
-  async recordPaymentTransaction(method: string, status: string, amount: number): Promise<void> {
+  async recordPaymentTransaction(
+    method: string,
+    status: string,
+    amount: number,
+  ): Promise<void> {
     const amountRange = this.getAmountRange(amount);
-    this.businessMetrics.paymentTransactions.inc({ payment_method: method, status, amount_range: amountRange });
-    await this.recordMetric('payment_transactions', amount, MetricType.COUNTER, { method, status, amountRange });
+    this.businessMetrics.paymentTransactions.inc({
+      payment_method: method,
+      status,
+      amount_range: amountRange,
+    });
+    await this.recordMetric(
+      'payment_transactions',
+      amount,
+      MetricType.COUNTER,
+      { method, status, amountRange },
+    );
   }
 
-  async updateActiveUsers(count: number, timePeriod: string = 'current'): Promise<void> {
+  async updateActiveUsers(
+    count: number,
+    timePeriod: string = 'current',
+  ): Promise<void> {
     this.businessMetrics.activeUsers.set({ time_period: timePeriod }, count);
-    await this.recordMetric('active_users', count, MetricType.GAUGE, { timePeriod });
+    await this.recordMetric('active_users', count, MetricType.GAUGE, {
+      timePeriod,
+    });
   }
 
-  async recordRequestDuration(method: string, route: string, statusCode: number, duration: number): Promise<void> {
+  async recordRequestDuration(
+    method: string,
+    route: string,
+    statusCode: number,
+    duration: number,
+  ): Promise<void> {
     this.businessMetrics.requestDuration.observe(
       { method, route, status_code: statusCode.toString() },
-      duration / 1000 // Convert to seconds
+      duration / 1000, // Convert to seconds
     );
-    await this.recordMetric('request_duration', duration, MetricType.HISTOGRAM, { method, route, statusCode });
+    await this.recordMetric(
+      'request_duration',
+      duration,
+      MetricType.HISTOGRAM,
+      { method, route, statusCode },
+    );
   }
 
-  async recordError(errorType: string, service: string, severity: string): Promise<void> {
-    this.businessMetrics.errorRate.inc({ error_type: errorType, service, severity });
-    await this.recordMetric('errors', 1, MetricType.COUNTER, { errorType, service, severity });
+  async recordError(
+    errorType: string,
+    service: string,
+    severity: string,
+  ): Promise<void> {
+    this.businessMetrics.errorRate.inc({
+      error_type: errorType,
+      service,
+      severity,
+    });
+    await this.recordMetric('errors', 1, MetricType.COUNTER, {
+      errorType,
+      service,
+      severity,
+    });
   }
 
   /**
@@ -256,7 +325,7 @@ export class MetricsAnalysisService {
       };
     }
 
-    const values = metrics.map(m => Number(m.value));
+    const values = metrics.map((m) => Number(m.value));
     const total = values.reduce((sum, val) => sum + val, 0);
     const average = total / values.length;
     const min = Math.min(...values);
@@ -294,14 +363,26 @@ export class MetricsAnalysisService {
 
       // Memory usage
       const memUsage = process.memoryUsage();
-      await this.recordMetric('memory_heap_used', memUsage.heapUsed, MetricType.GAUGE);
-      await this.recordMetric('memory_heap_total', memUsage.heapTotal, MetricType.GAUGE);
+      await this.recordMetric(
+        'memory_heap_used',
+        memUsage.heapUsed,
+        MetricType.GAUGE,
+      );
+      await this.recordMetric(
+        'memory_heap_total',
+        memUsage.heapTotal,
+        MetricType.GAUGE,
+      );
       await this.recordMetric('memory_rss', memUsage.rss, MetricType.GAUGE);
 
       // CPU usage (simplified)
       const cpuUsage = process.cpuUsage();
       await this.recordMetric('cpu_user_time', cpuUsage.user, MetricType.GAUGE);
-      await this.recordMetric('cpu_system_time', cpuUsage.system, MetricType.GAUGE);
+      await this.recordMetric(
+        'cpu_system_time',
+        cpuUsage.system,
+        MetricType.GAUGE,
+      );
 
       this.logger.debug('System metrics collected');
     } catch (error) {
@@ -325,13 +406,17 @@ export class MetricsAnalysisService {
     return '0-49';
   }
 
-  private calculatePercentile(sortedValues: number[], percentile: number): number {
+  private calculatePercentile(
+    sortedValues: number[],
+    percentile: number,
+  ): number {
     const index = (percentile / 100) * (sortedValues.length - 1);
     const lower = Math.floor(index);
     const upper = Math.ceil(index);
     const weight = index % 1;
 
-    if (upper >= sortedValues.length) return sortedValues[sortedValues.length - 1];
+    if (upper >= sortedValues.length)
+      return sortedValues[sortedValues.length - 1];
     return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
   }
 
@@ -351,33 +436,34 @@ export class MetricsAnalysisService {
     services?: string[];
   }): Promise<any[]> {
     const mustClauses: any[] = [];
-    
+
     if (query.text) {
       mustClauses.push({ match: { metricName: query.text } });
     }
-    
+
     if (query.correlationId) {
       mustClauses.push({ match: { correlationId: query.correlationId } });
     }
-    
+
     if (query.startTime && query.endTime) {
-      mustClauses.push({ 
-        range: { 
-          timestamp: { 
-            gte: query.startTime, 
-            lte: query.endTime 
-          } 
-        } 
+      mustClauses.push({
+        range: {
+          timestamp: {
+            gte: query.startTime,
+            lte: query.endTime,
+          },
+        },
       });
     }
-    
+
     if (query.services && query.services.length > 0) {
       mustClauses.push({ terms: { serviceName: query.services } });
     }
 
-    const searchQuery = mustClauses.length > 0 
-      ? { bool: { must: mustClauses } }
-      : { match_all: {} };
+    const searchQuery =
+      mustClauses.length > 0
+        ? { bool: { must: mustClauses } }
+        : { match_all: {} };
 
     const searchResults = await this.elasticsearchService.search({
       index: 'metric_entries',

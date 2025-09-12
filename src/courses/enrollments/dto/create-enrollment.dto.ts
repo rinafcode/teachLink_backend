@@ -1,23 +1,30 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsBoolean, IsObject } from "class-validator"
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsObject,
+} from 'class-validator';
 
 export class CreateEnrollmentDto {
   @IsNotEmpty()
   @IsString()
-  courseId: string
+  courseId: string;
 
   @IsNotEmpty()
   @IsString()
-  userId: string
+  userId: string;
 
   @IsOptional()
   @IsNumber()
-  progress?: number
+  progress?: number;
 
   @IsOptional()
   @IsBoolean()
-  completed?: boolean
+  completed?: boolean;
 
   @IsOptional()
   @IsObject()
-  lessonProgress?: Record<string, boolean>
+  lessonProgress?: Record<string, boolean>;
 }

@@ -6,44 +6,36 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
-} from "typeorm"
-import { Course } from "../../entities/course.entity"
-import { Lesson } from "../../lessons/entities/lesson.entity"
+} from 'typeorm';
+import { Course } from '../../entities/course.entity';
+import { Lesson } from '../../lessons/entities/lesson.entity';
 
-@Entity("modules")
+@Entity('modules')
 export class Module {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  title: string
+  title: string;
 
-  @Column("text", { nullable: true })
-  description: string
-
-  @Column()
-  order: number
-
-  @ManyToOne(
-    () => Course,
-    (course) => course.modules,
-    { onDelete: "CASCADE" },
-  )
-  course: Course
+  @Column('text', { nullable: true })
+  description: string;
 
   @Column()
-  courseId: string
+  order: number;
 
-  @OneToMany(
-    () => Lesson,
-    (lesson) => lesson.module,
-    { cascade: true },
-  )
-  lessons: Lesson[]
+  @ManyToOne(() => Course, (course) => course.modules, { onDelete: 'CASCADE' })
+  course: Course;
+
+  @Column()
+  courseId: string;
+
+  @OneToMany(() => Lesson, (lesson) => lesson.module, { cascade: true })
+  lessons: Lesson[];
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

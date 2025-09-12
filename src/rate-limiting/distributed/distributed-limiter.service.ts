@@ -2,7 +2,9 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 
 @Injectable()
-export class DistributedLimiterService implements OnModuleInit, OnModuleDestroy {
+export class DistributedLimiterService
+  implements OnModuleInit, OnModuleDestroy
+{
   private redis: Redis;
   private readonly WINDOW_SIZE = 60; // seconds
   private readonly MAX_REQUESTS = 30; // per window, can be made configurable

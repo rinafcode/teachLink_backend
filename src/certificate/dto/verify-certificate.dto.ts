@@ -1,15 +1,15 @@
-import { IsString, IsOptional, IsUUID } from "class-validator"
+import { IsString, IsOptional, IsUUID } from 'class-validator';
 
 export class VerifyCertificateDto {
   @IsOptional()
   @IsUUID()
-  certificateId?: string
+  certificateId?: string;
 
   @IsOptional()
   @IsString()
-  blockchainTxHash?: string
+  blockchainTxHash?: string;
 
   @IsOptional()
   @IsString()
-  certificateHash?: string
+  certificateHash?: string;
 }

@@ -8,4 +8,4 @@ export class NotificationDto {
   isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

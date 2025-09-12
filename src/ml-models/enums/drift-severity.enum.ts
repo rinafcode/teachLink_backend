@@ -3,5 +3,5 @@ export enum DriftSeverity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
-} 
+  CRITICAL = 'critical',
+}

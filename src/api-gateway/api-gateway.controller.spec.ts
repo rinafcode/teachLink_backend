@@ -121,14 +121,20 @@ describe('APIGatewayController', () => {
       body: { foo: 'bar' },
       headers: {},
     });
-    (transformService.transformRequest as jest.Mock).mockImplementation((req) => {
-      if (req.headers['content-type'] === 'application/xml') {
-        req.body = { foo: 'bar' };
-        req.headers['content-type'] = 'application/json';
-      }
-      return req;
+    (transformService.transformRequest as jest.Mock).mockImplementation(
+      (req) => {
+        if (req.headers['content-type'] === 'application/xml') {
+          req.body = { foo: 'bar' };
+          req.headers['content-type'] = 'application/json';
+        }
+        return req;
+      },
+    );
+    const req = mockReq({
+      method: 'POST',
+      headers: { 'content-type': 'application/xml' },
+      body: '<foo>bar</foo>',
     });
-    const req = mockReq({ method: 'POST', headers: { 'content-type': 'application/xml' }, body: '<foo>bar</foo>' });
     const res = mockRes();
     await controller.proxy(req as any, res as any);
     expect(transformService.transformRequest).toHaveBeenCalled();
@@ -140,4 +146,4 @@ describe('APIGatewayController', () => {
     const metrics = await monitoringService.getMetrics();
     expect(metrics).toBe('metrics');
   });
-}); 
+});

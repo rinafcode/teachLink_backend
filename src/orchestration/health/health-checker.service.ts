@@ -3,7 +3,9 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class HealthCheckerService {
   // Checked the health of a service
-  async checkHealth(serviceName: string): Promise<{ healthy: boolean; details?: any }> {
+  async checkHealth(
+    serviceName: string,
+  ): Promise<{ healthy: boolean; details?: any }> {
     // TODO: Implement health check logic
     return { healthy: true };
   }
@@ -13,4 +15,4 @@ export class HealthCheckerService {
     // TODO: Implement failover logic
     return true;
   }
-} 
+}

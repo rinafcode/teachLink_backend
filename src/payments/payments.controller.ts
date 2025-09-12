@@ -17,12 +17,18 @@ export class PaymentsController {
   }
 
   @Post(':id/confirm')
-  async confirmPayment(@Param('id') id: string, @Body() body: { paymentIntentId: string }) {
+  async confirmPayment(
+    @Param('id') id: string,
+    @Body() body: { paymentIntentId: string },
+  ) {
     return this.paymentsService.confirmPayment(id, body.paymentIntentId);
   }
 
   @Post(':id/refund')
-  async refundPayment(@Param('id') id: string, @Body() body: { amount?: number }) {
+  async refundPayment(
+    @Param('id') id: string,
+    @Body() body: { amount?: number },
+  ) {
     return this.paymentsService.refundPayment(id, body.amount);
   }
 
@@ -37,7 +43,9 @@ export class PaymentsController {
   }
 
   @Post('subscriptions')
-  async createSubscription(@Body() createSubscriptionDto: CreateSubscriptionDto) {
+  async createSubscription(
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+  ) {
     return this.subscriptionsService.createSubscription(createSubscriptionDto);
   }
 
@@ -55,4 +63,4 @@ export class PaymentsController {
   async getActiveSubscriptions() {
     return this.subscriptionsService.getActiveSubscriptions();
   }
-} 
+}

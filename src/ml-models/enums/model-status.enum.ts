@@ -4,5 +4,5 @@ export enum ModelStatus {
   TRAINED = 'trained',
   DEPLOYED = 'deployed',
   ARCHIVED = 'archived',
-  FAILED = 'failed'
-} 
+  FAILED = 'failed',
+}

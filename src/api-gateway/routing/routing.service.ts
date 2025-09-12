@@ -17,13 +17,22 @@ export class RoutingService {
     const pathParts = request.path.split('/').filter(Boolean);
     const serviceName = pathParts[1]; // e.g., /gateway/users/123 -> 'users'
     if (!serviceName) {
-      throw new HttpException('Service name not specified in path', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Service name not specified in path',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     // Discover healthy service instance
-    const service = await this.serviceDiscoveryService.loadBalance(serviceName, 'round-robin');
+    const service = await this.serviceDiscoveryService.loadBalance(
+      serviceName,
+      'round-robin',
+    );
     if (!service) {
-      throw new HttpException('No healthy service found', HttpStatus.SERVICE_UNAVAILABLE);
+      throw new HttpException(
+        'No healthy service found',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
 
     // Construct target URL
@@ -44,7 +53,7 @@ export class RoutingService {
         method: request.method,
         headers,
         data: request.body,
-        validateStatus: () => true, 
+        validateStatus: () => true,
         responseType: 'json',
       });
       return {
@@ -59,4 +68,4 @@ export class RoutingService {
       );
     }
   }
-} 
+}
