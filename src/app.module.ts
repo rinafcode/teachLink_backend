@@ -8,7 +8,12 @@ import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { SecurityModule } from './security/security.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { TenancyModule } from './tenancy/tenancy.module';
 import { MediaModule } from './media/media.module';
+import { Tenant } from './tenancy/entities/tenant.entity';
+import { TenantConfig } from './tenancy/entities/tenant-config.entity';
+import { TenantBilling } from './tenancy/entities/tenant-billing.entity';
+import { TenantCustomization } from './tenancy/entities/tenant-customization.entity';
 import { User } from './users/entities/user.entity';
 import { Media } from './media/entities/media.entity';
 import { AssessmentsModule } from './assessments/assessments.module';
@@ -56,6 +61,10 @@ import { MLModelsModule } from './ml-models/ml-models.module';
       database: process.env.DB_DATABASE || 'teachlink',
       entities: [
         User,
+        Tenant,
+        TenantConfig,
+        TenantBilling,
+        TenantCustomization,
         Media,
         UserPreference,
         CourseInteraction,
@@ -77,6 +86,7 @@ import { MLModelsModule } from './ml-models/ml-models.module';
     }),
     RateLimitingModule,
     SecurityModule,
+    TenancyModule,
     AuthModule,
     UsersModule,
     MediaModule,

@@ -52,6 +52,10 @@ export class User {
   status: UserStatus;
 
   @Column({ nullable: true })
+  @Index()
+  tenantId?: string;
+
+  @Column({ nullable: true })
   profilePicture?: string;
 
   @Column({ default: false })
