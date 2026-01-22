@@ -23,7 +23,7 @@ import { Payment } from './payments/entities/payment.entity';
 import { Subscription } from './payments/entities/subscription.entity';
 import { APIGatewayModule } from './api-gateway/api-gateway.module';
 import { MessagingModule } from './messaging/messaging.module';
-import { SearchEngineModule } from './search-engine/search-engine.module';
+import { SearchModule } from './search/search.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { TraceSpan } from './observability/entities/trace-span.entity';
 import { LogEntry } from './observability/entities/log-entry.entity';
@@ -87,7 +87,7 @@ import { MLModelsModule } from './ml-models/ml-models.module';
     PaymentsModule,
     MessagingModule,
     APIGatewayModule,
-    SearchEngineModule,
+    SearchModule,
     ObservabilityModule,
     ContainerModule,
     MonitoringModule,
