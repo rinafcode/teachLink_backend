@@ -39,6 +39,7 @@ import { MonitoringInterceptor } from './common/interceptors/monitoring.intercep
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { CachingModule } from './caching/caching.module';
 import { MLModelsModule } from './ml-models/ml-models.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
