@@ -80,6 +80,7 @@ import { ABTest as EmailABTest } from './email-marketing/entities/ab-test.entity
 import { ABTestVariant } from './email-marketing/entities/ab-test-variant.entity';
 import { CampaignRecipient } from './email-marketing/entities/campaign-recipient.entity';
 import { EmailSubscription } from './email-marketing/entities/email-subscription.entity';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
