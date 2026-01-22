@@ -1,15 +1,3 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import configuration from './config/configuration';
-import { appConfigSchema } from './config/appConfigSchema';
-import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
-import { SecurityModule } from './security/security.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { MediaModule } from './media/media.module';
-import { User } from './users/entities/user.entity';
 import { Media } from './media/entities/media.entity';
 import { AssessmentsModule } from './assessments/assessments.module';
 import { RecommendationsModule } from './recommendations/recommendations.module';
@@ -82,31 +70,3 @@ import { MetricsCollectionService } from './monitoring/metrics/metrics-collectio
         logger: new TypeOrmMonitoringLogger(metricsService),
         maxQueryExecutionTime: 1000,
       }),
-    }),
-    RateLimitingModule,
-    SecurityModule,
-    AuthModule,
-    UsersModule,
-    MediaModule,
-    AssessmentsModule,
-    RecommendationsModule,
-    CoursesModule,
-    NotificationsModule,
-    PaymentsModule,
-    MessagingModule,
-    APIGatewayModule,
-    SearchEngineModule,
-    ObservabilityModule,
-    ContainerModule,
-    MonitoringModule,
-    CachingModule,
-    MLModelsModule,
-  ],
-  providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: MonitoringInterceptor,
-    },
-  ],
-})
-export class AppModule {}
