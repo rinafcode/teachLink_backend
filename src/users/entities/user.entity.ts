@@ -28,6 +28,10 @@ export class User {
   @Index()
   email: string;
 
+  @Column({ nullable: true })
+  @Index()
+  username?: string;
+
   @Column()
   password: string;
 
@@ -50,6 +54,9 @@ export class User {
     default: UserStatus.ACTIVE,
   })
   status: UserStatus;
+  @Column({ nullable: true })
+  @Index()
+  tenantId?: string;
 
   @Column({ nullable: true })
   profilePicture?: string;
