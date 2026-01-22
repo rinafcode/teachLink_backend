@@ -39,6 +39,8 @@ import { MonitoringInterceptor } from './common/interceptors/monitoring.intercep
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { CachingModule } from './caching/caching.module';
 import { MLModelsModule } from './ml-models/ml-models.module';
+import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';
+import { MetricsCollectionService } from './monitoring/metrics/metrics-collection.service';
 
 @Module({
   imports: [
@@ -47,33 +49,39 @@ import { MLModelsModule } from './ml-models/ml-models.module';
       load: [configuration],
       validationSchema: appConfigSchema,
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'teachlink',
-      entities: [
-        User,
-        Media,
-        UserPreference,
-        CourseInteraction,
-        Notification,
-        Payment,
-        Subscription,
-        TraceSpan,
-        LogEntry,
-        MetricEntry,
-        AnomalyAlert,
-        MLModel,
-        ModelVersion,
-        ModelDeployment,
-        ModelPerformance,
-        ABTest,
-      ],
-      synchronize: process.env.NODE_ENV !== 'production',
-      logging: process.env.NODE_ENV === 'development',
+    TypeOrmModule.forRootAsync({
+      imports: [MonitoringModule],
+      inject: [MetricsCollectionService],
+      useFactory: (metricsService: MetricsCollectionService) => ({
+        type: 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        username: process.env.DB_USERNAME || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres',
+        database: process.env.DB_DATABASE || 'teachlink',
+        entities: [
+          User,
+          Media,
+          UserPreference,
+          CourseInteraction,
+          Notification,
+          Payment,
+          Subscription,
+          TraceSpan,
+          LogEntry,
+          MetricEntry,
+          AnomalyAlert,
+          MLModel,
+          ModelVersion,
+          ModelDeployment,
+          ModelPerformance,
+          ABTest,
+        ],
+        synchronize: process.env.NODE_ENV !== 'production',
+        logging: true,
+        logger: new TypeOrmMonitoringLogger(metricsService),
+        maxQueryExecutionTime: 1000,
+      }),
     }),
     RateLimitingModule,
     SecurityModule,
