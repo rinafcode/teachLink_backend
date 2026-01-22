@@ -5,14 +5,13 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
-// Core imports
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-// Interceptors
+/* Interceptors */
 import { MonitoringInterceptor } from './monitoring/monitoring.interceptor';
 
-// Feature Modules
+/* Feature Modules */
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { SecurityModule } from './security/security.module';
 import { AuthModule } from './auth/auth.module';
@@ -62,7 +61,7 @@ import { UserBadge } from './gamification/entities/user-badge.entity';
 import { Challenge } from './gamification/entities/challenge.entity';
 import { UserChallenge } from './gamification/entities/user-challenge.entity';
 
-/* Tenancy entities */
+/* Tenancy Entities */
 import { Tenant } from './tenancy/entities/tenant.entity';
 import { TenantConfig } from './tenancy/entities/tenant-config.entity';
 import { TenantBilling } from './tenancy/entities/tenant-billing.entity';
@@ -97,7 +96,8 @@ import { EmailSubscription } from './email-marketing/entities/email-subscription
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'teachlink',
-      synchronize: process.env.NODE_ENV !== 'production', // true for dev, false for prod
+      synchronize: process.env.NODE_ENV !== 'production',
+      logging: process.env.NODE_ENV === 'development',
       entities: [
         // Core & Tenancy
         User,
@@ -160,7 +160,7 @@ import { EmailSubscription } from './email-marketing/entities/email-subscription
       },
     }),
 
-    // Core and feature modules
+    // Feature Modules
     RateLimitingModule,
     SecurityModule,
     AuthModule,
