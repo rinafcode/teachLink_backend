@@ -3,6 +3,9 @@ import { Course } from 'src/courses/entities/course.entity';
 import { Enrollment } from 'src/courses/entities/enrollment.entity';
 
 @Entity()
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -21,4 +24,9 @@ export class User {
 
   @OneToMany(() => Enrollment, (enrollment) => enrollment.user)
   enrollments: Enrollment[];
+  @Column({ unique: true })
+  email: string;
+
+  @Column({ nullable: true })
+  username: string;
 }
