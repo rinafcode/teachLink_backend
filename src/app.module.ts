@@ -1,14 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import configuration from './config/configuration';
-import { appConfigSchema } from './config/appConfigSchema';
-import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
-import { SecurityModule } from './security/security.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { MediaModule } from './media/media.module';
 import { User } from './users/entities/user.entity';
 import { Media } from './media/entities/media.entity';
 import { AssessmentsModule } from './assessments/assessments.module';
@@ -39,14 +30,18 @@ import { MonitoringInterceptor } from './common/interceptors/monitoring.intercep
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { CachingModule } from './caching/caching.module';
 import { MLModelsModule } from './ml-models/ml-models.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { PointTransaction } from './gamification/entities/point-transaction.entity';
+import { UserProgress } from './gamification/entities/user-progress.entity';
+import { Badge } from './gamification/entities/badge.entity';
+import { UserBadge } from './gamification/entities/user-badge.entity';
+import { Challenge } from './gamification/entities/challenge.entity';
+import { UserChallenge } from './gamification/entities/user-challenge.entity';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configuration],
-      validationSchema: appConfigSchema,
-    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -56,21 +51,12 @@ import { MLModelsModule } from './ml-models/ml-models.module';
       database: process.env.DB_DATABASE || 'teachlink',
       entities: [
         User,
-        Media,
-        UserPreference,
-        CourseInteraction,
-        Notification,
-        Payment,
-        Subscription,
-        TraceSpan,
-        LogEntry,
-        MetricEntry,
-        AnomalyAlert,
-        MLModel,
-        ModelVersion,
-        ModelDeployment,
-        ModelPerformance,
-        ABTest,
+        PointTransaction,
+        UserProgress,
+        Badge,
+        UserBadge,
+        Challenge,
+        UserChallenge,
       ],
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
@@ -100,5 +86,11 @@ import { MLModelsModule } from './ml-models/ml-models.module';
       useClass: MonitoringInterceptor,
     },
   ],
+      synchronize: true, // Set to false in production
+    }),
+    GamificationModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
