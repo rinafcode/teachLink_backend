@@ -9,6 +9,11 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
 import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';
 import { MetricsCollectionService } from './monitoring/metrics/metrics-collection.service';
+import { SyncModule } from './sync/sync.module';
+import { BullModule } from '@nestjs/bull';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { CacheModule } from '@nestjs/cache-manager';
+import * as redisStore from 'cache-manager-redis-store';
 
 @Module({
   imports: [
@@ -33,6 +38,20 @@ import { MetricsCollectionService } from './monitoring/metrics/metrics-collectio
       }),
     }),
     MonitoringModule,
+    EventEmitterModule.forRoot(),
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+    }),
+    SyncModule,
   ],
   controllers: [AppController],
   providers: [
