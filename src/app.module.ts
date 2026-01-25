@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { BackupModule } from './backup/backup.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -40,6 +41,7 @@ import * as redisStore from 'cache-manager-redis-store';
         maxQueryExecutionTime: 1000,
       }),
     }),
+    BackupModule,
     MonitoringModule,
     EventEmitterModule.forRoot(),
     BullModule.forRoot({
