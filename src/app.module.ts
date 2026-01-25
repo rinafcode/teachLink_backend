@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { BackupModule } from './backup/backup.module';
+import { MediaModule } from './media/media.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MonitoringModule } from './monitoring/monitoring.module';
-import { CachingModule } from './caching/caching.module';
-import { MLModelsModule } from './ml-models/ml-models.module';
+// import { CachingModule } from './caching/caching.module';        change when content is added to caching.module.ts
+// import { MLModelsModule } from './ml-models/ml-models.module';   change when content is added to ml-models.module.ts
 import { SecurityModule } from './security/security.module';
 import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
 import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';
@@ -40,6 +42,7 @@ import * as redisStore from 'cache-manager-redis-store';
         maxQueryExecutionTime: 1000,
       }),
     }),
+    BackupModule,
     MonitoringModule,
     EventEmitterModule.forRoot(),
     BullModule.forRoot({
@@ -55,6 +58,7 @@ import * as redisStore from 'cache-manager-redis-store';
       port: parseInt(process.env.REDIS_PORT || '6379'),
     }),
     SyncModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [
