@@ -30,12 +30,31 @@ export class SearchService {
       track_total_hits: true,
     };
 
+    // Ensure sort fields are properly formatted for ES
+    if (searchBody.sort && Array.isArray(searchBody.sort)) {
+      searchBody.sort = searchBody.sort.map(sortItem => {
+        if (typeof sortItem === 'object' && sortItem !== null) {
+          // Convert object keys to proper format
+          const newSortItem = {};
+          for (const [key, value] of Object.entries(sortItem)) {
+            if (typeof value === 'object' && value !== null) {
+              newSortItem[key] = { ...value };
+            } else {
+              newSortItem[key] = value;
+            }
+          }
+          return newSortItem;
+        }
+        return sortItem;
+      });
+    }
+
     const result = await this.elasticsearchService.search({
       index: 'courses',
       body: searchBody,
     });
 
-    const rankedResults = this.rankResults(result.body.hits.hits);
+    const rankedResults = this.rankResults(result.hits.hits);
     await this.logSearch(query, rankedResults.length);
     return rankedResults;
   }
@@ -66,9 +85,9 @@ export class SearchService {
     if (sort === 'relevance') {
       return ['_score'];
     } else if (sort === 'popularity') {
-      return [{ views: { order: 'desc' } }];
+      return [{ 'views': { 'order': 'desc' as const } }];
     } else if (sort === 'rating') {
-      return [{ rating: { order: 'desc' } }];
+      return [{ 'rating': { 'order': 'desc' as const } }];
     }
     return ['_score'];
   }

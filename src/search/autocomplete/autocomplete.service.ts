@@ -22,6 +22,9 @@ export class AutoCompleteService {
       },
     });
 
-    return result.body.suggest.title_suggest[0].options.map((option: any) => option.text);
+    const suggestions = result.suggest.title_suggest[0].options;
+    return Array.isArray(suggestions) 
+      ? suggestions.map((option: any) => option.text) 
+      : [];
   }
 }

@@ -17,12 +17,13 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { RefundDto } from './dto/refund.dto';
+import { UserRole } from '../users/entities/user.entity';
 
 @ApiTags('payments')
 @Controller('payments')
@@ -31,7 +32,7 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('create-intent')
-  @Roles('user', 'premium')
+  @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
   @ApiResponse({ status: 201, description: 'Payment intent created' })
   async createPaymentIntent(
@@ -45,7 +46,7 @@ export class PaymentsController {
   }
 
   @Post('subscriptions')
-  @Roles('user', 'premium')
+  @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a subscription for premium course' })
   @ApiResponse({ status: 201, description: 'Subscription created' })
   async createSubscription(
@@ -59,7 +60,7 @@ export class PaymentsController {
   }
 
   @Post('refund')
-  @Roles('admin', 'instructor')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({ summary: 'Process a refund' })
   @ApiResponse({ status: 200, description: 'Refund processed' })
   async processRefund(@Body() refundDto: RefundDto) {
@@ -67,7 +68,7 @@ export class PaymentsController {
   }
 
   @Get('invoices/:paymentId')
-  @Roles('user', 'premium', 'instructor', 'admin')
+  @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get invoice for a payment' })
   @ApiResponse({ status: 200, description: 'Invoice retrieved' })
   async getInvoice(@Param('paymentId') paymentId: string, @Request() req) {
@@ -75,7 +76,7 @@ export class PaymentsController {
   }
 
   @Get('user/payments')
-  @Roles('user', 'premium', 'instructor', 'admin')
+  @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user payment history' })
   @ApiResponse({ status: 200, description: 'Payment history retrieved' })
   async getUserPayments(
@@ -87,7 +88,7 @@ export class PaymentsController {
   }
 
   @Get('user/subscriptions')
-  @Roles('user', 'premium', 'instructor', 'admin')
+  @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user subscriptions' })
   @ApiResponse({ status: 200, description: 'Subscriptions retrieved' })
   async getUserSubscriptions(@Request() req) {

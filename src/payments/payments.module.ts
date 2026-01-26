@@ -14,7 +14,6 @@ import { Subscription } from './entities/subscription.entity';
 import { Invoice } from './entities/invoice.entity';
 import { Refund } from './entities/refund.entity';
 import { UsersModule } from '../users/users.module';
-import { KnowledgeModule } from '../knowledge/knowledge.module';
 
 @Module({
   imports: [
@@ -23,7 +22,6 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
       name: 'subscriptions',
     }),
     UsersModule,
-    KnowledgeModule,
   ],
   controllers: [PaymentsController, WebhookController],
   providers: [

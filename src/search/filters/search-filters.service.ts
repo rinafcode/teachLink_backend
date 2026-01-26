@@ -6,7 +6,7 @@ export class SearchFiltersService {
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
   async getFilters() {
-    const aggregations = await this.elasticsearchService.search({
+    const result = await this.elasticsearchService.search({
       index: 'courses',
       body: {
         size: 0,
@@ -32,10 +32,12 @@ export class SearchFiltersService {
       },
     });
 
+    const aggregations = result.aggregations || {};
+    
     return {
-      categories: aggregations.body.aggregations.categories.buckets,
-      levels: aggregations.body.aggregations.levels.buckets,
-      priceRanges: aggregations.body.aggregations.price_ranges.buckets,
+      categories: (aggregations.categories as any)?.buckets || [],
+      levels: (aggregations.levels as any)?.buckets || [],
+      priceRanges: (aggregations.price_ranges as any)?.buckets || [],
     };
   }
 }
