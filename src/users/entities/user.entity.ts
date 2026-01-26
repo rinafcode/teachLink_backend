@@ -1,9 +1,3 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Course } from 'src/courses/entities/course.entity';
-import { Enrollment } from 'src/courses/entities/enrollment.entity';
-
-@Entity()
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -11,7 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
+import { Course } from 'src/courses/entities/course.entity';
+import { Enrollment } from 'src/courses/entities/enrollment.entity';
 
 export enum UserRole {
   STUDENT = 'student',
@@ -30,20 +27,6 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  email: string;
-
-  @Column()
-  firstName: string;
-
-  @Column()
-  lastName: string;
-
-  @OneToMany(() => Course, (course) => course.instructor)
-  courses: Course[];
-
-  @OneToMany(() => Enrollment, (enrollment) => enrollment.user)
-  enrollments: Enrollment[];
   @Column({ unique: true })
   @Index()
   email: string;
@@ -74,6 +57,7 @@ export class User {
     default: UserStatus.ACTIVE,
   })
   status: UserStatus;
+
   @Column({ nullable: true })
   @Index()
   tenantId?: string;
@@ -101,6 +85,12 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
+
+  @OneToMany(() => Course, (course) => course.instructor)
+  courses: Course[];
+
+  @OneToMany(() => Enrollment, (enrollment) => enrollment.user)
+  enrollments: Enrollment[];
 
   @CreateDateColumn()
   createdAt: Date;

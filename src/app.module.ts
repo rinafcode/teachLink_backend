@@ -7,7 +7,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { CachingModule } from './caching/caching.module';
-import { MLModelsModule } from './ml-models/ml-models.module';
 import { SecurityModule } from './security/security.module';
 import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
 import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';

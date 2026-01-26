@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-
+import { Course } from '../../courses/entities/course.entity';
 
 export enum PaymentStatus {
   PENDING = 'pending',
@@ -51,6 +51,10 @@ export class Payment {
 
   @Column({ name: 'user_id' })
   userId: string;
+
+  @ManyToOne(() => Course, (course) => course.id)
+  @JoinColumn({ name: 'course_id' })
+  course: Course;
 
   @Column({ name: 'course_id', nullable: true })
   courseId: string;
