@@ -17,6 +17,6 @@ import { AlertingService } from './alerting/alerting.service';
     OptimizationService,
     AlertingService,
   ],
-  exports: [MetricsCollectionService],
+  exports: [MetricsCollectionService, AlertingService],
 })
 export class MonitoringModule {}
