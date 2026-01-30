@@ -12,6 +12,8 @@ import { MonitoringInterceptor } from './common/interceptors/monitoring.intercep
 import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';
 import { MetricsCollectionService } from './monitoring/metrics/metrics-collection.service';
 import { SyncModule } from './sync/sync.module';
+import { MediaModule } from './media/media.module';
+import { BackupModule } from './backup/backup.module';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -32,7 +34,7 @@ import * as redisStore from 'cache-manager-redis-store';
         username: process.env.DB_USERNAME || 'postgres',
         password: process.env.DB_PASSWORD || 'postgres',
         database: process.env.DB_DATABASE || 'teachlink',
-        entities: [],
+        autoLoadEntities: true,
         synchronize: process.env.NODE_ENV !== 'production',
         logging: true,
         logger: new TypeOrmMonitoringLogger(metricsService),
@@ -54,6 +56,8 @@ import * as redisStore from 'cache-manager-redis-store';
       port: parseInt(process.env.REDIS_PORT || '6379'),
     }),
     SyncModule,
+    MediaModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [
