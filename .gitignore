@@ -3,7 +3,7 @@
 /node_modules
 /build
 
-Backup.md
+package-lock.json
 
 # Logs
 logs
