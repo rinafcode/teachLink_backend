@@ -1,0 +1,261 @@
+# ============================================
+# USER MUTATIONS
+# ============================================
+
+# Create a new user
+mutation CreateUser($input: CreateUserInput!) {
+  createUser(input: $input) {
+    id
+    email
+    firstName
+    lastName
+    role
+    status
+    createdAt
+  }
+}
+
+# Example variables for CreateUser:
+# {
+#   "input": {
+#     "email": "john.doe@example.com",
+#     "password": "SecurePass123!",
+#     "firstName": "John",
+#     "lastName": "Doe",
+#     "username": "johndoe",
+#     "role": "STUDENT"
+#   }
+# }
+
+# Update an existing user
+mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
+  updateUser(id: $id, input: $input) {
+    id
+    email
+    firstName
+    lastName
+    username
+    profilePicture
+    status
+    updatedAt
+  }
+}
+
+# Example variables for UpdateUser:
+# {
+#   "id": "user-uuid-here",
+#   "input": {
+#     "firstName": "Jane",
+#     "lastName": "Smith",
+#     "profilePicture": "https://example.com/avatar.jpg"
+#   }
+# }
+
+# Delete a user
+mutation DeleteUser($id: ID!) {
+  deleteUser(id: $id)
+}
+
+# Example variables for DeleteUser:
+# {
+#   "id": "user-uuid-here"
+# }
+
+# ============================================
+# COURSE MUTATIONS
+# ============================================
+
+# Create a new course
+mutation CreateCourse($input: CreateCourseInput!) {
+  createCourse(input: $input) {
+    id
+    title
+    description
+    price
+    status
+    thumbnailUrl
+    instructor {
+      id
+      firstName
+      lastName
+    }
+    createdAt
+  }
+}
+
+# Example variables for CreateCourse:
+# {
+#   "input": {
+#     "title": "Advanced GraphQL Development",
+#     "description": "Learn to build production-ready GraphQL APIs",
+#     "price": 99.99,
+#     "instructorId": "instructor-uuid-here",
+#     "thumbnailUrl": "https://example.com/course-thumb.jpg"
+#   }
+# }
+
+# Update an existing course
+mutation UpdateCourse($id: ID!, $input: UpdateCourseInput!) {
+  updateCourse(id: $id, input: $input) {
+    id
+    title
+    description
+    price
+    status
+    thumbnailUrl
+    updatedAt
+  }
+}
+
+# Example variables for UpdateCourse:
+# {
+#   "id": "course-uuid-here",
+#   "input": {
+#     "title": "Advanced GraphQL Development - Updated",
+#     "price": 79.99,
+#     "status": "published"
+#   }
+# }
+
+# Delete a course
+mutation DeleteCourse($id: ID!) {
+  deleteCourse(id: $id)
+}
+
+# Example variables for DeleteCourse:
+# {
+#   "id": "course-uuid-here"
+# }
+
+# Publish a course
+mutation PublishCourse($id: ID!) {
+  updateCourse(id: $id, input: { status: "published" }) {
+    id
+    title
+    status
+    updatedAt
+  }
+}
+
+# Archive a course
+mutation ArchiveCourse($id: ID!) {
+  updateCourse(id: $id, input: { status: "archived" }) {
+    id
+    title
+    status
+    updatedAt
+  }
+}
+
+# ============================================
+# ASSESSMENT MUTATIONS
+# ============================================
+
+# Create a new assessment
+mutation CreateAssessment($input: CreateAssessmentInput!) {
+  createAssessment(input: $input) {
+    id
+    title
+    description
+    durationMinutes
+    questions {
+      id
+      prompt
+      type
+      options
+      points
+    }
+    createdAt
+  }
+}
+
+# Example variables for CreateAssessment:
+# {
+#   "input": {
+#     "title": "GraphQL Fundamentals Quiz",
+#     "description": "Test your knowledge of GraphQL basics",
+#     "durationMinutes": 30,
+#     "questions": [
+#       {
+#         "prompt": "What does GraphQL stand for?",
+#         "type": "multiple_choice",
+#         "options": ["Graph Query Language", "General Query Language", "Graphical Query Language"],
+#         "correctAnswer": "Graph Query Language",
+#         "points": 10
+#       },
+#       {
+#         "prompt": "Explain the benefits of GraphQL over REST",
+#         "type": "essay",
+#         "points": 20
+#       }
+#     ]
+#   }
+# }
+
+# Update an existing assessment
+mutation UpdateAssessment($id: ID!, $input: UpdateAssessmentInput!) {
+  updateAssessment(id: $id, input: $input) {
+    id
+    title
+    description
+    durationMinutes
+    updatedAt
+  }
+}
+
+# Example variables for UpdateAssessment:
+# {
+#   "id": "assessment-uuid-here",
+#   "input": {
+#     "title": "GraphQL Advanced Quiz",
+#     "durationMinutes": 45
+#   }
+# }
+
+# Delete an assessment
+mutation DeleteAssessment($id: ID!) {
+  deleteAssessment(id: $id)
+}
+
+# Example variables for DeleteAssessment:
+# {
+#   "id": "assessment-uuid-here"
+# }
+
+# ============================================
+# BATCH MUTATIONS
+# ============================================
+
+# Create multiple courses at once
+mutation CreateMultipleCourses(
+  $course1: CreateCourseInput!
+  $course2: CreateCourseInput!
+) {
+  course1: createCourse(input: $course1) {
+    id
+    title
+  }
+  course2: createCourse(input: $course2) {
+    id
+    title
+  }
+}
+
+# Update user and their course simultaneously
+mutation UpdateUserAndCourse(
+  $userId: ID!
+  $userInput: UpdateUserInput!
+  $courseId: ID!
+  $courseInput: UpdateCourseInput!
+) {
+  updateUser(id: $userId, input: $userInput) {
+    id
+    firstName
+    lastName
+  }
+  updateCourse(id: $courseId, input: $courseInput) {
+    id
+    title
+    status
+  }
+}
