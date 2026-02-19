@@ -1,0 +1,146 @@
+# ============================================
+# USER SUBSCRIPTIONS
+# ============================================
+
+# Subscribe to new user creation events
+subscription OnUserCreated {
+  userCreated {
+    id
+    email
+    firstName
+    lastName
+    role
+    createdAt
+  }
+}
+
+# Subscribe to user update events
+subscription OnUserUpdated {
+  userUpdated {
+    id
+    email
+    firstName
+    lastName
+    status
+    updatedAt
+  }
+}
+
+# Subscribe to user deletion events
+subscription OnUserDeleted {
+  userDeleted {
+    id
+  }
+}
+
+# ============================================
+# COURSE SUBSCRIPTIONS
+# ============================================
+
+# Subscribe to new course creation events
+subscription OnCourseCreated {
+  courseCreated {
+    id
+    title
+    description
+    price
+    status
+    instructor {
+      id
+      firstName
+      lastName
+    }
+    createdAt
+  }
+}
+
+# Subscribe to course update events
+subscription OnCourseUpdated {
+  courseUpdated {
+    id
+    title
+    description
+    price
+    status
+    updatedAt
+  }
+}
+
+# Subscribe to course deletion events
+subscription OnCourseDeleted {
+  courseDeleted {
+    id
+  }
+}
+
+# Subscribe to course status changes (published courses)
+subscription OnCoursePublished {
+  courseUpdated {
+    id
+    title
+    status
+    instructor {
+      firstName
+      lastName
+    }
+  }
+}
+
+# ============================================
+# ASSESSMENT SUBSCRIPTIONS
+# ============================================
+
+# Subscribe to new assessment creation events
+subscription OnAssessmentCreated {
+  assessmentCreated {
+    id
+    title
+    description
+    durationMinutes
+    questions {
+      id
+      prompt
+      type
+      points
+    }
+    createdAt
+  }
+}
+
+# Subscribe to assessment update events
+subscription OnAssessmentUpdated {
+  assessmentUpdated {
+    id
+    title
+    description
+    durationMinutes
+    updatedAt
+  }
+}
+
+# Subscribe to assessment deletion events
+subscription OnAssessmentDeleted {
+  assessmentDeleted {
+    id
+  }
+}
+
+# ============================================
+# USAGE NOTES
+# ============================================
+
+# To test subscriptions in GraphQL Playground:
+# 1. Open a new tab in the playground
+# 2. Paste one of the subscription queries above
+# 3. Click the "Play" button
+# 4. The subscription will stay active and listen for events
+# 5. In another tab, execute a mutation that triggers the event
+# 6. Watch the subscription tab receive real-time updates
+
+# Example workflow:
+# Tab 1: Run "OnCourseCreated" subscription
+# Tab 2: Run "CreateCourse" mutation
+# Tab 1: Will receive the newly created course data in real-time
+
+# WebSocket connection is required for subscriptions
+# Default endpoint: ws://localhost:3000/graphql

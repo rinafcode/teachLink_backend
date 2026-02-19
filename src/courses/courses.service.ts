@@ -14,41 +14,56 @@ export class CoursesService {
     private coursesRepository: Repository<Course>,
   ) {}
 
-  async create(createCourseDto: CreateCourseDto, user: User): Promise<Course> {
+  async create(createCourseDto: any): Promise<Course> {
     const course = this.coursesRepository.create({
       ...createCourseDto,
-      instructor: user,
+      instructor: { id: createCourseDto.instructorId },
     });
-    return this.coursesRepository.save(course);
+    const saved = await this.coursesRepository.save(course);
+    return Array.isArray(saved) ? saved[0] : saved;
   }
 
-  async findAll(searchDto: CourseSearchDto): Promise<{ data: Course[]; total: number }> {
-    const { search, minPrice, maxPrice, status, page = 1, limit = 10 } = searchDto;
+  async findAll(filter?: any): Promise<Course[]> {
     const query = this.coursesRepository.createQueryBuilder('course');
     
     query.leftJoinAndSelect('course.instructor', 'instructor');
 
-    if (search) {
-      query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', { search: `%${search}%` });
+    if (filter?.search) {
+      query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', { search: `%${filter.search}%` });
     }
 
-    if (minPrice !== undefined) {
-      query.andWhere('course.price >= :minPrice', { minPrice });
+    if (filter?.status) {
+      query.andWhere('course.status = :status', { status: filter.status });
     }
 
-    if (maxPrice !== undefined) {
-      query.andWhere('course.price <= :maxPrice', { maxPrice });
+    if (filter?.instructorId) {
+      query.andWhere('course.instructorId = :instructorId', { instructorId: filter.instructorId });
     }
 
-    if (status) {
-      query.andWhere('course.status = :status', { status });
-    }
-
-    query.skip((page - 1) * limit).take(limit);
     query.orderBy('course.createdAt', 'DESC');
 
-    const [data, total] = await query.getManyAndCount();
-    return { data, total };
+    return await query.getMany();
+  }
+
+  async findByIds(ids: string[]): Promise<Course[]> {
+    if (ids.length === 0) return [];
+    return await this.coursesRepository.findByIds(ids);
+  }
+
+  async findByInstructor(instructorId: string): Promise<Course[]> {
+    return await this.coursesRepository.find({
+      where: { instructor: { id: instructorId } },
+      relations: ['instructor'],
+    });
+  }
+
+  async findByInstructorIds(instructorIds: string[]): Promise<Course[]> {
+    if (instructorIds.length === 0) return [];
+    return await this.coursesRepository
+      .createQueryBuilder('course')
+      .leftJoinAndSelect('course.instructor', 'instructor')
+      .where('instructor.id IN (:...instructorIds)', { instructorIds })
+      .getMany();
   }
 
   async findOne(id: string): Promise<Course> {

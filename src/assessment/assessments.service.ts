@@ -35,6 +35,39 @@ export class AssessmentsService {
     });
   }
 
+  async findAll(): Promise<Assessment[]> {
+    return await this.assessmentRepo.find({
+      relations: ['questions'],
+    });
+  }
+
+  async findOne(id: string): Promise<Assessment> {
+    return await this.assessmentRepo.findOne({
+      where: { id },
+      relations: ['questions'],
+    });
+  }
+
+  async findByIds(ids: string[]): Promise<Assessment[]> {
+    if (ids.length === 0) return [];
+    return await this.assessmentRepo.findByIds(ids);
+  }
+
+  async create(data: any): Promise<Assessment> {
+    const assessment = this.assessmentRepo.create(data);
+    const saved = await this.assessmentRepo.save(assessment);
+    return Array.isArray(saved) ? saved[0] : saved;
+  }
+
+  async update(id: string, data: any): Promise<Assessment> {
+    await this.assessmentRepo.update(id, data);
+    return this.findOne(id);
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.assessmentRepo.delete(id);
+  }
+
   async submitAssessment(attemptId: string, answers: any[]) {
     const attempt = await this.attemptRepo.findOne({
       where: { id: attemptId },
