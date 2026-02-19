@@ -15,6 +15,7 @@ import { SyncModule } from './sync/sync.module';
 import { MediaModule } from './media/media.module';
 import { BackupModule } from './backup/backup.module';
 import { QueueModule } from './queues/queue.module';
+import { GraphQLModule } from './graphql/graphql.module';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -60,6 +61,7 @@ import * as redisStore from 'cache-manager-redis-store';
     MediaModule,
     BackupModule,
     QueueModule,
+    GraphQLModule,
   ],
   controllers: [AppController],
   providers: [

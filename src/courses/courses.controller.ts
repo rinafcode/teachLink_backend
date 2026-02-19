@@ -25,7 +25,7 @@ export class CoursesController {
     // But service expects User entity.
     // We'll mock it here for simplicity of the API implementation task
     const user = { id: '00000000-0000-0000-0000-000000000000' } as any; 
-    return this.coursesService.create(createCourseDto, user);
+    return this.coursesService.create({ ...createCourseDto, instructorId: user.id });
   }
 
   @Get()

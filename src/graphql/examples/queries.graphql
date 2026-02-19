@@ -1,0 +1,245 @@
+# ============================================
+# USER QUERIES
+# ============================================
+
+# Get a single user by ID
+query GetUser($id: ID!) {
+  user(id: $id) {
+    id
+    email
+    username
+    firstName
+    lastName
+    role
+    status
+    profilePicture
+    isEmailVerified
+    lastLoginAt
+    createdAt
+    updatedAt
+  }
+}
+
+# Get current authenticated user
+query GetCurrentUser {
+  me {
+    id
+    email
+    firstName
+    lastName
+    role
+    courses {
+      id
+      title
+      status
+    }
+  }
+}
+
+# Get all users with filtering
+query GetUsers($filter: UserFilterInput) {
+  users(filter: $filter) {
+    id
+    email
+    firstName
+    lastName
+    role
+    status
+    createdAt
+  }
+}
+
+# Get user with nested courses
+query GetUserWithCourses($id: ID!) {
+  user(id: $id) {
+    id
+    firstName
+    lastName
+    courses {
+      id
+      title
+      description
+      price
+      status
+      thumbnailUrl
+      createdAt
+    }
+  }
+}
+
+# ============================================
+# COURSE QUERIES
+# ============================================
+
+# Get a single course by ID
+query GetCourse($id: ID!) {
+  course(id: $id) {
+    id
+    title
+    description
+    price
+    status
+    thumbnailUrl
+    instructor {
+      id
+      firstName
+      lastName
+      email
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+# Get all courses with filtering
+query GetCourses($filter: CourseFilterInput) {
+  courses(filter: $filter) {
+    id
+    title
+    description
+    price
+    status
+    thumbnailUrl
+    instructor {
+      id
+      firstName
+      lastName
+    }
+    createdAt
+  }
+}
+
+# Get courses by current user (instructor)
+query GetMyCourses {
+  myCourses {
+    id
+    title
+    description
+    price
+    status
+    createdAt
+  }
+}
+
+# Search courses by title
+query SearchCourses($search: String!) {
+  courses(filter: { search: $search }) {
+    id
+    title
+    description
+    price
+    instructor {
+      firstName
+      lastName
+    }
+  }
+}
+
+# Get published courses only
+query GetPublishedCourses {
+  courses(filter: { status: "published" }) {
+    id
+    title
+    description
+    price
+    thumbnailUrl
+    instructor {
+      id
+      firstName
+      lastName
+    }
+  }
+}
+
+# ============================================
+# ASSESSMENT QUERIES
+# ============================================
+
+# Get a single assessment by ID
+query GetAssessment($id: ID!) {
+  assessment(id: $id) {
+    id
+    title
+    description
+    durationMinutes
+    questions {
+      id
+      prompt
+      type
+      options
+      points
+    }
+    createdAt
+  }
+}
+
+# Get all assessments
+query GetAssessments {
+  assessments {
+    id
+    title
+    description
+    durationMinutes
+    createdAt
+  }
+}
+
+# Get assessment with full question details
+query GetAssessmentWithQuestions($id: ID!) {
+  assessment(id: $id) {
+    id
+    title
+    description
+    durationMinutes
+    questions {
+      id
+      prompt
+      type
+      options
+      correctAnswer
+      points
+    }
+  }
+}
+
+# ============================================
+# COMPLEX NESTED QUERIES
+# ============================================
+
+# Get instructor with all course details
+query GetInstructorProfile($id: ID!) {
+  user(id: $id) {
+    id
+    firstName
+    lastName
+    email
+    profilePicture
+    role
+    courses {
+      id
+      title
+      description
+      price
+      status
+      thumbnailUrl
+      createdAt
+    }
+  }
+}
+
+# Get multiple courses with instructor info
+query GetCoursesWithInstructors {
+  courses {
+    id
+    title
+    price
+    status
+    instructor {
+      id
+      firstName
+      lastName
+      email
+      profilePicture
+    }
+  }
+}
