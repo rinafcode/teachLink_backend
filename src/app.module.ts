@@ -14,6 +14,8 @@ import { MetricsCollectionService } from './monitoring/metrics/metrics-collectio
 import { SyncModule } from './sync/sync.module';
 import { MediaModule } from './media/media.module';
 import { BackupModule } from './backup/backup.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
+import { DataWarehouseModule } from './data-warehouse/data-warehouse.module';
 import { QueueModule } from './queues/queue.module';
 import { GraphQLModule } from './graphql/graphql.module';
 import { MigrationModule } from './migrations/migration.module';
@@ -61,6 +63,8 @@ import * as redisStore from 'cache-manager-redis-store';
     SyncModule,
     MediaModule,
     BackupModule,
+    CollaborationModule,
+    DataWarehouseModule,
     QueueModule,
     GraphQLModule,
     MigrationModule,
