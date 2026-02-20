@@ -20,6 +20,7 @@ import { QueueModule } from './queues/queue.module';
 import { GraphQLModule } from './graphql/graphql.module';
 import { MigrationModule } from './migrations/migration.module';
 import { ABTestingModule } from './ab-testing/ab-testing.module';
+import { ObservabilityModule } from './observability/observability.module';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -70,6 +71,7 @@ import * as redisStore from 'cache-manager-redis-store';
     GraphQLModule,
     MigrationModule,
     ABTestingModule,
+    ObservabilityModule,
   ],
   controllers: [AppController],
   providers: [
