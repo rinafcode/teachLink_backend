@@ -24,6 +24,7 @@ import { ObservabilityModule } from './observability/observability.module';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
+import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import * as redisStore from 'cache-manager-redis-store';
 
 @Module({
@@ -72,6 +73,7 @@ import * as redisStore from 'cache-manager-redis-store';
     MigrationModule,
     ABTestingModule,
     ObservabilityModule,
+    RateLimitingModule,
   ],
   controllers: [AppController],
   providers: [
