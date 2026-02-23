@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
