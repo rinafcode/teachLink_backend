@@ -1,12 +1,8 @@
 import { IsString, IsOptional, IsNumber } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 
-export class CourseSearchDto {
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  search?: string;
-
+export class CourseSearchDto extends PaginationQueryDto {
   @ApiPropertyOptional()
   @IsNumber()
   @IsOptional()
@@ -17,16 +13,11 @@ export class CourseSearchDto {
   @IsOptional()
   maxPrice?: number;
 
-  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  @IsOptional()
   status?: string;
-  
-  @ApiPropertyOptional()
-  @IsOptional()
-  page?: number = 1;
 
-  @ApiPropertyOptional()
   @IsOptional()
-  limit?: number = 10;
+  @IsString()
+  instructorId?: string;
 }
