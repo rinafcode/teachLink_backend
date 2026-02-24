@@ -15,6 +15,10 @@ async function bootstrap() {
   // ─── Global Response Transform Interceptor ───────────────────────────────
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
+  // ─── Global Timeout Interceptor ─────────────────────────────────────────
+  const { TimeoutInterceptor } = await import('./common/interceptors/timeout.interceptor');
+  app.useGlobalInterceptors(new TimeoutInterceptor());
+
   // ─── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors();
 
