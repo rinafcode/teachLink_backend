@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
+import { GetUsersDto } from './dto/get-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -35,7 +41,7 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
 
-  async findAll(filter?: any): Promise<User[]> {
+  async findAll(filter?: GetUsersDto): Promise<PaginatedResponse<User>> {
     const query = this.userRepository.createQueryBuilder('user');
 
     if (filter?.role) {
@@ -53,7 +59,7 @@ export class UsersService {
       );
     }
 
-    return await query.getMany();
+    return await paginate(query, filter);
   }
 
   async findByIds(ids: string[]): Promise<User[]> {
@@ -74,11 +80,15 @@ export class UsersService {
   }
 
   async findByPasswordResetToken(token: string): Promise<User | null> {
-    return await this.userRepository.findOne({ where: { passwordResetToken: token } });
+    return await this.userRepository.findOne({
+      where: { passwordResetToken: token },
+    });
   }
 
   async findByEmailVerificationToken(token: string): Promise<User | null> {
-    return await this.userRepository.findOne({ where: { emailVerificationToken: token } });
+    return await this.userRepository.findOne({
+      where: { emailVerificationToken: token },
+    });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -93,7 +103,10 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
 
-  async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
+  async updateRefreshToken(
+    userId: string,
+    refreshToken: string | null,
+  ): Promise<void> {
     await this.userRepository.update(userId, { refreshToken });
   }
 

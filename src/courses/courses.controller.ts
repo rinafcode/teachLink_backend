@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -19,13 +28,16 @@ export class CoursesController {
   ) {}
 
   @Post()
-  create(@Body() createCourseDto: CreateCourseDto, @Request() req) {
+  create(@Body() createCourseDto: CreateCourseDto) {
     // In a real app, user comes from req.user (JWT)
     // For now, we'll assume a user is passed or we create a dummy one in service if needed
     // But service expects User entity.
     // We'll mock it here for simplicity of the API implementation task
-    const user = { id: '00000000-0000-0000-0000-000000000000' } as any; 
-    return this.coursesService.create({ ...createCourseDto, instructorId: user.id });
+    const user = { id: '00000000-0000-0000-0000-000000000000' } as any;
+    return this.coursesService.create({
+      ...createCourseDto,
+      instructorId: user.id,
+    });
   }
 
   @Get()
@@ -35,7 +47,7 @@ export class CoursesController {
 
   @Get('analytics')
   getAnalytics() {
-      return this.coursesService.getAnalytics();
+    return this.coursesService.getAnalytics();
   }
 
   @Get(':id')
@@ -55,22 +67,28 @@ export class CoursesController {
 
   // Modules
   @Post(':id/modules')
-  createModule(@Param('id') courseId: string, @Body() createModuleDto: CreateModuleDto) {
-      createModuleDto.courseId = courseId;
-      return this.modulesService.create(createModuleDto);
+  createModule(
+    @Param('id') courseId: string,
+    @Body() createModuleDto: CreateModuleDto,
+  ) {
+    createModuleDto.courseId = courseId;
+    return this.modulesService.create(createModuleDto);
   }
 
   // Lessons
   @Post('modules/:moduleId/lessons')
-  createLesson(@Param('moduleId') moduleId: string, @Body() createLessonDto: CreateLessonDto) {
-      createLessonDto.moduleId = moduleId;
-      return this.lessonsService.create(createLessonDto);
+  createLesson(
+    @Param('moduleId') moduleId: string,
+    @Body() createLessonDto: CreateLessonDto,
+  ) {
+    createLessonDto.moduleId = moduleId;
+    return this.lessonsService.create(createLessonDto);
   }
 
   // Enrollments
   @Post(':id/enroll')
-  enroll(@Param('id') courseId: string, @Request() req) {
-      const userId = '00000000-0000-0000-0000-000000000000'; // Placeholder
-      return this.enrollmentsService.enroll(userId, courseId);
+  enroll(@Param('id') courseId: string) {
+    const userId = '00000000-0000-0000-0000-000000000000'; // Placeholder
+    return this.enrollmentsService.enroll(userId, courseId);
   }
 }

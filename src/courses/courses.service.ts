@@ -2,10 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from './entities/course.entity';
-import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
 import { CourseSearchDto } from './dto/course-search.dto';
-import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class CoursesService {
@@ -23,13 +22,16 @@ export class CoursesService {
     return Array.isArray(saved) ? saved[0] : saved;
   }
 
-  async findAll(filter?: any): Promise<Course[]> {
+  async findAll(filter?: CourseSearchDto): Promise<PaginatedResponse<Course>> {
     const query = this.coursesRepository.createQueryBuilder('course');
-    
+
     query.leftJoinAndSelect('course.instructor', 'instructor');
 
     if (filter?.search) {
-      query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', { search: `%${filter.search}%` });
+      query.andWhere(
+        '(course.title ILIKE :search OR course.description ILIKE :search)',
+        { search: `%${filter.search}%` },
+      );
     }
 
     if (filter?.status) {
@@ -37,12 +39,14 @@ export class CoursesService {
     }
 
     if (filter?.instructorId) {
-      query.andWhere('course.instructorId = :instructorId', { instructorId: filter.instructorId });
+      query.andWhere('course.instructorId = :instructorId', {
+        instructorId: filter.instructorId,
+      });
     }
 
     query.orderBy('course.createdAt', 'DESC');
 
-    return await query.getMany();
+    return await paginate(query, filter);
   }
 
   async findByIds(ids: string[]): Promise<Course[]> {
@@ -72,12 +76,12 @@ export class CoursesService {
       relations: ['instructor', 'modules', 'modules.lessons'],
       order: {
         modules: {
+          order: 'ASC',
+          lessons: {
             order: 'ASC',
-            lessons: {
-                order: 'ASC'
-            }
-        } as any
-      }
+          },
+        } as any,
+      },
     });
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
@@ -97,19 +101,21 @@ export class CoursesService {
   }
 
   async getAnalytics(): Promise<any> {
-      const totalCourses = await this.coursesRepository.count();
-      const publishedCourses = await this.coursesRepository.count({ where: { status: 'published' } });
-      
-      const { totalEnrollments } = await this.coursesRepository
-        .createQueryBuilder('course')
-        .leftJoin('course.enrollments', 'enrollment')
-        .select('COUNT(enrollment.id)', 'totalEnrollments')
-        .getRawOne();
+    const totalCourses = await this.coursesRepository.count();
+    const publishedCourses = await this.coursesRepository.count({
+      where: { status: 'published' },
+    });
 
-      return {
-          totalCourses,
-          publishedCourses,
-          totalEnrollments: parseInt(totalEnrollments) || 0
-      };
+    const { totalEnrollments } = await this.coursesRepository
+      .createQueryBuilder('course')
+      .leftJoin('course.enrollments', 'enrollment')
+      .select('COUNT(enrollment.id)', 'totalEnrollments')
+      .getRawOne();
+
+    return {
+      totalCourses,
+      publishedCourses,
+      totalEnrollments: parseInt(totalEnrollments) || 0,
+    };
   }
 }
