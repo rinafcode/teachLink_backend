@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
+import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -10,6 +11,9 @@ async function bootstrap() {
 
   // ─── Global Exception Filter ──────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // ─── Global Response Transform Interceptor ───────────────────────────────
+  app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors();
