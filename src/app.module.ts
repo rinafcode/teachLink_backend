@@ -27,11 +27,14 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import * as redisStore from 'cache-manager-redis-store';
+import { envValidationSchema } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validationSchema: envValidationSchema,
+
     }),
     TypeOrmModule.forRootAsync({
       imports: [MonitoringModule],
