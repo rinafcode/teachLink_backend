@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
-import { ApiError, ValidationErrorDetail } from '../interfaces/api-error.interface';
+import { ApiError, ValidationErrorDetail } from '../../interfaces/api-error.interface';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -198,7 +198,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         'constraints' in item
       ) {
         acc.push({
-          field: (item as { property: string }).property,
+          property: (item as { property: string }).property,
           constraints: (item as { constraints: Record<string, string> })
             .constraints,
         });
