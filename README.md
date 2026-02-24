@@ -1,9 +1,91 @@
-
 # 🧠 TeachLink Backend
+
+[![CI](https://github.com/teachlink/backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teachlink/backend/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-70%25%20threshold-brightgreen)](#-ci--testing)
+[![Branch Protection](https://img.shields.io/badge/branch%20protection-enabled-blue)](#-branch-protection)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
+
+> **Replace** `teachlink/backend` in the badge URLs above with your actual `org/repo` slug once the repository is on GitHub.
+
 **TeachLink** is a decentralized platform built to enable technocrats to **share, analyze, and monetize knowledge, skills, and ideas**. This repository contains the **backend API** built with **NestJS**, **TypeORM**, and powered by **Starknet** and **PostgreSQL**, serving as the core of the TeachLink ecosystem.
 
-This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features. 
+This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features.
 
+---
+
+## 🔁 CI / Testing
+
+Every pull request and every push to `main` / `develop` runs an automated pipeline defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+### Pipeline stages
+
+| Stage          | Tool             | Fails on                                  |
+| -------------- | ---------------- | ----------------------------------------- |
+| **Install**    | `npm ci`         | Dependency resolution error               |
+| **Lint**       | ESLint           | Any warning or error (`--max-warnings 0`) |
+| **Format**     | Prettier         | Any file that would be reformatted        |
+| **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
+| **Build**      | NestJS CLI       | Compilation failure                       |
+| **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
+| **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
+
+### Running checks locally
+
+```bash
+# Lint (auto-fix)
+npm run lint
+
+# Lint (CI-strict, no auto-fix)
+npm run lint:ci
+
+# Format check (no rewrite)
+npm run format:check
+
+# TypeScript type check only
+npm run typecheck
+
+# Unit tests with coverage report
+npm run test:ci
+
+# E2E tests (requires Postgres + Redis running locally)
+npm run test:e2e
+```
+
+### Coverage thresholds
+
+Configured in `jest.config.js`. The pipeline fails if **any** global metric falls below:
+
+| Metric     | Threshold |
+| ---------- | --------- |
+| Statements | 70 %      |
+| Branches   | 70 %      |
+| Functions  | 70 %      |
+| Lines      | 70 %      |
+
+Coverage HTML report is uploaded as a GitHub Actions artifact (`coverage-report`) on every run.
+
+---
+
+## 🔒 Branch Protection
+
+Both `main` and `develop` are protected. Direct pushes are disabled for **everyone including admins**.
+
+| Rule                                | `main`                   | `develop`   |
+| ----------------------------------- | ------------------------ | ----------- |
+| Required PR approvals               | **2** (incl. code owner) | **1**       |
+| Dismiss stale reviews on new commit | ✅                       | ✅          |
+| Required status check               | `CI Passed`              | `CI Passed` |
+| Branch must be up to date           | ✅                       | ✅          |
+| All conversations resolved          | ✅                       | ✅          |
+| Squash merge only                   | ✅                       | ✅          |
+| Force push                          | ❌                       | ❌          |
+| Branch deletion                     | ❌                       | ❌          |
+
+Rules are defined in code in [`.github/workflows/branch-protection.yml`](.github/workflows/branch-protection.yml) and can be re-applied to any new repository by running the **Bootstrap Branch Protection** workflow manually from the Actions tab.
+
+For the full contribution and review policy, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
 
 ## 📁 Project Structure
 
@@ -24,38 +106,37 @@ src/
 └── main.ts              # Entry point
 ```
 
-
 ## 🔧 Project Overview
 
 TeachLink Backend provides secure and scalable APIs to power features such as:
 
-- 🧾 Post creation, editing, and markdown parsing  
-- 🧠 Topic discovery and categorization  
-- 👥 User account management with wallet login  
-- 💸 On-chain tipping and transaction logging  
-- 🎖️ Gamified reputation and contribution tracking  
-- 🔔 Real-time notifications via WebSockets  
-- 📊 Analytics and activity insights  
-- 🧾 DAO integration for content moderation and governance  
+- 🧾 Post creation, editing, and markdown parsing
+- 🧠 Topic discovery and categorization
+- 👥 User account management with wallet login
+- 💸 On-chain tipping and transaction logging
+- 🎖️ Gamified reputation and contribution tracking
+- 🔔 Real-time notifications via WebSockets
+- 📊 Analytics and activity insights
+- 🧾 DAO integration for content moderation and governance
 
 ## 📊 Architecture
+
 ## ⚙️ Tech Stack
 
-| Layer          | Technology                      |
-|----------------|----------------------------------|
-| Framework      | NestJS                          |
-| Database       | PostgreSQL + TypeORM            |
-| Blockchain     | Starknet + Starknet.js          |
-| Realtime       | WebSockets (Gateway)            |
-| Queues/Async   | BullMQ + Redis (optional)       |
-| File Uploads   | Cloudinary                      |
-| Config Mgmt    | @nestjs/config                  |
-| Testing        | Jest + Supertest                |
-| Auth           | JWT + Wallet Sign-In            |
-| Deployment     | Docker, Railway, or Fly.io      |
-|File Upload     | Cloudinary                      |
-|Documentation   | Swagger                         |
-
+| Layer         | Technology                 |
+| ------------- | -------------------------- |
+| Framework     | NestJS                     |
+| Database      | PostgreSQL + TypeORM       |
+| Blockchain    | Starknet + Starknet.js     |
+| Realtime      | WebSockets (Gateway)       |
+| Queues/Async  | BullMQ + Redis (optional)  |
+| File Uploads  | Cloudinary                 |
+| Config Mgmt   | @nestjs/config             |
+| Testing       | Jest + Supertest           |
+| Auth          | JWT + Wallet Sign-In       |
+| Deployment    | Docker, Railway, or Fly.io |
+| File Upload   | Cloudinary                 |
+| Documentation | Swagger                    |
 
 ## 🚀 Deployment
 
@@ -72,7 +153,6 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 2. Run `npm i`
 3. Start: `npm run start:dev` or Docker Compose
 4. Swagger: `http://localhost:3000/api`
-
 
 ## 🤝 Contribution
 
@@ -97,7 +177,6 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 
 - [Telegram](t.me/teachlinkOD)
 
-
 ## 📁 Folder Structure
 
 /src
@@ -120,6 +199,7 @@ Edit
 ## 🛠 Setup Instructions
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/teachlink/backend.git
 cd backend
@@ -208,3 +288,4 @@ Edit
 npm run test
 📜 License
 MIT © 2025 TeachLink DAO
+```

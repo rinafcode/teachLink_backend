@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+# .husky/commit-msg
+#
+# Validates the commit message against the Conventional Commits spec.
+# Requires `commitlint` — installed as a devDependency.
+#
+# Valid formats:
+#   feat(auth): add wallet refresh token rotation (#42)
+#   fix(payments): resolve stripe webhook signature check (#88)
+#   chore(deps): upgrade NestJS to v11 (#55)
+#   ci: add coverage threshold to pipeline (#12)
+#
+# See commitlint.config.js for the full rule set.
+
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "📝 Validating commit message..."
+
+npx --no -- commitlint --edit "$1"
+
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+  echo ""
+  echo "❌ Commit message does not follow the Conventional Commits format."
+  echo ""
+  echo "   Required format:"
+  echo "   <type>(<scope>): <description> (#<issue-number>)"
+  echo ""
+  echo "   Examples:"
+  echo "   feat(auth): add wallet refresh token rotation (#42)"
+  echo "   fix(notifications): resolve race condition on reconnect (#88)"
+  echo "   chore(deps): upgrade NestJS to v11 (#55)"
+  echo ""
+  echo "   Valid types: feat, fix, refactor, test, chore, docs, perf, ci, revert"
+  echo "   See CONTRIBUTING.md for the full convention."
+  echo ""
+  exit 1
+fi
+
+echo "✅ Commit message is valid."
