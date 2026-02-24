@@ -28,6 +28,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import * as redisStore from 'cache-manager-redis-store';
 import { envValidationSchema } from './config/env.validation';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { envValidationSchema } from './config/env.validation';
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
     }),
+    HealthModule,
     SyncModule,
     MediaModule,
     BackupModule,
