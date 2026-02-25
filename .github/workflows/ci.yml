@@ -100,11 +100,35 @@ jobs:
         with:
           path: node_modules
           key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx jest --config jest.config.js --coverage --forceExit --runInBand
+      - run: npm run test:ci
         env:
           NODE_ENV: test
           JWT_SECRET: ci-test-secret
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/teachlink_test
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = 'coverage/coverage-summary.json';
+          if (!fs.existsSync(path)) {
+            console.log('Coverage summary file not found.');
+            process.exit(0);
+          }
+          const s = JSON.parse(fs.readFileSync(path, 'utf8')).total;
+          const row = (name, metric) => '| ' + name + ' | ' + metric.pct.toFixed(2) + '% | ' + metric.covered + '/' + metric.total + ' |';
+          const summary = [
+            '## Coverage Summary',
+            '',
+            '| Metric | Percentage | Covered/Total |',
+            '|---|---:|---:|',
+            row('Lines', s.lines),
+            row('Statements', s.statements),
+            row('Functions', s.functions),
+            row('Branches', s.branches),
+          ].join('\n');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n');
+          "
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: coverage-report, path: coverage/, retention-days: 7 }
