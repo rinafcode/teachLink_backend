@@ -12,10 +12,7 @@ type ScenarioCallbacks = {
   unauthorized: () => Promise<unknown>;
 };
 
-export function runStandardHttpScenarios(
-  suiteName: string,
-  scenarios: ScenarioCallbacks,
-) {
+export function runStandardHttpScenarios(suiteName: string, scenarios: ScenarioCallbacks) {
   describe(suiteName, () => {
     it('handles success scenarios', async () => {
       await expectSuccess(scenarios.success);

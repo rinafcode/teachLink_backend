@@ -1,17 +1,9 @@
-import {
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
-import {
-  expectNotFound,
-  expectUnauthorized,
-  expectValidationFailure,
-} from '../../test/utils';
+import { expectNotFound, expectUnauthorized, expectValidationFailure } from '../../test/utils';
 
 describe('PaymentsController', () => {
   let controller: PaymentsController;
@@ -50,18 +42,13 @@ describe('PaymentsController', () => {
       requiresAction: false,
     });
 
-    await expect(
-      controller.createPaymentIntent(request, createPaymentDto),
-    ).resolves.toMatchObject({
+    await expect(controller.createPaymentIntent(request, createPaymentDto)).resolves.toMatchObject({
       paymentId: 'payment-1',
       clientSecret: 'cs_123',
       requiresAction: false,
     });
 
-    expect(paymentsService.createPaymentIntent).toHaveBeenCalledWith(
-      'user-1',
-      createPaymentDto,
-    );
+    expect(paymentsService.createPaymentIntent).toHaveBeenCalledWith('user-1', createPaymentDto);
   });
 
   it('returns validation failure for invalid refund request', async () => {
@@ -75,9 +62,7 @@ describe('PaymentsController', () => {
   });
 
   it('returns not found when invoice is missing', async () => {
-    paymentsService.getInvoice.mockRejectedValue(
-      new NotFoundException('Payment not found'),
-    );
+    paymentsService.getInvoice.mockRejectedValue(new NotFoundException('Payment not found'));
 
     await expectNotFound(() => controller.getInvoice('missing', request));
   });
@@ -87,8 +72,6 @@ describe('PaymentsController', () => {
       new UnauthorizedException('Invalid token'),
     );
 
-    await expectUnauthorized(() =>
-      controller.createPaymentIntent(request, createPaymentDto),
-    );
+    await expectUnauthorized(() => controller.createPaymentIntent(request, createPaymentDto));
   });
 });

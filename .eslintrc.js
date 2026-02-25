@@ -90,7 +90,7 @@ module.exports = {
     'no-shadow': 'off',
     '@typescript-eslint/no-shadow': 'warn',
     'no-return-await': 'off',
-    '@typescript-eslint/return-await': ['warn', 'in-try-catch'],
+    '@typescript-eslint/return-await': 'off',
 
     // ── NestJS best practices ─────────────────────────────────────────────────
     '@typescript-eslint/no-unsafe-return': 'off',

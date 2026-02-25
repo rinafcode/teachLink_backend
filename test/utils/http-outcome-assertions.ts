@@ -1,9 +1,6 @@
 import { HttpException } from '@nestjs/common';
 
-export async function expectHttpError(
-  callback: () => Promise<unknown>,
-  statusCode: number,
-) {
+export async function expectHttpError(callback: () => Promise<unknown>, statusCode: number) {
   await expect(callback()).rejects.toMatchObject({
     status: statusCode,
   });
@@ -25,10 +22,7 @@ export async function expectUnauthorized(callback: () => Promise<unknown>) {
   await expectHttpError(callback, 401);
 }
 
-export function expectHttpExceptionWithMessage(
-  error: unknown,
-  message: string,
-) {
+export function expectHttpExceptionWithMessage(error: unknown, message: string) {
   expect(error).toBeInstanceOf(HttpException);
   expect((error as HttpException).message).toContain(message);
 }

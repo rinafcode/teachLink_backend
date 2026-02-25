@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Invoice } from './entities/invoice.entity';
@@ -12,11 +8,7 @@ import { Subscription } from './entities/subscription.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentsService } from './payments.service';
 import { User } from '../users/entities/user.entity';
-import {
-  expectNotFound,
-  expectUnauthorized,
-  expectValidationFailure,
-} from '../../test/utils';
+import { expectNotFound, expectUnauthorized, expectValidationFailure } from '../../test/utils';
 
 type RepoMock = {
   create: jest.Mock;
@@ -115,9 +107,7 @@ describe('PaymentsService', () => {
   it('returns not found when user does not exist', async () => {
     userRepository.findOne.mockResolvedValue(null);
 
-    await expectNotFound(() =>
-      service.createPaymentIntent('missing-user', baseCreatePaymentDto),
-    );
+    await expectNotFound(() => service.createPaymentIntent('missing-user', baseCreatePaymentDto));
   });
 
   it('returns not found when refund payment does not exist', async () => {
@@ -154,9 +144,7 @@ describe('PaymentsService', () => {
         .mockRejectedValue(new UnauthorizedException('Invalid provider token')),
     });
 
-    await expectUnauthorized(() =>
-      service.createPaymentIntent('user-1', baseCreatePaymentDto),
-    );
+    await expectUnauthorized(() => service.createPaymentIntent('user-1', baseCreatePaymentDto));
   });
 
   it('uses pagination offset for user payment history', async () => {
