@@ -235,39 +235,44 @@ Every PR must satisfy **all** of the following before a reviewer will read the c
 
 ### Checklist (enforced via PR template)
 
-```
-Linked issue
-  [ ] This PR closes #<issue-number>
+The GitHub pull request template (`.github/pull_request_template.md`) is **required for all contributors**.  
+Do not delete sections or checklist items. Unchecked items without a clear explanation in the PR description are treated as **merge blockers**.
 
-Branch
-  [ ] Branch is up to date with the target branch (develop or main)
-  [ ] Branch name follows the convention: feature/issue-<N>-<slug>
+Key items the template enforces:
 
-Commits
-  [ ] All commits follow the Conventional Commits format
-  [ ] Each commit references the issue number
+- **Linked issue**
+  - [ ] This PR closes `#<issue-number>` using `Closes #<N>` / `Fixes #<N>` / `Resolves #<N>`
 
-Code quality
-  [ ] npm run lint:ci passes with zero warnings
-  [ ] npm run format:check passes
-  [ ] npm run typecheck passes with zero errors
-  [ ] All new code has unit tests
-  [ ] npm run test:ci passes and coverage threshold is maintained
+- **Branch & commits**
+  - [ ] Branch is up to date with the target branch (`develop` or `main`)
+  - [ ] Branch name follows the convention: `feature/issue-<N>-<slug>` / `fix/issue-<N>-<slug>` / `hotfix/issue-<N>-<slug>`
+  - [ ] All commits and the PR title follow the Conventional Commits format and include the issue number
 
-Testing
-  [ ] New service methods have corresponding .spec.ts tests
-  [ ] New API endpoints are covered by at least one e2e test
-  [ ] No existing tests were deleted without justification
+- **Code quality & tests**
+  - [ ] `npm run lint:ci` passes with zero warnings
+  - [ ] `npm run format:check` passes
+  - [ ] `npm run typecheck` passes with zero errors
+  - [ ] `npm run test:ci` passes and coverage threshold is maintained
+  - [ ] All new code paths have appropriate unit and/or e2e tests
 
-Documentation
-  [ ] JSDoc added for all public service methods
-  [ ] Swagger decorators added for all new controller endpoints
-  [ ] README / CONTRIBUTING updated if behaviour changes
+- **Error handling & NestJS best practices**
+  - [ ] DTOs use `class-validator` / `class-transformer` and are wired through NestJS validation pipes
+  - [ ] Inputs are validated at controller/module boundaries (no unvalidated raw payloads reaching services)
+  - [ ] Proper NestJS HTTP exceptions are thrown instead of generic `Error`
+  - [ ] Logging uses the shared logger with meaningful, structured messages
+  - [ ] Guards (auth/role/permission or custom) protect all endpoints that require authentication/authorization
 
-Breaking changes
-  [ ] If this PR introduces a breaking API change, it is noted
-      in the PR description and the issue is flagged "breaking-change"
-```
+- **Documentation / Swagger**
+  - [ ] Swagger / OpenAPI decorators are present and updated for all new/changed endpoints, including error responses
+  - [ ] The author has verified locally that Swagger (e.g. `/api`) reflects the changes
+  - [ ] `README.md` or `CONTRIBUTING.md` is updated if contributor workflow or API behaviour changes
+
+- **Breaking changes**
+  - [ ] Any breaking API change is explicitly called out in the dedicated template section
+  - [ ] The linked issue is flagged with an appropriate label (for example, `breaking-change`)
+
+In addition, the template includes a **Test evidence** section where authors must paste the exact commands run and any relevant manual/API verification steps.  
+PRs without concrete test evidence will be asked for changes and are not eligible for approval.
 
 ### PR title format
 
@@ -323,6 +328,7 @@ Reviewers are expected to check:
 - Security — no secrets in code, input validation present, auth guards applied
 - Test coverage — all new paths have tests
 - API contract — no silent breaking changes to existing endpoints
+- Error handling — DTO validation, proper NestJS HTTP exceptions, logging via the shared logger, guards/filters applied consistently
 - Module boundaries — NestJS dependency injection used correctly
 - Performance — no N+1 queries, no unbounded loops on collections from DB
 
