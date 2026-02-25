@@ -1,28 +1,37 @@
 import { Injectable } from '@nestjs/common';
-import { ThrottlingService } from './throttling/throttling.service';
-import { QuotaManagementService } from './quota/quota-management.service';
-import { AdaptiveRateLimitingService } from './adaptive/adaptive-rate-limiting.service';
-import { DistributedLimiterService } from './distributed/distributed-limiter.service';
+import { ThrottlingService } from './services/throttling.service';
+import { UserTier } from './services/quota.service';
+import { CreateRateLimitingDto } from './dto/create-rate-limiting.dto';
+import { UpdateRateLimitingDto } from './dto/update-rate-limiting.dto';
 
 @Injectable()
 export class RateLimitingService {
-  constructor(
-    private readonly throttlingService: ThrottlingService,
-    private readonly quotaService: QuotaManagementService,
-    private readonly adaptiveService: AdaptiveRateLimitingService,
-    private readonly distributedService: DistributedLimiterService,
-  ) {}
+  create(createRateLimitingDto: CreateRateLimitingDto) {
+    throw new Error('Method not implemented.');
+  }
+  findAll() {
+    throw new Error('Method not implemented.');
+  }
+  findOne(arg0: number) {
+    throw new Error('Method not implemented.');
+  }
+  update(arg0: number, updateRateLimitingDto: UpdateRateLimitingDto) {
+    throw new Error('Method not implemented.');
+  }
+  remove(arg0: number) {
+    throw new Error('Method not implemented.');
+  }
+  constructor(private readonly throttlingService: ThrottlingService) {}
 
-  async isAllowed(userId: string, tier: string, endpoint: string, ip: string): Promise<boolean> {
-    // Bypass for premium users
-    if (tier === 'premium') return true;
-    // Distributed check
-    if (!(await this.distributedService.isAllowed(userId, endpoint))) return false;
-    // Adaptive check
-    if (!(await this.adaptiveService.isAllowed(userId, endpoint))) return false;
-    // Quota check
-    if (!(await this.quotaService.isAllowed(userId, tier, endpoint))) return false;
-    // Throttling (sliding window)
-    return this.throttlingService.isAllowed(userId, tier, endpoint, ip);
+  async protect(
+    userId: string,
+    tier: UserTier,
+    endpoint: string,
+  ) {
+    await this.throttlingService.handleRequest(
+      userId,
+      tier,
+      endpoint,
+    );
   }
 }

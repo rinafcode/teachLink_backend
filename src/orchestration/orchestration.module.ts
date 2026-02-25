@@ -1,10 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { ServiceMeshService } from './service-mesh/service-mesh.service';
 import { WorkflowEngineService } from './workflow/workflow-engine.service';
 import { DistributedLockService } from './locks/distributed-lock.service';
 import { ServiceDiscoveryService } from './discovery/service-discovery.service';
 import { HealthCheckerService } from './health/health-checker.service';
 
+@Global()
 @Module({
   providers: [
     ServiceMeshService,
@@ -21,4 +22,4 @@ import { HealthCheckerService } from './health/health-checker.service';
     HealthCheckerService,
   ],
 })
-export class OrchestrationModule {} 
+export class OrchestrationModule {}

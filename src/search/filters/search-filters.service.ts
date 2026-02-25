@@ -1,16 +1,43 @@
 import { Injectable } from '@nestjs/common';
+import { ElasticsearchService } from '@nestjs/elasticsearch';
 
 @Injectable()
 export class SearchFiltersService {
-  buildFilterQuery(filters: any) {
-    const filterClauses = [];
-    if (filters.category) {
-      filterClauses.push({ term: { category: filters.category } });
-    }
-    if (filters.level) {
-      filterClauses.push({ term: { level: filters.level } });
-    }
-    // Add more filters as needed
-    return filterClauses;
+  constructor(private readonly elasticsearchService: ElasticsearchService) {}
+
+  async getFilters() {
+    const result = await this.elasticsearchService.search({
+      index: 'courses',
+      body: {
+        size: 0,
+        aggs: {
+          categories: {
+            terms: { field: 'category' },
+          },
+          levels: {
+            terms: { field: 'level' },
+          },
+          price_ranges: {
+            range: {
+              field: 'price',
+              ranges: [
+                { to: 50 },
+                { from: 50, to: 100 },
+                { from: 100, to: 200 },
+                { from: 200 },
+              ],
+            },
+          },
+        },
+      },
+    });
+
+    const aggregations = result.aggregations || {};
+    
+    return {
+      categories: (aggregations.categories as any)?.buckets || [],
+      levels: (aggregations.levels as any)?.buckets || [],
+      priceRanges: (aggregations.price_ranges as any)?.buckets || [],
+    };
   }
-} 
+}

@@ -1,43 +1,24 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber, IsArray } from "class-validator"
+import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCourseDto {
+  @ApiProperty()
+  @IsString()
   @IsNotEmpty()
-  @IsString()
-  title: string
+  title: string;
 
+  @ApiProperty()
+  @IsString()
   @IsNotEmpty()
-  @IsString()
-  description: string
+  description: string;
 
-  @IsOptional()
-  @IsString()
-  thumbnail?: string
-
-  @IsOptional()
-  @IsBoolean()
-  isPublished?: boolean
-
-  @IsOptional()
+  @ApiProperty({ required: false })
   @IsNumber()
-  price?: number
-
   @IsOptional()
+  price?: number;
+
+  @ApiProperty({ required: false })
   @IsString()
-  duration?: string
-
   @IsOptional()
-  @IsString()
-  level?: string
-
-  @IsOptional()
-  @IsArray()
-  requirements?: string[]
-
-  @IsOptional()
-  @IsArray()
-  learningOutcomes?: string[]
-
-  @IsNotEmpty()
-  @IsString()
-  instructorId: string
+  thumbnailUrl?: string;
 }

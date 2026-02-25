@@ -1,64 +1,48 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm"
-import { Module } from "../modules/entities/module.entity"
-import { Enrollment } from "../enrollments/entities/enrollment.entity"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { CourseModule } from './course-module.entity';
+import { Enrollment } from './enrollment.entity';
 
-@Entity("courses")
+@Entity()
 export class Course {
-  @PrimaryGeneratedColumn("uuid")
-  id: string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  title: string
+  title: string;
 
-  @Column("text")
-  description: string
+  @Column('text')
+  description: string;
 
-  @Column({ nullable: true })
-  thumbnail: string
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  price: number;
 
-  @Column({ default: false })
-  isPublished: boolean
-
-  @Column({ default: 0 })
-  price: number
+  @Column({ default: 'draft' }) // draft, published, archived
+  status: string;
 
   @Column({ nullable: true })
-  duration: string
+  thumbnailUrl: string;
 
-  @Column({ nullable: true })
-  level: string
+  @ManyToOne(() => User, (user) => user.courses)
+  instructor: User;
 
-  @Column({ type: "jsonb", nullable: true })
-  requirements: string[]
+  @OneToMany(() => CourseModule, (module) => module.course)
+  modules: CourseModule[];
 
-  @Column({ type: "jsonb", nullable: true })
-  learningOutcomes: string[]
-
-  @Column({ nullable: true })
-  instructorId: string
-
-  @Column({ default: 0 })
-  enrollmentCount: number
-
-  @Column({ default: 0 })
-  averageRating: number
-
-  @OneToMany(
-    () => Module,
-    (module) => module.course,
-    { cascade: true },
-  )
-  modules: Module[]
-
-  @OneToMany(
-    () => Enrollment,
-    (enrollment) => enrollment.course,
-  )
-  enrollments: Enrollment[]
+  @OneToMany(() => Enrollment, (enrollment) => enrollment.course)
+  enrollments: Enrollment[];
 
   @CreateDateColumn()
-  createdAt: Date
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date
+  updatedAt: Date;
 }

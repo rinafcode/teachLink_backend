@@ -3,31 +3,46 @@ import { ElasticsearchService } from '@nestjs/elasticsearch';
 
 @Injectable()
 export class IndexingService {
-  constructor(private readonly esService: ElasticsearchService) {}
+  constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
-  async indexCourse(course: any) {
-    await this.esService.index({
-      index: 'courses',
-      id: course.id,
-      body: course,
+  async indexDocument(index: string, id: string, document: any) {
+    return this.elasticsearchService.index({
+      index,
+      id,
+      body: document,
     });
   }
 
-  async removeCourse(courseId: string) {
-    await this.esService.delete({
-      index: 'courses',
-      id: courseId,
+  async updateDocument(index: string, id: string, document: any) {
+    return this.elasticsearchService.update({
+      index,
+      id,
+      body: { doc: document },
     });
   }
 
-  async bulkIndexCourses(courses: any[]) {
-    if (!Array.isArray(courses) || courses.length === 0) return;
-    const body = courses.flatMap(course => [
-      { index: { _index: 'courses', _id: course.id } },
-      course,
+  async deleteDocument(index: string, id: string) {
+    return this.elasticsearchService.delete({
+      index,
+      id,
+    });
+  }
+
+  async createIndex(index: string, mapping: any) {
+    return this.elasticsearchService.indices.create({
+      index,
+      body: {
+        mappings: mapping,
+      },
+    });
+  }
+
+  async bulkIndex(documents: any[]) {
+    const body = documents.flatMap(doc => [
+      { index: { _index: 'courses', _id: doc.id } },
+      doc,
     ]);
-    await this.esService.bulk({ refresh: true, body });
+
+    return this.elasticsearchService.bulk({ body });
   }
-
-
-} 
+}

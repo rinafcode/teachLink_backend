@@ -3,25 +3,28 @@ import { ElasticsearchService } from '@nestjs/elasticsearch';
 
 @Injectable()
 export class AutoCompleteService {
-  constructor(private readonly esService: ElasticsearchService) {}
+  constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
-  async getSuggestions(prefix: string) {
-    const params = {
+  async getSuggestions(query: string) {
+    const result = await this.elasticsearchService.search({
       index: 'courses',
       body: {
         suggest: {
-          course_suggest: {
-            prefix,
+          title_suggest: {
+            text: query,
             completion: {
-              field: 'suggest',
-              fuzzy: { fuzziness: 1 },
-              size: 5,
+              field: 'title.suggest',
+              skip_duplicates: true,
+              size: 10,
             },
           },
         },
       },
-    } as any;
-    const result = await this.esService.search(params);
-    return (result.suggest.course_suggest[0].options as any[]).map(opt => opt.text);
+    });
+
+    const suggestions = result.suggest.title_suggest[0].options;
+    return Array.isArray(suggestions) 
+      ? suggestions.map((option: any) => option.text) 
+      : [];
   }
-} 
+}

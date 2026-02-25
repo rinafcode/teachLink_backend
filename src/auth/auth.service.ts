@@ -1,107 +1,245 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import { UsersService } from '../users/users.service';
-import { RegisterDto, LoginDto, ResetPasswordDto, UpdatePasswordDto } from './dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
-import { User } from '../users/entities/user.entity';
+import { UsersService } from '../users/users.service';
+import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './dto/auth.dto';
+import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
-    private jwt: JwtService,
-    private configService: ConfigService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto) {
-    const hashedPassword = await bcrypt.hash(dto.password, 12);
-    const user = await this.usersService.create({ ...dto, password: hashedPassword });
-    const tokens = await this.generateTokens(user.id, user.role);
-    await this.usersService.updateRefreshToken(user.id, tokens.refresh_token);
-    return tokens;
-  }
+  async register(registerDto: RegisterDto) {
+    // Create user
+    const user = await this.usersService.create(registerDto);
 
-  async login(dto: LoginDto) {
-    const user = await this.usersService.findByEmail(dto.email);
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    const tokens = await this.generateTokens(user.id, user.role);
-    await this.usersService.updateRefreshToken(user.id, tokens.refresh_token);
-    return tokens;
-  }
+    // Generate email verification token
+    const verificationToken = this.generateRandomToken();
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-  async logout(userId: string) {
-    return this.usersService.removeRefreshToken(userId);
-  }
-
-  async refreshTokens(userId: string, refreshToken: string) {
-    const user = await this.usersService.findById(userId);
-    if (!user || user.refreshToken !== refreshToken) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-    const tokens = await this.generateTokens(user.id, user.role);
-    await this.usersService.updateRefreshToken(user.id, tokens.refresh_token);
-    return tokens;
-  }
-
-  async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.usersService.findByEmail(dto.email);
-    if (!user) {
-      // Don't reveal that the email doesn't exist
-      return { message: 'If an account exists, a password reset link has been sent to your email' };
-    }
-
-    const resetToken = this.jwt.sign(
-      { sub: user.id, type: 'password_reset' },
-      {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: '1h',
-      },
+    await this.usersService.updateEmailVerificationToken(
+      user.id,
+      verificationToken,
+      verificationExpires,
     );
 
-    // TODO: Implement email sending service
-    // For now, we'll just return the token
+    // TODO: Send verification email
+    // await this.emailService.sendVerificationEmail(user.email, verificationToken);
+
+    // Generate tokens
+    const { accessToken, refreshToken } = await this.generateTokens(user);
+
+    // Save refresh token
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+
     return {
-      message: 'Password reset link has been sent to your email',
-      token: resetToken, // Remove this in production
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+      },
+      accessToken,
+      refreshToken,
+      message: 'Registration successful. Please check your email to verify your account.',
     };
   }
 
-  async updatePassword(dto: UpdatePasswordDto) {
+  async login(loginDto: LoginDto) {
+    // Find user
+    const user = await this.usersService.findByEmail(loginDto.email);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Check if user is active
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Account is not active');
+    }
+
+    // Update last login
+    await this.usersService.updateLastLogin(user.id);
+
+    // Generate tokens
+    const { accessToken, refreshToken } = await this.generateTokens(user);
+
+    // Save refresh token
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+      },
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async refreshToken(refreshToken: string) {
     try {
-      const payload = this.jwt.verify(dto.token, {
-        secret: this.configService.get('JWT_SECRET'),
+      // Verify refresh token
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
       });
 
-      if (payload.type !== 'password_reset') {
-        throw new BadRequestException('Invalid token type');
+      // Find user
+      const user = await this.usersService.findOne(payload.sub);
+      if (!user || !user.refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
       }
 
-      const hashedPassword = await bcrypt.hash(dto.newPassword, 12);
-      await this.usersService.updatePassword(payload.sub, hashedPassword);
-      await this.usersService.removeRefreshToken(payload.sub);
+      // Verify stored refresh token
+      const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
+      if (!isRefreshTokenValid) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
-      return { message: 'Password updated successfully' };
+      // Generate new tokens
+      const tokens = await this.generateTokens(user);
+
+      // Update refresh token
+      const hashedRefreshToken = await bcrypt.hash(tokens.refreshToken, 10);
+      await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+
+      return tokens;
     } catch (error) {
-      throw new BadRequestException('Invalid or expired token');
+      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  private async generateTokens(userId: string, role: string) {
-    const payload = { sub: userId, role };
-    const [access_token, refresh_token] = await Promise.all([
-      this.jwt.signAsync(payload, {
-        secret: this.configService.get('JWT_SECRET'),
-        expiresIn: '15m',
+  async logout(userId: string) {
+    await this.usersService.updateRefreshToken(userId, null);
+    return { message: 'Logout successful' };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      // Don't reveal if user exists
+      return { message: 'If the email exists, a password reset link has been sent.' };
+    }
+
+    // Generate reset token
+    const resetToken = this.generateRandomToken();
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.usersService.updatePasswordResetToken(user.id, resetToken, resetExpires);
+
+    // TODO: Send password reset email
+    // await this.emailService.sendPasswordResetEmail(user.email, resetToken);
+
+    return { message: 'If the email exists, a password reset link has been sent.' };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    // Find user by reset token
+    const user = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
+
+    if (!user || !user.passwordResetToken || !user.passwordResetExpires) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Check if token is expired
+    if (new Date() > user.passwordResetExpires) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Update password
+    await this.usersService.update(user.id, { password: resetPasswordDto.newPassword });
+
+    // Clear reset token
+    await this.usersService.updatePasswordResetToken(user.id, null, null);
+
+    return { message: 'Password has been reset successfully' };
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const user = await this.usersService.findOne(userId);
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Update password
+    await this.usersService.update(userId, { password: changePasswordDto.newPassword });
+
+    return { message: 'Password changed successfully' };
+  }
+
+  async verifyEmail(token: string) {
+    // Find user by verification token
+    const user = await this.usersService.findByEmailVerificationToken(token);
+
+    if (!user || !user.emailVerificationToken || !user.emailVerificationExpires) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Check if token is expired
+    if (new Date() > user.emailVerificationExpires) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Update user as verified
+    await this.usersService.update(user.id, { isEmailVerified: true } as any);
+
+    // Clear verification token
+    await this.usersService.updateEmailVerificationToken(user.id, null, null);
+
+    return { message: 'Email verified successfully' };
+  }
+
+  private async generateTokens(user: any) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_SECRET') || 'your-secret-key',
+        expiresIn: parseInt(this.configService.get<string>('JWT_EXPIRES_IN') || '900', 10), // 900s = 15m
       }),
-      this.jwt.signAsync(payload, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
-        expiresIn: '7d',
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
+        expiresIn: parseInt(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '604800', 10), // 604800s = 7d
       }),
     ]);
 
-    return { access_token, refresh_token };
+    return { accessToken, refreshToken };
+  }
+
+  private generateRandomToken(): string {
+    return randomBytes(32).toString('hex');
   }
 }

@@ -1,531 +1,372 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThan } from 'typeorm';
-import { AnomalyAlert, AnomalySeverity, AnomalyStatus, AnomalyType } from '../entities/anomaly-alert.entity';
-import { MetricEntry } from '../entities/metric-entry.entity';
-import { LogEntry, LogLevel } from '../entities/log-entry.entity';
-import { ObservabilityConfig } from '../observability.service';
-import { Cron } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { MetricsAnalysisService } from '../metrics/metrics-analysis.service';
+import { AnomalyDetectionResult } from '../interfaces/observability.interfaces';
 
-interface AnomalyRule {
-  id: string;
-  name: string;
-  type: AnomalyType;
-  metricName?: string;
-  threshold: number;
-  operator: 'gt' | 'lt' | 'eq' | 'ne';
-  timeWindow: number; // in minutes
-  severity: AnomalySeverity;
-  description: string;
-  enabled: boolean;
-}
-
-interface AnomalyDetectionAlgorithm {
-  detectStatisticalAnomalies(values: number[], threshold: number): boolean;
-  detectTrendAnomalies(values: number[], windowSize: number): boolean;
-  detectSeasonalAnomalies(values: number[], period: number): boolean;
-}
-
+/**
+ * Anomaly Detection Service
+ * Automatically detects unusual patterns in metrics and logs
+ */
 @Injectable()
-export class AnomalyDetectionService implements AnomalyDetectionAlgorithm {
+export class AnomalyDetectionService {
   private readonly logger = new Logger(AnomalyDetectionService.name);
-  private config: ObservabilityConfig;
-  private anomalyRules: AnomalyRule[] = [];
+  private anomalies: AnomalyDetectionResult[] = [];
+  private readonly MAX_ANOMALIES = 1000;
+
+  // Thresholds for anomaly detection
+  private readonly thresholds = {
+    errorRate: 5, // 5% error rate
+    responseTime: 5000, // 5 seconds
+    memoryUsage: 90, // 90% memory usage
+    cpuUsage: 85, // 85% CPU usage
+    queueBacklog: 1000, // 1000 jobs waiting
+    failureRate: 10, // 10% failure rate
+  };
 
   constructor(
-    @InjectRepository(AnomalyAlert)
-    private readonly anomalyAlertRepository: Repository<AnomalyAlert>,
-    @InjectRepository(MetricEntry)
-    private readonly metricEntryRepository: Repository<MetricEntry>,
-    @InjectRepository(LogEntry)
-    private readonly logEntryRepository: Repository<LogEntry>,
-    private readonly configService: ConfigService,
-    @InjectQueue('anomaly-detection') private readonly anomalyQueue: Queue,
-  ) {
-    this.initializeDefaultRules();
-  }
-
-  async initialize(config: ObservabilityConfig): Promise<void> {
-    this.config = config;
-    this.logger.log('Anomaly detection service initialized');
-  }
-
-  private initializeDefaultRules(): void {
-    this.anomalyRules = [
-      {
-        id: 'high-error-rate',
-        name: 'High Error Rate',
-        type: AnomalyType.ERROR_RATE,
-        metricName: 'errors',
-        threshold: 10,
-        operator: 'gt',
-        timeWindow: 5,
-        severity: AnomalySeverity.HIGH,
-        description: 'Error rate exceeded normal threshold',
-        enabled: true,
-      },
-      {
-        id: 'slow-response-time',
-        name: 'Slow Response Time',
-        type: AnomalyType.PERFORMANCE,
-        metricName: 'request_duration',
-        threshold: 5000, // 5 seconds
-        operator: 'gt',
-        timeWindow: 10,
-        severity: AnomalySeverity.MEDIUM,
-        description: 'Response time is significantly higher than normal',
-        enabled: true,
-      },
-      {
-        id: 'high-memory-usage',
-        name: 'High Memory Usage',
-        type: AnomalyType.RESOURCE_USAGE,
-        metricName: 'memory_heap_used',
-        threshold: 0.9, // 90% of heap
-        operator: 'gt',
-        timeWindow: 15,
-        severity: AnomalySeverity.HIGH,
-        description: 'Memory usage is critically high',
-        enabled: true,
-      },
-      {
-        id: 'low-active-users',
-        name: 'Unusually Low Active Users',
-        type: AnomalyType.BUSINESS_METRIC,
-        metricName: 'active_users',
-        threshold: 100,
-        operator: 'lt',
-        timeWindow: 30,
-        severity: AnomalySeverity.MEDIUM,
-        description: 'Active user count is significantly below normal',
-        enabled: true,
-      },
-      {
-        id: 'failed-payments-spike',
-        name: 'Failed Payments Spike',
-        type: AnomalyType.BUSINESS_METRIC,
-        metricName: 'payment_transactions',
-        threshold: 5,
-        operator: 'gt',
-        timeWindow: 10,
-        severity: AnomalySeverity.HIGH,
-        description: 'Unusual spike in failed payment transactions',
-        enabled: true,
-      },
-    ];
-  }
+    private readonly metricsService: MetricsAnalysisService,
+  ) {}
 
   /**
-   * Main anomaly detection job that runs periodically
+   * Detect anomalies in a metric using statistical methods
    */
-  @Cron('0 */5 * * * *') // Every 5 minutes
-  async runAnomalyDetection(): Promise<void> {
-    this.logger.debug('Running anomaly detection');
-
-    for (const rule of this.anomalyRules.filter(r => r.enabled)) {
-      try {
-        await this.checkRule(rule);
-      } catch (error) {
-        this.logger.error(`Error checking anomaly rule ${rule.id}:`, error);
-      }
+  detectAnomalies(metricName: string, windowSize: number = 100): AnomalyDetectionResult[] {
+    const metrics = this.metricsService.getMetrics(metricName, windowSize);
+    
+    if (metrics.length < 10) {
+      return []; // Not enough data
     }
 
-    // Also check for pattern anomalies
-    await this.detectLogPatternAnomalies();
-    await this.detectUserBehaviorAnomalies();
-  }
-
-  /**
-   * Check a specific anomaly rule
-   */
-  private async checkRule(rule: AnomalyRule): Promise<void> {
-    const endTime = new Date();
-    const startTime = new Date(endTime.getTime() - rule.timeWindow * 60 * 1000);
-
-    if (rule.metricName) {
-      const metrics = await this.metricEntryRepository.find({
-        where: {
-          metricName: rule.metricName,
-          timestamp: Between(startTime, endTime),
-        },
-        order: { timestamp: 'ASC' },
-      });
-
-      if (metrics.length === 0) return;
-
-      const values = metrics.map(m => Number(m.value));
-      const isAnomaly = this.evaluateRule(rule, values);
-
-      if (isAnomaly) {
-        await this.createAnomalyAlert(rule, values[values.length - 1], metrics[0].correlationId);
-      }
-    }
-  }
-
-  /**
-   * Evaluate if values violate the anomaly rule
-   */
-  private evaluateRule(rule: AnomalyRule, values: number[]): boolean {
-    const latestValue = values[values.length - 1];
-
-    // Basic threshold check
-    let thresholdViolated = false;
-    switch (rule.operator) {
-      case 'gt':
-        thresholdViolated = latestValue > rule.threshold;
-        break;
-      case 'lt':
-        thresholdViolated = latestValue < rule.threshold;
-        break;
-      case 'eq':
-        thresholdViolated = latestValue === rule.threshold;
-        break;
-      case 'ne':
-        thresholdViolated = latestValue !== rule.threshold;
-        break;
-    }
-
-    if (!thresholdViolated) return false;
-
-    // Advanced anomaly detection
-    const statisticalAnomaly = this.detectStatisticalAnomalies(values, 2.0);
-    const trendAnomaly = this.detectTrendAnomalies(values, 5);
-
-    return statisticalAnomaly || trendAnomaly;
-  }
-
-  /**
-   * Detect statistical anomalies using z-score
-   */
-  detectStatisticalAnomalies(values: number[], threshold: number = 2.0): boolean {
-    if (values.length < 10) return false;
-
-    const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const values = metrics.map((m) => m.value);
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
     const stdDev = Math.sqrt(variance);
 
-    if (stdDev === 0) return false;
+    const anomalies: AnomalyDetectionResult[] = [];
 
-    const latestValue = values[values.length - 1];
-    const zScore = Math.abs((latestValue - mean) / stdDev);
+    // Z-score method: values beyond 3 standard deviations are anomalies
+    const threshold = 3;
 
-    return zScore > threshold;
-  }
+    metrics.forEach((metric) => {
+      const zScore = Math.abs((metric.value - mean) / stdDev);
+      
+      if (zScore > threshold) {
+        const anomaly: AnomalyDetectionResult = {
+          isAnomaly: true,
+          score: zScore,
+          threshold,
+          metric: metricName,
+          timestamp: metric.timestamp,
+          details: `Value ${metric.value} is ${zScore.toFixed(2)} standard deviations from mean ${mean.toFixed(2)}`,
+        };
 
-  /**
-   * Detect trend anomalies
-   */
-  detectTrendAnomalies(values: number[], windowSize: number = 5): boolean {
-    if (values.length < windowSize * 2) return false;
-
-    const recentValues = values.slice(-windowSize);
-    const previousValues = values.slice(-windowSize * 2, -windowSize);
-
-    const recentAvg = recentValues.reduce((sum, val) => sum + val, 0) / recentValues.length;
-    const previousAvg = previousValues.reduce((sum, val) => sum + val, 0) / previousValues.length;
-
-    // Check for significant change (more than 50% difference)
-    const changePercentage = Math.abs((recentAvg - previousAvg) / previousAvg);
-    return changePercentage > 0.5;
-  }
-
-  /**
-   * Detect seasonal anomalies (placeholder implementation)
-   */
-  detectSeasonalAnomalies(values: number[], period: number = 24): boolean {
-    // This would require more sophisticated seasonal decomposition
-    // For now, return false as a placeholder
-    return false;
-  }
-
-  /**
-   * Detect anomalies in log patterns
-   */
-  private async detectLogPatternAnomalies(): Promise<void> {
-    const endTime = new Date();
-    const startTime = new Date(endTime.getTime() - 10 * 60 * 1000); // Last 10 minutes
-
-    // Check for error spikes
-    const errorLogs = await this.logEntryRepository.count({
-      where: {
-        level: LogLevel.ERROR,
-        timestamp: Between(startTime, endTime),
-      },
+        anomalies.push(anomaly);
+        this.recordAnomaly(anomaly);
+      }
     });
 
-    // Check for unusual error patterns
-    const previousEndTime = startTime;
-    const previousStartTime = new Date(previousEndTime.getTime() - 10 * 60 * 1000);
+    return anomalies;
+  }
+
+  /**
+   * Detect anomalies using moving average
+   */
+  detectAnomaliesMovingAverage(
+    metricName: string,
+    windowSize: number = 20,
+    threshold: number = 2,
+  ): AnomalyDetectionResult[] {
+    const metrics = this.metricsService.getMetrics(metricName, windowSize * 2);
     
-    const previousErrorLogs = await this.logEntryRepository.count({
-      where: {
-        level: LogLevel.ERROR,
-        timestamp: Between(previousStartTime, previousEndTime),
-      },
-    });
+    if (metrics.length < windowSize) {
+      return [];
+    }
 
-    if (errorLogs > previousErrorLogs * 3) { // 3x increase
-      await this.createAnomalyAlert(
-        {
-          id: 'error-log-spike',
-          name: 'Error Log Spike',
-          type: AnomalyType.PATTERN,
-          threshold: previousErrorLogs * 3,
-          operator: 'gt',
-          timeWindow: 10,
-          severity: AnomalySeverity.HIGH,
-          description: 'Unusual spike in error logs detected',
-          enabled: true,
-        },
-        errorLogs,
-      );
+    const anomalies: AnomalyDetectionResult[] = [];
+
+    for (let i = windowSize; i < metrics.length; i++) {
+      const window = metrics.slice(i - windowSize, i);
+      const avg = window.reduce((a, b) => a + b.value, 0) / window.length;
+      const current = metrics[i].value;
+      const deviation = Math.abs(current - avg) / avg;
+
+      if (deviation > threshold) {
+        const anomaly: AnomalyDetectionResult = {
+          isAnomaly: true,
+          score: deviation,
+          threshold,
+          metric: metricName,
+          timestamp: metrics[i].timestamp,
+          details: `Value ${current} deviates ${(deviation * 100).toFixed(2)}% from moving average ${avg.toFixed(2)}`,
+        };
+
+        anomalies.push(anomaly);
+        this.recordAnomaly(anomaly);
+      }
+    }
+
+    return anomalies;
+  }
+
+  /**
+   * Check for error rate anomalies
+   */
+  checkErrorRateAnomaly(): AnomalyDetectionResult | null {
+    const stats = this.metricsService.getMetricStatistics('api.response_time');
+    
+    if (!stats) return null;
+
+    // Calculate error rate from response codes
+    // This is a simplified version - in production, track actual error counts
+    const errorRate = 0; // Placeholder
+
+    if (errorRate > this.thresholds.errorRate) {
+      const anomaly: AnomalyDetectionResult = {
+        isAnomaly: true,
+        score: errorRate,
+        threshold: this.thresholds.errorRate,
+        metric: 'error_rate',
+        timestamp: new Date(),
+        details: `Error rate ${errorRate.toFixed(2)}% exceeds threshold ${this.thresholds.errorRate}%`,
+      };
+
+      this.recordAnomaly(anomaly);
+      return anomaly;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for response time anomalies
+   */
+  checkResponseTimeAnomaly(): AnomalyDetectionResult | null {
+    const stats = this.metricsService.getMetricStatistics('api.response_time');
+    
+    if (!stats) return null;
+
+    if (stats.p95 > this.thresholds.responseTime) {
+      const anomaly: AnomalyDetectionResult = {
+        isAnomaly: true,
+        score: stats.p95,
+        threshold: this.thresholds.responseTime,
+        metric: 'api.response_time',
+        timestamp: new Date(),
+        details: `P95 response time ${stats.p95.toFixed(2)}ms exceeds threshold ${this.thresholds.responseTime}ms`,
+      };
+
+      this.recordAnomaly(anomaly);
+      return anomaly;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for memory usage anomalies
+   */
+  checkMemoryAnomaly(): AnomalyDetectionResult | null {
+    const stats = this.metricsService.getMetricStatistics('system.memory.heap_used');
+    
+    if (!stats) return null;
+
+    const memoryUsagePercent = (stats.avg / (1024 * 1024 * 1024)) * 100; // Convert to GB and percentage
+
+    if (memoryUsagePercent > this.thresholds.memoryUsage) {
+      const anomaly: AnomalyDetectionResult = {
+        isAnomaly: true,
+        score: memoryUsagePercent,
+        threshold: this.thresholds.memoryUsage,
+        metric: 'system.memory.heap_used',
+        timestamp: new Date(),
+        details: `Memory usage ${memoryUsagePercent.toFixed(2)}% exceeds threshold ${this.thresholds.memoryUsage}%`,
+      };
+
+      this.recordAnomaly(anomaly);
+      return anomaly;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check for sudden spikes in metrics
+   */
+  detectSuddenSpike(metricName: string, spikeThreshold: number = 3): AnomalyDetectionResult | null {
+    const metrics = this.metricsService.getMetrics(metricName, 10);
+    
+    if (metrics.length < 2) return null;
+
+    const latest = metrics[metrics.length - 1].value;
+    const previous = metrics[metrics.length - 2].value;
+
+    if (previous === 0) return null;
+
+    const change = (latest - previous) / previous;
+
+    if (Math.abs(change) > spikeThreshold) {
+      const anomaly: AnomalyDetectionResult = {
+        isAnomaly: true,
+        score: Math.abs(change),
+        threshold: spikeThreshold,
+        metric: metricName,
+        timestamp: new Date(),
+        details: `Sudden ${change > 0 ? 'spike' : 'drop'} of ${(Math.abs(change) * 100).toFixed(2)}% detected`,
+      };
+
+      this.recordAnomaly(anomaly);
+      return anomaly;
+    }
+
+    return null;
+  }
+
+  /**
+   * Record an anomaly
+   */
+  private recordAnomaly(anomaly: AnomalyDetectionResult): void {
+    this.anomalies.push(anomaly);
+
+    // Maintain size limit
+    if (this.anomalies.length > this.MAX_ANOMALIES) {
+      this.anomalies.shift();
+    }
+
+    this.logger.warn(`Anomaly detected: ${anomaly.details}`);
+
+    // In production, send alerts
+    this.sendAlert(anomaly);
+  }
+
+  /**
+   * Get all detected anomalies
+   */
+  getAnomalies(limit?: number): AnomalyDetectionResult[] {
+    return limit ? this.anomalies.slice(-limit) : this.anomalies;
+  }
+
+  /**
+   * Get anomalies by metric
+   */
+  getAnomaliesByMetric(metricName: string): AnomalyDetectionResult[] {
+    return this.anomalies.filter((a) => a.metric === metricName);
+  }
+
+  /**
+   * Get recent anomalies
+   */
+  getRecentAnomalies(minutes: number = 60): AnomalyDetectionResult[] {
+    const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+    return this.anomalies.filter((a) => a.timestamp > cutoff);
+  }
+
+  /**
+   * Clear old anomalies
+   */
+  clearOldAnomalies(olderThan: Date): number {
+    const initialLength = this.anomalies.length;
+    this.anomalies = this.anomalies.filter((a) => a.timestamp > olderThan);
+    const cleared = initialLength - this.anomalies.length;
+    this.logger.log(`Cleared ${cleared} old anomalies`);
+    return cleared;
+  }
+
+  /**
+   * Periodic anomaly detection (runs every 5 minutes)
+   */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async periodicAnomalyDetection(): Promise<void> {
+    this.logger.debug('Running periodic anomaly detection');
+
+    try {
+      // Check various metrics for anomalies
+      this.checkErrorRateAnomaly();
+      this.checkResponseTimeAnomaly();
+      this.checkMemoryAnomaly();
+
+      // Check for spikes in key metrics
+      const keyMetrics = [
+        'api.response_time',
+        'db.query_time',
+        'queue.processing_time',
+        'user.signups',
+        'payment.amount',
+      ];
+
+      keyMetrics.forEach((metric) => {
+        this.detectSuddenSpike(metric);
+      });
+
+      // Statistical anomaly detection
+      keyMetrics.forEach((metric) => {
+        this.detectAnomalies(metric);
+      });
+
+    } catch (error) {
+      this.logger.error('Error during periodic anomaly detection:', error);
     }
   }
 
   /**
-   * Detect anomalies in user behavior patterns
+   * Send alert for anomaly
    */
-  private async detectUserBehaviorAnomalies(): Promise<void> {
-    // Check for unusual user activity patterns
-    const endTime = new Date();
-    const startTime = new Date(endTime.getTime() - 60 * 60 * 1000); // Last hour
+  private async sendAlert(anomaly: AnomalyDetectionResult): Promise<void> {
+    // In production, integrate with alerting systems:
+    // - PagerDuty
+    // - Slack
+    // - Email
+    // - SMS
+    // - Custom webhooks
 
-    const userRegistrations = await this.metricEntryRepository.count({
-      where: {
-        metricName: 'user_registrations',
-        timestamp: Between(startTime, endTime),
-      },
-    });
-
-    const courseEnrollments = await this.metricEntryRepository.count({
-      where: {
-        metricName: 'course_enrollments',
-        timestamp: Between(startTime, endTime),
-      },
-    });
-
-    // Check for unusual ratios
-    if (userRegistrations > 0 && courseEnrollments / userRegistrations > 10) {
-      await this.createAnomalyAlert(
-        {
-          id: 'unusual-enrollment-ratio',
-          name: 'Unusual Enrollment to Registration Ratio',
-          type: AnomalyType.BUSINESS_METRIC,
-          threshold: 10,
-          operator: 'gt',
-          timeWindow: 60,
-          severity: AnomalySeverity.MEDIUM,
-          description: 'Unusually high enrollment to registration ratio detected',
-          enabled: true,
-        },
-        courseEnrollments / userRegistrations,
-      );
-    }
-  }
-
-  /**
-   * Create and save an anomaly alert
-   */
-  private async createAnomalyAlert(
-    rule: Partial<AnomalyRule>,
-    actualValue: number,
-    correlationId?: string,
-  ): Promise<void> {
-    // Check if similar alert already exists (to avoid spam)
-    const existingAlert = await this.anomalyAlertRepository.findOne({
-      where: {
-        alertType: rule.type,
-        metricName: rule.metricName,
-        status: AnomalyStatus.OPEN,
-        timestamp: MoreThan(new Date(Date.now() - 30 * 60 * 1000)), // Last 30 minutes
-      },
-    });
-
-    if (existingAlert) {
-      this.logger.debug(`Similar anomaly alert already exists: ${rule.name}`);
-      return;
-    }
-
-    const alert = new AnomalyAlert();
-    alert.timestamp = new Date();
-    alert.alertType = rule.type;
-    alert.severity = rule.severity;
-    alert.status = AnomalyStatus.OPEN;
-    alert.title = rule.name;
-    alert.description = rule.description;
-    alert.serviceName = this.config.serviceName;
-    alert.metricName = rule.metricName;
-    alert.thresholdValue = rule.threshold;
-    alert.actualValue = actualValue;
-    alert.correlationId = correlationId;
-    alert.detectionAlgorithm = 'statistical_analysis';
-
-    if (rule.threshold) {
-      alert.deviationPercentage = Math.abs((actualValue - rule.threshold) / rule.threshold) * 100;
-    }
-
-    await this.anomalyAlertRepository.save(alert);
-
-    // Queue notification
-    await this.anomalyQueue.add('send-alert-notification', {
-      alertId: alert.id,
-      severity: alert.severity,
-      title: alert.title,
-      description: alert.description,
-    });
-
-    this.logger.warn(`Anomaly detected: ${rule.name} - Actual: ${actualValue}, Threshold: ${rule.threshold}`);
-  }
-
-  /**
-   * Acknowledge an anomaly alert
-   */
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string, notes?: string): Promise<void> {
-    await this.anomalyAlertRepository.update(alertId, {
-      status: AnomalyStatus.ACKNOWLEDGED,
-      acknowledgedBy,
-      acknowledgedAt: new Date(),
-      resolutionNotes: notes,
-    });
-
-    this.logger.log(`Anomaly alert ${alertId} acknowledged by ${acknowledgedBy}`);
-  }
-
-  /**
-   * Resolve an anomaly alert
-   */
-  async resolveAlert(alertId: string, resolvedBy: string, notes?: string): Promise<void> {
-    await this.anomalyAlertRepository.update(alertId, {
-      status: AnomalyStatus.RESOLVED,
-      resolvedBy,
-      resolvedAt: new Date(),
-      resolutionNotes: notes,
-    });
-
-    this.logger.log(`Anomaly alert ${alertId} resolved by ${resolvedBy}`);
-  }
-
-  /**
-   * Get active anomaly alerts
-   */
-  async getActiveAlerts(): Promise<AnomalyAlert[]> {
-    return this.anomalyAlertRepository.find({
-      where: {
-        status: AnomalyStatus.OPEN,
-      },
-      order: {
-        timestamp: 'DESC',
-      },
-    });
+    // For now, just log
+    this.logger.warn(`ALERT: ${anomaly.details}`);
   }
 
   /**
    * Get anomaly statistics
    */
-  async getAnomalyStats(startTime: Date, endTime: Date): Promise<{
-    total: number;
-    bySeverity: Record<AnomalySeverity, number>;
-    byType: Record<AnomalyType, number>;
-    resolved: number;
-    acknowledged: number;
-    open: number;
-  }> {
-    const alerts = await this.anomalyAlertRepository.find({
-      where: {
-        timestamp: Between(startTime, endTime),
-      },
+  getAnomalyStatistics() {
+    const byMetric: Record<string, number> = {};
+    
+    this.anomalies.forEach((anomaly) => {
+      byMetric[anomaly.metric] = (byMetric[anomaly.metric] || 0) + 1;
     });
 
-    const stats = {
-      total: alerts.length,
-      bySeverity: {
-        [AnomalySeverity.LOW]: 0,
-        [AnomalySeverity.MEDIUM]: 0,
-        [AnomalySeverity.HIGH]: 0,
-        [AnomalySeverity.CRITICAL]: 0,
-      },
-      byType: {
-        [AnomalyType.PERFORMANCE]: 0,
-        [AnomalyType.ERROR_RATE]: 0,
-        [AnomalyType.BUSINESS_METRIC]: 0,
-        [AnomalyType.SECURITY]: 0,
-        [AnomalyType.RESOURCE_USAGE]: 0,
-        [AnomalyType.PATTERN]: 0,
-      },
-      resolved: 0,
-      acknowledged: 0,
-      open: 0,
+    const recentAnomalies = this.getRecentAnomalies(60);
+
+    return {
+      total: this.anomalies.length,
+      recent: recentAnomalies.length,
+      byMetric,
+      avgScore: this.anomalies.length > 0
+        ? this.anomalies.reduce((sum, a) => sum + a.score, 0) / this.anomalies.length
+        : 0,
     };
-
-    alerts.forEach(alert => {
-      stats.bySeverity[alert.severity]++;
-      stats.byType[alert.alertType]++;
-      
-      switch (alert.status) {
-        case AnomalyStatus.RESOLVED:
-          stats.resolved++;
-          break;
-        case AnomalyStatus.ACKNOWLEDGED:
-          stats.acknowledged++;
-          break;
-        case AnomalyStatus.OPEN:
-          stats.open++;
-          break;
-      }
-    });
-
-    return stats;
   }
 
-  async getAnomalyCount(from: Date, to: Date): Promise<number> {
-    return this.anomalyAlertRepository.count({
-      where: {
-        timestamp: Between(from, to),
-      },
-    });
-  }
+  /**
+   * Check system health based on anomalies
+   */
+  getSystemHealth(): {
+    status: 'healthy' | 'warning' | 'critical';
+    issues: string[];
+  } {
+    const recentAnomalies = this.getRecentAnomalies(15); // Last 15 minutes
 
-  async searchAnomalies(query: {
-    text?: string;
-    correlationId?: string;
-    startTime?: Date;
-    endTime?: Date;
-    services?: string[];
-  }): Promise<any[]> {
-    const whereConditions: any = {};
-
-    if (query.correlationId) {
-      whereConditions.correlationId = query.correlationId;
+    if (recentAnomalies.length === 0) {
+      return { status: 'healthy', issues: [] };
     }
 
-    if (query.startTime && query.endTime) {
-      whereConditions.timestamp = Between(query.startTime, query.endTime);
+    const issues = recentAnomalies.map((a) => a.details);
+
+    if (recentAnomalies.length > 10) {
+      return { status: 'critical', issues };
     }
 
-    if (query.services) {
-      whereConditions.serviceName = query.services;
+    if (recentAnomalies.length > 5) {
+      return { status: 'warning', issues };
     }
 
-    const results = await this.anomalyAlertRepository.find({
-      where: whereConditions,
-      order: { timestamp: 'DESC' },
-    });
-
-    // Filter by text if provided
-    if (query.text) {
-      return results.filter(alert =>
-        alert.title.toLowerCase().includes(query.text.toLowerCase()) ||
-        alert.description.toLowerCase().includes(query.text.toLowerCase())
-      );
-    }
-
-    return results;
-  }
-
-  async getHealthStatus(): Promise<{ status: string }> {
-    return { status: 'healthy' };
+    return { status: 'healthy', issues };
   }
 }

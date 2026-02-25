@@ -1,117 +1,68 @@
 import {
   Controller,
   Post,
-  Get,
-  Delete,
-  Param,
-  Query,
   UseInterceptors,
   UploadedFile,
   Body,
   UseGuards,
+  Get,
+  Param,
   Req,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiConsumes,
-} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
-import { UploadMediaDto, MediaResponseDto } from './dto';
-import { JwtAuthGuard } from '../auth/guards/jwt.guard';
-import { MediaType } from './entities/media.entity';
 
-@ApiTags('Media')
 @Controller('media')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class MediaController {
+  private readonly logger = new Logger(MediaController.name);
+
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: 'Upload a media file' })
-  @ApiConsumes('multipart/form-data')
-  @ApiResponse({
-    status: 201,
-    description: 'File uploaded successfully',
-    type: MediaResponseDto,
-  })
-  @ApiResponse({ status: 400, description: 'Invalid file or data' })
-  async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() uploadDto: UploadMediaDto,
-    @Req() req,
-  ): Promise<MediaResponseDto> {
-    return this.mediaService.uploadFile(file, uploadDto, req.user);
+  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
+    if (!file) {
+      throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
+    }
+
+    // Basic validation
+    const allowed = ['image/', 'video/', 'application/pdf'];
+    if (!allowed.some((p) => file.mimetype.startsWith(p) || file.mimetype === 'application/pdf')) {
+      throw new HttpException('Unsupported file type', HttpStatus.BAD_REQUEST);
+    }
+
+    // enforce a conservative size limit (e.g., 500MB) to avoid abuse
+    const maxBytes = 500 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      throw new HttpException('File too large', HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    const user = req.user;
+
+    this.logger.log(`User ${user?.id} uploading file ${file.originalname}`);
+
+    const result = await this.mediaService.createFromUpload(user?.id, user?.tenantId, file);
+
+    return result;
   }
 
-  @Get()
-  @ApiOperation({ summary: 'Get all media files for the current user' })
-  @ApiResponse({
-    status: 200,
-    description: 'Media files retrieved successfully',
-    type: [MediaResponseDto],
-  })
-  async findAll(
-    @Req() req,
-    @Query('type') type?: MediaType,
-  ): Promise<MediaResponseDto[]> {
-    return this.mediaService.findAll(req.user, type);
-  }
+  @Get(':contentId')
+  @UseGuards(JwtAuthGuard)
+  async getMetadata(@Param('contentId') contentId: string, @Req() req: any) {
+    const user = req.user;
+    const meta = await this.mediaService.findByContentId(contentId);
+    if (!meta) throw new HttpException('Not found', HttpStatus.NOT_FOUND);
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a specific media file' })
-  @ApiResponse({
-    status: 200,
-    description: 'Media file retrieved successfully',
-    type: MediaResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'Media file not found' })
-  @ApiResponse({ status: 403, description: 'Access denied' })
-  async findOne(
-    @Param('id') id: string,
-    @Req() req,
-  ): Promise<MediaResponseDto> {
-    return this.mediaService.findById(id, req.user);
-  }
+    // Access control: owner or same tenant or admin
+    if (meta.ownerId && meta.ownerId !== user?.id && user?.role !== 'admin' && meta.tenantId !== user?.tenantId) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
 
-  @Get(':id/stream')
-  @ApiOperation({ summary: 'Get streaming URL for video' })
-  @ApiResponse({
-    status: 200,
-    description: 'Streaming URL generated successfully',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid request or file not ready',
-  })
-  async getStreamingUrl(
-    @Param('id') id: string,
-    @Req() req,
-    @Query('quality') quality?: string,
-  ): Promise<{ streamingUrl: string }> {
-    const streamingUrl = await this.mediaService.getStreamingUrl(
-      id,
-      req.user,
-      quality,
-    );
-    return { streamingUrl };
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete a media file' })
-  @ApiResponse({ status: 200, description: 'Media file deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Media file not found' })
-  @ApiResponse({ status: 403, description: 'Access denied' })
-  async remove(
-    @Param('id') id: string,
-    @Req() req,
-  ): Promise<{ message: string }> {
-    await this.mediaService.deleteMedia(id, req.user);
-    return { message: 'Media file deleted successfully' };
+    return meta;
   }
 }

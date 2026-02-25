@@ -1,140 +1,121 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
-import { InjectRepository } from "@nestjs/typeorm"
-import { type Repository, Like, Between, type FindOptionsWhere } from "typeorm"
-import { Course } from "./entities/course.entity"
-import type { CreateCourseDto } from "./dto/create-course.dto"
-import type { UpdateCourseDto } from "./dto/update-course.dto"
-import type { QueryCourseDto } from "./dto/query-course.dto"
-import { NotificationsService } from '../notifications/notifications.service'
-import { NotificationType } from '../notifications/entities/notification.entity'
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Course } from './entities/course.entity';
+import { UpdateCourseDto } from './dto/update-course.dto';
+import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
+import { CourseSearchDto } from './dto/course-search.dto';
 
 @Injectable()
 export class CoursesService {
   constructor(
-    @InjectRepository(Course) private coursesRepository: Repository<Course>,
-    private readonly notificationsService: NotificationsService,
+    @InjectRepository(Course)
+    private coursesRepository: Repository<Course>,
   ) {}
 
-  async create(createCourseDto: CreateCourseDto): Promise<Course> {
-    const course = this.coursesRepository.create(createCourseDto)
-    return this.coursesRepository.save(course)
+  async create(createCourseDto: any): Promise<Course> {
+    const course = this.coursesRepository.create({
+      ...createCourseDto,
+      instructor: { id: createCourseDto.instructorId },
+    });
+    const saved = await this.coursesRepository.save(course);
+    return Array.isArray(saved) ? saved[0] : saved;
   }
 
-  async findAll(queryParams: QueryCourseDto): Promise<{ data: Course[]; total: number; page: number; limit: number }> {
-    const { search, level, isPublished, instructorId, minPrice, maxPrice, page, limit, sortBy, sortOrder } = queryParams
+  async findAll(filter?: CourseSearchDto): Promise<PaginatedResponse<Course>> {
+    const query = this.coursesRepository.createQueryBuilder('course');
 
-    const where: FindOptionsWhere<Course> = {}
+    query.leftJoinAndSelect('course.instructor', 'instructor');
 
-    if (search) {
-      where.title = Like(`%${search}%`)
+    if (filter?.search) {
+      query.andWhere(
+        '(course.title ILIKE :search OR course.description ILIKE :search)',
+        { search: `%${filter.search}%` },
+      );
     }
 
-    if (level) {
-      where.level = level
+    if (filter?.status) {
+      query.andWhere('course.status = :status', { status: filter.status });
     }
 
-    if (isPublished !== undefined) {
-      where.isPublished = isPublished
+    if (filter?.instructorId) {
+      query.andWhere('course.instructorId = :instructorId', {
+        instructorId: filter.instructorId,
+      });
     }
 
-    if (instructorId) {
-      where.instructorId = instructorId
-    }
+    query.orderBy('course.createdAt', 'DESC');
 
-    if (minPrice !== undefined && maxPrice !== undefined) {
-      where.price = Between(minPrice, maxPrice)
-    } else if (minPrice !== undefined) {
-      where.price = Between(minPrice, Number.MAX_SAFE_INTEGER)
-    } else if (maxPrice !== undefined) {
-      where.price = Between(0, maxPrice)
-    }
+    return await paginate(query, filter);
+  }
 
-    const [data, total] = await this.coursesRepository.findAndCount({
-      where,
-      order: { [sortBy]: sortOrder },
-      skip: (page - 1) * limit,
-      take: limit,
-      relations: ["modules"],
-    })
+  async findByIds(ids: string[]): Promise<Course[]> {
+    if (ids.length === 0) return [];
+    return await this.coursesRepository.findByIds(ids);
+  }
 
-    return {
-      data,
-      total,
-      page,
-      limit,
-    }
+  async findByInstructor(instructorId: string): Promise<Course[]> {
+    return await this.coursesRepository.find({
+      where: { instructor: { id: instructorId } },
+      relations: ['instructor'],
+    });
+  }
+
+  async findByInstructorIds(instructorIds: string[]): Promise<Course[]> {
+    if (instructorIds.length === 0) return [];
+    return await this.coursesRepository
+      .createQueryBuilder('course')
+      .leftJoinAndSelect('course.instructor', 'instructor')
+      .where('instructor.id IN (:...instructorIds)', { instructorIds })
+      .getMany();
   }
 
   async findOne(id: string): Promise<Course> {
     const course = await this.coursesRepository.findOne({
       where: { id },
-      relations: ["modules", "modules.lessons"],
-    })
-
+      relations: ['instructor', 'modules', 'modules.lessons'],
+      order: {
+        modules: {
+          order: 'ASC',
+          lessons: {
+            order: 'ASC',
+          },
+        } as any,
+      },
+    });
     if (!course) {
-      throw new NotFoundException(`Course with ID ${id} not found`)
+      throw new NotFoundException(`Course with ID ${id} not found`);
     }
-
-    return course
+    return course;
   }
 
   async update(id: string, updateCourseDto: UpdateCourseDto): Promise<Course> {
-    const course = await this.findOne(id)
-
-    Object.assign(course, updateCourseDto)
-    const updatedCourse = await this.coursesRepository.save(course)
-
-    // Send notification to instructor
-    if (updatedCourse.instructorId) {
-      await this.notificationsService.createNotification(
-        updatedCourse.instructorId,
-        NotificationType.COURSE_UPDATE,
-        `Your course "${updatedCourse.title}" has been updated.`
-      )
-    }
-
-    return updatedCourse
+    const course = await this.findOne(id);
+    Object.assign(course, updateCourseDto);
+    return this.coursesRepository.save(course);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.coursesRepository.delete(id)
-
-    if (result.affected === 0) {
-      throw new NotFoundException(`Course with ID ${id} not found`)
-    }
+    const course = await this.findOne(id);
+    await this.coursesRepository.remove(course);
   }
 
-  async getAnalytics(id: string): Promise<any> {
-    const course = await this.findOne(id)
+  async getAnalytics(): Promise<any> {
+    const totalCourses = await this.coursesRepository.count();
+    const publishedCourses = await this.coursesRepository.count({
+      where: { status: 'published' },
+    });
 
-    // Get enrollment data
-    const enrollmentData = await this.coursesRepository
-      .createQueryBuilder("course")
-      .leftJoinAndSelect("course.enrollments", "enrollment")
-      .where("course.id = :id", { id })
-      .select("COUNT(enrollment.id)", "totalEnrollments")
-      .addSelect("AVG(enrollment.progress)", "averageProgress")
-      .getRawOne()
-
-    // Get completion rate
-    const completionData = await this.coursesRepository
-      .createQueryBuilder("course")
-      .leftJoinAndSelect("course.enrollments", "enrollment")
-      .where("course.id = :id", { id })
-      .andWhere("enrollment.completed = :completed", { completed: true })
-      .select("COUNT(enrollment.id)", "completedCount")
-      .getRawOne()
-
-    const completionRate =
-      enrollmentData.totalEnrollments > 0 ? (completionData.completedCount / enrollmentData.totalEnrollments) * 100 : 0
+    const { totalEnrollments } = await this.coursesRepository
+      .createQueryBuilder('course')
+      .leftJoin('course.enrollments', 'enrollment')
+      .select('COUNT(enrollment.id)', 'totalEnrollments')
+      .getRawOne();
 
     return {
-      courseId: id,
-      title: course.title,
-      totalEnrollments: enrollmentData.totalEnrollments,
-      averageProgress: enrollmentData.averageProgress || 0,
-      completionRate,
-      averageRating: course.averageRating,
-    }
+      totalCourses,
+      publishedCourses,
+      totalEnrollments: parseInt(totalEnrollments) || 0,
+    };
   }
 }

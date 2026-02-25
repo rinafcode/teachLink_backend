@@ -1,19 +1,45 @@
-import { Module } from "@nestjs/common"
-import { ConfigModule } from "@nestjs/config"
-import { TypeOrmModule } from "@nestjs/typeorm"
-import { CDNService } from "./services/cdn.service"
-import { AssetOptimizationService } from "./services/asset-optimization.service"
-import { EdgeCachingService } from "./services/edge-caching.service"
-import { GeoLocationService } from "./services/geo-location.service"
-import { CDNController } from "./controllers/cdn.controller"
-import { Asset } from "./entities/asset.entity"
-import { CacheEntry } from "./entities/cache-entry.entity"
-import { CDNProvider } from "./entities/cdn-provider.entity"
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MulterModule } from '@nestjs/platform-express';
+import { CdnService } from './cdn.service';
+import { CdnController } from './cdn.controller';
+import { AssetOptimizationService } from './optimization/asset-optimization.service';
+import { EdgeCachingService } from './caching/edge-caching.service';
+import { GeoLocationService } from './geo/geo-location.service';
+import { CloudflareService } from './providers/cloudflare.service';
+import { AWSCloudFrontService } from './providers/aws-cloudfront.service';
+import { ContentMetadata } from './entities/content-metadata.entity';
 
 @Module({
-  imports: [ConfigModule, TypeOrmModule.forFeature([Asset, CacheEntry, CDNProvider])],
-  controllers: [CDNController],
-  providers: [CDNService, AssetOptimizationService, EdgeCachingService, GeoLocationService],
-  exports: [CDNService, AssetOptimizationService, EdgeCachingService, GeoLocationService],
+  imports: [
+    ConfigModule,
+    CacheModule.register(),
+    TypeOrmModule.forFeature([ContentMetadata]),
+    MulterModule.register({
+      dest: './uploads',
+      limits: {
+        fileSize: 50 * 1024 * 1024, // 50MB limit
+      },
+    }),
+  ],
+  controllers: [CdnController],
+  providers: [
+    CdnService,
+    AssetOptimizationService,
+    EdgeCachingService,
+    GeoLocationService,
+    CloudflareService,
+    AWSCloudFrontService,
+  ],
+  exports: [
+    CdnService,
+    AssetOptimizationService,
+    EdgeCachingService,
+    GeoLocationService,
+    CloudflareService,
+    AWSCloudFrontService,
+  ],
 })
-export class CDNModule {}
+export class CdnModule {}

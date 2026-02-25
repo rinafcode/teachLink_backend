@@ -1,33 +1,26 @@
-import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsUUID, Min, IsObject, IsDateString } from 'class-validator';
-import { BillingInterval } from '../enums';
+import { IsString, IsEmail, IsEnum, IsNumber, IsOptional, IsDateString } from 'class-validator';
+import { PaymentMethod } from '../entities/payment.entity';
+
+export enum SubscriptionInterval {
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  QUARTERLY = 'quarterly',
+  WEEKLY = 'weekly',
+}
 
 export class CreateSubscriptionDto {
-  @IsNotEmpty()
-  @IsUUID()
-  userId: string;
-
-  @IsOptional()
-  @IsUUID()
-  courseId?: string;
-
-  @IsNotEmpty()
-  @IsNumber()
-  @Min(0.01)
-  amount: number;
-
-  @IsNotEmpty()
   @IsString()
-  currency: string;
+  courseId: string;
 
-  @IsNotEmpty()
-  @IsEnum(BillingInterval)
-  billingInterval: BillingInterval;
+  @IsString()
+  interval: SubscriptionInterval;
+
+  @IsEnum(PaymentMethod)
+  provider: string;
+
+  @IsString()
+  priceId: string;
 
   @IsOptional()
-  @IsDateString()
-  trialEnd?: string;
-
-  @IsOptional()
-  @IsObject()
   metadata?: Record<string, any>;
-} 
+}

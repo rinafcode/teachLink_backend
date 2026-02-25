@@ -1,106 +1,127 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as AWS from 'aws-sdk';
-import { v4 as uuidv4 } from 'uuid';
-import * as path from 'path';
+import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
+import AWS from 'aws-sdk';
 
-export interface UploadResult {
-  url: string;
-  key: string;
-  bucket: string;
-}
+const s3 = new AWS.S3({
+  region: process.env.AWS_REGION || 'us-east-1',
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
 
 @Injectable()
 export class FileStorageService {
   private readonly logger = new Logger(FileStorageService.name);
-  private s3: AWS.S3;
-  private bucket: string;
+  private readonly bucket = process.env.MEDIA_BUCKET || process.env.AWS_S3_BUCKET || 'teachlink-media';
+
+  async uploadFile(file: Express.Multer.File, metadata: ContentMetadata): Promise<{ url: string; etag?: string }>
+  {
+    const key = `${metadata.contentId}/${Date.now()}_${file.originalname}`;
+
+    const params: AWS.S3.PutObjectRequest = {
+      Bucket: this.bucket,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      Metadata: {
+        originalname: file.originalname,
+        ownerId: metadata.ownerId || '',
+        tenantId: metadata.tenantId || '',
+      },
+    };
+
+    const res = await s3.upload(params).promise();
+    this.logger.log(`Uploaded ${key} to S3 ${res.Location}`);
+
+    return { url: res.Location, etag: (res as any).ETag };
+  }
+
+  async getSignedUrl(keyOrUrl: string, expiresSec = 300): Promise<string> {
+    // If a full URL is provided, return as-is
+    if (keyOrUrl.startsWith('http')) return keyOrUrl;
+
+    const params = { Bucket: this.bucket, Key: keyOrUrl, Expires: expiresSec } as any;
+    return s3.getSignedUrlPromise('getObject', params);
+  }
+
+  async backupToBucket(key: string, backupBucket: string): Promise<void> {
+    await s3.copyObject({
+      Bucket: backupBucket,
+      CopySource: `${this.bucket}/${key}`,
+      Key: key,
+    }).promise();
+  }
+}
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
+import { Readable } from 'stream';
+
+@Injectable()
+export class FileStorageService {
+  private readonly logger = new Logger(FileStorageService.name);
+  private readonly s3Client: S3Client;
+  private readonly bucketName: string;
 
   constructor(private configService: ConfigService) {
-    this.s3 = new AWS.S3({
-      accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID'),
-      secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY'),
-      region: this.configService.get('AWS_REGION', 'us-east-1'),
+    this.bucketName = this.configService.get<string>('AWS_S3_BUCKET', '');
+
+    this.s3Client = new S3Client({
+      region: this.configService.get<string>('AWS_REGION', 'us-east-1'),
+      credentials: {
+        accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID', ''),
+        secretAccessKey: this.configService.get<string>(
+          'AWS_SECRET_ACCESS_KEY',
+          '',
+        ),
+      },
     });
-    this.bucket = this.configService.get('AWS_S3_BUCKET', 'teachlink-media');
   }
 
-  async uploadFile(
-    file: Express.Multer.File,
-    folder: string = 'uploads',
-  ): Promise<UploadResult> {
-    const fileExtension = path.extname(file.originalname);
-    const fileName = `${folder}/${uuidv4()}${fileExtension}`;
+  async uploadProcessedFile(
+    buffer: Buffer,
+    key: string,
+    contentType: string,
+  ): Promise<void> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    });
 
-    try {
-      const uploadResult = await this.s3
-        .upload({
-          Bucket: this.bucket,
-          Key: fileName,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          ACL: 'private', // Files are private by default
-        })
-        .promise();
-
-      this.logger.log(`File uploaded successfully: ${fileName}`);
-
-      return {
-        url: uploadResult.Location,
-        key: fileName,
-        bucket: this.bucket,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to upload file: ${error.message}`);
-      throw new Error(`File upload failed: ${error.message}`);
-    }
+    await this.s3Client.send(command);
+    this.logger.log(`Uploaded file to ${key}`);
   }
 
-  async deleteFile(key: string): Promise<void> {
-    try {
-      await this.s3
-        .deleteObject({
-          Bucket: this.bucket,
-          Key: key,
-        })
-        .promise();
+  async downloadFile(storageKey: string): Promise<Buffer> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: storageKey,
+    });
 
-      this.logger.log(`File deleted successfully: ${key}`);
-    } catch (error) {
-      this.logger.error(`Failed to delete file: ${error.message}`);
-      throw new Error(`File deletion failed: ${error.message}`);
+    const response = await this.s3Client.send(command);
+    const stream = response.Body as Readable;
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
     }
+
+    return Buffer.concat(chunks);
   }
 
-  async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
-    try {
-      const url = await this.s3.getSignedUrlPromise('getObject', {
-        Bucket: this.bucket,
-        Key: key,
-        Expires: expiresIn,
-      });
+  async deleteFile(storageKey: string): Promise<void> {
+    const command = new DeleteObjectCommand({
+      Bucket: this.bucketName,
+      Key: storageKey,
+    });
 
-      return url;
-    } catch (error) {
-      this.logger.error(`Failed to generate signed URL: ${error.message}`);
-      throw new Error(`Signed URL generation failed: ${error.message}`);
-    }
-  }
-
-  async copyFile(sourceKey: string, destinationKey: string): Promise<void> {
-    try {
-      await this.s3
-        .copyObject({
-          Bucket: this.bucket,
-          CopySource: `${this.bucket}/${sourceKey}`,
-          Key: destinationKey,
-        })
-        .promise();
-
-      this.logger.log(`File copied from ${sourceKey} to ${destinationKey}`);
-    } catch (error) {
-      this.logger.error(`Failed to copy file: ${error.message}`);
-      throw new Error(`File copy failed: ${error.message}`);
-    }
+    await this.s3Client.send(command);
+    this.logger.log(`Deleted file ${storageKey}`);
   }
 }

@@ -1,16 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+
+interface WorkflowStep {
+  name: string;
+  execute: () => Promise<void>;
+  compensate?: () => Promise<void>;
+}
 
 @Injectable()
 export class WorkflowEngineService {
-  // Start a workflow
-  async startWorkflow(name: string, input: any): Promise<any> {
-    // TODO: Implement workflow orchestration
-    return { workflow: name, status: 'started', input };
-  }
+  private readonly logger = new Logger(WorkflowEngineService.name);
 
-  // Advance a workflow step
-  async advanceStep(workflowId: string, stepData: any): Promise<any> {
-    // TODO: Implement step advancement
-    return { workflowId, status: 'step-advanced', stepData };
+  async executeWorkflow(steps: WorkflowStep[]) {
+    const completedSteps: WorkflowStep[] = [];
+
+    try {
+      for (const step of steps) {
+        await step.execute();
+        completedSteps.push(step);
+      }
+    } catch (error) {
+      this.logger.error('Workflow failed. Triggering compensation.');
+      
+      for (const step of completedSteps.reverse()) {
+        if (step.compensate) {
+          await step.compensate();
+        }
+      }
+
+      throw error;
+    }
   }
-} 
+}

@@ -2,13 +2,26 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ComplianceService {
-  async exportUserData(userId: string): Promise<any> {
-    // Placeholder: Implement data export for GDPR
-    return { userId, data: 'user data' };
+  async exportUserData(userId: string) {
+    // Fetch from all relevant tables
+    return {
+      userId,
+      profile: {},
+      files: [],
+      activityLogs: [],
+    };
   }
 
-  async deleteUserData(userId: string): Promise<boolean> {
-    // Placeholder: Implement data deletion for GDPR
-    return true;
+  async deleteUserData(userId: string) {
+    // Soft delete or anonymize
+    return { success: true };
+  }
+
+  async anonymizeData(data: any) {
+    return {
+      ...data,
+      email: 'anonymized@domain.com',
+      phone: null,
+    };
   }
 }

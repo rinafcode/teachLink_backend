@@ -1,33 +1,26 @@
-import { IsNotEmpty, IsNumber, IsString, IsEnum, IsOptional, IsUUID, Min, IsObject } from 'class-validator';
-import { PaymentMethod } from '../enums';
+import { IsString, IsNumber, IsOptional, IsEnum, IsPositive } from 'class-validator';
+import { PaymentMethod } from '../entities/payment.entity';
 
 export class CreatePaymentDto {
-  @IsNotEmpty()
-  @IsUUID()
-  userId: string;
+  @IsString()
+  courseId: string;
 
-  @IsOptional()
-  @IsUUID()
-  courseId?: string;
-
-  @IsNotEmpty()
   @IsNumber()
-  @Min(0.01)
+  @IsPositive()
   amount: number;
 
-  @IsNotEmpty()
   @IsString()
-  currency: string;
+  @IsOptional()
+  currency?: string = 'USD';
 
-  @IsNotEmpty()
   @IsEnum(PaymentMethod)
-  paymentMethod: PaymentMethod;
-
   @IsOptional()
+  method?: PaymentMethod;
+
   @IsString()
-  description?: string;
+  @IsOptional()
+  provider?: string = 'stripe';
 
   @IsOptional()
-  @IsObject()
   metadata?: Record<string, any>;
-} 
+}

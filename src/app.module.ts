@@ -2,87 +2,89 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import configuration from './config/configuration';
-import { appConfigSchema } from './config/appConfigSchema'; 
-import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
-import { SecurityModule } from './security/security.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { MediaModule } from './media/media.module';
-import { User } from './users/entities/user.entity';
-import { Media } from './media/entities/media.entity';
-import { AssessmentsModule } from './assessments/assessments.module';
-import { RecommendationsModule } from './recommendations/recommendations.module';
-import { UserPreference } from './recommendations/entities/user-preference.entity';
-import { CourseInteraction } from './recommendations/entities/course-interaction.entity';
-import { CoursesModule } from './courses/courses.module';
-import { NotificationsModule } from './notifications/notifications.module';
-import { Notification } from './notifications/entities/notification.entity';
-import { PaymentsModule } from './payments/payments.module';
-import { Payment } from './payments/entities/payment.entity';
-import { Subscription } from './payments/entities/subscription.entity';
-import { APIGatewayModule } from './api-gateway/api-gateway.module';
-import { MessagingModule } from './messaging/messaging.module';
-import { SearchEngineModule } from './search-engine/search-engine.module';
-import { ObservabilityModule } from './observability/observability.module';
-import { TraceSpan } from './observability/entities/trace-span.entity';
-import { LogEntry } from './observability/entities/log-entry.entity';
-import { MetricEntry } from './observability/entities/metric-entry.entity';
-import { AnomalyAlert } from './observability/entities/anomaly-alert.entity';
-import { ContainerModule } from './containers/container.module';
-import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { CachingModule } from './caching/caching.module';
+import { SecurityModule } from './security/security.module';
+import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
+import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';
+import { MetricsCollectionService } from './monitoring/metrics/metrics-collection.service';
+import { SyncModule } from './sync/sync.module';
+import { MediaModule } from './media/media.module';
+import { BackupModule } from './backup/backup.module';
+import { CollaborationModule } from './collaboration/collaboration.module';
+import { DataWarehouseModule } from './data-warehouse/data-warehouse.module';
+import { QueueModule } from './queues/queue.module';
+import { GraphQLModule } from './graphql/graphql.module';
+import { MigrationModule } from './migrations/migration.module';
+import { ABTestingModule } from './ab-testing/ab-testing.module';
+import { ObservabilityModule } from './observability/observability.module';
+import { DatabaseModule } from './common/database/database.module';
+import { BullModule } from '@nestjs/bull';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { CacheModule } from '@nestjs/cache-manager';
+import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
+import * as redisStore from 'cache-manager-redis-store';
+import { envValidationSchema } from './config/env.validation';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
-      validationSchema: appConfigSchema,
+      validationSchema: envValidationSchema,
+
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'teachlink',
-      entities: [
-        User, 
-        Media, 
-        UserPreference, 
-        CourseInteraction, 
-        Notification, 
-        Payment, 
-        Subscription, 
-        TraceSpan, 
-        LogEntry, 
-        MetricEntry, 
-        AnomalyAlert
-      ],
-      synchronize: process.env.NODE_ENV !== 'production',
-      logging: process.env.NODE_ENV === 'development',
+    TypeOrmModule.forRootAsync({
+      imports: [MonitoringModule],
+      inject: [MetricsCollectionService],
+      useFactory: (metricsService: MetricsCollectionService) => ({
+        type: 'postgres',
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        username: process.env.DB_USERNAME || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres',
+        database: process.env.DB_DATABASE || 'teachlink',
+        autoLoadEntities: true,
+        synchronize: process.env.NODE_ENV !== 'production',
+        logging: true,
+        logger: new TypeOrmMonitoringLogger(metricsService),
+        maxQueryExecutionTime: 1000,
+      }),
     }),
-    RateLimitingModule,
-    SecurityModule,
-    AuthModule,
-    UsersModule,
-    MediaModule,
-    AssessmentsModule,
-    RecommendationsModule,
-    CoursesModule,
-    NotificationsModule,
-    PaymentsModule,
-    MessagingModule,
-    APIGatewayModule,
-    SearchEngineModule,
-    ObservabilityModule,
-    ContainerModule,
     MonitoringModule,
-    CachingModule,
+    EventEmitterModule.forRoot(),
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+      },
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+    }),
+    HealthModule,
+    SyncModule,
+    MediaModule,
+    BackupModule,
+    CollaborationModule,
+    DataWarehouseModule,
+    QueueModule,
+    GraphQLModule,
+    MigrationModule,
+    ABTestingModule,
+    ObservabilityModule,
+    RateLimitingModule,
+    DatabaseModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: MonitoringInterceptor,

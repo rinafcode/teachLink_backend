@@ -1,251 +1,324 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { TraceSpan } from '../entities/trace-span.entity';
-import { v4 as uuidv4 } from 'uuid';
-import * as os from 'os';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, Repository, Between } from 'typeorm';
-import { ElasticsearchService } from '@nestjs/elasticsearch';
-import {
-  trace,
-  Tracer,
-  ROOT_CONTEXT,
-  Span,
-  SpanKind,
-  SpanStatusCode,
-  context as otelContext,
-  SpanOptions,
-  SpanAttributes,
-} from '@opentelemetry/api';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
-interface SpanContext {
-  traceId: string;
-  spanId: string;
-  serviceName: string;
-  operationName: string;
-  userId: string;
-  spanContext: SpanAttributes;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  statusCode: SpanStatusCode;
-  parentSpanId: string;
-  context?: SpanContext;
-}
+import { trace, Span, SpanStatusCode, context, Context } from '@opentelemetry/api';
+import { TraceSpan, SpanStatus, SpanEvent } from '../interfaces/observability.interfaces';
 
-interface StartSpanOptions {
-  operationName: string;
-  parentSpanId?: string;
-  tags?: Record<string, any>;
-}
-
+/**
+ * Distributed Tracing Service
+ * Provides distributed tracing across all services using OpenTelemetry
+ */
 @Injectable()
 export class DistributedTracingService {
   private readonly logger = new Logger(DistributedTracingService.name);
-  private tracer?: Tracer;
-  private sdk: NodeSDK | null = null;
-
-  constructor(
-    private readonly configService: ConfigService,
-    @InjectRepository(TraceSpan)
-    private readonly traceSpanRepository: Repository<TraceSpan>,
-    private readonly dataSource: DataSource,
-    private readonly elasticsearchService: ElasticsearchService,
-  ) {
-    this.initializeTracer();
-  }
-
-  private async initializeTracer() {
-    const endpoint = this.configService.get<string>('OTEL_EXPORTER_OTLP_ENDPOINT',
-    'http://localhost:4317'); // Set your OpenTelemetry Collector endpoint
-
-    this.sdk = new NodeSDK({
-      // Configure OpenTelemetry's span processor
-      spanProcessor: new SimpleSpanProcessor(
-        new (class implements SpanExporter {
-          export(spans: ReadableSpan[], resultCallback: (result: any) => void): void {
-            // Process and export spans to your desired destination such as Elasticsearch
-            console.log('Exporting spans:', spans);
-            resultCallback({ code: 0 }); // OK status
-          }
-          async shutdown(): Promise<void> {
-            // Implement shutdown logic if needed
-          }
-        })(),
-      ),
-      // You can also use BatchSpanProcessor if needed
-      // sampler: new ParentBasedSampler({
-      //  root: new AlwaysOnSampler(),
-      // }),
-    });
-    await this.sdk.start();
-
-    this.tracer = trace.getTracer('default');
-    this.logger.log('Tracer initialized for distributed tracing');
-  }
-
-  /**
-   * Initialize distributed tracing
-   */
-  async initialize(config: {
-    serviceName: string;
-    version: string;
-    environment: string;
-  }): Promise<void> {
-    // Ensure trace spans are exported
-    this.exportTraceSpans();
-
-    // Implement your tracer initialization logic
-    this.logger.log('Distributed tracing initialized');
-  }
+  private readonly tracer = trace.getTracer('teachlink', '1.0.0');
+  private spans: Map<string, TraceSpan> = new Map();
 
   /**
    * Start a new trace span
    */
-  async startSpan({
-    operationName,
-    parentSpanId,
-    tags,
-  }: StartSpanOptions): Promise<Span | undefined> {
-    if (!this.tracer) {
-      this.logger.error('Tracer has not been initialized');
-      return undefined;
+  startSpan(name: string, attributes?: Record<string, any>): Span {
+    const span = this.tracer.startSpan(name);
+
+    if (attributes) {
+      Object.entries(attributes).forEach(([key, value]) => {
+        span.setAttribute(key, value);
+      });
     }
 
-    try {
-      const parentSpan = trace.getActiveSpan();
-      const spanOptions: SpanOptions = {
-        kind: SpanKind.CLIENT,
-        attributes: {
-          operationName,
-          ...tags,
-        },
+    // Store span info
+    const spanContext = span.spanContext();
+    const traceSpan: TraceSpan = {
+      traceId: spanContext.traceId,
+      spanId: spanContext.spanId,
+      name,
+      startTime: new Date(),
+      status: SpanStatus.UNSET,
+      attributes: attributes || {},
+      events: [],
+    };
+
+    this.spans.set(spanContext.spanId, traceSpan);
+
+    this.logger.debug(`Started span: ${name} (${spanContext.spanId})`);
+    return span;
+  }
+
+  /**
+   * End a span
+   */
+  endSpan(span: Span, status?: SpanStatus): void {
+    const spanContext = span.spanContext();
+    const traceSpan = this.spans.get(spanContext.spanId);
+
+    if (traceSpan) {
+      traceSpan.endTime = new Date();
+      traceSpan.duration = traceSpan.endTime.getTime() - traceSpan.startTime.getTime();
+      traceSpan.status = status || SpanStatus.OK;
+    }
+
+    if (status === SpanStatus.ERROR) {
+      span.setStatus({ code: SpanStatusCode.ERROR });
+    } else {
+      span.setStatus({ code: SpanStatusCode.OK });
+    }
+
+    span.end();
+    this.logger.debug(`Ended span: ${traceSpan?.name} (${spanContext.spanId})`);
+  }
+
+  /**
+   * Add attributes to a span
+   */
+  setSpanAttributes(span: Span, attributes: Record<string, any>): void {
+    Object.entries(attributes).forEach(([key, value]) => {
+      span.setAttribute(key, value);
+    });
+
+    const spanContext = span.spanContext();
+    const traceSpan = this.spans.get(spanContext.spanId);
+    if (traceSpan) {
+      traceSpan.attributes = { ...traceSpan.attributes, ...attributes };
+    }
+  }
+
+  /**
+   * Record an exception in a span
+   */
+  recordException(span: Span, error: Error): void {
+    span.recordException(error);
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error.message,
+    });
+
+    const spanContext = span.spanContext();
+    const traceSpan = this.spans.get(spanContext.spanId);
+    if (traceSpan) {
+      traceSpan.status = SpanStatus.ERROR;
+      traceSpan.attributes.error = {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
       };
-      const span = this.tracer.startSpan(operationName, spanOptions, ROOT_CONTEXT);
-      
-      span.setAttribute('service.name', this.configService.get<string>('OBSERVABILITY_SERVICE_NAME') ?? os.hostname());
-      span.setAttribute('service.version', this.configService.get<string>('OBSERVABILITY_VERSION'));
-      span.setAttribute('deployment.environment', this.configService.get<string>('NODE_ENV'));
-      span.addEvent(`span started - ${operationName}`);
+    }
 
-      // Complete other OpenTelemetry trace setup activities...
+    this.logger.error(`Exception in span: ${error.message}`, error.stack);
+  }
 
-      // Ensure span propagation
-      otelContext.with(trace.setSpan(otelContext.active(), span), () => {
-        this.logger.log(`Tracing span started: ${operationName}`);
-      });
+  /**
+   * Add an event to a span
+   */
+  addSpanEvent(
+    span: Span,
+    name: string,
+    attributes?: Record<string, any>,
+  ): void {
+    span.addEvent(name, attributes);
 
-      return span;
-    } catch (error) {
-      this.logger.error('Error starting span:', error);
-      return undefined;
+    const spanContext = span.spanContext();
+    const traceSpan = this.spans.get(spanContext.spanId);
+    if (traceSpan) {
+      const event: SpanEvent = {
+        name,
+        timestamp: new Date(),
+        attributes,
+      };
+      traceSpan.events.push(event);
     }
   }
 
   /**
-   * End a given span
+   * Execute function within a span
    */
-  async endSpan(span?: Span): Promise<void> {
-    if (!span) {
-      this.logger.error('Span has not been provided for ending');
-      return;
-    }
+  async executeInSpan<T>(
+    name: string,
+    fn: (span: Span) => Promise<T>,
+    attributes?: Record<string, any>,
+  ): Promise<T> {
+    const span = this.startSpan(name, attributes);
 
     try {
-      span.end();
-      this.logger.log('Span ended successfully');
+      const result = await fn(span);
+      this.endSpan(span, SpanStatus.OK);
+      return result;
     } catch (error) {
-      this.logger.error('Error ending span:', error);
+      this.recordException(span, error as Error);
+      this.endSpan(span, SpanStatus.ERROR);
+      throw error;
     }
   }
 
   /**
-   * Record and save a trace span
+   * Get current active span
    */
-  private async exportTraceSpans() {
-    await this.traceSpanRepository.find({
-      where: { parentSpanId: IsNull() },
-    });
-
-    this.logger.log('Trace spans exported successfully');
+  getCurrentSpan(): Span | undefined {
+    return trace.getActiveSpan();
   }
 
   /**
-   * Generate correlation ID for request tracking
+   * Create a child span from parent
    */
-  generateCorrelationId(): string {
-    return uuidv4();
-  }
-
-  /**
-   * Get tracer health status
-   */
-  async getHealthStatus(): Promise<{ status: string }> {
-    return { status: 'healthy' };
-  }
-
-  /**
-   * Get trace count within a specific time range
-   */
-  async getTraceCount(from: Date, to: Date): Promise<number> {
-    return this.traceSpanRepository.count({
-      where: { timestamp: In([from, to]) },
+  createChildSpan(parentSpan: Span, name: string, attributes?: Record<string, any>): Span {
+    const ctx = trace.setSpan(context.active(), parentSpan);
+    
+    return context.with(ctx, () => {
+      const childSpan = this.startSpan(name, attributes);
+      
+      const parentContext = parentSpan.spanContext();
+      const childContext = childSpan.spanContext();
+      const childTraceSpan = this.spans.get(childContext.spanId);
+      
+      if (childTraceSpan) {
+        childTraceSpan.parentSpanId = parentContext.spanId;
+      }
+      
+      return childSpan;
     });
   }
 
   /**
-   * Search trace spans
+   * Inject trace context into headers for distributed calls
    */
-  async searchTraces(query: {
-    text?: string;
-    correlationId?: string;
+  injectTraceContext(span: Span): Record<string, string> {
+    const spanContext = span.spanContext();
+    return {
+      'x-trace-id': spanContext.traceId,
+      'x-span-id': spanContext.spanId,
+      'x-trace-flags': spanContext.traceFlags.toString(),
+    };
+  }
+
+  /**
+   * Extract trace context from headers
+   */
+  extractTraceContext(headers: Record<string, string>): {
     traceId?: string;
-    userId?: string;
-    startTime?: Date;
-    endTime?: Date;
-    services?: string[];
-  }): Promise<any[]> {
-    const mustClauses: any[] = [];
-    
-    if (query.text) {
-      mustClauses.push({ match: { message: query.text } });
-    }
-    
-    if (query.correlationId) {
-      mustClauses.push({ match: { correlationId: query.correlationId } });
-    }
-    
-    if (query.traceId) {
-      mustClauses.push({ match: { traceId: query.traceId } });
-    }
-    
-    if (query.startTime && query.endTime) {
-      mustClauses.push({ 
-        range: { 
-          timestamp: { 
-            gte: query.startTime, 
-            lte: query.endTime 
-          } 
-        } 
-      });
-    }
-    
-    if (query.services && query.services.length > 0) {
-      mustClauses.push({ terms: { serviceName: query.services } });
-    }
+    spanId?: string;
+    traceFlags?: number;
+  } {
+    return {
+      traceId: headers['x-trace-id'],
+      spanId: headers['x-span-id'],
+      traceFlags: headers['x-trace-flags']
+        ? parseInt(headers['x-trace-flags'])
+        : undefined,
+    };
+  }
 
-    const searchQuery = mustClauses.length > 0 
-      ? { bool: { must: mustClauses } }
-      : { match_all: {} };
+  /**
+   * Get trace by ID
+   */
+  getTraceById(traceId: string): TraceSpan[] {
+    return Array.from(this.spans.values()).filter(
+      (span) => span.traceId === traceId,
+    );
+  }
 
-    const searchResults = await this.elasticsearchService.search({
-      index: 'trace_spans',
-      query: searchQuery,
+  /**
+   * Get span by ID
+   */
+  getSpanById(spanId: string): TraceSpan | undefined {
+    return this.spans.get(spanId);
+  }
+
+  /**
+   * Get all spans
+   */
+  getAllSpans(): TraceSpan[] {
+    return Array.from(this.spans.values());
+  }
+
+  /**
+   * Clear old spans
+   */
+  clearOldSpans(olderThan: Date): number {
+    let cleared = 0;
+    this.spans.forEach((span, spanId) => {
+      if (span.startTime < olderThan) {
+        this.spans.delete(spanId);
+        cleared++;
+      }
     });
-    return searchResults.hits.hits;
+    this.logger.log(`Cleared ${cleared} old spans`);
+    return cleared;
+  }
+
+  /**
+   * Get trace statistics
+   */
+  getTraceStatistics() {
+    const spans = Array.from(this.spans.values());
+    const completedSpans = spans.filter((s) => s.endTime);
+
+    const durations = completedSpans
+      .filter((s) => s.duration)
+      .map((s) => s.duration!);
+
+    return {
+      total: spans.length,
+      completed: completedSpans.length,
+      active: spans.length - completedSpans.length,
+      avgDuration: durations.length > 0
+        ? durations.reduce((a, b) => a + b, 0) / durations.length
+        : 0,
+      minDuration: durations.length > 0 ? Math.min(...durations) : 0,
+      maxDuration: durations.length > 0 ? Math.max(...durations) : 0,
+      errorCount: spans.filter((s) => s.status === SpanStatus.ERROR).length,
+    };
+  }
+
+  /**
+   * Trace HTTP request
+   */
+  async traceHttpRequest<T>(
+    method: string,
+    url: string,
+    fn: (span: Span) => Promise<T>,
+  ): Promise<T> {
+    return this.executeInSpan(
+      `HTTP ${method} ${url}`,
+      fn,
+      {
+        'http.method': method,
+        'http.url': url,
+        'span.kind': 'client',
+      },
+    );
+  }
+
+  /**
+   * Trace database query
+   */
+  async traceDatabaseQuery<T>(
+    query: string,
+    fn: (span: Span) => Promise<T>,
+  ): Promise<T> {
+    return this.executeInSpan(
+      'Database Query',
+      fn,
+      {
+        'db.statement': query,
+        'db.system': 'postgresql',
+        'span.kind': 'client',
+      },
+    );
+  }
+
+  /**
+   * Trace external service call
+   */
+  async traceExternalCall<T>(
+    serviceName: string,
+    operation: string,
+    fn: (span: Span) => Promise<T>,
+  ): Promise<T> {
+    return this.executeInSpan(
+      `${serviceName}.${operation}`,
+      fn,
+      {
+        'service.name': serviceName,
+        'operation': operation,
+        'span.kind': 'client',
+      },
+    );
   }
 }
-

@@ -1,18 +1,31 @@
 import { Injectable } from '@nestjs/common';
 
+interface RegisteredService {
+  name: string;
+  baseUrl: string;
+  healthy: boolean;
+}
+
 @Injectable()
 export class ServiceDiscoveryService {
-  private registry: Map<string, string> = new Map();
+  private services = new Map<string, RegisteredService>();
 
-  // Registered a service
-  async registerService(name: string, address: string): Promise<void> {
-    // TODO: Implement service registrations
-    this.registry.set(name, address);
+  register(service: RegisteredService) {
+    this.services.set(service.name, service);
   }
 
-  // Discovered a service
-  async discoverService(name: string): Promise<string | undefined> {
-    // TODO: Implement service discoverys
-    return this.registry.get(name);
+  async getService(name: string): Promise<RegisteredService> {
+    const service = this.services.get(name);
+    if (!service || !service.healthy) {
+      throw new Error(`Service ${name} unavailable`);
+    }
+    return service;
   }
-} 
+
+  async markUnhealthy(name: string) {
+    const service = this.services.get(name);
+    if (service) {
+      service.healthy = false;
+    }
+  }
+}

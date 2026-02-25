@@ -1,18 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { Migration } from './entities/migration.entity';
 import { MigrationService } from './migration.service';
 import { RollbackService } from './rollback/rollback.service';
 import { SchemaValidationService } from './validation/schema-validation.service';
 import { EnvironmentSyncService } from './environments/environment-sync.service';
 import { ConflictResolutionService } from './conflicts/conflict-resolution.service';
-import { Migration } from './entities/migration.entity';
-import { SchemaSnapshot } from './entities/schema-snapshot.entity';
+import { MigrationController } from './migration.controller';
+import { MigrationRunnerService } from './migration-runner.service';
 
 @Module({
   imports: [
-    ConfigModule,
-    TypeOrmModule.forFeature([Migration, SchemaSnapshot]),
+    TypeOrmModule.forFeature([Migration]),
+  ],
+  controllers: [
+    MigrationController,
   ],
   providers: [
     MigrationService,
@@ -20,6 +22,7 @@ import { SchemaSnapshot } from './entities/schema-snapshot.entity';
     SchemaValidationService,
     EnvironmentSyncService,
     ConflictResolutionService,
+    MigrationRunnerService,
   ],
   exports: [
     MigrationService,
@@ -27,7 +30,7 @@ import { SchemaSnapshot } from './entities/schema-snapshot.entity';
     SchemaValidationService,
     EnvironmentSyncService,
     ConflictResolutionService,
+    MigrationRunnerService,
   ],
 })
 export class MigrationModule {}
-

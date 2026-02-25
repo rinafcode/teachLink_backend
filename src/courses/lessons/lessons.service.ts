@@ -1,71 +1,48 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
-import { InjectRepository } from "@nestjs/typeorm"
-import { Repository } from "typeorm"
-import { Lesson } from "./entities/lesson.entity"
-import type { CreateLessonDto } from "./dto/create-lesson.dto"
-import type { UpdateLessonDto } from "./dto/update-lesson.dto"
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Lesson } from '../entities/lesson.entity';
+import { CreateLessonDto } from '../dto/create-lesson.dto';
+import { CourseModule } from '../entities/course-module.entity';
 
 @Injectable()
 export class LessonsService {
   constructor(
     @InjectRepository(Lesson)
-    private lessonsRepository: Repository<Lesson>
+    private lessonsRepository: Repository<Lesson>,
+    @InjectRepository(CourseModule)
+    private modulesRepository: Repository<CourseModule>,
   ) {}
 
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
-    const lesson = this.lessonsRepository.create(createLessonDto)
-    return this.lessonsRepository.save(lesson)
-  }
+    const module = await this.modulesRepository.findOneBy({ id: createLessonDto.moduleId });
+    if (!module) {
+      throw new NotFoundException(`Module with ID ${createLessonDto.moduleId} not found`);
+    }
 
-  async findAll(moduleId: string): Promise<Lesson[]> {
-    return this.lessonsRepository.find({
-      where: { moduleId },
-      order: { order: "ASC" },
-    })
+    const lesson = this.lessonsRepository.create({
+      ...createLessonDto,
+      module,
+    });
+    return this.lessonsRepository.save(lesson);
   }
 
   async findOne(id: string): Promise<Lesson> {
-    const lesson = await this.lessonsRepository.findOne({
-      where: { id },
-    })
-
+    const lesson = await this.lessonsRepository.findOneBy({ id });
     if (!lesson) {
-      throw new NotFoundException(`Lesson with ID ${id} not found`)
+      throw new NotFoundException(`Lesson with ID ${id} not found`);
     }
-
-    return lesson
+    return lesson;
   }
 
-  async update(id: string, updateLessonDto: UpdateLessonDto): Promise<Lesson> {
-    const lesson = await this.findOne(id)
-
-    Object.assign(lesson, updateLessonDto)
-
-    return this.lessonsRepository.save(lesson)
+  async update(id: string, updateData: Partial<CreateLessonDto>): Promise<Lesson> {
+    const lesson = await this.findOne(id);
+    Object.assign(lesson, updateData);
+    return this.lessonsRepository.save(lesson);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.lessonsRepository.delete(id)
-
-    if (result.affected === 0) {
-      throw new NotFoundException(`Lesson with ID ${id} not found`)
-    }
-  }
-
-  async reorder(moduleId: string, lessonIds: string[]): Promise<Lesson[]> {
-    const lessons = await this.findAll(moduleId)
-
-    // Update order for each lesson
-    const updates = lessonIds.map((id, index) => {
-      const lesson = lessons.find((l) => l.id === id)
-      if (!lesson) {
-        throw new NotFoundException(`Lesson with ID ${id} not found`)
-      }
-
-      lesson.order = index + 1
-      return this.lessonsRepository.save(lesson)
-    })
-
-    return Promise.all(updates)
+    const lesson = await this.findOne(id);
+    await this.lessonsRepository.remove(lesson);
   }
 }

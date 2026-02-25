@@ -3,6 +3,8 @@
 /node_modules
 /build
 
+package-lock.json
+
 # Logs
 logs
 *.log
@@ -54,3 +56,6 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Husky internal bootstrap directory (auto-generated, not hand-edited)
+.husky/_/

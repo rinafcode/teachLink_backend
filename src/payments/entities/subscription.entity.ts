@@ -1,63 +1,70 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { Course } from '../../courses/entities/course.entity';
-import { SubscriptionStatus, BillingInterval } from '../enums';
+
+export enum SubscriptionStatus {
+  ACTIVE = 'active',
+  CANCELLED = 'cancelled',
+  PAST_DUE = 'past_due',
+  UNPAID = 'unpaid',
+  TRIALING = 'trialing',
+  INCOMPLETE = 'incomplete',
+}
+
+export enum SubscriptionInterval {
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  QUARTERLY = 'quarterly',
+  WEEKLY = 'weekly',
+}
 
 @Entity('subscriptions')
 export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  userId: string;
-
-  @Column({ nullable: true })
-  courseId: string;
-
-  @Column('decimal', { precision: 10, scale: 2 })
-  amount: number;
-
-  @Column()
-  currency: string;
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  providerSubscriptionId: string;
 
   @Column({ type: 'enum', enum: SubscriptionStatus, default: SubscriptionStatus.ACTIVE })
   status: SubscriptionStatus;
 
-  @Column({ type: 'enum', enum: BillingInterval })
-  billingInterval: BillingInterval;
+  @Column({ type: 'enum', enum: SubscriptionInterval })
+  interval: SubscriptionInterval;
 
-  @Column({ nullable: true })
-  providerSubscriptionId: string;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  amount: number;
 
-  @Column({ nullable: true })
-  providerCustomerId: string;
+  @Column({ type: 'varchar', length: 3, default: 'USD' })
+  currency: string;
 
-  @Column('date')
+  @Column({ type: 'timestamp', nullable: true })
   currentPeriodStart: Date;
 
-  @Column('date')
+  @Column({ type: 'timestamp', nullable: true })
   currentPeriodEnd: Date;
 
-  @Column('date', { nullable: true })
-  trialEnd: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  cancelAtPeriodEnd: boolean;
 
-  @Column('date', { nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   cancelledAt: Date;
 
-  @Column('jsonb', { nullable: true })
-  metadata: Record<string, any>;
+  @Column({ type: 'timestamp', nullable: true })
+  trialStart: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  trialEnd: Date;
+
+  @ManyToOne(() => User, (user) => user.courses)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id' })
+  userId: string;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
-  @ManyToOne(() => Course, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'courseId' })
-  course: Course;
-} 
+}

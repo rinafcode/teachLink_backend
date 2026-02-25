@@ -1,29 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { SkillAssessmentService } from './assessments/skill-assessment.service';
-import { PathGenerationService } from './generation/path-generation.service';
-import { MilestoneTrackingService } from './milestones/milestone-tracking.service';
-import { CreateLearningPathDto } from './dto/create-learning-path.dto';
+import { SkillAssessmentService } from './services/skill-assessment.service';
+import { PathGenerationService } from './services/path-generation.service';
+import { MilestoneTrackingService } from './services/milestone-tracking.service';
 
 @Injectable()
 export class LearningPathsService {
   constructor(
-    private readonly assessmentService: SkillAssessmentService,
-    private readonly generationService: PathGenerationService,
-    private readonly milestoneService: MilestoneTrackingService,
+    private readonly skillAssessmentService: SkillAssessmentService,
+    private readonly pathGenerationService: PathGenerationService,
+    private readonly milestoneTrackingService: MilestoneTrackingService,
   ) {}
 
-  async createPath(dto: CreateLearningPathDto) {
-    const assessmentResult = await this.assessmentService.evaluate(dto.userId, dto.answers);
-    const path = await this.generationService.generate(dto.goal, assessmentResult);
-    await this.milestoneService.initializeMilestones(dto.userId, path);
-    return path;
-  }
-
-  async getPathForUser(userId: string) {
-    
-    return {
-      userId,
-      path: [],
-    };
+  generateLearningPath(input: any) {
+    const assessment = this.skillAssessmentService.assess(input);
+    const path = this.pathGenerationService.generate(assessment);
+    return this.milestoneTrackingService.initialize(path);
   }
 }

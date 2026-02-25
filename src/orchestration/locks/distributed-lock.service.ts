@@ -1,20 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import Redis from 'ioredis';
 
 @Injectable()
 export class DistributedLockService {
-  private locks: Set<string> = new Set();
+  private redis = new Redis(process.env.REDIS_URL);
 
-  // Acquired a distributed lock
-  async acquireLock(resource: string): Promise<boolean> {
-    // TODO: Implement distributed lock acquisition
-    if (this.locks.has(resource)) return false;
-    this.locks.add(resource);
-    return true;
+  async acquireLock(key: string, ttl = 5000): Promise<boolean> {
+    const result = await this.redis.set(key, 'locked', 'PX', ttl, 'NX');
+    return result === 'OK';
   }
 
-  // Released a distributed lock
-  async releaseLock(resource: string): Promise<boolean> {
-    // TODO: Implemented distributed lock release
-    return this.locks.delete(resource);
+  async releaseLock(key: string): Promise<void> {
+    await this.redis.del(key);
   }
-} 
+}

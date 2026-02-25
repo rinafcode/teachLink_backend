@@ -1,243 +1,175 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { register, collectDefaultMetrics, Registry } from 'prom-client';
-import { DistributedTracingService } from './tracing/distributed-tracing.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { StructuredLoggerService } from './logging/structured-logger.service';
 import { LogAggregationService } from './logging/log-aggregation.service';
+import { DistributedTracingService } from './tracing/distributed-tracing.service';
 import { MetricsAnalysisService } from './metrics/metrics-analysis.service';
 import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
-import { LogLevel } from './entities/log-entry.entity';
-import { MetricType } from './entities/metric-entry.entity';
 
-export interface ObservabilityConfig {
-  serviceName: string;
-  version: string;
-  environment: string;
-  enableTracing: boolean;
-  enableMetrics: boolean;
-  enableLogging: boolean;
-  enableAnomalyDetection: boolean;
-  metricsExportInterval: number;
-  logLevel: LogLevel;
-}
-
+/**
+ * Observability Service
+ * Central service for all observability features
+ */
 @Injectable()
-export class ObservabilityService implements OnModuleInit {
+export class ObservabilityService {
   private readonly logger = new Logger(ObservabilityService.name);
-  private readonly registry: Registry;
-  private config: ObservabilityConfig;
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly tracingService: DistributedTracingService,
-    private readonly loggingService: LogAggregationService,
-    private readonly metricsService: MetricsAnalysisService,
-    private readonly anomalyService: AnomalyDetectionService,
-  ) {
-    this.registry = register;
-    this.initializeConfig();
-  }
-
-  async onModuleInit(): Promise<void> {
-    this.logger.log('Initializing Observability Service');
-    
-    if (this.config.enableMetrics) {
-      await this.initializeMetrics();
-    }
-
-    if (this.config.enableTracing) {
-      await this.initializeTracing();
-    }
-
-    if (this.config.enableLogging) {
-      await this.initializeLogging();
-    }
-
-    if (this.config.enableAnomalyDetection) {
-      await this.initializeAnomalyDetection();
-    }
-
-    this.logger.log('Observability Service initialized successfully');
-  }
-
-  private initializeConfig(): void {
-    this.config = {
-      serviceName: this.configService.get<string>('OBSERVABILITY_SERVICE_NAME', 'teachlink-backend'),
-      version: this.configService.get<string>('OBSERVABILITY_VERSION', '1.0.0'),
-      environment: this.configService.get<string>('NODE_ENV', 'development'),
-      enableTracing: this.configService.get<boolean>('OBSERVABILITY_ENABLE_TRACING', true),
-      enableMetrics: this.configService.get<boolean>('OBSERVABILITY_ENABLE_METRICS', true),
-      enableLogging: this.configService.get<boolean>('OBSERVABILITY_ENABLE_LOGGING', true),
-      enableAnomalyDetection: this.configService.get<boolean>('OBSERVABILITY_ENABLE_ANOMALY_DETECTION', true),
-      metricsExportInterval: this.configService.get<number>('OBSERVABILITY_METRICS_INTERVAL', 15000),
-      logLevel: this.configService.get<LogLevel>('OBSERVABILITY_LOG_LEVEL', LogLevel.INFO),
-    };
-  }
-
-  private async initializeMetrics(): Promise<void> {
-    // Collect default Node.js metrics
-    collectDefaultMetrics({
-      register: this.registry,
-      prefix: `${this.config.serviceName}_`,
-    });
-
-    // Initialize custom metrics collection
-    await this.metricsService.initialize(this.config);
-    this.logger.log('Metrics collection initialized');
-  }
-
-  private async initializeTracing(): Promise<void> {
-    await this.tracingService.initialize(this.config);
-    this.logger.log('Distributed tracing initialized');
-  }
-
-  private async initializeLogging(): Promise<void> {
-    await this.loggingService.initialize(this.config);
-    this.logger.log('Log aggregation initialized');
-  }
-
-  private async initializeAnomalyDetection(): Promise<void> {
-    await this.anomalyService.initialize(this.config);
-    this.logger.log('Anomaly detection initialized');
-  }
+    private readonly structuredLogger: StructuredLoggerService,
+    private readonly logAggregation: LogAggregationService,
+    private readonly tracing: DistributedTracingService,
+    private readonly metrics: MetricsAnalysisService,
+    private readonly anomalyDetection: AnomalyDetectionService,
+  ) {}
 
   /**
-   * Get observability configuration
+   * Get comprehensive observability dashboard
    */
-  getConfig(): ObservabilityConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Get Prometheus metrics
-   */
-  async getMetrics(): Promise<string> {
-    return this.registry.metrics();
-  }
-
-  /**
-   * Create correlation ID for request tracking
-   */
-  generateCorrelationId(): string {
-    return this.tracingService.generateCorrelationId();
-  }
-
-  /**
-   * Start a new trace span
-   */
-  async startSpan(operationName: string, parentSpanId?: string, tags?: Record<string, any>) {
-    return this.tracingService.startSpan({ operationName, parentSpanId, tags });
-  }
-
-  /**
-   * Log structured message
-   */
-  async log(level: LogLevel, message: string, context?: Record<string, any>, correlationId?: string) {
-    return this.loggingService.log(level, message, context, correlationId);
-  }
-
-  /**
-   * Record a custom metric
-   */
-  async recordMetric(
-    name: string,
-    value: number,
-    type: MetricType,
-    tags?: Record<string, any>,
-    correlationId?: string
-  ) {
-    return this.metricsService.recordMetric(name, value, type, tags, correlationId);
-  }
-
-  /**
-   * Get system health status
-   */
-  async getHealthStatus(): Promise<{
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    components: Record<string, any>;
-    timestamp: Date;
-  }> {
-    const tracingHealth = await this.tracingService.getHealthStatus();
-    const loggingHealth = await this.loggingService.getHealthStatus();
-    const metricsHealth = await this.metricsService.getHealthStatus();
-    const anomalyHealth = await this.anomalyService.getHealthStatus();
-
-    const components = {
-      tracing: tracingHealth,
-      logging: loggingHealth,
-      metrics: metricsHealth,
-      anomalyDetection: anomalyHealth,
-    };
-
-    const allHealthy = Object.values(components).every(c => c.status === 'healthy');
-    const anyUnhealthy = Object.values(components).some(c => c.status === 'unhealthy');
-
-    const status = anyUnhealthy ? 'unhealthy' : allHealthy ? 'healthy' : 'degraded';
+  async getObservabilityDashboard() {
+    const [
+      logStats,
+      traceStats,
+      metricsStats,
+      anomalyStats,
+      systemHealth,
+    ] = await Promise.all([
+      this.logAggregation.getLogStatistics(),
+      this.tracing.getTraceStatistics(),
+      this.metrics.getAllMetricsStatistics(),
+      this.anomalyDetection.getAnomalyStatistics(),
+      this.anomalyDetection.getSystemHealth(),
+    ]);
 
     return {
-      status,
-      components,
+      logs: logStats,
+      traces: traceStats,
+      metrics: metricsStats,
+      anomalies: anomalyStats,
+      health: systemHealth,
       timestamp: new Date(),
     };
   }
 
   /**
-   * Get observability statistics
+   * Get logger instance
    */
-  async getObservabilityStats(): Promise<{
-    traces: number;
-    logs: number;
-    metrics: number;
-    anomalies: number;
-    period: string;
-  }> {
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    const [traces, logs, metrics, anomalies] = await Promise.all([
-      this.tracingService.getTraceCount(oneDayAgo, now),
-      this.loggingService.getLogCount(oneDayAgo, now),
-      this.metricsService.getMetricCount(oneDayAgo, now),
-      this.anomalyService.getAnomalyCount(oneDayAgo, now),
-    ]);
-
-    return {
-      traces,
-      logs,
-      metrics,
-      anomalies,
-      period: '24h',
-    };
+  getLogger(): StructuredLoggerService {
+    return this.structuredLogger;
   }
 
   /**
-   * Search across all observability data
+   * Get log aggregation service
    */
-  async search(query: {
-    text?: string;
-    correlationId?: string;
-    traceId?: string;
-    userId?: string;
-    startTime?: Date;
-    endTime?: Date;
-    services?: string[];
-  }): Promise<{
-    traces: any[];
-    logs: any[];
-    metrics: any[];
-    anomalies: any[];
-  }> {
-    const [traces, logs, metrics, anomalies] = await Promise.all([
-      this.tracingService.searchTraces(query),
-      this.loggingService.searchLogs(query),
-      this.metricsService.searchMetrics(query),
-      this.anomalyService.searchAnomalies(query),
-    ]);
+  getLogAggregation(): LogAggregationService {
+    return this.logAggregation;
+  }
+
+  /**
+   * Get tracing service
+   */
+  getTracing(): DistributedTracingService {
+    return this.tracing;
+  }
+
+  /**
+   * Get metrics service
+   */
+  getMetrics(): MetricsAnalysisService {
+    return this.metrics;
+  }
+
+  /**
+   * Get anomaly detection service
+   */
+  getAnomalyDetection(): AnomalyDetectionService {
+    return this.anomalyDetection;
+  }
+
+  /**
+   * Initialize observability for a request
+   */
+  initializeRequestObservability(correlationId: string, userId?: string) {
+    this.structuredLogger.setCorrelationId(correlationId);
+    if (userId) {
+      this.structuredLogger.setUserId(userId);
+    }
+  }
+
+  /**
+   * Track request with full observability
+   */
+  async trackRequest<T>(
+    method: string,
+    url: string,
+    fn: () => Promise<T>,
+    correlationId: string,
+  ): Promise<T> {
+    const startTime = new Date();
+    
+    // Initialize logging context
+    this.initializeRequestObservability(correlationId);
+
+    // Start trace span
+    return this.tracing.executeInSpan(
+      `${method} ${url}`,
+      async (span) => {
+        try {
+          // Execute request
+          const result = await fn();
+
+          // Calculate duration
+          const duration = Date.now() - startTime.getTime();
+
+          // Log request
+          this.structuredLogger.logRequest(method, url, 200, duration);
+
+          // Track metrics
+          this.metrics.trackApiResponseTime(url, duration, 200);
+
+          return result;
+        } catch (error) {
+          // Calculate duration
+          const duration = Date.now() - startTime.getTime();
+
+          // Log error
+          this.structuredLogger.error(
+            `Request failed: ${method} ${url}`,
+            error as Error,
+          );
+
+          // Track metrics
+          this.metrics.trackApiResponseTime(url, duration, 500);
+
+          throw error;
+        }
+      },
+      {
+        'http.method': method,
+        'http.url': url,
+        'correlation.id': correlationId,
+      },
+    );
+  }
+
+  /**
+   * Get system overview
+   */
+  async getSystemOverview() {
+    const dashboard = await this.getObservabilityDashboard();
+    const recentErrors = await this.logAggregation.getErrorLogs(10);
+    const recentAnomalies = this.anomalyDetection.getRecentAnomalies(60);
 
     return {
-      traces,
-      logs,
-      metrics,
-      anomalies,
+      status: dashboard.health.status,
+      issues: dashboard.health.issues,
+      recentErrors: recentErrors.length,
+      recentAnomalies: recentAnomalies.length,
+      metrics: {
+        totalLogs: dashboard.logs.total,
+        totalTraces: dashboard.traces.total,
+        errorRate: dashboard.logs.errorRate,
+        avgResponseTime: dashboard.traces.avgDuration,
+      },
+      timestamp: new Date(),
     };
   }
 }
