@@ -25,17 +25,17 @@ module.exports = {
   // text  — printed to stdout (CI logs)
   // lcov  — consumed by GitHub Actions coverage summary step
   // html  — uploaded as an artifact for visual inspection
-  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary', 'cobertura'],
 
   // ─── Coverage Thresholds ───────────────────────────────────────────────────
   // Pipeline fails if any metric falls below these values.
   // Adjust upward incrementally as the test suite matures.
   coverageThreshold: {
     global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70,
+      branches: Number(process.env.COVERAGE_THRESHOLD_BRANCHES || 70),
+      functions: Number(process.env.COVERAGE_THRESHOLD_FUNCTIONS || 70),
+      lines: Number(process.env.COVERAGE_THRESHOLD_LINES || 70),
+      statements: Number(process.env.COVERAGE_THRESHOLD_STATEMENTS || 70),
     },
   },
 

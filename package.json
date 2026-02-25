@@ -21,7 +21,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:ci": "jest --config jest.config.js --coverage --forceExit --runInBand",
+    "test:ci": "jest --config jest.config.js --coverage --forceExit --runInBand && node ./test/utils/check-coverage-summary.js",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit --runInBand",
     "test:ml-models": "jest src/ml-models --maxWorkers=1 --max-old-space-size=2048",
