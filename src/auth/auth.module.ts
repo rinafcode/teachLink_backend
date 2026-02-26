@@ -15,10 +15,17 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'your-secret-key',
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<{
+        secret: string;
+        signOptions: { expiresIn: string };
+      }> => ({
+        secret:
+          configService.get<string>('JWT_SECRET') ?? 'your-secret-key',
         signOptions: {
-          expiresIn: parseInt(configService.get<string>('JWT_EXPIRES_IN') || '900', 10), // 900s = 15m
+          expiresIn:
+            configService.get<string>('JWT_EXPIRES_IN') ?? '15m',
         },
       }),
     }),
