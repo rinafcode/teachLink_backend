@@ -19,7 +19,6 @@ export class MessagingGateway implements OnGatewayConnection {
   @SubscribeMessage("send_message")
   async handleMessage(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
     const user = (client as any).user;
-    // process message with authenticated user context
     return { userId: user.sub, message: data };
   }
 }

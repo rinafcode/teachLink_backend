@@ -13,7 +13,6 @@ export class NotificationsGateway {
   @SubscribeMessage("subscribe_notifications")
   async handleSubscribe(@ConnectedSocket() client: Socket) {
     const user = (client as any).user;
-    // subscribe user to notifications
     return { userId: user.sub, subscribed: true };
   }
 }
