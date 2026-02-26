@@ -1,0 +1,52 @@
+# CODEOWNERS
+#
+# Each line maps a path pattern to one or more GitHub teams or users.
+# The last matching pattern takes precedence.
+# GitHub automatically requests review from the listed owners when a PR
+# touches a file that matches the pattern.
+#
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ── Default: all files require maintainer review ─────────────────────────────
+*                                   @teachlink/backend-maintainers
+
+# ── CI / DevOps ───────────────────────────────────────────────────────────────
+.github/                            @teachlink/devops-team
+.github/workflows/                  @teachlink/devops-team
+
+# ── Auth & Security ───────────────────────────────────────────────────────────
+src/auth/                           @teachlink/auth-team
+src/security/                       @teachlink/auth-team
+
+# ── Payments & Web3 ───────────────────────────────────────────────────────────
+src/payments/                       @teachlink/payments-team
+src/tenancy/billing/                @teachlink/payments-team
+
+# ── Web3 / Blockchain ─────────────────────────────────────────────────────────
+# Add a web3/ module path here when the module is created
+# src/web3/                         @teachlink/web3-team
+
+# ── Real-time / Messaging ─────────────────────────────────────────────────────
+src/notifications/                  @teachlink/realtime-team
+src/messaging/                      @teachlink/realtime-team
+src/collaboration/                  @teachlink/realtime-team
+
+# ── Data / Analytics ──────────────────────────────────────────────────────────
+src/analytics/                      @teachlink/data-team
+src/data-warehouse/                 @teachlink/data-team
+src/ab-testing/                     @teachlink/data-team
+
+# ── Database / Migrations ─────────────────────────────────────────────────────
+src/migrations/                     @teachlink/backend-maintainers
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+tsconfig.json                       @teachlink/backend-maintainers
+tsconfig.build.json                 @teachlink/backend-maintainers
+package.json                        @teachlink/backend-maintainers
+package-lock.json                   @teachlink/backend-maintainers
+nest-cli.json                       @teachlink/backend-maintainers
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+README.md                           @teachlink/backend-maintainers
+CONTRIBUTING.md                     @teachlink/backend-maintainers
+CODEOWNERS                          @teachlink/backend-maintainers

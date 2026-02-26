@@ -21,16 +21,21 @@ import { GraphQLModule } from './graphql/graphql.module';
 import { MigrationModule } from './migrations/migration.module';
 import { ABTestingModule } from './ab-testing/ab-testing.module';
 import { ObservabilityModule } from './observability/observability.module';
+import { DatabaseModule } from './common/database/database.module';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import * as redisStore from 'cache-manager-redis-store';
+import { envValidationSchema } from './config/env.validation';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validationSchema: envValidationSchema,
+
     }),
     TypeOrmModule.forRootAsync({
       imports: [MonitoringModule],
@@ -63,6 +68,7 @@ import * as redisStore from 'cache-manager-redis-store';
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
     }),
+    HealthModule,
     SyncModule,
     MediaModule,
     BackupModule,
@@ -74,6 +80,7 @@ import * as redisStore from 'cache-manager-redis-store';
     ABTestingModule,
     ObservabilityModule,
     RateLimitingModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [

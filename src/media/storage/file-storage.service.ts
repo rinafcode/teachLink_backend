@@ -1,4 +1,57 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
+import AWS from 'aws-sdk';
+
+const s3 = new AWS.S3({
+  region: process.env.AWS_REGION || 'us-east-1',
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+
+@Injectable()
+export class FileStorageService {
+  private readonly logger = new Logger(FileStorageService.name);
+  private readonly bucket = process.env.MEDIA_BUCKET || process.env.AWS_S3_BUCKET || 'teachlink-media';
+
+  async uploadFile(file: Express.Multer.File, metadata: ContentMetadata): Promise<{ url: string; etag?: string }>
+  {
+    const key = `${metadata.contentId}/${Date.now()}_${file.originalname}`;
+
+    const params: AWS.S3.PutObjectRequest = {
+      Bucket: this.bucket,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      Metadata: {
+        originalname: file.originalname,
+        ownerId: metadata.ownerId || '',
+        tenantId: metadata.tenantId || '',
+      },
+    };
+
+    const res = await s3.upload(params).promise();
+    this.logger.log(`Uploaded ${key} to S3 ${res.Location}`);
+
+    return { url: res.Location, etag: (res as any).ETag };
+  }
+
+  async getSignedUrl(keyOrUrl: string, expiresSec = 300): Promise<string> {
+    // If a full URL is provided, return as-is
+    if (keyOrUrl.startsWith('http')) return keyOrUrl;
+
+    const params = { Bucket: this.bucket, Key: keyOrUrl, Expires: expiresSec } as any;
+    return s3.getSignedUrlPromise('getObject', params);
+  }
+
+  async backupToBucket(key: string, backupBucket: string): Promise<void> {
+    await s3.copyObject({
+      Bucket: backupBucket,
+      CopySource: `${this.bucket}/${key}`,
+      Key: key,
+    }).promise();
+  }
+}
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,

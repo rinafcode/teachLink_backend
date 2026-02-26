@@ -92,6 +92,12 @@ export class ContentMetadata {
     codec?: string;
   };
 
+  @Column({ name: 'owner_id', nullable: true })
+  ownerId?: string;
+
+  @Column({ name: 'tenant_id', nullable: true })
+  tenantId?: string;
+
   @Column({ name: 'error_message', nullable: true })
   errorMessage: string;
 

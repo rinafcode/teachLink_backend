@@ -1,15 +1,28 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
+import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
+  // ─── Global Exception Filter ──────────────────────────────────────────────
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // ─── Global Response Transform Interceptor ───────────────────────────────
+  app.useGlobalInterceptors(new ResponseTransformInterceptor());
+
+  // ─── Global Timeout Interceptor ─────────────────────────────────────────
+  const { TimeoutInterceptor } = await import('./common/interceptors/timeout.interceptor');
+  app.useGlobalInterceptors(new TimeoutInterceptor());
+
+  // ─── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors();
 
-  // Enable validation with strict settings (from your branch)
+  // ─── Validation ──────────────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -18,7 +31,7 @@ async function bootstrap() {
     }),
   );
 
-  // Configure Swagger - Merging both Gamification and Email Marketing tags
+  // ─── Swagger ──────────────────────────────────────────────────────────────
   const config = new DocumentBuilder()
     .setTitle('TeachLink API')
     .setDescription('The TeachLink API documentation - Unified System')
@@ -39,7 +52,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 TeachLink API running on http://localhost:${port}`);
-  console.log(`📚 Swagger docs available at http://localhost:${port}/api`);
+  logger.log(`🚀 TeachLink API running on http://localhost:${port}`);
+  logger.log(`📚 Swagger docs available at http://localhost:${port}/api`);
 }
 bootstrap();
