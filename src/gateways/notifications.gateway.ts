@@ -2,10 +2,10 @@ import {
   WebSocketGateway,
   SubscribeMessage,
   ConnectedSocket,
-  UseGuards,
 } from "@nestjs/websockets";
+import { UseGuards } from "@nestjs/common";
 import { Socket } from "socket.io";
-import { WsJwtAuthGuard } from "../common/guards/ws-jwt-auth.guard";
+import { WsJwtAuthGuard } from "../auth/guards/ws-jwt-auth.guard";
 
 @WebSocketGateway({ namespace: "/notifications" })
 export class NotificationsGateway {

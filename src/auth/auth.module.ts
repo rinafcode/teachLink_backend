@@ -17,15 +17,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       inject: [ConfigService],
       useFactory: async (
         configService: ConfigService,
-      ): Promise<{
-        secret: string;
-        signOptions: { expiresIn: string };
-      }> => ({
+      ): Promise<{ secret: string; signOptions: { expiresIn: number } }> => ({
         secret:
           configService.get<string>('JWT_SECRET') ?? 'your-secret-key',
         signOptions: {
-          expiresIn:
-            configService.get<string>('JWT_EXPIRES_IN') ?? '15m',
+          expiresIn: parseInt(
+            configService.get<string>('JWT_EXPIRES_IN') ?? '900',
+            10,
+          ), // Convert to seconds (number)
         },
       }),
     }),

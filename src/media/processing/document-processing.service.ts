@@ -25,7 +25,8 @@ export class DocumentProcessingService {
     try {
       const parsed = await pdfParse(buffer);
       meta.metadata = meta.metadata || {};
-      meta.metadata.text = parsed.text;
+      // Extend metadata type to include text for documents
+      (meta.metadata as any).text = parsed.text;
       await this.contentRepo.save(meta);
       return parsed.text;
     } catch (err) {

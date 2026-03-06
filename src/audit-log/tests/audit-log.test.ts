@@ -1,13 +1,15 @@
 import { AuditLogService } from "../audit-log.service";
 import { Repository } from "typeorm";
 import { AuditLog } from "../audit-log.entity";
+import { getRepositoryToken } from "@nestjs/typeorm";
 
 describe("AuditLogService", () => {
   let service: AuditLogService;
   let repo: Repository<AuditLog>;
 
   beforeEach(() => {
-    repo = new Repository<AuditLog>();
+    // Mock repository without calling constructor
+    repo = {} as Repository<AuditLog>;
     service = new AuditLogService(repo as any);
   });
 
