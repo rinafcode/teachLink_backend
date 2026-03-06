@@ -18,248 +18,254 @@ import { CampaignStatus } from './enums/campaign-status.enum';
 
 @Injectable()
 export class EmailMarketingService {
-    constructor(
-        @InjectRepository(Campaign)
-        private readonly campaignRepository: Repository<Campaign>,
-        @InjectRepository(CampaignRecipient)
-        private readonly recipientRepository: Repository<CampaignRecipient>,
-        @InjectQueue('email-marketing')
-        private readonly emailQueue: Queue,
-        private readonly segmentationService: SegmentationService,
-        private readonly templateService: TemplateManagementService,
-        private readonly abTestingService: ABTestingService,
-        private readonly analyticsService: EmailAnalyticsService,
-    ) { }
+  constructor(
+    @InjectRepository(Campaign)
+    private readonly campaignRepository: Repository<Campaign>,
+    @InjectRepository(CampaignRecipient)
+    private readonly recipientRepository: Repository<CampaignRecipient>,
+    @InjectQueue('email-marketing')
+    private readonly emailQueue: Queue,
+    private readonly segmentationService: SegmentationService,
+    private readonly templateService: TemplateManagementService,
+    private readonly abTestingService: ABTestingService,
+    private readonly analyticsService: EmailAnalyticsService,
+  ) {}
 
-    /**
-     * Create a new email campaign
-     */
-    async createCampaign(createCampaignDto: CreateCampaignDto): Promise<Campaign> {
-        // Validate template exists
-        if (createCampaignDto.templateId) {
-            await this.templateService.findOne(createCampaignDto.templateId);
-        }
-
-        // Validate segments exist
-        if (createCampaignDto.segmentIds?.length) {
-            for (const segmentId of createCampaignDto.segmentIds) {
-                await this.segmentationService.findOne(segmentId);
-            }
-        }
-
-        const campaign = this.campaignRepository.create({
-            ...createCampaignDto,
-            status: CampaignStatus.DRAFT,
-        });
-
-        return this.campaignRepository.save(campaign);
+  /**
+   * Create a new email campaign
+   */
+  async createCampaign(createCampaignDto: CreateCampaignDto): Promise<Campaign> {
+    // Validate template exists
+    if (createCampaignDto.templateId) {
+      await this.templateService.findOne(createCampaignDto.templateId);
     }
 
-    /**
-     * Get all campaigns with pagination
-     */
-    async findAll(page: number = 1, limit: number = 10): Promise<{
-        campaigns: Campaign[];
-        total: number;
-        page: number;
-        totalPages: number;
-    }> {
-        const [campaigns, total] = await this.campaignRepository.findAndCount({
-            skip: (page - 1) * limit,
-            take: limit,
-            order: { createdAt: 'DESC' },
-            relations: ['template'],
-        });
-
-        return {
-            campaigns,
-            total,
-            page,
-            totalPages: Math.ceil(total / limit),
-        };
+    // Validate segments exist
+    if (createCampaignDto.segmentIds?.length) {
+      for (const segmentId of createCampaignDto.segmentIds) {
+        await this.segmentationService.findOne(segmentId);
+      }
     }
 
-    /**
-     * Get a single campaign by ID
-     */
-    async findOne(id: string): Promise<Campaign> {
-        const campaign = await this.campaignRepository.findOne({
-            where: { id },
-            relations: ['template', 'abTest', 'recipients'],
-        });
+    const campaign = this.campaignRepository.create({
+      ...createCampaignDto,
+      status: CampaignStatus.DRAFT,
+    });
 
-        if (!campaign) {
-            throw new NotFoundException(`Campaign with ID ${id} not found`);
-        }
+    return this.campaignRepository.save(campaign);
+  }
 
-        return campaign;
+  /**
+   * Get all campaigns with pagination
+   */
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    campaigns: Campaign[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const [campaigns, total] = await this.campaignRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+      relations: ['template'],
+    });
+
+    return {
+      campaigns,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Get a single campaign by ID
+   */
+  async findOne(id: string): Promise<Campaign> {
+    const campaign = await this.campaignRepository.findOne({
+      where: { id },
+      relations: ['template', 'abTest', 'recipients'],
+    });
+
+    if (!campaign) {
+      throw new NotFoundException(`Campaign with ID ${id} not found`);
     }
 
-    /**
-     * Update a campaign
-     */
-    async update(id: string, updateCampaignDto: UpdateCampaignDto): Promise<Campaign> {
-        const campaign = await this.findOne(id);
+    return campaign;
+  }
 
-        if (campaign.status === CampaignStatus.SENT) {
-            throw new BadRequestException('Cannot update a sent campaign');
-        }
+  /**
+   * Update a campaign
+   */
+  async update(id: string, updateCampaignDto: UpdateCampaignDto): Promise<Campaign> {
+    const campaign = await this.findOne(id);
 
-        Object.assign(campaign, updateCampaignDto);
-        return this.campaignRepository.save(campaign);
+    if (campaign.status === CampaignStatus.SENT) {
+      throw new BadRequestException('Cannot update a sent campaign');
     }
 
-    /**
-     * Delete a campaign
-     */
-    async remove(id: string): Promise<void> {
-        const campaign = await this.findOne(id);
+    Object.assign(campaign, updateCampaignDto);
+    return this.campaignRepository.save(campaign);
+  }
 
-        if (campaign.status === CampaignStatus.SENDING) {
-            throw new BadRequestException('Cannot delete a campaign that is currently sending');
-        }
+  /**
+   * Delete a campaign
+   */
+  async remove(id: string): Promise<void> {
+    const campaign = await this.findOne(id);
 
-        await this.campaignRepository.remove(campaign);
+    if (campaign.status === CampaignStatus.SENDING) {
+      throw new BadRequestException('Cannot delete a campaign that is currently sending');
     }
 
-    /**
-     * Schedule a campaign for future sending
-     */
-    async scheduleCampaign(id: string, scheduleDto: ScheduleCampaignDto): Promise<Campaign> {
-        const campaign = await this.findOne(id);
+    await this.campaignRepository.remove(campaign);
+  }
 
-        if (campaign.status !== CampaignStatus.DRAFT) {
-            throw new BadRequestException('Only draft campaigns can be scheduled');
-        }
+  /**
+   * Schedule a campaign for future sending
+   */
+  async scheduleCampaign(id: string, scheduleDto: ScheduleCampaignDto): Promise<Campaign> {
+    const campaign = await this.findOne(id);
 
-        const scheduledDate = new Date(scheduleDto.scheduledAt);
-        if (scheduledDate <= new Date()) {
-            throw new BadRequestException('Scheduled date must be in the future');
-        }
-
-        campaign.scheduledAt = scheduledDate;
-        campaign.status = CampaignStatus.SCHEDULED;
-
-        // Add to queue with delay
-        const delay = scheduledDate.getTime() - Date.now();
-        await this.emailQueue.add(
-            'send-campaign',
-            { campaignId: id },
-            { delay, jobId: `campaign-${id}` },
-        );
-
-        return this.campaignRepository.save(campaign);
+    if (campaign.status !== CampaignStatus.DRAFT) {
+      throw new BadRequestException('Only draft campaigns can be scheduled');
     }
 
-    /**
-     * Send a campaign immediately
-     */
-    async sendCampaign(id: string): Promise<Campaign> {
-        const campaign = await this.findOne(id);
-
-        if (campaign.status === CampaignStatus.SENT || campaign.status === CampaignStatus.SENDING) {
-            throw new BadRequestException('Campaign has already been sent or is sending');
-        }
-
-        // Get recipients from segments
-        const recipients = await this.segmentationService.getUsersFromSegments(
-            campaign.segmentIds || [],
-        );
-
-        if (recipients.length === 0) {
-            throw new BadRequestException('No recipients found for this campaign');
-        }
-
-        // Update campaign status
-        campaign.status = CampaignStatus.SENDING;
-        campaign.sentAt = new Date();
-        campaign.totalRecipients = recipients.length;
-        await this.campaignRepository.save(campaign);
-
-        // Queue emails for sending
-        await this.emailQueue.add('process-campaign', {
-            campaignId: id,
-            recipients: recipients.map((r) => r.id),
-        });
-
-        return campaign;
+    const scheduledDate = new Date(scheduleDto.scheduledAt);
+    if (scheduledDate <= new Date()) {
+      throw new BadRequestException('Scheduled date must be in the future');
     }
 
-    /**
-     * Pause a scheduled or sending campaign
-     */
-    async pauseCampaign(id: string): Promise<Campaign> {
-        const campaign = await this.findOne(id);
+    campaign.scheduledAt = scheduledDate;
+    campaign.status = CampaignStatus.SCHEDULED;
 
-        if (campaign.status !== CampaignStatus.SCHEDULED && campaign.status !== CampaignStatus.SENDING) {
-            throw new BadRequestException('Only scheduled or sending campaigns can be paused');
-        }
+    // Add to queue with delay
+    const delay = scheduledDate.getTime() - Date.now();
+    await this.emailQueue.add(
+      'send-campaign',
+      { campaignId: id },
+      { delay, jobId: `campaign-${id}` },
+    );
 
-        // Remove from queue if scheduled
-        if (campaign.status === CampaignStatus.SCHEDULED) {
-            await this.emailQueue.removeJobs(`campaign-${id}`);
-        }
+    return this.campaignRepository.save(campaign);
+  }
 
-        campaign.status = CampaignStatus.PAUSED;
-        return this.campaignRepository.save(campaign);
+  /**
+   * Send a campaign immediately
+   */
+  async sendCampaign(id: string): Promise<Campaign> {
+    const campaign = await this.findOne(id);
+
+    if (campaign.status === CampaignStatus.SENT || campaign.status === CampaignStatus.SENDING) {
+      throw new BadRequestException('Campaign has already been sent or is sending');
     }
 
-    /**
-     * Resume a paused campaign
-     */
-    async resumeCampaign(id: string): Promise<Campaign> {
-        const campaign = await this.findOne(id);
+    // Get recipients from segments
+    const recipients = await this.segmentationService.getUsersFromSegments(
+      campaign.segmentIds || [],
+    );
 
-        if (campaign.status !== CampaignStatus.PAUSED) {
-            throw new BadRequestException('Only paused campaigns can be resumed');
-        }
-
-        // If it was scheduled, re-schedule
-        if (campaign.scheduledAt && campaign.scheduledAt > new Date()) {
-            return this.scheduleCampaign(id, { scheduledAt: campaign.scheduledAt.toISOString() });
-        }
-
-        // Otherwise, resume sending
-        campaign.status = CampaignStatus.SENDING;
-        await this.emailQueue.add('resume-campaign', { campaignId: id });
-
-        return this.campaignRepository.save(campaign);
+    if (recipients.length === 0) {
+      throw new BadRequestException('No recipients found for this campaign');
     }
 
-    /**
-     * Duplicate a campaign
-     */
-    async duplicateCampaign(id: string): Promise<Campaign> {
-        const original = await this.findOne(id);
+    // Update campaign status
+    campaign.status = CampaignStatus.SENDING;
+    campaign.sentAt = new Date();
+    campaign.totalRecipients = recipients.length;
+    await this.campaignRepository.save(campaign);
 
-        const duplicate = this.campaignRepository.create({
-            name: `${original.name} (Copy)`,
-            subject: original.subject,
-            previewText: original.previewText,
-            templateId: original.templateId,
-            segmentIds: original.segmentIds,
-            content: original.content,
-            status: CampaignStatus.DRAFT,
-        });
+    // Queue emails for sending
+    await this.emailQueue.add('process-campaign', {
+      campaignId: id,
+      recipients: recipients.map((r) => r.id),
+    });
 
-        return this.campaignRepository.save(duplicate);
+    return campaign;
+  }
+
+  /**
+   * Pause a scheduled or sending campaign
+   */
+  async pauseCampaign(id: string): Promise<Campaign> {
+    const campaign = await this.findOne(id);
+
+    if (
+      campaign.status !== CampaignStatus.SCHEDULED &&
+      campaign.status !== CampaignStatus.SENDING
+    ) {
+      throw new BadRequestException('Only scheduled or sending campaigns can be paused');
     }
 
-    /**
-     * Get campaign statistics
-     */
-    async getCampaignStats(id: string): Promise<{
-        sent: number;
-        delivered: number;
-        opened: number;
-        clicked: number;
-        bounced: number;
-        unsubscribed: number;
-        openRate: number;
-        clickRate: number;
-        bounceRate: number;
-    }> {
-        await this.findOne(id);
-        return this.analyticsService.getCampaignMetrics(id);
+    // Remove from queue if scheduled
+    if (campaign.status === CampaignStatus.SCHEDULED) {
+      await this.emailQueue.removeJobs(`campaign-${id}`);
     }
+
+    campaign.status = CampaignStatus.PAUSED;
+    return this.campaignRepository.save(campaign);
+  }
+
+  /**
+   * Resume a paused campaign
+   */
+  async resumeCampaign(id: string): Promise<Campaign> {
+    const campaign = await this.findOne(id);
+
+    if (campaign.status !== CampaignStatus.PAUSED) {
+      throw new BadRequestException('Only paused campaigns can be resumed');
+    }
+
+    // If it was scheduled, re-schedule
+    if (campaign.scheduledAt && campaign.scheduledAt > new Date()) {
+      return this.scheduleCampaign(id, { scheduledAt: campaign.scheduledAt.toISOString() });
+    }
+
+    // Otherwise, resume sending
+    campaign.status = CampaignStatus.SENDING;
+    await this.emailQueue.add('resume-campaign', { campaignId: id });
+
+    return this.campaignRepository.save(campaign);
+  }
+
+  /**
+   * Duplicate a campaign
+   */
+  async duplicateCampaign(id: string): Promise<Campaign> {
+    const original = await this.findOne(id);
+
+    const duplicate = this.campaignRepository.create({
+      name: `${original.name} (Copy)`,
+      subject: original.subject,
+      previewText: original.previewText,
+      templateId: original.templateId,
+      segmentIds: original.segmentIds,
+      content: original.content,
+      status: CampaignStatus.DRAFT,
+    });
+
+    return this.campaignRepository.save(duplicate);
+  }
+
+  /**
+   * Get campaign statistics
+   */
+  async getCampaignStats(id: string): Promise<{
+    sent: number;
+    delivered: number;
+    opened: number;
+    clicked: number;
+    bounced: number;
+    unsubscribed: number;
+    openRate: number;
+    clickRate: number;
+    bounceRate: number;
+  }> {
+    await this.findOne(id);
+    return this.analyticsService.getCampaignMetrics(id);
+  }
 }

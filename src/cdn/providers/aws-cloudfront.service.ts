@@ -111,7 +111,7 @@ export class AWSCloudFrontService {
       this.logger.log(`Creating CloudFront invalidation for ${urls.length} URLs`);
 
       // Convert full URLs to paths relative to distribution
-      const paths = urls.map(url => {
+      const paths = urls.map((url) => {
         try {
           const urlObj = new URL(url);
           return urlObj.pathname;
@@ -242,7 +242,7 @@ export class AWSCloudFrontService {
           return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+        await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 seconds
         attempts++;
       } catch (error) {
         this.logger.error(`Error checking invalidation status:`, error);

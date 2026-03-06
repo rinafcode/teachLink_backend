@@ -73,12 +73,14 @@ export class IncrementalLoaderService {
   /**
    * Create an incremental load job
    */
-  async createLoadJob(config: Omit<IncrementalLoadConfig, 'sourceConnection' | 'targetConnection'>, 
-                     sourceConfig: DataSourceConfig, 
-                     targetConfig: DataSourceConfig): Promise<IncrementalLoadJob> {
+  async createLoadJob(
+    config: Omit<IncrementalLoadConfig, 'sourceConnection' | 'targetConnection'>,
+    sourceConfig: DataSourceConfig,
+    targetConfig: DataSourceConfig,
+  ): Promise<IncrementalLoadJob> {
     const jobId = uuidv4();
     const jobName = `Incremental_Load_${config.loadType}_${new Date().toISOString()}`;
-    
+
     const job: IncrementalLoadJob = {
       id: jobId,
       name: jobName,
@@ -106,7 +108,11 @@ export class IncrementalLoaderService {
   /**
    * Execute incremental load
    */
-  async executeLoad(jobId: string, sourceTable: string, targetTable: string): Promise<IncrementalLoadJob> {
+  async executeLoad(
+    jobId: string,
+    sourceTable: string,
+    targetTable: string,
+  ): Promise<IncrementalLoadJob> {
     const job = this.jobs.get(jobId);
     if (!job) {
       throw new Error(`Job ${jobId} not found`);
@@ -118,7 +124,9 @@ export class IncrementalLoaderService {
     job.startTime = new Date();
 
     try {
-      this.logger.log(`Starting incremental load for job ${jobId}: ${sourceTable} -> ${targetTable}`);
+      this.logger.log(
+        `Starting incremental load for job ${jobId}: ${sourceTable} -> ${targetTable}`,
+      );
 
       let recordsProcessed = 0;
       let recordsInserted = 0;
@@ -165,8 +173,9 @@ export class IncrementalLoaderService {
       job.recordsDeleted = recordsDeleted;
 
       this.logger.log(`Incremental load job ${jobId} completed successfully`);
-      this.logger.log(`Records processed: ${recordsProcessed}, Inserted: ${recordsInserted}, Updated: ${recordsUpdated}, Deleted: ${recordsDeleted}`);
-
+      this.logger.log(
+        `Records processed: ${recordsProcessed}, Inserted: ${recordsInserted}, Updated: ${recordsUpdated}, Deleted: ${recordsDeleted}`,
+      );
     } catch (error) {
       this.logger.error(`Incremental load job ${jobId} failed: ${error.message}`);
       job.status = 'failed';
@@ -180,14 +189,14 @@ export class IncrementalLoaderService {
   /**
    * Load data using timestamp-based approach
    */
-  private async loadByTimestamp(job: IncrementalLoadJob): Promise<{ 
-    processed: number; 
-    inserted: number; 
-    updated: number; 
+  private async loadByTimestamp(job: IncrementalLoadJob): Promise<{
+    processed: number;
+    inserted: number;
+    updated: number;
   }> {
     const timestampColumn = job.config.timestampColumn || 'updated_at';
     const lastTimestamp = job.lastProcessedTimestamp || new Date(0);
-    
+
     this.logger.log(`Loading data newer than ${lastTimestamp.toISOString()}`);
 
     // Get incremental data from source
@@ -195,7 +204,7 @@ export class IncrementalLoaderService {
       job.config.sourceConnection,
       job.sourceTable,
       timestampColumn,
-      lastTimestamp
+      lastTimestamp,
     );
 
     // Apply changes to target
@@ -204,12 +213,14 @@ export class IncrementalLoaderService {
       job.targetTable,
       incrementalData,
       job.config.primaryKey,
-      'timestamp'
+      'timestamp',
     );
 
     // Update last processed timestamp
     if (incrementalData.length > 0) {
-      const maxTimestamp = Math.max(...incrementalData.map(row => new Date(row[timestampColumn]).getTime()));
+      const maxTimestamp = Math.max(
+        ...incrementalData.map((row) => new Date(row[timestampColumn]).getTime()),
+      );
       job.lastProcessedTimestamp = new Date(maxTimestamp);
     }
 
@@ -219,14 +230,14 @@ export class IncrementalLoaderService {
   /**
    * Load data using sequence-based approach
    */
-  private async loadBySequence(job: IncrementalLoadJob): Promise<{ 
-    processed: number; 
-    inserted: number; 
-    updated: number; 
+  private async loadBySequence(job: IncrementalLoadJob): Promise<{
+    processed: number;
+    inserted: number;
+    updated: number;
   }> {
     const sequenceColumn = job.config.sequenceColumn || 'id';
     const lastId = job.lastProcessedId || 0;
-    
+
     this.logger.log(`Loading data with ${sequenceColumn} > ${lastId}`);
 
     // Get incremental data from source
@@ -234,7 +245,7 @@ export class IncrementalLoaderService {
       job.config.sourceConnection,
       job.sourceTable,
       sequenceColumn,
-      lastId
+      lastId,
     );
 
     // Apply changes to target
@@ -243,12 +254,12 @@ export class IncrementalLoaderService {
       job.targetTable,
       incrementalData,
       job.config.primaryKey,
-      'sequence'
+      'sequence',
     );
 
     // Update last processed ID
     if (incrementalData.length > 0) {
-      const maxId = Math.max(...incrementalData.map(row => row[sequenceColumn]));
+      const maxId = Math.max(...incrementalData.map((row) => row[sequenceColumn]));
       job.lastProcessedId = maxId;
     }
 
@@ -258,10 +269,10 @@ export class IncrementalLoaderService {
   /**
    * Load data using watermark approach
    */
-  private async loadByWatermark(job: IncrementalLoadJob): Promise<{ 
-    processed: number; 
-    inserted: number; 
-    updated: number; 
+  private async loadByWatermark(job: IncrementalLoadJob): Promise<{
+    processed: number;
+    inserted: number;
+    updated: number;
   }> {
     const watermarkColumn = job.config.watermarkColumn || 'updated_at';
     const watermarkKey = `${job.sourceTable}_${watermarkColumn}`;
@@ -275,7 +286,7 @@ export class IncrementalLoaderService {
       job.config.sourceConnection,
       job.sourceTable,
       watermarkColumn,
-      lastValue
+      lastValue,
     );
 
     // Apply changes to target
@@ -284,12 +295,12 @@ export class IncrementalLoaderService {
       job.targetTable,
       incrementalData,
       job.config.primaryKey,
-      'watermark'
+      'watermark',
     );
 
     // Update watermark
     if (incrementalData.length > 0) {
-      const maxValue = Math.max(...incrementalData.map(row => row[watermarkColumn]));
+      const maxValue = Math.max(...incrementalData.map((row) => row[watermarkColumn]));
       const newWatermark: Watermark = {
         id: uuidv4(),
         tableName: job.sourceTable,
@@ -306,15 +317,15 @@ export class IncrementalLoaderService {
   /**
    * Load data using CDC (Change Data Capture)
    */
-  private async loadByCDC(job: IncrementalLoadJob): Promise<{ 
-    processed: number; 
-    inserted: number; 
-    updated: number; 
-    deleted: number; 
+  private async loadByCDC(job: IncrementalLoadJob): Promise<{
+    processed: number;
+    inserted: number;
+    updated: number;
+    deleted: number;
   }> {
     const cdcKey = `${job.sourceTable}_cdc`;
     const events = this.cdcEvents.get(cdcKey) || [];
-    
+
     this.logger.log(`Processing ${events.length} CDC events`);
 
     let inserted = 0;
@@ -325,30 +336,22 @@ export class IncrementalLoaderService {
     for (const event of events) {
       switch (event.operation) {
         case 'INSERT':
-          await this.insertRecord(
-            job.config.targetConnection,
-            job.targetTable,
-            event.newValues
-          );
+          await this.insertRecord(job.config.targetConnection, job.targetTable, event.newValues);
           inserted++;
           break;
-          
+
         case 'UPDATE':
           await this.updateRecord(
             job.config.targetConnection,
             job.targetTable,
             event.primaryKey,
-            event.newValues
+            event.newValues,
           );
           updated++;
           break;
-          
+
         case 'DELETE':
-          await this.deleteRecord(
-            job.config.targetConnection,
-            job.targetTable,
-            event.primaryKey
-          );
+          await this.deleteRecord(job.config.targetConnection, job.targetTable, event.primaryKey);
           deleted++;
           break;
       }
@@ -439,7 +442,7 @@ export class IncrementalLoaderService {
     connection: DataSourceConfig,
     table: string,
     column: string,
-    timestamp: Date
+    timestamp: Date,
   ): Promise<any[]> {
     // Implementation would connect to source database and query
     this.logger.log(`Querying ${table} where ${column} > ${timestamp.toISOString()}`);
@@ -450,7 +453,7 @@ export class IncrementalLoaderService {
     connection: DataSourceConfig,
     table: string,
     column: string,
-    value: any
+    value: any,
   ): Promise<any[]> {
     // Implementation would connect to source database and query
     this.logger.log(`Querying ${table} where ${column} > ${value}`);
@@ -462,11 +465,11 @@ export class IncrementalLoaderService {
     table: string,
     data: any[],
     primaryKey: string[],
-    loadType: string
+    loadType: string,
   ): Promise<{ processed: number; inserted: number; updated: number }> {
     // Implementation would apply changes to target database
     this.logger.log(`Applying ${data.length} records to ${table} using ${loadType} strategy`);
-    
+
     return {
       processed: data.length,
       inserted: data.length, // Simplified logic
@@ -474,7 +477,11 @@ export class IncrementalLoaderService {
     };
   }
 
-  private async insertRecord(connection: DataSourceConfig, table: string, record: any): Promise<void> {
+  private async insertRecord(
+    connection: DataSourceConfig,
+    table: string,
+    record: any,
+  ): Promise<void> {
     // Implementation would insert record into target
     this.logger.log(`Inserting record into ${table}`);
   }
@@ -483,7 +490,7 @@ export class IncrementalLoaderService {
     connection: DataSourceConfig,
     table: string,
     primaryKey: { [key: string]: any },
-    values: { [key: string]: any }
+    values: { [key: string]: any },
   ): Promise<void> {
     // Implementation would update record in target
     this.logger.log(`Updating record in ${table} where ${JSON.stringify(primaryKey)}`);
@@ -492,7 +499,7 @@ export class IncrementalLoaderService {
   private async deleteRecord(
     connection: DataSourceConfig,
     table: string,
-    primaryKey: { [key: string]: any }
+    primaryKey: { [key: string]: any },
   ): Promise<void> {
     // Implementation would delete record from target
     this.logger.log(`Deleting record from ${table} where ${JSON.stringify(primaryKey)}`);

@@ -42,7 +42,10 @@ describe('ReplicationService', () => {
     it('should add replication task to queue', async () => {
       await service.replicateToRegion('1', { foo: 'bar' }, 'eu-west-1');
       expect(queue.add).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith('data.replication.started', expect.any(Object));
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'data.replication.started',
+        expect.any(Object),
+      );
     });
 
     it('should skip if target region is same as current', async () => {

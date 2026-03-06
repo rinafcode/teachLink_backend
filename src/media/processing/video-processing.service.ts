@@ -10,15 +10,19 @@ export class VideoProcessingService {
   constructor(@InjectQueue('media-processing') private readonly queue: Queue) {}
 
   async enqueueTranscode(content: ContentMetadata) {
-    await this.queue.add('transcode-video', {
-      contentId: content.contentId,
-      url: content.cdnUrl,
-      fileName: content.fileName,
-      mimeType: content.mimeType,
-    }, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 5000 },
-    });
+    await this.queue.add(
+      'transcode-video',
+      {
+        contentId: content.contentId,
+        url: content.cdnUrl,
+        fileName: content.fileName,
+        mimeType: content.mimeType,
+      },
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+      },
+    );
     this.logger.log(`Job enqueued for content ${content.contentId}`);
   }
 }

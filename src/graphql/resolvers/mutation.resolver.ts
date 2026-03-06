@@ -7,18 +7,9 @@ import { AssessmentsService } from '../../assessment/assessments.service';
 import { UserType } from '../types/user.type';
 import { CourseType } from '../types/course.type';
 import { AssessmentType } from '../types/assessment.type';
-import {
-  CreateUserInput,
-  UpdateUserInput,
-} from '../inputs/user.input';
-import {
-  CreateCourseInput,
-  UpdateCourseInput,
-} from '../inputs/course.input';
-import {
-  CreateAssessmentInput,
-  UpdateAssessmentInput,
-} from '../inputs/assessment.input';
+import { CreateUserInput, UpdateUserInput } from '../inputs/user.input';
+import { CreateCourseInput, UpdateCourseInput } from '../inputs/course.input';
+import { CreateAssessmentInput, UpdateAssessmentInput } from '../inputs/assessment.input';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 /**
@@ -36,9 +27,7 @@ export class MutationResolver {
 
   // User Mutations
   @Mutation(() => UserType)
-  async createUser(
-    @Args('input') input: CreateUserInput,
-  ): Promise<UserType> {
+  async createUser(@Args('input') input: CreateUserInput): Promise<UserType> {
     const user = await this.usersService.create(input);
     await this.pubSub.publish('userCreated', { userCreated: user });
     return user;
@@ -57,9 +46,7 @@ export class MutationResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
-  async deleteUser(
-    @Args('id', { type: () => ID }) id: string,
-  ): Promise<boolean> {
+  async deleteUser(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     await this.usersService.remove(id);
     await this.pubSub.publish('userDeleted', { userDeleted: { id } });
     return true;
@@ -68,9 +55,7 @@ export class MutationResolver {
   // Course Mutations
   @Mutation(() => CourseType)
   @UseGuards(JwtAuthGuard)
-  async createCourse(
-    @Args('input') input: CreateCourseInput,
-  ): Promise<CourseType> {
+  async createCourse(@Args('input') input: CreateCourseInput): Promise<CourseType> {
     const course = await this.coursesService.create(input);
     await this.pubSub.publish('courseCreated', { courseCreated: course });
     return course;
@@ -89,9 +74,7 @@ export class MutationResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
-  async deleteCourse(
-    @Args('id', { type: () => ID }) id: string,
-  ): Promise<boolean> {
+  async deleteCourse(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     await this.coursesService.remove(id);
     await this.pubSub.publish('courseDeleted', { courseDeleted: { id } });
     return true;
@@ -100,9 +83,7 @@ export class MutationResolver {
   // Assessment Mutations
   @Mutation(() => AssessmentType)
   @UseGuards(JwtAuthGuard)
-  async createAssessment(
-    @Args('input') input: CreateAssessmentInput,
-  ): Promise<AssessmentType> {
+  async createAssessment(@Args('input') input: CreateAssessmentInput): Promise<AssessmentType> {
     const assessment = await this.assessmentsService.create(input);
     await this.pubSub.publish('assessmentCreated', {
       assessmentCreated: assessment,
@@ -125,9 +106,7 @@ export class MutationResolver {
 
   @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
-  async deleteAssessment(
-    @Args('id', { type: () => ID }) id: string,
-  ): Promise<boolean> {
+  async deleteAssessment(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
     await this.assessmentsService.remove(id);
     await this.pubSub.publish('assessmentDeleted', {
       assessmentDeleted: { id },

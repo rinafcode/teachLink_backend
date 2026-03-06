@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ETLPipelineService } from './etl/etl-pipeline.service';
 import { DimensionalModelingService } from './modeling/dimensional-modeling.service';
 import { DataQualityService } from './quality/data-quality.service';
@@ -43,18 +54,20 @@ export class DataWarehouseController {
     const model = await this.modelingService.createStarSchema(
       body.name,
       body.factTable,
-      body.dimensionTables
+      body.dimensionTables,
     );
     return { success: true, model };
   }
 
   @Post('modeling/snowflake-schema')
-  async createSnowflakeSchema(@Body() body: { name: string; factTable: any; dimensionTables: any[]; subDimensions: any }) {
+  async createSnowflakeSchema(
+    @Body() body: { name: string; factTable: any; dimensionTables: any[]; subDimensions: any },
+  ) {
     const model = await this.modelingService.createSnowflakeSchema(
       body.name,
       body.factTable,
       body.dimensionTables,
-      body.subDimensions
+      body.subDimensions,
     );
     return { success: true, model };
   }
@@ -78,10 +91,7 @@ export class DataWarehouseController {
   }
 
   @Post('modeling/query/:id/execute')
-  async executeQuery(
-    @Param('id') id: string,
-    @Body() body: { parameters?: any }
-  ) {
+  async executeQuery(@Param('id') id: string, @Body() body: { parameters?: any }) {
     const results = await this.modelingService.executeQuery(id, body.parameters);
     return { success: true, results };
   }
@@ -100,10 +110,7 @@ export class DataWarehouseController {
   }
 
   @Post('quality/check/:profileId')
-  async runQualityCheck(
-    @Param('profileId') profileId: string,
-    @Body() body: { data: any[] }
-  ) {
+  async runQualityCheck(@Param('profileId') profileId: string, @Body() body: { data: any[] }) {
     const check = await this.qualityService.runQualityChecks(profileId, body.data);
     return { success: true, check };
   }
@@ -118,7 +125,7 @@ export class DataWarehouseController {
   async getQualityIssues(
     @Query('profileId') profileId?: string,
     @Query('severity') severity?: string,
-    @Query('resolved') resolved?: string
+    @Query('resolved') resolved?: string,
   ) {
     const resolvedBool = resolved === 'true' ? true : resolved === 'false' ? false : undefined;
     const issues = await this.qualityService.getQualityIssues(profileId, severity, resolvedBool);
@@ -160,7 +167,7 @@ export class DataWarehouseController {
   async traceLineage(
     @Param('id') graphId: string,
     @Param('nodeId') nodeId: string,
-    @Body() body: { traceType?: 'upstream' | 'downstream' | 'complete' }
+    @Body() body: { traceType?: 'upstream' | 'downstream' | 'complete' },
   ) {
     const traceType = body.traceType || 'complete';
     const trace = await this.lineageService.traceLineage(graphId, nodeId, traceType);
@@ -181,7 +188,10 @@ export class DataWarehouseController {
   }
 
   @Post('loading/job/:id/execute')
-  async executeLoadJob(@Param('id') jobId: string, @Body() body: { sourceTable: string; targetTable: string }) {
+  async executeLoadJob(
+    @Param('id') jobId: string,
+    @Body() body: { sourceTable: string; targetTable: string },
+  ) {
     const job = await this.loaderService.executeLoad(jobId, body.sourceTable, body.targetTable);
     return { success: true, job };
   }
@@ -203,13 +213,16 @@ export class DataWarehouseController {
     const watermark = await this.loaderService.setWatermark(
       body.tableName,
       body.columnName,
-      body.value
+      body.value,
     );
     return { success: true, watermark };
   }
 
   @Get('loading/watermark/:tableName/:columnName')
-  async getWatermark(@Param('tableName') tableName: string, @Param('columnName') columnName: string) {
+  async getWatermark(
+    @Param('tableName') tableName: string,
+    @Param('columnName') columnName: string,
+  ) {
     const watermark = await this.loaderService.getWatermark(tableName, columnName);
     return { success: true, watermark };
   }

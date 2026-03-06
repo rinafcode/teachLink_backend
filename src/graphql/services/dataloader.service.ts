@@ -34,61 +34,44 @@ export class DataLoaderService {
    * Create a new DataLoader for batching course queries by ID
    */
   createCourseLoader(): DataLoader<string, Course> {
-    return new DataLoader<string, Course>(
-      async (courseIds: readonly string[]) => {
-        const courses = await this.coursesService.findByIds(
-          Array.from(courseIds),
-        );
-        const courseMap = new Map(courses.map((course) => [course.id, course]));
-        return courseIds.map((id) => courseMap.get(id) || null);
-      },
-    );
+    return new DataLoader<string, Course>(async (courseIds: readonly string[]) => {
+      const courses = await this.coursesService.findByIds(Array.from(courseIds));
+      const courseMap = new Map(courses.map((course) => [course.id, course]));
+      return courseIds.map((id) => courseMap.get(id) || null);
+    });
   }
 
   /**
    * Create a new DataLoader for batching assessment queries by ID
    */
   createAssessmentLoader(): DataLoader<string, Assessment> {
-    return new DataLoader<string, Assessment>(
-      async (assessmentIds: readonly string[]) => {
-        const assessments = await this.assessmentsService.findByIds(
-          Array.from(assessmentIds),
-        );
-        const assessmentMap = new Map(
-          assessments.map((assessment) => [assessment.id, assessment]),
-        );
-        return assessmentIds.map((id) => assessmentMap.get(id) || null);
-      },
-    );
+    return new DataLoader<string, Assessment>(async (assessmentIds: readonly string[]) => {
+      const assessments = await this.assessmentsService.findByIds(Array.from(assessmentIds));
+      const assessmentMap = new Map(assessments.map((assessment) => [assessment.id, assessment]));
+      return assessmentIds.map((id) => assessmentMap.get(id) || null);
+    });
   }
 
   /**
    * Create a new DataLoader for batching courses by instructor ID
    */
   createCoursesByInstructorLoader(): DataLoader<string, Course[]> {
-    return new DataLoader<string, Course[]>(
-      async (instructorIds: readonly string[]) => {
-        const courses =
-          await this.coursesService.findByInstructorIds(
-            Array.from(instructorIds),
-          );
+    return new DataLoader<string, Course[]>(async (instructorIds: readonly string[]) => {
+      const courses = await this.coursesService.findByInstructorIds(Array.from(instructorIds));
 
-        const coursesByInstructor = new Map<string, Course[]>();
-        courses.forEach((course) => {
-          const instructorId = course.instructor?.id;
-          if (instructorId) {
-            if (!coursesByInstructor.has(instructorId)) {
-              coursesByInstructor.set(instructorId, []);
-            }
-            coursesByInstructor.get(instructorId).push(course);
+      const coursesByInstructor = new Map<string, Course[]>();
+      courses.forEach((course) => {
+        const instructorId = course.instructor?.id;
+        if (instructorId) {
+          if (!coursesByInstructor.has(instructorId)) {
+            coursesByInstructor.set(instructorId, []);
           }
-        });
+          coursesByInstructor.get(instructorId).push(course);
+        }
+      });
 
-        return instructorIds.map(
-          (id) => coursesByInstructor.get(id) || [],
-        );
-      },
-    );
+      return instructorIds.map((id) => coursesByInstructor.get(id) || []);
+    });
   }
 
   /**

@@ -26,12 +26,60 @@ export interface EdgeLocation {
 export class GeoLocationService {
   private readonly logger = new Logger(GeoLocationService.name);
   private edgeLocations: EdgeLocation[] = [
-    { id: 'us-east-1', name: 'Virginia', country: 'US', latitude: 39.0438, longitude: -77.4874, provider: 'cloudflare', priority: 1 },
-    { id: 'us-west-1', name: 'California', country: 'US', latitude: 37.7749, longitude: -122.4194, provider: 'cloudflare', priority: 2 },
-    { id: 'eu-west-1', name: 'Ireland', country: 'IE', latitude: 53.1424, longitude: -7.6921, provider: 'cloudflare', priority: 1 },
-    { id: 'eu-central-1', name: 'Germany', country: 'DE', latitude: 50.1109, longitude: 8.6821, provider: 'cloudflare', priority: 2 },
-    { id: 'ap-southeast-1', name: 'Singapore', country: 'SG', latitude: 1.3521, longitude: 103.8198, provider: 'cloudflare', priority: 1 },
-    { id: 'ap-northeast-1', name: 'Japan', country: 'JP', latitude: 35.6762, longitude: 139.6503, provider: 'cloudflare', priority: 2 },
+    {
+      id: 'us-east-1',
+      name: 'Virginia',
+      country: 'US',
+      latitude: 39.0438,
+      longitude: -77.4874,
+      provider: 'cloudflare',
+      priority: 1,
+    },
+    {
+      id: 'us-west-1',
+      name: 'California',
+      country: 'US',
+      latitude: 37.7749,
+      longitude: -122.4194,
+      provider: 'cloudflare',
+      priority: 2,
+    },
+    {
+      id: 'eu-west-1',
+      name: 'Ireland',
+      country: 'IE',
+      latitude: 53.1424,
+      longitude: -7.6921,
+      provider: 'cloudflare',
+      priority: 1,
+    },
+    {
+      id: 'eu-central-1',
+      name: 'Germany',
+      country: 'DE',
+      latitude: 50.1109,
+      longitude: 8.6821,
+      provider: 'cloudflare',
+      priority: 2,
+    },
+    {
+      id: 'ap-southeast-1',
+      name: 'Singapore',
+      country: 'SG',
+      latitude: 1.3521,
+      longitude: 103.8198,
+      provider: 'cloudflare',
+      priority: 1,
+    },
+    {
+      id: 'ap-northeast-1',
+      name: 'Japan',
+      country: 'JP',
+      latitude: 35.6762,
+      longitude: 139.6503,
+      provider: 'cloudflare',
+      priority: 2,
+    },
   ];
 
   constructor(private configService: ConfigService) {}
@@ -83,17 +131,14 @@ export class GeoLocationService {
     return optimalLocation.id;
   }
 
-  async getNearestEdgeLocations(
-    userLocation: string,
-    limit: number = 3,
-  ): Promise<EdgeLocation[]> {
+  async getNearestEdgeLocations(userLocation: string, limit: number = 3): Promise<EdgeLocation[]> {
     const userCoords = await this.getCoordinates(userLocation);
     if (!userCoords) {
       return this.edgeLocations.slice(0, limit);
     }
 
     const sortedLocations = this.edgeLocations
-      .map(location => ({
+      .map((location) => ({
         ...location,
         distance: this.calculateDistance(
           userCoords.latitude,
@@ -107,10 +152,7 @@ export class GeoLocationService {
     return sortedLocations.slice(0, limit);
   }
 
-  async optimizeRouteForConnection(
-    userLocation: string,
-    connectionType: string,
-  ): Promise<string> {
+  async optimizeRouteForConnection(userLocation: string, connectionType: string): Promise<string> {
     const locations = await this.getNearestEdgeLocations(userLocation, 5);
 
     // Adjust based on connection type
@@ -147,34 +189,33 @@ export class GeoLocationService {
     return estimates;
   }
 
-  private async getCoordinates(location: string): Promise<{ latitude: number; longitude: number } | null> {
+  private async getCoordinates(
+    location: string,
+  ): Promise<{ latitude: number; longitude: number } | null> {
     // In real implementation, use geocoding service
     // For now, return mock coordinates
     const mockCoords: Record<string, { latitude: number; longitude: number }> = {
-      'new york': { latitude: 40.7128, longitude: -74.0060 },
-      'london': { latitude: 51.5074, longitude: -0.1278 },
-      'tokyo': { latitude: 35.6762, longitude: 139.6503 },
-      'sydney': { latitude: -33.8688, longitude: 151.2093 },
-      'lagos': { latitude: 6.5244, longitude: 3.3792 },
+      'new york': { latitude: 40.7128, longitude: -74.006 },
+      london: { latitude: 51.5074, longitude: -0.1278 },
+      tokyo: { latitude: 35.6762, longitude: 139.6503 },
+      sydney: { latitude: -33.8688, longitude: 151.2093 },
+      lagos: { latitude: 6.5244, longitude: 3.3792 },
     };
 
     return mockCoords[location.toLowerCase()] || null;
   }
 
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Earth's radius in kilometers
     const dLat = this.toRadians(lat2 - lat1);
     const dLon = this.toRadians(lon2 - lon1);
 
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.cos(this.toRadians(lat1)) *
+        Math.cos(this.toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;

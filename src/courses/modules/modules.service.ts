@@ -32,10 +32,10 @@ export class ModulesService {
       where: { id },
       relations: ['lessons'],
       order: {
-          lessons: {
-              order: 'ASC'
-          } as any
-      }
+        lessons: {
+          order: 'ASC',
+        } as any,
+      },
     });
     if (!module) {
       throw new NotFoundException(`Module with ID ${id} not found`);

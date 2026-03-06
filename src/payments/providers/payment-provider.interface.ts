@@ -1,6 +1,6 @@
 export interface PaymentProvider {
   name: string;
-  
+
   createPaymentIntent(
     amount: number,
     currency: string,
@@ -22,7 +22,7 @@ export interface PaymentProvider {
   }>;
 
   cancelSubscription(subscriptionId: string): Promise<boolean>;
-  
+
   refundPayment(
     paymentId: string,
     amount?: number,
@@ -39,8 +39,5 @@ export interface PaymentProvider {
     data: any;
   }>;
 
-  verifyWebhookSignature(
-    payload: any,
-    signature: string,
-  ): Promise<boolean>;
+  verifyWebhookSignature(payload: any, signature: string): Promise<boolean>;
 }

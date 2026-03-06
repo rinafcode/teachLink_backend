@@ -35,7 +35,6 @@ import { HealthModule } from './health/health.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: envValidationSchema,
-
     }),
     TypeOrmModule.forRootAsync({
       imports: [MonitoringModule],

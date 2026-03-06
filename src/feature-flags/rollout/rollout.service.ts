@@ -33,9 +33,7 @@ export class RolloutService {
     }
 
     const now = new Date();
-    const sortedSteps = [...config.rampSchedule].sort(
-      (a, b) => a.at.getTime() - b.at.getTime(),
-    );
+    const sortedSteps = [...config.rampSchedule].sort((a, b) => a.at.getTime() - b.at.getTime());
 
     let effective = 0;
     for (const step of sortedSteps) {

@@ -30,18 +30,14 @@ export class BackupController {
   @Post('restore')
   @ApiOperation({ summary: 'Restore from backup' })
   @HttpCode(HttpStatus.ACCEPTED)
-  async restoreBackup(
-    @Body() dto: RestoreBackupDto,
-  ): Promise<{ message: string }> {
+  async restoreBackup(@Body() dto: RestoreBackupDto): Promise<{ message: string }> {
     await this.disasterRecoveryService.executeRestore(dto.backupRecordId);
     return { message: 'Restore initiated' };
   }
 
   @Post('test')
   @ApiOperation({ summary: 'Trigger recovery test' })
-  async triggerRecoveryTest(
-    @Body() dto: TriggerRecoveryTestDto,
-  ): Promise<RecoveryTestResponseDto> {
+  async triggerRecoveryTest(@Body() dto: TriggerRecoveryTestDto): Promise<RecoveryTestResponseDto> {
     return this.recoveryTestingService.createRecoveryTest(dto.backupRecordId);
   }
 

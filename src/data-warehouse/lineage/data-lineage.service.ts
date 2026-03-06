@@ -67,7 +67,9 @@ export class DataLineageService {
   /**
    * Create a new lineage graph
    */
-  async createGraph(graphConfig: Omit<DataLineageGraph, 'id' | 'createdAt' | 'updatedAt' | 'nodes' | 'edges'>): Promise<DataLineageGraph> {
+  async createGraph(
+    graphConfig: Omit<DataLineageGraph, 'id' | 'createdAt' | 'updatedAt' | 'nodes' | 'edges'>,
+  ): Promise<DataLineageGraph> {
     const graphId = uuidv4();
     const graph: DataLineageGraph = {
       id: graphId,
@@ -101,7 +103,10 @@ export class DataLineageService {
   /**
    * Add a node to a lineage graph
    */
-  async addNode(graphId: string, nodeConfig: Omit<DataLineageNode, 'id' | 'createdAt'>): Promise<DataLineageNode> {
+  async addNode(
+    graphId: string,
+    nodeConfig: Omit<DataLineageNode, 'id' | 'createdAt'>,
+  ): Promise<DataLineageNode> {
     const graph = this.graphs.get(graphId);
     if (!graph) {
       throw new Error(`Graph ${graphId} not found`);
@@ -124,16 +129,19 @@ export class DataLineageService {
   /**
    * Add an edge to a lineage graph
    */
-  async addEdge(graphId: string, edgeConfig: Omit<DataLineageEdge, 'id' | 'timestamp'>): Promise<DataLineageEdge> {
+  async addEdge(
+    graphId: string,
+    edgeConfig: Omit<DataLineageEdge, 'id' | 'timestamp'>,
+  ): Promise<DataLineageEdge> {
     const graph = this.graphs.get(graphId);
     if (!graph) {
       throw new Error(`Graph ${graphId} not found`);
     }
 
     // Validate that source and target nodes exist
-    const sourceExists = graph.nodes.some(node => node.id === edgeConfig.sourceId);
-    const targetExists = graph.nodes.some(node => node.id === edgeConfig.targetId);
-    
+    const sourceExists = graph.nodes.some((node) => node.id === edgeConfig.sourceId);
+    const targetExists = graph.nodes.some((node) => node.id === edgeConfig.targetId);
+
     if (!sourceExists || !targetExists) {
       throw new Error('Source or target node not found in graph');
     }
@@ -158,7 +166,7 @@ export class DataLineageService {
   async traceLineage(
     graphId: string,
     nodeId: string,
-    traceType: 'upstream' | 'downstream' | 'complete' = 'complete'
+    traceType: 'upstream' | 'downstream' | 'complete' = 'complete',
   ): Promise<LineageTrace> {
     const graph = this.graphs.get(graphId);
     if (!graph) {
@@ -237,9 +245,9 @@ export class DataLineageService {
    */
   async getTracesForGraph(graphId: string): Promise<LineageTrace[]> {
     const traces = Array.from(this.traces.values());
-    return traces.filter(trace => {
+    return traces.filter((trace) => {
       const graph = this.graphs.get(graphId);
-      return graph && graph.nodes.some(node => node.id === trace.nodeId);
+      return graph && graph.nodes.some((node) => node.id === trace.nodeId);
     });
   }
 
@@ -248,9 +256,9 @@ export class DataLineageService {
    */
   async getImpactAnalysesForGraph(graphId: string): Promise<ImpactAnalysis[]> {
     const analyses = Array.from(this.impactAnalyses.values());
-    return analyses.filter(analysis => {
+    return analyses.filter((analysis) => {
       const graph = this.graphs.get(graphId);
-      return graph && graph.nodes.some(node => node.id === analysis.nodeId);
+      return graph && graph.nodes.some((node) => node.id === analysis.nodeId);
     });
   }
 
@@ -355,10 +363,7 @@ export class DataLineageService {
   /**
    * Search for nodes in lineage graphs
    */
-  async searchNodes(
-    searchTerm: string,
-    graphId?: string
-  ): Promise<DataLineageNode[]> {
+  async searchNodes(searchTerm: string, graphId?: string): Promise<DataLineageNode[]> {
     let nodes: DataLineageNode[] = [];
 
     if (graphId) {
@@ -374,17 +379,18 @@ export class DataLineageService {
     }
 
     // Filter by search term
-    return nodes.filter(node => 
-      node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      node.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      node.system.toLowerCase().includes(searchTerm.toLowerCase())
+    return nodes.filter(
+      (node) =>
+        node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        node.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        node.system.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }
 
   // Helper methods
   private traceUpstream(graph: DataLineageGraph, nodeId: string, path: LineagePath[]): void {
-    const incomingEdges = graph.edges.filter(edge => edge.targetId === nodeId);
-    
+    const incomingEdges = graph.edges.filter((edge) => edge.targetId === nodeId);
+
     for (const edge of incomingEdges) {
       path.push({
         fromNode: edge.sourceId,
@@ -392,14 +398,14 @@ export class DataLineageService {
         transformation: edge.transformation || '',
         timestamp: edge.timestamp,
       });
-      
+
       this.traceUpstream(graph, edge.sourceId, path);
     }
   }
 
   private traceDownstream(graph: DataLineageGraph, nodeId: string, path: LineagePath[]): void {
-    const outgoingEdges = graph.edges.filter(edge => edge.sourceId === nodeId);
-    
+    const outgoingEdges = graph.edges.filter((edge) => edge.sourceId === nodeId);
+
     for (const edge of outgoingEdges) {
       path.push({
         fromNode: edge.sourceId,
@@ -407,7 +413,7 @@ export class DataLineageService {
         transformation: edge.transformation || '',
         timestamp: edge.timestamp,
       });
-      
+
       this.traceDownstream(graph, edge.targetId, path);
     }
   }
@@ -420,7 +426,7 @@ export class DataLineageService {
       if (visited.has(currentNodeId)) return;
       visited.add(currentNodeId);
 
-      const outgoingEdges = graph.edges.filter(edge => edge.sourceId === currentNodeId);
+      const outgoingEdges = graph.edges.filter((edge) => edge.sourceId === currentNodeId);
       for (const edge of outgoingEdges) {
         if (!affectedNodes.includes(edge.targetId)) {
           affectedNodes.push(edge.targetId);
@@ -433,9 +439,12 @@ export class DataLineageService {
     return affectedNodes;
   }
 
-  private calculateImpactLevel(affectedCount: number, totalCount: number): 'high' | 'medium' | 'low' {
+  private calculateImpactLevel(
+    affectedCount: number,
+    totalCount: number,
+  ): 'high' | 'medium' | 'low' {
     const percentage = (affectedCount / totalCount) * 100;
-    
+
     if (percentage >= 50) return 'high';
     if (percentage >= 20) return 'medium';
     return 'low';

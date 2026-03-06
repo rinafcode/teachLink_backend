@@ -45,10 +45,7 @@ export class VotingTransactionExample {
         }
 
         // 3. Verify user has voting power
-        const user = await manager.query(
-          'SELECT voting_power FROM users WHERE id = $1',
-          [userId],
-        );
+        const user = await manager.query('SELECT voting_power FROM users WHERE id = $1', [userId]);
 
         if (!user || user.length === 0 || user[0].voting_power < votingPower) {
           throw new Error('Insufficient voting power');
@@ -61,25 +58,28 @@ export class VotingTransactionExample {
         );
 
         // 5. Update proposal vote counts
-        const updateField = voteType === 'for' ? 'votes_for' : voteType === 'against' ? 'votes_against' : 'votes_abstain';
+        const updateField =
+          voteType === 'for'
+            ? 'votes_for'
+            : voteType === 'against'
+              ? 'votes_against'
+              : 'votes_abstain';
         await manager.query(
           `UPDATE proposals SET ${updateField} = ${updateField} + $1, total_votes = total_votes + $1 WHERE id = $2`,
           [votingPower, proposalId],
         );
 
         // 6. Check if proposal reached quorum
-        const updatedProposal = await manager.query(
-          'SELECT * FROM proposals WHERE id = $1',
-          [proposalId],
-        );
+        const updatedProposal = await manager.query('SELECT * FROM proposals WHERE id = $1', [
+          proposalId,
+        ]);
 
         const { total_votes, quorum_required } = updatedProposal[0];
-        
+
         if (total_votes >= quorum_required) {
-          await manager.query(
-            'UPDATE proposals SET quorum_reached = true WHERE id = $1',
-            [proposalId],
-          );
+          await manager.query('UPDATE proposals SET quorum_reached = true WHERE id = $1', [
+            proposalId,
+          ]);
 
           this.logger.log(`Proposal ${proposalId} reached quorum`);
         }
@@ -133,18 +133,28 @@ export class VotingTransactionExample {
       }
 
       // 3. Update vote counts - remove old vote
-      const oldField = oldVoteType === 'for' ? 'votes_for' : oldVoteType === 'against' ? 'votes_against' : 'votes_abstain';
-      await manager.query(
-        `UPDATE proposals SET ${oldField} = ${oldField} - $1 WHERE id = $2`,
-        [voting_power, proposalId],
-      );
+      const oldField =
+        oldVoteType === 'for'
+          ? 'votes_for'
+          : oldVoteType === 'against'
+            ? 'votes_against'
+            : 'votes_abstain';
+      await manager.query(`UPDATE proposals SET ${oldField} = ${oldField} - $1 WHERE id = $2`, [
+        voting_power,
+        proposalId,
+      ]);
 
       // 4. Update vote counts - add new vote
-      const newField = newVoteType === 'for' ? 'votes_for' : newVoteType === 'against' ? 'votes_against' : 'votes_abstain';
-      await manager.query(
-        `UPDATE proposals SET ${newField} = ${newField} + $1 WHERE id = $2`,
-        [voting_power, proposalId],
-      );
+      const newField =
+        newVoteType === 'for'
+          ? 'votes_for'
+          : newVoteType === 'against'
+            ? 'votes_against'
+            : 'votes_abstain';
+      await manager.query(`UPDATE proposals SET ${newField} = ${newField} + $1 WHERE id = $2`, [
+        voting_power,
+        proposalId,
+      ]);
 
       // 5. Update vote record
       await manager.query(
@@ -155,10 +165,18 @@ export class VotingTransactionExample {
       // 6. Log the change
       await manager.query(
         'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4, $5)',
-        [userId, 'vote_changed', 'proposal', proposalId, JSON.stringify({ from: oldVoteType, to: newVoteType })],
+        [
+          userId,
+          'vote_changed',
+          'proposal',
+          proposalId,
+          JSON.stringify({ from: oldVoteType, to: newVoteType }),
+        ],
       );
 
-      this.logger.log(`Vote changed: ${userId} changed from ${oldVoteType} to ${newVoteType} on ${proposalId}`);
+      this.logger.log(
+        `Vote changed: ${userId} changed from ${oldVoteType} to ${newVoteType} on ${proposalId}`,
+      );
 
       return { success: true, oldVoteType, newVoteType };
     });
@@ -179,40 +197,35 @@ export class VotingTransactionExample {
         throw new Error('Proposal not found or not active');
       }
 
-      const {
-        votes_for,
-        votes_against,
-        total_votes,
-        quorum_required,
-        approval_threshold,
-      } = proposal[0];
+      const { votes_for, votes_against, total_votes, quorum_required, approval_threshold } =
+        proposal[0];
 
       // 2. Check if voting period ended
       const now = new Date();
       const endTime = new Date(proposal[0].voting_end_time);
-      
+
       if (now < endTime) {
         throw new Error('Voting period has not ended');
       }
 
       // 3. Check quorum
       if (total_votes < quorum_required) {
-        await manager.query(
-          'UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2',
-          ['failed_quorum', proposalId],
-        );
+        await manager.query('UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2', [
+          'failed_quorum',
+          proposalId,
+        ]);
 
         return { success: false, reason: 'Quorum not reached' };
       }
 
       // 4. Check approval threshold
       const approvalRate = (votes_for / total_votes) * 100;
-      
+
       if (approvalRate < approval_threshold) {
-        await manager.query(
-          'UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2',
-          ['rejected', proposalId],
-        );
+        await manager.query('UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2', [
+          'rejected',
+          proposalId,
+        ]);
 
         return { success: false, reason: 'Approval threshold not met' };
       }
@@ -229,15 +242,20 @@ export class VotingTransactionExample {
       }
 
       // 6. Mark proposal as executed
-      await manager.query(
-        'UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2',
-        ['executed', proposalId],
-      );
+      await manager.query('UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2', [
+        'executed',
+        proposalId,
+      ]);
 
       // 7. Log execution
       await manager.query(
         'INSERT INTO activity_logs (action, entity_type, entity_id, metadata) VALUES ($1, $2, $3, $4)',
-        ['proposal_executed', 'proposal', proposalId, JSON.stringify({ votes_for, votes_against, total_votes })],
+        [
+          'proposal_executed',
+          'proposal',
+          proposalId,
+          JSON.stringify({ votes_for, votes_against, total_votes }),
+        ],
       );
 
       this.logger.log(`Proposal executed: ${proposalId}`);
@@ -254,17 +272,17 @@ export class VotingTransactionExample {
 
     switch (action_type) {
       case 'transfer_funds':
-        await manager.query(
-          'UPDATE users SET balance = balance + $1 WHERE id = $2',
-          [parameters.amount, parameters.recipient],
-        );
+        await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
+          parameters.amount,
+          parameters.recipient,
+        ]);
         break;
 
       case 'update_setting':
-        await manager.query(
-          'UPDATE settings SET value = $1 WHERE key = $2',
-          [parameters.value, parameters.key],
-        );
+        await manager.query('UPDATE settings SET value = $1 WHERE key = $2', [
+          parameters.value,
+          parameters.key,
+        ]);
         break;
 
       // Add more action types as needed

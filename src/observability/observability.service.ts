@@ -25,13 +25,7 @@ export class ObservabilityService {
    * Get comprehensive observability dashboard
    */
   async getObservabilityDashboard() {
-    const [
-      logStats,
-      traceStats,
-      metricsStats,
-      anomalyStats,
-      systemHealth,
-    ] = await Promise.all([
+    const [logStats, traceStats, metricsStats, anomalyStats, systemHealth] = await Promise.all([
       this.logAggregation.getLogStatistics(),
       this.tracing.getTraceStatistics(),
       this.metrics.getAllMetricsStatistics(),
@@ -104,7 +98,7 @@ export class ObservabilityService {
     correlationId: string,
   ): Promise<T> {
     const startTime = new Date();
-    
+
     // Initialize logging context
     this.initializeRequestObservability(correlationId);
 
@@ -131,10 +125,7 @@ export class ObservabilityService {
           const duration = Date.now() - startTime.getTime();
 
           // Log error
-          this.structuredLogger.error(
-            `Request failed: ${method} ${url}`,
-            error as Error,
-          );
+          this.structuredLogger.error(`Request failed: ${method} ${url}`, error as Error);
 
           // Track metrics
           this.metrics.trackApiResponseTime(url, duration, 500);

@@ -10,12 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -35,28 +30,16 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
   @ApiResponse({ status: 201, description: 'Payment intent created' })
-  async createPaymentIntent(
-    @Request() req,
-    @Body() createPaymentDto: CreatePaymentDto,
-  ) {
-    return this.paymentsService.createPaymentIntent(
-      req.user.id,
-      createPaymentDto,
-    );
+  async createPaymentIntent(@Request() req, @Body() createPaymentDto: CreatePaymentDto) {
+    return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto);
   }
 
   @Post('subscriptions')
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a subscription for premium course' })
   @ApiResponse({ status: 201, description: 'Subscription created' })
-  async createSubscription(
-    @Request() req,
-    @Body() createSubscriptionDto: CreateSubscriptionDto,
-  ) {
-    return this.paymentsService.createSubscription(
-      req.user.id,
-      createSubscriptionDto,
-    );
+  async createSubscription(@Request() req, @Body() createSubscriptionDto: CreateSubscriptionDto) {
+    return this.paymentsService.createSubscription(req.user.id, createSubscriptionDto);
   }
 
   @Post('refund')

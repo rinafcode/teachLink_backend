@@ -57,9 +57,7 @@ export class ObservabilityController {
    */
   @Get('logs/errors')
   async getErrorLogs(@Query('limit') limit?: number) {
-    return this.logAggregation.getErrorLogs(
-      limit ? parseInt(limit.toString()) : 100,
-    );
+    return this.logAggregation.getErrorLogs(limit ? parseInt(limit.toString()) : 100);
   }
 
   /**
@@ -71,9 +69,7 @@ export class ObservabilityController {
     @Query('endTime') endTime?: string,
   ) {
     const timeRange =
-      startTime && endTime
-        ? { start: new Date(startTime), end: new Date(endTime) }
-        : undefined;
+      startTime && endTime ? { start: new Date(startTime), end: new Date(endTime) } : undefined;
 
     return this.logAggregation.getLogStatistics(timeRange);
   }
@@ -83,9 +79,7 @@ export class ObservabilityController {
    */
   @Get('logs/recent')
   async getRecentLogs(@Query('limit') limit?: number) {
-    return this.logAggregation.getRecentLogs(
-      limit ? parseInt(limit.toString()) : 100,
-    );
+    return this.logAggregation.getRecentLogs(limit ? parseInt(limit.toString()) : 100);
   }
 
   /**
@@ -116,14 +110,8 @@ export class ObservabilityController {
    * Get metrics
    */
   @Get('metrics/:name')
-  async getMetrics(
-    @Query('name') name: string,
-    @Query('limit') limit?: number,
-  ) {
-    return this.metrics.getMetrics(
-      name,
-      limit ? parseInt(limit.toString()) : undefined,
-    );
+  async getMetrics(@Query('name') name: string, @Query('limit') limit?: number) {
+    return this.metrics.getMetrics(name, limit ? parseInt(limit.toString()) : undefined);
   }
 
   /**
@@ -136,9 +124,7 @@ export class ObservabilityController {
     @Query('endTime') endTime?: string,
   ) {
     const timeRange =
-      startTime && endTime
-        ? { start: new Date(startTime), end: new Date(endTime) }
-        : undefined;
+      startTime && endTime ? { start: new Date(startTime), end: new Date(endTime) } : undefined;
 
     return this.metrics.getMetricStatistics(name, timeRange);
   }
@@ -175,9 +161,7 @@ export class ObservabilityController {
    */
   @Get('anomalies')
   async getAnomalies(@Query('limit') limit?: number) {
-    return this.anomalyDetection.getAnomalies(
-      limit ? parseInt(limit.toString()) : undefined,
-    );
+    return this.anomalyDetection.getAnomalies(limit ? parseInt(limit.toString()) : undefined);
   }
 
   /**
@@ -193,9 +177,7 @@ export class ObservabilityController {
    */
   @Get('anomalies/recent')
   async getRecentAnomalies(@Query('minutes') minutes?: number) {
-    return this.anomalyDetection.getRecentAnomalies(
-      minutes ? parseInt(minutes.toString()) : 60,
-    );
+    return this.anomalyDetection.getRecentAnomalies(minutes ? parseInt(minutes.toString()) : 60);
   }
 
   /**
@@ -218,12 +200,7 @@ export class ObservabilityController {
    * Detect anomalies in a metric
    */
   @Post('anomalies/detect')
-  async detectAnomalies(
-    @Body() body: { metricName: string; windowSize?: number },
-  ) {
-    return this.anomalyDetection.detectAnomalies(
-      body.metricName,
-      body.windowSize,
-    );
+  async detectAnomalies(@Body() body: { metricName: string; windowSize?: number }) {
+    return this.anomalyDetection.detectAnomalies(body.metricName, body.windowSize);
   }
 }

@@ -20,12 +20,7 @@ export class SearchFiltersService {
           price_ranges: {
             range: {
               field: 'price',
-              ranges: [
-                { to: 50 },
-                { from: 50, to: 100 },
-                { from: 100, to: 200 },
-                { from: 200 },
-              ],
+              ranges: [{ to: 50 }, { from: 50, to: 100 }, { from: 100, to: 200 }, { from: 200 }],
             },
           },
         },
@@ -33,7 +28,7 @@ export class SearchFiltersService {
     });
 
     const aggregations = result.aggregations || {};
-    
+
     return {
       categories: (aggregations.categories as any)?.buckets || [],
       levels: (aggregations.levels as any)?.buckets || [],

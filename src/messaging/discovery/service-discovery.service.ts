@@ -92,7 +92,7 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      return instances.filter(instance => instance.health === 'healthy');
+      return instances.filter((instance) => instance.health === 'healthy');
     } catch (error) {
       this.logger.error(`Failed to get service instances for ${serviceName}`, error);
       throw error;
@@ -101,7 +101,11 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateHealth(serviceName: string, serviceId: string, health: 'healthy' | 'unhealthy'): Promise<void> {
+  async updateHealth(
+    serviceName: string,
+    serviceId: string,
+    health: 'healthy' | 'unhealthy',
+  ): Promise<void> {
     const span = this.tracingService.startSpan('update-service-health');
     try {
       const key = `${this.servicePrefix}${serviceName}:${serviceId}`;

@@ -79,7 +79,9 @@ export class DataQualityService {
   /**
    * Create a data quality profile
    */
-  async createProfile(profileConfig: Omit<DataQualityProfile, 'id' | 'createdAt' | 'updatedAt'>): Promise<DataQualityProfile> {
+  async createProfile(
+    profileConfig: Omit<DataQualityProfile, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<DataQualityProfile> {
     const profileId = uuidv4();
     const profile: DataQualityProfile = {
       id: profileId,
@@ -111,7 +113,10 @@ export class DataQualityService {
   /**
    * Update a data quality profile
    */
-  async updateProfile(profileId: string, updates: Partial<DataQualityProfile>): Promise<DataQualityProfile | null> {
+  async updateProfile(
+    profileId: string,
+    updates: Partial<DataQualityProfile>,
+  ): Promise<DataQualityProfile | null> {
     const profile = this.profiles.get(profileId);
     if (!profile) {
       return null;
@@ -190,10 +195,10 @@ export class DataQualityService {
           passedRules++;
         } else {
           failedRules++;
-          
+
           // Count severity issues
           issuesBySeverity[rule.severity]++;
-          
+
           if (rule.severity === 'critical') {
             criticalFailures++;
           }
@@ -204,7 +209,8 @@ export class DataQualityService {
       }
 
       // Calculate overall score
-      const overallScore = profile.rules.length > 0 ? (passedRules / profile.rules.length) * 100 : 0;
+      const overallScore =
+        profile.rules.length > 0 ? (passedRules / profile.rules.length) * 100 : 0;
 
       // Update check with results
       check.results = results;
@@ -220,7 +226,6 @@ export class DataQualityService {
       };
 
       this.logger.log(`Data quality check ${checkId} completed with score: ${overallScore}%`);
-
     } catch (error) {
       this.logger.error(`Data quality check ${checkId} failed: ${error.message}`);
       check.status = 'failed';
@@ -242,7 +247,7 @@ export class DataQualityService {
    */
   async getChecksForProfile(profileId: string): Promise<DataQualityCheck[]> {
     const checks = Array.from(this.checks.values());
-    return checks.filter(check => check.profileId === profileId);
+    return checks.filter((check) => check.profileId === profileId);
   }
 
   /**
@@ -252,7 +257,7 @@ export class DataQualityService {
     profileId: string,
     rule: DataQualityRule,
     result: DataQualityResult,
-    data: any[]
+    data: any[],
   ): Promise<DataQualityIssue> {
     const issueId = uuidv4();
     const issue: DataQualityIssue = {
@@ -279,20 +284,20 @@ export class DataQualityService {
   async getQualityIssues(
     profileId?: string,
     severity?: string,
-    resolved?: boolean
+    resolved?: boolean,
   ): Promise<DataQualityIssue[]> {
     let issues = Array.from(this.issues.values());
 
     if (profileId) {
-      issues = issues.filter(issue => issue.profileId === profileId);
+      issues = issues.filter((issue) => issue.profileId === profileId);
     }
 
     if (severity) {
-      issues = issues.filter(issue => issue.severity === severity);
+      issues = issues.filter((issue) => issue.severity === severity);
     }
 
     if (resolved !== undefined) {
-      issues = issues.filter(issue => issue.resolved === resolved);
+      issues = issues.filter((issue) => issue.resolved === resolved);
     }
 
     return issues;
@@ -322,88 +327,94 @@ export class DataQualityService {
     const profiles: DataQualityProfile[] = [];
 
     // Completeness profile
-    profiles.push(await this.createProfile({
-      name: 'Completeness Check',
-      description: 'Check for missing or null values in critical fields',
-      rules: [
-        {
-          id: uuidv4(),
-          name: 'User Email Completeness',
-          description: 'Ensure user email addresses are not null or empty',
-          type: 'completeness',
-          field: 'email',
-          condition: 'not null',
-          threshold: 99.5,
-          severity: 'high',
-        },
-        {
-          id: uuidv4(),
-          name: 'Post Content Completeness',
-          description: 'Ensure post content is not empty',
-          type: 'completeness',
-          field: 'content',
-          condition: 'not empty',
-          threshold: 98,
-          severity: 'medium',
-        },
-      ],
-    }));
+    profiles.push(
+      await this.createProfile({
+        name: 'Completeness Check',
+        description: 'Check for missing or null values in critical fields',
+        rules: [
+          {
+            id: uuidv4(),
+            name: 'User Email Completeness',
+            description: 'Ensure user email addresses are not null or empty',
+            type: 'completeness',
+            field: 'email',
+            condition: 'not null',
+            threshold: 99.5,
+            severity: 'high',
+          },
+          {
+            id: uuidv4(),
+            name: 'Post Content Completeness',
+            description: 'Ensure post content is not empty',
+            type: 'completeness',
+            field: 'content',
+            condition: 'not empty',
+            threshold: 98,
+            severity: 'medium',
+          },
+        ],
+      }),
+    );
 
     // Uniqueness profile
-    profiles.push(await this.createProfile({
-      name: 'Uniqueness Check',
-      description: 'Check for duplicate or duplicate-like values',
-      rules: [
-        {
-          id: uuidv4(),
-          name: 'User ID Uniqueness',
-          description: 'Ensure user IDs are unique',
-          type: 'uniqueness',
-          field: 'id',
-          condition: 'unique',
-          threshold: 100,
-          severity: 'critical',
-        },
-        {
-          id: uuidv4(),
-          name: 'Email Uniqueness',
-          description: 'Ensure email addresses are unique',
-          type: 'uniqueness',
-          field: 'email',
-          condition: 'unique',
-          threshold: 99.9,
-          severity: 'high',
-        },
-      ],
-    }));
+    profiles.push(
+      await this.createProfile({
+        name: 'Uniqueness Check',
+        description: 'Check for duplicate or duplicate-like values',
+        rules: [
+          {
+            id: uuidv4(),
+            name: 'User ID Uniqueness',
+            description: 'Ensure user IDs are unique',
+            type: 'uniqueness',
+            field: 'id',
+            condition: 'unique',
+            threshold: 100,
+            severity: 'critical',
+          },
+          {
+            id: uuidv4(),
+            name: 'Email Uniqueness',
+            description: 'Ensure email addresses are unique',
+            type: 'uniqueness',
+            field: 'email',
+            condition: 'unique',
+            threshold: 99.9,
+            severity: 'high',
+          },
+        ],
+      }),
+    );
 
     // Validity profile
-    profiles.push(await this.createProfile({
-      name: 'Validity Check',
-      description: 'Check data against business rules and constraints',
-      rules: [
-        {
-          id: uuidv4(),
-          name: 'Email Format Validation',
-          description: 'Validate email format',
-          type: 'validity',
-          field: 'email',
-          condition: 'valid email format',
-          threshold: 99,
-          severity: 'high',
-        },
-        {
-          id: uuidv4(),
-          name: 'Date Range Validation',
-          description: 'Validate dates are within reasonable ranges',
-          type: 'validity',
-          field: 'created_at',
-          condition: 'within last 5 years',
-          threshold: 99.5,
-          severity: 'medium',
-        },
-      ],
-    }));
+    profiles.push(
+      await this.createProfile({
+        name: 'Validity Check',
+        description: 'Check data against business rules and constraints',
+        rules: [
+          {
+            id: uuidv4(),
+            name: 'Email Format Validation',
+            description: 'Validate email format',
+            type: 'validity',
+            field: 'email',
+            condition: 'valid email format',
+            threshold: 99,
+            severity: 'high',
+          },
+          {
+            id: uuidv4(),
+            name: 'Date Range Validation',
+            description: 'Validate dates are within reasonable ranges',
+            type: 'validity',
+            field: 'created_at',
+            condition: 'within last 5 years',
+            threshold: 99.5,
+            severity: 'medium',
+          },
+        ],
+      }),
+    );
 
     return profiles;
   }
@@ -423,7 +434,7 @@ export class DataQualityService {
         passed = actualValue >= rule.threshold;
         message = `Completeness of ${rule.field}: ${actualValue.toFixed(2)}% (threshold: ${rule.threshold}%)`;
         if (!passed) {
-          sampleData = data.filter(item => !item[rule.field] || item[rule.field] === '');
+          sampleData = data.filter((item) => !item[rule.field] || item[rule.field] === '');
         }
         break;
 
@@ -442,7 +453,9 @@ export class DataQualityService {
         passed = actualValue >= rule.threshold;
         message = `Validity of ${rule.field}: ${actualValue.toFixed(2)}% (threshold: ${rule.threshold}%)`;
         if (!passed) {
-          sampleData = data.filter(item => !this.isValid(item[rule.field], rule.condition)).slice(0, 10);
+          sampleData = data
+            .filter((item) => !this.isValid(item[rule.field], rule.condition))
+            .slice(0, 10);
         }
         break;
 
@@ -465,19 +478,21 @@ export class DataQualityService {
   // Helper methods for quality calculations
   private calculateCompleteness(data: any[], field: string): number {
     if (data.length === 0) return 100;
-    const completeCount = data.filter(item => item[field] !== null && item[field] !== undefined && item[field] !== '').length;
+    const completeCount = data.filter(
+      (item) => item[field] !== null && item[field] !== undefined && item[field] !== '',
+    ).length;
     return (completeCount / data.length) * 100;
   }
 
   private calculateUniqueness(data: any[], field: string): number {
     if (data.length === 0) return 100;
-    const uniqueValues = new Set(data.map(item => item[field]));
+    const uniqueValues = new Set(data.map((item) => item[field]));
     return (uniqueValues.size / data.length) * 100;
   }
 
   private calculateValidity(data: any[], field: string, condition: string): number {
     if (data.length === 0) return 100;
-    const validCount = data.filter(item => this.isValid(item[field], condition)).length;
+    const validCount = data.filter((item) => this.isValid(item[field], condition)).length;
     return (validCount / data.length) * 100;
   }
 
@@ -505,7 +520,7 @@ export class DataQualityService {
     const seen = new Map();
     const duplicates: any[] = [];
 
-    data.forEach(item => {
+    data.forEach((item) => {
       const value = item[field];
       if (seen.has(value)) {
         if (seen.get(value) === 1) {

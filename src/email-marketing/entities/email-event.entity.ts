@@ -7,27 +7,27 @@ import { EmailEventType } from '../enums/email-event-type.enum';
 @Index(['campaignId', 'eventType'])
 @Index(['recipientId', 'eventType'])
 export class EmailEvent {
-    @ApiProperty()
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @ApiProperty()
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @ApiProperty()
-    @Column()
-    campaignId: string;
+  @ApiProperty()
+  @Column()
+  campaignId: string;
 
-    @ApiProperty()
-    @Column()
-    recipientId: string;
+  @ApiProperty()
+  @Column()
+  recipientId: string;
 
-    @ApiProperty({ enum: EmailEventType })
-    @Column({ type: 'enum', enum: EmailEventType })
-    eventType: EmailEventType;
+  @ApiProperty({ enum: EmailEventType })
+  @Column({ type: 'enum', enum: EmailEventType })
+  eventType: EmailEventType;
 
-    @ApiProperty({ required: false })
-    @Column({ type: 'jsonb', nullable: true })
-    metadata?: Record<string, any>;
+  @ApiProperty({ required: false })
+  @Column({ type: 'jsonb', nullable: true })
+  metadata?: Record<string, any>;
 
-    @ApiProperty()
-    @CreateDateColumn()
-    occurredAt: Date;
+  @ApiProperty()
+  @CreateDateColumn()
+  occurredAt: Date;
 }

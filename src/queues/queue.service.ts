@@ -12,18 +12,12 @@ import { JobPriority, JobStatus } from './enums/job-priority.enum';
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
-  constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
-  ) {}
+  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
 
   /**
    * Add a job to the queue with priority and options
    */
-  async addJob<T = any>(
-    name: string,
-    data: T,
-    options?: JobOptions,
-  ): Promise<Job<T>> {
+  async addJob<T = any>(name: string, data: T, options?: JobOptions): Promise<Job<T>> {
     try {
       const job = await this.defaultQueue.add(name, data, {
         priority: options?.priority || JobPriority.NORMAL,
@@ -54,7 +48,7 @@ export class QueueService {
    */
   async addBulkJobs<T = any>(
     jobs: Array<{ name: string; data: T; options?: JobOptions }>,
-  ): Promise<Job<T>[]> {
+  ): Promise<Array<Job<T>>> {
     try {
       const bulkJobs = jobs.map((job) => ({
         name: job.name,
@@ -151,10 +145,7 @@ export class QueueService {
   /**
    * Clean old jobs from the queue
    */
-  async cleanQueue(
-    grace: number = 5000,
-    status?: 'completed' | 'failed',
-  ): Promise<void> {
+  async cleanQueue(grace: number = 5000, status?: 'completed' | 'failed'): Promise<void> {
     if (status) {
       await this.defaultQueue.clean(grace, status);
       this.logger.log(`Cleaned ${status} jobs older than ${grace}ms`);

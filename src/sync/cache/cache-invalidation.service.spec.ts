@@ -47,7 +47,10 @@ describe('CacheInvalidationService', () => {
     it('should call cacheManager.del and emit event', async () => {
       await service.invalidateKey('test-key');
       expect(cacheManager.del).toHaveBeenCalledWith('test-key');
-      expect(eventEmitter.emit).toHaveBeenCalledWith('cache.invalidated', { key: 'test-key', type: 'single' });
+      expect(eventEmitter.emit).toHaveBeenCalledWith('cache.invalidated', {
+        key: 'test-key',
+        type: 'single',
+      });
     });
   });
 

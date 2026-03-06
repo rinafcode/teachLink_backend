@@ -21,14 +21,8 @@ export class FileStorageService {
     this.s3Client = new S3Client({
       region: this.configService.get<string>('AWS_REGION', 'us-east-1'),
       credentials: {
-        accessKeyId: this.configService.get<string>(
-          'AWS_ACCESS_KEY_ID',
-          '',
-        ),
-        secretAccessKey: this.configService.get<string>(
-          'AWS_SECRET_ACCESS_KEY',
-          '',
-        ),
+        accessKeyId: this.configService.get<string>('AWS_ACCESS_KEY_ID', ''),
+        secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY', ''),
       },
     });
   }
@@ -60,11 +54,7 @@ export class FileStorageService {
     return `https://${this.bucketName}.s3.amazonaws.com/${keyOrUrl}`;
   }
 
-  async uploadProcessedFile(
-    buffer: Buffer,
-    key: string,
-    contentType: string,
-  ): Promise<void> {
+  async uploadProcessedFile(buffer: Buffer, key: string, contentType: string): Promise<void> {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,

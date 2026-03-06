@@ -6,7 +6,7 @@ export enum EnvironmentType {
   DEVELOPMENT = 'development',
   STAGING = 'staging',
   PRODUCTION = 'production',
-  TEST = 'test'
+  TEST = 'test',
 }
 
 @Injectable()
@@ -15,7 +15,9 @@ export class EnvironmentSyncService {
   private currentEnvironment: EnvironmentType;
 
   constructor(private configService: ConfigService) {
-    this.currentEnvironment = this.configService.get<EnvironmentType>('NODE_ENV') as EnvironmentType || EnvironmentType.DEVELOPMENT;
+    this.currentEnvironment =
+      (this.configService.get<EnvironmentType>('NODE_ENV') as EnvironmentType) ||
+      EnvironmentType.DEVELOPMENT;
   }
 
   /**
@@ -33,7 +35,9 @@ export class EnvironmentSyncService {
         await this.syncToOtherEnvironments(migration);
       }
 
-      this.logger.log(`Successfully synchronized migration ${migration.name} in ${this.currentEnvironment} environment`);
+      this.logger.log(
+        `Successfully synchronized migration ${migration.name} in ${this.currentEnvironment} environment`,
+      );
     } catch (error) {
       this.logger.error(`Failed to synchronize migration ${migration.name}`, error.stack);
       throw error;
@@ -43,7 +47,10 @@ export class EnvironmentSyncService {
   /**
    * Records a migration in the current environment
    */
-  async recordMigrationInEnvironment(migration: MigrationConfig, environment: EnvironmentType): Promise<void> {
+  async recordMigrationInEnvironment(
+    migration: MigrationConfig,
+    environment: EnvironmentType,
+  ): Promise<void> {
     // In a real implementation, this would record the migration in an environment-specific registry
     // For now, just log the information
     this.logger.log(`Recording migration ${migration.name} in ${environment} environment`);
@@ -63,8 +70,10 @@ export class EnvironmentSyncService {
     // - Configuration management systems
 
     // For now, just log that we're simulating the sync
-    const environmentsToSync = Object.values(EnvironmentType).filter(env => env !== EnvironmentType.PRODUCTION);
-    
+    const environmentsToSync = Object.values(EnvironmentType).filter(
+      (env) => env !== EnvironmentType.PRODUCTION,
+    );
+
     for (const env of environmentsToSync) {
       this.logger.log(`Simulating sync of migration ${migration.name} to ${env} environment`);
       await this.simulateEnvironmentSync(migration, env);
@@ -74,15 +83,22 @@ export class EnvironmentSyncService {
   /**
    * Simulates synchronization to a specific environment (for demo purposes)
    */
-  private async simulateEnvironmentSync(migration: MigrationConfig, environment: EnvironmentType): Promise<void> {
+  private async simulateEnvironmentSync(
+    migration: MigrationConfig,
+    environment: EnvironmentType,
+  ): Promise<void> {
     // Simulate the sync process
-    this.logger.log(`Simulated sync of migration ${migration.name} to ${environment} environment completed`);
+    this.logger.log(
+      `Simulated sync of migration ${migration.name} to ${environment} environment completed`,
+    );
   }
 
   /**
    * Gets migration status across all environments
    */
-  async getMigrationStatusAcrossEnvironments(migrationName: string): Promise<Record<EnvironmentType, boolean>> {
+  async getMigrationStatusAcrossEnvironments(
+    migrationName: string,
+  ): Promise<Record<EnvironmentType, boolean>> {
     this.logger.log(`Getting migration status for ${migrationName} across environments`);
 
     // In a real implementation, this would fetch migration status from all environments
@@ -91,14 +107,17 @@ export class EnvironmentSyncService {
       [EnvironmentType.DEVELOPMENT]: true,
       [EnvironmentType.STAGING]: true,
       [EnvironmentType.PRODUCTION]: true,
-      [EnvironmentType.TEST]: true
+      [EnvironmentType.TEST]: true,
     };
   }
 
   /**
    * Applies a migration to a specific environment
    */
-  async applyMigrationToEnvironment(migration: MigrationConfig, environment: EnvironmentType): Promise<void> {
+  async applyMigrationToEnvironment(
+    migration: MigrationConfig,
+    environment: EnvironmentType,
+  ): Promise<void> {
     this.logger.log(`Applying migration ${migration.name} to ${environment} environment`);
 
     // In a real implementation, this would:

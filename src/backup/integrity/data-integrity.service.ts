@@ -28,17 +28,13 @@ export class DataIntegrityService {
     }
 
     if (!backup.encryptedStorageKey) {
-      this.logger.error(
-        `Backup ${backupId} has no encrypted storage key, cannot verify`,
-      );
+      this.logger.error(`Backup ${backupId} has no encrypted storage key, cannot verify`);
       return false;
     }
 
     try {
       // Download backup from S3
-      const backupData = await this.fileStorageService.downloadFile(
-        backup.encryptedStorageKey,
-      );
+      const backupData = await this.fileStorageService.downloadFile(backup.encryptedStorageKey);
 
       // Save to temp file
       const tempFile = `/tmp/verify-${backupId}.backup`;
@@ -64,24 +60,16 @@ export class DataIntegrityService {
         return false;
       }
     } catch (error) {
-      this.logger.error(
-        `Error verifying backup ${backupId} integrity:`,
-        error,
-      );
+      this.logger.error(`Error verifying backup ${backupId} integrity:`, error);
       return false;
     }
   }
 
-  async calculateChecksums(
-    filePath: string,
-  ): Promise<{ md5: string; sha256: string }> {
+  async calculateChecksums(filePath: string): Promise<{ md5: string; sha256: string }> {
     const fileBuffer = await fs.promises.readFile(filePath);
 
     const md5 = crypto.createHash('md5').update(fileBuffer).digest('hex');
-    const sha256 = crypto
-      .createHash('sha256')
-      .update(fileBuffer)
-      .digest('hex');
+    const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 
     return { md5, sha256 };
   }

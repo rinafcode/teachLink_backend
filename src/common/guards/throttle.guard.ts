@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, ExecutionContext, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 
@@ -21,18 +15,14 @@ export class CustomThrottleGuard extends ThrottlerGuard {
   private readonly logger = new Logger(CustomThrottleGuard.name);
 
   /** Called by ThrottlerGuard when the limit is exceeded. */
-  protected override throwThrottlingException(
-    context: ExecutionContext,
-  ): Promise<void> {
+  protected override throwThrottlingException(context: ExecutionContext): Promise<void> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
     const ip = this.resolveClientIp(request);
     const route = request.route?.path ?? request.url;
 
-    this.logger.warn(
-      `Rate limit exceeded: ip=${ip} method=${request.method} route=${route}`,
-    );
+    this.logger.warn(`Rate limit exceeded: ip=${ip} method=${request.method} route=${route}`);
 
     // Inject standard rate-limit headers so clients can back off gracefully
     response.setHeader('Retry-After', '60');
@@ -42,8 +32,7 @@ export class CustomThrottleGuard extends ThrottlerGuard {
       {
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
         error: 'Too Many Requests',
-        message:
-          'You have exceeded the request rate limit. Please wait before retrying.',
+        message: 'You have exceeded the request rate limit. Please wait before retrying.',
         retryAfterSeconds: 60,
       },
       HttpStatus.TOO_MANY_REQUESTS,

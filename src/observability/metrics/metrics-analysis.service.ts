@@ -187,7 +187,7 @@ export class MetricsAnalysisService {
    */
   getAllMetricsStatistics() {
     const stats: Record<string, any> = {};
-    
+
     this.metrics.forEach((_, name) => {
       stats[name] = this.getMetricStatistics(name);
     });
@@ -333,9 +333,7 @@ export class MetricsAnalysisService {
             .join(',')
         : '';
 
-      lines.push(
-        `${sanitizedName}${tags ? `{${tags}}` : ''} ${latestMetric.value}`,
-      );
+      lines.push(`${sanitizedName}${tags ? `{${tags}}` : ''} ${latestMetric.value}`);
     });
 
     return lines.join('\n');

@@ -12,16 +12,13 @@ export class UserResolver {
   constructor(private readonly coursesService: CoursesService) {}
 
   @ResolveField(() => [CourseType])
-  async courses(
-    @Parent() user: UserType,
-    @Context() context: any,
-  ): Promise<CourseType[]> {
+  async courses(@Parent() user: UserType, @Context() context: any): Promise<CourseType[]> {
     const { coursesByInstructorLoader } = context.loaders || {};
-    
+
     if (coursesByInstructorLoader) {
       return coursesByInstructorLoader.load(user.id);
     }
-    
+
     return this.coursesService.findByInstructor(user.id);
   }
 }

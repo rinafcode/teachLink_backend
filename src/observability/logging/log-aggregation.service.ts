@@ -44,9 +44,7 @@ export class LogAggregationService {
     }
 
     if (query.service) {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.context.service === query.service,
-      );
+      filteredLogs = filteredLogs.filter((log) => log.context.service === query.service);
     }
 
     if (query.correlationId) {
@@ -56,21 +54,15 @@ export class LogAggregationService {
     }
 
     if (query.userId) {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.context.userId === query.userId,
-      );
+      filteredLogs = filteredLogs.filter((log) => log.context.userId === query.userId);
     }
 
     if (query.startTime) {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.context.timestamp >= query.startTime!,
-      );
+      filteredLogs = filteredLogs.filter((log) => log.context.timestamp >= query.startTime!);
     }
 
     if (query.endTime) {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.context.timestamp <= query.endTime!,
-      );
+      filteredLogs = filteredLogs.filter((log) => log.context.timestamp <= query.endTime!);
     }
 
     if (query.search) {
@@ -78,17 +70,12 @@ export class LogAggregationService {
       filteredLogs = filteredLogs.filter(
         (log) =>
           log.message.toLowerCase().includes(searchLower) ||
-          JSON.stringify(log.context.metadata)
-            .toLowerCase()
-            .includes(searchLower),
+          JSON.stringify(log.context.metadata).toLowerCase().includes(searchLower),
       );
     }
 
     // Sort by timestamp (newest first)
-    filteredLogs.sort(
-      (a, b) =>
-        b.context.timestamp.getTime() - a.context.timestamp.getTime(),
-    );
+    filteredLogs.sort((a, b) => b.context.timestamp.getTime() - a.context.timestamp.getTime());
 
     // Pagination
     const limit = query.limit || 50;
@@ -107,9 +94,7 @@ export class LogAggregationService {
    * Get logs by correlation ID (trace all related logs)
    */
   async getLogsByCorrelationId(correlationId: string): Promise<StructuredLog[]> {
-    return this.logs.filter(
-      (log) => log.context.correlationId === correlationId,
-    );
+    return this.logs.filter((log) => log.context.correlationId === correlationId);
   }
 
   /**
@@ -147,9 +132,7 @@ export class LogAggregationService {
 
     if (timeRange) {
       logsToAnalyze = this.logs.filter(
-        (log) =>
-          log.context.timestamp >= timeRange.start &&
-          log.context.timestamp <= timeRange.end,
+        (log) => log.context.timestamp >= timeRange.start && log.context.timestamp <= timeRange.end,
       );
     }
 
@@ -200,9 +183,7 @@ export class LogAggregationService {
    */
   async clearOldLogs(olderThan: Date): Promise<number> {
     const initialCount = this.logs.length;
-    this.logs = this.logs.filter(
-      (log) => log.context.timestamp > olderThan,
-    );
+    this.logs = this.logs.filter((log) => log.context.timestamp > olderThan);
     const removed = initialCount - this.logs.length;
     this.logger.log(`Cleared ${removed} old logs`);
     return removed;

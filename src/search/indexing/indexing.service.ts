@@ -38,10 +38,7 @@ export class IndexingService {
   }
 
   async bulkIndex(documents: any[]) {
-    const body = documents.flatMap(doc => [
-      { index: { _index: 'courses', _id: doc.id } },
-      doc,
-    ]);
+    const body = documents.flatMap((doc) => [{ index: { _index: 'courses', _id: doc.id } }, doc]);
 
     return this.elasticsearchService.bulk({ body });
   }

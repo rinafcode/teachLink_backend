@@ -164,7 +164,11 @@ export class TenantAdminService {
     }
 
     // Check if trial expired
-    if (tenant.status === TenantStatus.TRIAL && tenant.trialEndsAt && tenant.trialEndsAt < new Date()) {
+    if (
+      tenant.status === TenantStatus.TRIAL &&
+      tenant.trialEndsAt &&
+      tenant.trialEndsAt < new Date()
+    ) {
       issues.push('Trial period expired');
       score -= 20;
     }
@@ -219,7 +223,10 @@ export class TenantAdminService {
   /**
    * Get all tenants with pagination
    */
-  async getAllTenants(page: number = 1, limit: number = 10): Promise<{ tenants: Tenant[]; total: number }> {
+  async getAllTenants(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ tenants: Tenant[]; total: number }> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,

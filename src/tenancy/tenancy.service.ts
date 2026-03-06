@@ -59,7 +59,10 @@ export class TenancyService {
   /**
    * Find all tenants
    */
-  async findAll(page: number = 1, limit: number = 10): Promise<{ tenants: Tenant[]; total: number; page: number; totalPages: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ tenants: Tenant[]; total: number; page: number; totalPages: number }> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
@@ -140,7 +143,10 @@ export class TenancyService {
   /**
    * Update tenant configuration
    */
-  async updateConfig(tenantId: string, updateConfigDto: UpdateTenantConfigDto): Promise<TenantConfig> {
+  async updateConfig(
+    tenantId: string,
+    updateConfigDto: UpdateTenantConfigDto,
+  ): Promise<TenantConfig> {
     const config = await this.getConfig(tenantId);
 
     Object.assign(config, updateConfigDto);

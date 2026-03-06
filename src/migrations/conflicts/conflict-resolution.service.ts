@@ -6,7 +6,7 @@ export enum ConflictResolutionStrategy {
   RETRY = 'retry',
   ABORT = 'abort',
   MERGE = 'merge',
-  REORDER = 'reorder'
+  REORDER = 'reorder',
 }
 
 export interface MigrationConflict {
@@ -35,7 +35,7 @@ export class ConflictResolutionService {
     // - Dependency conflicts
     // - Schema conflicts
     // - Data conflicts
-    
+
     // For now, return false to indicate no conflicts
     return false;
   }
@@ -48,11 +48,11 @@ export class ConflictResolutionService {
 
     // Determine the appropriate resolution strategy
     const strategy = await this.determineResolutionStrategy(migration);
-    
+
     if (strategy === ConflictResolutionStrategy.ABORT) {
       throw new ConflictException(`Migration conflict detected for ${migration.name}. Aborting.`);
     }
-    
+
     // Create conflict record
     const conflict: MigrationConflict = {
       migrationName: migration.name,
@@ -60,7 +60,7 @@ export class ConflictResolutionService {
       conflictType: 'unknown', // Would be determined in real implementation
       resolutionStrategy: strategy,
       resolvedAt: new Date(),
-      resolvedBy: 'system'
+      resolvedBy: 'system',
     };
 
     // Apply the resolution strategy
@@ -69,21 +69,25 @@ export class ConflictResolutionService {
     // Store conflict in history
     this.conflictHistory.push(conflict);
 
-    this.logger.log(`Conflict resolved for migration ${migration.name} using strategy: ${strategy}`);
+    this.logger.log(
+      `Conflict resolved for migration ${migration.name} using strategy: ${strategy}`,
+    );
     return conflict;
   }
 
   /**
    * Determines the appropriate resolution strategy for a conflict
    */
-  private async determineResolutionStrategy(migration: MigrationConfig): Promise<ConflictResolutionStrategy> {
+  private async determineResolutionStrategy(
+    migration: MigrationConfig,
+  ): Promise<ConflictResolutionStrategy> {
     // In a real implementation, this would analyze the specific conflict
     // and determine the best strategy based on:
     // - Type of conflict
     // - Migration dependencies
     // - Current environment
     // - Business rules
-    
+
     // For now, return a default strategy
     return ConflictResolutionStrategy.RETRY;
   }
@@ -91,31 +95,34 @@ export class ConflictResolutionService {
   /**
    * Applies the specified resolution strategy
    */
-  private async applyResolutionStrategy(migration: MigrationConfig, strategy: ConflictResolutionStrategy): Promise<void> {
+  private async applyResolutionStrategy(
+    migration: MigrationConfig,
+    strategy: ConflictResolutionStrategy,
+  ): Promise<void> {
     switch (strategy) {
       case ConflictResolutionStrategy.SKIP:
         this.logger.log(`Skipping migration ${migration.name} due to conflict`);
         break;
-        
+
       case ConflictResolutionStrategy.RETRY:
         this.logger.log(`Retrying migration ${migration.name} after conflict`);
         // Wait a bit before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         break;
-        
+
       case ConflictResolutionStrategy.ABORT:
         throw new ConflictException(`Aborting migration ${migration.name} due to conflict`);
-        
+
       case ConflictResolutionStrategy.MERGE:
         this.logger.log(`Merging migration ${migration.name} with conflicting changes`);
         // In a real implementation, this would attempt to merge changes
         break;
-        
+
       case ConflictResolutionStrategy.REORDER:
         this.logger.log(`Reordering migration ${migration.name} due to conflict`);
         // In a real implementation, this would adjust the migration order
         break;
-        
+
       default:
         throw new BadRequestException(`Unknown resolution strategy: ${strategy}`);
     }
@@ -134,7 +141,7 @@ export class ConflictResolutionService {
     // - Dependencies that are not met
     // - Migrations that modify the same tables
     // - Time-based conflicts in distributed systems
-    
+
     // For now, return an empty array
     return conflicts;
   }
@@ -148,7 +155,7 @@ export class ConflictResolutionService {
     // In a real implementation, this would implement distributed locking
     // or other mechanisms to handle concurrent migration execution
     // For now, return true to indicate it's safe to proceed
-    
+
     return true;
   }
 
@@ -170,9 +177,12 @@ export class ConflictResolutionService {
   /**
    * Sets a custom resolution strategy for a specific migration
    */
-  async setCustomResolutionStrategy(migrationName: string, strategy: ConflictResolutionStrategy): Promise<void> {
+  async setCustomResolutionStrategy(
+    migrationName: string,
+    strategy: ConflictResolutionStrategy,
+  ): Promise<void> {
     this.logger.log(`Setting custom resolution strategy for ${migrationName}: ${strategy}`);
-    
+
     // In a real implementation, this would store the custom strategy
     // For now, just log the action
   }
@@ -180,10 +190,13 @@ export class ConflictResolutionService {
   /**
    * Gets the most appropriate resolution strategy for a migration
    */
-  async getResolutionStrategy(migration: MigrationConfig, conflictType?: string): Promise<ConflictResolutionStrategy> {
+  async getResolutionStrategy(
+    migration: MigrationConfig,
+    conflictType?: string,
+  ): Promise<ConflictResolutionStrategy> {
     // Determine strategy based on migration characteristics and optional conflict type
     // In a real implementation, this would have more sophisticated logic
-    
+
     // Default strategy
     return ConflictResolutionStrategy.RETRY;
   }

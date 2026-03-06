@@ -53,10 +53,7 @@ export class WebhookService {
   private async handleChargeRefunded(charge: any): Promise<void> {
     // Process refund
     const refund = charge.refunds.data[0];
-    await this.paymentsService.processRefundFromWebhook(
-      charge.payment_intent,
-      refund,
-    );
+    await this.paymentsService.processRefundFromWebhook(charge.payment_intent, refund);
   }
 
   private async handleSubscriptionEvent(event: any): Promise<void> {
@@ -90,18 +87,11 @@ export class WebhookService {
 
   private async handlePayPalPaymentCompleted(resource: any): Promise<void> {
     // Update payment status to completed
-    await this.paymentsService.updatePaymentStatus(
-      resource.id,
-      'COMPLETED',
-      resource,
-    );
+    await this.paymentsService.updatePaymentStatus(resource.id, 'COMPLETED', resource);
   }
 
   private async handlePayPalRefundCompleted(resource: any): Promise<void> {
     // Process refund
-    await this.paymentsService.processRefundFromWebhook(
-      resource.parent_payment,
-      resource,
-    );
+    await this.paymentsService.processRefundFromWebhook(resource.parent_payment, resource);
   }
 }

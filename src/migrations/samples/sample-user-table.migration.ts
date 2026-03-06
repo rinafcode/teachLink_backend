@@ -11,7 +11,7 @@ export class SampleUserTableMigration implements MigrationConfig {
 
   async up(connection: any): Promise<void> {
     this.logger.log('Applying sample user table migration');
-    
+
     // In a real implementation, you would use the connection to execute SQL
     // For example with TypeORM:
     /*
@@ -26,19 +26,19 @@ export class SampleUserTableMigration implements MigrationConfig {
       );
     `);
     */
-    
+
     // Mock implementation for demonstration
     console.log('Creating users table...');
   }
 
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back sample user table migration');
-    
+
     // In a real implementation, you would revert the changes
     /*
     await connection.query(`DROP TABLE IF EXISTS users;`);
     */
-    
+
     // Mock implementation for demonstration
     console.log('Dropping users table...');
   }

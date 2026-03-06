@@ -37,10 +37,10 @@ export class CollaborationPermissionsService {
     resourceId: string,
     userId: string,
     permission: PermissionLevel = PermissionLevel.WRITE,
-    grantedBy: string = 'system'
+    grantedBy: string = 'system',
   ): Promise<ResourcePermission> {
     let resource = this.resources.get(resourceId);
-    
+
     if (!resource) {
       resource = {
         id: resourceId,
@@ -54,8 +54,8 @@ export class CollaborationPermissionsService {
     }
 
     // Check if user already has permission
-    const existingPermission = resource.permissions.find(p => p.userId === userId);
-    
+    const existingPermission = resource.permissions.find((p) => p.userId === userId);
+
     if (existingPermission) {
       // Update existing permission
       existingPermission.permission = permission;
@@ -75,7 +75,9 @@ export class CollaborationPermissionsService {
 
     resource.updatedAt = new Date();
 
-    this.logger.log(`Granted ${permission} permission to user ${userId} for resource ${resourceId}`);
+    this.logger.log(
+      `Granted ${permission} permission to user ${userId} for resource ${resourceId}`,
+    );
 
     return this.getUserPermission(resourceId, userId)!;
   }
@@ -90,8 +92,8 @@ export class CollaborationPermissionsService {
     }
 
     const initialLength = resource.permissions.length;
-    resource.permissions = resource.permissions.filter(p => p.userId !== userId);
-    
+    resource.permissions = resource.permissions.filter((p) => p.userId !== userId);
+
     if (resource.permissions.length !== initialLength) {
       resource.updatedAt = new Date();
       this.logger.log(`Revoked permission for user ${userId} from resource ${resourceId}`);
@@ -104,9 +106,13 @@ export class CollaborationPermissionsService {
   /**
    * Check if a user has access to a resource
    */
-  async hasAccess(resourceId: string, userId: string, requiredPermission: PermissionLevel = PermissionLevel.READ): Promise<boolean> {
+  async hasAccess(
+    resourceId: string,
+    userId: string,
+    requiredPermission: PermissionLevel = PermissionLevel.READ,
+  ): Promise<boolean> {
     const userPermission = this.getUserPermission(resourceId, userId);
-    
+
     if (!userPermission) {
       return false;
     }
@@ -123,7 +129,7 @@ export class CollaborationPermissionsService {
       return undefined;
     }
 
-    return resource.permissions.find(p => p.userId === userId);
+    return resource.permissions.find((p) => p.userId === userId);
   }
 
   /**
@@ -141,12 +147,15 @@ export class CollaborationPermissionsService {
   /**
    * Get all resources a user has access to
    */
-  async getResourcesForUser(userId: string, minPermission: PermissionLevel = PermissionLevel.READ): Promise<CollaborativeResource[]> {
+  async getResourcesForUser(
+    userId: string,
+    minPermission: PermissionLevel = PermissionLevel.READ,
+  ): Promise<CollaborativeResource[]> {
     const userResources: CollaborativeResource[] = [];
 
     for (const resource of this.resources.values()) {
-      const userPermission = resource.permissions.find(p => p.userId === userId);
-      
+      const userPermission = resource.permissions.find((p) => p.userId === userId);
+
       if (userPermission && this.checkPermissionLevel(userPermission.permission, minPermission)) {
         userResources.push({ ...resource });
       }
@@ -162,14 +171,14 @@ export class CollaborationPermissionsService {
     resourceId: string,
     userId: string,
     newPermission: PermissionLevel,
-    updatedBy: string
+    updatedBy: string,
   ): Promise<ResourcePermission | null> {
     const resource = this.resources.get(resourceId);
     if (!resource) {
       return null;
     }
 
-    const userPermission = resource.permissions.find(p => p.userId === userId);
+    const userPermission = resource.permissions.find((p) => p.userId === userId);
     if (!userPermission) {
       return null;
     }
@@ -177,10 +186,12 @@ export class CollaborationPermissionsService {
     userPermission.permission = newPermission;
     userPermission.grantedAt = new Date();
     userPermission.grantedBy = updatedBy;
-    
+
     resource.updatedAt = new Date();
 
-    this.logger.log(`Updated permission to ${newPermission} for user ${userId} on resource ${resourceId}`);
+    this.logger.log(
+      `Updated permission to ${newPermission} for user ${userId} on resource ${resourceId}`,
+    );
 
     return { ...userPermission };
   }
@@ -192,14 +203,18 @@ export class CollaborationPermissionsService {
     resourceId: string,
     inviterId: string,
     inviteeId: string,
-    permission: PermissionLevel = PermissionLevel.WRITE
+    permission: PermissionLevel = PermissionLevel.WRITE,
   ): Promise<ResourcePermission> {
     // Check if inviter has admin or owner permissions
     const inviterPermission = this.getUserPermission(resourceId, inviterId);
-    
-    if (!inviterPermission || 
-        !this.checkPermissionLevel(inviterPermission.permission, PermissionLevel.ADMIN)) {
-      throw new Error(`User ${inviterId} does not have permission to invite users to resource ${resourceId}`);
+
+    if (
+      !inviterPermission ||
+      !this.checkPermissionLevel(inviterPermission.permission, PermissionLevel.ADMIN)
+    ) {
+      throw new Error(
+        `User ${inviterId} does not have permission to invite users to resource ${resourceId}`,
+      );
     }
 
     return await this.grantAccess(resourceId, inviteeId, permission, inviterId);
@@ -208,13 +223,21 @@ export class CollaborationPermissionsService {
   /**
    * Remove a user from a collaboration session
    */
-  async removeUser(resourceId: string, removerId: string, userIdToRemove: string): Promise<boolean> {
+  async removeUser(
+    resourceId: string,
+    removerId: string,
+    userIdToRemove: string,
+  ): Promise<boolean> {
     // Check if remover has admin or owner permissions
     const removerPermission = this.getUserPermission(resourceId, removerId);
-    
-    if (!removerPermission || 
-        !this.checkPermissionLevel(removerPermission.permission, PermissionLevel.ADMIN)) {
-      throw new Error(`User ${removerId} does not have permission to remove users from resource ${resourceId}`);
+
+    if (
+      !removerPermission ||
+      !this.checkPermissionLevel(removerPermission.permission, PermissionLevel.ADMIN)
+    ) {
+      throw new Error(
+        `User ${removerId} does not have permission to remove users from resource ${resourceId}`,
+      );
     }
 
     // Can't remove the owner
@@ -229,12 +252,15 @@ export class CollaborationPermissionsService {
   /**
    * Check if one permission level meets or exceeds another
    */
-  private checkPermissionLevel(userPermission: PermissionLevel, requiredPermission: PermissionLevel): boolean {
+  private checkPermissionLevel(
+    userPermission: PermissionLevel,
+    requiredPermission: PermissionLevel,
+  ): boolean {
     const permissionLevels: PermissionLevel[] = [
       PermissionLevel.READ,
       PermissionLevel.WRITE,
       PermissionLevel.ADMIN,
-      PermissionLevel.OWNER
+      PermissionLevel.OWNER,
     ];
 
     const userIndex = permissionLevels.indexOf(userPermission);

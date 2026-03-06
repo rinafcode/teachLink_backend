@@ -1,8 +1,7 @@
-import {
-  Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn
-} from "typeorm";
-import { AssessmentAttempt } from "./assessment-attempt.entity";
-import { Question } from "./question.entity";@Entity()
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { AssessmentAttempt } from './assessment-attempt.entity';
+import { Question } from './question.entity';
+@Entity()
 export class Answer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -14,7 +13,7 @@ export class Answer {
   question: Question;
 
   @Column({ type: 'json' })
-  response: string| any;
+  response: string | any;
 
   @Column({ nullable: true })
   awardedPoints?: number;

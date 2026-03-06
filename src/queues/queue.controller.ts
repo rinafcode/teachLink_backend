@@ -46,19 +46,14 @@ export class QueueController {
 
     // Calculate priority if factors provided
     if (body.priorityFactors) {
-      const priority =
-        this.prioritizationService.calculatePriority(body.priorityFactors);
+      const priority = this.prioritizationService.calculatePriority(body.priorityFactors);
       options = {
         ...options,
         ...this.prioritizationService.getJobOptions(priority),
       };
     }
 
-    const job = await this.queueService.addJob(
-      body.name,
-      body.data,
-      options,
-    );
+    const job = await this.queueService.addJob(body.name, body.data, options);
 
     return {
       jobId: job.id,
@@ -278,9 +273,7 @@ export class QueueController {
    * Clean the queue
    */
   @Post('clean')
-  async cleanQueue(
-    @Body() body: { grace?: number; status?: 'completed' | 'failed' },
-  ) {
+  async cleanQueue(@Body() body: { grace?: number; status?: 'completed' | 'failed' }) {
     await this.queueService.cleanQueue(body.grace, body.status);
     return { message: 'Queue cleaned' };
   }

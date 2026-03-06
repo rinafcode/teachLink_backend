@@ -16,16 +16,20 @@ export class CollaborationService {
   /**
    * Initialize a new collaborative session
    */
-  async initializeSession(sessionId: string, userId: string, resourceType: 'document' | 'whiteboard') {
+  async initializeSession(
+    sessionId: string,
+    userId: string,
+    resourceType: 'document' | 'whiteboard',
+  ) {
     // Set up initial permissions and session tracking
     await this.permissionsService.grantAccess(sessionId, userId);
-    
+
     if (resourceType === 'document') {
       return await this.sharedDocumentService.initializeDocument(sessionId);
     } else if (resourceType === 'whiteboard') {
       return await this.whiteboardService.initializeWhiteboard(sessionId);
     }
-    
+
     throw new Error(`Unsupported resource type: ${resourceType}`);
   }
 
@@ -36,7 +40,7 @@ export class CollaborationService {
     sessionId: string,
     userId: string,
     operation: any,
-    resourceType: 'document' | 'whiteboard'
+    resourceType: 'document' | 'whiteboard',
   ) {
     // Check permissions
     const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
@@ -49,7 +53,7 @@ export class CollaborationService {
     } else if (resourceType === 'whiteboard') {
       return await this.whiteboardService.applyOperation(sessionId, userId, operation);
     }
-    
+
     throw new Error(`Unsupported resource type: ${resourceType}`);
   }
 

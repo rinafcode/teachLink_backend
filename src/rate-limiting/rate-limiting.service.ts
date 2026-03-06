@@ -23,15 +23,7 @@ export class RateLimitingService {
   }
   constructor(private readonly throttlingService: ThrottlingService) {}
 
-  async protect(
-    userId: string,
-    tier: UserTier,
-    endpoint: string,
-  ) {
-    await this.throttlingService.handleRequest(
-      userId,
-      tier,
-      endpoint,
-    );
+  async protect(userId: string, tier: UserTier, endpoint: string) {
+    await this.throttlingService.handleRequest(userId, tier, endpoint);
   }
 }

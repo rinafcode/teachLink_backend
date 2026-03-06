@@ -15,21 +15,19 @@ export class TransactionService {
    * Execute operations within a transaction
    * Automatically handles commit and rollback
    */
-  async runInTransaction<T>(
-    operation: (manager: EntityManager) => Promise<T>,
-  ): Promise<T> {
+  async runInTransaction<T>(operation: (manager: EntityManager) => Promise<T>): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       this.logger.debug('Transaction started');
-      
+
       const result = await operation(queryRunner.manager);
-      
+
       await queryRunner.commitTransaction();
       this.logger.debug('Transaction committed successfully');
-      
+
       return result;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -45,9 +43,7 @@ export class TransactionService {
    * Execute operations with manual transaction control
    * Useful for complex scenarios requiring custom logic
    */
-  async withTransaction<T>(
-    callback: (queryRunner: QueryRunner) => Promise<T>,
-  ): Promise<T> {
+  async withTransaction<T>(callback: (queryRunner: QueryRunner) => Promise<T>): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
@@ -104,7 +100,7 @@ export class TransactionService {
         return await this.runInTransaction(operation);
       } catch (error) {
         lastError = error as Error;
-        
+
         // Check if error is retryable (deadlock, serialization failure, etc.)
         if (this.isRetryableError(error) && attempt < maxRetries) {
           this.logger.warn(
@@ -143,7 +139,7 @@ export class TransactionService {
     if (parentManager) {
       // Use existing transaction with savepoint
       await parentManager.query(`SAVEPOINT ${savepointName}`);
-      
+
       try {
         const result = await operation(parentManager);
         await parentManager.query(`RELEASE SAVEPOINT ${savepointName}`);

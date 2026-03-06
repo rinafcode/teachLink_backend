@@ -10,12 +10,8 @@ import { MigrationController } from './migration.controller';
 import { MigrationRunnerService } from './migration-runner.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Migration]),
-  ],
-  controllers: [
-    MigrationController,
-  ],
+  imports: [TypeOrmModule.forFeature([Migration])],
+  controllers: [MigrationController],
   providers: [
     MigrationService,
     RollbackService,

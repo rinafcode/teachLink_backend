@@ -46,7 +46,10 @@ export class ExperimentService {
   /**
    * Adds a variant to an experiment
    */
-  async addVariant(experimentId: string, variantData: Partial<ExperimentVariant>): Promise<ExperimentVariant> {
+  async addVariant(
+    experimentId: string,
+    variantData: Partial<ExperimentVariant>,
+  ): Promise<ExperimentVariant> {
     this.logger.log(`Adding variant to experiment: ${experimentId}`);
 
     const experiment = await this.experimentRepository.findOne({
@@ -78,7 +81,10 @@ export class ExperimentService {
   /**
    * Updates traffic allocation for variants
    */
-  async updateTrafficAllocation(experimentId: string, allocations: Record<string, number>): Promise<void> {
+  async updateTrafficAllocation(
+    experimentId: string,
+    allocations: Record<string, number>,
+  ): Promise<void> {
     this.logger.log(`Updating traffic allocation for experiment: ${experimentId}`);
 
     const experiment = await this.experimentRepository.findOne({
@@ -130,21 +136,18 @@ export class ExperimentService {
         status: experiment.status,
         type: experiment.type,
       },
-      variants: experiment.variants.map(variant => ({
+      variants: experiment.variants.map((variant) => ({
         id: variant.id,
         name: variant.name,
         isControl: variant.isControl,
         isWinner: variant.isWinner,
         trafficAllocation: variant.trafficAllocation,
-        metrics: variant.metrics.map(metric => ({
+        metrics: variant.metrics.map((metric) => ({
           id: metric.id,
           value: metric.value,
           sampleSize: metric.sampleSize,
           conversionRate: metric.conversionRate,
-          confidenceInterval: [
-            metric.confidenceIntervalLower,
-            metric.confidenceIntervalUpper
-          ],
+          confidenceInterval: [metric.confidenceIntervalLower, metric.confidenceIntervalUpper],
           pValue: metric.pValue,
           isStatisticallySignificant: metric.isStatisticallySignificant,
         })),

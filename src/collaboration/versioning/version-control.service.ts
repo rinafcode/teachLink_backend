@@ -31,7 +31,7 @@ export class VersionControlService {
    */
   async recordChange(sessionId: string, userId: string, change: any): Promise<ChangeRecord> {
     let history = this.histories.get(sessionId);
-    
+
     if (!history) {
       history = {
         sessionId,
@@ -60,7 +60,9 @@ export class VersionControlService {
     history.currentVersion = versionNumber;
     history.updatedAt = new Date();
 
-    this.logger.log(`Recorded change ${changeRecord.id} for session ${sessionId}, version ${versionNumber}`);
+    this.logger.log(
+      `Recorded change ${changeRecord.id} for session ${sessionId}, version ${versionNumber}`,
+    );
 
     return changeRecord;
   }
@@ -86,7 +88,7 @@ export class VersionControlService {
       return null;
     }
 
-    const version = history.versions.find(v => v.versionNumber === versionNumber);
+    const version = history.versions.find((v) => v.versionNumber === versionNumber);
     return version || null;
   }
 
@@ -115,7 +117,7 @@ export class VersionControlService {
       throw new Error(`No history found for session ${sessionId}`);
     }
 
-    const versionIndex = history.versions.findIndex(v => v.versionNumber === versionNumber);
+    const versionIndex = history.versions.findIndex((v) => v.versionNumber === versionNumber);
     if (versionIndex === -1) {
       throw new Error(`Version ${versionNumber} not found for session ${sessionId}`);
     }
@@ -133,7 +135,11 @@ export class VersionControlService {
   /**
    * Compare two versions
    */
-  async compareVersions(sessionId: string, version1: number, version2: number): Promise<{
+  async compareVersions(
+    sessionId: string,
+    version1: number,
+    version2: number,
+  ): Promise<{
     differences: any;
     version1Data: ChangeRecord | null;
     version2Data: ChangeRecord | null;
@@ -156,7 +162,7 @@ export class VersionControlService {
   async getChangeStatistics(sessionId: string): Promise<{
     totalChanges: number;
     changesByUser: Map<string, number>;
-    changesOverTime: { date: Date; count: number }[];
+    changesOverTime: Array<{ date: Date; count: number }>;
   }> {
     const history = this.histories.get(sessionId);
     if (!history) {
@@ -168,7 +174,7 @@ export class VersionControlService {
     }
 
     const changesByUser = new Map<string, number>();
-    const changesOverTime: { date: Date; count: number }[] = [];
+    const changesOverTime: Array<{ date: Date; count: number }> = [];
 
     for (const version of history.versions) {
       // Count changes by user
@@ -177,10 +183,10 @@ export class VersionControlService {
 
       // Group by day for time series
       const dateStr = new Date(version.timestamp).toDateString();
-      const timeEntry = changesOverTime.find(entry => 
-        entry.date.toDateString() === new Date(version.timestamp).toDateString()
+      const timeEntry = changesOverTime.find(
+        (entry) => entry.date.toDateString() === new Date(version.timestamp).toDateString(),
       );
-      
+
       if (timeEntry) {
         timeEntry.count++;
       } else {

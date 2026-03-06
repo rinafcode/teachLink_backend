@@ -14,7 +14,10 @@ import { CollaborationService } from '../collaboration.service';
 import { SharedDocumentService } from '../documents/shared-document.service';
 import { WhiteboardService } from '../whiteboard/whiteboard.service';
 import { VersionControlService } from '../versioning/version-control.service';
-import { CollaborationPermissionsService, PermissionLevel } from '../permissions/collaboration-permissions.service';
+import {
+  CollaborationPermissionsService,
+  PermissionLevel,
+} from '../permissions/collaboration-permissions.service';
 
 export interface CollaborativeOperation {
   sessionId: string;
@@ -31,7 +34,9 @@ export interface CollaborativeOperation {
     credentials: true,
   },
 })
-export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class CollaborationGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('CollaborationGateway');
 
@@ -49,7 +54,7 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
 
   async handleConnection(@ConnectedSocket() client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
-    
+
     // Optionally authenticate the user here based on token
     // const token = client.handshake.auth.token;
     // const user = await this.authService.validateToken(token);
@@ -57,7 +62,7 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
 
   async handleDisconnect(@ConnectedSocket() client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
-    
+
     // Clean up any session associations for this client
     // Remove client from any active sessions
   }
@@ -79,18 +84,26 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
 
       // Join the room
       client.join(sessionId);
-      
+
       // Initialize or get the resource
       let resource: any;
       if (resourceType === 'document') {
         resource = await this.sharedDocumentService.getDocument(sessionId);
         if (!resource) {
-          resource = await this.collaborationService.initializeSession(sessionId, userId, 'document' as any);
+          resource = await this.collaborationService.initializeSession(
+            sessionId,
+            userId,
+            'document' as any,
+          );
         }
       } else if (resourceType === 'whiteboard') {
         resource = await this.whiteboardService.getWhiteboard(sessionId);
         if (!resource) {
-          resource = await this.collaborationService.initializeSession(sessionId, userId, 'whiteboard' as any);
+          resource = await this.collaborationService.initializeSession(
+            sessionId,
+            userId,
+            'whiteboard' as any,
+          );
         }
       }
 
@@ -122,11 +135,11 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
     try {
       // Validate permissions
       const hasPermission = await this.permissionsService.hasAccess(
-        sessionId, 
-        userId, 
-        resourceType === 'document' ? PermissionLevel.WRITE : PermissionLevel.WRITE
+        sessionId,
+        userId,
+        resourceType === 'document' ? PermissionLevel.WRITE : PermissionLevel.WRITE,
       );
-      
+
       if (!hasPermission) {
         client.emit('error', { message: 'Insufficient permissions to perform operation' });
         return;
@@ -179,7 +192,7 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
       // Send current state to requesting client
       const document = await this.sharedDocumentService.getDocument(sessionId);
       const whiteboard = await this.whiteboardService.getWhiteboard(sessionId);
-      
+
       client.emit('full-sync', {
         sessionId,
         document: document || null,
@@ -193,14 +206,19 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
 
   @SubscribeMessage('resolve-conflict')
   async handleConflictResolution(
-    @MessageBody() data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
+    @MessageBody()
+    data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
     @ConnectedSocket() client: Socket,
   ) {
     const { sessionId, userId, resourceType, operations } = data;
 
     try {
       // Only admins/owners can resolve conflicts
-      const hasPermission = await this.permissionsService.hasAccess(sessionId, userId, PermissionLevel.ADMIN);
+      const hasPermission = await this.permissionsService.hasAccess(
+        sessionId,
+        userId,
+        PermissionLevel.ADMIN,
+      );
       if (!hasPermission) {
         client.emit('error', { message: 'Insufficient permissions to resolve conflicts' });
         return;

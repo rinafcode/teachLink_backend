@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Payment } from './payment.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -32,7 +40,11 @@ export class Invoice {
   @Column({ type: 'jsonb' })
   items: InvoiceItem[];
 
-  @Column({ type: 'enum', enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'], default: 'draft' })
+  @Column({
+    type: 'enum',
+    enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'],
+    default: 'draft',
+  })
   status: string;
 
   @Column({ type: 'date', nullable: true })

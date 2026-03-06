@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Query, Logger, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Logger,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ABTestingService } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
 import { StatisticalAnalysisService } from './analysis/statistical-analysis.service';
@@ -54,10 +66,7 @@ export class ABTestingController {
 
   @Put('experiments/:id')
   @HttpCode(HttpStatus.OK)
-  async updateExperiment(
-    @Param('id') id: string,
-    @Body() updateData: any
-  ) {
+  async updateExperiment(@Param('id') id: string, @Body() updateData: any) {
     this.logger.log(`Updating experiment: ${id}`);
     return await this.experimentService.updateExperiment(id, updateData);
   }
@@ -78,10 +87,7 @@ export class ABTestingController {
 
   @Post('experiments/:id/variants')
   @HttpCode(HttpStatus.CREATED)
-  async addVariant(
-    @Param('id') experimentId: string,
-    @Body() variantData: any
-  ) {
+  async addVariant(@Param('id') experimentId: string, @Body() variantData: any) {
     this.logger.log(`Adding variant to experiment: ${experimentId}`);
     return await this.experimentService.addVariant(experimentId, variantData);
   }
@@ -98,7 +104,7 @@ export class ABTestingController {
   @HttpCode(HttpStatus.OK)
   async updateTrafficAllocation(
     @Param('id') experimentId: string,
-    @Body() allocations: Record<string, number>
+    @Body() allocations: Record<string, number>,
   ) {
     this.logger.log(`Updating traffic allocation for experiment: ${experimentId}`);
     await this.experimentService.updateTrafficAllocation(experimentId, allocations);
@@ -119,10 +125,7 @@ export class ABTestingController {
 
   @Post('experiments/:id/auto-select-winner')
   @HttpCode(HttpStatus.OK)
-  async autoSelectWinner(
-    @Param('id') id: string,
-    @Body() criteria?: any
-  ) {
+  async autoSelectWinner(@Param('id') id: string, @Body() criteria?: any) {
     this.logger.log(`Auto-selecting winner for experiment: ${id}`);
     return await this.automatedDecisionService.autoSelectWinner(id, criteria);
   }
@@ -197,10 +200,7 @@ export class ABTestingController {
   }
 
   @Get('experiments/:id/assign-user/:userId')
-  async assignUserToVariant(
-    @Param('id') experimentId: string,
-    @Param('userId') userId: string
-  ) {
+  async assignUserToVariant(@Param('id') experimentId: string, @Param('userId') userId: string) {
     this.logger.log(`Assigning user ${userId} to variant for experiment: ${experimentId}`);
     return await this.abTestingService.assignUserToVariant(experimentId, userId);
   }

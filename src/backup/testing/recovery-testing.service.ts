@@ -120,9 +120,7 @@ export class RecoveryTestingService {
 
       // Step 5: Validate
       const validationStartTime = Date.now();
-      const validationResults = await this.validateRestoredDatabase(
-        test.testDatabaseName,
-      );
+      const validationResults = await this.validateRestoredDatabase(test.testDatabaseName);
       const validationDuration = Date.now() - validationStartTime;
 
       // Step 6: Cleanup
@@ -193,10 +191,7 @@ export class RecoveryTestingService {
     await client.end();
   }
 
-  private async restoreDatabase(
-    dbName: string,
-    backupFile: string,
-  ): Promise<void> {
+  private async restoreDatabase(dbName: string, backupFile: string): Promise<void> {
     const host = this.configService.get<string>('DB_HOST', 'localhost');
     const port = this.configService.get<string>('DB_PORT', '5432');
     const username = this.configService.get<string>('DB_USERNAME', 'postgres');

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ContentMetadata, ContentStatus, ContentType } from '../cdn/entities/content-metadata.entity';
+import {
+  ContentMetadata,
+  ContentStatus,
+  ContentType,
+} from '../cdn/entities/content-metadata.entity';
 import { FileStorageService } from './storage/file-storage.service';
 import { VideoProcessingService } from './processing/video-processing.service';
 

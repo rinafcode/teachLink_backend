@@ -14,7 +14,12 @@ import { TenancyService } from './tenancy.service';
 import { TenantAdminService } from './admin/tenant-admin.service';
 import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
-import { CreateTenantDto, UpdateTenantDto, UpdateTenantConfigDto, UpdateTenantCustomizationDto } from './dto/tenant.dto';
+import {
+  CreateTenantDto,
+  UpdateTenantDto,
+  UpdateTenantConfigDto,
+  UpdateTenantCustomizationDto,
+} from './dto/tenant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -107,10 +112,7 @@ export class TenancyController {
 
   @Patch(':id/config')
   @ApiOperation({ summary: 'Update tenant configuration' })
-  updateConfig(
-    @Param('id') id: string,
-    @Body() updateConfigDto: UpdateTenantConfigDto,
-  ) {
+  updateConfig(@Param('id') id: string, @Body() updateConfigDto: UpdateTenantConfigDto) {
     return this.tenancyService.updateConfig(id, updateConfigDto);
   }
 

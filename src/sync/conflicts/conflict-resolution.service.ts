@@ -49,7 +49,7 @@ export class ConflictResolutionService {
   }
 
   private manualMerge(local: SyncData, remote: SyncData): SyncData {
-    // In a real scenario, this would trigger a notification or 
+    // In a real scenario, this would trigger a notification or
     // flag the record for human intervention.
     // For now, we'll mark it as "needs_merge" in the data.
     return {

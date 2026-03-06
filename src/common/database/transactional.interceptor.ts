@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { TransactionService } from './transaction.service';
@@ -22,10 +16,7 @@ export class TransactionalInterceptor implements NestInterceptor {
     private readonly transactionService: TransactionService,
   ) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<any>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const options = this.reflector.get<TransactionalOptions>(
       TRANSACTIONAL_KEY,
       context.getHandler(),
@@ -39,9 +30,7 @@ export class TransactionalInterceptor implements NestInterceptor {
     const className = context.getClass().name;
     const methodName = handler.name;
 
-    this.logger.debug(
-      `Executing transactional method: ${className}.${methodName}`,
-    );
+    this.logger.debug(`Executing transactional method: ${className}.${methodName}`);
 
     try {
       let result;
@@ -63,11 +52,9 @@ export class TransactionalInterceptor implements NestInterceptor {
           },
         );
       } else {
-        result = await this.transactionService.runInTransaction(
-          async (manager) => {
-            return await next.handle().toPromise();
-          },
-        );
+        result = await this.transactionService.runInTransaction(async (manager) => {
+          return await next.handle().toPromise();
+        });
       }
 
       return new Observable((subscriber) => {
@@ -75,10 +62,7 @@ export class TransactionalInterceptor implements NestInterceptor {
         subscriber.complete();
       });
     } catch (error) {
-      this.logger.error(
-        `Transaction failed in ${className}.${methodName}:`,
-        error,
-      );
+      this.logger.error(`Transaction failed in ${className}.${methodName}:`, error);
       throw error;
     }
   }

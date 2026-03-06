@@ -134,10 +134,7 @@ export class FlagAnalyticsService {
   /**
    * Returns impression and conversion stats for all variants in an experiment.
    */
-  getExperimentStats(
-    experimentId: string,
-    controlVariantKey?: string,
-  ): ExperimentStats {
+  getExperimentStats(experimentId: string, controlVariantKey?: string): ExperimentStats {
     const impressions = this.experimentImpressions.get(experimentId) ?? new Map<string, number>();
     const conversions = this.experimentConversions.get(experimentId) ?? new Map<string, number>();
 
@@ -178,9 +175,7 @@ export class FlagAnalyticsService {
       });
     }
 
-    return summaries
-      .sort((a, b) => b.totalEvaluations - a.totalEvaluations)
-      .slice(0, limit);
+    return summaries.sort((a, b) => b.totalEvaluations - a.totalEvaluations).slice(0, limit);
   }
 
   /**

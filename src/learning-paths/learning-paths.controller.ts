@@ -3,9 +3,7 @@ import { LearningPathsService } from './learning-paths.service';
 
 @Controller('learning-paths')
 export class LearningPathsController {
-  constructor(
-    private readonly learningPathsService: LearningPathsService,
-  ) {}
+  constructor(private readonly learningPathsService: LearningPathsService) {}
 
   @Post('generate')
   generateLearningPath(@Body() payload: any) {

@@ -109,7 +109,9 @@ export class DimensionalModelingService {
   /**
    * Create a new dimensional model
    */
-  async createModel(modelConfig: Omit<DimensionalModel, 'id' | 'createdAt' | 'updatedAt'>): Promise<DimensionalModel> {
+  async createModel(
+    modelConfig: Omit<DimensionalModel, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<DimensionalModel> {
     const modelId = uuidv4();
     const model: DimensionalModel = {
       id: modelId,
@@ -141,7 +143,10 @@ export class DimensionalModelingService {
   /**
    * Update a dimensional model
    */
-  async updateModel(modelId: string, updates: Partial<DimensionalModel>): Promise<DimensionalModel | null> {
+  async updateModel(
+    modelId: string,
+    updates: Partial<DimensionalModel>,
+  ): Promise<DimensionalModel | null> {
     const model = this.models.get(modelId);
     if (!model) {
       return null;
@@ -177,20 +182,20 @@ export class DimensionalModelingService {
   async createStarSchema(
     name: string,
     factTable: Omit<FactTable, 'id'>,
-    dimensionTables: Omit<DimensionTable, 'id'>[]
+    dimensionTables: Array<Omit<DimensionTable, 'id'>>,
   ): Promise<DimensionalModel> {
     const factTableWithId: FactTable = {
       ...factTable,
       id: uuidv4(),
     };
 
-    const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map(dim => ({
+    const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map((dim) => ({
       ...dim,
       id: uuidv4(),
     }));
 
     // Create foreign keys for each dimension
-    const foreignKeys: ForeignKey[] = dimensionTablesWithIds.map(dim => ({
+    const foreignKeys: ForeignKey[] = dimensionTablesWithIds.map((dim) => ({
       id: uuidv4(),
       name: `${dim.name}_id`,
       referencedTable: dim.name,
@@ -216,15 +221,15 @@ export class DimensionalModelingService {
   async createSnowflakeSchema(
     name: string,
     factTable: Omit<FactTable, 'id'>,
-    dimensionTables: Omit<DimensionTable, 'id'>[],
-    subDimensions: { [key: string]: Omit<DimensionTable, 'id'>[] }
+    dimensionTables: Array<Omit<DimensionTable, 'id'>>,
+    subDimensions: { [key: string]: Array<Omit<DimensionTable, 'id'>> },
   ): Promise<DimensionalModel> {
     const factTableWithId: FactTable = {
       ...factTable,
       id: uuidv4(),
     };
 
-    const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map(dim => ({
+    const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map((dim) => ({
       ...dim,
       id: uuidv4(),
     }));
@@ -234,17 +239,17 @@ export class DimensionalModelingService {
     const relationships: Relationship[] = [];
 
     for (const [parentDimName, subDims] of Object.entries(subDimensions)) {
-      const parentDim = dimensionTablesWithIds.find(d => d.name === parentDimName);
+      const parentDim = dimensionTablesWithIds.find((d) => d.name === parentDimName);
       if (parentDim) {
-        const subDimWithIds = subDims.map(sub => ({
+        const subDimWithIds = subDims.map((sub) => ({
           ...sub,
           id: uuidv4(),
         }));
-        
+
         allDimensions.push(...subDimWithIds);
-        
+
         // Create relationships between parent and sub-dimensions
-        subDimWithIds.forEach(subDim => {
+        subDimWithIds.forEach((subDim) => {
           relationships.push({
             id: uuidv4(),
             fromTable: parentDim.name,
@@ -257,7 +262,7 @@ export class DimensionalModelingService {
     }
 
     // Create foreign keys for fact table
-    const foreignKeys: ForeignKey[] = allDimensions.map(dim => ({
+    const foreignKeys: ForeignKey[] = allDimensions.map((dim) => ({
       id: uuidv4(),
       name: `${dim.name}_id`,
       referencedTable: dim.name,
@@ -314,7 +319,7 @@ export class DimensionalModelingService {
 
     // In a real implementation, this would execute against the data warehouse
     this.logger.log(`Executing query ${queryId} with parameters:`, parameters);
-    
+
     // Return mock data for demonstration
     return this.generateMockResults(query, parameters);
   }
@@ -326,7 +331,7 @@ export class DimensionalModelingService {
     queryId: string,
     parameters: { [key: string]: any } = {},
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
     const results = await this.executeQuery(queryId, parameters);
     const total = results.length;
@@ -347,7 +352,7 @@ export class DimensionalModelingService {
    */
   async getQueriesForModel(modelId: string): Promise<AnalyticsQuery[]> {
     const queries = Array.from(this.queries.values());
-    return queries.filter(query => query.modelId === modelId);
+    return queries.filter((query) => query.modelId === modelId);
   }
 
   /**
@@ -374,11 +379,11 @@ export class DimensionalModelingService {
     for (const relationship of model.relationships) {
       const fromTable = this.findTableByName(model, relationship.fromTable);
       const toTable = this.findTableByName(model, relationship.toTable);
-      
+
       if (!fromTable) {
         errors.push(`Relationship references non-existent table: ${relationship.fromTable}`);
       }
-      
+
       if (!toTable) {
         errors.push(`Relationship references non-existent table: ${relationship.toTable}`);
       }
@@ -391,8 +396,11 @@ export class DimensionalModelingService {
   }
 
   // Helper methods
-  private createStarRelationships(factTable: FactTable, dimensionTables: DimensionTable[]): Relationship[] {
-    return dimensionTables.map(dim => ({
+  private createStarRelationships(
+    factTable: FactTable,
+    dimensionTables: DimensionTable[],
+  ): Relationship[] {
+    return dimensionTables.map((dim) => ({
       id: uuidv4(),
       fromTable: factTable.name,
       toTable: dim.name,
@@ -401,11 +409,14 @@ export class DimensionalModelingService {
     }));
   }
 
-  private findTableByName(model: DimensionalModel, tableName: string): FactTable | DimensionTable | undefined {
-    const factTable = model.factTables.find(ft => ft.name === tableName);
+  private findTableByName(
+    model: DimensionalModel,
+    tableName: string,
+  ): FactTable | DimensionTable | undefined {
+    const factTable = model.factTables.find((ft) => ft.name === tableName);
     if (factTable) return factTable;
-    
-    return model.dimensionTables.find(dt => dt.name === tableName);
+
+    return model.dimensionTables.find((dt) => dt.name === tableName);
   }
 
   private generateMockResults(query: AnalyticsQuery, parameters: { [key: string]: any }): any[] {
@@ -415,17 +426,17 @@ export class DimensionalModelingService {
 
     for (let i = 0; i < rowCount; i++) {
       const row: any = {};
-      
+
       // Add metrics
-      query.metrics.forEach(metric => {
+      query.metrics.forEach((metric) => {
         row[metric] = Math.floor(Math.random() * 10000);
       });
-      
+
       // Add dimensions
-      query.dimensions.forEach(dimension => {
+      query.dimensions.forEach((dimension) => {
         row[dimension] = `Value_${dimension}_${i}`;
       });
-      
+
       results.push(row);
     }
 

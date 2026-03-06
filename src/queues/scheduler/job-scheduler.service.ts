@@ -39,9 +39,7 @@ export class JobSchedulerService {
       delay,
     });
 
-    this.logger.log(
-      `Job ${name} scheduled for ${scheduledTime.toISOString()} (ID: ${job.id})`,
-    );
+    this.logger.log(`Job ${name} scheduled for ${scheduledTime.toISOString()} (ID: ${job.id})`);
 
     return job.id.toString();
   }
@@ -49,11 +47,7 @@ export class JobSchedulerService {
   /**
    * Schedule a recurring job with cron expression
    */
-  scheduleRecurringJob(
-    name: string,
-    cronExpression: string,
-    callback: () => Promise<void>,
-  ): void {
+  scheduleRecurringJob(name: string, cronExpression: string, callback: () => Promise<void>): void {
     try {
       const job = new CronJob(cronExpression, async () => {
         this.logger.log(`Executing recurring job: ${name}`);
@@ -67,9 +61,7 @@ export class JobSchedulerService {
       this.schedulerRegistry.addCronJob(name, job);
       job.start();
 
-      this.logger.log(
-        `Recurring job ${name} scheduled with cron: ${cronExpression}`,
-      );
+      this.logger.log(`Recurring job ${name} scheduled with cron: ${cronExpression}`);
     } catch (error) {
       this.logger.error(`Failed to schedule recurring job ${name}:`, error);
       throw error;
@@ -104,9 +96,7 @@ export class JobSchedulerService {
       delay: delayMs,
     });
 
-    this.logger.log(
-      `Job ${name} scheduled with ${delayMs}ms delay (ID: ${job.id})`,
-    );
+    this.logger.log(`Job ${name} scheduled with ${delayMs}ms delay (ID: ${job.id})`);
 
     return job.id.toString();
   }
@@ -125,12 +115,7 @@ export class JobSchedulerService {
     const jobIds: string[] = [];
 
     for (const job of jobs) {
-      const id = await this.scheduleJob(
-        job.name,
-        job.data,
-        job.scheduledTime,
-        job.options,
-      );
+      const id = await this.scheduleJob(job.name, job.data, job.scheduledTime, job.options);
       jobIds.push(id);
     }
 
@@ -166,10 +151,7 @@ export class JobSchedulerService {
   /**
    * Reschedule a job
    */
-  async rescheduleJob(
-    jobId: string,
-    newScheduledTime: Date,
-  ): Promise<string> {
+  async rescheduleJob(jobId: string, newScheduledTime: Date): Promise<string> {
     const job = await this.defaultQueue.getJob(jobId);
     if (!job) {
       throw new Error(`Job ${jobId} not found`);
@@ -179,12 +161,7 @@ export class JobSchedulerService {
     await job.remove();
 
     // Create new job with same data
-    const newJobId = await this.scheduleJob(
-      job.name,
-      job.data,
-      newScheduledTime,
-      job.opts as any,
-    );
+    const newJobId = await this.scheduleJob(job.name, job.data, newScheduledTime, job.opts as any);
 
     this.logger.log(
       `Job ${jobId} rescheduled to ${newScheduledTime.toISOString()} (new ID: ${newJobId})`,
@@ -238,7 +215,7 @@ export class JobSchedulerService {
     options?: JobOptions,
   ): Promise<string> {
     const now = new Date();
-    let scheduledTime = new Date(now);
+    const scheduledTime = new Date(now);
 
     // If outside business hours (9 AM - 5 PM), schedule for next business day at 9 AM
     const hour = now.getHours();

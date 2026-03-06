@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { Experiment } from './experiment.entity';
 
 export enum MetricType {
@@ -6,7 +13,7 @@ export enum MetricType {
   REVENUE = 'revenue',
   ENGAGEMENT = 'engagement',
   RETENTION = 'retention',
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
 }
 
 @Entity({ name: 'experiment_metrics' })
@@ -23,7 +30,7 @@ export class ExperimentMetric {
   @Column({
     type: 'enum',
     enum: MetricType,
-    default: MetricType.CONVERSION
+    default: MetricType.CONVERSION,
   })
   type: MetricType;
 
@@ -39,6 +46,6 @@ export class ExperimentMetric {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => Experiment, experiment => experiment.metrics)
+  @ManyToOne(() => Experiment, (experiment) => experiment.metrics)
   experiment: Experiment;
 }

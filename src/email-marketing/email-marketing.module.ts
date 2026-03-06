@@ -88,4 +88,4 @@ import { EmailQueueProcessor } from './processors/email-queue.processor';
     ABTestingService,
   ],
 })
-export class EmailMarketingModule { }
+export class EmailMarketingModule {}

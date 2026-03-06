@@ -13,14 +13,7 @@ import { TenantAdminService } from './admin/tenant-admin.service';
 import { TenantGuard } from './guards/tenant.guard';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Tenant,
-      TenantConfig,
-      TenantBilling,
-      TenantCustomization,
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Tenant, TenantConfig, TenantBilling, TenantCustomization])],
   controllers: [TenancyController],
   providers: [
     TenancyService,

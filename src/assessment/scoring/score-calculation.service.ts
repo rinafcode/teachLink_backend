@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
-import { Question } from "../entities/question.entity";
-import { QuestionType } from "../enums/question-type.enum";
+import { Injectable } from '@nestjs/common';
+import { Question } from '../entities/question.entity';
+import { QuestionType } from '../enums/question-type.enum';
 
 @Injectable()
 export class ScoreCalculationService {
@@ -8,9 +8,7 @@ export class ScoreCalculationService {
     switch (question.type) {
       case QuestionType.MULTIPLE_CHOICE:
       case QuestionType.TRUE_FALSE:
-        return response === question.correctAnswer
-          ? question.points
-          : 0;
+        return response === question.correctAnswer ? question.points : 0;
 
       case QuestionType.CODING:
         // Placeholder (extend with judge later)

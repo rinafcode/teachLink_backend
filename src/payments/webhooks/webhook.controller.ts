@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Headers,
-  Body,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Post, Headers, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { WebhookService } from './webhook.service';
 import { StripeWebhookGuard } from './stripe-webhook.guard';
@@ -21,10 +13,7 @@ export class WebhookController {
   @UseGuards(StripeWebhookGuard)
   @ApiOperation({ summary: 'Handle Stripe webhook events' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleStripeWebhook(
-    @Headers('stripe-signature') signature: string,
-    @Body() payload: any,
-  ) {
+  async handleStripeWebhook(@Headers('stripe-signature') signature: string, @Body() payload: any) {
     return this.webhookService.handleStripeWebhook(payload, signature);
   }
 

@@ -15,7 +15,7 @@ export class SchemaValidationService {
     try {
       // Perform pre-migration validation checks
       const isValid = await this.performPreMigrationValidation(migration);
-      
+
       if (!isValid) {
         throw new BadRequestException(`Schema validation failed for migration: ${migration.name}`);
       }
@@ -37,15 +37,20 @@ export class SchemaValidationService {
     try {
       // Perform post-migration validation checks
       const isValid = await this.performPostMigrationValidation(migration);
-      
+
       if (!isValid) {
-        throw new BadRequestException(`Post-migration schema validation failed for: ${migration.name}`);
+        throw new BadRequestException(
+          `Post-migration schema validation failed for: ${migration.name}`,
+        );
       }
 
       this.logger.log(`Post-migration schema validation passed for: ${migration.name}`);
       return true;
     } catch (error) {
-      this.logger.error(`Post-migration schema validation failed for: ${migration.name}`, error.stack);
+      this.logger.error(
+        `Post-migration schema validation failed for: ${migration.name}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -56,7 +61,7 @@ export class SchemaValidationService {
   private async performPreMigrationValidation(migration: MigrationConfig): Promise<boolean> {
     // Check if required tables/columns exist before running migration
     // This is a simplified version - in practice, you'd check for dependencies
-    
+
     // For now, just return true
     return true;
   }
@@ -67,7 +72,7 @@ export class SchemaValidationService {
   private async performPostMigrationValidation(migration: MigrationConfig): Promise<boolean> {
     // Check if the expected schema changes were applied correctly
     // This would involve checking if tables/columns exist as expected after migration
-    
+
     // For now, just return true
     return true;
   }
@@ -99,7 +104,7 @@ export class SchemaValidationService {
     // Analyze the migration to detect potential breaking changes
     // This is a simplified implementation - in practice, you'd parse the SQL operations
     // and check for things like dropping columns/tables, changing data types, etc.
-    
+
     // For now, return an empty array
     return breakingChanges;
   }
@@ -115,7 +120,10 @@ export class SchemaValidationService {
       // For now, return a placeholder
       return `backup_${migration.name}_${new Date().toISOString()}`;
     } catch (error) {
-      this.logger.error(`Failed to create schema backup for migration: ${migration.name}`, error.stack);
+      this.logger.error(
+        `Failed to create schema backup for migration: ${migration.name}`,
+        error.stack,
+      );
       return null;
     }
   }
@@ -123,17 +131,22 @@ export class SchemaValidationService {
   /**
    * Validates migration dependencies
    */
-  async validateMigrationDependencies(migration: MigrationConfig, appliedMigrations: string[]): Promise<boolean> {
+  async validateMigrationDependencies(
+    migration: MigrationConfig,
+    appliedMigrations: string[],
+  ): Promise<boolean> {
     if (!migration.dependencies || migration.dependencies.length === 0) {
       return true;
     }
 
     const missingDependencies = migration.dependencies.filter(
-      dep => !appliedMigrations.includes(dep)
+      (dep) => !appliedMigrations.includes(dep),
     );
 
     if (missingDependencies.length > 0) {
-      this.logger.error(`Missing dependencies for migration ${migration.name}: ${missingDependencies.join(', ')}`);
+      this.logger.error(
+        `Missing dependencies for migration ${migration.name}: ${missingDependencies.join(', ')}`,
+      );
       return false;
     }
 

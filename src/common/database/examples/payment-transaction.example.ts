@@ -23,11 +23,7 @@ export class PaymentTransactionExample {
    * Process payment with transaction
    * Ensures all steps succeed or all fail together
    */
-  async processPayment(
-    userId: string,
-    amount: number,
-    recipientId: string,
-  ): Promise<any> {
+  async processPayment(userId: string, amount: number, recipientId: string): Promise<any> {
     return this.transactionService.runInTransaction(async (manager) => {
       // 1. Deduct from sender
       const sender = await manager.query(
@@ -40,10 +36,10 @@ export class PaymentTransactionExample {
       }
 
       // 2. Add to recipient
-      await manager.query(
-        'UPDATE users SET balance = balance + $1 WHERE id = $2',
-        [amount, recipientId],
-      );
+      await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
+        amount,
+        recipientId,
+      ]);
 
       // 3. Create payment record
       const payment = await manager.query(
@@ -66,11 +62,7 @@ export class PaymentTransactionExample {
   /**
    * Process payment with retry on deadlock
    */
-  async processPaymentWithRetry(
-    userId: string,
-    amount: number,
-    recipientId: string,
-  ): Promise<any> {
+  async processPaymentWithRetry(userId: string, amount: number, recipientId: string): Promise<any> {
     return this.transactionService.runWithRetry(
       async (manager) => {
         return this.processPaymentLogic(manager, userId, amount, recipientId);
@@ -89,12 +81,9 @@ export class PaymentTransactionExample {
     amount: number,
     recipientId: string,
   ): Promise<any> {
-    return this.transactionService.runWithIsolationLevel(
-      'SERIALIZABLE',
-      async (manager) => {
-        return this.processPaymentLogic(manager, userId, amount, recipientId);
-      },
-    );
+    return this.transactionService.runWithIsolationLevel('SERIALIZABLE', async (manager) => {
+      return this.processPaymentLogic(manager, userId, amount, recipientId);
+    });
   }
 
   /**
@@ -103,10 +92,10 @@ export class PaymentTransactionExample {
   async refundPayment(paymentId: string): Promise<any> {
     return this.transactionService.runInTransaction(async (manager) => {
       // 1. Get payment details
-      const payment = await manager.query(
-        'SELECT * FROM payments WHERE id = $1 AND status = $2',
-        [paymentId, 'completed'],
-      );
+      const payment = await manager.query('SELECT * FROM payments WHERE id = $1 AND status = $2', [
+        paymentId,
+        'completed',
+      ]);
 
       if (!payment || payment.length === 0) {
         throw new Error('Payment not found or already refunded');
@@ -115,21 +104,21 @@ export class PaymentTransactionExample {
       const { user_id, recipient_id, amount } = payment[0];
 
       // 2. Reverse the payment
-      await manager.query(
-        'UPDATE users SET balance = balance + $1 WHERE id = $2',
-        [amount, user_id],
-      );
+      await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
+        amount,
+        user_id,
+      ]);
 
-      await manager.query(
-        'UPDATE users SET balance = balance - $1 WHERE id = $2',
-        [amount, recipient_id],
-      );
+      await manager.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [
+        amount,
+        recipient_id,
+      ]);
 
       // 3. Update payment status
-      await manager.query(
-        'UPDATE payments SET status = $1, refunded_at = NOW() WHERE id = $2',
-        ['refunded', paymentId],
-      );
+      await manager.query('UPDATE payments SET status = $1, refunded_at = NOW() WHERE id = $2', [
+        'refunded',
+        paymentId,
+      ]);
 
       // 4. Create refund log
       await manager.query(
@@ -161,10 +150,10 @@ export class PaymentTransactionExample {
       throw new Error('Insufficient balance');
     }
 
-    await manager.query(
-      'UPDATE users SET balance = balance + $1 WHERE id = $2',
-      [amount, recipientId],
-    );
+    await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
+      amount,
+      recipientId,
+    ]);
 
     const payment = await manager.query(
       'INSERT INTO payments (user_id, recipient_id, amount, status) VALUES ($1, $2, $3, $4) RETURNING *',

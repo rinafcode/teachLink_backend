@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictResolutionService, ConflictResolutionStrategy, SyncData } from './conflict-resolution.service';
+import {
+  ConflictResolutionService,
+  ConflictResolutionStrategy,
+  SyncData,
+} from './conflict-resolution.service';
 
 describe('ConflictResolutionService', () => {
   let service: ConflictResolutionService;
@@ -32,13 +36,21 @@ describe('ConflictResolutionService', () => {
     };
 
     it('should resolve using LAST_WRITE_WINS (remote wins)', () => {
-      const result = service.resolve(localData, remoteData, ConflictResolutionStrategy.LAST_WRITE_WINS);
+      const result = service.resolve(
+        localData,
+        remoteData,
+        ConflictResolutionStrategy.LAST_WRITE_WINS,
+      );
       expect(result.data.name).toBe('Remote');
     });
 
     it('should resolve using LAST_WRITE_WINS (local wins)', () => {
       const olderRemote = { ...remoteData, lastModified: new Date('2023-01-01T09:00:00Z') };
-      const result = service.resolve(localData, olderRemote, ConflictResolutionStrategy.LAST_WRITE_WINS);
+      const result = service.resolve(
+        localData,
+        olderRemote,
+        ConflictResolutionStrategy.LAST_WRITE_WINS,
+      );
       expect(result.data.name).toBe('Local');
     });
 
@@ -48,7 +60,11 @@ describe('ConflictResolutionService', () => {
     });
 
     it('should resolve using MANUAL_MERGE', () => {
-      const result = service.resolve(localData, remoteData, ConflictResolutionStrategy.MANUAL_MERGE);
+      const result = service.resolve(
+        localData,
+        remoteData,
+        ConflictResolutionStrategy.MANUAL_MERGE,
+      );
       expect(result.data._conflict.status).toBe('needs_merge');
     });
   });

@@ -23,8 +23,6 @@ export class AutoCompleteService {
     });
 
     const suggestions = result.suggest.title_suggest[0].options;
-    return Array.isArray(suggestions) 
-      ? suggestions.map((option: any) => option.text) 
-      : [];
+    return Array.isArray(suggestions) ? suggestions.map((option: any) => option.text) : [];
   }
 }

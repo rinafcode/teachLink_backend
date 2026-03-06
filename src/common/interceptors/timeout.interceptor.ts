@@ -24,7 +24,7 @@ export class TimeoutInterceptor implements NestInterceptor {
     const timeoutValue = customTimeout || DEFAULT_TIMEOUT;
     return next.handle().pipe(
       timeout(timeoutValue),
-      catchError(err => {
+      catchError((err) => {
         if (err instanceof TimeoutError) {
           throw new BadGatewayException({
             statusCode: 504,
@@ -34,7 +34,7 @@ export class TimeoutInterceptor implements NestInterceptor {
           });
         }
         throw err;
-      })
+      }),
     );
   }
 }

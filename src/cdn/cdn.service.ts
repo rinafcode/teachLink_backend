@@ -35,10 +35,7 @@ export class CdnService {
     private cloudflareService: CloudflareService,
   ) {}
 
-  async deliverContent(
-    contentId: string,
-    options: ContentDeliveryOptions = {},
-  ): Promise<string> {
+  async deliverContent(contentId: string, options: ContentDeliveryOptions = {}): Promise<string> {
     const cacheKey = `cdn:${contentId}:${JSON.stringify(options)}`;
 
     // Check cache first
@@ -57,17 +54,12 @@ export class CdnService {
     await this.updateAccessStats(metadata);
 
     // Determine optimal delivery strategy
-    const optimalLocation = await this.geoLocationService.getOptimalLocation(
-      options.userLocation,
-    );
+    const optimalLocation = await this.geoLocationService.getOptimalLocation(options.userLocation);
 
     // Optimize content if needed
     let deliveryUrl = metadata.cdnUrl || metadata.originalUrl;
     if (options.optimize && metadata.contentType === ContentType.IMAGE) {
-      deliveryUrl = await this.assetOptimizationService.optimizeImage(
-        deliveryUrl,
-        options,
-      );
+      deliveryUrl = await this.assetOptimizationService.optimizeImage(deliveryUrl, options);
     }
 
     // Apply bandwidth optimization
@@ -76,10 +68,7 @@ export class CdnService {
     }
 
     // Get edge-cached URL
-    const edgeUrl = await this.edgeCachingService.getEdgeUrl(
-      deliveryUrl,
-      optimalLocation,
-    );
+    const edgeUrl = await this.edgeCachingService.getEdgeUrl(deliveryUrl, optimalLocation);
 
     // Cache the result
     await this.cacheManager.set(cacheKey, edgeUrl, 3600000); // 1 hour
@@ -118,13 +107,15 @@ export class CdnService {
         status: ContentStatus.READY,
         etag: uploadResult.etag,
         provider: uploadResult.provider,
-        optimizationSettings: options.optimize ? {
-          width: options.width,
-          height: options.height,
-          quality: options.quality,
-          format: options.format,
-          responsive: options.responsive,
-        } : undefined,
+        optimizationSettings: options.optimize
+          ? {
+              width: options.width,
+              height: options.height,
+              quality: options.quality,
+              format: options.format,
+              responsive: options.responsive,
+            }
+          : undefined,
       });
 
       // Store metadata
@@ -204,14 +195,15 @@ export class CdnService {
       // Generate responsive variants if requested
       let variants = [];
       if (options.responsive) {
-        variants = await this.assetOptimizationService.generateResponsiveImages(
-          metadata.cdnUrl,
-        );
+        variants = await this.assetOptimizationService.generateResponsiveImages(metadata.cdnUrl);
       }
 
       metadata.status = ContentStatus.OPTIMIZED;
-      metadata.optimizedSize = variants.reduce((total, variant) => total + variant.optimizedSize, 0);
-      metadata.variants = variants.map(v => ({
+      metadata.optimizedSize = variants.reduce(
+        (total, variant) => total + variant.optimizedSize,
+        0,
+      );
+      metadata.variants = variants.map((v) => ({
         name: v.url.split('/').pop(),
         url: v.url,
         width: options.width || 0,

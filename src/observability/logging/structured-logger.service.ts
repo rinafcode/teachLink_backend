@@ -78,10 +78,7 @@ export class StructuredLoggerService implements LoggerService {
       level = LogLevel.INFO;
       message = messageOrLevel;
       meta = undefined;
-    } else if (
-      typeof messageOrLevel === 'string' &&
-      typeof messageOrMetadata === 'object'
-    ) {
+    } else if (typeof messageOrLevel === 'string' && typeof messageOrMetadata === 'object') {
       // log(message, metadata)
       level = LogLevel.INFO;
       message = messageOrLevel;
@@ -108,11 +105,7 @@ export class StructuredLoggerService implements LoggerService {
    */
   error(message: string, trace?: string, metadata?: Record<string, any>): void;
   error(message: string, error?: Error, metadata?: Record<string, any>): void;
-  error(
-    message: string,
-    traceOrError?: string | Error,
-    metadata?: Record<string, any>,
-  ): void {
+  error(message: string, traceOrError?: string | Error, metadata?: Record<string, any>): void {
     let errorDetails: ErrorDetails | undefined;
 
     if (traceOrError instanceof Error) {
@@ -124,7 +117,7 @@ export class StructuredLoggerService implements LoggerService {
     } else if (typeof traceOrError === 'string') {
       errorDetails = {
         name: 'Error',
-        message: message,
+        message,
         stack: traceOrError,
       };
     }
@@ -241,11 +234,7 @@ export class StructuredLoggerService implements LoggerService {
   /**
    * Log database query
    */
-  logQuery(
-    query: string,
-    duration: number,
-    metadata?: Record<string, any>,
-  ): void {
+  logQuery(query: string, duration: number, metadata?: Record<string, any>): void {
     this.log(LogLevel.DEBUG, 'Database query executed', {
       ...metadata,
       query,
@@ -257,10 +246,7 @@ export class StructuredLoggerService implements LoggerService {
   /**
    * Log business event
    */
-  logBusinessEvent(
-    eventName: string,
-    eventData: Record<string, any>,
-  ): void {
+  logBusinessEvent(eventName: string, eventData: Record<string, any>): void {
     this.log(LogLevel.INFO, `Business event: ${eventName}`, {
       ...eventData,
       eventName,

@@ -11,10 +11,10 @@ export class MonitoringInterceptor implements NestInterceptor {
     const now = Date.now();
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest();
-    
+
     // Some requests might not be HTTP (e.g. WebSocket or Microservice), check if request exists
     if (!request) {
-        return next.handle();
+      return next.handle();
     }
 
     const method = request.method || 'UNKNOWN';
@@ -29,11 +29,11 @@ export class MonitoringInterceptor implements NestInterceptor {
           this.metricsService.recordHttpRequest(method, route, statusCode, duration);
         },
         error: (error) => {
-             // Track errors too
-             const duration = (Date.now() - now) / 1000;
-             const status = error.status || 500;
-             this.metricsService.recordHttpRequest(method, route, status, duration);
-        }
+          // Track errors too
+          const duration = (Date.now() - now) / 1000;
+          const status = error.status || 500;
+          this.metricsService.recordHttpRequest(method, route, status, duration);
+        },
       }),
     );
   }

@@ -28,7 +28,7 @@ export class RollbackService {
 
       // Update migration record
       const existingMigration = await this.migrationRepository.findOne({
-        where: { name: migration.name }
+        where: { name: migration.name },
       });
 
       if (existingMigration) {
@@ -54,15 +54,15 @@ export class RollbackService {
     const lastAppliedMigrations = await this.migrationRepository.find({
       where: { status: MigrationStatus.COMPLETED },
       order: { appliedAt: 'DESC' },
-      take: count
+      take: count,
     });
 
     // Get all registered migrations to find the down functions
     const registeredMigrations = this.getRegisteredMigrations();
 
     for (const appliedMigration of lastAppliedMigrations) {
-      const migrationConfig = registeredMigrations.find(m => m.name === appliedMigration.name);
-      
+      const migrationConfig = registeredMigrations.find((m) => m.name === appliedMigration.name);
+
       if (migrationConfig) {
         await this.rollbackMigration(migrationConfig);
       } else {
@@ -80,15 +80,15 @@ export class RollbackService {
     // Get all applied migrations in reverse order
     const allAppliedMigrations = await this.migrationRepository.find({
       where: { status: MigrationStatus.COMPLETED },
-      order: { appliedAt: 'DESC' }
+      order: { appliedAt: 'DESC' },
     });
 
     // Get all registered migrations to find the down functions
     const registeredMigrations = this.getRegisteredMigrations();
 
     for (const appliedMigration of allAppliedMigrations) {
-      const migrationConfig = registeredMigrations.find(m => m.name === appliedMigration.name);
-      
+      const migrationConfig = registeredMigrations.find((m) => m.name === appliedMigration.name);
+
       if (migrationConfig) {
         await this.rollbackMigration(migrationConfig);
       } else {
@@ -121,7 +121,7 @@ export class RollbackService {
   async canRollbackMigration(migrationName: string): Promise<boolean> {
     // Check if the migration exists and is completed
     const migration = await this.migrationRepository.findOne({
-      where: { name: migrationName, status: MigrationStatus.COMPLETED }
+      where: { name: migrationName, status: MigrationStatus.COMPLETED },
     });
 
     if (!migration) {
@@ -131,7 +131,7 @@ export class RollbackService {
     // Check if there are dependent migrations that have been applied after this one
     const laterMigrations = await this.migrationRepository.find({
       where: {
-        appliedAt: Raw(alias => `${alias} > :appliedAt`, { appliedAt: migration.appliedAt }),
+        appliedAt: Raw((alias) => `${alias} > :appliedAt`, { appliedAt: migration.appliedAt }),
       },
     });
 
