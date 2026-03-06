@@ -13,16 +13,9 @@ import { ABTestingController } from './ab-testing.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Experiment,
-      ExperimentVariant,
-      ExperimentMetric,
-      VariantMetric
-    ]),
+    TypeOrmModule.forFeature([Experiment, ExperimentVariant, ExperimentMetric, VariantMetric]),
   ],
-  controllers: [
-    ABTestingController,
-  ],
+  controllers: [ABTestingController],
   providers: [
     ABTestingService,
     ExperimentService,

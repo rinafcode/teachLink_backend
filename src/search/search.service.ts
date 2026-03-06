@@ -32,7 +32,7 @@ export class SearchService {
 
     // Ensure sort fields are properly formatted for ES
     if (searchBody.sort && Array.isArray(searchBody.sort)) {
-      searchBody.sort = searchBody.sort.map(sortItem => {
+      searchBody.sort = searchBody.sort.map((sortItem) => {
         if (typeof sortItem === 'object' && sortItem !== null) {
           // Convert object keys to proper format
           const newSortItem = {};
@@ -85,15 +85,15 @@ export class SearchService {
     if (sort === 'relevance') {
       return ['_score'];
     } else if (sort === 'popularity') {
-      return [{ 'views': { 'order': 'desc' as const } }];
+      return [{ views: { order: 'desc' as const } }];
     } else if (sort === 'rating') {
-      return [{ 'rating': { 'order': 'desc' as const } }];
+      return [{ rating: { order: 'desc' as const } }];
     }
     return ['_score'];
   }
 
   private rankResults(hits: any[]) {
-    return hits.map(hit => ({
+    return hits.map((hit) => ({
       ...hit._source,
       score: hit._score,
       relevance: hit._score * (hit._source.views || 1), // Simple ranking

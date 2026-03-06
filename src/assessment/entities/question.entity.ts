@@ -1,6 +1,6 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { QuestionType } from "../enums/question-type.enum";
-import { Assessment } from "./assessment.entity";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { QuestionType } from '../enums/question-type.enum';
+import { Assessment } from './assessment.entity';
 
 @Entity()
 export class Question {

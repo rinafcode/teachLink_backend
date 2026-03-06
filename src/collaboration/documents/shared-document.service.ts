@@ -40,7 +40,7 @@ export class SharedDocumentService {
 
     this.documents.set(documentId, document);
     this.logger.log(`Initialized document ${documentId}`);
-    
+
     return document;
   }
 
@@ -57,7 +57,7 @@ export class SharedDocumentService {
   async applyOperation(
     documentId: string,
     userId: string,
-    operation: Omit<DocumentOperation, 'id' | 'timestamp'>
+    operation: Omit<DocumentOperation, 'id' | 'timestamp'>,
   ): Promise<CollaborativeDocument> {
     const document = this.documents.get(documentId);
     if (!document) {
@@ -88,7 +88,7 @@ export class SharedDocumentService {
     }
 
     this.logger.log(`Applied operation ${transformedOp.id} to document ${documentId}`);
-    
+
     return document;
   }
 
@@ -97,7 +97,7 @@ export class SharedDocumentService {
    */
   private transformOperation(
     operation: DocumentOperation,
-    concurrentOperations: DocumentOperation[]
+    concurrentOperations: DocumentOperation[],
   ): DocumentOperation {
     let transformedOp = { ...operation };
 
@@ -123,17 +123,23 @@ export class SharedDocumentService {
 
     if (op1.type === 'insert') {
       // Insert and another operation overlap if insert position is within or adjacent to other operation
-      return op2.position <= op1.position && op1.position <= op2.position + (op2.length || (op2.content?.length || 0));
+      return (
+        op2.position <= op1.position &&
+        op1.position <= op2.position + (op2.length || op2.content?.length || 0)
+      );
     }
 
     if (op2.type === 'insert') {
       // Same as above but reversed
-      return op1.position <= op2.position && op2.position <= op1.position + (op1.length || (op1.content?.length || 0));
+      return (
+        op1.position <= op2.position &&
+        op2.position <= op1.position + (op1.length || op1.content?.length || 0)
+      );
     }
 
     // Both are delete/update operations - overlap if ranges intersect
-    const op1End = op1.position + (op1.length || (op1.content?.length || 0));
-    const op2End = op2.position + (op2.length || (op2.content?.length || 0));
+    const op1End = op1.position + (op1.length || op1.content?.length || 0);
+    const op2End = op2.position + (op2.length || op2.content?.length || 0);
     return !(op1.position >= op2End || op2.position >= op1End);
   }
 
@@ -142,7 +148,7 @@ export class SharedDocumentService {
    */
   private transformSingleOperation(
     operation: DocumentOperation,
-    concurrentOp: DocumentOperation
+    concurrentOp: DocumentOperation,
   ): DocumentOperation {
     const transformedOp = { ...operation };
 
@@ -152,7 +158,7 @@ export class SharedDocumentService {
       transformedOp.position += concurrentOp.content ? concurrentOp.content.length : 0;
     } else if (concurrentOp.type === 'delete') {
       const concurrentEnd = concurrentOp.position + concurrentOp.length;
-      
+
       if (operation.position >= concurrentEnd) {
         // Operation is after the deleted range, adjust position
         transformedOp.position -= concurrentOp.length;
@@ -173,27 +179,33 @@ export class SharedDocumentService {
     switch (operation.type) {
       case 'insert':
         if (operation.content !== undefined) {
-          return content.slice(0, operation.position) + 
-                 operation.content + 
-                 content.slice(operation.position);
+          return (
+            content.slice(0, operation.position) +
+            operation.content +
+            content.slice(operation.position)
+          );
         }
         return content;
-        
+
       case 'delete':
         if (operation.length !== undefined) {
-          return content.slice(0, operation.position) + 
-                 content.slice(operation.position + operation.length);
+          return (
+            content.slice(0, operation.position) +
+            content.slice(operation.position + operation.length)
+          );
         }
         return content;
-        
+
       case 'update':
         if (operation.content !== undefined && operation.length !== undefined) {
-          return content.slice(0, operation.position) + 
-                 operation.content + 
-                 content.slice(operation.position + operation.length);
+          return (
+            content.slice(0, operation.position) +
+            operation.content +
+            content.slice(operation.position + operation.length)
+          );
         }
         return content;
-        
+
       default:
         return content;
     }
@@ -202,7 +214,10 @@ export class SharedDocumentService {
   /**
    * Resolve conflicts between simultaneous edits
    */
-  async resolveConflicts(documentId: string, operations: DocumentOperation[]): Promise<CollaborativeDocument> {
+  async resolveConflicts(
+    documentId: string,
+    operations: DocumentOperation[],
+  ): Promise<CollaborativeDocument> {
     const document = this.documents.get(documentId);
     if (!document) {
       throw new Error(`Document ${documentId} not found`);
@@ -222,7 +237,7 @@ export class SharedDocumentService {
     }
 
     document.updatedAt = new Date();
-    
+
     return document;
   }
 

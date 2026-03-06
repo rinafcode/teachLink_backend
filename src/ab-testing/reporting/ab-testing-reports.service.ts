@@ -43,8 +43,10 @@ export class ABTestingReportsService {
       throw new Error(`Experiment with ID ${experimentId} not found`);
     }
 
-    const statisticalAnalysis = await this.statisticalAnalysisService.calculateStatisticalSignificance(experimentId);
-    const decisionRecommendations = await this.automatedDecisionService.getDecisionRecommendations(experimentId);
+    const statisticalAnalysis =
+      await this.statisticalAnalysisService.calculateStatisticalSignificance(experimentId);
+    const decisionRecommendations =
+      await this.automatedDecisionService.getDecisionRecommendations(experimentId);
 
     const report = {
       experiment: {
@@ -61,7 +63,7 @@ export class ABTestingReportsService {
         minimumSampleSize: experiment.minimumSampleSize,
         trafficAllocation: experiment.trafficAllocation,
       },
-      variants: experiment.variants.map(variant => ({
+      variants: experiment.variants.map((variant) => ({
         id: variant.id,
         name: variant.name,
         description: variant.description,
@@ -69,22 +71,19 @@ export class ABTestingReportsService {
         isWinner: variant.isWinner,
         trafficAllocation: variant.trafficAllocation,
         configuration: variant.configuration,
-        metrics: variant.metrics.map(metric => ({
+        metrics: variant.metrics.map((metric) => ({
           id: metric.id,
           value: metric.value,
           sampleSize: metric.sampleSize,
           conversionRate: metric.conversionRate,
           standardDeviation: metric.standardDeviation,
-          confidenceInterval: [
-            metric.confidenceIntervalLower,
-            metric.confidenceIntervalUpper
-          ],
+          confidenceInterval: [metric.confidenceIntervalLower, metric.confidenceIntervalUpper],
           pValue: metric.pValue,
           isStatisticallySignificant: metric.isStatisticallySignificant,
         })),
       })),
-      statisticalAnalysis: statisticalAnalysis,
-      decisionRecommendations: decisionRecommendations,
+      statisticalAnalysis,
+      decisionRecommendations,
       summary: this.generateSummary(experiment, statisticalAnalysis),
     };
 
@@ -95,8 +94,8 @@ export class ABTestingReportsService {
    * Generates summary statistics for the experiment
    */
   private generateSummary(experiment: Experiment, statisticalAnalysis: any): any {
-    const controlVariant = experiment.variants.find(v => v.isControl);
-    const winnerVariant = experiment.variants.find(v => v.isWinner);
+    const controlVariant = experiment.variants.find((v) => v.isControl);
+    const winnerVariant = experiment.variants.find((v) => v.isWinner);
 
     return {
       totalVariants: experiment.variants.length,
@@ -105,8 +104,8 @@ export class ABTestingReportsService {
       isStatisticallySignificant: statisticalAnalysis.statisticallySignificant,
       duration: this.calculateExperimentDuration(experiment),
       status: experiment.status,
-      recommendations: statisticalAnalysis.statisticallySignificant 
-        ? 'Statistically significant results found' 
+      recommendations: statisticalAnalysis.statisticallySignificant
+        ? 'Statistically significant results found'
         : 'Continue running experiment for more data',
     };
   }
@@ -123,12 +122,13 @@ export class ABTestingReportsService {
       totalExperiments: experiments.length,
       experimentsByStatus: this.groupExperimentsByStatus(experiments),
       experimentsByType: this.groupExperimentsByType(experiments),
-      runningExperiments: experiments.filter(e => e.status === ExperimentStatus.RUNNING).length,
-      completedExperiments: experiments.filter(e => e.status === ExperimentStatus.COMPLETED).length,
+      runningExperiments: experiments.filter((e) => e.status === ExperimentStatus.RUNNING).length,
+      completedExperiments: experiments.filter((e) => e.status === ExperimentStatus.COMPLETED)
+        .length,
       recentExperiments: experiments.slice(0, 5), // Last 5 experiments
-      upcomingExperiments: experiments.filter(e => 
-        e.status === ExperimentStatus.DRAFT && e.startDate > new Date()
-      ).slice(0, 5),
+      upcomingExperiments: experiments
+        .filter((e) => e.status === ExperimentStatus.DRAFT && e.startDate > new Date())
+        .slice(0, 5),
     };
 
     return summary;
@@ -139,7 +139,7 @@ export class ABTestingReportsService {
    */
   private async getFilteredExperiments(filters?: ReportFilters): Promise<Experiment[]> {
     const queryBuilder = this.experimentRepository.createQueryBuilder('experiment');
-    
+
     if (filters?.status) {
       queryBuilder.andWhere('experiment.status = :status', { status: filters.status });
     }
@@ -157,11 +157,13 @@ export class ABTestingReportsService {
     }
 
     if (!filters?.includeArchived) {
-      queryBuilder.andWhere('experiment.status != :archived', { archived: ExperimentStatus.ARCHIVED });
+      queryBuilder.andWhere('experiment.status != :archived', {
+        archived: ExperimentStatus.ARCHIVED,
+      });
     }
 
     queryBuilder.orderBy('experiment.createdAt', 'DESC');
-    
+
     return await queryBuilder.getMany();
   }
 
@@ -170,7 +172,7 @@ export class ABTestingReportsService {
    */
   private groupExperimentsByStatus(experiments: Experiment[]): Record<string, number> {
     const statusGroups: Record<string, number> = {};
-    
+
     for (const experiment of experiments) {
       const status = experiment.status;
       statusGroups[status] = (statusGroups[status] || 0) + 1;
@@ -184,7 +186,7 @@ export class ABTestingReportsService {
    */
   private groupExperimentsByType(experiments: Experiment[]): Record<string, number> {
     const typeGroups: Record<string, number> = {};
-    
+
     for (const experiment of experiments) {
       const type = experiment.type;
       typeGroups[type] = (typeGroups[type] || 0) + 1;
@@ -219,12 +221,16 @@ export class ABTestingReportsService {
     const performanceData = [];
 
     for (const experiment of experiments) {
-      const winner = experiment.variants.find(v => v.isWinner);
-      const control = experiment.variants.find(v => v.isControl);
-      
+      const winner = experiment.variants.find((v) => v.isWinner);
+      const control = experiment.variants.find((v) => v.isControl);
+
       if (winner && control && winner.id !== control.id) {
-        const improvement = await this.calculateImprovementPercentage(experiment.id, winner.id, control.id);
-        
+        const improvement = await this.calculateImprovementPercentage(
+          experiment.id,
+          winner.id,
+          control.id,
+        );
+
         performanceData.push({
           experimentId: experiment.id,
           experimentName: experiment.name,
@@ -242,13 +248,18 @@ export class ABTestingReportsService {
       reportTitle: 'Performance Comparison Report',
       generatedAt: new Date(),
       totalComparisons: performanceData.length,
-      averageImprovement: performanceData.length > 0 
-        ? performanceData.reduce((sum, data) => sum + data.improvementPercentage, 0) / performanceData.length
-        : 0,
-      bestPerforming: performanceData.length > 0 
-        ? [...performanceData].sort((a, b) => b.improvementPercentage - a.improvementPercentage)[0]
-        : null,
-      performanceData: performanceData,
+      averageImprovement:
+        performanceData.length > 0
+          ? performanceData.reduce((sum, data) => sum + data.improvementPercentage, 0) /
+            performanceData.length
+          : 0,
+      bestPerforming:
+        performanceData.length > 0
+          ? [...performanceData].sort(
+              (a, b) => b.improvementPercentage - a.improvementPercentage,
+            )[0]
+          : null,
+      performanceData,
     };
   }
 
@@ -258,7 +269,7 @@ export class ABTestingReportsService {
   private async calculateImprovementPercentage(
     experimentId: string,
     winnerId: string,
-    controlId: string
+    controlId: string,
   ): Promise<number> {
     // This would fetch actual metric data and calculate improvement
     // For now, returning a placeholder value
@@ -272,10 +283,11 @@ export class ABTestingReportsService {
     this.logger.log(`Exporting data for experiment: ${experimentId}`);
 
     const report = await this.generateExperimentReport(experimentId);
-    
+
     // Convert report to CSV format
-    let csv = 'Metric,Variant,Value,Sample Size,Conversion Rate,Confidence Interval,P-Value,Statistically Significant\n';
-    
+    let csv =
+      'Metric,Variant,Value,Sample Size,Conversion Rate,Confidence Interval,P-Value,Statistically Significant\n';
+
     for (const variant of report.variants) {
       for (const metric of variant.metrics) {
         csv += `${metric.id},${variant.name},${metric.value},${metric.sampleSize},${metric.conversionRate || ''},`;
@@ -295,7 +307,7 @@ export class ABTestingReportsService {
       order: { startDate: 'ASC' },
     });
 
-    const timeline = experiments.map(experiment => ({
+    const timeline = experiments.map((experiment) => ({
       id: experiment.id,
       name: experiment.name,
       startDate: experiment.startDate,
@@ -306,7 +318,7 @@ export class ABTestingReportsService {
     }));
 
     return {
-      timeline: timeline,
+      timeline,
       totalExperiments: timeline.length,
       startDate: timeline.length > 0 ? timeline[0].startDate : null,
       endDate: timeline.length > 0 ? timeline[timeline.length - 1].endDate : null,

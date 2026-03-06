@@ -72,10 +72,7 @@ export class BackupQueueProcessor {
 
     try {
       // Step 1: Create pg_dump
-      await this.backupService.updateBackupStatus(
-        backupRecordId,
-        BackupStatus.IN_PROGRESS,
-      );
+      await this.backupService.updateBackupStatus(backupRecordId, BackupStatus.IN_PROGRESS);
       const dumpStartTime = Date.now();
 
       const tempFile = path.join('/tmp', `backup-${backupRecordId}.sql`);
@@ -92,11 +89,7 @@ export class BackupQueueProcessor {
       const storageKey = `backups/${backup.region}/${databaseName}/${backupRecordId}.sql`;
       const fileBuffer = await fs.promises.readFile(tempFile);
 
-      await this.fileStorageService.uploadProcessedFile(
-        fileBuffer,
-        storageKey,
-        'application/sql',
-      );
+      await this.fileStorageService.uploadProcessedFile(fileBuffer, storageKey, 'application/sql');
 
       const uploadDuration = Date.now() - uploadStartTime;
       backup.storageKey = storageKey;
@@ -116,18 +109,13 @@ export class BackupQueueProcessor {
         'BACKUP_SECONDARY_REGION',
         'us-west-2',
       );
-      const replicatedKey = await this.replicateToRegion(
-        encryptedKey,
-        secondaryRegion,
-      );
+      const replicatedKey = await this.replicateToRegion(encryptedKey, secondaryRegion);
       backup.replicatedStorageKey = replicatedKey;
 
       const replicationDuration = Date.now() - replicationStartTime;
 
       // Step 5: Calculate checksums
-      const checksums = await this.dataIntegrityService.calculateChecksums(
-        tempFile,
-      );
+      const checksums = await this.dataIntegrityService.calculateChecksums(tempFile);
       backup.checksumMd5 = checksums.md5;
       backup.checksumSha256 = checksums.sha256;
 
@@ -169,32 +157,22 @@ export class BackupQueueProcessor {
     this.logger.log(`Verifying backup integrity: ${backupRecordId}`);
 
     try {
-      const isValid = await this.dataIntegrityService.verifyBackupIntegrity(
-        backupRecordId,
-      );
+      const isValid = await this.dataIntegrityService.verifyBackupIntegrity(backupRecordId);
 
       if (isValid) {
-        await this.backupService.updateBackupStatus(
-          backupRecordId,
-          BackupStatus.COMPLETED,
-          {
-            integrityVerified: true,
-            verifiedAt: new Date(),
-            completedAt: new Date(),
-          },
-        );
+        await this.backupService.updateBackupStatus(backupRecordId, BackupStatus.COMPLETED, {
+          integrityVerified: true,
+          verifiedAt: new Date(),
+          completedAt: new Date(),
+        });
         this.logger.log(`Backup ${backupRecordId} verified successfully`);
       } else {
         throw new Error('Backup integrity verification failed');
       }
     } catch (error) {
-      await this.backupService.updateBackupStatus(
-        backupRecordId,
-        BackupStatus.FAILED,
-        {
-          errorMessage: `Verification failed: ${error.message}`,
-        },
-      );
+      await this.backupService.updateBackupStatus(backupRecordId, BackupStatus.FAILED, {
+        errorMessage: `Verification failed: ${error.message}`,
+      });
       throw error;
     }
   }
@@ -269,10 +247,7 @@ export class BackupQueueProcessor {
     return `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${username} -F c -b -v -f ${outputFile} ${databaseName}`;
   }
 
-  private async encryptBackup(
-    storageKey: string,
-    kmsKeyId: string,
-  ): Promise<string> {
+  private async encryptBackup(storageKey: string, kmsKeyId: string): Promise<string> {
     const encryptedKey = `${storageKey}.encrypted`;
 
     // Download from S3, encrypt with KMS, re-upload
@@ -294,17 +269,11 @@ export class BackupQueueProcessor {
     return encryptedKey;
   }
 
-  private async replicateToRegion(
-    storageKey: string,
-    targetRegion: string,
-  ): Promise<string> {
+  private async replicateToRegion(storageKey: string, targetRegion: string): Promise<string> {
     this.logger.log(`Replicating ${storageKey} to ${targetRegion}`);
 
     const sourceBucket = this.configService.get<string>('AWS_S3_BUCKET', '');
-    const targetBucket = this.configService.get<string>(
-      'AWS_S3_BUCKET_SECONDARY',
-      sourceBucket,
-    );
+    const targetBucket = this.configService.get<string>('AWS_S3_BUCKET_SECONDARY', sourceBucket);
 
     const targetKey = storageKey.replace(`backups/`, `backups-${targetRegion}/`);
 

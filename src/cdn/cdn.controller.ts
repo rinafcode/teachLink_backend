@@ -65,10 +65,7 @@ export class CdnController {
       return result;
     } catch (error) {
       this.logger.error('Upload failed:', error);
-      throw new HttpException(
-        `Upload failed: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(`Upload failed: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -113,10 +110,7 @@ export class CdnController {
       if (error.message.includes('not found')) {
         throw new HttpException('Content not found', HttpStatus.NOT_FOUND);
       }
-      throw new HttpException(
-        'Failed to retrieve content',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Failed to retrieve content', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -132,10 +126,7 @@ export class CdnController {
       return { success: true };
     } catch (error) {
       this.logger.error(`Failed to invalidate content ${contentId}:`, error);
-      throw new HttpException(
-        'Failed to invalidate content',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Failed to invalidate content', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -160,10 +151,7 @@ export class CdnController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      throw new HttpException(
-        'Health check failed',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Health check failed', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -177,7 +165,9 @@ export class CdnController {
     @Query('endDate') endDate?: string,
   ): Promise<any> {
     try {
-      const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const start = startDate
+        ? new Date(startDate)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate) : new Date();
 
       // In a real implementation, aggregate analytics from providers
@@ -192,10 +182,7 @@ export class CdnController {
         },
       };
     } catch (error) {
-      throw new HttpException(
-        'Failed to retrieve analytics',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException('Failed to retrieve analytics', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

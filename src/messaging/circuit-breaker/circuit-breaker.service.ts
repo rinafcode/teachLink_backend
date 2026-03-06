@@ -12,12 +12,15 @@ export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 @Injectable()
 export class CircuitBreakerService {
   private readonly logger = new Logger(CircuitBreakerService.name);
-  private circuits: Map<string, {
-    state: CircuitState;
-    failures: number;
-    lastFailureTime: number;
-    config: CircuitBreakerConfig;
-  }> = new Map();
+  private circuits: Map<
+    string,
+    {
+      state: CircuitState;
+      failures: number;
+      lastFailureTime: number;
+      config: CircuitBreakerConfig;
+    }
+  > = new Map();
 
   constructor(private readonly tracingService: TracingService) {}
 
@@ -120,11 +123,16 @@ export class CircuitBreakerService {
     }
   }
 
-  async getAllCircuits(): Promise<Record<string, {
-    state: CircuitState;
-    failures: number;
-    lastFailureTime: number;
-  }>> {
+  async getAllCircuits(): Promise<
+    Record<
+      string,
+      {
+        state: CircuitState;
+        failures: number;
+        lastFailureTime: number;
+      }
+    >
+  > {
     const result: Record<string, any> = {};
     for (const [key, circuit] of this.circuits) {
       result[key] = {

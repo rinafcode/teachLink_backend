@@ -20,8 +20,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const { statusCode, message, error, details, stack } =
-      this.resolveException(exception);
+    const { statusCode, message, error, details, stack } = this.resolveException(exception);
 
     const errorResponse: ApiError = {
       statusCode,
@@ -105,18 +104,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const stack = exception.stack;
 
     // class-validator wraps errors as { message: string[], error: string }
-    if (
-      typeof exceptionResponse === 'object' &&
-      exceptionResponse !== null
-    ) {
+    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
       const res = exceptionResponse as Record<string, unknown>;
 
       const rawMessages = res['message'];
       const messages: string[] = Array.isArray(rawMessages)
         ? (rawMessages as string[])
         : typeof rawMessages === 'string'
-        ? [rawMessages]
-        : [exception.message];
+          ? [rawMessages]
+          : [exception.message];
 
       // Parse class-validator constraint objects when present
       const details = this.extractValidationDetails(rawMessages);
@@ -132,10 +128,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     return {
       statusCode,
-      message:
-        typeof exceptionResponse === 'string'
-          ? exceptionResponse
-          : exception.message,
+      message: typeof exceptionResponse === 'string' ? exceptionResponse : exception.message,
       error: exception.message,
       stack,
     };
@@ -147,8 +140,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     error: string;
     stack?: string;
   } {
-    const driverError = (exception as QueryFailedError & { code?: string })
-      .code;
+    const driverError = (exception as QueryFailedError & { code?: string }).code;
 
     // PostgreSQL unique-violation
     if (driverError === '23505') {
@@ -173,9 +165,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // Generic DB error – never expose query details in production
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: this.isProduction
-        ? 'A database error occurred.'
-        : exception.message,
+      message: this.isProduction ? 'A database error occurred.' : exception.message,
       error: 'Database Error',
       stack: exception.stack,
     };
@@ -185,9 +175,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * Converts class-validator nested error objects into structured details when
    * the raw message array contains constraint objects rather than plain strings.
    */
-  private extractValidationDetails(
-    raw: unknown,
-  ): ValidationErrorDetail[] {
+  private extractValidationDetails(raw: unknown): ValidationErrorDetail[] {
     if (!Array.isArray(raw)) return [];
 
     return raw.reduce<ValidationErrorDetail[]>((acc, item) => {
@@ -199,8 +187,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ) {
         acc.push({
           property: (item as { property: string }).property,
-          constraints: (item as { constraints: Record<string, string> })
-            .constraints,
+          constraints: (item as { constraints: Record<string, string> }).constraints,
         });
       }
       return acc;

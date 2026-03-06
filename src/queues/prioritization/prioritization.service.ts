@@ -145,10 +145,7 @@ export class PrioritizationService {
   /**
    * Adjust priority dynamically based on job age
    */
-  adjustPriorityByAge(
-    currentPriority: JobPriority,
-    createdAt: Date,
-  ): JobPriority {
+  adjustPriorityByAge(currentPriority: JobPriority, createdAt: Date): JobPriority {
     const ageInHours = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
 
     // Increase priority for jobs waiting too long

@@ -21,21 +21,20 @@ export class CourseResolver {
     }
 
     const { userLoader } = context.loaders || {};
-    
+
     // If instructor is already loaded with full data, return it
     if (typeof course.instructor === 'object' && course.instructor.id) {
       return course.instructor;
     }
 
     // Otherwise, use DataLoader to fetch instructor
-    const instructorId = typeof course.instructor === 'string' 
-      ? course.instructor 
-      : course.instructor.id;
+    const instructorId =
+      typeof course.instructor === 'string' ? course.instructor : course.instructor.id;
 
     if (userLoader) {
       return userLoader.load(instructorId);
     }
-    
+
     return this.usersService.findOne(instructorId);
   }
 }

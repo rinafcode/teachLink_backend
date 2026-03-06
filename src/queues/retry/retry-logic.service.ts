@@ -12,10 +12,7 @@ export class RetryLogicService {
   /**
    * Calculate backoff delay for retry attempts
    */
-  calculateBackoffDelay(
-    attemptNumber: number,
-    strategy: RetryStrategy,
-  ): number {
+  calculateBackoffDelay(attemptNumber: number, strategy: RetryStrategy): number {
     if (strategy.backoffType === 'fixed') {
       return strategy.initialDelay;
     }
@@ -29,9 +26,7 @@ export class RetryLogicService {
       delay = Math.min(delay, strategy.maxDelay);
     }
 
-    this.logger.log(
-      `Calculated backoff delay for attempt ${attemptNumber}: ${delay}ms`,
-    );
+    this.logger.log(`Calculated backoff delay for attempt ${attemptNumber}: ${delay}ms`);
 
     return delay;
   }
@@ -42,9 +37,7 @@ export class RetryLogicService {
   shouldRetry(error: Error, attemptNumber: number, maxAttempts: number): boolean {
     // Don't retry if max attempts reached
     if (attemptNumber >= maxAttempts) {
-      this.logger.warn(
-        `Max retry attempts (${maxAttempts}) reached, not retrying`,
-      );
+      this.logger.warn(`Max retry attempts (${maxAttempts}) reached, not retrying`);
       return false;
     }
 
@@ -57,9 +50,7 @@ export class RetryLogicService {
     ];
 
     if (nonRetryableErrors.some((type) => error.name.includes(type))) {
-      this.logger.warn(
-        `Non-retryable error type: ${error.name}, not retrying`,
-      );
+      this.logger.warn(`Non-retryable error type: ${error.name}, not retrying`);
       return false;
     }
 
@@ -74,8 +65,7 @@ export class RetryLogicService {
     ];
 
     const isRetryable = retryableErrors.some(
-      (type) =>
-        error.name.includes(type) || error.message.includes(type),
+      (type) => error.name.includes(type) || error.message.includes(type),
     );
 
     if (isRetryable) {
@@ -180,12 +170,7 @@ export class RetryLogicService {
   /**
    * Handle final failure after all retries exhausted
    */
-  handleFinalFailure(
-    jobId: string,
-    jobName: string,
-    error: Error,
-    attempts: number,
-  ): void {
+  handleFinalFailure(jobId: string, jobName: string, error: Error, attempts: number): void {
     this.logger.error(
       `Job ${jobName} (${jobId}) permanently failed after ${attempts} attempts. ` +
         `Final error: ${error.message}`,

@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { AuditLog } from "./audit-log.entity";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AuditLog } from './audit-log.entity';
 
 @Injectable()
 export class AuditLogService {
@@ -16,14 +16,14 @@ export class AuditLogService {
   }
 
   async findAll(): Promise<AuditLog[]> {
-    return this.auditRepo.find({ order: { timestamp: "DESC" } });
+    return this.auditRepo.find({ order: { timestamp: 'DESC' } });
   }
 
   async findByUser(userId: string): Promise<AuditLog[]> {
-    return this.auditRepo.find({ where: { userId }, order: { timestamp: "DESC" } });
+    return this.auditRepo.find({ where: { userId }, order: { timestamp: 'DESC' } });
   }
 
   async findByAction(action: string): Promise<AuditLog[]> {
-    return this.auditRepo.find({ where: { action }, order: { timestamp: "DESC" } });
+    return this.auditRepo.find({ where: { action }, order: { timestamp: 'DESC' } });
   }
 }

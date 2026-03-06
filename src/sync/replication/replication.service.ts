@@ -57,12 +57,12 @@ export class ReplicationService {
    */
   async broadcastToAllRegions(entityId: string, data: any): Promise<void> {
     const allRegions = ['us-east-1', 'eu-west-1', 'ap-southeast-1'];
-    
+
     this.logger.log(`Broadcasting ${entityId} to all regions`);
-    
+
     const replicationPromises = allRegions
-      .filter(region => region !== this.currentRegion)
-      .map(region => this.replicateToRegion(entityId, data, region));
+      .filter((region) => region !== this.currentRegion)
+      .map((region) => this.replicateToRegion(entityId, data, region));
 
     await Promise.all(replicationPromises);
   }
@@ -72,10 +72,10 @@ export class ReplicationService {
    */
   async handleIncomingReplication(event: ReplicationEvent): Promise<void> {
     this.logger.log(`Received replication for ${event.entityId} from ${event.sourceRegion}`);
-    
+
     // In a real app, logic to update the local database would go here.
     // This might also trigger conflict resolution if the local version is different.
-    
+
     this.eventEmitter.emit('data.replication.received', event);
   }
 }

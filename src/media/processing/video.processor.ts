@@ -22,7 +22,11 @@ export class VideoProcessor {
 
   @Process('transcode-video')
   async handleTranscode(job: Job) {
-    const { contentId, url, fileName } = job.data as { contentId: string; url: string; fileName: string };
+    const { contentId, url, fileName } = job.data as {
+      contentId: string;
+      url: string;
+      fileName: string;
+    };
     this.logger.log(`Transcoding job for ${contentId} - ${url}`);
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `media-${contentId}-`));
@@ -41,13 +45,7 @@ export class VideoProcessor {
         .addOption('-preset', 'fast')
         .addOption('-g', '48')
         .addOption('-sc_threshold', '0')
-        .outputOptions([
-          '-map 0:v',
-          '-map 0:a?',
-          '-c:a aac',
-          '-c:v h264',
-          '-profile:v main',
-        ])
+        .outputOptions(['-map 0:v', '-map 0:a?', '-c:a aac', '-c:v h264', '-profile:v main'])
         .output(path.join(hlsDir, 'index.m3u8'))
         .on('end', () => resolve())
         .on('error', (err) => reject(err))
@@ -81,8 +79,16 @@ export class VideoProcessor {
     const meta = await this.contentRepo.findOne({ where: { contentId } });
     if (meta) {
       meta.metadata = meta.metadata || {};
-      meta.metadata.hlsManifest = uploaded.find((u) => u.endsWith('index.m3u8')) || uploaded[0];
-      meta.variants = uploaded.map((u) => ({ name: u.split('/').pop(), url: u, width: 0, height: 0, size: 0 }));
+      // Extend metadata type to include hlsManifest for videos
+      (meta.metadata as any).hlsManifest =
+        uploaded.find((u) => u.endsWith('index.m3u8')) || uploaded[0];
+      meta.variants = uploaded.map((u) => ({
+        name: u.split('/').pop(),
+        url: u,
+        width: 0,
+        height: 0,
+        size: 0,
+      }));
       meta.status = 'ready' as any;
       await this.contentRepo.save(meta);
     }
@@ -115,7 +121,12 @@ async function downloadToFile(url: string, dest: string): Promise<void> {
     const req = https.get(url, (res: any) => {
       if (res.statusCode >= 400) return reject(new Error(`Failed to download: ${res.statusCode}`));
       res.pipe(file);
-      file.on('finish', () => file.close(resolve));
+      file.on('finish', () => {
+        file.close((err?: NodeJS.ErrnoException | null) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
     });
     req.on('error', (err: Error) => reject(err));
   });

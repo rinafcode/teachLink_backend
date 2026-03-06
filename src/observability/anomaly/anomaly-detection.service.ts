@@ -23,16 +23,14 @@ export class AnomalyDetectionService {
     failureRate: 10, // 10% failure rate
   };
 
-  constructor(
-    private readonly metricsService: MetricsAnalysisService,
-  ) {}
+  constructor(private readonly metricsService: MetricsAnalysisService) {}
 
   /**
    * Detect anomalies in a metric using statistical methods
    */
   detectAnomalies(metricName: string, windowSize: number = 100): AnomalyDetectionResult[] {
     const metrics = this.metricsService.getMetrics(metricName, windowSize);
-    
+
     if (metrics.length < 10) {
       return []; // Not enough data
     }
@@ -49,7 +47,7 @@ export class AnomalyDetectionService {
 
     metrics.forEach((metric) => {
       const zScore = Math.abs((metric.value - mean) / stdDev);
-      
+
       if (zScore > threshold) {
         const anomaly: AnomalyDetectionResult = {
           isAnomaly: true,
@@ -77,7 +75,7 @@ export class AnomalyDetectionService {
     threshold: number = 2,
   ): AnomalyDetectionResult[] {
     const metrics = this.metricsService.getMetrics(metricName, windowSize * 2);
-    
+
     if (metrics.length < windowSize) {
       return [];
     }
@@ -113,7 +111,7 @@ export class AnomalyDetectionService {
    */
   checkErrorRateAnomaly(): AnomalyDetectionResult | null {
     const stats = this.metricsService.getMetricStatistics('api.response_time');
-    
+
     if (!stats) return null;
 
     // Calculate error rate from response codes
@@ -142,7 +140,7 @@ export class AnomalyDetectionService {
    */
   checkResponseTimeAnomaly(): AnomalyDetectionResult | null {
     const stats = this.metricsService.getMetricStatistics('api.response_time');
-    
+
     if (!stats) return null;
 
     if (stats.p95 > this.thresholds.responseTime) {
@@ -167,7 +165,7 @@ export class AnomalyDetectionService {
    */
   checkMemoryAnomaly(): AnomalyDetectionResult | null {
     const stats = this.metricsService.getMetricStatistics('system.memory.heap_used');
-    
+
     if (!stats) return null;
 
     const memoryUsagePercent = (stats.avg / (1024 * 1024 * 1024)) * 100; // Convert to GB and percentage
@@ -194,7 +192,7 @@ export class AnomalyDetectionService {
    */
   detectSuddenSpike(metricName: string, spikeThreshold: number = 3): AnomalyDetectionResult | null {
     const metrics = this.metricsService.getMetrics(metricName, 10);
-    
+
     if (metrics.length < 2) return null;
 
     const latest = metrics[metrics.length - 1].value;
@@ -301,7 +299,6 @@ export class AnomalyDetectionService {
       keyMetrics.forEach((metric) => {
         this.detectAnomalies(metric);
       });
-
     } catch (error) {
       this.logger.error('Error during periodic anomaly detection:', error);
     }
@@ -327,7 +324,7 @@ export class AnomalyDetectionService {
    */
   getAnomalyStatistics() {
     const byMetric: Record<string, number> = {};
-    
+
     this.anomalies.forEach((anomaly) => {
       byMetric[anomaly.metric] = (byMetric[anomaly.metric] || 0) + 1;
     });
@@ -338,9 +335,10 @@ export class AnomalyDetectionService {
       total: this.anomalies.length,
       recent: recentAnomalies.length,
       byMetric,
-      avgScore: this.anomalies.length > 0
-        ? this.anomalies.reduce((sum, a) => sum + a.score, 0) / this.anomalies.length
-        : 0,
+      avgScore:
+        this.anomalies.length > 0
+          ? this.anomalies.reduce((sum, a) => sum + a.score, 0) / this.anomalies.length
+          : 0,
     };
   }
 

@@ -26,4 +26,3 @@ import { VideoProcessor } from './processing/video.processor';
   exports: [MediaService, FileStorageService, VideoProcessingService],
 })
 export class MediaModule {}
-

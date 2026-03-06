@@ -11,10 +11,7 @@ export interface OptimizationResult {
 
 @Injectable()
 export class AssetOptimizationService {
-  async optimizeImage(
-    imageUrl: string,
-    options: ContentDeliveryOptions,
-  ): Promise<string> {
+  async optimizeImage(imageUrl: string, options: ContentDeliveryOptions): Promise<string> {
     try {
       // Download image (in real implementation, you'd fetch from storage)
       // For now, assume we have the buffer

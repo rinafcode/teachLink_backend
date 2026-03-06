@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { Experiment } from './experiment.entity';
 import { VariantMetric } from './variant-metric.entity';
 
@@ -31,9 +39,9 @@ export class ExperimentVariant {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => Experiment, experiment => experiment.variants)
+  @ManyToOne(() => Experiment, (experiment) => experiment.variants)
   experiment: Experiment;
 
-  @OneToMany(() => VariantMetric, metric => metric.variant)
+  @OneToMany(() => VariantMetric, (metric) => metric.variant)
   metrics: VariantMetric[];
 }

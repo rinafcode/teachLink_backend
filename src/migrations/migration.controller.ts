@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Param, Logger, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Logger,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { MigrationService } from './migration.service';
 import { RollbackService } from './rollback/rollback.service';
@@ -24,7 +35,7 @@ export class MigrationController {
   @HttpCode(HttpStatus.OK)
   async runMigrations(@Res() res: Response) {
     this.logger.log('Running pending migrations');
-    
+
     try {
       await this.migrationService.runPendingMigrations();
       return res.status(HttpStatus.OK).json({
@@ -49,14 +60,11 @@ export class MigrationController {
 
   @Post('rollback/:count')
   @HttpCode(HttpStatus.OK)
-  async rollbackMigrationsWithCount(
-    @Param('count') count: string,
-    @Res() res: Response
-  ) {
+  async rollbackMigrationsWithCount(@Param('count') count: string, @Res() res: Response) {
     const rollbackCount = count && !isNaN(parseInt(count, 10)) ? parseInt(count, 10) : 1;
-    
+
     this.logger.log(`Rolling back ${rollbackCount} migrations`);
-    
+
     try {
       await this.rollbackService.rollbackLastMigrations(rollbackCount);
       return res.status(HttpStatus.OK).json({
@@ -77,7 +85,7 @@ export class MigrationController {
   @HttpCode(HttpStatus.OK)
   async resetAllMigrations(@Res() res: Response) {
     this.logger.log('Resetting all migrations');
-    
+
     try {
       await this.migrationService.resetMigrations();
       return res.status(HttpStatus.OK).json({
@@ -98,13 +106,13 @@ export class MigrationController {
   @HttpCode(HttpStatus.OK)
   async rollbackSpecificMigration(
     @Param('migrationName') migrationName: string,
-    @Res() res: Response
+    @Res() res: Response,
   ) {
     this.logger.log(`Rolling back specific migration: ${migrationName}`);
-    
+
     // Note: In a real implementation, you'd need to map the migration name to the actual migration config
     // For now, this is a placeholder
-    
+
     return res.status(HttpStatus.NOT_IMPLEMENTED).json({
       success: false,
       message: 'Specific migration rollback not implemented in this example',
@@ -121,7 +129,7 @@ export class MigrationController {
   @HttpCode(HttpStatus.OK)
   async syncEnvironments(@Res() res: Response) {
     this.logger.log('Syncing environments');
-    
+
     try {
       // This would typically trigger environment synchronization
       // For now, we'll just return a success response

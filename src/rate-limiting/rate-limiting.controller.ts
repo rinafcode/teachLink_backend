@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
-import {  RateLimitingService } from './rate-limiting.service';
+import { RateLimitingService } from './rate-limiting.service';
 import { RateLimitGuard } from './services/limit-guard/guard';
 import { CreateRateLimitingDto } from './dto/create-rate-limiting.dto';
 import { UpdateRateLimitingDto } from './dto/update-rate-limiting.dto';
@@ -8,7 +8,6 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 @Controller('rate-limiting')
 export class RateLimitingController {
   constructor(private readonly rateLimitingService: RateLimitingService) {}
-
 
   @Post()
   create(@Body() createRateLimitingDto: CreateRateLimitingDto) {

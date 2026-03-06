@@ -107,11 +107,7 @@ export class DistributedTracingService {
   /**
    * Add an event to a span
    */
-  addSpanEvent(
-    span: Span,
-    name: string,
-    attributes?: Record<string, any>,
-  ): void {
+  addSpanEvent(span: Span, name: string, attributes?: Record<string, any>): void {
     span.addEvent(name, attributes);
 
     const spanContext = span.spanContext();
@@ -159,18 +155,18 @@ export class DistributedTracingService {
    */
   createChildSpan(parentSpan: Span, name: string, attributes?: Record<string, any>): Span {
     const ctx = trace.setSpan(context.active(), parentSpan);
-    
+
     return context.with(ctx, () => {
       const childSpan = this.startSpan(name, attributes);
-      
+
       const parentContext = parentSpan.spanContext();
       const childContext = childSpan.spanContext();
       const childTraceSpan = this.spans.get(childContext.spanId);
-      
+
       if (childTraceSpan) {
         childTraceSpan.parentSpanId = parentContext.spanId;
       }
-      
+
       return childSpan;
     });
   }
@@ -198,9 +194,7 @@ export class DistributedTracingService {
     return {
       traceId: headers['x-trace-id'],
       spanId: headers['x-span-id'],
-      traceFlags: headers['x-trace-flags']
-        ? parseInt(headers['x-trace-flags'])
-        : undefined,
+      traceFlags: headers['x-trace-flags'] ? parseInt(headers['x-trace-flags']) : undefined,
     };
   }
 
@@ -208,9 +202,7 @@ export class DistributedTracingService {
    * Get trace by ID
    */
   getTraceById(traceId: string): TraceSpan[] {
-    return Array.from(this.spans.values()).filter(
-      (span) => span.traceId === traceId,
-    );
+    return Array.from(this.spans.values()).filter((span) => span.traceId === traceId);
   }
 
   /**
@@ -249,17 +241,14 @@ export class DistributedTracingService {
     const spans = Array.from(this.spans.values());
     const completedSpans = spans.filter((s) => s.endTime);
 
-    const durations = completedSpans
-      .filter((s) => s.duration)
-      .map((s) => s.duration!);
+    const durations = completedSpans.filter((s) => s.duration).map((s) => s.duration!);
 
     return {
       total: spans.length,
       completed: completedSpans.length,
       active: spans.length - completedSpans.length,
-      avgDuration: durations.length > 0
-        ? durations.reduce((a, b) => a + b, 0) / durations.length
-        : 0,
+      avgDuration:
+        durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0,
       minDuration: durations.length > 0 ? Math.min(...durations) : 0,
       maxDuration: durations.length > 0 ? Math.max(...durations) : 0,
       errorCount: spans.filter((s) => s.status === SpanStatus.ERROR).length,
@@ -274,33 +263,22 @@ export class DistributedTracingService {
     url: string,
     fn: (span: Span) => Promise<T>,
   ): Promise<T> {
-    return this.executeInSpan(
-      `HTTP ${method} ${url}`,
-      fn,
-      {
-        'http.method': method,
-        'http.url': url,
-        'span.kind': 'client',
-      },
-    );
+    return this.executeInSpan(`HTTP ${method} ${url}`, fn, {
+      'http.method': method,
+      'http.url': url,
+      'span.kind': 'client',
+    });
   }
 
   /**
    * Trace database query
    */
-  async traceDatabaseQuery<T>(
-    query: string,
-    fn: (span: Span) => Promise<T>,
-  ): Promise<T> {
-    return this.executeInSpan(
-      'Database Query',
-      fn,
-      {
-        'db.statement': query,
-        'db.system': 'postgresql',
-        'span.kind': 'client',
-      },
-    );
+  async traceDatabaseQuery<T>(query: string, fn: (span: Span) => Promise<T>): Promise<T> {
+    return this.executeInSpan('Database Query', fn, {
+      'db.statement': query,
+      'db.system': 'postgresql',
+      'span.kind': 'client',
+    });
   }
 
   /**
@@ -311,14 +289,10 @@ export class DistributedTracingService {
     operation: string,
     fn: (span: Span) => Promise<T>,
   ): Promise<T> {
-    return this.executeInSpan(
-      `${serviceName}.${operation}`,
-      fn,
-      {
-        'service.name': serviceName,
-        'operation': operation,
-        'span.kind': 'client',
-      },
-    );
+    return this.executeInSpan(`${serviceName}.${operation}`, fn, {
+      'service.name': serviceName,
+      operation,
+      'span.kind': 'client',
+    });
   }
 }

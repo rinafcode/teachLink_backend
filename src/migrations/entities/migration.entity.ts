@@ -1,10 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum MigrationStatus {
   PENDING = 'pending',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  ROLLED_BACK = 'rolled_back'
+  ROLLED_BACK = 'rolled_back',
 }
 
 @Entity({ name: 'migrations' })
@@ -21,7 +27,7 @@ export class Migration {
   @Column({
     type: 'enum',
     enum: MigrationStatus,
-    default: MigrationStatus.PENDING
+    default: MigrationStatus.PENDING,
   })
   status: MigrationStatus;
 

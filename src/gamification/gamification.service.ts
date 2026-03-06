@@ -23,7 +23,7 @@ export class GamificationService {
 
     // 3. Update active challenges based on activity
     // This would normally involve complex logic to match activityType to challenge goals
-    
+
     return progress;
   }
 }

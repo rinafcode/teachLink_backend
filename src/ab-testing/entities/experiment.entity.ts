@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { ExperimentVariant } from './experiment-variant.entity';
 import { ExperimentMetric } from './experiment-metric.entity';
 
@@ -7,13 +14,13 @@ export enum ExperimentStatus {
   RUNNING = 'running',
   PAUSED = 'paused',
   COMPLETED = 'completed',
-  ARCHIVED = 'archived'
+  ARCHIVED = 'archived',
 }
 
 export enum ExperimentType {
   A_B_TEST = 'a_b_test',
   MULTIVARIATE = 'multivariate',
-  MULTI_ARMED_BANDIT = 'multi_armed_bandit'
+  MULTI_ARMED_BANDIT = 'multi_armed_bandit',
 }
 
 @Entity({ name: 'experiments' })
@@ -30,14 +37,14 @@ export class Experiment {
   @Column({
     type: 'enum',
     enum: ExperimentType,
-    default: ExperimentType.A_B_TEST
+    default: ExperimentType.A_B_TEST,
   })
   type: ExperimentType;
 
   @Column({
     type: 'enum',
     enum: ExperimentStatus,
-    default: ExperimentStatus.DRAFT
+    default: ExperimentStatus.DRAFT,
   })
   status: ExperimentStatus;
 
@@ -74,9 +81,9 @@ export class Experiment {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => ExperimentVariant, variant => variant.experiment)
+  @OneToMany(() => ExperimentVariant, (variant) => variant.experiment)
   variants: ExperimentVariant[];
 
-  @OneToMany(() => ExperimentMetric, metric => metric.experiment)
+  @OneToMany(() => ExperimentMetric, (metric) => metric.experiment)
   metrics: ExperimentMetric[];
 }

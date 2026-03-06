@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
@@ -24,6 +20,6 @@ export class RolesGuard implements CanActivate {
       return false;
     }
     // Support multiple roles per endpoint
-    return requiredRoles.some(role => user.roles.includes(role));
+    return requiredRoles.some((role) => user.roles.includes(role));
   }
 }

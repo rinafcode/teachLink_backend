@@ -4,35 +4,35 @@ import { ApiProperty } from '@nestjs/swagger';
 @Entity('email_subscriptions')
 @Index(['email'], { unique: true })
 export class EmailSubscription {
-    @ApiProperty()
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @ApiProperty()
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @ApiProperty()
-    @Column({ unique: true })
-    email: string;
+  @ApiProperty()
+  @Column({ unique: true })
+  email: string;
 
-    @ApiProperty({ required: false })
-    @Column({ nullable: true })
-    userId?: string;
+  @ApiProperty({ required: false })
+  @Column({ nullable: true })
+  userId?: string;
 
-    @ApiProperty()
-    @Column({ default: true })
-    isSubscribed: boolean;
+  @ApiProperty()
+  @Column({ default: true })
+  isSubscribed: boolean;
 
-    @ApiProperty({ type: [String] })
-    @Column('simple-array', { nullable: true })
-    preferences?: string[]; // e.g., ['marketing', 'product_updates', 'newsletters']
+  @ApiProperty({ type: [String] })
+  @Column('simple-array', { nullable: true })
+  preferences?: string[]; // e.g., ['marketing', 'product_updates', 'newsletters']
 
-    @ApiProperty({ required: false })
-    @Column({ nullable: true })
-    unsubscribedAt?: Date;
+  @ApiProperty({ required: false })
+  @Column({ nullable: true })
+  unsubscribedAt?: Date;
 
-    @ApiProperty({ required: false })
-    @Column({ nullable: true })
-    unsubscribeReason?: string;
+  @ApiProperty({ required: false })
+  @Column({ nullable: true })
+  unsubscribeReason?: string;
 
-    @ApiProperty()
-    @CreateDateColumn()
-    subscribedAt: Date;
+  @ApiProperty()
+  @CreateDateColumn()
+  subscribedAt: Date;
 }

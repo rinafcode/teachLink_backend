@@ -73,7 +73,7 @@ export class ABTestingService {
     const savedExperiment = await this.experimentRepository.save(experiment);
 
     // Create variants
-    const variants = createExperimentDto.variants.map(variantDto => {
+    const variants = createExperimentDto.variants.map((variantDto) => {
       const variant = new ExperimentVariant();
       variant.name = variantDto.name;
       variant.description = variantDto.description;
@@ -122,7 +122,7 @@ export class ABTestingService {
     this.logger.log(`Starting experiment: ${id}`);
 
     const experiment = await this.getExperimentById(id);
-    
+
     if (experiment.status !== ExperimentStatus.DRAFT) {
       throw new Error('Only draft experiments can be started');
     }
@@ -132,7 +132,7 @@ export class ABTestingService {
     }
 
     // Validate that there's exactly one control variant
-    const controlVariants = experiment.variants.filter(v => v.isControl);
+    const controlVariants = experiment.variants.filter((v) => v.isControl);
     if (controlVariants.length !== 1) {
       throw new Error('Experiment must have exactly one control variant');
     }
@@ -178,7 +178,7 @@ export class ABTestingService {
    */
   async assignUserToVariant(experimentId: string, userId: string): Promise<ExperimentVariant> {
     const experiment = await this.getExperimentById(experimentId);
-    
+
     if (experiment.status !== ExperimentStatus.RUNNING) {
       throw new Error('Experiment is not running');
     }
@@ -195,7 +195,7 @@ export class ABTestingService {
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
       const char = userId.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash) % variantCount;

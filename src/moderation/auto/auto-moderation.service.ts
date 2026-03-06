@@ -16,7 +16,7 @@ export class AutoModerationService {
     });
 
     // result is an array of { label, score }
-    const toxicLabel = result.find(r => r.label.toLowerCase().includes('toxic'));
+    const toxicLabel = result.find((r) => r.label.toLowerCase().includes('toxic'));
     const score = toxicLabel ? toxicLabel.score : 0;
 
     return {

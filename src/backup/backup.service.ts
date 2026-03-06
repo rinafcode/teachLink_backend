@@ -28,10 +28,7 @@ export class BackupService {
     private readonly alertingService: AlertingService,
     private readonly metricsService: MetricsCollectionService,
   ) {
-    this.retentionDays = this.configService.get<number>(
-      'BACKUP_RETENTION_DAYS',
-      30,
-    );
+    this.retentionDays = this.configService.get<number>('BACKUP_RETENTION_DAYS', 30);
   }
 
   /**
@@ -46,13 +43,8 @@ export class BackupService {
 
     try {
       const region =
-        (this.configService.get<string>(
-          'BACKUP_PRIMARY_REGION',
-        ) as Region) || Region.US_EAST_1;
-      const databaseName = this.configService.get<string>(
-        'DB_DATABASE',
-        'teachlink',
-      );
+        (this.configService.get<string>('BACKUP_PRIMARY_REGION') as Region) || Region.US_EAST_1;
+      const databaseName = this.configService.get<string>('DB_DATABASE', 'teachlink');
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + this.retentionDays);
@@ -121,9 +113,7 @@ export class BackupService {
       },
     });
 
-    this.logger.log(
-      `Found ${expiredBackups.length} expired backups to cleanup`,
-    );
+    this.logger.log(`Found ${expiredBackups.length} expired backups to cleanup`);
 
     for (const backup of expiredBackups) {
       await this.backupQueue.add(

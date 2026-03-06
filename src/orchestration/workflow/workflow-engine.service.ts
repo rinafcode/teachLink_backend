@@ -20,7 +20,7 @@ export class WorkflowEngineService {
       }
     } catch (error) {
       this.logger.error('Workflow failed. Triggering compensation.');
-      
+
       for (const step of completedSteps.reverse()) {
         if (step.compensate) {
           await step.compensate();

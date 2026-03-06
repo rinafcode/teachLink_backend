@@ -182,10 +182,7 @@ export class AuthService {
     const user = await this.usersService.findOne(userId);
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(
-      changePasswordDto.currentPassword,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
     if (!isPasswordValid) {
       throw new BadRequestException('Current password is incorrect');
     }
@@ -232,7 +229,10 @@ export class AuthService {
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
-        expiresIn: parseInt(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '604800', 10), // 604800s = 7d
+        expiresIn: parseInt(
+          this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '604800',
+          10,
+        ), // 604800s = 7d
       }),
     ]);
 

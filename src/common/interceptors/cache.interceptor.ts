@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -29,17 +24,17 @@ export class CacheInterceptor implements NestInterceptor {
     const cached = await this.cacheManager.get(key);
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
-      return new Observable(observer => {
+      return new Observable((observer) => {
         observer.next(cached);
         observer.complete();
       });
     }
 
     return next.handle().pipe(
-      tap(async data => {
+      tap(async (data) => {
         await this.cacheManager.set(key, data, parseInt(process.env.REDIS_TTL || '60', 10));
         res.setHeader('X-Cache', 'MISS');
-      })
+      }),
     );
   }
 }

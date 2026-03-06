@@ -15,9 +15,7 @@ export class DefaultQueueProcessor {
 
   @Process('*')
   async handleJob(job: Job): Promise<any> {
-    this.logger.log(
-      `Processing job ${job.name} (ID: ${job.id}) - Attempt ${job.attemptsMade + 1}`,
-    );
+    this.logger.log(`Processing job ${job.name} (ID: ${job.id}) - Attempt ${job.attemptsMade + 1}`);
 
     try {
       // Update progress
@@ -29,10 +27,7 @@ export class DefaultQueueProcessor {
       await job.progress(100);
       return result;
     } catch (error) {
-      this.logger.error(
-        `Error processing job ${job.id}:`,
-        error.message,
-      );
+      this.logger.error(`Error processing job ${job.id}:`, error.message);
       throw error;
     }
   }

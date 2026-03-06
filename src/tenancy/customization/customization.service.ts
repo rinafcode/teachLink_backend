@@ -70,7 +70,7 @@ export class CustomizationService {
     colors: { primary?: string; secondary?: string; accent?: string },
   ): Promise<TenantCustomization> {
     const customization = await this.getCustomization(tenantId);
-    
+
     if (colors.primary) customization.primaryColor = colors.primary;
     if (colors.secondary) customization.secondaryColor = colors.secondary;
     if (colors.accent) customization.accentColor = colors.accent;
@@ -178,7 +178,7 @@ export class CustomizationService {
    */
   async resetToDefaults(tenantId: string): Promise<TenantCustomization> {
     const customization = await this.getCustomization(tenantId);
-    
+
     customization.logoUrl = null;
     customization.faviconUrl = null;
     customization.primaryColor = null;

@@ -4,19 +4,13 @@ import * as crypto from 'crypto';
 @Injectable()
 export class EncryptionService {
   private readonly algorithm = 'aes-256-gcm';
-  private readonly key = crypto
-    .createHash('sha256')
-    .update(process.env.ENCRYPTION_SECRET)
-    .digest();
+  private readonly key = crypto.createHash('sha256').update(process.env.ENCRYPTION_SECRET).digest();
 
   encrypt(text: string) {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(this.algorithm, this.key, iv);
 
-    const encrypted = Buffer.concat([
-      cipher.update(text, 'utf8'),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
 
     return {
       iv: iv.toString('hex'),

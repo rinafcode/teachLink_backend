@@ -33,26 +33,25 @@ export class BookingTransactionExample {
       }
 
       // 2. Check user balance
-      const user = await manager.query(
-        'SELECT balance FROM users WHERE id = $1 FOR UPDATE',
-        [userId],
-      );
+      const user = await manager.query('SELECT balance FROM users WHERE id = $1 FOR UPDATE', [
+        userId,
+      ]);
 
       if (!user || user.length === 0 || user[0].balance < amount) {
         throw new Error('Insufficient balance');
       }
 
       // 3. Deduct payment from user
-      await manager.query(
-        'UPDATE users SET balance = balance - $1 WHERE id = $2',
-        [amount, userId],
-      );
+      await manager.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [
+        amount,
+        userId,
+      ]);
 
       // 4. Add payment to consultant
-      await manager.query(
-        'UPDATE users SET balance = balance + $1 WHERE id = $2',
-        [amount, consultantId],
-      );
+      await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
+        amount,
+        consultantId,
+      ]);
 
       // 5. Mark slot as booked
       await manager.query(
@@ -101,16 +100,16 @@ export class BookingTransactionExample {
       const { user_id, consultant_id, slot_id, amount } = booking[0];
 
       // 2. Refund user
-      await manager.query(
-        'UPDATE users SET balance = balance + $1 WHERE id = $2',
-        [refundAmount, user_id],
-      );
+      await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
+        refundAmount,
+        user_id,
+      ]);
 
       // 3. Deduct from consultant
-      await manager.query(
-        'UPDATE users SET balance = balance - $1 WHERE id = $2',
-        [refundAmount, consultant_id],
-      );
+      await manager.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [
+        refundAmount,
+        consultant_id,
+      ]);
 
       // 4. Free up the slot
       await manager.query(
@@ -139,10 +138,7 @@ export class BookingTransactionExample {
   /**
    * Reschedule booking
    */
-  async rescheduleBooking(
-    bookingId: string,
-    newSlotId: string,
-  ): Promise<any> {
+  async rescheduleBooking(bookingId: string, newSlotId: string): Promise<any> {
     return this.transactionService.runInTransaction(async (manager) => {
       // 1. Get current booking
       const booking = await manager.query(

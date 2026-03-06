@@ -8,7 +8,7 @@ export interface DrawingElement {
   y: number;
   width?: number;
   height?: number;
-  points?: { x: number; y: number }[]; // For freehand drawings
+  points?: Array<{ x: number; y: number }>; // For freehand drawings
   text?: string; // For text elements
   color: string;
   strokeWidth: number;
@@ -54,7 +54,7 @@ export class WhiteboardService {
 
     this.whiteboards.set(whiteboardId, whiteboard);
     this.logger.log(`Initialized whiteboard ${whiteboardId}`);
-    
+
     return whiteboard;
   }
 
@@ -71,7 +71,7 @@ export class WhiteboardService {
   async applyOperation(
     whiteboardId: string,
     userId: string,
-    operation: Omit<WhiteboardOperation, 'id' | 'timestamp'>
+    operation: Omit<WhiteboardOperation, 'id' | 'timestamp'>,
   ): Promise<CollaborativeWhiteboard> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
@@ -99,36 +99,39 @@ export class WhiteboardService {
     }
 
     this.logger.log(`Applied operation ${opWithMetadata.id} to whiteboard ${whiteboardId}`);
-    
+
     return whiteboard;
   }
 
   /**
    * Apply an operation to the whiteboard state
    */
-  private applyOperationToWhiteboard(whiteboard: CollaborativeWhiteboard, operation: WhiteboardOperation): void {
+  private applyOperationToWhiteboard(
+    whiteboard: CollaborativeWhiteboard,
+    operation: WhiteboardOperation,
+  ): void {
     switch (operation.type) {
       case 'addElement':
         if (operation.element) {
           whiteboard.elements.push({ ...operation.element });
         }
         break;
-        
+
       case 'removeElement':
         if (operation.elementId) {
-          whiteboard.elements = whiteboard.elements.filter(el => el.id !== operation.elementId);
+          whiteboard.elements = whiteboard.elements.filter((el) => el.id !== operation.elementId);
         }
         break;
-        
+
       case 'updateElement':
         if (operation.elementId && operation.element) {
-          const index = whiteboard.elements.findIndex(el => el.id === operation.elementId);
+          const index = whiteboard.elements.findIndex((el) => el.id === operation.elementId);
           if (index !== -1) {
             whiteboard.elements[index] = { ...operation.element };
           }
         }
         break;
-        
+
       case 'clearBoard':
         whiteboard.elements = [];
         break;
@@ -140,7 +143,7 @@ export class WhiteboardService {
    */
   private transformOperation(
     operation: WhiteboardOperation,
-    concurrentOperations: WhiteboardOperation[]
+    concurrentOperations: WhiteboardOperation[],
   ): WhiteboardOperation {
     // For whiteboard operations, transformation is simpler than text operations
     // We mainly need to handle cases where elements are removed while others try to update them
@@ -148,9 +151,11 @@ export class WhiteboardService {
 
     for (const concurrentOp of concurrentOperations) {
       // If a concurrent operation removes an element that this operation tries to update
-      if (concurrentOp.type === 'removeElement' && 
-          operation.type === 'updateElement' && 
-          concurrentOp.elementId === operation.elementId) {
+      if (
+        concurrentOp.type === 'removeElement' &&
+        operation.type === 'updateElement' &&
+        concurrentOp.elementId === operation.elementId
+      ) {
         // Convert the update to an add operation since the element was removed
         transformedOp = {
           ...transformedOp,
@@ -166,7 +171,10 @@ export class WhiteboardService {
   /**
    * Resolve conflicts between simultaneous whiteboard edits
    */
-  async resolveConflicts(whiteboardId: string, operations: WhiteboardOperation[]): Promise<CollaborativeWhiteboard> {
+  async resolveConflicts(
+    whiteboardId: string,
+    operations: WhiteboardOperation[],
+  ): Promise<CollaborativeWhiteboard> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
@@ -186,7 +194,7 @@ export class WhiteboardService {
     }
 
     whiteboard.updatedAt = new Date();
-    
+
     return whiteboard;
   }
 
@@ -205,7 +213,11 @@ export class WhiteboardService {
   /**
    * Add a drawing element to the whiteboard
    */
-  async addElement(whiteboardId: string, element: Omit<DrawingElement, 'id' | 'timestamp'>, userId: string): Promise<DrawingElement> {
+  async addElement(
+    whiteboardId: string,
+    element: Omit<DrawingElement, 'id' | 'timestamp'>,
+    userId: string,
+  ): Promise<DrawingElement> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
@@ -243,7 +255,7 @@ export class WhiteboardService {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
     }
 
-    const elementIndex = whiteboard.elements.findIndex(el => el.id === elementId);
+    const elementIndex = whiteboard.elements.findIndex((el) => el.id === elementId);
     if (elementIndex === -1) {
       return false;
     }

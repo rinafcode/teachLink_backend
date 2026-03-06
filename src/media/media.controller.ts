@@ -59,7 +59,12 @@ export class MediaController {
     if (!meta) throw new HttpException('Not found', HttpStatus.NOT_FOUND);
 
     // Access control: owner or same tenant or admin
-    if (meta.ownerId && meta.ownerId !== user?.id && user?.role !== 'admin' && meta.tenantId !== user?.tenantId) {
+    if (
+      meta.ownerId &&
+      meta.ownerId !== user?.id &&
+      user?.role !== 'admin' &&
+      meta.tenantId !== user?.tenantId
+    ) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
 

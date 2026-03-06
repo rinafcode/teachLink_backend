@@ -43,7 +43,10 @@ export class TenantBillingService {
   /**
    * Create billing record for a tenant
    */
-  async createBillingRecord(tenantId: string, billingCycle: BillingCycle = BillingCycle.MONTHLY): Promise<TenantBilling> {
+  async createBillingRecord(
+    tenantId: string,
+    billingCycle: BillingCycle = BillingCycle.MONTHLY,
+  ): Promise<TenantBilling> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
       throw new NotFoundException(`Tenant ${tenantId} not found`);
@@ -64,7 +67,7 @@ export class TenantBillingService {
    */
   async updateUsageMetrics(tenantId: string, metrics: UsageMetrics): Promise<TenantBilling> {
     const billing = await this.getBillingInfo(tenantId);
-    
+
     billing.usageMetrics = {
       ...billing.usageMetrics,
       ...metrics,
@@ -169,7 +172,11 @@ export class TenantBillingService {
   /**
    * Update Stripe customer ID
    */
-  async updateStripeCustomer(tenantId: string, customerId: string, subscriptionId?: string): Promise<TenantBilling> {
+  async updateStripeCustomer(
+    tenantId: string,
+    customerId: string,
+    subscriptionId?: string,
+  ): Promise<TenantBilling> {
     const billing = await this.getBillingInfo(tenantId);
     billing.stripeCustomerId = customerId;
     if (subscriptionId) {

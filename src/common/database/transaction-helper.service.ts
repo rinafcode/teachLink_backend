@@ -5,9 +5,7 @@ import { DataSource, EntityManager } from 'typeorm';
 export class TransactionHelperService {
   constructor(private readonly dataSource: DataSource) {}
 
-  async executeInTransaction<T>(
-    operation: (manager: EntityManager) => Promise<T>,
-  ): Promise<T> {
+  async executeInTransaction<T>(operation: (manager: EntityManager) => Promise<T>): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();

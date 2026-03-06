@@ -42,13 +42,19 @@ describe('DataConsistencyService', () => {
     it('should add task to queue and emit event', async () => {
       await service.scheduleConsistencyTask('1', { foo: 'bar' });
       expect(queue.add).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith('data.consistency.scheduled', expect.any(Object));
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'data.consistency.scheduled',
+        expect.any(Object),
+      );
     });
   });
 
   describe('performIntegrityCheck', () => {
     it('should return consistent when data matches', async () => {
-      const result = await service.performIntegrityCheck({ id: '1', version: 1 }, { id: '1', version: 1 });
+      const result = await service.performIntegrityCheck(
+        { id: '1', version: 1 },
+        { id: '1', version: 1 },
+      );
       expect(result.consistent).toBe(true);
     });
 

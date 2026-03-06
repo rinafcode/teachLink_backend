@@ -51,11 +51,7 @@ export class TracingService {
     return trace.getActiveSpan();
   }
 
-  async runInSpan<T>(
-    name: string,
-    fn: (span: Span) => Promise<T>,
-    parentSpan?: Span,
-  ): Promise<T> {
+  async runInSpan<T>(name: string, fn: (span: Span) => Promise<T>, parentSpan?: Span): Promise<T> {
     const span = this.startSpan(name, parentSpan);
     try {
       const result = await fn(span);

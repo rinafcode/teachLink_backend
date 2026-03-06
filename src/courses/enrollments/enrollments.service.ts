@@ -26,7 +26,7 @@ export class EnrollmentsService {
 
     const user = await this.usersRepository.findOneBy({ id: userId });
     if (!user) throw new NotFoundException('User not found');
-    
+
     const course = await this.coursesRepository.findOneBy({ id: courseId });
     if (!course) throw new NotFoundException('Course not found');
 
@@ -47,13 +47,13 @@ export class EnrollmentsService {
   }
 
   async updateProgress(enrollmentId: string, progress: number): Promise<Enrollment> {
-      const enrollment = await this.enrollmentsRepository.findOneBy({ id: enrollmentId });
-      if (!enrollment) throw new NotFoundException('Enrollment not found');
-      
-      enrollment.progress = progress;
-      if (progress >= 100) {
-          enrollment.status = 'completed';
-      }
-      return this.enrollmentsRepository.save(enrollment);
+    const enrollment = await this.enrollmentsRepository.findOneBy({ id: enrollmentId });
+    if (!enrollment) throw new NotFoundException('Enrollment not found');
+
+    enrollment.progress = progress;
+    if (progress >= 100) {
+      enrollment.status = 'completed';
+    }
+    return this.enrollmentsRepository.save(enrollment);
   }
 }

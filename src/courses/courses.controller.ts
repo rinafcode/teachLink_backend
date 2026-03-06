@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -67,20 +58,14 @@ export class CoursesController {
 
   // Modules
   @Post(':id/modules')
-  createModule(
-    @Param('id') courseId: string,
-    @Body() createModuleDto: CreateModuleDto,
-  ) {
+  createModule(@Param('id') courseId: string, @Body() createModuleDto: CreateModuleDto) {
     createModuleDto.courseId = courseId;
     return this.modulesService.create(createModuleDto);
   }
 
   // Lessons
   @Post('modules/:moduleId/lessons')
-  createLesson(
-    @Param('moduleId') moduleId: string,
-    @Body() createLessonDto: CreateLessonDto,
-  ) {
+  createLesson(@Param('moduleId') moduleId: string, @Body() createLessonDto: CreateLessonDto) {
     createLessonDto.moduleId = moduleId;
     return this.lessonsService.create(createLessonDto);
   }

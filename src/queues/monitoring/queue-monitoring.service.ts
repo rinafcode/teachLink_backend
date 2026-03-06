@@ -15,23 +15,20 @@ export class QueueMonitoringService {
   private metricsHistory: Map<string, QueueMetrics[]> = new Map();
   private readonly MAX_HISTORY_SIZE = 100;
 
-  constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
-  ) {}
+  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
 
   /**
    * Get current queue metrics
    */
   async getQueueMetrics(): Promise<QueueMetrics> {
-    const [waiting, active, completed, failed, delayed, paused] =
-      await Promise.all([
-        this.defaultQueue.getWaitingCount(),
-        this.defaultQueue.getActiveCount(),
-        this.defaultQueue.getCompletedCount(),
-        this.defaultQueue.getFailedCount(),
-        this.defaultQueue.getDelayedCount(),
-        this.defaultQueue.getPausedCount(),
-      ]);
+    const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
+      this.defaultQueue.getWaitingCount(),
+      this.defaultQueue.getActiveCount(),
+      this.defaultQueue.getCompletedCount(),
+      this.defaultQueue.getFailedCount(),
+      this.defaultQueue.getDelayedCount(),
+      this.defaultQueue.getPausedCount(),
+    ]);
 
     const total = waiting + active + completed + failed + delayed + paused;
 
@@ -193,15 +190,11 @@ export class QueueMonitoringService {
       const health = await this.checkQueueHealth();
 
       if (health.status === 'critical') {
-        this.logger.error(
-          `Queue health CRITICAL: ${health.issues.join(', ')}`,
-        );
+        this.logger.error(`Queue health CRITICAL: ${health.issues.join(', ')}`);
         // Send alert to monitoring system
         await this.sendAlert(health);
       } else if (health.status === 'warning') {
-        this.logger.warn(
-          `Queue health WARNING: ${health.issues.join(', ')}`,
-        );
+        this.logger.warn(`Queue health WARNING: ${health.issues.join(', ')}`);
       } else {
         this.logger.debug('Queue health: OK');
       }
@@ -209,9 +202,7 @@ export class QueueMonitoringService {
       // Check for stuck jobs
       const stuckJobs = await this.getStuckJobs();
       if (stuckJobs.length > 0) {
-        this.logger.warn(
-          `Found ${stuckJobs.length} stuck jobs, attempting recovery`,
-        );
+        this.logger.warn(`Found ${stuckJobs.length} stuck jobs, attempting recovery`);
         await this.recoverStuckJobs(stuckJobs);
       }
     } catch (error) {
@@ -235,10 +226,7 @@ export class QueueMonitoringService {
     for (const job of jobs) {
       try {
         this.logger.log(`Recovering stuck job: ${job.id}`);
-        await job.moveToFailed(
-          { message: 'Job stuck, moved to failed for retry' },
-          true,
-        );
+        await job.moveToFailed({ message: 'Job stuck, moved to failed for retry' }, true);
       } catch (error) {
         this.logger.error(`Failed to recover job ${job.id}:`, error);
       }
@@ -253,9 +241,7 @@ export class QueueMonitoringService {
     const history = this.getMetricsHistory();
 
     // Calculate trends
-    const completedTrend = this.calculateTrend(
-      history.map((m) => m.completed),
-    );
+    const completedTrend = this.calculateTrend(history.map((m) => m.completed));
     const failedTrend = this.calculateTrend(history.map((m) => m.failed));
 
     return {

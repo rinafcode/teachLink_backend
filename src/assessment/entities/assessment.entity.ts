@@ -1,7 +1,5 @@
-import {
-  Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn
-} from "typeorm";
-import { Question } from "./question.entity";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Question } from './question.entity';
 
 @Entity()
 export class Assessment {

@@ -1,12 +1,12 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { AssessmentStatus } from "./enums/assessment-status.enum";
-import { Assessment } from "./entities/assessment.entity";
-import { AssessmentAttempt } from "./entities/assessment-attempt.entity";
-import { FeedbackGenerationService } from "./feedback/feedback-generation.service";
-import { Answer } from "./entities/answer.entity";
-import { ScoreCalculationService } from "./scoring/score-calculation.service";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AssessmentStatus } from './enums/assessment-status.enum';
+import { Assessment } from './entities/assessment.entity';
+import { AssessmentAttempt } from './entities/assessment-attempt.entity';
+import { FeedbackGenerationService } from './feedback/feedback-generation.service';
+import { Answer } from './entities/answer.entity';
+import { ScoreCalculationService } from './scoring/score-calculation.service';
 
 @Injectable()
 export class AssessmentsService {
@@ -75,8 +75,7 @@ export class AssessmentsService {
     });
 
     const endTime =
-      new Date(attempt.startedAt).getTime() +
-      attempt.assessment.durationMinutes * 60000;
+      new Date(attempt.startedAt).getTime() + attempt.assessment.durationMinutes * 60000;
 
     if (Date.now() > endTime) {
       attempt.status = AssessmentStatus.TIMED_OUT;
@@ -87,9 +86,7 @@ export class AssessmentsService {
     let maxScore = 0;
 
     for (const question of attempt.assessment.questions) {
-      const response = answers.find(
-        (a) => a.questionId === question.id,
-      )?.response;
+      const response = answers.find((a) => a.questionId === question.id)?.response;
 
       const score = this.scoringService.calculate(question, response);
       maxScore += question.points;

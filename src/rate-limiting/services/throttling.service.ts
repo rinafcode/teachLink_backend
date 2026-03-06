@@ -21,10 +21,6 @@ export class ThrottlingService {
 
     const key = `rate:${userId}:${endpoint}`;
 
-    await this.distributedLimiter.slidingWindowCheck(
-      key,
-      adjustedLimit,
-      window,
-    );
+    await this.distributedLimiter.slidingWindowCheck(key, adjustedLimit, window);
   }
 }

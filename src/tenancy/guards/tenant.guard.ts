@@ -21,17 +21,14 @@ export class TenantGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    
+
     // Try to get tenant from various sources
-    const tenantId = request.headers['x-tenant-id'] || 
-                     request.query.tenantId || 
-                     request.user?.tenantId;
+    const tenantId =
+      request.headers['x-tenant-id'] || request.query.tenantId || request.user?.tenantId;
 
-    const tenantSlug = request.headers['x-tenant-slug'] || 
-                       request.query.tenantSlug;
+    const tenantSlug = request.headers['x-tenant-slug'] || request.query.tenantSlug;
 
-    const tenantDomain = request.headers['x-tenant-domain'] || 
-                         request.hostname;
+    const tenantDomain = request.headers['x-tenant-domain'] || request.hostname;
 
     try {
       if (tenantId) {

@@ -18,7 +18,7 @@ export interface MigrationConfig {
 @Injectable()
 export class MigrationService {
   private readonly logger = new Logger(MigrationService.name);
-  
+
   constructor(
     @InjectRepository(Migration)
     private migrationRepository: Repository<Migration>,
@@ -33,32 +33,32 @@ export class MigrationService {
    */
   async runPendingMigrations(): Promise<void> {
     this.logger.log('Starting pending migrations...');
-    
+
     // Get all applied migrations
     const appliedMigrations = await this.migrationRepository.find({
       order: { createdAt: 'ASC' },
     });
-    
+
     // Get all registered migrations
     const registeredMigrations = this.getRegisteredMigrations();
-    
+
     // Filter for unapplied migrations
-    const pendingMigrations = registeredMigrations.filter(registered => {
-      return !appliedMigrations.some(applied => applied.name === registered.name);
+    const pendingMigrations = registeredMigrations.filter((registered) => {
+      return !appliedMigrations.some((applied) => applied.name === registered.name);
     });
-    
+
     // Validate dependencies
     for (const migration of pendingMigrations) {
       if (!this.validateDependencies(migration, appliedMigrations)) {
         throw new Error(`Dependency not met for migration: ${migration.name}`);
       }
     }
-    
+
     // Execute pending migrations
     for (const migration of pendingMigrations) {
       await this.executeMigration(migration);
     }
-    
+
     this.logger.log('All pending migrations completed.');
   }
 
@@ -67,40 +67,40 @@ export class MigrationService {
    */
   private async executeMigration(migration: MigrationConfig): Promise<void> {
     this.logger.log(`Executing migration: ${migration.name}`);
-    
+
     try {
       // Check for conflicts
       const hasConflict = await this.conflictResolutionService.checkForConflicts(migration);
       if (hasConflict) {
         await this.conflictResolutionService.resolveConflict(migration);
       }
-      
+
       // Validate schema before applying migration
       await this.schemaValidationService.validateBeforeMigration(migration);
-      
+
       // Execute the migration
       const connection = await this.getConnection();
       await migration.up(connection);
-      
+
       // Record migration in the database
       const migrationRecord = new Migration();
       migrationRecord.name = migration.name;
       migrationRecord.version = migration.version;
       migrationRecord.status = MigrationStatus.COMPLETED;
       migrationRecord.appliedAt = new Date();
-      
+
       await this.migrationRepository.save(migrationRecord);
-      
+
       // Sync environment after successful migration
       await this.environmentSyncService.syncAfterMigration(migration);
-      
+
       this.logger.log(`Successfully executed migration: ${migration.name}`);
     } catch (error) {
       this.logger.error(`Failed to execute migration: ${migration.name}`, error.stack);
-      
+
       // Attempt rollback on failure
       await this.rollbackService.rollbackMigration(migration);
-      
+
       throw error;
     }
   }
@@ -117,13 +117,16 @@ export class MigrationService {
   /**
    * Validates migration dependencies
    */
-  private validateDependencies(migration: MigrationConfig, appliedMigrations: Migration[]): boolean {
+  private validateDependencies(
+    migration: MigrationConfig,
+    appliedMigrations: Migration[],
+  ): boolean {
     if (!migration.dependencies || migration.dependencies.length === 0) {
       return true;
     }
-    
-    return migration.dependencies.every(depName => {
-      return appliedMigrations.some(m => m.name === depName);
+
+    return migration.dependencies.every((depName) => {
+      return appliedMigrations.some((m) => m.name === depName);
     });
   }
 
@@ -139,24 +142,28 @@ export class MigrationService {
   /**
    * Lists all migrations with their status
    */
-  async listMigrations(): Promise<Array<{ name: string; version: string; status: string; appliedAt?: Date }>> {
+  async listMigrations(): Promise<
+    Array<{ name: string; version: string; status: string; appliedAt?: Date }>
+  > {
     const appliedMigrations = await this.migrationRepository.find({
       order: { createdAt: 'ASC' },
     });
-    
+
     const registeredMigrations = this.getRegisteredMigrations();
-    
+
     // Combine applied and registered migrations
-    const allMigrations = [...appliedMigrations.map(m => ({
-      name: m.name,
-      version: m.version,
-      status: m.status,
-      appliedAt: m.appliedAt
-    }))];
-    
+    const allMigrations = [
+      ...appliedMigrations.map((m) => ({
+        name: m.name,
+        version: m.version,
+        status: m.status,
+        appliedAt: m.appliedAt,
+      })),
+    ];
+
     // Add unapplied migrations
-    registeredMigrations.forEach(registered => {
-      const exists = appliedMigrations.some(m => m.name === registered.name);
+    registeredMigrations.forEach((registered) => {
+      const exists = appliedMigrations.some((m) => m.name === registered.name);
       if (!exists) {
         allMigrations.push({
           name: registered.name,
@@ -166,7 +173,7 @@ export class MigrationService {
         });
       }
     });
-    
+
     return allMigrations;
   }
 
@@ -175,23 +182,25 @@ export class MigrationService {
    */
   async resetMigrations(): Promise<void> {
     this.logger.log('Resetting all migrations...');
-    
+
     const appliedMigrations = await this.migrationRepository.find({
       order: { createdAt: 'DESC' },
     });
-    
+
     for (const migration of appliedMigrations) {
       // Find the actual migration config to get the 'down' function
-      const registeredMigration = this.getRegisteredMigrations().find(m => m.name === migration.name);
-      
+      const registeredMigration = this.getRegisteredMigrations().find(
+        (m) => m.name === migration.name,
+      );
+
       if (registeredMigration) {
         await this.rollbackService.rollbackMigration(registeredMigration);
       }
-      
+
       // Remove from migration history
       await this.migrationRepository.remove(migration);
     }
-    
+
     this.logger.log('All migrations have been reset.');
   }
 }

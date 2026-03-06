@@ -64,15 +64,11 @@ export class PaymentsService {
     const paymentProvider = this.getProvider(provider);
 
     // Create payment intent
-    const paymentIntent = await paymentProvider.createPaymentIntent(
-      amount,
-      currency,
-      {
-        ...metadata,
-        userId,
-        courseId,
-      },
-    );
+    const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency, {
+      ...metadata,
+      userId,
+      courseId,
+    });
 
     // Create payment record
     const payment = this.paymentRepository.create({
@@ -154,10 +150,7 @@ export class PaymentsService {
     const paymentProvider = this.getProvider(payment.provider);
 
     // Process refund with provider
-    const refundResult = await paymentProvider.refundPayment(
-      payment.providerPaymentId,
-      amount,
-    );
+    const refundResult = await paymentProvider.refundPayment(payment.providerPaymentId, amount);
 
     // Update payment status
     payment.status = PaymentStatus.REFUNDED;
@@ -184,7 +177,7 @@ export class PaymentsService {
 
   async getUserPayments(userId: string, limit: number, page: number) {
     const skip = (page - 1) * limit;
-    
+
     return await this.paymentRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
@@ -203,7 +196,7 @@ export class PaymentsService {
   async getInvoice(paymentId: string, userId: string) {
     // Find payment
     const payment = await this.paymentRepository.findOne({
-      where: { id: paymentId, userId }
+      where: { id: paymentId, userId },
     });
 
     if (!payment) {
@@ -212,7 +205,7 @@ export class PaymentsService {
 
     // Check if invoice already exists
     let invoice = await this.invoiceRepository.findOne({
-      where: { paymentId: payment.id }
+      where: { paymentId: payment.id },
     });
 
     if (!invoice) {
@@ -244,7 +237,7 @@ export class PaymentsService {
   async updatePaymentStatus(paymentId: string, status: string, metadata?: any) {
     await this.paymentRepository.update(
       { providerPaymentId: paymentId },
-      { status: status as PaymentStatus, metadata }
+      { status: status as PaymentStatus, metadata },
     );
   }
 
@@ -256,14 +249,14 @@ export class PaymentsService {
     // Update subscription in database
     await this.subscriptionRepository.update(
       { providerSubscriptionId: subscriptionId },
-      { status }
+      { status },
     );
   }
 
   async processRefundFromWebhook(paymentIntentId: string, refundData: any) {
     // Find payment by provider ID
     const payment = await this.paymentRepository.findOne({
-      where: { providerPaymentId: paymentIntentId }
+      where: { providerPaymentId: paymentIntentId },
     });
 
     if (!payment) {

@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { ExperimentVariant } from './experiment-variant.entity';
 
 @Entity({ name: 'variant_metrics' })
@@ -36,6 +43,6 @@ export class VariantMetric {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => ExperimentVariant, variant => variant.metrics)
+  @ManyToOne(() => ExperimentVariant, (variant) => variant.metrics)
   variant: ExperimentVariant;
 }

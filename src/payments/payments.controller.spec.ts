@@ -57,7 +57,7 @@ describe('PaymentsController', () => {
     );
 
     await expectValidationFailure(() =>
-      controller.processRefund({ paymentId: 'payment-1', amount: -1 }),
+      controller.processRefund({ paymentId: 'payment-1', amount: -1, reason: 'duplicate' }),
     );
   });
 

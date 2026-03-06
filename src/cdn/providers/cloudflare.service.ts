@@ -66,12 +66,9 @@ export class CloudflareService {
     try {
       this.logger.log(`Purging ${urls.length} URLs from Cloudflare`);
 
-      const response = await this.httpClient.post(
-        `/zones/${this.config.zoneId}/purge_cache`,
-        {
-          files: urls,
-        },
-      );
+      const response = await this.httpClient.post(`/zones/${this.config.zoneId}/purge_cache`, {
+        files: urls,
+      });
 
       if (response.data.success) {
         return {
@@ -99,12 +96,9 @@ export class CloudflareService {
 
   async purgeEverything(): Promise<boolean> {
     try {
-      const response = await this.httpClient.post(
-        `/zones/${this.config.zoneId}/purge_cache`,
-        {
-          purge_everything: true,
-        },
-      );
+      const response = await this.httpClient.post(`/zones/${this.config.zoneId}/purge_cache`, {
+        purge_everything: true,
+      });
 
       return response.data.success;
     } catch (error) {
@@ -152,9 +146,7 @@ export class CloudflareService {
 
   async getZoneSettings(): Promise<any> {
     try {
-      const response = await this.httpClient.get(
-        `/zones/${this.config.zoneId}/settings`,
-      );
+      const response = await this.httpClient.get(`/zones/${this.config.zoneId}/settings`);
 
       return response.data.result;
     } catch (error) {

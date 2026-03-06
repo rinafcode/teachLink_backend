@@ -23,19 +23,23 @@ export class DataConsistencyService {
    */
   async scheduleConsistencyTask(dataId: string, payload: any): Promise<void> {
     this.logger.log(`Scheduling consistency task for ${dataId}`);
-    
+
     // Add to queue for background processing
-    await this.syncQueue.add('consistency-check', {
-      dataId,
-      payload,
-      timestamp: new Date(),
-    }, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 1000,
+    await this.syncQueue.add(
+      'consistency-check',
+      {
+        dataId,
+        payload,
+        timestamp: new Date(),
       },
-    });
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 1000,
+        },
+      },
+    );
 
     // Emit event for real-time subscribers
     this.eventEmitter.emit('data.consistency.scheduled', { dataId, timestamp: new Date() });
@@ -62,7 +66,7 @@ export class DataConsistencyService {
     }
 
     const consistent = issues.length === 0;
-    
+
     if (!consistent) {
       this.logger.warn(`Integrity check failed with issues: ${issues.join(', ')}`);
       this.eventEmitter.emit('data.integrity.violation', { issues, timestamp: new Date() });
@@ -80,7 +84,7 @@ export class DataConsistencyService {
    */
   async heal(staleData: any, sourceOfTruth: any): Promise<any> {
     this.logger.log(`Healing data for ID: ${sourceOfTruth.id}`);
-    
+
     // In a real app, this would update the database or cache
     return {
       ...sourceOfTruth,

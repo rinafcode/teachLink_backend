@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -103,10 +99,7 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
 
-  async updateRefreshToken(
-    userId: string,
-    refreshToken: string | null,
-  ): Promise<void> {
+  async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
     await this.userRepository.update(userId, { refreshToken });
   }
 

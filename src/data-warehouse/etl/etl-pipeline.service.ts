@@ -110,11 +110,11 @@ export class ETLPipelineService {
       // Extract phase
       this.logger.log(`Starting extraction for job ${jobId}`);
       const extractedData = await this.extract(job.config.sourceConnection);
-      
+
       // Transform phase
       this.logger.log(`Starting transformation for job ${jobId}`);
       const transformedData = await this.transform(extractedData, job.config.transformations);
-      
+
       // Load phase
       this.logger.log(`Starting loading for job ${jobId}`);
       await this.load(transformedData, job.config.targetConnection);
@@ -141,9 +141,9 @@ export class ETLPipelineService {
   private async extract(sourceConfig: DataSourceConfig): Promise<ExtractedData> {
     // This is a simplified implementation
     // In a real system, this would connect to various data sources
-    
+
     let data: any[] = [];
-    
+
     switch (sourceConfig.type) {
       case 'postgres':
         // Connect to PostgreSQL and execute query
@@ -182,41 +182,46 @@ export class ETLPipelineService {
   /**
    * Transform extracted data
    */
-  private async transform(extractedData: ExtractedData, transformations: TransformationRule[]): Promise<TransformedData> {
+  private async transform(
+    extractedData: ExtractedData,
+    transformations: TransformationRule[],
+  ): Promise<TransformedData> {
     let transformedData = [...extractedData.data];
     const appliedTransformations: string[] = [];
 
     for (const rule of transformations) {
       switch (rule.transformationType) {
         case 'map':
-          transformedData = transformedData.map(item => ({
+          transformedData = transformedData.map((item) => ({
             ...item,
-            [rule.targetField]: this.applyMapping(item[rule.sourceField], rule.config)
+            [rule.targetField]: this.applyMapping(item[rule.sourceField], rule.config),
           }));
           break;
-          
+
         case 'filter':
-          transformedData = transformedData.filter(item => 
-            this.applyFilter(item[rule.sourceField], rule.config)
+          transformedData = transformedData.filter((item) =>
+            this.applyFilter(item[rule.sourceField], rule.config),
           );
           break;
-          
+
         case 'calculate':
-          transformedData = transformedData.map(item => ({
+          transformedData = transformedData.map((item) => ({
             ...item,
-            [rule.targetField]: this.applyCalculation(item, rule.config)
+            [rule.targetField]: this.applyCalculation(item, rule.config),
           }));
           break;
-          
+
         case 'format':
-          transformedData = transformedData.map(item => ({
+          transformedData = transformedData.map((item) => ({
             ...item,
-            [rule.targetField]: this.applyFormatting(item[rule.sourceField], rule.config)
+            [rule.targetField]: this.applyFormatting(item[rule.sourceField], rule.config),
           }));
           break;
       }
-      
-      appliedTransformations.push(`${rule.transformationType}:${rule.sourceField}->${rule.targetField}`);
+
+      appliedTransformations.push(
+        `${rule.transformationType}:${rule.sourceField}->${rule.targetField}`,
+      );
     }
 
     return {
@@ -232,10 +237,13 @@ export class ETLPipelineService {
   /**
    * Load transformed data to target
    */
-  private async load(transformedData: TransformedData, targetConfig: DataSourceConfig): Promise<void> {
+  private async load(
+    transformedData: TransformedData,
+    targetConfig: DataSourceConfig,
+  ): Promise<void> {
     // This is a simplified implementation
     // In a real system, this would connect to the target data warehouse
-    
+
     switch (targetConfig.type) {
       case 'postgres':
         await this.loadToPostgres(transformedData, targetConfig);

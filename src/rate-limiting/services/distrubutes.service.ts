@@ -9,11 +9,7 @@ export class DistributedLimiterService {
     this.redis = new Redis(process.env.REDIS_URL);
   }
 
-  async slidingWindowCheck(
-    key: string,
-    limit: number,
-    windowInSeconds: number,
-  ): Promise<void> {
+  async slidingWindowCheck(key: string, limit: number, windowInSeconds: number): Promise<void> {
     const now = Date.now();
     const windowStart = now - windowInSeconds * 1000;
 

@@ -10,7 +10,7 @@ export class MetricsCollectionService implements OnModuleInit {
 
   constructor() {
     this.registry = new Registry();
-    
+
     // HTTP Request Duration
     this.httpRequestDuration = new Histogram({
       name: 'http_request_duration_seconds',

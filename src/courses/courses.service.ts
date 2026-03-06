@@ -28,10 +28,9 @@ export class CoursesService {
     query.leftJoinAndSelect('course.instructor', 'instructor');
 
     if (filter?.search) {
-      query.andWhere(
-        '(course.title ILIKE :search OR course.description ILIKE :search)',
-        { search: `%${filter.search}%` },
-      );
+      query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
+        search: `%${filter.search}%`,
+      });
     }
 
     if (filter?.status) {

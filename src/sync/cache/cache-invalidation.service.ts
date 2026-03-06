@@ -28,11 +28,11 @@ export class CacheInvalidationService {
    */
   async invalidatePattern(pattern: string): Promise<void> {
     this.logger.log(`Invalidating cache pattern: ${pattern}`);
-    
+
     // In a production environment with Redis, we'd use 'SCAN' and 'DEL'
     // For now, we'll emit an event that other specialized listeners might handle
     this.eventEmitter.emit('cache.invalidated', { pattern, type: 'pattern' });
-    
+
     // If the store supports a store-specific method, call it here.
     const store: any = (this.cacheManager as any).store;
     if (store && typeof store.keys === 'function') {
@@ -48,7 +48,7 @@ export class CacheInvalidationService {
    */
   async handleDataChange(entity: string, id: string): Promise<void> {
     this.logger.log(`Handling data change for ${entity}:${id}`);
-    
+
     const specificKey = `${entity}:${id}`;
     const collectionKey = `${entity}:list:*`;
 
