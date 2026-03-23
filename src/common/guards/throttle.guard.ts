@@ -24,16 +24,21 @@ export class CustomThrottleGuard extends ThrottlerGuard {
 
     this.logger.warn(`Rate limit exceeded: ip=${ip} method=${request.method} route=${route}`);
 
+    // Get throttle options from the decorator or default
+    const throttleOptions = this.getThrottleOptions(context);
+
     // Inject standard rate-limit headers so clients can back off gracefully
-    response.setHeader('Retry-After', '60');
-    response.setHeader('X-RateLimit-Exceeded', 'true');
+    response.setHeader('Retry-After', throttleOptions.ttl);
+    response.setHeader('X-RateLimit-Limit', throttleOptions.limit);
+    response.setHeader('X-RateLimit-Remaining', 0);
+    response.setHeader('X-RateLimit-Reset', Math.floor(Date.now() / 1000) + throttleOptions.ttl);
 
     throw new HttpException(
       {
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
         error: 'Too Many Requests',
         message: 'You have exceeded the request rate limit. Please wait before retrying.',
-        retryAfterSeconds: 60,
+        retryAfterSeconds: throttleOptions.ttl,
       },
       HttpStatus.TOO_MANY_REQUESTS,
     );
@@ -43,5 +48,21 @@ export class CustomThrottleGuard extends ThrottlerGuard {
     const forwarded = request.headers['x-forwarded-for'];
     if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
     return request.ip ?? request.socket?.remoteAddress ?? 'unknown';
+  }
+
+  private getThrottleOptions(context: ExecutionContext): { limit: number; ttl: number } {
+    // Try to get throttle options from the decorator
+    const handler = context.getHandler();
+    const throttleDecorator = Reflect.getMetadata('__throttler__', handler);
+
+    if (throttleDecorator) {
+      return {
+        limit: throttleDecorator.limit || 10,
+        ttl: throttleDecorator.ttl || 60,
+      };
+    }
+
+    // Fallback to default options
+    return { limit: 10, ttl: 60 };
   }
 }
