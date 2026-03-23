@@ -7,6 +7,9 @@ export class DistributedLimiterService {
 
   constructor() {
     this.redis = new Redis(process.env.REDIS_URL);
+    this.redis.on('error', () => {
+      // Prevent unhandled error events during Redis outages.
+    });
   }
 
   async slidingWindowCheck(key: string, limit: number, windowInSeconds: number): Promise<void> {

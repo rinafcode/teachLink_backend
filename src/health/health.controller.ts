@@ -11,6 +11,10 @@ export class HealthController {
       host: process.env.REDIS_HOST,
       port: Number(process.env.REDIS_PORT),
     });
+
+    this.redis.on('error', () => {
+      // Health endpoint handles Redis failures explicitly in checkHealth.
+    });
   }
 
   @Get()

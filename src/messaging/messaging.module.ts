@@ -6,14 +6,16 @@ import { EventBusService } from './event-bus/event-bus.service';
 import { ServiceDiscoveryService } from './discovery/service-discovery.service';
 import { CircuitBreakerService } from './circuit-breaker/circuit-breaker.service';
 import { TracingService } from './tracing/tracing.service';
+import { createBullRedisClient } from '../common/utils/bull-redis.util';
 
 @Module({
   imports: [
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
       },
+      createClient: createBullRedisClient,
     }),
     BullModule.registerQueue({
       name: 'message-queue',

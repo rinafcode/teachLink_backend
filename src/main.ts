@@ -1,13 +1,48 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cluster from 'node:cluster';
+import { cpus } from 'node:os';
+import session from 'express-session';
+import { RedisStore } from 'connect-redis';
+import Redis from 'ioredis';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
+import { sessionConfig } from './config/cache.config';
+import { SESSION_REDIS_CLIENT } from './session/session.constants';
 
-async function bootstrap() {
+async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
+
+  if (sessionConfig.trustProxy) {
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.set('trust proxy', 1);
+  }
+
+  app.use(
+    session({
+      store: new RedisStore({
+        client: redisClient,
+        prefix: sessionConfig.prefix,
+        ttl: sessionConfig.ttlSeconds,
+      }),
+      name: sessionConfig.name,
+      secret: sessionConfig.secret,
+      resave: false,
+      saveUninitialized: false,
+      rolling: true,
+      cookie: {
+        maxAge: sessionConfig.cookieMaxAgeMs,
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: sessionConfig.secureCookies,
+      },
+    }),
+  );
 
   // ─── Global Exception Filter ──────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -52,7 +87,37 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
+  if (sessionConfig.stickySessionsRequired) {
+    logger.log(
+      'Sticky sessions are enabled by policy. Configure LB cookie affinity on teachlink.sid.',
+    );
+  }
+
   logger.log(`🚀 TeachLink API running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs available at http://localhost:${port}/api`);
 }
+
+async function bootstrap() {
+  const logger = new Logger('Cluster');
+  const clusterModeEnabled = (process.env.CLUSTER_MODE || 'false') === 'true';
+
+  if (clusterModeEnabled && cluster.isPrimary) {
+    const workerCount = parseInt(process.env.CLUSTER_WORKERS || `${cpus().length}`, 10);
+
+    logger.log(`Primary process started in cluster mode with ${workerCount} workers.`);
+
+    for (let i = 0; i < workerCount; i += 1) {
+      cluster.fork();
+    }
+
+    cluster.on('exit', () => {
+      cluster.fork();
+    });
+
+    return;
+  }
+
+  await bootstrapWorker();
+}
+
 bootstrap();

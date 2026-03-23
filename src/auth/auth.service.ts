@@ -1,15 +1,11 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './dto/auth.dto';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { SessionService } from '../session/session.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +13,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -36,8 +33,8 @@ export class AuthService {
     // TODO: Send verification email
     // await this.emailService.sendVerificationEmail(user.email, verificationToken);
 
-    // Generate tokens
-    const { accessToken, refreshToken } = await this.generateTokens(user);
+    const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-register' });
+    const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
 
     // Save refresh token
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
@@ -79,8 +76,8 @@ export class AuthService {
     // Update last login
     await this.usersService.updateLastLogin(user.id);
 
-    // Generate tokens
-    const { accessToken, refreshToken } = await this.generateTokens(user);
+    const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-login' });
+    const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
 
     // Save refresh token
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
@@ -106,34 +103,55 @@ export class AuthService {
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
       });
+      return this.sessionService.withLock(`refresh:${payload.sub}`, async () => {
+        // Find user
+        const user = await this.usersService.findOne(payload.sub);
+        if (!user || !user.refreshToken) {
+          throw new UnauthorizedException('Invalid refresh token');
+        }
 
-      // Find user
-      const user = await this.usersService.findOne(payload.sub);
-      if (!user || !user.refreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+        // Verify stored refresh token
+        const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
+        if (!isRefreshTokenValid) {
+          throw new UnauthorizedException('Invalid refresh token');
+        }
 
-      // Verify stored refresh token
-      const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
-      if (!isRefreshTokenValid) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+        let sessionId = payload.sid as string | undefined;
+        if (sessionId) {
+          const session = await this.sessionService.getSession(sessionId);
+          if (!session) {
+            sessionId = await this.sessionService.createSession(user.id, { type: 'auth-refresh' });
+          } else {
+            await this.sessionService.touchSession(sessionId, {
+              lastRefreshAt: Date.now(),
+            });
+          }
+        } else {
+          sessionId = await this.sessionService.createSession(user.id, { type: 'auth-refresh' });
+        }
 
-      // Generate new tokens
-      const tokens = await this.generateTokens(user);
+        // Generate new tokens
+        const tokens = await this.generateTokens(user, sessionId);
 
-      // Update refresh token
-      const hashedRefreshToken = await bcrypt.hash(tokens.refreshToken, 10);
-      await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+        // Update refresh token
+        const hashedRefreshToken = await bcrypt.hash(tokens.refreshToken, 10);
+        await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
 
-      return tokens;
-    } catch (error) {
+        return tokens;
+      });
+    } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  async logout(userId: string) {
-    await this.usersService.updateRefreshToken(userId, null);
+  async logout(userId: string, sessionId?: string) {
+    await this.sessionService.withLock(`logout:${userId}`, async () => {
+      if (sessionId) {
+        await this.sessionService.removeSession(sessionId);
+      }
+      await this.usersService.updateRefreshToken(userId, null);
+    });
+
     return { message: 'Logout successful' };
   }
 
@@ -215,11 +233,12 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  private async generateTokens(user: any) {
+  private async generateTokens(user: any, sessionId: string) {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      sid: sessionId,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

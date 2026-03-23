@@ -6,8 +6,6 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MonitoringModule } from './monitoring/monitoring.module';
-import { CachingModule } from './caching/caching.module';
-import { SecurityModule } from './security/security.module';
 import { MonitoringInterceptor } from './common/interceptors/monitoring.interceptor';
 import { TypeOrmMonitoringLogger } from './monitoring/logging/typeorm-logger';
 import { MetricsCollectionService } from './monitoring/metrics/metrics-collection.service';
@@ -26,9 +24,11 @@ import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
-import * as redisStore from 'cache-manager-redis-store';
 import { envValidationSchema } from './config/env.validation';
 import { HealthModule } from './health/health.module';
+import { cacheConfig } from './config/cache.config';
+import { SessionModule } from './session/session.module';
+import { createBullRedisClient } from './common/utils/bull-redis.util';
 
 @Module({
   imports: [
@@ -58,15 +58,12 @@ import { HealthModule } from './health/health.module';
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        port: parseInt(process.env.REDIS_PORT || '6379', 10),
       },
+      createClient: createBullRedisClient,
     }),
-    CacheModule.register({
-      isGlobal: true,
-      store: redisStore,
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-    }),
+    CacheModule.register(cacheConfig),
+    SessionModule,
     HealthModule,
     SyncModule,
     MediaModule,

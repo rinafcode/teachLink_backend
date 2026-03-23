@@ -1,0 +1,187 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AssessmentType {
+  createdAt: DateTime!
+  description: String
+  durationMinutes: Int!
+  id: ID!
+  questions: [QuestionType]
+  title: String!
+}
+
+input CourseFilterInput {
+  instructorId: String
+  search: String
+  status: String
+}
+
+type CourseType {
+  createdAt: DateTime!
+  description: String!
+  id: ID!
+  instructor: UserType
+  price: Float!
+  status: String!
+  thumbnailUrl: String
+  title: String!
+  updatedAt: DateTime!
+}
+
+input CreateAssessmentInput {
+  description: String
+  durationMinutes: Int!
+  questions: [QuestionInput!]!
+  title: String!
+}
+
+input CreateCourseInput {
+  description: String!
+  instructorId: String!
+  price: Float!
+  thumbnailUrl: String
+  title: String!
+}
+
+input CreateUserInput {
+  email: String!
+  firstName: String!
+  lastName: String!
+  password: String!
+  role: UserRole
+  username: String
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Mutation {
+  createAssessment(input: CreateAssessmentInput!): AssessmentType!
+  createCourse(input: CreateCourseInput!): CourseType!
+  createUser(input: CreateUserInput!): UserType!
+  deleteAssessment(id: ID!): Boolean!
+  deleteCourse(id: ID!): Boolean!
+  deleteUser(id: ID!): Boolean!
+  updateAssessment(id: ID!, input: UpdateAssessmentInput!): AssessmentType!
+  updateCourse(id: ID!, input: UpdateCourseInput!): CourseType!
+  updateUser(id: ID!, input: UpdateUserInput!): UserType!
+}
+
+type Query {
+  assessment(id: ID!): AssessmentType
+  assessments: [AssessmentType!]!
+  course(id: ID!): CourseType
+  courses(filter: CourseFilterInput): [CourseType!]!
+  me: UserType!
+  myCourses: [CourseType!]!
+  user(id: ID!): UserType
+  users(filter: UserFilterInput): [UserType!]!
+}
+
+input QuestionInput {
+  correctAnswer: String
+  options: [String!]
+  points: Int!
+  prompt: String!
+  type: String!
+}
+
+type QuestionType {
+  correctAnswer: String
+  id: ID!
+  options: [String]
+  points: Int!
+  prompt: String!
+  type: String!
+}
+
+type Subscription {
+  """Subscribe to new assessment creation events"""
+  assessmentCreated: AssessmentType!
+
+  """Subscribe to assessment deletion events"""
+  assessmentDeleted: AssessmentType!
+
+  """Subscribe to assessment update events"""
+  assessmentUpdated: AssessmentType!
+
+  """Subscribe to new course creation events"""
+  courseCreated: CourseType!
+
+  """Subscribe to course deletion events"""
+  courseDeleted: CourseType!
+
+  """Subscribe to course update events"""
+  courseUpdated: CourseType!
+
+  """Subscribe to new user creation events"""
+  userCreated: UserType!
+
+  """Subscribe to user deletion events"""
+  userDeleted: UserType!
+
+  """Subscribe to user update events"""
+  userUpdated: UserType!
+}
+
+input UpdateAssessmentInput {
+  description: String
+  durationMinutes: Int
+  title: String
+}
+
+input UpdateCourseInput {
+  description: String
+  price: Float
+  status: String
+  thumbnailUrl: String
+  title: String
+}
+
+input UpdateUserInput {
+  firstName: String
+  lastName: String
+  profilePicture: String
+  status: UserStatus
+  username: String
+}
+
+input UserFilterInput {
+  role: String
+  search: String
+  status: String
+}
+
+"""User role in the system"""
+enum UserRole {
+  ADMIN
+  STUDENT
+  TEACHER
+}
+
+"""User account status"""
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+type UserType {
+  courses: [CourseType]
+  createdAt: DateTime!
+  email: String!
+  firstName: String!
+  id: ID!
+  isEmailVerified: Boolean!
+  lastLoginAt: DateTime
+  lastName: String!
+  profilePicture: String
+  role: UserRole!
+  status: UserStatus!
+  tenantId: String
+  updatedAt: DateTime!
+  username: String
+}
