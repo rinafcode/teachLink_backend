@@ -1,5 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -19,12 +20,14 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 900000 } }) // 5 requests per 15 minutes
   @ApiOperation({ summary: 'Login user and get tokens' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);

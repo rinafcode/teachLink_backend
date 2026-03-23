@@ -29,6 +29,9 @@ import { RateLimitingModule } from './rate-limiting/services/rate-limiting.modul
 import * as redisStore from 'cache-manager-redis-store';
 import { envValidationSchema } from './config/env.validation';
 import { HealthModule } from './health/health.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { CustomThrottleGuard } from './common/guards/throttle.guard';
 
 @Module({
   imports: [
@@ -67,6 +70,20 @@ import { HealthModule } from './health/health.module';
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
     }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: () => ({
+        ttl: parseInt(process.env.THROTTLE_TTL || '60'),
+        limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
+        storage: {
+          type: 'redis',
+          options: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+          },
+        },
+      }),
+    }),
     HealthModule,
     SyncModule,
     MediaModule,
@@ -87,6 +104,10 @@ import { HealthModule } from './health/health.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: MonitoringInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottleGuard,
     },
   ],
 })

@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -27,6 +28,7 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('create-intent')
+  @Throttle({ default: { limit: 10, ttl: 3600000 } }) // 10 requests per hour
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
   @ApiResponse({ status: 201, description: 'Payment intent created' })
@@ -35,6 +37,7 @@ export class PaymentsController {
   }
 
   @Post('subscriptions')
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 requests per hour
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a subscription for premium course' })
   @ApiResponse({ status: 201, description: 'Subscription created' })
