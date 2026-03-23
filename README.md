@@ -138,7 +138,42 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 | File Upload   | Cloudinary                 |
 | Documentation | Swagger                    |
 
-## 🚀 Deployment
+## �️ Database
+
+### Index Strategy
+
+The application uses strategic database indexes to optimize query performance, especially for frequently accessed data and pagination operations.
+
+#### Single Column Indexes
+- **User.email**: Unique index for authentication lookups
+- **User.username**: Index for profile searches
+- **User.tenantId**: Index for multi-tenant queries
+- **Payment.status**: Index for payment status filtering
+- **Payment.userId**: Index for user payment history
+- **Payment.courseId**: Index for course revenue queries
+- **Subscription.status**: Index for active subscription queries
+- **Subscription.userId**: Index for user subscription management
+- **Course.status**: Index for published course listings
+- **Course.instructorId**: Index for instructor course queries
+- **Enrollment.userId**: Index for user enrollment history
+- **Enrollment.courseId**: Index for course enrollment counts
+- **Enrollment.status**: Index for active enrollment filtering
+- **CourseModule.courseId**: Index for course module queries
+- **Lesson.moduleId**: Index for module lesson queries
+
+#### Composite Indexes
+- **Enrollment (userId, status)**: Optimized for user enrollment status queries
+- **Enrollment (courseId, status)**: Optimized for course enrollment analytics
+- **Payment (userId, status)**: Optimized for user payment status filtering
+- **Subscription (userId, status)**: Optimized for user subscription status queries
+
+#### Performance Considerations
+- Indexes are added to foreign key columns to improve JOIN performance
+- Composite indexes support common query patterns (e.g., filtering by user + status)
+- Partial indexes are used where applicable for better selectivity
+- Index maintenance overhead is monitored to ensure write performance is not negatively impacted
+
+## �🚀 Deployment
 
 ### Prerequisites
 
