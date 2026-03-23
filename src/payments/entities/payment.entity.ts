@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
@@ -28,6 +29,7 @@ export enum PaymentMethod {
 }
 
 @Entity('payments')
+@Index(['userId', 'status'])
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -39,6 +41,7 @@ export class Payment {
   currency: string;
 
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Index()
   status: PaymentStatus;
 
   @Column({ type: 'enum', enum: PaymentMethod })
@@ -58,6 +61,7 @@ export class Payment {
   user: User;
 
   @Column({ name: 'user_id' })
+  @Index()
   userId: string;
 
   @ManyToOne(() => Course, (course) => course.id)
@@ -65,6 +69,7 @@ export class Payment {
   course: Course;
 
   @Column({ name: 'course_id', nullable: true })
+  @Index()
   courseId: string;
 
   @Column({ type: 'boolean', default: false })

@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
@@ -26,6 +27,7 @@ export class Course {
   price: number;
 
   @Column({ default: 'draft' }) // draft, published, archived
+  @Index()
   status: string;
 
   @Column({ nullable: true })
@@ -33,6 +35,10 @@ export class Course {
 
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
+
+  @Column({ name: 'instructor_id' })
+  @Index()
+  instructorId: string;
 
   @OneToMany(() => CourseModule, (module) => module.course)
   modules: CourseModule[];

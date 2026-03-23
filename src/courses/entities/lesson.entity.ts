@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, Index } from 'typeorm';
 import { CourseModule } from './course-module.entity';
 
 @Entity()
@@ -23,4 +23,8 @@ export class Lesson {
 
   @ManyToOne(() => CourseModule, (module) => module.lessons, { onDelete: 'CASCADE' })
   module: CourseModule;
+
+  @Column({ name: 'module_id' })
+  @Index()
+  moduleId: string;
 }

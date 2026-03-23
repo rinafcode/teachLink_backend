@@ -29,6 +29,9 @@ import { HealthModule } from './health/health.module';
 import { cacheConfig } from './config/cache.config';
 import { SessionModule } from './session/session.module';
 import { createBullRedisClient } from './common/utils/bull-redis.util';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { CustomThrottleGuard } from './common/guards/throttle.guard';
 
 @Module({
   imports: [
@@ -62,8 +65,27 @@ import { createBullRedisClient } from './common/utils/bull-redis.util';
       },
       createClient: createBullRedisClient,
     }),
-    CacheModule.register(cacheConfig),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+    }),
     SessionModule,
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: () => ({
+        ttl: parseInt(process.env.THROTTLE_TTL || '60'),
+        limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
+        storage: {
+          type: 'redis',
+          options: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+          },
+        },
+      }),
+    }),
     HealthModule,
     SyncModule,
     MediaModule,
@@ -84,6 +106,10 @@ import { createBullRedisClient } from './common/utils/bull-redis.util';
     {
       provide: APP_INTERCEPTOR,
       useClass: MonitoringInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottleGuard,
     },
   ],
 })

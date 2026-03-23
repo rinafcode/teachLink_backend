@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, Index } from 'typeorm';
 import { Course } from './course.entity';
 import { Lesson } from './lesson.entity';
 
@@ -15,6 +15,10 @@ export class CourseModule {
 
   @ManyToOne(() => Course, (course) => course.modules, { onDelete: 'CASCADE' })
   course: Course;
+
+  @Column({ name: 'course_id' })
+  @Index()
+  courseId: string;
 
   @OneToMany(() => Lesson, (lesson) => lesson.module)
   lessons: Lesson[];
