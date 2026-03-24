@@ -18,7 +18,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
-import { KMSClient, EncryptCommand, DecryptCommand } from '@aws-sdk/client-kms';
+import { KMSClient, EncryptCommand } from '@aws-sdk/client-kms';
 import { S3Client, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 const execAsync = promisify(exec);

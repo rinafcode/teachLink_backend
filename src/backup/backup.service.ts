@@ -4,7 +4,7 @@ import { Repository, LessThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { BackupRecord } from './entities/backup-record.entity';
 import { BackupStatus } from './enums/backup-status.enum';
 import { BackupType } from './enums/backup-type.enum';

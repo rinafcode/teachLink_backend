@@ -1,11 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Experiment } from '../entities/experiment.entity';
+import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
 import { ExperimentVariant } from '../entities/experiment-variant.entity';
 import { ExperimentMetric } from '../entities/experiment-metric.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
-import { ExperimentStatus, ExperimentType } from '../entities/experiment.entity';
 
 @Injectable()
 export class ExperimentService {

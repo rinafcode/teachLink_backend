@@ -151,6 +151,7 @@ export class CdnController {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
+      console.error('health check failed');
       throw new HttpException('Health check failed', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -182,6 +183,7 @@ export class CdnController {
         },
       };
     } catch (error) {
+      console.error('failed to retrieve');
       throw new HttpException('Failed to retrieve analytics', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

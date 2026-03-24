@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -8,6 +19,7 @@ import { CreateModuleDto } from './dto/create-module.dto';
 import { LessonsService } from './lessons/lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { EnrollmentsService } from './enrollments/enrollments.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('courses')
 export class CoursesController {
@@ -19,12 +31,13 @@ export class CoursesController {
   ) {}
 
   @Post()
-  create(@Body() createCourseDto: CreateCourseDto) {
-    // In a real app, user comes from req.user (JWT)
-    // For now, we'll assume a user is passed or we create a dummy one in service if needed
-    // But service expects User entity.
-    // We'll mock it here for simplicity of the API implementation task
-    const user = { id: '00000000-0000-0000-0000-000000000000' } as any;
+  @UseGuards(JwtAuthGuard)
+  create(@Request() req, @Body() createCourseDto: CreateCourseDto) {
+    // Get user from JWT token
+    const user = req.user;
+    if (!user || !user.id) {
+      throw new Error('User not authenticated');
+    }
     return this.coursesService.create({
       ...createCourseDto,
       instructorId: user.id,
@@ -37,7 +50,8 @@ export class CoursesController {
   }
 
   @Get('analytics')
-  getAnalytics() {
+  @UseGuards(JwtAuthGuard)
+  getAnalytics(@Request() req) {
     return this.coursesService.getAnalytics();
   }
 
@@ -47,33 +61,49 @@ export class CoursesController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
     return this.coursesService.update(id, updateCourseDto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.coursesService.remove(id);
   }
 
   // Modules
   @Post(':id/modules')
-  createModule(@Param('id') courseId: string, @Body() createModuleDto: CreateModuleDto) {
+  @UseGuards(JwtAuthGuard)
+  createModule(
+    @Request() req,
+    @Param('id') courseId: string,
+    @Body() createModuleDto: CreateModuleDto,
+  ) {
     createModuleDto.courseId = courseId;
     return this.modulesService.create(createModuleDto);
   }
 
   // Lessons
   @Post('modules/:moduleId/lessons')
-  createLesson(@Param('moduleId') moduleId: string, @Body() createLessonDto: CreateLessonDto) {
+  @UseGuards(JwtAuthGuard)
+  createLesson(
+    @Request() req,
+    @Param('moduleId') moduleId: string,
+    @Body() createLessonDto: CreateLessonDto,
+  ) {
     createLessonDto.moduleId = moduleId;
     return this.lessonsService.create(createLessonDto);
   }
 
   // Enrollments
   @Post(':id/enroll')
-  enroll(@Param('id') courseId: string) {
-    const userId = '00000000-0000-0000-0000-000000000000'; // Placeholder
+  @UseGuards(JwtAuthGuard)
+  enroll(@Request() req, @Param('id') courseId: string) {
+    const userId = req.user.id;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     return this.enrollmentsService.enroll(userId, courseId);
   }
 }

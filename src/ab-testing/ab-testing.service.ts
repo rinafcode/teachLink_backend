@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Experiment } from './entities/experiment.entity';
+import { Experiment, ExperimentStatus, ExperimentType } from './entities/experiment.entity';
 import { ExperimentVariant } from './entities/experiment-variant.entity';
-import { ExperimentStatus, ExperimentType } from './entities/experiment.entity';
 
 export interface CreateExperimentDto {
   name: string;
@@ -163,7 +162,7 @@ export class ABTestingService {
   /**
    * Gets active experiments for a user
    */
-  async getActiveExperimentsForUser(userId: string): Promise<Experiment[]> {
+  async getActiveExperimentsForUser(_userId: string): Promise<Experiment[]> {
     return await this.experimentRepository.find({
       where: {
         status: ExperimentStatus.RUNNING,

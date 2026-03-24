@@ -1,7 +1,6 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 import { Request, Response } from 'express';
 
 export interface RequestLog {
@@ -97,11 +96,13 @@ export class LoggingInterceptor implements NestInterceptor {
 
   private logIncoming(log: RequestLog): void {
     const message = `→ ${log.method} ${log.url}`;
-    this.isProd
-      ? this.logger.log(JSON.stringify({ event: 'request.incoming', ...log }))
-      : this.logger.log(
-          `${message} | id=${log.requestId} ip=${log.ip}${log.userId ? ` user=${log.userId}` : ''}`,
-        );
+    if (this.isProd) {
+      this.logger.log(JSON.stringify({ event: 'request.incoming', ...log }));
+    } else {
+      this.logger.log(
+        `${message} | id=${log.requestId} ip=${log.ip}${log.userId ? ` user=${log.userId}` : ''}`,
+      );
+    }
   }
 
   private logOutgoing(log: ResponseLog): void {

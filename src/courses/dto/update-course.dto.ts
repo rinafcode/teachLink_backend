@@ -1,7 +1,6 @@
-import { PartialType } from '@nestjs/swagger';
 import { CreateCourseDto } from './create-course.dto';
+import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateCourseDto extends PartialType(CreateCourseDto) {
   @ApiPropertyOptional({ enum: ['draft', 'published', 'archived'] })

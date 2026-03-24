@@ -134,34 +134,38 @@ export class IncrementalLoaderService {
       let recordsDeleted = 0;
 
       switch (job.config.loadType) {
-        case 'timestamp':
+        case 'timestamp': {
           const timestampResult = await this.loadByTimestamp(job);
           recordsProcessed = timestampResult.processed;
           recordsInserted = timestampResult.inserted;
           recordsUpdated = timestampResult.updated;
           break;
+        }
 
-        case 'sequence':
+        case 'sequence': {
           const sequenceResult = await this.loadBySequence(job);
           recordsProcessed = sequenceResult.processed;
           recordsInserted = sequenceResult.inserted;
           recordsUpdated = sequenceResult.updated;
           break;
+        }
 
-        case 'watermark':
+        case 'watermark': {
           const watermarkResult = await this.loadByWatermark(job);
           recordsProcessed = watermarkResult.processed;
           recordsInserted = watermarkResult.inserted;
           recordsUpdated = watermarkResult.updated;
           break;
+        }
 
-        case 'cdc':
+        case 'cdc': {
           const cdcResult = await this.loadByCDC(job);
           recordsProcessed = cdcResult.processed;
           recordsInserted = cdcResult.inserted;
           recordsUpdated = cdcResult.updated;
           recordsDeleted = cdcResult.deleted;
           break;
+        }
       }
 
       job.status = 'completed';

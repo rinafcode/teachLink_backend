@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { RateLimitingService } from 'src/rate-limiting/rate-limiting.service';
+import { RateLimitingService } from '../../rate-limiting.service';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
