@@ -11,7 +11,7 @@ import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 
 @WebSocketGateway({ namespace: '/messaging' })
 export class MessagingGateway implements OnGatewayConnection {
-  async handleConnection(client: Socket) {
+  async handleConnection(@ConnectedSocket() _client: Socket) {
     // Guard will disconnect unauthorized clients
   }
 

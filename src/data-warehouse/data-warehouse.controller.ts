@@ -1,15 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ETLPipelineService } from './etl/etl-pipeline.service';
 import { DimensionalModelingService } from './modeling/dimensional-modeling.service';
 import { DataQualityService } from './quality/data-quality.service';
@@ -31,7 +20,7 @@ export class DataWarehouseController {
 
   // ETL Pipeline endpoints
   @Post('etl/pipeline')
-  async createETLPipeline(@Body() config: any, @Request() req) {
+  async createETLPipeline(@Body() config: any, @Request() _req) {
     const pipeline = await this.etlService.createPipeline(config);
     return { success: true, pipeline };
   }

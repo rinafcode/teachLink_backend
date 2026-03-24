@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, SelectQueryBuilder } from 'typeorm';
+import { Repository, In } from 'typeorm';
 
 import { Segment } from '../entities/segment.entity';
 import { SegmentRule } from '../entities/segment-rule.entity';
@@ -350,7 +350,7 @@ export class SegmentationService {
     }
 
     // For MVP, return empty array - actual implementation requires User repository
-    console.log('Segment rules would evaluate:', conditions);
+    // console.log('Segment rules would evaluate:', conditions);
 
     // TODO: Execute query and return real users
     return [];

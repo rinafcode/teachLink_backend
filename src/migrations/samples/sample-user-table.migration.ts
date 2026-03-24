@@ -9,7 +9,7 @@ export class SampleUserTableMigration implements MigrationConfig {
 
   private readonly logger = new Logger(SampleUserTableMigration.name);
 
-  async up(connection: any): Promise<void> {
+  async up(_connection: any): Promise<void> {
     this.logger.log('Applying sample user table migration');
 
     // In a real implementation, you would use the connection to execute SQL
@@ -31,7 +31,7 @@ export class SampleUserTableMigration implements MigrationConfig {
     console.log('Creating users table...');
   }
 
-  async down(connection: any): Promise<void> {
+  async down(_connection: any): Promise<void> {
     this.logger.log('Rolling back sample user table migration');
 
     // In a real implementation, you would revert the changes

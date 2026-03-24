@@ -4,7 +4,6 @@ import { Queue } from 'bull';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { JobOptions } from '../interfaces/queue.interfaces';
-import { JobPriority } from '../enums/job-priority.enum';
 
 /**
  * Job Scheduler Service

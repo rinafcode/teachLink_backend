@@ -4,40 +4,40 @@ import { MetricsCollectionService } from '../metrics/metrics-collection.service'
 export class TypeOrmMonitoringLogger implements Logger {
   constructor(private readonly metricsService: MetricsCollectionService) {}
 
-  logQuery(query: string, parameters?: any[], queryRunner?: QueryRunner) {
+  logQuery(_query: string, _parameters?: any[], _queryRunner?: QueryRunner) {
     // Optional: console.log(`[Query]: ${query}`);
   }
 
   logQueryError(
     error: string | Error,
     query: string,
-    parameters?: any[],
-    queryRunner?: QueryRunner,
+    _parameters?: any[],
+    _queryRunner?: QueryRunner,
   ) {
     console.error(`[Query Error]: ${error}`, query);
   }
 
-  logQuerySlow(time: number, query: string, parameters?: any[], queryRunner?: QueryRunner) {
+  logQuerySlow(time: number, query: string, _parameters?: any[], _queryRunner?: QueryRunner) {
     console.warn(`[Slow Query]: ${time}ms - ${query}`);
     const table = this.extractTable(query);
     // time is in milliseconds, convert to seconds
     this.metricsService.recordDbQuery('slow_query', table, time / 1000);
   }
 
-  logSchemaBuild(message: string, queryRunner?: QueryRunner) {
-    console.log(`[Schema Build]: ${message}`);
+  logSchemaBuild(_message: string, _queryRunner?: QueryRunner) {
+    // console.log(`[Schema Build]: ${message}`);
   }
-  logMigration(message: string, queryRunner?: QueryRunner) {
-    console.log(`[Migration]: ${message}`);
+  logMigration(_message: string, _queryRunner?: QueryRunner) {
+    // console.log(`[Migration]: ${message}`);
   }
-  log(level: 'log' | 'info' | 'warn', message: any, queryRunner?: QueryRunner) {
+  log(level: 'log' | 'info' | 'warn', _message: any, _queryRunner?: QueryRunner) {
     switch (level) {
       case 'log':
       case 'info':
-        console.log(`[TypeORM]: ${message}`);
+        // console.log(`[TypeORM]: ${message}`);
         break;
       case 'warn':
-        console.warn(`[TypeORM]: ${message}`);
+        // console.warn(`[TypeORM]: ${message}`);
         break;
     }
   }

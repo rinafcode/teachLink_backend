@@ -51,7 +51,7 @@ export class CoursesController {
 
   @Get('analytics')
   @UseGuards(JwtAuthGuard)
-  getAnalytics(@Request() req) {
+  getAnalytics(@Request() _req) {
     return this.coursesService.getAnalytics();
   }
 

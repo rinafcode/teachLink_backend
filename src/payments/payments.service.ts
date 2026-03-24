@@ -9,6 +9,7 @@ import { Refund } from './entities/refund.entity';
 import { Invoice } from './entities/invoice.entity';
 import { RefundDto } from './dto/refund.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { TransactionService } from '../common/database/transaction.service';
 
 @Injectable()
 export class PaymentsService {
@@ -23,78 +24,80 @@ export class PaymentsService {
     private readonly refundRepository: Repository<Refund>,
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    private readonly transactionService: TransactionService,
   ) {}
 
-  private getProvider(provider: string) {
+  private getProvider(_provider: string) {
     // Placeholder implementation - in a real app you would have a provider factory
     // Return a mock provider or throw an error for unsupported providers
     return {
-      createPaymentIntent: async (amount: number, currency: string, metadata: any) => {
+      createPaymentIntent: async (_amount: number, _currency: string, _metadata: any) => {
         return {
           paymentIntentId: `pi_${Math.random().toString(36).substr(2, 9)}`,
           clientSecret: `cs_${Math.random().toString(36).substr(2, 9)}`,
           requiresAction: false,
         };
       },
-      refundPayment: async (paymentId: string, amount?: number) => {
+      refundPayment: async (_paymentId: string, _amount?: number) => {
         return {
           refundId: `re_${Math.random().toString(36).substr(2, 9)}`,
           status: 'succeeded',
         };
       },
-      handleWebhook: async (payload: any, signature: string) => {
-        return payload;
+      handleWebhook: async (_payload: any, _signature: string) => {
+        return _payload;
       },
     };
   }
 
   async createPaymentIntent(userId: string, createPaymentDto: CreatePaymentDto) {
-    const { courseId, amount, currency, provider, metadata } = createPaymentDto;
+    return await this.transactionService.runInTransaction(async (manager) => {
+      const { courseId, amount, currency, provider, metadata } = createPaymentDto;
 
-    // Verify user exists
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
+      // Verify user exists
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      // Get payment provider
+      const paymentProvider = this.getProvider(provider);
+
+      // Create payment intent
+      const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency, {
+        ...metadata,
+        userId,
+        courseId,
+      });
+
+      // Create payment record
+      const payment = manager.create(Payment, {
+        amount,
+        currency,
+        method: PaymentMethod.CREDIT_CARD,
+        provider,
+        providerPaymentId: paymentIntent.paymentIntentId,
+        status: PaymentStatus.PENDING,
+        metadata,
+        user,
+        userId,
+        courseId,
+      });
+
+      await manager.save(payment);
+
+      return {
+        paymentId: payment.id,
+        clientSecret: paymentIntent.clientSecret,
+        requiresAction: paymentIntent.requiresAction,
+      };
     });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Get payment provider
-    const paymentProvider = this.getProvider(provider);
-
-    // Create payment intent
-    const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency, {
-      ...metadata,
-      userId,
-      courseId,
-    });
-
-    // Create payment record
-    const payment = this.paymentRepository.create({
-      amount,
-      currency,
-      method: PaymentMethod.CREDIT_CARD,
-      provider,
-      providerPaymentId: paymentIntent.paymentIntentId,
-      status: PaymentStatus.PENDING,
-      metadata,
-      user,
-      userId,
-      courseId,
-    });
-
-    await this.paymentRepository.save(payment);
-
-    return {
-      paymentId: payment.id,
-      clientSecret: paymentIntent.clientSecret,
-      requiresAction: paymentIntent.requiresAction,
-    };
   }
 
   async createSubscription(userId: string, createSubscriptionDto: CreateSubscriptionDto) {
-    const { courseId, interval, provider, priceId, metadata } = createSubscriptionDto;
+    const { interval } = createSubscriptionDto;
 
     // Verify user exists
     const user = await this.userRepository.findOne({
@@ -106,7 +109,7 @@ export class PaymentsService {
     }
 
     // Get payment provider
-    const paymentProvider = this.getProvider(provider);
+    // const paymentProvider = this.getProvider(provider);
 
     // Create subscription record
     const subscription = this.subscriptionRepository.create({

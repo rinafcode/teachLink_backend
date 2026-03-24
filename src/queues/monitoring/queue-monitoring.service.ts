@@ -3,7 +3,6 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueMetrics } from '../interfaces/queue.interfaces';
-import { JobStatus } from '../enums/job-priority.enum';
 
 /**
  * Queue Monitoring Service
@@ -83,7 +82,7 @@ export class QueueMonitoringService {
 
       const processingTimes = completed
         .filter((job) => job.finishedOn && job.processedOn)
-        .map((job) => job.finishedOn! - job.processedOn!);
+        .map((job) => (job.finishedOn ?? Date.now()) - (job.processedOn ?? Date.now()));
 
       if (processingTimes.length === 0) return 0;
 
@@ -103,8 +102,9 @@ export class QueueMonitoringService {
       this.metricsHistory.set(queueName, []);
     }
 
-    const history = this.metricsHistory.get(queueName)!;
+    const history = this.metricsHistory.get(queueName) ?? [];
     history.push(metrics);
+    this.metricsHistory.set(queueName, history);
 
     // Keep only last MAX_HISTORY_SIZE entries
     if (history.length > this.MAX_HISTORY_SIZE) {

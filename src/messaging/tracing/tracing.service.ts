@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { trace, Span, SpanStatusCode, Context, SpanOptions } from '@opentelemetry/api';
+import { trace, Span, SpanStatusCode, SpanOptions } from '@opentelemetry/api';
 
 @Injectable()
 export class TracingService {

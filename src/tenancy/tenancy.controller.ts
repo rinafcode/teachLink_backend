@@ -24,10 +24,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
-import { TenantGuard } from './guards/tenant.guard';
-import { RequiresTenant } from './decorators/requires-tenant.decorator';
-import { CurrentTenant } from './decorators/current-tenant.decorator';
-import { Tenant, TenantPlan } from './entities/tenant.entity';
+import { TenantPlan } from './entities/tenant.entity';
 
 @ApiTags('tenancy')
 @Controller('tenants')

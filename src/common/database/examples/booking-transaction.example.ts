@@ -97,7 +97,7 @@ export class BookingTransactionExample {
         throw new Error('Booking not found or already cancelled');
       }
 
-      const { user_id, consultant_id, slot_id, amount } = booking[0];
+      const { user_id, consultant_id, slot_id, amount: _amount } = booking[0];
 
       // 2. Refund user
       await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [

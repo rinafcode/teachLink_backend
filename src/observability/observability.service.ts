@@ -105,7 +105,7 @@ export class ObservabilityService {
     // Start trace span
     return this.tracing.executeInSpan(
       `${method} ${url}`,
-      async (span) => {
+      async (_span) => {
         try {
           // Execute request
           const result = await fn();

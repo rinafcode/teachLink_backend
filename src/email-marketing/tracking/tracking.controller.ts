@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, Redirect } from '@nestjs/common';
+import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { Response } from 'express';
 

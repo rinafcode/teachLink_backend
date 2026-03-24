@@ -97,7 +97,7 @@ export class DefaultQueueProcessor {
 
   @OnQueueCompleted()
   onCompleted(job: Job, result: any) {
-    const processingTime = job.finishedOn! - job.processedOn!;
+    const processingTime = (job.finishedOn ?? Date.now()) - (job.processedOn ?? Date.now());
     this.logger.log(
       `Job ${job.name} (${job.id}) completed in ${processingTime}ms - Result: ${JSON.stringify(result)}`,
     );

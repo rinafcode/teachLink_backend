@@ -5,8 +5,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
-  OneToMany,
-  OneToOne,
 } from 'typeorm';
 
 export enum TenantStatus {

@@ -225,7 +225,7 @@ export class GeoLocationService {
     return degrees * (Math.PI / 180);
   }
 
-  private mockGeolocation(ipAddress: string): LocationInfo {
+  private mockGeolocation(_ipAddress: string): LocationInfo {
     // Mock implementation - in real app, use actual geolocation service
     return {
       country: 'US',

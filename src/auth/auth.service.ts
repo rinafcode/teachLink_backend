@@ -6,6 +6,7 @@ import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './dt
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { SessionService } from '../session/session.service';
+import { TransactionService } from '../common/database/transaction.service';
 
 @Injectable()
 export class AuthService {
@@ -14,45 +15,48 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
+    private readonly transactionService: TransactionService,
   ) {}
 
   async register(registerDto: RegisterDto) {
-    // Create user
-    const user = await this.usersService.create(registerDto);
+    return await this.transactionService.runInTransaction(async (_manager) => {
+      // Create user
+      const user = await this.usersService.create(registerDto);
 
-    // Generate email verification token
-    const verificationToken = this.generateRandomToken();
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      // Generate email verification token
+      const verificationToken = this.generateRandomToken();
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    await this.usersService.updateEmailVerificationToken(
-      user.id,
-      verificationToken,
-      verificationExpires,
-    );
+      await this.usersService.updateEmailVerificationToken(
+        user.id,
+        verificationToken,
+        verificationExpires,
+      );
 
-    // TODO: Send verification email
-    // await this.emailService.sendVerificationEmail(user.email, verificationToken);
+      // TODO: Send verification email
+      // await this.emailService.sendVerificationEmail(user.email, verificationToken);
 
-    const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-register' });
-    const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
+      const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-register' });
+      const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
 
-    // Save refresh token
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+      // Save refresh token
+      const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+      await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
 
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-      },
-      accessToken,
-      refreshToken,
-      message: 'Registration successful. Please check your email to verify your account.',
-    };
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified,
+        },
+        accessToken,
+        refreshToken,
+        message: 'Registration successful. Please check your email to verify your account.',
+      };
+    });
   }
 
   async login(loginDto: LoginDto) {

@@ -1,5 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { Connection, QueryRunner } from 'typeorm';
+// import { Connection, QueryRunner } from 'typeorm';
 import { MigrationConfig } from '../migration.service';
 
 @Injectable()
@@ -58,7 +58,8 @@ export class SchemaValidationService {
   /**
    * Performs pre-migration validation checks
    */
-  private async performPreMigrationValidation(migration: MigrationConfig): Promise<boolean> {
+  // Fix: prefix unused param with _ — stub method, real implementation pending
+  private async performPreMigrationValidation(_migration: MigrationConfig): Promise<boolean> {
     // Check if required tables/columns exist before running migration
     // This is a simplified version - in practice, you'd check for dependencies
 
@@ -69,7 +70,8 @@ export class SchemaValidationService {
   /**
    * Performs post-migration validation checks
    */
-  private async performPostMigrationValidation(migration: MigrationConfig): Promise<boolean> {
+  // Fix: prefix unused param with _ — stub method, real implementation pending
+  private async performPostMigrationValidation(_migration: MigrationConfig): Promise<boolean> {
     // Check if the expected schema changes were applied correctly
     // This would involve checking if tables/columns exist as expected after migration
 

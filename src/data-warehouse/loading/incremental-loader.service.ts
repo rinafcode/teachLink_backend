@@ -443,7 +443,7 @@ export class IncrementalLoaderService {
 
   // Helper methods for data operations
   private async getSourceDataSince(
-    connection: DataSourceConfig,
+    _connection: DataSourceConfig,
     table: string,
     column: string,
     timestamp: Date,
@@ -454,7 +454,7 @@ export class IncrementalLoaderService {
   }
 
   private async getSourceDataAfter(
-    connection: DataSourceConfig,
+    _connection: DataSourceConfig,
     table: string,
     column: string,
     value: any,
@@ -465,10 +465,10 @@ export class IncrementalLoaderService {
   }
 
   private async applyChangesToTarget(
-    connection: DataSourceConfig,
+    _connection: DataSourceConfig,
     table: string,
     data: any[],
-    primaryKey: string[],
+    _primaryKey: string[],
     loadType: string,
   ): Promise<{ processed: number; inserted: number; updated: number }> {
     // Implementation would apply changes to target database
@@ -482,26 +482,31 @@ export class IncrementalLoaderService {
   }
 
   private async insertRecord(
-    connection: DataSourceConfig,
+    _connection: DataSourceConfig,
     table: string,
-    record: any,
+    _values: { [key: string]: any },
   ): Promise<void> {
     // Implementation would insert record into target
     this.logger.log(`Inserting record into ${table}`);
   }
 
+  private async validateRecord(_values: any): Promise<boolean> {
+    // Implementation would validate record
+    return true;
+  }
+
   private async updateRecord(
-    connection: DataSourceConfig,
+    _connection: DataSourceConfig,
     table: string,
     primaryKey: { [key: string]: any },
-    values: { [key: string]: any },
+    _values: { [key: string]: any },
   ): Promise<void> {
     // Implementation would update record in target
     this.logger.log(`Updating record in ${table} where ${JSON.stringify(primaryKey)}`);
   }
 
   private async deleteRecord(
-    connection: DataSourceConfig,
+    _connection: DataSourceConfig,
     table: string,
     primaryKey: { [key: string]: any },
   ): Promise<void> {

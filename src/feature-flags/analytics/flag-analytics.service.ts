@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import {
-  EvaluationReason,
   ExperimentStats,
   ExperimentVariantStats,
   FlagAnalyticsEvent,
   FlagEvaluationStats,
   FlagSummary,
-  FlagValueType,
 } from '../interfaces';
 
 type TrackEvaluationInput = Omit<FlagAnalyticsEvent, 'eventId' | 'timestamp'>;
@@ -36,13 +34,15 @@ export class FlagAnalyticsService {
       if (!this.flagEvents.has(event.flagKey)) {
         this.flagEvents.set(event.flagKey, []);
       }
-      this.flagEvents.get(event.flagKey)!.push(event);
+      const flagEvents = this.flagEvents.get(event.flagKey);
+      if (flagEvents) flagEvents.push(event);
 
       if (event.userId) {
         if (!this.flagUsers.has(event.flagKey)) {
           this.flagUsers.set(event.flagKey, new Set());
         }
-        this.flagUsers.get(event.flagKey)!.add(event.userId);
+        const flagUsers = this.flagUsers.get(event.flagKey);
+        if (flagUsers) flagUsers.add(event.userId);
       }
     }
   }
@@ -214,7 +214,7 @@ export class FlagAnalyticsService {
     if (!store.has(experimentId)) {
       store.set(experimentId, new Map());
     }
-    const inner = store.get(experimentId)!;
+    const inner = store.get(experimentId) ?? new Map();
     inner.set(variantKey, (inner.get(variantKey) ?? 0) + 1);
   }
 

@@ -100,8 +100,8 @@ export class SearchService {
     }));
   }
 
-  private async logSearch(query: string, resultsCount: number) {
+  private async logSearch(_query: string, _resultsCount: number) {
     // Simple analytics: log to console (in production, store in database)
-    console.log(`Search query: "${query}", Results count: ${resultsCount}`);
+    // console.log(`Search query: "${query}", Results count: ${resultsCount}`);
   }
 }

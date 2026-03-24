@@ -12,7 +12,7 @@ export class ComplianceService {
     };
   }
 
-  async deleteUserData(userId: string) {
+  async deleteUserData(_userId: string) {
     // Soft delete or anonymize
     return { success: true };
   }

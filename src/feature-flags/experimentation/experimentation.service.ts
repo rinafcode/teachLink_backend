@@ -56,13 +56,14 @@ export class ExperimentationService {
       this.conversions.set(experimentId, new Map());
     }
 
-    const expConversions = this.conversions.get(experimentId)!;
+    const expConversions = this.conversions.get(experimentId) ?? new Map();
 
     if (!expConversions.has(userId)) {
       expConversions.set(userId, []);
     }
 
-    expConversions.get(userId)!.push({ eventName, metadata, timestamp: new Date() });
+    const userConversions = expConversions.get(userId) ?? [];
+    userConversions.push({ eventName, metadata, timestamp: new Date() });
   }
 
   /**

@@ -41,11 +41,11 @@ export class FileStorageService {
   }
 
   // Legacy method for backward compatibility
-  async getSignedUrl(keyOrUrl: string, expiresSec = 300): Promise<string> {
+  async getSignedUrl(keyOrUrl: string, _expiresSec = 300): Promise<string> {
     // If a full URL is provided, return as-is
     if (keyOrUrl.startsWith('http')) return keyOrUrl;
 
-    const command = new GetObjectCommand({
+    const _command = new GetObjectCommand({
       Bucket: this.bucketName,
       Key: keyOrUrl,
     });

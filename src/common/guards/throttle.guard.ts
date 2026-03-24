@@ -1,5 +1,5 @@
-import { Injectable, ExecutionContext, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
+import { Injectable, ExecutionContext, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 
 /**

@@ -79,7 +79,7 @@ export class ConflictResolutionService {
    * Determines the appropriate resolution strategy for a conflict
    */
   private async determineResolutionStrategy(
-    migration: MigrationConfig,
+    _migration: MigrationConfig,
   ): Promise<ConflictResolutionStrategy> {
     // In a real implementation, this would analyze the specific conflict
     // and determine the best strategy based on:
@@ -131,7 +131,7 @@ export class ConflictResolutionService {
   /**
    * Detects potential conflicts between migrations
    */
-  async detectPotentialConflicts(migrations: MigrationConfig[]): Promise<MigrationConflict[]> {
+  async detectPotentialConflicts(_migrations: MigrationConfig[]): Promise<MigrationConflict[]> {
     this.logger.log('Detecting potential conflicts between migrations');
 
     const conflicts: MigrationConflict[] = [];
@@ -191,8 +191,8 @@ export class ConflictResolutionService {
    * Gets the most appropriate resolution strategy for a migration
    */
   async getResolutionStrategy(
-    migration: MigrationConfig,
-    conflictType?: string,
+    _migration: MigrationConfig,
+    _conflictType?: string,
   ): Promise<ConflictResolutionStrategy> {
     // Determine strategy based on migration characteristics and optional conflict type
     // In a real implementation, this would have more sophisticated logic

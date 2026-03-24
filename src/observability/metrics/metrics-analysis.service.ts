@@ -71,13 +71,17 @@ export class MetricsAnalysisService {
       this.metrics.set(metric.name, []);
     }
 
-    const metricList = this.metrics.get(metric.name)!;
+    // Safe retrieval with fallback — avoids non-null assertion
+    const metricList = this.metrics.get(metric.name) ?? [];
     metricList.push(metric);
 
     // Maintain size limit (FIFO)
     if (metricList.length > this.MAX_METRICS_PER_NAME) {
       metricList.shift();
     }
+
+    // Ensure the (possibly new) array is always stored back in the map
+    this.metrics.set(metric.name, metricList);
 
     this.logger.debug(`Recorded metric: ${metric.name} = ${metric.value}`);
   }
@@ -215,14 +219,14 @@ export class MetricsAnalysisService {
   /**
    * Business Metrics - Track user signups
    */
-  trackUserSignup(userId: string, source?: string): void {
+  trackUserSignup(_userId: string, source?: string): void {
     this.incrementCounter('user.signups', 1, { source: source || 'direct' });
   }
 
   /**
    * Business Metrics - Track course enrollment
    */
-  trackCourseEnrollment(courseId: string, userId: string): void {
+  trackCourseEnrollment(courseId: string, _userId: string): void {
     this.incrementCounter('course.enrollments', 1, { courseId });
   }
 

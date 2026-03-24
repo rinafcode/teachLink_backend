@@ -3,7 +3,6 @@ import {
   Post,
   UseInterceptors,
   UploadedFile,
-  Body,
   UseGuards,
   Get,
   Param,

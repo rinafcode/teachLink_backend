@@ -204,7 +204,7 @@ export class DataQualityService {
           }
 
           // Create quality issue record
-          await this.createQualityIssue(profileId, rule, result, data);
+          await this.createQualityIssue(profileId, rule, result);
         }
       }
 
@@ -257,7 +257,6 @@ export class DataQualityService {
     profileId: string,
     rule: DataQualityRule,
     result: DataQualityResult,
-    data: any[],
   ): Promise<DataQualityIssue> {
     const issueId = uuidv4();
     const issue: DataQualityIssue = {
