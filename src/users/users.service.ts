@@ -7,12 +7,17 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
 import { GetUsersDto } from './dto/get-users.dto';
+import { CachingService } from '../caching/caching.service';
+import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly cachingService: CachingService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -38,24 +43,32 @@ export class UsersService {
   }
 
   async findAll(filter?: GetUsersDto): Promise<PaginatedResponse<User>> {
-    const query = this.userRepository.createQueryBuilder('user');
+    const cacheKey = `cache:users:list:${JSON.stringify(filter || {})}`;
 
-    if (filter?.role) {
-      query.andWhere('user.role = :role', { role: filter.role });
-    }
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const query = this.userRepository.createQueryBuilder('user');
 
-    if (filter?.status) {
-      query.andWhere('user.status = :status', { status: filter.status });
-    }
+        if (filter?.role) {
+          query.andWhere('user.role = :role', { role: filter.role });
+        }
 
-    if (filter?.search) {
-      query.andWhere(
-        '(user.email ILIKE :search OR user.firstName ILIKE :search OR user.lastName ILIKE :search)',
-        { search: `%${filter.search}%` },
-      );
-    }
+        if (filter?.status) {
+          query.andWhere('user.status = :status', { status: filter.status });
+        }
 
-    return await paginate(query, filter);
+        if (filter?.search) {
+          query.andWhere(
+            '(user.email ILIKE :search OR user.firstName ILIKE :search OR user.lastName ILIKE :search)',
+            { search: `%${filter.search}%` },
+          );
+        }
+
+        return await paginate(query, filter);
+      },
+      CACHE_TTL.USER_PROFILE,
+    );
   }
 
   async findByIds(ids: string[]): Promise<User[]> {
@@ -64,11 +77,19 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return user;
+    const cacheKey = `${CACHE_PREFIXES.USER_PROFILE}:${id}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const user = await this.userRepository.findOne({ where: { id } });
+        if (!user) {
+          throw new NotFoundException('User not found');
+        }
+        return user;
+      },
+      CACHE_TTL.USER_PROFILE,
+    );
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -88,7 +109,10 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     // If updating password, hash it
     if (updateUserDto.password) {
@@ -96,11 +120,18 @@ export class UsersService {
     }
 
     Object.assign(user, updateUserDto);
-    return await this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+
+    // Invalidate cache after update
+    this.eventEmitter.emit(CACHE_EVENTS.USER_UPDATED, { userId: id });
+
+    return saved;
   }
 
   async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
     await this.userRepository.update(userId, { refreshToken });
+    // Invalidate user cache
+    this.eventEmitter.emit(CACHE_EVENTS.USER_UPDATED, { userId });
   }
 
   async updatePasswordResetToken(
@@ -130,7 +161,13 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findOne(id);
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     await this.userRepository.remove(user);
+
+    // Invalidate cache after delete
+    this.eventEmitter.emit(CACHE_EVENTS.USER_DELETED, { userId: id });
   }
 }

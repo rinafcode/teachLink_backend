@@ -5,12 +5,19 @@ import { Course } from './entities/course.entity';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
 import { CourseSearchDto } from './dto/course-search.dto';
+import { CachingService } from '../caching/caching.service';
+import { CacheInvalidationService } from '../caching/invalidation/invalidation.service';
+import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CoursesService {
   constructor(
     @InjectRepository(Course)
     private coursesRepository: Repository<Course>,
+    private readonly cachingService: CachingService,
+    private readonly invalidationService: CacheInvalidationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(createCourseDto: any): Promise<Course> {
@@ -23,29 +30,37 @@ export class CoursesService {
   }
 
   async findAll(filter?: CourseSearchDto): Promise<PaginatedResponse<Course>> {
-    const query = this.coursesRepository.createQueryBuilder('course');
+    const cacheKey = `${CACHE_PREFIXES.COURSES_LIST}:${JSON.stringify(filter || {})}`;
 
-    query.leftJoinAndSelect('course.instructor', 'instructor');
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const query = this.coursesRepository.createQueryBuilder('course');
 
-    if (filter?.search) {
-      query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
-        search: `%${filter.search}%`,
-      });
-    }
+        query.leftJoinAndSelect('course.instructor', 'instructor');
 
-    if (filter?.status) {
-      query.andWhere('course.status = :status', { status: filter.status });
-    }
+        if (filter?.search) {
+          query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
+            search: `%${filter.search}%`,
+          });
+        }
 
-    if (filter?.instructorId) {
-      query.andWhere('course.instructorId = :instructorId', {
-        instructorId: filter.instructorId,
-      });
-    }
+        if (filter?.status) {
+          query.andWhere('course.status = :status', { status: filter.status });
+        }
 
-    query.orderBy('course.createdAt', 'DESC');
+        if (filter?.instructorId) {
+          query.andWhere('course.instructorId = :instructorId', {
+            instructorId: filter.instructorId,
+          });
+        }
 
-    return await paginate(query, filter);
+        query.orderBy('course.createdAt', 'DESC');
+
+        return await paginate(query, filter);
+      },
+      CACHE_TTL.COURSE_METADATA,
+    );
   }
 
   async findByIds(ids: string[]): Promise<Course[]> {
@@ -70,33 +85,58 @@ export class CoursesService {
   }
 
   async findOne(id: string): Promise<Course> {
+    const cacheKey = `${CACHE_PREFIXES.COURSE}:${id}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const course = await this.coursesRepository.findOne({
+          where: { id },
+          relations: ['instructor', 'modules', 'modules.lessons'],
+          order: {
+            modules: {
+              order: 'ASC',
+              lessons: {
+                order: 'ASC',
+              },
+            },
+          } as any,
+        });
+        if (!course) {
+          throw new NotFoundException(`Course with ID ${id} not found`);
+        }
+        return course;
+      },
+      CACHE_TTL.COURSE_DETAILS,
+    );
+  }
+
+  async update(id: string, updateCourseDto: UpdateCourseDto): Promise<Course> {
     const course = await this.coursesRepository.findOne({
       where: { id },
       relations: ['instructor', 'modules', 'modules.lessons'],
-      order: {
-        modules: {
-          order: 'ASC',
-          lessons: {
-            order: 'ASC',
-          },
-        } as any,
-      },
     });
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
     }
-    return course;
-  }
-
-  async update(id: string, updateCourseDto: UpdateCourseDto): Promise<Course> {
-    const course = await this.findOne(id);
     Object.assign(course, updateCourseDto);
-    return this.coursesRepository.save(course);
+    const saved = await this.coursesRepository.save(course);
+
+    // Invalidate cache after update
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { courseId: id });
+
+    return saved;
   }
 
   async remove(id: string): Promise<void> {
-    const course = await this.findOne(id);
+    const course = await this.coursesRepository.findOne({ where: { id } });
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${id} not found`);
+    }
     await this.coursesRepository.remove(course);
+
+    // Invalidate cache after delete
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_DELETED, { courseId: id });
   }
 
   async getAnalytics(): Promise<any> {
