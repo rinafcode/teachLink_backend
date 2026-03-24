@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -44,7 +44,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout user (invalidate refresh token)' })
   async logout(@CurrentUser() user: any) {
-    return this.authService.logout(user.userId);
+    return this.authService.logout(user.userId, user.sessionId);
   }
 
   @Post('forgot-password')

@@ -19,5 +19,6 @@ import { Module } from '@nestjs/common';
     ScoreCalculationService,
     FeedbackGenerationService,
   ],
+  exports: [AssessmentsService],
 })
 export class AssessmentsModule {}
