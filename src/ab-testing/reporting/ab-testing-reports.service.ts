@@ -1,11 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Experiment } from '../entities/experiment.entity';
+import { Experiment, ExperimentStatus, ExperimentType } from '../entities/experiment.entity';
 import { ExperimentVariant } from '../entities/experiment-variant.entity';
 import { StatisticalAnalysisService } from '../analysis/statistical-analysis.service';
 import { AutomatedDecisionService } from '../automation/automated-decision.service';
-import { ExperimentStatus, ExperimentType } from '../entities/experiment.entity';
 
 export interface ReportFilters {
   status?: ExperimentStatus;
@@ -267,9 +266,9 @@ export class ABTestingReportsService {
    * Calculates improvement percentage between winner and control
    */
   private async calculateImprovementPercentage(
-    experimentId: string,
-    winnerId: string,
-    controlId: string,
+    _experimentId: string,
+    _winnerId: string,
+    _controlId: string,
   ): Promise<number> {
     // This would fetch actual metric data and calculate improvement
     // For now, returning a placeholder value

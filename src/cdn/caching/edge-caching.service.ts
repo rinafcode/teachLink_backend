@@ -24,7 +24,7 @@ export class EdgeCachingService {
   async getEdgeUrl(originalUrl: string, location?: string): Promise<string> {
     // In a real implementation, this would return the CDN URL for the optimal edge location
     // For now, just return the original URL with CDN prefix
-    const cdnUrl = originalUrl.replace(/^https?:\/\/[^\/]+/, 'https://cdn.example.com');
+    const cdnUrl = originalUrl.replace(/^https?:\/\/[^/]+/, 'https://cdn.example.com');
 
     // Add location-based routing if needed
     if (location) {

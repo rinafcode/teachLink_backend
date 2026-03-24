@@ -6,18 +6,19 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
 import { CollaborationService } from './collaboration.service';
-import { SharedDocumentService, CollaborativeDocument } from './documents/shared-document.service';
-import { WhiteboardService, CollaborativeWhiteboard } from './whiteboard/whiteboard.service';
+import { SharedDocumentService } from './documents/shared-document.service';
+import { WhiteboardService } from './whiteboard/whiteboard.service';
 import { VersionControlService } from './versioning/version-control.service';
-import { CollaborationPermissionsService } from './permissions/collaboration-permissions.service';
+import {
+  CollaborationPermissionsService,
+  PermissionLevel,
+} from './permissions/collaboration-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionLevel } from './permissions/collaboration-permissions.service';
 
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)

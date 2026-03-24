@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Experiment } from '../entities/experiment.entity';
+import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
 import { ExperimentVariant } from '../entities/experiment-variant.entity';
 import { StatisticalAnalysisService } from '../analysis/statistical-analysis.service';
-import { ExperimentStatus } from '../entities/experiment.entity';
 
 export interface WinnerSelectionCriteria {
   confidenceLevel: number;
@@ -162,9 +161,9 @@ export class AutomatedDecisionService {
    * Calculates effect size for a specific variant compared to control
    */
   private async calculateEffectSizeForVariant(
-    experimentId: string,
-    variantId: string,
-    controlId: string,
+    _experimentId: string,
+    _variantId: string,
+    _controlId: string,
   ): Promise<number> {
     // This would use the statistical analysis service to calculate effect size
     // For now, returning a placeholder value
@@ -221,9 +220,9 @@ export class AutomatedDecisionService {
     }
 
     // Check if all variants have sufficient sample size
-    const minimumSampleSize = experiment.minimumSampleSize || 100;
+    const _minimumSampleSize = experiment.minimumSampleSize || 100;
 
-    for (const variant of experiment.variants) {
+    for (const _variant of experiment.variants) {
       // This would check actual sample sizes from metrics
       // For now, we'll assume variants are ready
     }

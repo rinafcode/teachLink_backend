@@ -4,7 +4,6 @@ import {
   Get,
   Param,
   Body,
-  UseGuards,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,

@@ -506,11 +506,12 @@ export class DataQualityService {
         return value !== '' && value !== null && value !== undefined;
       case 'valid email format':
         return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-      case 'within last 5 years':
+      case 'within last 5 years': {
         const date = new Date(value);
         const fiveYearsAgo = new Date();
         fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
         return date >= fiveYearsAgo;
+      }
       default:
         return true;
     }

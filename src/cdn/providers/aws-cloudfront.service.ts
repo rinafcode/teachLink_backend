@@ -5,8 +5,6 @@ import {
   CloudFrontClient,
   CreateInvalidationCommand,
   GetInvalidationCommand,
-  CreateDistributionCommand,
-  UpdateDistributionCommand,
 } from '@aws-sdk/client-cloudfront';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
@@ -135,7 +133,7 @@ export class AWSCloudFrontService {
       const result = await this.cloudfrontClient.send(command);
 
       // Wait for invalidation to complete
-      await this.waitForInvalidation(result.Invalidation?.Id!);
+      await this.waitForInvalidation(result.Invalidation?.Id || '');
 
       return {
         success: true,
@@ -170,7 +168,7 @@ export class AWSCloudFrontService {
 
       const result = await this.cloudfrontClient.send(command);
 
-      await this.waitForInvalidation(result.Invalidation?.Id!);
+      await this.waitForInvalidation(result.Invalidation?.Id || '');
 
       return {
         success: true,

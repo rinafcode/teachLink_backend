@@ -7,7 +7,6 @@ import { AssetOptimizationService } from './optimization/asset-optimization.serv
 import { EdgeCachingService } from './caching/edge-caching.service';
 import { GeoLocationService } from './geo/geo-location.service';
 import { CloudflareService } from './providers/cloudflare.service';
-import { AWSCloudFrontService } from './providers/aws-cloudfront.service';
 import { ContentMetadata, ContentType, ContentStatus } from './entities/content-metadata.entity';
 
 export interface ContentDeliveryOptions {

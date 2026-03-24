@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { redisStore } from 'cache-manager-redis-store';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,11 +27,9 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import { envValidationSchema } from './config/env.validation';
 import { HealthModule } from './health/health.module';
-import { cacheConfig } from './config/cache.config';
 import { SessionModule } from './session/session.module';
 import { createBullRedisClient } from './common/utils/bull-redis.util';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
 import { CustomThrottleGuard } from './common/guards/throttle.guard';
 
 @Module({
@@ -72,20 +71,12 @@ import { CustomThrottleGuard } from './common/guards/throttle.guard';
       port: parseInt(process.env.REDIS_PORT || '6379'),
     }),
     SessionModule,
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: () => ({
+    ThrottlerModule.forRoot([
+      {
         ttl: parseInt(process.env.THROTTLE_TTL || '60'),
         limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
-        storage: {
-          type: 'redis',
-          options: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379'),
-          },
-        },
-      }),
-    }),
+      },
+    ]),
     HealthModule,
     SyncModule,
     MediaModule,

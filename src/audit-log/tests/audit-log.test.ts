@@ -1,7 +1,6 @@
 import { AuditLogService } from '../audit-log.service';
 import { Repository } from 'typeorm';
 import { AuditLog } from '../audit-log.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
 
 describe('AuditLogService', () => {
   let service: AuditLogService;
