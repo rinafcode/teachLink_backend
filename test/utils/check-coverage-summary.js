@@ -1,5 +1,9 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const summaryPath = path.resolve(process.cwd(), 'coverage/coverage-summary.json');
 
@@ -32,9 +36,7 @@ for (const metric of metrics) {
 if (failed.length > 0) {
   console.error('Coverage threshold check failed:');
   for (const { metric, actual, expected } of failed) {
-    console.error(
-      ` - ${metric}: ${actual.toFixed(2)}% is below required ${expected}%`,
-    );
+    console.error(` - ${metric}: ${actual.toFixed(2)}% is below required ${expected}%`);
   }
   process.exit(1);
 }

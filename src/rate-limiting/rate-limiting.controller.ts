@@ -3,7 +3,7 @@ import { RateLimitingService } from './rate-limiting.service';
 import { RateLimitGuard } from './services/limit-guard/guard';
 import { CreateRateLimitingDto } from './dto/create-rate-limiting.dto';
 import { UpdateRateLimitingDto } from './dto/update-rate-limiting.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('rate-limiting')
 export class RateLimitingController {
