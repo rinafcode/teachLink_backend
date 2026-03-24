@@ -7,8 +7,8 @@ import {
   Index,
   OneToMany,
 } from 'typeorm';
-import { Course } from 'src/courses/entities/course.entity';
-import { Enrollment } from 'src/courses/entities/enrollment.entity';
+import { Course } from '../../courses/entities/course.entity';
+import { Enrollment } from '../../courses/entities/enrollment.entity';
 
 export enum UserRole {
   STUDENT = 'student',
