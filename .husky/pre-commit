@@ -1,20 +1,3 @@
-#!/usr/bin/env sh
-# .husky/pre-commit
-#
-# Runs automatically before every `git commit`.
-# Exits non-zero to abort the commit if any check fails.
-#
-# What runs:
-#   lint-staged  — Prettier (format) + ESLint (lint) on staged files only.
-#
-# To skip this hook in an emergency (NOT recommended for normal flow):
-#   git commit --no-verify -m "your message"
-#
-# To re-install hooks after a fresh `npm ci`:
-#   npm run prepare
-
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "⚡ Running pre-commit checks via lint-staged..."
 
 npx lint-staged --config lint-staged.config.js
