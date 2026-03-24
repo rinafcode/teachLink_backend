@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
+import { CachingService } from '../caching/caching.service';
+import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
 
 @Injectable()
 export class SearchService {
@@ -9,62 +11,88 @@ export class SearchService {
     private readonly elasticsearchService: ElasticsearchService,
     private readonly autoCompleteService: AutoCompleteService,
     private readonly searchFiltersService: SearchFiltersService,
+    private readonly cachingService: CachingService,
   ) {}
 
   async performSearch(query: string, filters: any, sort?: string) {
-    const searchBody = {
-      query: {
-        bool: {
-          must: [
-            {
-              multi_match: {
-                query,
-                fields: ['title^2', 'description', 'content', 'tags'],
-              },
+    // Create a cache key from the search parameters
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(query, filters, sort)}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const searchBody = {
+          query: {
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query,
+                    fields: ['title^2', 'description', 'content', 'tags'],
+                  },
+                },
+              ],
+              filter: this.buildFilters(filters),
             },
-          ],
-          filter: this.buildFilters(filters),
-        },
-      },
-      sort: this.buildSort(sort),
-      track_total_hits: true,
-    };
+          },
+          sort: this.buildSort(sort),
+          track_total_hits: true,
+        };
 
-    // Ensure sort fields are properly formatted for ES
-    if (searchBody.sort && Array.isArray(searchBody.sort)) {
-      searchBody.sort = searchBody.sort.map((sortItem) => {
-        if (typeof sortItem === 'object' && sortItem !== null) {
-          // Convert object keys to proper format
-          const newSortItem = {};
-          for (const [key, value] of Object.entries(sortItem)) {
-            if (typeof value === 'object' && value !== null) {
-              newSortItem[key] = { ...value };
-            } else {
-              newSortItem[key] = value;
+        // Ensure sort fields are properly formatted for ES
+        if (searchBody.sort && Array.isArray(searchBody.sort)) {
+          searchBody.sort = searchBody.sort.map((sortItem) => {
+            if (typeof sortItem === 'object' && sortItem !== null) {
+              // Convert object keys to proper format
+              const newSortItem = {};
+              for (const [key, value] of Object.entries(sortItem)) {
+                if (typeof value === 'object' && value !== null) {
+                  newSortItem[key] = { ...value };
+                } else {
+                  newSortItem[key] = value;
+                }
+              }
+              return newSortItem;
             }
-          }
-          return newSortItem;
+            return sortItem;
+          });
         }
-        return sortItem;
-      });
-    }
 
-    const result = await this.elasticsearchService.search({
-      index: 'courses',
-      body: searchBody,
-    });
+        const result = await this.elasticsearchService.search({
+          index: 'courses',
+          body: searchBody,
+        });
 
-    const rankedResults = this.rankResults(result.hits.hits);
-    await this.logSearch(query, rankedResults.length);
-    return rankedResults;
+        const rankedResults = this.rankResults(result.hits.hits);
+        await this.logSearch(query, rankedResults.length);
+        return rankedResults;
+      },
+      CACHE_TTL.SEARCH_RESULTS,
+    );
   }
 
   async getAutoComplete(query: string) {
-    return this.autoCompleteService.getSuggestions(query);
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:autocomplete:${query}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        return this.autoCompleteService.getSuggestions(query);
+      },
+      CACHE_TTL.SEARCH_RESULTS,
+    );
   }
 
   async getAvailableFilters() {
-    return this.searchFiltersService.getFilters();
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:filters`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        return this.searchFiltersService.getFilters();
+      },
+      CACHE_TTL.STATIC_CONTENT,
+    );
   }
 
   private buildFilters(filters: any) {
@@ -103,5 +131,16 @@ export class SearchService {
   private async logSearch(_query: string, _resultsCount: number) {
     // Simple analytics: log to console (in production, store in database)
     // console.log(`Search query: "${query}", Results count: ${resultsCount}`);
+  }
+
+  private hashSearchParams(query: string, filters: any, sort?: string): string {
+    const str = `${query}:${JSON.stringify(filters)}:${sort || 'default'}`;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
   }
 }
