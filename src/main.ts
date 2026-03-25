@@ -14,7 +14,10 @@ import { SESSION_REDIS_CLIENT } from './session/session.constants';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const bootstrapStartTime = Date.now();
+
+  // Create the application with dynamic module loading
+  const app = await NestFactory.create(await AppModule.forRoot());
 
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
 
@@ -87,6 +90,8 @@ async function bootstrapWorker() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
+  const startupTime = Date.now() - bootstrapStartTime;
+
   if (sessionConfig.stickySessionsRequired) {
     logger.log(
       'Sticky sessions are enabled by policy. Configure LB cookie affinity on teachlink.sid.',
@@ -95,6 +100,7 @@ async function bootstrapWorker() {
 
   logger.log(`🚀 TeachLink API running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs available at http://localhost:${port}/api`);
+  logger.log(`⏱️  Application startup completed in ${startupTime}ms`);
 }
 
 async function bootstrap() {
