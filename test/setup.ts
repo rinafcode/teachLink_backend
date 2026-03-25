@@ -12,6 +12,8 @@ declare global {
 
 // Increase Node.js memory limit for tests
 process.env.NODE_OPTIONS = '--max-old-space-size=2048';
+process.env.STRIPE_SECRET_KEY = 'sk_test_placeholder';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_placeholder';
 
 // Mock console methods to reduce output noise
 global.console = {

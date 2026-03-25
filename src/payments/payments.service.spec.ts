@@ -9,6 +9,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentsService } from './payments.service';
 import { User } from '../users/entities/user.entity';
 import { TransactionService } from '../common/database/transaction.service';
+import { ProviderFactoryService } from './providers/provider-factory.service';
 import { expectNotFound, expectUnauthorized, expectValidationFailure } from '../../test/utils';
 
 type RepoMock = {
@@ -35,6 +36,7 @@ describe('PaymentsService', () => {
   let userRepository: RepoMock;
   let refundRepository: RepoMock;
   let invoiceRepository: RepoMock;
+  let providerFactoryMock: { getProvider: jest.Mock };
 
   const baseCreatePaymentDto: CreatePaymentDto = {
     courseId: 'course-1',
@@ -64,6 +66,8 @@ describe('PaymentsService', () => {
       ),
     };
 
+    providerFactoryMock = { getProvider: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentsService,
@@ -91,6 +95,10 @@ describe('PaymentsService', () => {
           provide: TransactionService,
           useValue: mockTransactionService,
         },
+        {
+          provide: ProviderFactoryService,
+          useValue: providerFactoryMock,
+        },
       ],
     }).compile();
 
@@ -117,7 +125,7 @@ describe('PaymentsService', () => {
         requiresAction: false,
       }),
     };
-    jest.spyOn(service as any, 'getProvider').mockReturnValue(provider);
+    providerFactoryMock.getProvider.mockReturnValue(provider);
 
     await expect(
       service.createPaymentIntent('user-1', baseCreatePaymentDto),
@@ -162,7 +170,7 @@ describe('PaymentsService', () => {
 
   it('supports unauthorized flow when provider rejects a request', async () => {
     userRepository.findOne.mockResolvedValue({ id: 'user-1' });
-    jest.spyOn(service as any, 'getProvider').mockReturnValue({
+    providerFactoryMock.getProvider.mockReturnValue({
       createPaymentIntent: jest
         .fn()
         .mockRejectedValue(new UnauthorizedException('Invalid provider token')),
