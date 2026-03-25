@@ -1,26 +1,20 @@
 import { IsString, IsEnum, IsOptional } from 'class-validator';
 import { PaymentMethod } from '../entities/payment.entity';
-
-export enum SubscriptionInterval {
-  MONTHLY = 'monthly',
-  YEARLY = 'yearly',
-  QUARTERLY = 'quarterly',
-  WEEKLY = 'weekly',
-}
+import { SubscriptionInterval } from '../entities/subscription.entity';
 
 export class CreateSubscriptionDto {
   @IsString()
   courseId: string;
 
-  @IsString()
+  @IsEnum(SubscriptionInterval)
   interval: SubscriptionInterval;
 
   @IsEnum(PaymentMethod)
-  provider: string;
+  provider: PaymentMethod;
 
   @IsString()
   priceId: string;
 
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

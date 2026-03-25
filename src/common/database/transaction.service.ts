@@ -68,7 +68,7 @@ export class TransactionService {
       metrics.endTime = endTime;
       metrics.duration = duration;
       metrics.status = 'ROLLED_BACK';
-      metrics.error = error.message;
+      metrics.error = error instanceof Error ? error.message : String(error);
 
       this.logger.error(`Transaction ${transactionId} rolled back after ${duration}ms:`, error);
       throw error;
@@ -132,7 +132,7 @@ export class TransactionService {
     maxRetries: number = 3,
     retryDelay: number = 1000,
   ): Promise<T> {
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -196,7 +196,7 @@ export class TransactionService {
   /**
    * Check if error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
     const retryableErrors = [
       'deadlock',
       'serialization failure',
@@ -205,7 +205,7 @@ export class TransactionService {
       'connection',
     ];
 
-    const errorMessage = error.message?.toLowerCase() || '';
+    const errorMessage = (error instanceof Error ? error.message : String(error)).toLowerCase();
     return retryableErrors.some((msg) => errorMessage.includes(msg));
   }
 

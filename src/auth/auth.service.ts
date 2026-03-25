@@ -7,6 +7,47 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { SessionService } from '../session/session.service';
 import { TransactionService } from '../common/database/transaction.service';
+import { UserRole } from '../users/entities/user.entity';
+
+interface JwtTokenPayload {
+  sub: string;
+  email: string;
+  role: UserRole;
+  sid: string;
+}
+
+interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface AuthUserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  isEmailVerified: boolean;
+}
+
+interface RegisterResponse {
+  user: AuthUserResponse;
+  accessToken: string;
+  refreshToken: string;
+  message: string;
+}
+
+interface LoginResponse {
+  user: AuthUserResponse;
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface TokenUser {
+  id: string;
+  email: string;
+  role: UserRole;
+}
 
 @Injectable()
 export class AuthService {
@@ -18,7 +59,7 @@ export class AuthService {
     private readonly transactionService: TransactionService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto): Promise<RegisterResponse> {
     return await this.transactionService.runInTransaction(async (_manager) => {
       // Create user
       const user = await this.usersService.create(registerDto);
@@ -59,7 +100,7 @@ export class AuthService {
     });
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<LoginResponse> {
     // Find user
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user) {
@@ -101,7 +142,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string): Promise<AuthTokens> {
     try {
       // Verify refresh token
       const payload = this.jwtService.verify(refreshToken, {
@@ -148,7 +189,7 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, sessionId?: string) {
+  async logout(userId: string, sessionId?: string): Promise<{ message: string }> {
     await this.sessionService.withLock(`logout:${userId}`, async () => {
       if (sessionId) {
         await this.sessionService.removeSession(sessionId);
@@ -159,7 +200,7 @@ export class AuthService {
     return { message: 'Logout successful' };
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       // Don't reveal if user exists
@@ -178,7 +219,7 @@ export class AuthService {
     return { message: 'If the email exists, a password reset link has been sent.' };
   }
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
     // Find user by reset token
     const user = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
 
@@ -200,7 +241,10 @@ export class AuthService {
     return { message: 'Password has been reset successfully' };
   }
 
-  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
     const user = await this.usersService.findOne(userId);
 
     // Verify current password
@@ -215,7 +259,7 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string): Promise<{ message: string }> {
     // Find user by verification token
     const user = await this.usersService.findByEmailVerificationToken(token);
 
@@ -229,7 +273,7 @@ export class AuthService {
     }
 
     // Update user as verified
-    await this.usersService.update(user.id, { isEmailVerified: true } as any);
+    await this.usersService.update(user.id, { isEmailVerified: true });
 
     // Clear verification token
     await this.usersService.updateEmailVerificationToken(user.id, null, null);
@@ -237,8 +281,8 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  private async generateTokens(user: any, sessionId: string) {
-    const payload = {
+  private async generateTokens(user: TokenUser, sessionId: string): Promise<AuthTokens> {
+    const payload: JwtTokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,

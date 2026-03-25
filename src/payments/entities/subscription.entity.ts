@@ -54,7 +54,7 @@ export class Subscription {
   @Column({ type: 'timestamp', nullable: true })
   currentPeriodEnd: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'boolean', default: false })
   cancelAtPeriodEnd: boolean;
 
   @Column({ type: 'timestamp', nullable: true })

@@ -22,5 +22,5 @@ export class CreatePaymentDto {
   provider?: string = 'stripe';
 
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

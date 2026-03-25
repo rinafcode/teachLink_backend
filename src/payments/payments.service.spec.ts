@@ -8,6 +8,7 @@ import { Subscription } from './entities/subscription.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentsService } from './payments.service';
 import { User } from '../users/entities/user.entity';
+import { TransactionService } from '../common/database/transaction.service';
 import { expectNotFound, expectUnauthorized, expectValidationFailure } from '../../test/utils';
 
 type RepoMock = {
@@ -44,28 +45,51 @@ describe('PaymentsService', () => {
   };
 
   beforeEach(async () => {
+    const paymentRepoMock = createRepositoryMock();
+    const subscriptionRepoMock = createRepositoryMock();
+    const userRepoMock = createRepositoryMock();
+    const refundRepoMock = createRepositoryMock();
+    const invoiceRepoMock = createRepositoryMock();
+
+    const mockTransactionService = {
+      runInTransaction: jest.fn(
+        <T>(operation: (manager: { create: jest.Mock; save: jest.Mock }) => Promise<T>) =>
+          operation({
+            create: jest.fn((_Entity: unknown, data: Record<string, unknown>) => ({
+              id: 'payment-1',
+              ...data,
+            })),
+            save: jest.fn().mockResolvedValue(undefined),
+          }),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentsService,
         {
           provide: getRepositoryToken(Payment),
-          useValue: createRepositoryMock(),
+          useValue: paymentRepoMock,
         },
         {
           provide: getRepositoryToken(Subscription),
-          useValue: createRepositoryMock(),
+          useValue: subscriptionRepoMock,
         },
         {
           provide: getRepositoryToken(User),
-          useValue: createRepositoryMock(),
+          useValue: userRepoMock,
         },
         {
           provide: getRepositoryToken(Refund),
-          useValue: createRepositoryMock(),
+          useValue: refundRepoMock,
         },
         {
           provide: getRepositoryToken(Invoice),
-          useValue: createRepositoryMock(),
+          useValue: invoiceRepoMock,
+        },
+        {
+          provide: TransactionService,
+          useValue: mockTransactionService,
         },
       ],
     }).compile();
