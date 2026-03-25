@@ -26,6 +26,7 @@ export class CreateABTestVariantDto {
   @ApiPropertyOptional({ description: 'Template ID for this variant' })
   @IsUUID()
   @IsOptional()
+  @IsString()
   templateId?: string;
 
   @ApiPropertyOptional({ description: 'Sender name for this variant' })
@@ -37,6 +38,7 @@ export class CreateABTestVariantDto {
   @IsNumber()
   @Min(1)
   @Max(99)
+  @IsNotEmpty()
   weight: number;
 }
 
@@ -48,6 +50,8 @@ export class CreateABTestDto {
 
   @ApiProperty({ description: 'Campaign ID to run test on' })
   @IsUUID()
+  @IsNotEmpty()
+  @IsString()
   campaignId: string;
 
   @ApiProperty({ description: 'Field to test', example: 'subject' })
@@ -75,5 +79,6 @@ export class CreateABTestDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateABTestVariantDto)
+  @IsNotEmpty()
   variants: CreateABTestVariantDto[];
 }

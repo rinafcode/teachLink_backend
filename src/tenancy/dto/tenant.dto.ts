@@ -1,14 +1,27 @@
-import { IsString, IsOptional, IsEmail, IsEnum, IsInt, IsObject, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEmail,
+  IsEnum,
+  IsInt,
+  IsObject,
+  Min,
+  IsNotEmpty,
+  IsNumber,
+  IsUrl,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TenantStatus, TenantPlan } from '../entities/tenant.entity';
 
 export class CreateTenantDto {
   @ApiProperty({ example: 'acme-corp' })
   @IsString()
+  @IsNotEmpty()
   slug: string;
 
   @ApiProperty({ example: 'Acme Corporation' })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiPropertyOptional({ example: 'Leading provider of innovative solutions' })
@@ -29,11 +42,13 @@ export class CreateTenantDto {
   @ApiPropertyOptional({ example: 'owner@acme.com' })
   @IsOptional()
   @IsEmail()
+  @IsString()
   ownerEmail?: string;
 
   @ApiPropertyOptional({ example: 'contact@acme.com' })
   @IsOptional()
   @IsEmail()
+  @IsString()
   contactEmail?: string;
 
   @ApiPropertyOptional({ example: '+1234567890' })
@@ -45,17 +60,20 @@ export class CreateTenantDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @IsNumber()
   userLimit?: number;
 
   @ApiPropertyOptional({ example: 10000 })
   @IsOptional()
   @IsInt()
   @Min(0)
+  @IsNumber()
   storageLimit?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   metadata?: Record<string, any>;
 }
 
@@ -88,6 +106,7 @@ export class UpdateTenantDto {
   @ApiPropertyOptional({ example: 'contact@acme.com' })
   @IsOptional()
   @IsEmail()
+  @IsString()
   contactEmail?: string;
 
   @ApiPropertyOptional({ example: '+1234567890' })
@@ -99,17 +118,20 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsInt()
   @Min(0)
+  @IsNumber()
   userLimit?: number;
 
   @ApiPropertyOptional({ example: 10000 })
   @IsOptional()
   @IsInt()
   @Min(0)
+  @IsNumber()
   storageLimit?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   metadata?: Record<string, any>;
 }
 
@@ -132,26 +154,31 @@ export class UpdateTenantConfigDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   features?: Record<string, any>;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   notifications?: Record<string, any>;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   security?: Record<string, any>;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   integrations?: Record<string, any>;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   customSettings?: Record<string, any>;
 }
 
@@ -159,11 +186,13 @@ export class UpdateTenantCustomizationDto {
   @ApiPropertyOptional({ example: 'https://example.com/logo.png' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   logoUrl?: string;
 
   @ApiPropertyOptional({ example: 'https://example.com/favicon.ico' })
   @IsOptional()
   @IsString()
+  @IsUrl()
   faviconUrl?: string;
 
   @ApiPropertyOptional({ example: '#007bff' })
@@ -189,6 +218,7 @@ export class UpdateTenantCustomizationDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   theme?: Record<string, any>;
 
   @ApiPropertyOptional()
@@ -204,11 +234,14 @@ export class UpdateTenantCustomizationDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsEmail()
+  @IsString()
   emailTemplates?: Record<string, any>;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsString()
   landingPageConfig?: Record<string, any>;
 
   @ApiPropertyOptional({ example: 'custom.acme.com' })
@@ -219,5 +252,7 @@ export class UpdateTenantCustomizationDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
+  @IsUrl()
+  @IsString()
   socialLinks?: Record<string, string>;
 }

@@ -1,4 +1,4 @@
-import { IsOptional, IsInt, Min, Max, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsString, IsIn, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export enum SortOrder {
@@ -11,6 +11,7 @@ export class PaginationQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @IsNumber()
   page?: number = 1;
 
   @IsOptional()
@@ -18,6 +19,7 @@ export class PaginationQueryDto {
   @IsInt()
   @Min(1)
   @Max(100)
+  @IsNumber()
   limit?: number = 10;
 
   @IsOptional()
