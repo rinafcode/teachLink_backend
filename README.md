@@ -145,6 +145,7 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 The application uses strategic database indexes to optimize query performance, especially for frequently accessed data and pagination operations.
 
 #### Single Column Indexes
+
 - **User.email**: Unique index for authentication lookups
 - **User.username**: Index for profile searches
 - **User.tenantId**: Index for multi-tenant queries
@@ -162,16 +163,56 @@ The application uses strategic database indexes to optimize query performance, e
 - **Lesson.moduleId**: Index for module lesson queries
 
 #### Composite Indexes
+
 - **Enrollment (userId, status)**: Optimized for user enrollment status queries
 - **Enrollment (courseId, status)**: Optimized for course enrollment analytics
 - **Payment (userId, status)**: Optimized for user payment status filtering
 - **Subscription (userId, status)**: Optimized for user subscription status queries
 
 #### Performance Considerations
+
 - Indexes are added to foreign key columns to improve JOIN performance
 - Composite indexes support common query patterns (e.g., filtering by user + status)
 - Partial indexes are used where applicable for better selectivity
 - Index maintenance overhead is monitored to ensure write performance is not negatively impacted
+
+### Connection Pooling (TypeORM + PostgreSQL)
+
+The backend now supports explicit database pool tuning through environment variables:
+
+- `DATABASE_POOL_MAX` (default: `30`)
+- `DATABASE_POOL_MIN` (default: `5`)
+- `DATABASE_POOL_ACQUIRE_TIMEOUT_MS` (default: `10000`)
+- `DATABASE_POOL_IDLE_TIMEOUT_MS` (default: `30000`)
+
+Recommended starting points:
+
+| Environment | `DATABASE_POOL_MAX` | `DATABASE_POOL_MIN` | Acquire Timeout | Idle Timeout |
+| ----------- | ------------------- | ------------------- | --------------- | ------------ |
+| Development | 10                  | 2                   | 5000 ms         | 10000 ms     |
+| Staging     | 20                  | 5                   | 10000 ms        | 30000 ms     |
+| Production  | 30 to 60            | 5 to 10             | 10000 ms        | 30000 ms     |
+
+Sizing rule:
+
+- Keep total active connections across workers below PostgreSQL capacity.
+- Formula: `DATABASE_POOL_MAX x app_instances x cluster_workers <= postgres_max_connections - reserved_connections`.
+- Reserve at least 20 to 30 connections for migrations, admin access, and background jobs.
+
+Load testing checklist:
+
+```bash
+# 1) Start API
+npm run start:dev
+
+# 2) In another terminal, run concurrent load against a DB-backed endpoint
+npx autocannon -c 100 -d 60 http://localhost:3000/health
+
+# 3) Observe active connections in PostgreSQL (replace DB name)
+psql -d teachlink -c "select count(*) as active_connections from pg_stat_activity where datname='teachlink';"
+```
+
+Expected result: no connection-acquire timeouts, stable latency under sustained concurrency, and active connections staying within configured pool bounds.
 
 ## �🚀 Deployment
 
@@ -256,6 +297,7 @@ DB_PASSWORD=yourpassword
 DB_NAME=teachlink
 
 JWT_SECRET=your_jwt_secret
+ENCRYPTION_SECRET=your_32_char_encryption_secret
 JWT_EXPIRATION=3600
 
 CLOUDINARY_API_KEY=your_key

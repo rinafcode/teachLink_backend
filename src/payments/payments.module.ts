@@ -14,12 +14,13 @@ import { Subscription } from './entities/subscription.entity';
 import { Invoice } from './entities/invoice.entity';
 import { Refund } from './entities/refund.entity';
 import { UsersModule } from '../users/users.module';
+import { User } from '../users/entities/user.entity';
 import { TransactionService } from '../common/database/transaction.service';
 import { TransactionHelperService } from '../common/database/transaction-helper.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund]),
+    TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User]),
     BullModule.registerQueue({
       name: 'subscriptions',
     }),
