@@ -4,6 +4,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { expectNotFound, expectUnauthorized, expectValidationFailure } from '../../test/utils';
+import { UserRole } from '../users/entities/user.entity';
 
 describe('PaymentsController', () => {
   let controller: PaymentsController;
@@ -13,7 +14,7 @@ describe('PaymentsController', () => {
     getInvoice: jest.Mock;
   };
 
-  const request = { user: { id: 'user-1' } };
+  const request = { user: { id: 'user-1', email: 'test@example.com', role: UserRole.STUDENT } };
   const createPaymentDto: CreatePaymentDto = {
     courseId: 'course-1',
     amount: 120,

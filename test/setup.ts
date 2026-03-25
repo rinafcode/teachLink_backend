@@ -1,4 +1,14 @@
 // Test setup file to optimize memory usage and test performance
+export {};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var testUtils: {
+    createMinimalMock: (properties: Record<string, unknown>) => Record<string, unknown>;
+    createRepositoryMock: () => Record<string, jest.Mock>;
+    createServiceMock: () => Record<string, never>;
+  };
+}
 
 // Increase Node.js memory limit for tests
 process.env.NODE_OPTIONS = '--max-old-space-size=2048';
@@ -18,9 +28,9 @@ global.console = {
 jest.setTimeout(10000);
 
 // Global test utilities
-global.testUtils = {
+(globalThis as Record<string, unknown>).testUtils = {
   // Helper to create minimal mock objects
-  createMinimalMock: (properties: Record<string, any>) => ({
+  createMinimalMock: (properties: Record<string, unknown>) => ({
     ...properties,
     id: properties.id || 'test-id',
     createdAt: properties.createdAt || new Date(),

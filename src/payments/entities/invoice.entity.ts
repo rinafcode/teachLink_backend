@@ -10,6 +10,14 @@ import {
 import { Payment } from './payment.entity';
 import { User } from '../../users/entities/user.entity';
 
+export enum InvoiceStatus {
+  DRAFT = 'draft',
+  SENT = 'sent',
+  PAID = 'paid',
+  OVERDUE = 'overdue',
+  CANCELLED = 'cancelled',
+}
+
 interface InvoiceItem {
   description: string;
   amount: number;
@@ -42,10 +50,10 @@ export class Invoice {
 
   @Column({
     type: 'enum',
-    enum: ['draft', 'sent', 'paid', 'overdue', 'cancelled'],
-    default: 'draft',
+    enum: InvoiceStatus,
+    default: InvoiceStatus.DRAFT,
   })
-  status: string;
+  status: InvoiceStatus;
 
   @Column({ type: 'date', nullable: true })
   issuedDate: Date;

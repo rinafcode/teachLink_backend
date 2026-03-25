@@ -2,14 +2,23 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment, PaymentStatus, PaymentMethod } from './entities/payment.entity';
-import { Subscription } from './entities/subscription.entity';
+import { Subscription, SubscriptionStatus } from './entities/subscription.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { User } from '../users/entities/user.entity';
-import { Refund } from './entities/refund.entity';
-import { Invoice } from './entities/invoice.entity';
+import { Refund, RefundStatus } from './entities/refund.entity';
+import { Invoice, InvoiceStatus } from './entities/invoice.entity';
 import { RefundDto } from './dto/refund.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { TransactionService } from '../common/database/transaction.service';
+import {
+  PaymentProvider,
+  PaymentMetadata,
+  CreatePaymentIntentResult,
+  CreateSubscriptionResult,
+  ProcessRefundResult,
+  SubscriptionWebhookEvent,
+  RefundWebhookData,
+} from './interfaces/payment-provider.interface';
 
 @Injectable()
 export class PaymentsService {
@@ -27,11 +36,15 @@ export class PaymentsService {
     private readonly transactionService: TransactionService,
   ) {}
 
-  private getProvider(_provider: string) {
+  private getProvider(_provider: string): PaymentProvider {
     // Placeholder implementation - in a real app you would have a provider factory
     // Return a mock provider or throw an error for unsupported providers
     return {
-      createPaymentIntent: async (_amount: number, _currency: string, _metadata: any) => {
+      createPaymentIntent: async (
+        _amount: number,
+        _currency: string,
+        _metadata: PaymentMetadata,
+      ) => {
         return {
           paymentIntentId: `pi_${Math.random().toString(36).substr(2, 9)}`,
           clientSecret: `cs_${Math.random().toString(36).substr(2, 9)}`,
@@ -44,13 +57,16 @@ export class PaymentsService {
           status: 'succeeded',
         };
       },
-      handleWebhook: async (_payload: any, _signature: string) => {
+      handleWebhook: async (_payload: Record<string, unknown>, _signature: string) => {
         return _payload;
       },
     };
   }
 
-  async createPaymentIntent(userId: string, createPaymentDto: CreatePaymentDto) {
+  async createPaymentIntent(
+    userId: string,
+    createPaymentDto: CreatePaymentDto,
+  ): Promise<CreatePaymentIntentResult> {
     return await this.transactionService.runInTransaction(async (manager) => {
       const { courseId, amount, currency, provider, metadata } = createPaymentDto;
 
@@ -63,10 +79,10 @@ export class PaymentsService {
       }
 
       // Get payment provider
-      const paymentProvider = this.getProvider(provider);
+      const paymentProvider = this.getProvider(provider ?? 'stripe');
 
       // Create payment intent
-      const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency, {
+      const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency ?? 'USD', {
         ...metadata,
         userId,
         courseId,
@@ -96,7 +112,10 @@ export class PaymentsService {
     });
   }
 
-  async createSubscription(userId: string, createSubscriptionDto: CreateSubscriptionDto) {
+  async createSubscription(
+    userId: string,
+    createSubscriptionDto: CreateSubscriptionDto,
+  ): Promise<CreateSubscriptionResult> {
     const { interval } = createSubscriptionDto;
 
     // Verify user exists
@@ -114,13 +133,13 @@ export class PaymentsService {
     // Create subscription record
     const subscription = this.subscriptionRepository.create({
       providerSubscriptionId: `sub_${Math.random().toString(36).substr(2, 9)}`,
-      status: 'ACTIVE' as any, // Temporary workaround for enum mismatch
+      status: SubscriptionStatus.ACTIVE,
       interval,
       amount: 0, // Would come from priceId
       currency: 'USD',
       currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      user: { id: userId },
+      user: { id: userId } as User,
       userId,
     });
 
@@ -133,7 +152,7 @@ export class PaymentsService {
     };
   }
 
-  async processRefund(refundDto: RefundDto) {
+  async processRefund(refundDto: RefundDto): Promise<ProcessRefundResult> {
     const { paymentId, amount, reason } = refundDto;
 
     // Find payment
@@ -166,7 +185,7 @@ export class PaymentsService {
       reason,
       refundMethod: 'original_method',
       providerRefundId: refundResult.refundId,
-      status: 'PROCESSED' as any,
+      status: RefundStatus.PROCESSED,
     });
 
     await this.refundRepository.save(refund);
@@ -178,7 +197,7 @@ export class PaymentsService {
     };
   }
 
-  async getUserPayments(userId: string, limit: number, page: number) {
+  async getUserPayments(userId: string, limit: number, page: number): Promise<Payment[]> {
     const skip = (page - 1) * limit;
 
     return await this.paymentRepository.find({
@@ -189,14 +208,14 @@ export class PaymentsService {
     });
   }
 
-  async getUserSubscriptions(userId: string) {
+  async getUserSubscriptions(userId: string): Promise<Subscription[]> {
     return await this.subscriptionRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async getInvoice(paymentId: string, userId: string) {
+  async getInvoice(paymentId: string, userId: string): Promise<Invoice> {
     // Find payment
     const payment = await this.paymentRepository.findOne({
       where: { id: paymentId, userId },
@@ -228,7 +247,7 @@ export class PaymentsService {
         ],
         taxAmount: 0,
         totalAmount: payment.amount,
-        status: 'paid',
+        status: InvoiceStatus.PAID,
       });
 
       await this.invoiceRepository.save(invoice);
@@ -237,14 +256,18 @@ export class PaymentsService {
     return invoice;
   }
 
-  async updatePaymentStatus(paymentId: string, status: string, metadata?: any) {
+  async updatePaymentStatus(
+    paymentId: string,
+    status: PaymentStatus,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
     await this.paymentRepository.update(
       { providerPaymentId: paymentId },
-      { status: status as PaymentStatus, metadata },
+      { status, ...(metadata ? { metadata: metadata as Record<string, any> } : {}) },
     );
   }
 
-  async handleSubscriptionEvent(event: any) {
+  async handleSubscriptionEvent(event: SubscriptionWebhookEvent): Promise<void> {
     // Handle subscription events from webhook
     const subscriptionId = event.data.object.id;
     const status = event.data.object.status;
@@ -252,11 +275,14 @@ export class PaymentsService {
     // Update subscription in database
     await this.subscriptionRepository.update(
       { providerSubscriptionId: subscriptionId },
-      { status },
+      { status: status as SubscriptionStatus },
     );
   }
 
-  async processRefundFromWebhook(paymentIntentId: string, refundData: any) {
+  async processRefundFromWebhook(
+    paymentIntentId: string,
+    refundData: RefundWebhookData,
+  ): Promise<void> {
     // Find payment by provider ID
     const payment = await this.paymentRepository.findOne({
       where: { providerPaymentId: paymentIntentId },
@@ -273,7 +299,7 @@ export class PaymentsService {
       reason: 'webhook_refund',
       refundMethod: 'original_method',
       providerRefundId: refundData.id,
-      status: 'PROCESSED' as any,
+      status: RefundStatus.PROCESSED,
     });
 
     await this.refundRepository.save(refund);

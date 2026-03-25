@@ -9,6 +9,22 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { RefundDto } from './dto/refund.dto';
 import { UserRole } from '../users/entities/user.entity';
+import { Payment } from './entities/payment.entity';
+import { Subscription } from './entities/subscription.entity';
+import { Invoice } from './entities/invoice.entity';
+import {
+  CreatePaymentIntentResult,
+  CreateSubscriptionResult,
+  ProcessRefundResult,
+} from './interfaces/payment-provider.interface';
+
+interface AuthenticatedRequest {
+  user: {
+    id: string;
+    email: string;
+    role: UserRole;
+  };
+}
 
 @ApiTags('payments')
 @Controller('payments')
@@ -21,7 +37,10 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
   @ApiResponse({ status: 201, description: 'Payment intent created' })
-  async createPaymentIntent(@Request() req, @Body() createPaymentDto: CreatePaymentDto) {
+  async createPaymentIntent(
+    @Request() req: AuthenticatedRequest,
+    @Body() createPaymentDto: CreatePaymentDto,
+  ): Promise<CreatePaymentIntentResult> {
     return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto);
   }
 
@@ -30,7 +49,10 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a subscription for premium course' })
   @ApiResponse({ status: 201, description: 'Subscription created' })
-  async createSubscription(@Request() req, @Body() createSubscriptionDto: CreateSubscriptionDto) {
+  async createSubscription(
+    @Request() req: AuthenticatedRequest,
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+  ): Promise<CreateSubscriptionResult> {
     return this.paymentsService.createSubscription(req.user.id, createSubscriptionDto);
   }
 
@@ -38,7 +60,7 @@ export class PaymentsController {
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({ summary: 'Process a refund' })
   @ApiResponse({ status: 200, description: 'Refund processed' })
-  async processRefund(@Body() refundDto: RefundDto) {
+  async processRefund(@Body() refundDto: RefundDto): Promise<ProcessRefundResult> {
     return this.paymentsService.processRefund(refundDto);
   }
 
@@ -46,7 +68,10 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get invoice for a payment' })
   @ApiResponse({ status: 200, description: 'Invoice retrieved' })
-  async getInvoice(@Param('paymentId') paymentId: string, @Request() req) {
+  async getInvoice(
+    @Param('paymentId') paymentId: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<Invoice> {
     return this.paymentsService.getInvoice(paymentId, req.user.id);
   }
 
@@ -55,10 +80,10 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Get user payment history' })
   @ApiResponse({ status: 200, description: 'Payment history retrieved' })
   async getUserPayments(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Query('limit') limit: number = 10,
     @Query('page') page: number = 1,
-  ) {
+  ): Promise<Payment[]> {
     return this.paymentsService.getUserPayments(req.user.id, limit, page);
   }
 
@@ -66,7 +91,7 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user subscriptions' })
   @ApiResponse({ status: 200, description: 'Subscriptions retrieved' })
-  async getUserSubscriptions(@Request() req) {
+  async getUserSubscriptions(@Request() req: AuthenticatedRequest): Promise<Subscription[]> {
     return this.paymentsService.getUserSubscriptions(req.user.id);
   }
 }
