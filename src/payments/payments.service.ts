@@ -31,6 +31,7 @@ export class PaymentsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Refund)
     private readonly refundRepository: Repository<Refund>,
+    @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly transactionService: TransactionService,
     private readonly providerFactory: ProviderFactoryService,
