@@ -36,7 +36,7 @@ export class StatisticalAnalysisService {
     const results = {
       experimentId: experiment.id,
       confidenceLevel: experiment.confidenceLevel,
-      variants: [],
+      variants: [] as any[],
       statisticallySignificant: false,
     };
 
@@ -70,7 +70,7 @@ export class StatisticalAnalysisService {
       variantId: variant.id,
       variantName: variant.name,
       isControl: variant.isControl,
-      metrics: [],
+      metrics: [] as any[],
       overallPerformance: 0,
     };
 

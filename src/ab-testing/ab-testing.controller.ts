@@ -11,7 +11,6 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { ABTestingService, CreateExperimentDto } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
@@ -52,7 +51,7 @@ export class ABTestingController {
   @Post('experiments')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
-  async createExperiment(@Request() req, @Body() createExperimentDto: CreateExperimentDto) {
+  async createExperiment(@Body() createExperimentDto: CreateExperimentDto) {
     this.logger.log(`Creating new experiment: ${createExperimentDto.name}`);
     return await this.abTestingService.createExperiment(createExperimentDto);
   }

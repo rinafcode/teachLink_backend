@@ -4,7 +4,17 @@ import * as crypto from 'crypto';
 @Injectable()
 export class EncryptionService {
   private readonly algorithm = 'aes-256-gcm';
-  private readonly key = crypto.createHash('sha256').update(process.env.ENCRYPTION_SECRET).digest();
+  private readonly key = crypto.createHash('sha256').update(this.getEncryptionSecret()).digest();
+
+  private getEncryptionSecret(): string {
+    const secret = process.env.ENCRYPTION_SECRET;
+
+    if (!secret) {
+      throw new Error('ENCRYPTION_SECRET is required to initialize EncryptionService');
+    }
+
+    return secret;
+  }
 
   encrypt(text: string) {
     const iv = crypto.randomBytes(16);

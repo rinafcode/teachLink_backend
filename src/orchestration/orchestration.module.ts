@@ -1,4 +1,5 @@
 import { Module, Global } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { ServiceMeshService } from './service-mesh/service-mesh.service';
 import { WorkflowEngineService } from './workflow/workflow-engine.service';
 import { DistributedLockService } from './locks/distributed-lock.service';
@@ -7,6 +8,7 @@ import { HealthCheckerService } from './health/health-checker.service';
 
 @Global()
 @Module({
+  imports: [HttpModule],
   providers: [
     ServiceMeshService,
     WorkflowEngineService,
