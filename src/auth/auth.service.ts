@@ -8,6 +8,11 @@ import { randomBytes } from 'crypto';
 import { SessionService } from '../session/session.service';
 import { TransactionService } from '../common/database/transaction.service';
 import { UserRole } from '../users/entities/user.entity';
+import {
+  ensureValidCredentials,
+  ensureUserIsActive,
+  ensureValidUserToken,
+} from '../common/utils/user.utils';
 
 interface JwtTokenPayload {
   sub: string;
@@ -102,10 +107,8 @@ export class AuthService {
 
   async login(loginDto: LoginDto): Promise<LoginResponse> {
     // Find user
-    const user = await this.usersService.findByEmail(loginDto.email);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const userOrNull = await this.usersService.findByEmail(loginDto.email);
+    const user = ensureValidCredentials(userOrNull);
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
@@ -114,9 +117,7 @@ export class AuthService {
     }
 
     // Check if user is active
-    if (user.status !== 'active') {
-      throw new UnauthorizedException('Account is not active');
-    }
+    ensureUserIsActive(user);
 
     // Update last login
     await this.usersService.updateLastLogin(user.id);
@@ -221,16 +222,13 @@ export class AuthService {
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
     // Find user by reset token
-    const user = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
-
-    if (!user || !user.passwordResetToken || !user.passwordResetExpires) {
-      throw new BadRequestException('Invalid or expired reset token');
-    }
-
-    // Check if token is expired
-    if (new Date() > user.passwordResetExpires) {
-      throw new BadRequestException('Invalid or expired reset token');
-    }
+    const userOrNull = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
+    const user = ensureValidUserToken(
+      userOrNull,
+      'passwordResetToken',
+      'passwordResetExpires',
+      'Invalid or expired reset token',
+    );
 
     // Update password
     await this.usersService.update(user.id, { password: resetPasswordDto.newPassword });
@@ -261,16 +259,13 @@ export class AuthService {
 
   async verifyEmail(token: string): Promise<{ message: string }> {
     // Find user by verification token
-    const user = await this.usersService.findByEmailVerificationToken(token);
-
-    if (!user || !user.emailVerificationToken || !user.emailVerificationExpires) {
-      throw new BadRequestException('Invalid or expired verification token');
-    }
-
-    // Check if token is expired
-    if (new Date() > user.emailVerificationExpires) {
-      throw new BadRequestException('Invalid or expired verification token');
-    }
+    const userOrNull = await this.usersService.findByEmailVerificationToken(token);
+    const user = ensureValidUserToken(
+      userOrNull,
+      'emailVerificationToken',
+      'emailVerificationExpires',
+      'Invalid or expired verification token',
+    );
 
     // Update user as verified
     await this.usersService.update(user.id, { isEmailVerified: true });
