@@ -58,11 +58,13 @@ export class LogAggregationService {
     }
 
     if (query.startTime) {
-      filteredLogs = filteredLogs.filter((log) => log.context.timestamp >= query.startTime!);
+      const startTime = query.startTime;
+      filteredLogs = filteredLogs.filter((log) => log.context.timestamp >= startTime);
     }
 
     if (query.endTime) {
-      filteredLogs = filteredLogs.filter((log) => log.context.timestamp <= query.endTime!);
+      const endTime = query.endTime;
+      filteredLogs = filteredLogs.filter((log) => log.context.timestamp <= endTime);
     }
 
     if (query.search) {
@@ -200,7 +202,7 @@ export class LogAggregationService {
   /**
    * Send logs to external service (placeholder)
    */
-  private async sendToExternalService(log: StructuredLog): Promise<void> {
+  private async sendToExternalService(_log: StructuredLog): Promise<void> {
     // In production, implement integration with:
     // - Elasticsearch
     // - AWS CloudWatch
@@ -212,7 +214,7 @@ export class LogAggregationService {
     // Example: Elasticsearch
     // await this.elasticsearchClient.index({
     //   index: 'logs',
-    //   body: log,
+    //   body: _log,
     // });
 
     // For now, just log to console in development

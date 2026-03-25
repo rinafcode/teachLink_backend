@@ -14,6 +14,8 @@ import { Subscription } from './entities/subscription.entity';
 import { Invoice } from './entities/invoice.entity';
 import { Refund } from './entities/refund.entity';
 import { UsersModule } from '../users/users.module';
+import { TransactionService } from '../common/database/transaction.service';
+import { TransactionHelperService } from '../common/database/transaction-helper.service';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { UsersModule } from '../users/users.module';
     SubscriptionJobProcessor,
     StripeService,
     ProviderFactoryService,
+    TransactionService,
+    TransactionHelperService,
   ],
   exports: [PaymentsService, ProviderFactoryService],
 })

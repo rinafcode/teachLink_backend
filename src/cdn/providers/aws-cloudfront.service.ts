@@ -186,7 +186,7 @@ export class AWSCloudFrontService {
     }
   }
 
-  async getDistributionMetrics(startDate: Date, endDate: Date): Promise<any> {
+  async getUsageStatistics(_startDate: Date, _endDate: Date): Promise<any> {
     // AWS CloudFront doesn't have direct metrics API in SDK
     // Would need to use CloudWatch or external monitoring
     // For now, return mock data
@@ -201,16 +201,14 @@ export class AWSCloudFrontService {
     };
   }
 
-  async updateDistributionSettings(settings: any): Promise<boolean> {
+  async updateDistributionSettings(_settings: any): Promise<void> {
     try {
       // Get current distribution config
       // This would require additional API calls to get and update distribution
       // For now, return success
       this.logger.log('Updating CloudFront distribution settings');
-      return true;
     } catch (error) {
       this.logger.error('Failed to update distribution settings:', error);
-      return false;
     }
   }
 
@@ -274,7 +272,7 @@ export class AWSCloudFrontService {
     }
   }
 
-  async getFileMetadata(key: string): Promise<any> {
+  async getFileMetadata(_key: string): Promise<any> {
     // Implementation would get object metadata from S3
     return {
       size: 0,

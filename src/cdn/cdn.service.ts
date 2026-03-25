@@ -186,7 +186,7 @@ export class CdnService {
       metadata.status = ContentStatus.PROCESSING;
       await this.contentMetadataRepository.save(metadata);
 
-      const optimizedUrl = await this.assetOptimizationService.optimizeImage(
+      const _optimizedUrl = await this.assetOptimizationService.optimizeImage(
         metadata.cdnUrl,
         options,
       );
@@ -219,7 +219,7 @@ export class CdnService {
     }
   }
 
-  private async optimizeForBandwidth(url: string, bandwidth: number): Promise<string> {
+  private async optimizeForBandwidth(url: string, _bandwidth: number): Promise<string> {
     // Implementation would adjust quality/format based on bandwidth
     // For now, return original URL
     return url;

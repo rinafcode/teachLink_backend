@@ -178,7 +178,7 @@ export class BackupQueueProcessor {
   }
 
   @Process('recovery-test')
-  async handleRecoveryTest(job: Job<RecoveryTestJobData>) {
+  async handleRecoveryTest(_job: Job<RecoveryTestJobData>) {
     this.logger.log(`Recovery test processing handled by RecoveryTestingService`);
     // Delegated to RecoveryTestingService.executeRecoveryTest()
   }

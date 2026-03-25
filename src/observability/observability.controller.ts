@@ -4,7 +4,7 @@ import { LogAggregationService } from './logging/log-aggregation.service';
 import { DistributedTracingService } from './tracing/distributed-tracing.service';
 import { MetricsAnalysisService } from './metrics/metrics-analysis.service';
 import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
-import { LogQuery, LogLevel } from './interfaces/observability.interfaces';
+import { LogQuery } from './interfaces/observability.interfaces';
 
 /**
  * Observability Controller

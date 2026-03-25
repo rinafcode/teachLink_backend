@@ -20,7 +20,7 @@ export class WsJwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token);
       (client as any).user = payload; // attach user context
       return true;
-    } catch (err) {
+    } catch (_err) {
       client.disconnect(true);
       return false;
     }

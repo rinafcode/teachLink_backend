@@ -107,7 +107,7 @@ export class EdgeCachingService {
     }
   }
 
-  async getCacheStatus(url: string): Promise<{
+  async getCacheStatus(_url: string): Promise<{
     cached: boolean;
     age?: number;
     expires?: Date;
@@ -140,17 +140,17 @@ export class EdgeCachingService {
     ];
   }
 
-  private async getUrlsByTags(tags: string[]): Promise<string[]> {
+  private async getUrlsByTags(_tags: string[]): Promise<string[]> {
     // Implementation would query database for URLs with specific tags
     return [];
   }
 
-  private async getUrlsByPattern(pattern: string): Promise<string[]> {
+  private async getUrlsByPattern(_pattern: string): Promise<string[]> {
     // Implementation would find URLs matching pattern
     return [];
   }
 
-  private async prefetchToEdge(url: string): Promise<void> {
+  private async prefetchToEdge(_url: string): Promise<void> {
     // Implementation would make requests to warm the cache
     // This might involve calling CDN APIs or making HTTP requests
   }

@@ -12,7 +12,7 @@ export const DEFAULT_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 
 
 export function Timeout(ms?: number): MethodDecorator {
   return (target, propertyKey, descriptor) => {
-    Reflect.defineMetadata('timeout', ms, descriptor.value!);
+    Reflect.defineMetadata('timeout', ms, descriptor.value ?? target);
   };
 }
 

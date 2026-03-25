@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class AuditLoggingService {
+  private readonly logger = new Logger(AuditLoggingService.name);
+
   log(event: string, data: Record<string, any>) {
-    console.log(
+    this.logger.log(
       JSON.stringify({
         event,
         data,

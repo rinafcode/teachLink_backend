@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { trace, Span, SpanStatusCode, context, Context } from '@opentelemetry/api';
+import { trace, Span, SpanStatusCode, context } from '@opentelemetry/api';
 import { TraceSpan, SpanStatus, SpanEvent } from '../interfaces/observability.interfaces';
 
 /**
@@ -241,7 +241,7 @@ export class DistributedTracingService {
     const spans = Array.from(this.spans.values());
     const completedSpans = spans.filter((s) => s.endTime);
 
-    const durations = completedSpans.filter((s) => s.duration).map((s) => s.duration!);
+    const durations = completedSpans.filter((s) => s.duration).map((s) => s.duration ?? 0);
 
     return {
       total: spans.length,

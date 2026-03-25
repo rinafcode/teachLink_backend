@@ -1,4 +1,4 @@
-import { Injectable, LoggerService, Scope } from '@nestjs/common';
+import { Injectable, Logger, LoggerService, Scope } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
   LogContext,
@@ -13,6 +13,7 @@ import {
  */
 @Injectable({ scope: Scope.TRANSIENT })
 export class StructuredLoggerService implements LoggerService {
+  private readonly nestLogger = new Logger(StructuredLoggerService.name);
   private context: Partial<LogContext> = {};
   private serviceName: string = 'teachlink';
 
@@ -184,20 +185,22 @@ export class StructuredLoggerService implements LoggerService {
     // Output as JSON for log aggregation systems
     const logOutput = JSON.stringify(structuredLog);
 
-    // Console output based on level
+    // Route to NestJS Logger based on level — avoids raw console statements
     switch (level) {
       case LogLevel.DEBUG:
-        console.debug(logOutput);
+        this.nestLogger.debug(logOutput);
         break;
       case LogLevel.INFO:
-        console.log(logOutput);
+        this.nestLogger.log(logOutput);
         break;
       case LogLevel.WARN:
-        console.warn(logOutput);
+        this.nestLogger.warn(logOutput);
         break;
       case LogLevel.ERROR:
+        this.nestLogger.error(logOutput);
+        break;
       case LogLevel.FATAL:
-        console.error(logOutput);
+        this.nestLogger.fatal(logOutput);
         break;
     }
   }

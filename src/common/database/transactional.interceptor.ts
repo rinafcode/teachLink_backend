@@ -37,7 +37,7 @@ export class TransactionalInterceptor implements NestInterceptor {
 
       if (options.retry) {
         result = await this.transactionService.runWithRetry(
-          async (manager) => {
+          async (_manager) => {
             // Execute the original method
             return await next.handle().toPromise();
           },
@@ -47,12 +47,12 @@ export class TransactionalInterceptor implements NestInterceptor {
       } else if (options.isolationLevel) {
         result = await this.transactionService.runWithIsolationLevel(
           options.isolationLevel,
-          async (manager) => {
+          async (_manager) => {
             return await next.handle().toPromise();
           },
         );
       } else {
-        result = await this.transactionService.runInTransaction(async (manager) => {
+        result = await this.transactionService.runInTransaction(async (_manager) => {
           return await next.handle().toPromise();
         });
       }

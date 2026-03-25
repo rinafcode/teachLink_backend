@@ -79,7 +79,7 @@ export class CollaborationPermissionsService {
       `Granted ${permission} permission to user ${userId} for resource ${resourceId}`,
     );
 
-    return this.getUserPermission(resourceId, userId)!;
+    return this.getUserPermission(resourceId, userId) ?? null;
   }
 
   /**

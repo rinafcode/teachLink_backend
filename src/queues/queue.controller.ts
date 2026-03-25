@@ -13,7 +13,6 @@ import { QueueService } from './queue.service';
 import { PrioritizationService, PriorityFactors } from './prioritization/prioritization.service';
 import { JobSchedulerService } from './scheduler/job-scheduler.service';
 import { QueueMonitoringService } from './monitoring/queue-monitoring.service';
-import { JobPriority } from './enums/job-priority.enum';
 import { JobOptions } from './interfaces/queue.interfaces';
 
 /**

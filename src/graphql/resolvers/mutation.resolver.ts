@@ -1,12 +1,12 @@
-import { Resolver, Mutation, Args, ID, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, ID } from '@nestjs/graphql';
 import { UseGuards, Inject } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { UsersService } from '../../users/users.service';
 import { CoursesService } from '../../courses/courses.service';
 import { AssessmentsService } from '../../assessment/assessments.service';
-import { UserType } from '../types/user.type';
 import { CourseType } from '../types/course.type';
 import { AssessmentType } from '../types/assessment.type';
+import { UserType } from '../types/user.type';
 import { CreateUserInput, UpdateUserInput } from '../inputs/user.input';
 import { CreateCourseInput, UpdateCourseInput } from '../inputs/course.input';
 import { CreateAssessmentInput, UpdateAssessmentInput } from '../inputs/assessment.input';

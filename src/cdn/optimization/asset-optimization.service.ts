@@ -11,60 +11,60 @@ export interface OptimizationResult {
 
 @Injectable()
 export class AssetOptimizationService {
-  async optimizeImage(imageUrl: string, options: ContentDeliveryOptions): Promise<string> {
+  async optimizeImage(contentId: string, _options: any): Promise<string> {
     try {
       // Download image (in real implementation, you'd fetch from storage)
       // For now, assume we have the buffer
-      const buffer = await this.downloadImage(imageUrl);
+      const buffer = await this.downloadImage(contentId);
 
       let sharpInstance = sharp(buffer);
 
       // Apply optimizations
-      if (options.width || options.height) {
+      if (_options.width || _options.height) {
         sharpInstance = sharpInstance.resize({
-          width: options.width,
-          height: options.height,
+          width: _options.width,
+          height: _options.height,
           fit: 'cover',
           withoutEnlargement: true,
         });
       }
 
-      if (options.quality) {
-        sharpInstance = sharpInstance.jpeg({ quality: options.quality });
+      if (_options.quality) {
+        sharpInstance = sharpInstance.jpeg({ quality: _options.quality });
       }
 
-      if (options.format) {
-        switch (options.format) {
+      if (_options.format) {
+        switch (_options.format) {
           case 'webp':
-            sharpInstance = sharpInstance.webp({ quality: options.quality || 80 });
+            sharpInstance = sharpInstance.webp({ quality: _options.quality || 80 });
             break;
           case 'png':
-            sharpInstance = sharpInstance.png({ quality: options.quality || 80 });
+            sharpInstance = sharpInstance.png({ quality: _options.quality || 80 });
             break;
           case 'jpeg':
           default:
-            sharpInstance = sharpInstance.jpeg({ quality: options.quality || 80 });
+            sharpInstance = sharpInstance.jpeg({ quality: _options.quality || 80 });
             break;
         }
       }
 
       const optimizedBuffer = await sharpInstance.toBuffer();
-      const optimizedUrl = await this.uploadOptimizedImage(optimizedBuffer, imageUrl, options);
+      const optimizedUrl = await this.uploadOptimizedImage(optimizedBuffer, contentId, _options);
 
       return optimizedUrl;
     } catch (error) {
       console.error('Image optimization failed:', error);
-      return imageUrl; // Return original if optimization fails
+      return contentId; // Return original if optimization fails
     }
   }
 
-  async optimizeVideo(videoUrl: string, options: ContentDeliveryOptions): Promise<string> {
+  async optimizeVideo(contentId: string, _options: any): Promise<string> {
     // Implementation for video optimization using ffmpeg
     // For now, return original
-    return videoUrl;
+    return contentId;
   }
 
-  async generateResponsiveImages(imageUrl: string): Promise<OptimizationResult[]> {
+  async generateResponsiveImages(contentId: string): Promise<OptimizationResult[]> {
     const results: OptimizationResult[] = [];
     const sizes = [
       { width: 320, suffix: 'sm' },
@@ -73,7 +73,7 @@ export class AssetOptimizationService {
       { width: 1920, suffix: 'xl' },
     ];
 
-    const buffer = await this.downloadImage(imageUrl);
+    const buffer = await this.downloadImage(contentId);
 
     for (const size of sizes) {
       const optimized = await sharp(buffer)
@@ -81,7 +81,7 @@ export class AssetOptimizationService {
         .webp({ quality: 80 })
         .toBuffer();
 
-      const url = await this.uploadOptimizedImage(optimized, imageUrl, {
+      const url = await this.uploadOptimizedImage(optimized, contentId, {
         width: size.width,
         format: 'webp',
       });
@@ -97,7 +97,7 @@ export class AssetOptimizationService {
     return results;
   }
 
-  private async downloadImage(url: string): Promise<Buffer> {
+  private async downloadImage(_url: string): Promise<Buffer> {
     // In real implementation, download from storage/CDN
     // For now, return empty buffer
     throw new Error('Download implementation needed');
@@ -123,7 +123,7 @@ export class AssetOptimizationService {
     return parts.join('_');
   }
 
-  async getOptimizationStats(contentId: string): Promise<{
+  async getOptimizationStats(_contentId: string): Promise<{
     originalSize: number;
     optimizedSize: number;
     savingsPercentage: number;

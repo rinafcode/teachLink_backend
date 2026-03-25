@@ -7,7 +7,7 @@ export class WebhookService {
 
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  async handleStripeWebhook(payload: any, signature: string): Promise<any> {
+  async handleStripeWebhook(payload: any, _signature: string): Promise<any> {
     this.logger.log(`Processing Stripe webhook: ${payload.type}`);
 
     switch (payload.type) {
@@ -63,11 +63,11 @@ export class WebhookService {
 
   async handlePayPalWebhook(
     payload: any,
-    transmissionId: string,
-    transmissionTime: string,
-    transmissionSig: string,
-    certUrl: string,
-    authAlgo: string,
+    _transmissionId: string,
+    _transmissionTime: string,
+    _transmissionSig: string,
+    _certUrl: string,
+    _authAlgo: string,
   ): Promise<any> {
     this.logger.log(`Processing PayPal webhook: ${payload.event_type}`);
 

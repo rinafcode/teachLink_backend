@@ -114,7 +114,7 @@ export class EmailAnalyticsService {
         dataMap.set(dateKey, { date: dateKey, opens: 0, clicks: 0, bounces: 0 });
       }
 
-      const data = dataMap.get(dateKey)!;
+      const data = dataMap.get(dateKey) ?? { opens: 0, clicks: 0, bounces: 0, unsubscribes: 0 };
 
       if (event.eventType === EmailEventType.OPENED) data.opens++;
       if (event.eventType === EmailEventType.CLICKED) data.clicks++;
@@ -147,7 +147,7 @@ export class EmailAnalyticsService {
         linkMap.set(url, { clicks: 0, recipients: new Set() });
       }
 
-      const data = linkMap.get(url)!;
+      const data = linkMap.get(url) ?? { url, clicks: 0, recipients: new Set() };
       data.clicks++;
       data.recipients.add(event.recipientId);
     }

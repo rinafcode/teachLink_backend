@@ -48,11 +48,11 @@ export class CollaborationGateway
     private readonly permissionsService: CollaborationPermissionsService,
   ) {}
 
-  afterInit(server: Server) {
+  afterInit(_server: Server) {
     this.logger.log('Collaboration Gateway initialized');
   }
 
-  async handleConnection(@ConnectedSocket() client: Socket) {
+  async handleConnection(_server: any, @ConnectedSocket() client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
 
     // Optionally authenticate the user here based on token

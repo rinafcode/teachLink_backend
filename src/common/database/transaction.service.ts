@@ -2,12 +2,26 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager, QueryRunner } from 'typeorm';
 
 /**
+ * Transaction monitoring interface
+ */
+export interface TransactionMetrics {
+  transactionId: string;
+  startTime: Date;
+  endTime?: Date;
+  duration?: number;
+  status: 'STARTED' | 'COMMITTED' | 'ROLLED_BACK';
+  operations: string[];
+  error?: string;
+}
+
+/**
  * Transaction Service
  * Provides robust transaction management for critical operations
  */
 @Injectable()
 export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
+  private readonly activeTransactions = new Map<string, TransactionMetrics>();
 
   constructor(private readonly dataSource: DataSource) {}
 
@@ -20,22 +34,47 @@ export class TransactionService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    const transactionId = this.generateTransactionId();
+    const startTime = new Date();
+    const metrics: TransactionMetrics = {
+      transactionId,
+      startTime,
+      status: 'STARTED',
+      operations: [],
+    };
+    this.activeTransactions.set(transactionId, metrics);
+
     try {
-      this.logger.debug('Transaction started');
+      this.logger.debug(`Transaction ${transactionId} started`);
+      this.logger.log(`Transaction ${transactionId}: Starting operation execution`);
 
       const result = await operation(queryRunner.manager);
 
       await queryRunner.commitTransaction();
-      this.logger.debug('Transaction committed successfully');
+      const endTime = new Date();
+      const duration = endTime.getTime() - startTime.getTime();
 
+      metrics.endTime = endTime;
+      metrics.duration = duration;
+      metrics.status = 'COMMITTED';
+
+      this.logger.log(`Transaction ${transactionId} committed successfully in ${duration}ms`);
       return result;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error('Transaction rolled back due to error:', error);
+      const endTime = new Date();
+      const duration = endTime.getTime() - startTime.getTime();
+
+      metrics.endTime = endTime;
+      metrics.duration = duration;
+      metrics.status = 'ROLLED_BACK';
+      metrics.error = error.message;
+
+      this.logger.error(`Transaction ${transactionId} rolled back after ${duration}ms:`, error);
       throw error;
     } finally {
       await queryRunner.release();
-      this.logger.debug('Transaction resources released');
+      this.logger.debug(`Transaction ${transactionId} resources released`);
     }
   }
 
@@ -114,7 +153,7 @@ export class TransactionService {
       }
     }
 
-    throw lastError!;
+    throw lastError ?? new Error('Transaction failed');
   }
 
   /**
@@ -182,6 +221,40 @@ export class TransactionService {
    */
   getCurrentManager(): EntityManager {
     return this.dataSource.manager;
+  }
+
+  /**
+   * Generate unique transaction ID
+   */
+  private generateTransactionId(): string {
+    return `tx_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  }
+
+  /**
+   * Get transaction metrics
+   */
+  getTransactionMetrics(): TransactionMetrics[] {
+    return Array.from(this.activeTransactions.values());
+  }
+
+  /**
+   * Get active transactions count
+   */
+  getActiveTransactionCount(): number {
+    return this.activeTransactions.size;
+  }
+
+  /**
+   * Clear completed transactions
+   */
+  clearCompletedTransactions(): void {
+    const now = new Date();
+    for (const [id, metrics] of this.activeTransactions.entries()) {
+      if (metrics.endTime && now.getTime() - metrics.endTime.getTime() > 300000) {
+        // 5 minutes
+        this.activeTransactions.delete(id);
+      }
+    }
   }
 
   /**

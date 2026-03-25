@@ -419,7 +419,7 @@ export class DimensionalModelingService {
     return model.dimensionTables.find((dt) => dt.name === tableName);
   }
 
-  private generateMockResults(query: AnalyticsQuery, parameters: { [key: string]: any }): any[] {
+  private generateMockResults(query: AnalyticsQuery, _parameters: { [key: string]: any }): any[] {
     // Generate mock data based on query configuration
     const results: any[] = [];
     const rowCount = Math.floor(Math.random() * 100) + 10; // 10-110 rows

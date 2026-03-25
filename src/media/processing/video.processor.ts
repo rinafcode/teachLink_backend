@@ -8,7 +8,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import { FileStorageService } from '../storage/file-storage.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ContentMetadata, ContentType } from '../../cdn/entities/content-metadata.entity';
+import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
 
 @Processor('media-processing')
 export class VideoProcessor {
@@ -109,7 +109,7 @@ export class VideoProcessor {
   }
 
   @OnQueueCompleted()
-  async onComplete(job: Job, result: any) {
+  async onComplete(job: Job, _result: any) {
     this.logger.log(`Job ${job.id} completed`);
   }
 }

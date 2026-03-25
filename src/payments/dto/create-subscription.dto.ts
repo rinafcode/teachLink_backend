@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsEnum, IsNumber, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsEnum, IsOptional } from 'class-validator';
 import { PaymentMethod } from '../entities/payment.entity';
 
 export enum SubscriptionInterval {

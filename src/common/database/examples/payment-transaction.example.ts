@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TransactionService } from '../transaction.service';
-import { Transactional } from '../transactional.decorator';
+// import { Transactional } from '../transactional.decorator';
 
 /**
  * Example: Payment Transaction

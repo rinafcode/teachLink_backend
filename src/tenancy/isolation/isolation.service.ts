@@ -94,7 +94,7 @@ export class IsolationService {
   /**
    * Add tenant filter to query builder
    */
-  applyTenantFilter<T>(queryBuilder: any, entityAlias: string): any {
+  applyTenantFilter(queryBuilder: any, entityAlias: string): any {
     if (!this.currentTenantId) {
       throw new Error('Cannot apply tenant filter without tenant context');
     }

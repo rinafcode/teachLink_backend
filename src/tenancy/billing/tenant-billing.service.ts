@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
 import { Tenant } from '../entities/tenant.entity';
-import { IsolationService } from '../isolation/isolation.service';
 
 export interface UsageMetrics {
   activeUsers?: number;

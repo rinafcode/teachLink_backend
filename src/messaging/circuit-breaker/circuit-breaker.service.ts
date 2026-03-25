@@ -66,7 +66,11 @@ export class CircuitBreakerService {
         config,
       });
     }
-    return this.circuits.get(key)!;
+    const circuit = this.circuits.get(key);
+    if (!circuit) {
+      throw new Error(`Failed to create or retrieve circuit for key: ${key}`);
+    }
+    return circuit;
   }
 
   private onSuccess(key: string): void {

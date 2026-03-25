@@ -128,10 +128,9 @@ export class SearchService {
     }));
   }
 
-  private logSearch(query: string, resultsCount: number): void {
-    // Analytics placeholder - in production, store in database or send to analytics service
-    void query;
-    void resultsCount;
+  private async logSearch(_query: string, _resultsCount: number) {
+    // Simple analytics: log to console (in production, store in database)
+    // console.log(`Search query: "${query}", Results count: ${resultsCount}`);
   }
 
   private hashSearchParams(query: string, filters: any, sort?: string): string {
