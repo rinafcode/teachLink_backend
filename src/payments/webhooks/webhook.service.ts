@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { ProviderFactoryService } from '../providers/provider-factory.service';
 import { PaymentsService } from '../payments.service';
 import { PaymentStatus } from '../entities/payment.entity';
 import {
@@ -18,13 +19,6 @@ interface StripeCharge {
   };
 }
 
-interface StripeWebhookPayload {
-  type: string;
-  data: {
-    object: StripePaymentIntent | StripeCharge;
-  };
-}
-
 interface PayPalResource {
   id: string;
   parent_payment: string;
@@ -40,31 +34,48 @@ interface PayPalWebhookPayload {
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly providerFactory: ProviderFactoryService,
+  ) {}
 
   async handleStripeWebhook(
-    payload: StripeWebhookPayload,
-    _signature: string,
+    payload: Buffer | undefined,
+    signature: string,
   ): Promise<{ received: boolean }> {
-    this.logger.log(`Processing Stripe webhook: ${payload.type}`);
+    if (!payload) {
+      this.logger.error('Missing raw body in Stripe webhook');
+      return { received: false };
+    }
 
-    switch (payload.type) {
+    let event: any;
+    try {
+      const stripeProvider = this.providerFactory.getProvider('stripe');
+      event = await stripeProvider.handleWebhook(payload, signature);
+    } catch (err: any) {
+      this.logger.error(`Webhook error: ${err.message}`);
+      throw new BadRequestException('Webhook signature verification failed');
+    }
+
+    this.logger.log(`Processing Stripe webhook: ${event.type}`);
+
+    switch (event.type) {
       case 'payment_intent.succeeded':
-        await this.handlePaymentIntentSucceeded(payload.data.object as StripePaymentIntent);
+        await this.handlePaymentIntentSucceeded(event.data.object as StripePaymentIntent);
         break;
       case 'payment_intent.payment_failed':
-        await this.handlePaymentIntentFailed(payload.data.object as StripePaymentIntent);
+        await this.handlePaymentIntentFailed(event.data.object as StripePaymentIntent);
         break;
       case 'charge.refunded':
-        await this.handleChargeRefunded(payload.data.object as StripeCharge);
+        await this.handleChargeRefunded(event.data.object as StripeCharge);
         break;
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
-        await this.handleSubscriptionEvent(payload as unknown as SubscriptionWebhookEvent);
+        await this.handleSubscriptionEvent(event as unknown as SubscriptionWebhookEvent);
         break;
       default:
-        this.logger.log(`Unhandled event type: ${payload.type}`);
+        this.logger.log(`Unhandled event type: ${event.type}`);
     }
 
     return { received: true };
