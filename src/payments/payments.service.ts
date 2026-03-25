@@ -10,6 +10,7 @@ import { Invoice, InvoiceStatus } from './entities/invoice.entity';
 import { RefundDto } from './dto/refund.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { TransactionService } from '../common/database/transaction.service';
+import { ensureUserExists } from '../common/utils/user.utils';
 import {
   PaymentProvider,
   PaymentMetadata,
@@ -71,12 +72,10 @@ export class PaymentsService {
       const { courseId, amount, currency, provider, metadata } = createPaymentDto;
 
       // Verify user exists
-      const user = await this.userRepository.findOne({
+      const userOrNull = await this.userRepository.findOne({
         where: { id: userId },
       });
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
+      const user = ensureUserExists(userOrNull);
 
       // Get payment provider
       const paymentProvider = this.getProvider(provider ?? 'stripe');
@@ -119,13 +118,11 @@ export class PaymentsService {
     const { interval } = createSubscriptionDto;
 
     // Verify user exists
-    const user = await this.userRepository.findOne({
+    const userOrNull = await this.userRepository.findOne({
       where: { id: userId },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    ensureUserExists(userOrNull);
 
     // Get payment provider
     // const paymentProvider = this.getProvider(provider);
