@@ -1,4 +1,4 @@
-import { IsArray, IsString, ArrayNotEmpty } from 'class-validator';
+import { IsArray, IsString, ArrayNotEmpty, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AddSegmentMembersDto {
@@ -10,5 +10,6 @@ export class AddSegmentMembersDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
+  @IsNotEmpty()
   userIds: string[];
 }

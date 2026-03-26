@@ -15,10 +15,12 @@ import { SegmentRuleOperator } from '../enums/segment-rule-operator.enum';
 export class CreateSegmentRuleDto {
   @ApiProperty({ enum: SegmentRuleField, example: 'email' })
   @IsEnum(SegmentRuleField)
+  @IsNotEmpty()
   field: SegmentRuleField;
 
   @ApiProperty({ enum: SegmentRuleOperator, example: 'contains' })
   @IsEnum(SegmentRuleOperator)
+  @IsNotEmpty()
   operator: SegmentRuleOperator;
 
   @ApiProperty({ description: 'Rule value', example: 'gmail.com' })

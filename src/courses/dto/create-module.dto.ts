@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsOptional, IsUUID, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateModuleDto {
@@ -10,10 +10,12 @@ export class CreateModuleDto {
   @ApiProperty({ required: false })
   @IsInt()
   @IsOptional()
+  @IsNumber()
   order?: number;
 
   @ApiProperty()
   @IsUUID()
   @IsNotEmpty()
+  @IsString()
   courseId: string;
 }
