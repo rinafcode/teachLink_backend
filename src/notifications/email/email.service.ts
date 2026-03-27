@@ -118,11 +118,7 @@ export class EmailService {
       return this.templatesCache.get(templateName);
     }
 
-    const templatePath = path.join(
-      __dirname,
-      'templates',
-      `${templateName}.hbs`,
-    );
+    const templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
 
     const templateSource = fs.readFileSync(templatePath, 'utf-8');
     const template = handlebars.compile(templateSource);

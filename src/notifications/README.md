@@ -1,9 +1,11 @@
 # Email Notification System
 
 ## Overview
+
 This module provides email sending functionality for user verification and password reset using Nodemailer, Handlebars templates, and Bull queue for async processing.
 
 ## Features
+
 - ✅ Email verification
 - ✅ Password reset emails
 - ✅ Async email queue with Bull

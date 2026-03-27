@@ -17,10 +17,7 @@ export class EmailProcessor {
       await this.emailService.sendEmail(job.data);
       this.logger.log(`Email job ${job.id} completed successfully`);
     } catch (error) {
-      this.logger.error(
-        `Email job ${job.id} failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Email job ${job.id} failed: ${error.message}`, error.stack);
       throw error;
     }
   }
