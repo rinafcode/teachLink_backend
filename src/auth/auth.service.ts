@@ -13,6 +13,7 @@ import {
   ensureUserIsActive,
   ensureValidUserToken,
 } from '../common/utils/user.utils';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface JwtTokenPayload {
   sub: string;
@@ -62,6 +63,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
     private readonly transactionService: TransactionService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
@@ -79,8 +81,8 @@ export class AuthService {
         verificationExpires,
       );
 
-      // TODO: Send verification email
-      // await this.emailService.sendVerificationEmail(user.email, verificationToken);
+      // Send verification email
+      await this.notificationsService.sendVerificationEmail(user.email, verificationToken);
 
       const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-register' });
       const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
@@ -214,8 +216,8 @@ export class AuthService {
 
     await this.usersService.updatePasswordResetToken(user.id, resetToken, resetExpires);
 
-    // TODO: Send password reset email
-    // await this.emailService.sendPasswordResetEmail(user.email, resetToken);
+    // Send password reset email
+    await this.notificationsService.sendPasswordResetEmail(user.email, resetToken);
 
     return { message: 'If the email exists, a password reset link has been sent.' };
   }
