@@ -1,12 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
+import { HealthService } from './health.service';
 
 @Controller('health')
 export class HealthController {
   private redis: Redis;
 
-  constructor(private readonly dataSource: DataSource) {
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly healthService: HealthService,
+  ) {
     this.redis = new Redis({
       host: process.env.REDIS_HOST,
       port: Number(process.env.REDIS_PORT),
@@ -19,37 +23,18 @@ export class HealthController {
 
   @Get()
   async checkHealth() {
-    const healthStatus = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: 'unknown',
-        redis: 'unknown',
-      },
-    };
+    const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
+    return healthStatus;
+  }
 
-    // 🔹 Database Check
-    try {
-      await this.dataSource.query('SELECT 1');
-      healthStatus.services.database = 'up';
-    } catch {
-      healthStatus.services.database = 'down';
-      healthStatus.status = 'degraded';
-    }
+  @Get('liveness')
+  async checkLiveness() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 
-    // 🔹 Redis Check
-    try {
-      const pong = await this.redis.ping();
-      healthStatus.services.redis = pong === 'PONG' ? 'up' : 'down';
-
-      if (pong !== 'PONG') {
-        healthStatus.status = 'degraded';
-      }
-    } catch {
-      healthStatus.services.redis = 'down';
-      healthStatus.status = 'degraded';
-    }
-
+  @Get('readiness')
+  async checkReadiness() {
+    const healthStatus = await this.healthService.checkReadiness(this.dataSource, this.redis);
     return healthStatus;
   }
 }
