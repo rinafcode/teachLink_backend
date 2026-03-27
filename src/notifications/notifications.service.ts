@@ -1,13 +1,18 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { Notification, NotificationType, NotificationPriority } from './entities/notification.entity';
+import { OnEvent } from '@nestjs/event-emitter';
+import {
+  Notification,
+  NotificationType,
+  NotificationPriority,
+} from './entities/notification.entity';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
-import { CreateNotificationDto, UpdateNotificationDto } from './dto/notification.dto';
+import { CreateNotificationDto } from './dto/notification.dto';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationTemplatesService } from './notification-templates.service';
 import { PreferencesService } from './preferences/preferences.service';
+import { EmailService } from './email/email.service';
 
 @Injectable()
 export class NotificationsService {
@@ -19,8 +24,34 @@ export class NotificationsService {
     private readonly gateway: NotificationsGateway,
     private readonly templatesService: NotificationTemplatesService,
     private readonly preferencesService: PreferencesService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly emailService: EmailService,
   ) {}
+
+  async sendVerificationEmail(email: string, token: string): Promise<void> {
+    try {
+      await this.emailService.sendVerificationEmail(email, token);
+      this.logger.log(`Verification email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send verification email to ${email}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
+  }
+
+  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    try {
+      await this.emailService.sendPasswordResetEmail(email, token);
+      this.logger.log(`Password reset email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send password reset email to ${email}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
+  }
 
   /**
    * Create and send a notification
@@ -28,15 +59,18 @@ export class NotificationsService {
   async create(createNotificationDto: CreateNotificationDto): Promise<Notification> {
     const { userId, title, content, type, priority, metadata } = createNotificationDto;
 
-    // Check user preferences
     const preferences = await this.preferencesService.getPreferences(userId);
-    const shouldSend = this.shouldSendNotification(type || NotificationType.IN_APP, preferences);
+    const shouldSend = this.shouldSendNotification(
+      type || NotificationType.IN_APP,
+      preferences,
+    );
 
     if (!shouldSend) {
-      this.logger.debug(`Notification skipped for user ${userId} based on preferences`);
+      this.logger.debug(
+        `Notification skipped for user ${userId} based on preferences`,
+      );
     }
 
-    // Save to database
     const notification = this.notificationRepository.create({
       userId,
       title,
@@ -48,7 +82,6 @@ export class NotificationsService {
 
     const savedNotification = await this.notificationRepository.save(notification);
 
-    // Send via appropriate channel if enabled
     if (shouldSend) {
       await this.sendNotification(savedNotification);
     }
@@ -61,7 +94,6 @@ export class NotificationsService {
    */
   private async sendNotification(notification: Notification): Promise<void> {
     try {
-      // 1. Always try internal push via WebSocket if it's IN_APP or PUSH
       if (
         notification.type === NotificationType.IN_APP ||
         notification.type === NotificationType.PUSH
@@ -69,43 +101,56 @@ export class NotificationsService {
         await this.gateway.sendToUser(notification.userId, notification);
       }
 
-      // 2. Handle EMAIL type
       if (notification.type === NotificationType.EMAIL) {
         await this.sendEmailNotification(notification);
       }
 
-      // 3. Handle PUSH type (external push e.g. FCM/WebPush - placeholder)
       if (notification.type === NotificationType.PUSH) {
         await this.sendExternalPushNotification(notification);
       }
     } catch (error) {
-      this.logger.error(`Failed to send notification ${notification.id}:`, error);
+      this.logger.error(
+        `Failed to send notification ${notification.id}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
   private async sendEmailNotification(notification: Notification): Promise<void> {
-    this.logger.log(`Sending email notification to user ${notification.userId}: ${notification.title}`);
-    // Here you would integrate with a MailerService
-    // Example: await this.mailerService.sendMail({ ... });
+    this.logger.log(
+      `Sending email notification to user ${notification.userId}: ${notification.title}`,
+    );
+    // Integrate with EmailService or MailerService here if notification email delivery is required
   }
 
-  private async sendExternalPushNotification(notification: Notification): Promise<void> {
-    this.logger.log(`Sending external push notification to user ${notification.userId}: ${notification.title}`);
-    // Here you would integrate with FCM, OneSignal, etc.
+  private async sendExternalPushNotification(
+    notification: Notification,
+  ): Promise<void> {
+    this.logger.log(
+      `Sending external push notification to user ${notification.userId}: ${notification.title}`,
+    );
+    // Integrate with FCM, OneSignal, etc.
   }
 
   /**
    * Get all notifications for a user
    */
-  async findAllForUser(userId: string, options: { isRead?: boolean; limit?: number; offset?: number } = {}): Promise<[Notification[], number]> {
-    const query = this.notificationRepository.createQueryBuilder('notification')
+  async findAllForUser(
+    userId: string,
+    options: { isRead?: boolean; limit?: number; offset?: number } = {},
+  ): Promise<[Notification[], number]> {
+    const query = this.notificationRepository
+      .createQueryBuilder('notification')
       .where('notification.userId = :userId', { userId });
 
     if (options.isRead !== undefined) {
-      query.andWhere('notification.isRead = :isRead', { isRead: options.isRead });
+      query.andWhere('notification.isRead = :isRead', {
+        isRead: options.isRead,
+      });
     }
 
-    query.orderBy('notification.createdAt', 'DESC')
+    query
+      .orderBy('notification.createdAt', 'DESC')
       .take(options.limit || 20)
       .skip(options.offset || 0);
 
@@ -116,7 +161,10 @@ export class NotificationsService {
    * Mark a notification as read
    */
   async markAsRead(id: string, userId: string): Promise<Notification> {
-    const notification = await this.notificationRepository.findOne({ where: { id, userId } });
+    const notification = await this.notificationRepository.findOne({
+      where: { id, userId },
+    });
+
     if (!notification) {
       throw new NotFoundException(`Notification with ID ${id} not found`);
     }
@@ -132,7 +180,7 @@ export class NotificationsService {
   async markAllAsRead(userId: string): Promise<void> {
     await this.notificationRepository.update(
       { userId, isRead: false },
-      { isRead: true, readAt: new Date() }
+      { isRead: true, readAt: new Date() },
     );
   }
 
@@ -141,6 +189,7 @@ export class NotificationsService {
    */
   async remove(id: string, userId: string): Promise<void> {
     const result = await this.notificationRepository.delete({ id, userId });
+
     if (result.affected === 0) {
       throw new NotFoundException(`Notification with ID ${id} not found`);
     }
@@ -149,7 +198,10 @@ export class NotificationsService {
   /**
    * Update notification preferences
    */
-  async updatePreferences(userId: string, updateDto: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+  async updatePreferences(
+    userId: string,
+    updateDto: Partial<NotificationPreferences>,
+  ): Promise<NotificationPreferences> {
     return this.preferencesService.updatePreferences(userId, updateDto);
   }
 
@@ -160,13 +212,21 @@ export class NotificationsService {
     return this.preferencesService.getPreferences(userId);
   }
 
-  private shouldSendNotification(type: NotificationType, preferences: NotificationPreferences): boolean {
+  private shouldSendNotification(
+    type: NotificationType,
+    preferences: NotificationPreferences,
+  ): boolean {
     switch (type) {
-      case NotificationType.EMAIL: return preferences.emailEnabled;
-      case NotificationType.PUSH: return preferences.pushEnabled;
-      case NotificationType.IN_APP: return preferences.inAppEnabled;
-      case NotificationType.SMS: return preferences.smsEnabled;
-      default: return true;
+      case NotificationType.EMAIL:
+        return preferences.emailEnabled;
+      case NotificationType.PUSH:
+        return preferences.pushEnabled;
+      case NotificationType.IN_APP:
+        return preferences.inAppEnabled;
+      case NotificationType.SMS:
+        return preferences.smsEnabled;
+      default:
+        return true;
     }
   }
 
@@ -174,7 +234,7 @@ export class NotificationsService {
    * Event listener for system-wide notifications
    */
   @OnEvent('notification.send')
-  async handleSendNotification(payload: CreateNotificationDto) {
+  async handleSendNotification(payload: CreateNotificationDto): Promise<void> {
     await this.create(payload);
   }
 
@@ -182,9 +242,17 @@ export class NotificationsService {
    * Event listener for specific templates
    */
   @OnEvent('notification.template.send')
-  async handleSendTemplateNotification(payload: { userId: string; templateType: string; data: any; type?: NotificationType }) {
-    const template = this.templatesService.renderTemplate(payload.templateType, payload.data);
-    
+  async handleSendTemplateNotification(payload: {
+    userId: string;
+    templateType: string;
+    data: any;
+    type?: NotificationType;
+  }): Promise<void> {
+    const template = this.templatesService.renderTemplate(
+      payload.templateType,
+      payload.data,
+    );
+
     await this.create({
       userId: payload.userId,
       title: template.title,
