@@ -6,7 +6,7 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+  "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
   "testTimeout": 30000,
   "forceExit": true,
   "verbose": true,

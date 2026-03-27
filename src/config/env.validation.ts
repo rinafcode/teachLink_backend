@@ -10,6 +10,10 @@ export const envValidationSchema = Joi.object({
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
+  DATABASE_POOL_MAX: Joi.number().integer().min(1).default(30),
+  DATABASE_POOL_MIN: Joi.number().integer().min(0).default(5),
+  DATABASE_POOL_ACQUIRE_TIMEOUT_MS: Joi.number().integer().min(1000).default(10000),
+  DATABASE_POOL_IDLE_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
 
   REDIS_HOST: Joi.string().required(),
   REDIS_PORT: Joi.number().required(),
@@ -18,4 +22,8 @@ export const envValidationSchema = Joi.object({
   THROTTLE_LIMIT: Joi.number().default(10),
 
   JWT_SECRET: Joi.string().min(10).required(),
+  ENCRYPTION_SECRET: Joi.string().min(32).required(),
+
+  STRIPE_SECRET_KEY: Joi.string().required(),
+  STRIPE_WEBHOOK_SECRET: Joi.string().required(),
 });

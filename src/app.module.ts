@@ -1,4 +1,4 @@
-import { Module, DynamicModule } from '@nestjs/common';
+import { Module, DynamicModule, Type } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -40,13 +40,13 @@ import { SearchModule } from './search/search.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 import { GamificationModule } from './gamification/gamification.module';
-import { AssessmentModule } from './assessment/assessment.module';
+import { AssessmentsModule } from './assessment/assessment.module';
 import { LearningPathsModule } from './learning-paths/learning-paths.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { OrchestrationModule } from './orchestration/orchestration.module';
 import { SecurityModule } from './security/security.module';
 import { TenancyModule } from './tenancy/tenancy.module';
-import { CDNModule } from './cdn/cdn.module';
+import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 
@@ -65,19 +65,41 @@ export class AppModule {
       TypeOrmModule.forRootAsync({
         imports: [MonitoringModule],
         inject: [MetricsCollectionService],
-        useFactory: (metricsService: MetricsCollectionService) => ({
-          type: 'postgres',
-          host: process.env.DATABASE_HOST || 'localhost',
-          port: parseInt(process.env.DATABASE_PORT || '5432'),
-          username: process.env.DATABASE_USER || 'postgres',
-          password: process.env.DATABASE_PASSWORD || 'postgres',
-          database: process.env.DATABASE_NAME || 'teachlink',
-          autoLoadEntities: true,
-          synchronize: process.env.NODE_ENV !== 'production',
-          logging: true,
-          logger: new TypeOrmMonitoringLogger(metricsService),
-          maxQueryExecutionTime: 1000,
-        }),
+        useFactory: (metricsService: MetricsCollectionService) => {
+          // Tune postgres pool to avoid connection exhaustion in high-traffic workloads.
+          // Values can be overridden with DATABASE_POOL_* environment variables.
+          const poolMax = parseInt(process.env.DATABASE_POOL_MAX || '30', 10);
+          const poolMin = parseInt(process.env.DATABASE_POOL_MIN || '5', 10);
+          const poolAcquireTimeoutMs = parseInt(
+            process.env.DATABASE_POOL_ACQUIRE_TIMEOUT_MS || '10000',
+            10,
+          );
+          const poolIdleTimeoutMs = parseInt(
+            process.env.DATABASE_POOL_IDLE_TIMEOUT_MS || '30000',
+            10,
+          );
+
+          return {
+            type: 'postgres',
+            host: process.env.DATABASE_HOST || 'localhost',
+            port: parseInt(process.env.DATABASE_PORT || '5432'),
+            username: process.env.DATABASE_USER || 'postgres',
+            password: process.env.DATABASE_PASSWORD || 'postgres',
+            database: process.env.DATABASE_NAME || 'teachlink',
+            autoLoadEntities: true,
+            synchronize: process.env.NODE_ENV !== 'production',
+            logging: true,
+            logger: new TypeOrmMonitoringLogger(metricsService),
+            maxQueryExecutionTime: 1000,
+            extra: {
+              // pg Pool options used by TypeORM postgres driver
+              max: poolMax,
+              min: poolMin,
+              connectionTimeoutMillis: poolAcquireTimeoutMs,
+              idleTimeoutMillis: poolIdleTimeoutMs,
+            },
+          };
+        },
       }),
       MonitoringModule,
       EventEmitterModule.forRoot(),
@@ -106,7 +128,7 @@ export class AppModule {
     ];
 
     // Feature modules - conditionally loaded based on feature flags
-    const featureModules: DynamicModule[] = [];
+    const featureModules: Array<DynamicModule | Type<unknown>> = [];
 
     // Auth Module
     if (flags.ENABLE_AUTH) {
@@ -273,7 +295,7 @@ export class AppModule {
     // Assessment Module
     if (flags.ENABLE_ASSESSMENT) {
       const startTime = Date.now();
-      featureModules.push(AssessmentModule);
+      featureModules.push(AssessmentsModule);
       startupLogger.recordModuleLoaded('AssessmentModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('AssessmentModule', 'ENABLE_ASSESSMENT=false');
@@ -327,7 +349,7 @@ export class AppModule {
     // CDN Module
     if (flags.ENABLE_CDN) {
       const startTime = Date.now();
-      featureModules.push(CDNModule);
+      featureModules.push(CdnModule);
       startupLogger.recordModuleLoaded('CDNModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('CDNModule', 'ENABLE_CDN=false');

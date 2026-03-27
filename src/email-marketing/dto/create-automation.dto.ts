@@ -7,10 +7,12 @@ import { ActionType } from '../enums/action-type.enum';
 export class CreateTriggerDto {
   @ApiProperty({ enum: TriggerType })
   @IsEnum(TriggerType)
+  @IsNotEmpty()
   type: TriggerType;
 
   @ApiPropertyOptional({ description: 'Trigger conditions' })
   @IsOptional()
+  @IsString()
   conditions?: Record<string, any>;
 
   @ApiPropertyOptional()
@@ -22,9 +24,12 @@ export class CreateTriggerDto {
 export class CreateActionDto {
   @ApiProperty({ enum: ActionType })
   @IsEnum(ActionType)
+  @IsNotEmpty()
   type: ActionType;
 
   @ApiProperty({ description: 'Action configuration' })
+  @IsNotEmpty()
+  @IsString()
   config: Record<string, any>;
 
   @ApiPropertyOptional()

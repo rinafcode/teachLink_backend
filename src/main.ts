@@ -17,7 +17,7 @@ async function bootstrapWorker() {
   const bootstrapStartTime = Date.now();
 
   // Create the application with dynamic module loading
-  const app = await NestFactory.create(await AppModule.forRoot());
+  const app = await NestFactory.create(await AppModule.forRoot(), { rawBody: true });
 
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
 

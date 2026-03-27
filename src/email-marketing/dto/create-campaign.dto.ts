@@ -28,11 +28,13 @@ export class CreateCampaignDto {
   @ApiPropertyOptional({ description: 'Template ID to use' })
   @IsUUID()
   @IsOptional()
+  @IsString()
   templateId?: string;
 
   @ApiPropertyOptional({ description: 'Segment IDs to target', type: [String] })
   @IsArray()
   @IsUUID('4', { each: true })
   @IsOptional()
+  @IsString()
   segmentIds?: string[];
 }

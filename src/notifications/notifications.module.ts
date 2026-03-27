@@ -22,4 +22,7 @@ import { NotificationPreferences } from './entities/notification-preferences.ent
   ],
   exports: [NotificationsService, PreferencesService],
 })
+import { Module } from '@nestjs/common';
+
+@Module({})
 export class NotificationsModule {}

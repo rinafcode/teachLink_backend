@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { ensureUserExists, ensureUserDoesNotExist } from '../common/utils/user.utils';
 import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { GetUsersDto } from './dto/get-users.dto';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
@@ -25,10 +27,7 @@ export class UsersService {
     const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
-
-    if (existingUser) {
-      throw new ConflictException('User with this email already exists');
-    }
+    ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
     // Hash password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
@@ -65,7 +64,7 @@ export class UsersService {
           );
         }
 
-        return await paginate(query, filter);
+        return await paginate(query, filter || new PaginationQueryDto());
       },
       CACHE_TTL.USER_PROFILE,
     );
@@ -76,17 +75,22 @@ export class UsersService {
     return await this.userRepository.findByIds(ids);
   }
 
+  /**
+   * Helper method to find a user by ID or throw NotFoundException.
+   * Can be used internally to eliminate duplication.
+   */
+  async findUserOrThrow(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    return ensureUserExists(user, 'User not found');
+  }
+
   async findOne(id: string): Promise<User> {
     const cacheKey = `${CACHE_PREFIXES.USER_PROFILE}:${id}`;
 
     return this.cachingService.getOrSet(
       cacheKey,
       async () => {
-        const user = await this.userRepository.findOne({ where: { id } });
-        if (!user) {
-          throw new NotFoundException('User not found');
-        }
-        return user;
+        return await this.findUserOrThrow(id);
       },
       CACHE_TTL.USER_PROFILE,
     );
@@ -109,10 +113,7 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    const user = await this.findUserOrThrow(id);
 
     // If updating password, hash it
     if (updateUserDto.password) {
@@ -129,7 +130,7 @@ export class UsersService {
   }
 
   async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
-    await this.userRepository.update(userId, { refreshToken });
+    await this.userRepository.update(userId, { refreshToken: refreshToken as unknown as string });
     // Invalidate user cache
     this.eventEmitter.emit(CACHE_EVENTS.USER_UPDATED, { userId });
   }
@@ -140,8 +141,8 @@ export class UsersService {
     expires: Date | null,
   ): Promise<void> {
     await this.userRepository.update(userId, {
-      passwordResetToken: token,
-      passwordResetExpires: expires,
+      passwordResetToken: token as unknown as string,
+      passwordResetExpires: expires as unknown as Date,
     });
   }
 
@@ -151,8 +152,8 @@ export class UsersService {
     expires: Date | null,
   ): Promise<void> {
     await this.userRepository.update(userId, {
-      emailVerificationToken: token,
-      emailVerificationExpires: expires,
+      emailVerificationToken: token as unknown as string,
+      emailVerificationExpires: expires as unknown as Date,
     });
   }
 
@@ -161,10 +162,7 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    const user = await this.findUserOrThrow(id);
     await this.userRepository.remove(user);
 
     // Invalidate cache after delete

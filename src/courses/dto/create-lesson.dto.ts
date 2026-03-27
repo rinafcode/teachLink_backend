@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsInt, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, IsOptional, IsUUID, IsUrl, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateLessonDto {
@@ -15,20 +15,24 @@ export class CreateLessonDto {
   @ApiProperty({ required: false })
   @IsString()
   @IsOptional()
+  @IsUrl()
   videoUrl?: string;
 
   @ApiProperty({ required: false })
   @IsInt()
   @IsOptional()
+  @IsNumber()
   order?: number;
 
   @ApiProperty({ required: false })
   @IsInt()
   @IsOptional()
+  @IsNumber()
   durationSeconds?: number;
 
   @ApiProperty()
   @IsUUID()
   @IsNotEmpty()
+  @IsString()
   moduleId: string;
 }

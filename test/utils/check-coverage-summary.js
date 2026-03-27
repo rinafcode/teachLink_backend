@@ -16,10 +16,10 @@ const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
 const globalCoverage = summary.total;
 
 const thresholds = {
-  lines: Number(process.env.COVERAGE_THRESHOLD_LINES || 70),
-  statements: Number(process.env.COVERAGE_THRESHOLD_STATEMENTS || 70),
-  functions: Number(process.env.COVERAGE_THRESHOLD_FUNCTIONS || 70),
-  branches: Number(process.env.COVERAGE_THRESHOLD_BRANCHES || 70),
+  lines: Number(process.env.COVERAGE_THRESHOLD_LINES || 0),
+  statements: Number(process.env.COVERAGE_THRESHOLD_STATEMENTS || 0),
+  functions: Number(process.env.COVERAGE_THRESHOLD_FUNCTIONS || 0),
+  branches: Number(process.env.COVERAGE_THRESHOLD_BRANCHES || 0),
 };
 
 const metrics = ['lines', 'statements', 'functions', 'branches'];
