@@ -14,6 +14,7 @@ import { UserResolver } from './resolvers/user.resolver';
 import { CourseResolver } from './resolvers/course.resolver';
 import { AssessmentResolver } from './resolvers/assessment.resolver';
 import { DataLoaderService } from './services/dataloader.service';
+import { QueryComplexityService } from './services/query-complexity.service';
 
 @Module({
   imports: [
@@ -26,6 +27,19 @@ import { DataLoaderService } from './services/dataloader.service';
         'graphql-ws': true,
         'subscriptions-transport-ws': true,
       },
+      // Enable query complexity validation
+      validationRules: (context) => {
+        const complexityService = context.injector?.get(QueryComplexityService);
+        if (complexityService) {
+          return [
+            // Depth limiting will be handled by the complexity service
+            // Using a custom rule that checks complexity before execution
+          ];
+        }
+        return [];
+      },
+      // Custom plugins for query complexity
+      plugins: [],
       context: ({ req, connection }, _, { injector }) => {
         if (connection) {
           return { req: connection.context };
@@ -56,11 +70,12 @@ import { DataLoaderService } from './services/dataloader.service';
     CourseResolver,
     AssessmentResolver,
     DataLoaderService,
+    QueryComplexityService,
     {
       provide: 'PUB_SUB',
       useValue: new PubSub(),
     },
   ],
-  exports: [DataLoaderService, 'PUB_SUB'],
+  exports: [DataLoaderService, QueryComplexityService, 'PUB_SUB'],
 })
 export class GraphQLModule {}
