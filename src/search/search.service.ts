@@ -1,12 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
 
+export const COURSES_INDEX = 'courses';
+export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
+
 @Injectable()
 export class SearchService {
+  private readonly logger = new Logger(SearchService.name);
+
   constructor(
     private readonly elasticsearchService: ElasticsearchService,
     private readonly autoCompleteService: AutoCompleteService,
@@ -15,57 +20,108 @@ export class SearchService {
   ) {}
 
   async performSearch(query: string, filters: any, sort?: string) {
-    // Create a cache key from the search parameters
     const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(query, filters, sort)}`;
 
     return this.cachingService.getOrSet(
       cacheKey,
       async () => {
-        const searchBody = {
+        const result = await this.elasticsearchService.search({
+          index: COURSES_INDEX,
           query: {
-            bool: {
-              must: [
+            function_score: {
+              query: {
+                bool: {
+                  must: [
+                    {
+                      multi_match: {
+                        query,
+                        fields: ['title^3', 'description^2', 'content', 'tags^2'],
+                        type: 'best_fields' as const,
+                        fuzziness: 'AUTO',
+                        prefix_length: 1,
+                      },
+                    },
+                  ],
+                  filter: this.buildFilters(filters),
+                },
+              },
+              functions: [
                 {
-                  multi_match: {
-                    query,
-                    fields: ['title^2', 'description', 'content', 'tags'],
+                  field_value_factor: {
+                    field: 'views',
+                    factor: 0.1,
+                    modifier: 'log1p' as const,
+                    missing: 1,
+                  },
+                },
+                {
+                  field_value_factor: {
+                    field: 'rating',
+                    factor: 0.5,
+                    modifier: 'none' as const,
+                    missing: 0,
+                  },
+                },
+                {
+                  gauss: {
+                    createdAt: {
+                      origin: 'now',
+                      scale: '90d',
+                      offset: '7d',
+                      decay: 0.5,
+                    },
                   },
                 },
               ],
-              filter: this.buildFilters(filters),
+              score_mode: 'sum' as const,
+              boost_mode: 'multiply' as const,
             },
           },
           sort: this.buildSort(sort),
           track_total_hits: true,
-        };
-
-        // Ensure sort fields are properly formatted for ES
-        if (searchBody.sort && Array.isArray(searchBody.sort)) {
-          searchBody.sort = searchBody.sort.map((sortItem) => {
-            if (typeof sortItem === 'object' && sortItem !== null) {
-              // Convert object keys to proper format
-              const newSortItem = {};
-              for (const [key, value] of Object.entries(sortItem)) {
-                if (typeof value === 'object' && value !== null) {
-                  newSortItem[key] = { ...value };
-                } else {
-                  newSortItem[key] = value;
-                }
-              }
-              return newSortItem;
-            }
-            return sortItem;
-          });
-        }
-
-        const result = await this.elasticsearchService.search({
-          index: 'courses',
-          body: searchBody,
+          highlight: {
+            fields: {
+              title: {},
+              description: { fragment_size: 150, number_of_fragments: 1 },
+            },
+          },
+          aggs: {
+            categories: { terms: { field: 'category' } },
+            levels: { terms: { field: 'level' } },
+            price_ranges: {
+              range: {
+                field: 'price',
+                ranges: [
+                  { to: 50 },
+                  { from: 50, to: 100 },
+                  { from: 100, to: 200 },
+                  { from: 200 },
+                ],
+              },
+            },
+          },
         });
 
-        const rankedResults = this.rankResults(result.hits.hits);
-        await this.logSearch(query, rankedResults.length);
-        return rankedResults;
+        const total =
+          typeof result.hits.total === 'object'
+            ? result.hits.total.value
+            : (result.hits.total ?? 0);
+
+        const hits = result.hits.hits;
+        const aggs = result.aggregations as any;
+
+        const rankedResults = this.rankResults(hits);
+        this.logSearch(query, rankedResults.length, filters, sort);
+
+        return {
+          results: rankedResults,
+          total,
+          facets: {
+            categories: aggs?.categories?.buckets ?? [],
+            levels: aggs?.levels?.buckets ?? [],
+            priceRanges: aggs?.price_ranges?.buckets ?? [],
+          },
+        };
       },
       CACHE_TTL.SEARCH_RESULTS,
     );
@@ -76,9 +132,7 @@ export class SearchService {
 
     return this.cachingService.getOrSet(
       cacheKey,
-      async () => {
-        return this.autoCompleteService.getSuggestions(query);
-      },
+      () => this.autoCompleteService.getSuggestions(query),
       CACHE_TTL.SEARCH_RESULTS,
     );
   }
@@ -88,15 +142,57 @@ export class SearchService {
 
     return this.cachingService.getOrSet(
       cacheKey,
-      async () => {
-        return this.searchFiltersService.getFilters();
-      },
+      () => this.searchFiltersService.getFilters(),
       CACHE_TTL.STATIC_CONTENT,
     );
   }
 
+  async getSearchAnalytics(days = 7) {
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+
+    const result = await this.elasticsearchService.search({
+      index: SEARCH_ANALYTICS_INDEX,
+      size: 0,
+      query: {
+        range: {
+          timestamp: { gte: from.toISOString() },
+        },
+      },
+      aggs: {
+        total_searches: { value_count: { field: 'query.keyword' } },
+        top_queries: {
+          terms: { field: 'query.keyword', size: 10 },
+          aggs: {
+            avg_results: { avg: { field: 'resultsCount' } },
+          },
+        },
+        zero_result_queries: {
+          filter: { term: { resultsCount: 0 } },
+          aggs: {
+            queries: { terms: { field: 'query.keyword', size: 10 } },
+          },
+        },
+        searches_over_time: {
+          date_histogram: {
+            field: 'timestamp',
+            calendar_interval: 'day' as const,
+          },
+        },
+      },
+    });
+
+    const aggs = result.aggregations as any;
+    return {
+      totalSearches: aggs?.total_searches?.value ?? 0,
+      topQueries: aggs?.top_queries?.buckets ?? [],
+      zeroResultQueries: aggs?.zero_result_queries?.queries?.buckets ?? [],
+      searchesOverTime: aggs?.searches_over_time?.buckets ?? [],
+    };
+  }
+
   private buildFilters(filters: any) {
-    const esFilters = [];
+    const esFilters: any[] = [];
     if (filters.category) {
       esFilters.push({ term: { category: filters.category } });
     }
@@ -105,6 +201,12 @@ export class SearchService {
     }
     if (filters.price) {
       esFilters.push({ range: { price: filters.price } });
+    }
+    if (filters.language) {
+      esFilters.push({ term: { language: filters.language } });
+    }
+    if (filters.instructorId) {
+      esFilters.push({ term: { instructorId: filters.instructorId } });
     }
     return esFilters;
   }
@@ -116,6 +218,12 @@ export class SearchService {
       return [{ views: { order: 'desc' as const } }];
     } else if (sort === 'rating') {
       return [{ rating: { order: 'desc' as const } }];
+    } else if (sort === 'newest') {
+      return [{ createdAt: { order: 'desc' as const } }];
+    } else if (sort === 'price_asc') {
+      return [{ price: { order: 'asc' as const } }];
+    } else if (sort === 'price_desc') {
+      return [{ price: { order: 'desc' as const } }];
     }
     return ['_score'];
   }
@@ -123,18 +231,37 @@ export class SearchService {
   private rankResults(hits: any[]) {
     return hits.map((hit) => ({
       ...hit._source,
+      id: hit._id,
       score: hit._score,
-      relevance: hit._score * (hit._source.views || 1), // Simple ranking
+      highlights: hit.highlight ?? {},
     }));
   }
 
-  private async logSearch(_query: string, _resultsCount: number) {
-    // Simple analytics: log to console (in production, store in database)
-    // console.log(`Search query: "${query}", Results count: ${resultsCount}`);
+  private logSearch(
+    query: string,
+    resultsCount: number,
+    filters?: any,
+    sort?: string,
+  ): void {
+    // Fire-and-forget: analytics must not slow down or fail search responses
+    this.elasticsearchService
+      .index({
+        index: SEARCH_ANALYTICS_INDEX,
+        document: {
+          query,
+          resultsCount,
+          filters: filters ?? {},
+          sort: sort ?? 'relevance',
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`Search analytics logging failed: ${err.message}`);
+      });
   }
 
   private hashSearchParams(query: string, filters: any, sort?: string): string {
-    const str = `${query}:${JSON.stringify(filters)}:${sort || 'default'}`;
+    const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}`;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);

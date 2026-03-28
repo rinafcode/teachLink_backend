@@ -58,6 +58,15 @@ export const envValidationSchema = Joi.object({
   SENDGRID_API_KEY: Joi.string().required(),
   SENDGRID_HEALTH_URL: Joi.string().uri().optional(),
 
+  // Elasticsearch Configuration
+  ELASTICSEARCH_NODE: Joi.string().uri().default('http://localhost:9200'),
+  ELASTICSEARCH_USERNAME: Joi.string().optional(),
+  ELASTICSEARCH_PASSWORD: Joi.string().optional(),
+  ELASTICSEARCH_API_KEY: Joi.string().optional(),
+  ELASTICSEARCH_CA_FINGERPRINT: Joi.string().optional(),
+  ELASTICSEARCH_REQUEST_TIMEOUT: Joi.number().integer().default(30000),
+  ELASTICSEARCH_MAX_RETRIES: Joi.number().integer().default(3),
+
   // Rate Limiting
   THROTTLE_TTL: Joi.number().default(60),
   THROTTLE_LIMIT: Joi.number().default(10),
