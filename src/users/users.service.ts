@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole, UserStatus } from './entities/user.entity';
@@ -123,9 +123,24 @@ export class UsersService {
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findUserOrThrow(id);
 
-    // If updating password, hash it
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      const plainPassword = updateUserDto.password;
+
+      if (await bcrypt.compare(plainPassword, user.password)) {
+        throw new BadRequestException('New password must be different from the current password');
+      }
+
+      const recentPasswords = user.passwordHistory ?? [];
+      for (const oldHash of recentPasswords.slice(-5)) {
+        if (await bcrypt.compare(plainPassword, oldHash)) {
+          throw new BadRequestException('New password must not match your last 5 passwords');
+        }
+      }
+
+      // Append current, maintain last 5 entries
+      user.passwordHistory = [...recentPasswords, user.password].slice(-5);
+
+      updateUserDto.password = await bcrypt.hash(plainPassword, 10);
     }
 
     Object.assign(user, updateUserDto);

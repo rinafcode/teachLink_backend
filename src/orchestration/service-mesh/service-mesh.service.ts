@@ -3,6 +3,10 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import { ServiceDiscoveryService } from '../discovery/service-discovery.service';
+import {
+  injectCorrelationIdToHeaders,
+  getCorrelationId,
+} from '../../common/utils/correlation.utils';
 
 @Injectable()
 export class ServiceMeshService {
@@ -20,6 +24,8 @@ export class ServiceMeshService {
     const service = await this.discovery.getService(serviceName);
     const url = `${service.baseUrl}${path}`;
 
+    const correlationId = getCorrelationId();
+
     try {
       const response: AxiosResponse<T> = await firstValueFrom(
         this.httpService.request<T>({
@@ -27,6 +33,7 @@ export class ServiceMeshService {
           method,
           data,
           timeout: 5000,
+          headers: injectCorrelationIdToHeaders(undefined, correlationId),
         }),
       );
 

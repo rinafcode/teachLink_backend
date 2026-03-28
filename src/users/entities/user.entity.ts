@@ -83,6 +83,9 @@ export class User {
   @Column({ nullable: true })
   refreshToken?: string;
 
+  @Column('text', { array: true, default: [] })
+  passwordHistory: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 

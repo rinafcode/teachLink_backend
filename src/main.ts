@@ -9,6 +9,8 @@ import Redis from 'ioredis';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 
@@ -25,6 +27,8 @@ async function bootstrapWorker() {
     const expressApp = app.getHttpAdapter().getInstance();
     expressApp.set('trust proxy', 1);
   }
+
+  app.use(correlationMiddleware);
 
   app.use(
     session({
@@ -49,6 +53,9 @@ async function bootstrapWorker() {
 
   // ─── Global Exception Filter ──────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // ─── Global Logging Interceptor ───────────────────────────────────────────
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // ─── Global Response Transform Interceptor ───────────────────────────────
   app.useGlobalInterceptors(new ResponseTransformInterceptor());

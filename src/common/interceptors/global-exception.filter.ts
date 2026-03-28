@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
 import { ApiError, ValidationErrorDetail } from '../../interfaces/api-error.interface';
+import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -22,15 +23,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const { statusCode, message, error, details, stack } = this.resolveException(exception);
 
+    const correlationId = getCorrelationId();
+
     const errorResponse: ApiError = {
       statusCode,
       message,
       error,
       timestamp: new Date().toISOString(),
       path: request.url,
+      correlationId,
       ...(details?.length && { details }),
       ...(!this.isProduction && stack && { stack }),
     };
+
+    if (correlationId) {
+      response.setHeader(CORRELATION_ID_HEADER, correlationId);
+    }
 
     this.logger.error(
       `[${request.method}] ${request.url} → ${statusCode} ${error}: ${
