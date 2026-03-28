@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { UPLOAD_PROGRESS_CONFIG } from './file-validation.constants';
 
@@ -36,10 +35,15 @@ export interface ProgressUpdate {
 @Injectable()
 export class UploadProgressService {
   private readonly logger = new Logger(UploadProgressService.name);
+  private readonly redis: Redis;
 
-  constructor(
-    @InjectRedis() private readonly redis: Redis,
-  ) {}
+  constructor() {
+    // Initialize Redis client
+    this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    this.redis.on('error', () => {
+      // Prevent unhandled error events during Redis outages
+    });
+  }
 
   /**
    * Initialize upload progress tracking

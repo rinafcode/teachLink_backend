@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
@@ -14,6 +14,8 @@ import {
   ensureValidUserToken,
 } from '../common/utils/user.utils';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
 
 interface JwtTokenPayload {
   sub: string;
@@ -57,6 +59,8 @@ interface TokenUser {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -64,9 +68,10 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly transactionService: TransactionService,
     private readonly notificationsService: NotificationsService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<RegisterResponse> {
+  async register(registerDto: RegisterDto, ipAddress?: string, userAgent?: string): Promise<RegisterResponse> {
     return await this.transactionService.runInTransaction(async (_manager) => {
       // Create user
       const user = await this.usersService.create(registerDto);
@@ -91,6 +96,16 @@ export class AuthService {
       const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
       await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
 
+      // Log registration
+      await this.auditLogService.logAuth(
+        AuditAction.REGISTER,
+        user.id,
+        user.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        { sessionId },
+      );
+
       return {
         user: {
           id: user.id,
@@ -107,19 +122,56 @@ export class AuthService {
     });
   }
 
-  async login(loginDto: LoginDto): Promise<LoginResponse> {
+  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string): Promise<LoginResponse> {
     // Find user
     const userOrNull = await this.usersService.findByEmail(loginDto.email);
+
+    // Log failed login attempt if user not found
+    if (!userOrNull) {
+      await this.auditLogService.logAuth(
+        AuditAction.LOGIN_FAILED,
+        null,
+        loginDto.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        { reason: 'User not found' },
+        AuditSeverity.WARNING,
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const user = ensureValidCredentials(userOrNull);
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
+      await this.auditLogService.logAuth(
+        AuditAction.LOGIN_FAILED,
+        user.id,
+        user.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        { reason: 'Invalid password' },
+        AuditSeverity.WARNING,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Check if user is active
-    ensureUserIsActive(user);
+    try {
+      ensureUserIsActive(user);
+    } catch (error) {
+      await this.auditLogService.logAuth(
+        AuditAction.LOGIN_FAILED,
+        user.id,
+        user.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        { reason: 'User account inactive' },
+        AuditSeverity.WARNING,
+      );
+      throw error;
+    }
 
     // Update last login
     await this.usersService.updateLastLogin(user.id);
@@ -130,6 +182,16 @@ export class AuthService {
     // Save refresh token
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+
+    // Log successful login
+    await this.auditLogService.logAuth(
+      AuditAction.LOGIN,
+      user.id,
+      user.email,
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+      { sessionId },
+    );
 
     return {
       user: {
@@ -192,13 +254,25 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, sessionId?: string): Promise<{ message: string }> {
+  async logout(userId: string, sessionId?: string, ipAddress?: string, userAgent?: string): Promise<{ message: string }> {
+    const user = await this.usersService.findOne(userId);
+
     await this.sessionService.withLock(`logout:${userId}`, async () => {
       if (sessionId) {
         await this.sessionService.removeSession(sessionId);
       }
       await this.usersService.updateRefreshToken(userId, null);
     });
+
+    // Log logout
+    await this.auditLogService.logAuth(
+      AuditAction.LOGOUT,
+      userId,
+      user?.email || null,
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+      { sessionId },
+    );
 
     return { message: 'Logout successful' };
   }
@@ -244,17 +318,38 @@ export class AuthService {
   async changePassword(
     userId: string,
     changePasswordDto: ChangePasswordDto,
+    ipAddress?: string,
+    userAgent?: string,
   ): Promise<{ message: string }> {
     const user = await this.usersService.findOne(userId);
 
     // Verify current password
     const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
     if (!isPasswordValid) {
+      await this.auditLogService.logAuth(
+        AuditAction.PASSWORD_CHANGE,
+        userId,
+        user.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        { success: false, reason: 'Current password incorrect' },
+        AuditSeverity.WARNING,
+      );
       throw new BadRequestException('Current password is incorrect');
     }
 
     // Update password
     await this.usersService.update(userId, { password: changePasswordDto.newPassword });
+
+    // Log password change
+    await this.auditLogService.logAuth(
+      AuditAction.PASSWORD_CHANGE,
+      userId,
+      user.email,
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+      { success: true },
+    );
 
     return { message: 'Password changed successfully' };
   }

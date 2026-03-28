@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
-import { RedisModule } from '@nestjs-modules/ioredis';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
 import { FileStorageService } from './storage/file-storage.service';
@@ -18,7 +17,6 @@ import { VideoProcessor } from './processing/video.processor';
   imports: [
     TypeOrmModule.forFeature([ContentMetadata]),
     BullModule.registerQueue({ name: 'media-processing' }),
-    RedisModule,
   ],
   controllers: [MediaController],
   providers: [
