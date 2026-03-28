@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -25,20 +26,30 @@ import {
 import { CdnService } from './cdn.service';
 import { UploadContentDto } from './dto/upload-content.dto';
 import { ContentMetadata } from './entities/content-metadata.entity';
+import { FileValidationService } from '../media/validation/file-validation.service';
+import { MalwareScanningService } from '../media/validation/malware-scanning.service';
+import { ImageProcessingService } from '../media/processing/image-processing.service';
+import { FileValidationResult } from '../media/validation/file-validation.service';
+import { ALLOWED_FILE_TYPES, FILE_SIZE_LIMITS } from '../media/validation/file-validation.constants';
 
 @ApiTags('CDN')
 @Controller('cdn')
 export class CdnController {
   private readonly logger = new Logger(CdnController.name);
 
-  constructor(private readonly cdnService: CdnService) {}
+  constructor(
+    private readonly cdnService: CdnService,
+    private readonly fileValidation: FileValidationService,
+    private readonly malwareScanning: MalwareScanningService,
+    private readonly imageProcessing: ImageProcessingService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: 'Upload content to CDN' })
+  @ApiOperation({ summary: 'Upload content to CDN with full validation' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Content upload with optimization options',
+    description: 'Content upload with validation and optimization options',
     type: UploadContentDto,
   })
   @ApiResponse({
@@ -46,7 +57,10 @@ export class CdnController {
     description: 'Content uploaded successfully',
     type: ContentMetadata,
   })
-  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 400, description: 'Validation failed or bad request' })
+  @ApiResponse({ status: 403, description: 'Malware detected' })
+  @ApiResponse({ status: 413, description: 'File too large' })
+  @ApiResponse({ status: 415, description: 'Unsupported media type' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async uploadContent(
     @UploadedFile() file: Express.Multer.File,
@@ -59,13 +73,206 @@ export class CdnController {
 
       this.logger.log(`Uploading file: ${file.originalname} (${file.size} bytes)`);
 
+      // Step 1: Validate file
+      const validationResult = await this.fileValidation.validateFile(file);
+      if (!validationResult.valid) {
+        this.logger.warn(`File validation failed for ${file.originalname}:`, validationResult.errors);
+        throw new BadRequestException({
+          message: 'File validation failed',
+          errors: validationResult.errors,
+          warnings: validationResult.warnings,
+          allowedTypes: Object.values(ALLOWED_FILE_TYPES).flat(),
+          sizeLimits: FILE_SIZE_LIMITS,
+        });
+      }
+
+      // Step 2: Malware scan
+      if (this.malwareScanning.isScanningAvailable()) {
+        this.logger.log(`Scanning file for malware: ${file.originalname}`);
+        const scanResult = await this.malwareScanning.scanFile(file);
+
+        if (!scanResult.clean) {
+          const errorMsg = scanResult.threats.length > 0
+            ? `Malware detected: ${scanResult.threats.join(', ')}`
+            : 'File failed security scan';
+          this.logger.error(`Malware detected in ${file.originalname}:`, scanResult.threats);
+          throw new HttpException(errorMsg, HttpStatus.FORBIDDEN);
+        }
+      }
+
+      // Step 3: Process and upload
       const result = await this.cdnService.uploadContent(file, options);
 
       this.logger.log(`Successfully uploaded content: ${result.contentId}`);
       return result;
     } catch (error) {
       this.logger.error('Upload failed:', error);
-      throw new HttpException(`Upload failed: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('validate')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Validate file without uploading' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'File validation result',
+    schema: {
+      type: 'object',
+      properties: {
+        valid: { type: 'boolean' },
+        mimeType: { type: 'string' },
+        fileType: { type: 'string' },
+        size: { type: 'number' },
+        maxSize: { type: 'number' },
+        errors: { type: 'array', items: { type: 'string' } },
+        warnings: { type: 'array', items: { type: 'string' } },
+        metadata: {
+          type: 'object',
+          properties: {
+            width: { type: 'number' },
+            height: { type: 'number' },
+            format: { type: 'string' },
+            hasAlpha: { type: 'boolean' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'No file provided' })
+  async validateFile(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<FileValidationResult> {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    this.logger.log(`Validating file: ${file.originalname}`);
+    return this.fileValidation.validateFile(file);
+  }
+
+  @Post('scan')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Scan file for malware without uploading' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'Malware scan result',
+    schema: {
+      type: 'object',
+      properties: {
+        clean: { type: 'boolean' },
+        threats: { type: 'array', items: { type: 'string' } },
+        scanTime: { type: 'number' },
+        scannerVersion: { type: 'string' },
+        error: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'No file provided' })
+  @ApiResponse({ status: 503, description: 'Scanning service not available' })
+  async scanFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    if (!this.malwareScanning.isScanningAvailable()) {
+      throw new HttpException(
+        'Malware scanning service not available',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
+    this.logger.log(`Scanning file: ${file.originalname}`);
+    return this.malwareScanning.scanFile(file);
+  }
+
+  @Get('allowed-types')
+  @ApiOperation({ summary: 'Get allowed file types and size limits' })
+  @ApiResponse({
+    status: 200,
+    description: 'Allowed file types and limits',
+    schema: {
+      type: 'object',
+      properties: {
+        allowedTypes: { type: 'object' },
+        sizeLimits: { type: 'object' },
+        dimensionLimits: { type: 'object' },
+      },
+    },
+  })
+  getAllowedTypes() {
+    return {
+      allowedTypes: ALLOWED_FILE_TYPES,
+      sizeLimits: {
+        image: this.formatBytes(FILE_SIZE_LIMITS.IMAGE_MAX_SIZE),
+        video: this.formatBytes(FILE_SIZE_LIMITS.VIDEO_MAX_SIZE),
+        document: this.formatBytes(FILE_SIZE_LIMITS.DOCUMENT_MAX_SIZE),
+        audio: this.formatBytes(FILE_SIZE_LIMITS.AUDIO_MAX_SIZE),
+        archive: this.formatBytes(FILE_SIZE_LIMITS.ARCHIVE_MAX_SIZE),
+        default: this.formatBytes(FILE_SIZE_LIMITS.DEFAULT_MAX_SIZE),
+      },
+      dimensionLimits: {
+        minWidth: 1,
+        minHeight: 1,
+        maxWidth: 16384,
+        maxHeight: 16384,
+        maxPixels: 100_000_000,
+      },
+    };
+  }
+
+  @Post('compress-preview')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Preview image compression without saving' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({
+    status: 200,
+    description: 'Compression preview result',
+    schema: {
+      type: 'object',
+      properties: {
+        originalSize: { type: 'number' },
+        compressedSize: { type: 'number' },
+        compressionRatio: { type: 'number' },
+        width: { type: 'number' },
+        height: { type: 'number' },
+        format: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file or not an image' })
+  async compressPreview(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file provided');
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('File is not an image');
+    }
+
+    try {
+      const result = await this.imageProcessing.compressImage(file.buffer);
+      return {
+        originalSize: result.originalSize,
+        compressedSize: result.size,
+        compressionRatio: result.compressionRatio,
+        width: result.width,
+        height: result.height,
+        format: result.format,
+      };
+    } catch (error) {
+      this.logger.error('Compression preview failed:', error);
+      throw new BadRequestException('Failed to compress image');
     }
   }
 
@@ -186,5 +393,16 @@ export class CdnController {
       console.error('failed to retrieve');
       throw new HttpException('Failed to retrieve analytics', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  /**
+   * Format bytes to human readable string
+   */
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

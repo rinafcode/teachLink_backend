@@ -11,6 +11,9 @@ import { GeoLocationService } from './geo/geo-location.service';
 import { CloudflareService } from './providers/cloudflare.service';
 import { AWSCloudFrontService } from './providers/aws-cloudfront.service';
 import { ContentMetadata } from './entities/content-metadata.entity';
+import { FileValidationService } from '../media/validation/file-validation.service';
+import { MalwareScanningService } from '../media/validation/malware-scanning.service';
+import { ImageProcessingService } from '../media/processing/image-processing.service';
 
 @Module({
   imports: [
@@ -20,7 +23,7 @@ import { ContentMetadata } from './entities/content-metadata.entity';
     MulterModule.register({
       dest: './uploads',
       limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB limit
+        fileSize: 500 * 1024 * 1024, // 500MB limit (largest for videos)
       },
     }),
   ],
@@ -32,6 +35,9 @@ import { ContentMetadata } from './entities/content-metadata.entity';
     GeoLocationService,
     CloudflareService,
     AWSCloudFrontService,
+    FileValidationService,
+    MalwareScanningService,
+    ImageProcessingService,
   ],
   exports: [
     CdnService,
@@ -40,6 +46,8 @@ import { ContentMetadata } from './entities/content-metadata.entity';
     GeoLocationService,
     CloudflareService,
     AWSCloudFrontService,
+    FileValidationService,
+    ImageProcessingService,
   ],
 })
 export class CdnModule {}

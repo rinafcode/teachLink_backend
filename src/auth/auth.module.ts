@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { SessionModule } from '../session/session.module';
 import { TransactionService } from '../common/database/transaction.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     UsersModule,
     SessionModule,
     NotificationsModule,
+    AuditLogModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

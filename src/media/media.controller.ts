@@ -10,11 +10,17 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Query,
+  Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
+import { UploadProgress } from './validation/upload-progress.service';
 
+@ApiTags('Media')
+@ApiBearerAuth()
 @Controller('media')
 export class MediaController {
   private readonly logger = new Logger(MediaController.name);
@@ -24,34 +30,101 @@ export class MediaController {
   @Post('upload')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File, @Req() req: any) {
+  @ApiOperation({ summary: 'Upload media file with full validation' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Media file upload',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File to upload',
+        },
+        compress: {
+          type: 'boolean',
+          description: 'Compress images automatically',
+          default: true,
+        },
+        generateThumbnails: {
+          type: 'boolean',
+          description: 'Generate thumbnails for images',
+          default: true,
+        },
+        scanForMalware: {
+          type: 'boolean',
+          description: 'Scan file for malware',
+          default: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 403, description: 'Malware detected' })
+  @ApiResponse({ status: 413, description: 'File too large' })
+  async upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+    @Body() body?: { compress?: string; generateThumbnails?: string; scanForMalware?: string },
+  ) {
     if (!file) {
       throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
     }
 
-    // Basic validation
-    const allowed = ['image/', 'video/', 'application/pdf'];
-    if (!allowed.some((p) => file.mimetype.startsWith(p) || file.mimetype === 'application/pdf')) {
-      throw new HttpException('Unsupported file type', HttpStatus.BAD_REQUEST);
-    }
-
-    // enforce a conservative size limit (e.g., 500MB) to avoid abuse
-    const maxBytes = 500 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      throw new HttpException('File too large', HttpStatus.PAYLOAD_TOO_LARGE);
-    }
-
     const user = req.user;
-
     this.logger.log(`User ${user?.id} uploading file ${file.originalname}`);
 
-    const result = await this.mediaService.createFromUpload(user?.id, user?.tenantId, file);
+    const options = {
+      compress: body?.compress !== 'false',
+      generateThumbnails: body?.generateThumbnails !== 'false',
+      scanForMalware: body?.scanForMalware !== 'false',
+      trackProgress: true,
+    };
+
+    const result = await this.mediaService.createFromUpload(user?.id, user?.tenantId, file, options);
 
     return result;
   }
 
+  @Get('uploads/progress/:uploadId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get upload progress by ID' })
+  @ApiParam({ name: 'uploadId', description: 'Upload tracking ID' })
+  @ApiResponse({ status: 200, description: 'Upload progress', type: Object })
+  @ApiResponse({ status: 404, description: 'Upload not found' })
+  async getUploadProgress(@Param('uploadId') uploadId: string) {
+    const progress = await this.mediaService.getUploadProgress(uploadId);
+    if (!progress) {
+      throw new HttpException('Upload not found', HttpStatus.NOT_FOUND);
+    }
+    return progress;
+  }
+
+  @Get('uploads/active')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List active uploads' })
+  @ApiResponse({ status: 200, description: 'List of active uploads' })
+  async listActiveUploads() {
+    return this.mediaService.listActiveUploads();
+  }
+
+  @Get('uploads/statistics')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get upload statistics' })
+  @ApiResponse({ status: 200, description: 'Upload statistics' })
+  async getUploadStatistics() {
+    return this.mediaService.getUploadStatistics();
+  }
+
   @Get(':contentId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get media metadata by content ID' })
+  @ApiParam({ name: 'contentId', description: 'Content identifier' })
+  @ApiResponse({ status: 200, description: 'Media metadata' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getMetadata(@Param('contentId') contentId: string, @Req() req: any) {
     const user = req.user;
     const meta = await this.mediaService.findByContentId(contentId);
