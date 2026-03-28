@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User, UserRole, UserStatus } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { ensureUserExists, ensureUserDoesNotExist } from '../common/utils/user.utils';
 import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/sanitization.utils';
 import { GetUsersDto } from './dto/get-users.dto';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
@@ -50,17 +51,24 @@ export class UsersService {
         const query = this.userRepository.createQueryBuilder('user');
 
         if (filter?.role) {
-          query.andWhere('user.role = :role', { role: filter.role });
+          const role = enforceWhitelistedValue(filter.role, Object.values(UserRole), 'role');
+          query.andWhere('user.role = :role', { role });
         }
 
         if (filter?.status) {
-          query.andWhere('user.status = :status', { status: filter.status });
+          const status = enforceWhitelistedValue(
+            filter.status,
+            Object.values(UserStatus),
+            'status',
+          );
+          query.andWhere('user.status = :status', { status });
         }
 
         if (filter?.search) {
+          const safeSearch = sanitizeSqlLike(filter.search);
           query.andWhere(
-            '(user.email ILIKE :search OR user.firstName ILIKE :search OR user.lastName ILIKE :search)',
-            { search: `%${filter.search}%` },
+            "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')",
+            { search: `%${safeSearch}%` },
           );
         }
 
