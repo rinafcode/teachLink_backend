@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
+import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/sanitization.utils';
 import { CourseSearchDto } from './dto/course-search.dto';
 import { CachingService } from '../caching/caching.service';
 import { CacheInvalidationService } from '../caching/invalidation/invalidation.service';
@@ -40,13 +41,17 @@ export class CoursesService {
         query.leftJoinAndSelect('course.instructor', 'instructor');
 
         if (filter?.search) {
-          query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
-            search: `%${filter.search}%`,
-          });
+          const safeSearch = sanitizeSqlLike(filter.search);
+          query.andWhere(
+            "(course.title ILIKE :search ESCAPE '\\' OR course.description ILIKE :search ESCAPE '\\')",
+            { search: `%${safeSearch}%` },
+          );
         }
 
         if (filter?.status) {
-          query.andWhere('course.status = :status', { status: filter.status });
+          const allowedStatuses = ['draft', 'published', 'archived'] as const;
+          const status = enforceWhitelistedValue(filter.status, allowedStatuses, 'status');
+          query.andWhere('course.status = :status', { status });
         }
 
         if (filter?.instructorId) {

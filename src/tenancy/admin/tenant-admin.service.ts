@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { sanitizeSqlLike } from '../../common/utils/sanitization.utils';
 import { Tenant, TenantStatus, TenantPlan } from '../entities/tenant.entity';
 import { TenantConfig } from '../entities/tenant-config.entity';
 import { TenantBilling } from '../entities/tenant-billing.entity';
@@ -240,11 +241,13 @@ export class TenantAdminService {
    * Search tenants
    */
   async searchTenants(query: string): Promise<Tenant[]> {
+    const safeQuery = sanitizeSqlLike(query);
+
     return await this.tenantRepository
       .createQueryBuilder('tenant')
-      .where('tenant.name ILIKE :query', { query: `%${query}%` })
-      .orWhere('tenant.slug ILIKE :query', { query: `%${query}%` })
-      .orWhere('tenant.domain ILIKE :query', { query: `%${query}%` })
+      .where("tenant.name ILIKE :query ESCAPE '\\'", { query: `%${safeQuery}%` })
+      .orWhere("tenant.slug ILIKE :query ESCAPE '\\'", { query: `%${safeQuery}%` })
+      .orWhere("tenant.domain ILIKE :query ESCAPE '\\'", { query: `%${safeQuery}%` })
       .getMany();
   }
 
