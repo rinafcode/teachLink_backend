@@ -13,7 +13,7 @@ import {
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { CourseSearchDto } from './dto/course-search.dto';
+import { CourseSearchDto, CursorCourseSearchDto } from './dto/course-search.dto';
 import { ModulesService } from './modules/modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { LessonsService } from './lessons/lessons.service';
@@ -47,6 +47,11 @@ export class CoursesController {
   @Get()
   findAll(@Query() searchDto: CourseSearchDto) {
     return this.coursesService.findAll(searchDto);
+  }
+
+  @Get('cursor')
+  findAllWithCursor(@Query() searchDto: CursorCourseSearchDto) {
+    return this.coursesService.findAllWithCursor(searchDto);
   }
 
   @Get('analytics')

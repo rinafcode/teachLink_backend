@@ -6,6 +6,11 @@ export enum SortOrder {
   DESC = 'DESC',
 }
 
+export enum CursorDirection {
+  FORWARD = 'forward',
+  BACKWARD = 'backward',
+}
+
 export class PaginationQueryDto {
   @IsOptional()
   @Type(() => Number)
@@ -29,6 +34,35 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsIn([SortOrder.ASC, SortOrder.DESC])
   order?: SortOrder = SortOrder.DESC;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+}
+
+export class CursorPaginationQueryDto {
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string = 'createdAt';
+
+  @IsOptional()
+  @IsIn([SortOrder.ASC, SortOrder.DESC])
+  order?: SortOrder = SortOrder.DESC;
+
+  @IsOptional()
+  @IsIn([CursorDirection.FORWARD, CursorDirection.BACKWARD])
+  direction?: CursorDirection = CursorDirection.FORWARD;
 
   @IsOptional()
   @IsString()
