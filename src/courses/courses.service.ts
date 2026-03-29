@@ -40,13 +40,17 @@ export class CoursesService {
         query.leftJoinAndSelect('course.instructor', 'instructor');
 
         if (filter?.search) {
-          query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
-            search: `%${filter.search}%`,
-          });
+          const safeSearch = sanitizeSqlLike(filter.search);
+          query.andWhere(
+            "(course.title ILIKE :search ESCAPE '\\' OR course.description ILIKE :search ESCAPE '\\')",
+            { search: `%${safeSearch}%` },
+          );
         }
 
         if (filter?.status) {
-          query.andWhere('course.status = :status', { status: filter.status });
+          const allowedStatuses = ['draft', 'published', 'archived'] as const;
+          const status = enforceWhitelistedValue(filter.status, allowedStatuses, 'status');
+          query.andWhere('course.status = :status', { status });
         }
 
         if (filter?.instructorId) {

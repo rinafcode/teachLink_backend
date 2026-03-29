@@ -2,6 +2,7 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } fr
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
+import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
 
 export interface RequestLog {
   requestId: string;
@@ -49,7 +50,10 @@ export class LoggingInterceptor implements NestInterceptor {
     }
 
     const startTime = Date.now();
-    const requestId = this.generateRequestId();
+    const requestId = getCorrelationId() || this.generateRequestId();
+
+    const response = httpCtx.getResponse<Response>();
+    response?.setHeader(CORRELATION_ID_HEADER, requestId);
 
     const baseLog: RequestLog = {
       requestId,
@@ -67,12 +71,12 @@ export class LoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(() => {
-        const response = httpCtx.getResponse<Response>();
+        const res = httpCtx.getResponse<Response>();
         this.logOutgoing({
           ...baseLog,
-          statusCode: response.statusCode,
+          statusCode: res.statusCode,
           responseTimeMs: Date.now() - startTime,
-          contentLength: this.getContentLength(response),
+          contentLength: this.getContentLength(res),
         });
       }),
       catchError((error: unknown) => {

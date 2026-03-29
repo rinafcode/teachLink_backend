@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { SearchService } from './search.service';
 
 @Controller('search')
@@ -11,7 +11,14 @@ export class SearchController {
     @Query('filters') filters?: string,
     @Query('sort') sort?: string,
   ) {
-    const parsedFilters = filters ? JSON.parse(filters) : {};
+    let parsedFilters: Record<string, any> = {};
+    if (filters) {
+      try {
+        parsedFilters = JSON.parse(filters);
+      } catch {
+        throw new BadRequestException('filters must be valid JSON');
+      }
+    }
     return this.searchService.performSearch(query, parsedFilters, sort);
   }
 
@@ -23,5 +30,11 @@ export class SearchController {
   @Get('filters')
   async getFilters() {
     return this.searchService.getAvailableFilters();
+  }
+
+  @Get('analytics')
+  async getAnalytics(@Query('days') days?: string) {
+    const parsedDays = days ? parseInt(days, 10) : 7;
+    return this.searchService.getSearchAnalytics(parsedDays);
   }
 }
