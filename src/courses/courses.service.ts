@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
-import { CourseSearchDto } from './dto/course-search.dto';
+import { paginate, paginateWithCursor, PaginatedResponse, CursorPaginatedResponse } from '../common/utils/pagination.util';
+import { CourseSearchDto, CursorCourseSearchDto } from './dto/course-search.dto';
 import { CachingService } from '../caching/caching.service';
 import { CacheInvalidationService } from '../caching/invalidation/invalidation.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
@@ -58,6 +58,46 @@ export class CoursesService {
         query.orderBy('course.createdAt', 'DESC');
 
         return await paginate(query, filter);
+      },
+      CACHE_TTL.COURSE_METADATA,
+    );
+  }
+
+  async findAllWithCursor(filter?: CursorCourseSearchDto): Promise<CursorPaginatedResponse<Course>> {
+    const cacheKey = `${CACHE_PREFIXES.COURSES_LIST}:cursor:${JSON.stringify(filter || {})}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const query = this.coursesRepository.createQueryBuilder('course');
+
+        query.leftJoinAndSelect('course.instructor', 'instructor');
+
+        if (filter?.search) {
+          query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
+            search: `%${filter.search}%`,
+          });
+        }
+
+        if (filter?.status) {
+          query.andWhere('course.status = :status', { status: filter.status });
+        }
+
+        if (filter?.instructorId) {
+          query.andWhere('course.instructorId = :instructorId', {
+            instructorId: filter.instructorId,
+          });
+        }
+
+        if (filter?.minPrice !== undefined) {
+          query.andWhere('course.price >= :minPrice', { minPrice: filter.minPrice });
+        }
+
+        if (filter?.maxPrice !== undefined) {
+          query.andWhere('course.price <= :maxPrice', { maxPrice: filter.maxPrice });
+        }
+
+        return await paginateWithCursor(query, filter ?? {});
       },
       CACHE_TTL.COURSE_METADATA,
     );
