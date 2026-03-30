@@ -110,6 +110,12 @@ export const envValidationSchema = Joi.object({
   ENABLE_SECURITY: Joi.boolean().default(true),
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
+  ENABLE_LOCALIZATION: Joi.boolean().default(true),
+
+  // i18n / localization
+  I18N_DEFAULT_LOCALE: Joi.string().default('en'),
+  I18N_SUPPORTED_LOCALES: Joi.string().default('en'),
+  I18N_CACHE_TTL_SECONDS: Joi.number().integer().min(0).default(300),
 
   // Cluster Mode
   CLUSTER_MODE: Joi.boolean().default(false),
