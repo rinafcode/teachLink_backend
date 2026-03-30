@@ -6,6 +6,7 @@ import { MetricsCollectionService } from './metrics/metrics-collection.service';
 import { PerformanceAnalysisService } from './performance/performance-analysis.service';
 import { OptimizationService } from './optimization/optimization.service';
 import { AlertingService } from './alerting/alerting.service';
+import { ScheduledTaskMonitoringService } from './scheduled-task-monitoring.service';
 
 @Module({
   imports: [ScheduleModule.forRoot()],
@@ -16,7 +17,8 @@ import { AlertingService } from './alerting/alerting.service';
     PerformanceAnalysisService,
     OptimizationService,
     AlertingService,
+    ScheduledTaskMonitoringService,
   ],
-  exports: [MetricsCollectionService, AlertingService],
+  exports: [MetricsCollectionService, AlertingService, ScheduledTaskMonitoringService],
 })
 export class MonitoringModule {}
