@@ -59,3 +59,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Husky internal bootstrap directory (auto-generated, not hand-edited)
 .husky/_/
+
+# Local PR / commit message drafts (not tracked)
+pr.md

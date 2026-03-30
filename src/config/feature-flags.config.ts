@@ -33,6 +33,7 @@ export interface FeatureFlagsConfig {
   ENABLE_SECURITY: boolean;
   ENABLE_TENANCY: boolean;
   ENABLE_CDN: boolean;
+  ENABLE_LOCALIZATION: boolean;
 }
 
 /**
@@ -65,6 +66,7 @@ export const defaultFeatureFlags: FeatureFlagsConfig = {
   ENABLE_SECURITY: true,
   ENABLE_TENANCY: true,
   ENABLE_CDN: true,
+  ENABLE_LOCALIZATION: true,
 };
 
 /**
@@ -134,6 +136,10 @@ export function loadFeatureFlags(): FeatureFlagsConfig {
     ENABLE_SECURITY: getBooleanEnv('ENABLE_SECURITY', defaultFeatureFlags.ENABLE_SECURITY),
     ENABLE_TENANCY: getBooleanEnv('ENABLE_TENANCY', defaultFeatureFlags.ENABLE_TENANCY),
     ENABLE_CDN: getBooleanEnv('ENABLE_CDN', defaultFeatureFlags.ENABLE_CDN),
+    ENABLE_LOCALIZATION: getBooleanEnv(
+      'ENABLE_LOCALIZATION',
+      defaultFeatureFlags.ENABLE_LOCALIZATION,
+    ),
   };
 }
 
@@ -179,6 +185,7 @@ export function getEnabledModules(flags: FeatureFlagsConfig): string[] {
   if (flags.ENABLE_SECURITY) modules.push('SecurityModule');
   if (flags.ENABLE_TENANCY) modules.push('TenancyModule');
   if (flags.ENABLE_CDN) modules.push('CDNModule');
+  if (flags.ENABLE_LOCALIZATION) modules.push('LocalizationModule');
 
   return modules;
 }

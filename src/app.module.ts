@@ -49,6 +49,7 @@ import { TenancyModule } from './tenancy/tenancy.module';
 import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
+import { LocalizationModule } from './localization/localization.module';
 
 @Module({})
 export class AppModule {
@@ -353,6 +354,15 @@ export class AppModule {
       startupLogger.recordModuleLoaded('CDNModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('CDNModule', 'ENABLE_CDN=false');
+    }
+
+    // Localization Module
+    if (flags.ENABLE_LOCALIZATION) {
+      const startTime = Date.now();
+      featureModules.push(LocalizationModule);
+      startupLogger.recordModuleLoaded('LocalizationModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('LocalizationModule', 'ENABLE_LOCALIZATION=false');
     }
 
     // Queue Module (always loaded for Bull)
