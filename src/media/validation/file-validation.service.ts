@@ -8,6 +8,7 @@ import {
   IMAGE_DIMENSION_LIMITS,
   MAGIC_NUMBERS,
 } from './file-validation.constants';
+import { UploadedFile } from '../../common/types/file.types';
 
 export interface FileValidationResult {
   valid: boolean;
@@ -53,7 +54,7 @@ export class FileValidationService {
   /**
    * Validate file comprehensively
    */
-  async validateFile(file: Express.Multer.File): Promise<FileValidationResult> {
+  async validateFile(file: UploadedFile): Promise<FileValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -94,15 +95,21 @@ export class FileValidationService {
     // 6. Validate file size
     const sizeValidation = this.validateFileSize(file.size, fileType);
     if (!sizeValidation.valid) {
-      errors.push(`File size ${this.formatBytes(file.size)} exceeds maximum allowed ${this.formatBytes(sizeValidation.maxSize)}`);
+      errors.push(
+        `File size ${this.formatBytes(file.size)} exceeds maximum allowed ${this.formatBytes(sizeValidation.maxSize)}`,
+      );
     }
 
     // 7. Validate image dimensions if it's an image
-    let imageMetadata: { width?: number; height?: number; format?: string; hasAlpha?: boolean } | undefined;
+    let imageMetadata:
+      | { width?: number; height?: number; format?: string; hasAlpha?: boolean }
+      | undefined;
     if (fileType === 'image') {
       const dimValidation = await this.validateImageDimensions(file.buffer);
       if (!dimValidation.valid && dimValidation.dimensions) {
-        errors.push(`Image dimensions (${dimValidation.dimensions.width}x${dimValidation.dimensions.height}) are outside allowed limits`);
+        errors.push(
+          `Image dimensions (${dimValidation.dimensions.width}x${dimValidation.dimensions.height}) are outside allowed limits`,
+        );
       }
       if (dimValidation.dimensions) {
         imageMetadata = {
@@ -158,7 +165,9 @@ export class FileValidationService {
   /**
    * Validate file signature (magic numbers)
    */
-  private async validateFileSignature(file: Express.Multer.File): Promise<{ valid: boolean; detectedType?: string }> {
+  private async validateFileSignature(
+    file: UploadedFile,
+  ): Promise<{ valid: boolean; detectedType?: string }> {
     const buffer = file.buffer;
 
     // Check if we have magic numbers for this MIME type
@@ -196,23 +205,45 @@ export class FileValidationService {
   /**
    * Get file type category
    */
-  private getFileType(mimeType: string): 'image' | 'video' | 'document' | 'audio' | 'archive' | 'unknown' {
+  private getFileType(
+    mimeType: string,
+  ): 'image' | 'video' | 'document' | 'audio' | 'archive' | 'unknown' {
     const normalizedMime = mimeType.toLowerCase();
-    if (ALLOWED_FILE_TYPES.IMAGES.includes(normalizedMime as typeof ALLOWED_FILE_TYPES.IMAGES[number])) return 'image';
-    if (ALLOWED_FILE_TYPES.VIDEOS.includes(normalizedMime as typeof ALLOWED_FILE_TYPES.VIDEOS[number])) return 'video';
-    if (ALLOWED_FILE_TYPES.DOCUMENTS.includes(normalizedMime as typeof ALLOWED_FILE_TYPES.DOCUMENTS[number])) return 'document';
-    if (ALLOWED_FILE_TYPES.AUDIO.includes(normalizedMime as typeof ALLOWED_FILE_TYPES.AUDIO[number])) return 'audio';
-    if (ALLOWED_FILE_TYPES.ARCHIVES.includes(normalizedMime as typeof ALLOWED_FILE_TYPES.ARCHIVES[number])) return 'archive';
+    if (
+      ALLOWED_FILE_TYPES.IMAGES.includes(
+        normalizedMime as (typeof ALLOWED_FILE_TYPES.IMAGES)[number],
+      )
+    )
+      return 'image';
+    if (
+      ALLOWED_FILE_TYPES.VIDEOS.includes(
+        normalizedMime as (typeof ALLOWED_FILE_TYPES.VIDEOS)[number],
+      )
+    )
+      return 'video';
+    if (
+      ALLOWED_FILE_TYPES.DOCUMENTS.includes(
+        normalizedMime as (typeof ALLOWED_FILE_TYPES.DOCUMENTS)[number],
+      )
+    )
+      return 'document';
+    if (
+      ALLOWED_FILE_TYPES.AUDIO.includes(normalizedMime as (typeof ALLOWED_FILE_TYPES.AUDIO)[number])
+    )
+      return 'audio';
+    if (
+      ALLOWED_FILE_TYPES.ARCHIVES.includes(
+        normalizedMime as (typeof ALLOWED_FILE_TYPES.ARCHIVES)[number],
+      )
+    )
+      return 'archive';
     return 'unknown';
   }
 
   /**
    * Validate file size based on type
    */
-  private validateFileSize(
-    size: number,
-    fileType: string,
-  ): { valid: boolean; maxSize: number } {
+  private validateFileSize(size: number, fileType: string): { valid: boolean; maxSize: number } {
     let maxSize = FILE_SIZE_LIMITS.DEFAULT_MAX_SIZE;
 
     switch (fileType) {
@@ -319,7 +350,9 @@ export class FileValidationService {
   /**
    * Check for security patterns in file
    */
-  private async checkSecurityPatterns(file: Express.Multer.File): Promise<{ valid: boolean; issues: string[] }> {
+  private async checkSecurityPatterns(
+    file: UploadedFile,
+  ): Promise<{ valid: boolean; issues: string[] }> {
     const issues: string[] = [];
 
     // Check for double extensions (e.g., file.jpg.exe)
@@ -334,21 +367,26 @@ export class FileValidationService {
     }
 
     // Check for path traversal
-    if (file.originalname.includes('..') || file.originalname.includes('/') || file.originalname.includes('\\')) {
+    if (
+      file.originalname.includes('..') ||
+      file.originalname.includes('/') ||
+      file.originalname.includes('\\')
+    ) {
       issues.push('Filename contains path traversal characters');
     }
 
     // Check for control characters
+    // eslint-disable-next-line no-control-regex
     if (/[\x00-\x1f\x7f-\x9f]/.test(file.originalname)) {
       issues.push('Filename contains control characters');
     }
 
     // Check file content for executable signatures (basic check)
     const executableSignatures = [
-      Buffer.from([0x4D, 0x5A]), // Windows executable (MZ header)
-      Buffer.from([0x7F, 0x45, 0x4C, 0x46]), // ELF (Linux executable)
-      Buffer.from([0xCA, 0xFE, 0xBA, 0xBE]), // Java class file
-      Buffer.from([0xCF, 0xFA, 0xED, 0xFE]), // macOS Mach-O
+      Buffer.from([0x4d, 0x5a]), // Windows executable (MZ header)
+      Buffer.from([0x7f, 0x45, 0x4c, 0x46]), // ELF (Linux executable)
+      Buffer.from([0xca, 0xfe, 0xba, 0xbe]), // Java class file
+      Buffer.from([0xcf, 0xfa, 0xed, 0xfe]), // macOS Mach-O
     ];
 
     for (const signature of executableSignatures) {
@@ -375,13 +413,13 @@ export class FileValidationService {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   }
 
   /**
    * Quick validation for controller use
    */
-  async quickValidate(file: Express.Multer.File): Promise<void> {
+  async quickValidate(file: UploadedFile): Promise<void> {
     const result = await this.validateFile(file);
     if (!result.valid) {
       throw new BadRequestException({

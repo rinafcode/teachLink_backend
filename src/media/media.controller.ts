@@ -10,14 +10,21 @@ import {
   HttpException,
   HttpStatus,
   Logger,
-  Query,
   Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiConsumes,
+  ApiBody,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
-import { UploadProgress } from './validation/upload-progress.service';
+import { UploadedFile as FileUpload } from '../common/types/file.types';
 
 @ApiTags('Media')
 @ApiBearerAuth()
@@ -65,7 +72,7 @@ export class MediaController {
   @ApiResponse({ status: 403, description: 'Malware detected' })
   @ApiResponse({ status: 413, description: 'File too large' })
   async upload(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: FileUpload,
     @Req() req: any,
     @Body() body?: { compress?: string; generateThumbnails?: string; scanForMalware?: string },
   ) {
@@ -83,7 +90,12 @@ export class MediaController {
       trackProgress: true,
     };
 
-    const result = await this.mediaService.createFromUpload(user?.id, user?.tenantId, file, options);
+    const result = await this.mediaService.createFromUpload(
+      user?.id,
+      user?.tenantId,
+      file,
+      options,
+    );
 
     return result;
   }

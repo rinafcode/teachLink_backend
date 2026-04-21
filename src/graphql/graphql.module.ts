@@ -28,16 +28,7 @@ import { QueryComplexityService } from './services/query-complexity.service';
         'subscriptions-transport-ws': true,
       },
       // Enable query complexity validation
-      validationRules: (context) => {
-        const complexityService = context.injector?.get(QueryComplexityService);
-        if (complexityService) {
-          return [
-            // Depth limiting will be handled by the complexity service
-            // Using a custom rule that checks complexity before execution
-          ];
-        }
-        return [];
-      },
+      validationRules: [],
       // Custom plugins for query complexity
       plugins: [],
       context: ({ req, connection }, _, { injector }) => {

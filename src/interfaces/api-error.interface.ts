@@ -5,6 +5,7 @@ export interface ApiError {
   details?: ValidationErrorDetail[];
   timestamp?: string;
   path?: string;
+  correlationId?: string;
   stack?: string;
 }
 
