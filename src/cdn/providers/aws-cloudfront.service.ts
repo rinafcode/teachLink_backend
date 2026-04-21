@@ -1,12 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as AWS from 'aws-sdk';
 import {
   CloudFrontClient,
   CreateInvalidationCommand,
   GetInvalidationCommand,
 } from '@aws-sdk/client-cloudfront';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+
+export interface FileUpload {
+  originalname: string;
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+}
 
 export interface AWSCloudFrontConfig {
   accessKeyId: string;
@@ -46,13 +52,6 @@ export class AWSCloudFrontService {
       bucketName: this.configService.get<string>('AWS_S3_BUCKET_NAME'),
     };
 
-    // Configure AWS SDK
-    AWS.config.update({
-      accessKeyId: this.config.accessKeyId,
-      secretAccessKey: this.config.secretAccessKey,
-      region: this.config.region,
-    });
-
     this.cloudfrontClient = new CloudFrontClient({
       region: this.config.region,
       credentials: {
@@ -70,7 +69,7 @@ export class AWSCloudFrontService {
     });
   }
 
-  async uploadFile(file: Express.Multer.File): Promise<UploadResult> {
+  async uploadFile(file: FileUpload): Promise<UploadResult> {
     try {
       this.logger.log(`Uploading file ${file.originalname} to AWS CloudFront/S3`);
 

@@ -1,10 +1,9 @@
-import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
-import { ApiVersionInterceptor } from './api-version.interceptor';
-import { ApiVersionGuard } from './api-version.interceptor';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { ApiVersionInterceptor, ApiVersionGuard } from '../interceptors/api-version.interceptor';
 
 /**
  * API Versioning Module
- * 
+ *
  * Provides:
  * - URL-based versioning (/api/v1/, /api/v2/)
  * - Header-based versioning (X-API-Version, Accept header)
@@ -28,5 +27,4 @@ export class ApiVersioningModule implements NestModule {
 }
 
 // Re-export for convenience
-export { ApiVersionInterceptor, ApiVersionGuard } from './api-version.interceptor';
-export { ApiVersion, VersionedRequest } from './api-version.interceptor';
+export { ApiVersionInterceptor, ApiVersionGuard } from '../interceptors/api-version.interceptor';

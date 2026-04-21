@@ -1,14 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  GraphQLSchema,
-  FieldNode,
-  SelectionSetNode,
-  FragmentSpreadNode,
-  FragmentDefinitionNode,
-  OperationDefinitionNode,
-  visit,
-  BREAK,
-} from 'graphql';
+import { GraphQLSchema, FieldNode, OperationDefinitionNode, visit, parse } from 'graphql';
 
 /**
  * Query complexity analysis configuration
@@ -42,7 +33,7 @@ export interface ComplexityResult {
 
 /**
  * Query Complexity Analysis Service
- * 
+ *
  * Provides:
  * - Query depth limiting
  * - Field complexity calculation
@@ -51,7 +42,7 @@ export interface ComplexityResult {
 @Injectable()
 export class QueryComplexityService {
   private readonly logger = new Logger(QueryComplexityService.name);
-  
+
   private readonly defaultConfig: ComplexityConfig = {
     maxDepth: 10,
     maxComplexity: 1000,
@@ -59,32 +50,32 @@ export class QueryComplexityService {
     defaultFieldComplexity: 1,
     fieldComplexityMap: {
       // User queries
-      'User': 5,
-      'users': 10,
-      'currentUser': 2,
-      
+      User: 5,
+      users: 10,
+      currentUser: 2,
+
       // Course queries - higher cost for list queries
-      'Course': 5,
-      'courses': 15,
-      'courseById': 3,
-      'popularCourses': 20,
-      'searchCourses': 25,
-      
+      Course: 5,
+      courses: 15,
+      courseById: 3,
+      popularCourses: 20,
+      searchCourses: 25,
+
       // Assessment queries
-      'Assessment': 5,
-      'assessments': 15,
-      'assessmentById': 3,
-      'questions': 20,
-      
+      Assessment: 5,
+      assessments: 15,
+      assessmentById: 3,
+      questions: 20,
+
       // Results and analytics
-      'results': 30,
-      'analytics': 50,
-      'statistics': 40,
-      
+      results: 30,
+      analytics: 50,
+      statistics: 40,
+
       // Connection/N+1 patterns
-      'edges': 2,
-      'node': 1,
-      'pageInfo': 1,
+      edges: 2,
+      node: 1,
+      pageInfo: 1,
     },
   };
 
@@ -121,7 +112,6 @@ export class QueryComplexityService {
   analyze(query: string, variables?: Record<string, any>): ComplexityResult {
     try {
       // Parse the query to get AST
-      const { parse } = require('graphql');
       const ast = parse(query);
 
       // Find the operation
@@ -225,16 +215,18 @@ export class QueryComplexityService {
         enter: (node: FieldNode): void => {
           const fieldName = node.name.value;
           const args = node.arguments || [];
-          
+
           // Get complexity for this field
-          let fieldComplexity = this.config.fieldComplexityMap[fieldName] || 
-                                this.config.defaultFieldComplexity;
+          let fieldComplexity =
+            this.config.fieldComplexityMap[fieldName] || this.config.defaultFieldComplexity;
 
           // Check for list arguments (like limit, first, last)
           for (const arg of args) {
-            if (arg.name.value === 'limit' || 
-                arg.name.value === 'first' || 
-                arg.name.value === 'last') {
+            if (
+              arg.name.value === 'limit' ||
+              arg.name.value === 'first' ||
+              arg.name.value === 'last'
+            ) {
               // Get the actual value from variables or literal
               let listSize = 10; // Default
               if (arg.value.kind === 'IntValue') {
@@ -249,9 +241,12 @@ export class QueryComplexityService {
 
           totalComplexity += fieldComplexity;
 
-          // Stop if we exceed max complexity (early termination)
+          // Stop if we exceeds max complexity (early termination)
           if (totalComplexity > this.config.maxComplexity) {
-            return BREAK;
+            // Early termination by throwing an error
+            throw new Error(
+              `Query complexity ${totalComplexity} exceeds maximum allowed complexity of ${this.config.maxComplexity}`,
+            );
           }
         },
       },
@@ -266,7 +261,7 @@ export class QueryComplexityService {
    */
   private findOperation(ast: any): OperationDefinitionNode | null {
     const definitions = ast.definitions || [];
-    
+
     for (const def of definitions) {
       if (def.kind === 'OperationDefinition') {
         // Return first query operation
@@ -299,9 +294,7 @@ export class QueryComplexityService {
 /**
  * GraphQL complexity validator function for Apollo Server
  */
-export function createComplexityValidator(
-  service: QueryComplexityService,
-) {
+export function createComplexityValidator(service: QueryComplexityService) {
   return (query: string, variables?: Record<string, any>): Error | undefined => {
     const result = service.analyze(query, variables);
     if (!result.allowed && result.error) {

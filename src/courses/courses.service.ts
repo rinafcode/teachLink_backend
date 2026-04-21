@@ -3,12 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { paginate, paginateWithCursor, PaginatedResponse, CursorPaginatedResponse } from '../common/utils/pagination.util';
+import {
+  paginate,
+  paginateWithCursor,
+  PaginatedResponse,
+  CursorPaginatedResponse,
+} from '../common/utils/pagination.util';
 import { CourseSearchDto, CursorCourseSearchDto } from './dto/course-search.dto';
 import { CachingService } from '../caching/caching.service';
 import { CacheInvalidationService } from '../caching/invalidation/invalidation.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/sanitization.utils';
 
 @Injectable()
 export class CoursesService {
@@ -67,7 +73,9 @@ export class CoursesService {
     );
   }
 
-  async findAllWithCursor(filter?: CursorCourseSearchDto): Promise<CursorPaginatedResponse<Course>> {
+  async findAllWithCursor(
+    filter?: CursorCourseSearchDto,
+  ): Promise<CursorPaginatedResponse<Course>> {
     const cacheKey = `${CACHE_PREFIXES.COURSES_LIST}:cursor:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(

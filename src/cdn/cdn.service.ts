@@ -8,6 +8,7 @@ import { EdgeCachingService } from './caching/edge-caching.service';
 import { GeoLocationService } from './geo/geo-location.service';
 import { CloudflareService } from './providers/cloudflare.service';
 import { ContentMetadata, ContentType, ContentStatus } from './entities/content-metadata.entity';
+import { UploadedFile } from '../common/types/file.types';
 
 export interface ContentDeliveryOptions {
   optimize?: boolean;
@@ -86,7 +87,7 @@ export class CdnService {
   }
 
   async uploadContent(
-    file: Express.Multer.File,
+    file: UploadedFile,
     options: ContentDeliveryOptions = {},
   ): Promise<ContentMetadata> {
     try {
@@ -154,7 +155,7 @@ export class CdnService {
     await this.contentMetadataRepository.save(metadata);
   }
 
-  private async uploadWithFailover(file: Express.Multer.File): Promise<{
+  private async uploadWithFailover(file: UploadedFile): Promise<{
     url: string;
     etag?: string;
     provider: string;
@@ -225,11 +226,11 @@ export class CdnService {
     return url;
   }
 
-  private isImageFile(file: Express.Multer.File): boolean {
+  private isImageFile(file: UploadedFile): boolean {
     return file.mimetype.startsWith('image/');
   }
 
-  private getContentType(file: Express.Multer.File): 'image' | 'video' | 'document' {
+  private getContentType(file: UploadedFile): 'image' | 'video' | 'document' {
     if (file.mimetype.startsWith('image/')) return 'image';
     if (file.mimetype.startsWith('video/')) return 'video';
     return 'document';

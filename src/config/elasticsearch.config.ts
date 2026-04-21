@@ -9,8 +9,7 @@ export const createElasticsearchConfig = (
   const password = configService.get<string>('ELASTICSEARCH_PASSWORD');
   const apiKey = configService.get<string>('ELASTICSEARCH_API_KEY');
   const caFingerprint = configService.get<string>('ELASTICSEARCH_CA_FINGERPRINT');
-  const requestTimeout =
-    configService.get<number>('ELASTICSEARCH_REQUEST_TIMEOUT') ?? 30000;
+  const requestTimeout = configService.get<number>('ELASTICSEARCH_REQUEST_TIMEOUT') ?? 30000;
   const maxRetries = configService.get<number>('ELASTICSEARCH_MAX_RETRIES') ?? 3;
 
   const options: ElasticsearchModuleOptions = {
@@ -18,7 +17,7 @@ export const createElasticsearchConfig = (
     maxRetries,
     requestTimeout,
     sniffOnStart: false,
-    compression: 'gzip',
+    compression: true,
   };
 
   if (apiKey) {

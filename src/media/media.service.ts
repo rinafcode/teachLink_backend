@@ -8,6 +8,7 @@ import {
 } from '../cdn/entities/content-metadata.entity';
 import { FileStorageService } from './storage/file-storage.service';
 import { VideoProcessingService } from './processing/video-processing.service';
+import { UploadedFile } from '../common/types/file.types';
 import { FileValidationService } from './validation/file-validation.service';
 import { MalwareScanningService } from './validation/malware-scanning.service';
 import { ImageProcessingService } from './processing/image-processing.service';
@@ -46,7 +47,7 @@ export class MediaService {
   async createFromUpload(
     ownerId: string,
     tenantId: string | undefined,
-    file: Express.Multer.File,
+    file: UploadedFile,
     options: UploadOptions = {},
   ): Promise<UploadResult> {
     const uploadId = uuidv4();
@@ -98,9 +99,10 @@ export class MediaService {
         };
 
         if (!scanResult.clean) {
-          const errorMsg = scanResult.threats.length > 0
-            ? `Malware detected: ${scanResult.threats.join(', ')}`
-            : (scanResult.error || 'File failed security scan');
+          const errorMsg =
+            scanResult.threats.length > 0
+              ? `Malware detected: ${scanResult.threats.join(', ')}`
+              : scanResult.error || 'File failed security scan';
 
           if (options.trackProgress !== false) {
             await this.uploadProgress.markFailed(uploadId, errorMsg);
@@ -182,7 +184,7 @@ export class MediaService {
             }
 
             // Store thumbnail URLs in variants
-            content.variants = result.thumbnails.map(t => ({
+            content.variants = result.thumbnails.map((t) => ({
               name: t.name,
               url: t.url,
               width: 0, // Will be populated from thumbnail data
@@ -226,7 +228,7 @@ export class MediaService {
         await this.uploadProgress.markCompleted(uploadId, {
           contentId: content.contentId,
           url: content.cdnUrl,
-          thumbnails: result.thumbnails?.map(t => t.url),
+          thumbnails: result.thumbnails?.map((t) => t.url),
         });
       }
 
