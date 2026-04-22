@@ -1,8 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL, Version } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import { HealthService } from './health.service';
 
+@Version(VERSION_NEUTRAL)
 @Controller('health')
 export class HealthController {
   private redis: Redis;
