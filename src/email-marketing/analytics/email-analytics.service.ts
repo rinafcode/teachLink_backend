@@ -187,11 +187,24 @@ export class EmailAnalyticsService {
     const totalCampaigns = campaigns.length;
     const totalEmailsSent = campaigns.reduce((sum, c) => sum + (c.totalRecipients || 0), 0);
 
+    const campaignIds = campaigns.map((c) => c.id);
+    const metricsMap = await this.getBatchMetrics(campaignIds);
+
     let totalOpenRate = 0;
     let totalClickRate = 0;
 
     for (const campaign of campaigns) {
-      const metrics = await this.getCampaignMetrics(campaign.id);
+      const metrics = metricsMap.get(campaign.id) || {
+        sent: campaign.totalRecipients || 0,
+        delivered: 0,
+        opened: 0,
+        clicked: 0,
+        bounced: 0,
+        unsubscribed: 0,
+        openRate: 0,
+        clickRate: 0,
+        bounceRate: 0,
+      };
       totalOpenRate += metrics.openRate;
       totalClickRate += metrics.clickRate;
     }
@@ -202,6 +215,95 @@ export class EmailAnalyticsService {
       averageOpenRate: totalCampaigns > 0 ? totalOpenRate / totalCampaigns : 0,
       averageClickRate: totalCampaigns > 0 ? totalClickRate / totalCampaigns : 0,
     };
+  }
+
+  /**
+   * Batch fetch metrics for multiple campaigns to prevent N+1 queries
+   */
+  private async getBatchMetrics(campaignIds: string[]): Promise<Map<string, CampaignMetrics>> {
+    if (!campaignIds.length) return new Map();
+
+    // Query 1: Regular counts (delivered, bounced, unsubscribed)
+    const regularCounts = await this.eventRepository
+      .createQueryBuilder('event')
+      .select('event.campaignId', 'campaignId')
+      .addSelect('event.eventType', 'eventType')
+      .addSelect('COUNT(*)', 'count')
+      .where('event.campaignId IN (:...campaignIds)', { campaignIds })
+      .andWhere('event.eventType IN (:...eventTypes)', {
+        eventTypes: [EmailEventType.DELIVERED, EmailEventType.BOUNCED, EmailEventType.UNSUBSCRIBED],
+      })
+      .groupBy('event.campaignId')
+      .addGroupBy('event.eventType')
+      .getRawMany();
+
+    // Query 2: Unique recipient counts (opened, clicked)
+    const uniqueCounts = await this.eventRepository
+      .createQueryBuilder('event')
+      .select('event.campaignId', 'campaignId')
+      .addSelect('event.eventType', 'eventType')
+      .addSelect('COUNT(DISTINCT event.recipientId)', 'count')
+      .where('event.campaignId IN (:...campaignIds)', { campaignIds })
+      .andWhere('event.eventType IN (:...eventTypes)', {
+        eventTypes: [EmailEventType.OPENED, EmailEventType.CLICKED],
+      })
+      .groupBy('event.campaignId')
+      .addGroupBy('event.eventType')
+      .getRawMany();
+
+    // Fetch campaigns to get totalRecipients
+    const campaigns = await this.campaignRepository.findByIds(campaignIds);
+    const campaignMap = new Map(campaigns.map((c) => [c.id, c]));
+
+    const metricsMap = new Map<string, CampaignMetrics>();
+
+    const getMetrics = (id: string): CampaignMetrics => {
+      let metrics = metricsMap.get(id);
+      if (!metrics) {
+        const campaign = campaignMap.get(id);
+        const sent = campaign?.totalRecipients || 0;
+        metrics = {
+          sent,
+          delivered: 0,
+          opened: 0,
+          clicked: 0,
+          bounced: 0,
+          unsubscribed: 0,
+          openRate: 0,
+          clickRate: 0,
+          bounceRate: 0,
+        };
+        metricsMap.set(id, metrics);
+      }
+      return metrics;
+    };
+
+    // Process regular counts
+    for (const row of regularCounts) {
+      const metrics = getMetrics(row.campaignId);
+      const count = parseInt(row.count, 10);
+      if (row.eventType === EmailEventType.DELIVERED) metrics.delivered = count;
+      if (row.eventType === EmailEventType.BOUNCED) metrics.bounced = count;
+      if (row.eventType === EmailEventType.UNSUBSCRIBED) metrics.unsubscribed = count;
+    }
+
+    // Process unique counts
+    for (const row of uniqueCounts) {
+      const metrics = getMetrics(row.campaignId);
+      const count = parseInt(row.count, 10);
+      if (row.eventType === EmailEventType.OPENED) metrics.opened = count;
+      if (row.eventType === EmailEventType.CLICKED) metrics.clicked = count;
+    }
+
+    // Calculate rates
+    for (const metrics of metricsMap.values()) {
+      const sent = metrics.sent;
+      metrics.openRate = sent > 0 ? (metrics.opened / sent) * 100 : 0;
+      metrics.clickRate = metrics.opened > 0 ? (metrics.clicked / metrics.opened) * 100 : 0;
+      metrics.bounceRate = sent > 0 ? (metrics.bounced / sent) * 100 : 0;
+    }
+
+    return metricsMap;
   }
 
   // Helper methods
