@@ -1,8 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
+import { SkipThrottle } from '@nestjs/throttler';
 import { HealthService } from './health.service';
 
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   private redis: Redis;
