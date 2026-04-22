@@ -10,8 +10,10 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
 
+@SkipThrottle()
 @ApiTags('webhooks')
 @Controller('webhooks')
 export class WebhookController {

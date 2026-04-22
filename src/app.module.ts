@@ -121,7 +121,7 @@ export class AppModule {
       ThrottlerModule.forRoot([
         {
           ttl: parseInt(process.env.THROTTLE_TTL || '60'),
-          limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
+          limit: parseInt(process.env.THROTTLE_LIMIT || '60'),
         },
       ]),
       HealthModule,
