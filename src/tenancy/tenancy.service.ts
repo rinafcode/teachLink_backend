@@ -219,10 +219,12 @@ export class TenancyService {
     billing: TenantBilling;
     customization: TenantCustomization;
   }> {
-    const tenant = await this.findOne(tenantId);
-    const config = await this.getConfig(tenantId);
-    const billing = await this.billingService.getBillingInfo(tenantId);
-    const customization = await this.customizationService.getCustomization(tenantId);
+    const [tenant, config, billing, customization] = await Promise.all([
+      this.findOne(tenantId),
+      this.getConfig(tenantId),
+      this.billingService.getBillingInfo(tenantId),
+      this.customizationService.getCustomization(tenantId),
+    ]);
 
     return {
       tenant,

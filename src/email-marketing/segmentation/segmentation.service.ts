@@ -76,9 +76,9 @@ export class SegmentationService {
       relations: ['rules'],
     });
 
-    // Calculate member count for each segment
+    // Calculate member count for each segment using the segment object already loaded with rules
     for (const segment of segments) {
-      segment.memberCount = await this.calculateMemberCount(segment.id);
+      segment.memberCount = await this.calculateMemberCountForSegment(segment);
     }
 
     return {
@@ -102,9 +102,19 @@ export class SegmentationService {
       throw new NotFoundException(`Segment with ID ${id} not found`);
     }
 
-    // Calculate member count without recursive call
     segment.memberCount = await this.calculateMemberCountForSegment(segment);
     return segment;
+  }
+
+  /**
+   * Find multiple segments by IDs
+   */
+  async findByIds(ids: string[]): Promise<Segment[]> {
+    if (!ids.length) return [];
+    return this.segmentRepository.find({
+      where: { id: In(ids) },
+      relations: ['rules'],
+    });
   }
 
   /**
@@ -259,8 +269,8 @@ export class SegmentationService {
   /**
    * Check if a user belongs to a segment
    */
-  async isUserInSegment(userId: string, segmentId: string): Promise<boolean> {
-    const members = await this.getSegmentMembers(segmentId);
+  async isUserInSegment(userId: string, segmentOrId: Segment | string): Promise<boolean> {
+    const members = await this.getSegmentMembers(segmentOrId);
     return members.some((member) => member.id === userId);
   }
 
@@ -275,7 +285,7 @@ export class SegmentationService {
     const userSegments: Segment[] = [];
 
     for (const segment of allSegments) {
-      if (await this.isUserInSegment(userId, segment.id)) {
+      if (await this.isUserInSegment(userId, segment)) {
         userSegments.push(segment);
       }
     }

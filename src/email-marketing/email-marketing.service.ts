@@ -42,8 +42,9 @@ export class EmailMarketingService {
 
     // Validate segments exist
     if (createCampaignDto.segmentIds?.length) {
-      for (const segmentId of createCampaignDto.segmentIds) {
-        await this.segmentationService.findOne(segmentId);
+      const segments = await this.segmentationService.findByIds(createCampaignDto.segmentIds);
+      if (segments.length !== createCampaignDto.segmentIds.length) {
+        throw new NotFoundException('One or more segments not found');
       }
     }
 
