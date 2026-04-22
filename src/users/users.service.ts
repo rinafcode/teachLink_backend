@@ -27,6 +27,7 @@ export class UsersService {
     // Check if user already exists
     const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
+      withDeleted: true,
     });
     ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
@@ -185,8 +186,8 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findUserOrThrow(id);
-    await this.userRepository.remove(user);
+    await this.findUserOrThrow(id);
+    await this.userRepository.softDelete(id);
 
     // Invalidate cache after delete
     this.eventEmitter.emit(CACHE_EVENTS.USER_DELETED, { userId: id });

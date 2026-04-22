@@ -85,8 +85,8 @@ export class TemplateManagementService {
    * Delete a template
    */
   async remove(id: string): Promise<void> {
-    const template = await this.findOne(id);
-    await this.templateRepository.remove(template);
+    await this.findOne(id);
+    await this.templateRepository.softDelete(id);
   }
 
   /**
