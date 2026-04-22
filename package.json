@@ -101,7 +101,8 @@
     "stripe": "^18.3.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "helmet": "^8.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",

@@ -13,6 +13,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
+import helmet from 'helmet';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
@@ -20,6 +21,17 @@ async function bootstrapWorker() {
 
   // Create the application with dynamic module loading
   const app = await NestFactory.create(await AppModule.forRoot(), { rawBody: true });
+
+  // ─── Security Headers ─────────────────────────────────────────────────────
+  app.use(
+    helmet({
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    }),
+  );
 
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
 
