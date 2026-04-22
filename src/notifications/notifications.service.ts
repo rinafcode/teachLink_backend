@@ -13,6 +13,7 @@ import { NotificationsGateway } from './notifications.gateway';
 import { NotificationTemplatesService } from './notification-templates.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { EmailService } from './email/email.service';
+import { sanitizeEmail } from '../common/utils/pii-sanitizer.utils';
 
 @Injectable()
 export class NotificationsService {
@@ -30,10 +31,10 @@ export class NotificationsService {
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     try {
       await this.emailService.sendVerificationEmail(email, token);
-      this.logger.log(`Verification email sent to ${email}`);
+      this.logger.log(`Verification email sent to ${sanitizeEmail(email)}`);
     } catch (error) {
       this.logger.error(
-        `Failed to send verification email to ${email}`,
+        `Failed to send verification email to ${sanitizeEmail(email)}`,
         error instanceof Error ? error.stack : String(error),
       );
       throw error;
@@ -43,10 +44,10 @@ export class NotificationsService {
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
     try {
       await this.emailService.sendPasswordResetEmail(email, token);
-      this.logger.log(`Password reset email sent to ${email}`);
+      this.logger.log(`Password reset email sent to ${sanitizeEmail(email)}`);
     } catch (error) {
       this.logger.error(
-        `Failed to send password reset email to ${email}`,
+        `Failed to send password reset email to ${sanitizeEmail(email)}`,
         error instanceof Error ? error.stack : String(error),
       );
       throw error;
@@ -60,15 +61,10 @@ export class NotificationsService {
     const { userId, title, content, type, priority, metadata } = createNotificationDto;
 
     const preferences = await this.preferencesService.getPreferences(userId);
-    const shouldSend = this.shouldSendNotification(
-      type || NotificationType.IN_APP,
-      preferences,
-    );
+    const shouldSend = this.shouldSendNotification(type || NotificationType.IN_APP, preferences);
 
     if (!shouldSend) {
-      this.logger.debug(
-        `Notification skipped for user ${userId} based on preferences`,
-      );
+      this.logger.debug(`Notification skipped for user ${userId} based on preferences`);
     }
 
     const notification = this.notificationRepository.create({
@@ -123,9 +119,7 @@ export class NotificationsService {
     // Integrate with EmailService or MailerService here if notification email delivery is required
   }
 
-  private async sendExternalPushNotification(
-    notification: Notification,
-  ): Promise<void> {
+  private async sendExternalPushNotification(notification: Notification): Promise<void> {
     this.logger.log(
       `Sending external push notification to user ${notification.userId}: ${notification.title}`,
     );
@@ -248,10 +242,7 @@ export class NotificationsService {
     data: any;
     type?: NotificationType;
   }): Promise<void> {
-    const template = this.templatesService.renderTemplate(
-      payload.templateType,
-      payload.data,
-    );
+    const template = this.templatesService.renderTemplate(payload.templateType, payload.data);
 
     await this.create({
       userId: payload.userId,
