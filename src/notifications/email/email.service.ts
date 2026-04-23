@@ -41,7 +41,6 @@ export class EmailService {
 
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
-    const verificationUrl = `${appUrl}/auth/verify-email?token=${token}`;
 
     await this.emailQueue.add(
       'send-email',
@@ -50,12 +49,12 @@ export class EmailService {
         subject: 'Verify Your Email - TeachLink',
         template: 'verification',
         context: {
-          verificationUrl,
+          verificationUrl: `${appUrl}/auth/verify-email?token=${token}`,
           appUrl,
         },
       },
       {
-        attempts: 3,
+        attempts: 5,
         backoff: {
           type: 'exponential',
           delay: 2000,
@@ -68,7 +67,6 @@ export class EmailService {
 
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
-    const resetUrl = `${appUrl}/auth/reset-password?token=${token}`;
 
     await this.emailQueue.add(
       'send-email',
@@ -77,12 +75,12 @@ export class EmailService {
         subject: 'Reset Your Password - TeachLink',
         template: 'reset-password',
         context: {
-          resetUrl,
+          resetUrl: `${appUrl}/auth/reset-password?token=${token}`,
           appUrl,
         },
       },
       {
-        attempts: 3,
+        attempts: 5,
         backoff: {
           type: 'exponential',
           delay: 2000,
@@ -109,7 +107,20 @@ export class EmailService {
       this.logger.log(`Email sent successfully to ${options.to}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${options.to}`, error.stack);
-      throw error;
+
+      // Check if we should retry or send to dead letter queue
+      const maxAttempts = 5;
+      const attemptNumber = 1;
+
+      if (attemptNumber >= maxAttempts) {
+        this.logger.error(
+          `Email to ${options.to} moved to dead letter queue. Error: ${error.message}`,
+        );
+        // Here you would push to a dead letter queue:
+        // await this.deadLetterQueue.add('failed-email', { ...options, error: error.message });
+      } else {
+        throw error;
+      }
     }
   }
 
