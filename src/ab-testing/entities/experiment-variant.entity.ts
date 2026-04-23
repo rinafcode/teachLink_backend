@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
 } from 'typeorm';
@@ -38,6 +39,9 @@ export class ExperimentVariant {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 
   @ManyToOne(() => Experiment, (experiment) => experiment.variants)
   experiment: Experiment;

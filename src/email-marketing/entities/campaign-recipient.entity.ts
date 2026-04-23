@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  DeleteDateColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { Campaign } from './campaign.entity';
@@ -38,4 +46,7 @@ export class CampaignRecipient {
   @ApiProperty({ required: false })
   @Column({ nullable: true })
   variantId?: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
