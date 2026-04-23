@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   Index,
 } from 'typeorm';
@@ -70,4 +71,7 @@ export class Notification {
   @UpdateDateColumn()
   @Index()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

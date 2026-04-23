@@ -133,7 +133,7 @@ export class SegmentationService {
 
     // Update rules if provided
     if (updateSegmentDto.rules) {
-      await this.ruleRepository.delete({ segmentId: id });
+      await this.ruleRepository.softDelete({ segmentId: id });
       const rules = updateSegmentDto.rules.map((rule, index) =>
         this.ruleRepository.create({
           ...rule,
@@ -151,8 +151,11 @@ export class SegmentationService {
    * Delete a segment
    */
   async remove(id: string): Promise<void> {
-    const segment = await this.findOne(id);
-    await this.segmentRepository.remove(segment);
+    await this.findOne(id);
+    await this.segmentRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(SegmentRule).softDelete({ segmentId: id });
+      await manager.getRepository(Segment).softDelete(id);
+    });
   }
 
   /**

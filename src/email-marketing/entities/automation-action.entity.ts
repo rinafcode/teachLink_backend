@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  DeleteDateColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { AutomationWorkflow } from './automation-workflow.entity';
@@ -33,4 +40,7 @@ export class AutomationAction {
   @ApiProperty({ required: false })
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

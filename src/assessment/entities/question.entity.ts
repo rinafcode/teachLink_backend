@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
 
@@ -26,4 +26,7 @@ export class Question {
     onDelete: 'CASCADE',
   })
   assessment: Assessment;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

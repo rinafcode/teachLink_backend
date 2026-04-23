@@ -31,6 +31,7 @@ export class TenancyService {
     // Check if slug already exists
     const existingTenant = await this.tenantRepository.findOne({
       where: { slug: createTenantDto.slug },
+      withDeleted: true,
     });
 
     if (existingTenant) {
@@ -125,8 +126,14 @@ export class TenancyService {
    * Delete tenant
    */
   async remove(id: string): Promise<void> {
-    const tenant = await this.findOne(id);
-    await this.tenantRepository.remove(tenant);
+    await this.findOne(id);
+
+    await this.tenantRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(TenantConfig).softDelete({ tenantId: id });
+      await manager.getRepository(TenantBilling).softDelete({ tenantId: id });
+      await manager.getRepository(TenantCustomization).softDelete({ tenantId: id });
+      await manager.getRepository(Tenant).softDelete(id);
+    });
   }
 
   /**
