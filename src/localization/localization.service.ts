@@ -159,7 +159,9 @@ export class LocalizationService {
 
     if (existing) {
       if (!existing.deletedAt) {
-        throw new ConflictException('Translation already exists for this namespace, key, and locale');
+        throw new ConflictException(
+          'Translation already exists for this namespace, key, and locale',
+        );
       }
 
       existing.value = dto.value;
