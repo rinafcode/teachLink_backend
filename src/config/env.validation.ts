@@ -111,6 +111,7 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
   I18N_DEFAULT_LOCALE: Joi.string().default('en'),
@@ -130,4 +131,8 @@ export const envValidationSchema = Joi.object({
     .pattern(/^\d+(?:\.0+)?$/)
     .default('1'),
   API_SUPPORTED_VERSIONS: Joi.string().default('1'),
+
+  // Malware scanning
+  CLAMAV_URL: Joi.string().uri().optional(),
+  VIRUSTOTAL_API_KEY: Joi.string().optional(),
 });

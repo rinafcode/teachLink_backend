@@ -1,4 +1,10 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -82,7 +88,18 @@ export class MediaService {
       }
 
       // Step 2: Malware scanning
-      if (options.scanForMalware !== false && this.malwareScanning.isScanningAvailable()) {
+      if (options.scanForMalware !== false) {
+        if (!this.malwareScanning.isScanningAvailable()) {
+          const errorMsg =
+            'Malware scanning is required for uploads but no scanning service is available';
+
+          if (options.trackProgress !== false) {
+            await this.uploadProgress.markFailed(uploadId, errorMsg);
+          }
+
+          throw new ServiceUnavailableException(errorMsg);
+        }
+
         if (options.trackProgress !== false) {
           await this.uploadProgress.updateProgress(uploadId, {
             status: 'scanning',
@@ -99,15 +116,21 @@ export class MediaService {
         };
 
         if (!scanResult.clean) {
+          const detectedThreats = scanResult.threats.filter(Boolean);
           const errorMsg =
-            scanResult.threats.length > 0
-              ? `Malware detected: ${scanResult.threats.join(', ')}`
+            detectedThreats.length > 0
+              ? `Malware detected: ${detectedThreats.join(', ')}`
               : scanResult.error || 'File failed security scan';
 
           if (options.trackProgress !== false) {
             await this.uploadProgress.markFailed(uploadId, errorMsg);
           }
-          throw new BadRequestException(errorMsg);
+
+          if (detectedThreats.length > 0) {
+            throw new ForbiddenException(errorMsg);
+          }
+
+          throw new ServiceUnavailableException(errorMsg);
         }
       }
 
