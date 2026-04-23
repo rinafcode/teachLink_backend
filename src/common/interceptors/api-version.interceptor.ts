@@ -17,6 +17,34 @@ export interface VersionedRequest {
 
 @Injectable()
 export class ApiVersionInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(ApiVersionInterceptor.name);
+
+  // Supported API versions
+  readonly supportedVersions: ApiVersion[] = [
+    { major: 1, minor: 0, string: 'v1' },
+    { major: 2, minor: 0, string: 'v2' },
+  ];
+
+  // Default version if none specified
+  readonly defaultVersion: ApiVersion = { major: 1, minor: 0, string: 'v1' };
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const request = context.switchToHttp().getRequest();
+    const version = this.extractVersion(request);
+
+    // Attach version to request
+    (request as VersionedRequest).apiVersion = version;
+
+    this.logger.debug(`API Version: ${version.string} for ${request.method} ${request.url}`);
+
+    return next.handle().pipe(
+      tap(() => {
+        // Add version header to response
+        const response = context.switchToHttp().getResponse();
+        response.setHeader('X-API-Version', version.string);
+      }),
+    );
+  }
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const http = context.switchToHttp();
     const request = http.getRequest<VersionedRequest & { headers?: Record<string, string> }>();
@@ -34,6 +62,25 @@ export class ApiVersionInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
+
+  /**
+   * Extract version from URL path
+   */
+  private extractFromPath(path: string): ApiVersion | null {
+    if (!path) return null;
+
+    // Match /api/v1 or /v1 patterns
+    const match = path.match(/[/]v(\d+)(?:\.(\d+))?[/]/);
+    if (match) {
+      const version: ApiVersion = {
+        major: parseInt(match[1], 10),
+        minor: match[2] ? parseInt(match[2], 10) : 0,
+        string: `v${match[1]}${match[2] ? `.${match[2]}` : ''}`,
+      };
+      if (this.isSupported(version)) {
+        return version;
+      }
+    }
 
 export function normalizeRequestedApiVersion(version?: string | string[]): string | null {
   if (!version) {

@@ -42,6 +42,15 @@ async function bootstrapWorker() {
         includeSubDomains: true,
         preload: true,
       },
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
+      },
     }),
   );
 
@@ -85,8 +94,7 @@ async function bootstrapWorker() {
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
   // ─── Global Timeout Interceptor ─────────────────────────────────────────
-  const { TimeoutInterceptor } = await import('./common/interceptors/timeout.interceptor');
-  app.useGlobalInterceptors(new TimeoutInterceptor());
+  // TimeoutInterceptor is now provided globally via APP_INTERCEPTOR in AppModule
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors();

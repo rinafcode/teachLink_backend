@@ -21,6 +21,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottleGuard } from './common/guards/throttle.guard';
 import { loadFeatureFlags } from './config/feature-flags.config';
 import { StartupLogger } from './common/lazy-loading/startup-logger.service';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { ApiVersioningModule } from './common/modules/api-versioning.module';
 
 // Feature modules - conditionally loaded based on feature flags
@@ -51,6 +52,9 @@ import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
+import { CsrfModule } from './common/csrf/csrf.module';
+import { TimeoutModule } from './common/timeout/timeout.module';
+
 
 @Module({})
 export class AppModule {
@@ -128,6 +132,9 @@ export class AppModule {
       ApiVersioningModule,
       HealthModule,
       DatabaseModule,
+      CsrfModule,
+      TimeoutModule,
+
     ];
 
     // Feature modules - conditionally loaded based on feature flags
@@ -380,6 +387,10 @@ export class AppModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: MonitoringInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: TimeoutInterceptor,
         },
         {
           provide: APP_GUARD,

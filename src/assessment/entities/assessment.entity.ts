@@ -1,8 +1,16 @@
 import {
   Column,
   CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Index,
   DeleteDateColumn,
   Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Index,
+  DeleteDateColumn,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -14,12 +22,14 @@ export class Assessment {
   id: string;
 
   @Column()
+  @Index()
   title: string;
 
   @Column({ nullable: true })
   description?: string;
 
   @Column()
+  @Index()
   durationMinutes: number;
 
   @OneToMany(() => Question, (q) => q.assessment, {
