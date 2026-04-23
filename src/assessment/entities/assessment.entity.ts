@@ -1,4 +1,11 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Index,
+} from 'typeorm';
 import { Question } from './question.entity';
 
 @Entity()
@@ -7,12 +14,14 @@ export class Assessment {
   id: string;
 
   @Column()
+  @Index()
   title: string;
 
   @Column({ nullable: true })
   description?: string;
 
   @Column()
+  @Index()
   durationMinutes: number;
 
   @OneToMany(() => Question, (q) => q.assessment, {
