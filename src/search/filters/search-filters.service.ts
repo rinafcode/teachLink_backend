@@ -10,6 +10,8 @@ export class SearchFiltersService {
     const result = await this.elasticsearchService.search({
       index: COURSES_INDEX,
       size: 0,
+      _source: false,
+      timeout: '1500ms',
       aggs: {
         categories: { terms: { field: 'category', size: 50 } },
         levels: { terms: { field: 'level', size: 10 } },
