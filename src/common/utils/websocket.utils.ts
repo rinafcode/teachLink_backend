@@ -46,7 +46,7 @@ class WebSocketManager {
       this.connections.set(userId, new Set());
     }
 
-    const userConnections = this.connections.get(userId)!;
+    const userConnections = this.connections.get(userId) ?? new Set();
 
     // enforce max connections
     if (userConnections.size >= this.MAX_CONNECTIONS_PER_USER) {
