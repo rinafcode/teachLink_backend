@@ -19,6 +19,7 @@ export class Course {
   id: string;
 
   @Column()
+  @Index()
   title: string;
 
   @Column('text')

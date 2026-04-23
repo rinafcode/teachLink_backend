@@ -1,6 +1,9 @@
 import {
   Column,
   CreateDateColumn,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Index,
   DeleteDateColumn,
   Entity,
   OneToMany,
@@ -14,12 +17,14 @@ export class Assessment {
   id: string;
 
   @Column()
+  @Index()
   title: string;
 
   @Column({ nullable: true })
   description?: string;
 
   @Column()
+  @Index()
   durationMinutes: number;
 
   @OneToMany(() => Question, (q) => q.assessment, {
