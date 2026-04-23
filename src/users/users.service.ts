@@ -13,6 +13,7 @@ import { GetUsersDto } from './dto/get-users.dto';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +22,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     private readonly cachingService: CachingService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    private readonly configService: ConfigService,
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user already exists
@@ -31,7 +33,8 @@ export class UsersService {
     ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || 10;
+    const hashedPassword = await bcrypt.hash(createUserDto.password, bcryptRounds);
 
     // Create user
     const user = this.userRepository.create({
@@ -140,7 +143,8 @@ export class UsersService {
       // Append current, maintain last 5 entries
       user.passwordHistory = [...recentPasswords, user.password].slice(-5);
 
-      updateUserDto.password = await bcrypt.hash(plainPassword, 10);
+      const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || 10;
+      updateUserDto.password = await bcrypt.hash(plainPassword, bcryptRounds);
     }
 
     Object.assign(user, updateUserDto);

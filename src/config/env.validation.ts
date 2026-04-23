@@ -29,6 +29,9 @@ export const envValidationSchema = Joi.object({
   // Encryption
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
 
+  // Security Configuration
+  BCRYPT_ROUNDS: Joi.number().integer().min(4).max(15).default(10),
+
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
