@@ -213,25 +213,25 @@ TeachLink Backend follows a **modular microservices architecture** built on Nest
 
 ## 📦 Tech Stack
 
-| Layer             | Technology                     | Purpose                              |
-| ----------------- | ------------------------------ | ------------------------------------ |
-| **Framework**     | NestJS                         | Node.js application framework        |
-| **Language**      | TypeScript                     | Type-safe JavaScript                 |
-| **Database**      | PostgreSQL + TypeORM           | Primary data storage                  |
-| **Caching**       | Redis + IORedis                | Session store, caching, queues       |
-| **Authentication**| JWT + Passport                 | Token-based authentication           |
-| **GraphQL**       | Apollo Server                  | GraphQL API (optional)               |
-| **Real-time**     | Socket.io                      | WebSocket connections                |
-| **File Storage**  | AWS S3 + Cloudinary            | Media file storage and CDN           |
-| **Email**         | SendGrid + Nodemailer          | Email delivery and marketing          |
-| **Payments**      | Stripe                         | Payment processing                   |
-| **Search**        | Elasticsearch                  | Full-text search capabilities        |
-| **Queue**         | BullMQ                         | Background job processing             |
-| **Monitoring**    | OpenTelemetry + Prometheus     | Metrics and observability            |
-| **Testing**       | Jest + Supertest               | Unit and integration tests           |
-| **Documentation** | Swagger                        | API documentation                    |
-| **Validation**    | class-validator + class-transformer | DTO validation                    |
-| **Security**      | Helmet + bcrypt                | Security headers and password hashing |
+| Layer              | Technology                          | Purpose                               |
+| ------------------ | ----------------------------------- | ------------------------------------- |
+| **Framework**      | NestJS                              | Node.js application framework         |
+| **Language**       | TypeScript                          | Type-safe JavaScript                  |
+| **Database**       | PostgreSQL + TypeORM                | Primary data storage                  |
+| **Caching**        | Redis + IORedis                     | Session store, caching, queues        |
+| **Authentication** | JWT + Passport                      | Token-based authentication            |
+| **GraphQL**        | Apollo Server                       | GraphQL API (optional)                |
+| **Real-time**      | Socket.io                           | WebSocket connections                 |
+| **File Storage**   | AWS S3 + Cloudinary                 | Media file storage and CDN            |
+| **Email**          | SendGrid + Nodemailer               | Email delivery and marketing          |
+| **Payments**       | Stripe                              | Payment processing                    |
+| **Search**         | Elasticsearch                       | Full-text search capabilities         |
+| **Queue**          | BullMQ                              | Background job processing             |
+| **Monitoring**     | OpenTelemetry + Prometheus          | Metrics and observability             |
+| **Testing**        | Jest + Supertest                    | Unit and integration tests            |
+| **Documentation**  | Swagger                             | API documentation                     |
+| **Validation**     | class-validator + class-transformer | DTO validation                        |
+| **Security**       | Helmet + bcrypt                     | Security headers and password hashing |
 
 ## �️ Database
 

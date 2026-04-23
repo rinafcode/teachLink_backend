@@ -111,7 +111,9 @@ async function bootstrapWorker() {
   // ─── Swagger ──────────────────────────────────────────────────────────────
   const config = new DocumentBuilder()
     .setTitle('TeachLink API')
-    .setDescription(`The TeachLink API documentation - Unified System. ${API_VERSIONING_DOCUMENTATION}`)
+    .setDescription(
+      `The TeachLink API documentation - Unified System. ${API_VERSIONING_DOCUMENTATION}`,
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('gamification', 'Gamification and user rewards')

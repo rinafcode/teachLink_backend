@@ -9,8 +9,9 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { CollaborationService } from '../collaboration.service';
+import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
 import { SharedDocumentService } from '../documents/shared-document.service';
 import { WhiteboardService } from '../whiteboard/whiteboard.service';
 import { VersionControlService } from '../versioning/version-control.service';
@@ -34,6 +35,7 @@ export interface CollaborativeOperation {
     credentials: true,
   },
 })
+@UseGuards(WsThrottlerGuard)
 export class CollaborationGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -53,6 +55,11 @@ export class CollaborationGateway
   }
 
   async handleConnection(_server: any, @ConnectedSocket() client: Socket) {
+    if (wsManager.getTotalConnections() >= 5000) {
+      client.emit('error', { message: 'Server is at maximum capacity' });
+      client.disconnect(true);
+      return;
+    }
     this.logger.log(`Client connected: ${client.id}`);
 
     // Optionally authenticate the user here based on token
@@ -61,6 +68,7 @@ export class CollaborationGateway
   }
 
   async handleDisconnect(@ConnectedSocket() client: Socket) {
+    wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
 
     // Clean up any session associations for this client
@@ -79,6 +87,12 @@ export class CollaborationGateway
       const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
       if (!hasPermission) {
         client.emit('error', { message: 'Insufficient permissions to join session' });
+        return;
+      }
+
+      const registered = wsManager.registerConnection(userId, client);
+      if (!registered) {
+        client.emit('error', { message: 'Connection limit reached' });
         return;
       }
 
