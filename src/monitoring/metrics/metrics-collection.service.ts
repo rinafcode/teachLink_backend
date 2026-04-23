@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Registry, collectDefaultMetrics, Histogram, Gauge } from 'prom-client';
+import { Registry, collectDefaultMetrics, Histogram, Gauge, Counter } from 'prom-client';
 
 @Injectable()
 export class MetricsCollectionService implements OnModuleInit {
@@ -7,6 +7,12 @@ export class MetricsCollectionService implements OnModuleInit {
   public httpRequestDuration: Histogram;
   public dbQueryDuration: Histogram;
   public activeConnections: Gauge;
+  /** Tracks total DB pool connections acquired since startup (#274) */
+  public dbPoolConnectionsAcquired: Counter;
+  /** Tracks total DB pool connections released since startup (#274) */
+  public dbPoolConnectionsReleased: Counter;
+  /** Tracks current DB pool size (active + idle) (#274) */
+  public dbPoolSize: Gauge;
 
   constructor() {
     this.registry = new Registry();
@@ -33,6 +39,25 @@ export class MetricsCollectionService implements OnModuleInit {
     this.activeConnections = new Gauge({
       name: 'active_connections_count',
       help: 'Number of active connections',
+      registers: [this.registry],
+    });
+
+    // DB connection pool metrics (#274)
+    this.dbPoolConnectionsAcquired = new Counter({
+      name: 'db_pool_connections_acquired_total',
+      help: 'Total number of DB pool connections acquired',
+      registers: [this.registry],
+    });
+
+    this.dbPoolConnectionsReleased = new Counter({
+      name: 'db_pool_connections_released_total',
+      help: 'Total number of DB pool connections released',
+      registers: [this.registry],
+    });
+
+    this.dbPoolSize = new Gauge({
+      name: 'db_pool_size',
+      help: 'Current DB connection pool size (active + idle)',
       registers: [this.registry],
     });
   }

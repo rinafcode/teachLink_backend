@@ -1,5 +1,37 @@
 export const CACHE_REDIS_CLIENT = 'CACHE_REDIS_CLIENT';
 
+/**
+ * Cache TTL (Time-To-Live) values in seconds.
+ *
+ * ## Caching Strategy
+ *
+ * TeachLink uses a Redis-backed cache-aside pattern:
+ *  1. On read, check cache first; on miss, fetch from DB and populate cache.
+ *  2. On write/delete, invalidate or update the relevant cache keys.
+ *
+ * ### TTL Policy
+ * TTLs are chosen based on data volatility and read frequency:
+ *
+ * | Key              | TTL        | Rationale                                      |
+ * |------------------|------------|------------------------------------------------|
+ * | USER_SESSION     | 7 days     | Long-lived auth sessions; invalidated on logout|
+ * | COURSE_METADATA  | 15 min     | Frequently read, infrequently updated          |
+ * | COURSE_DETAILS   | 5 min      | May change (price, seats); short TTL           |
+ * | SEARCH_RESULTS   | 2 min      | High read volume; stale results acceptable     |
+ * | USER_PROFILE     | 10 min     | Moderate update frequency                      |
+ * | STATIC_CONTENT   | 1 hour     | Rarely changes; safe to cache long             |
+ * | POPULAR_COURSES  | 30 min     | Computed ranking; refresh periodically         |
+ * | ENROLLMENT_DATA  | 5 min      | Changes on enroll/unenroll events              |
+ *
+ * ### Cache Key Versioning
+ * All keys are prefixed with `cache:<entity>` (see CACHE_PREFIXES).
+ * To bust all keys for an entity type, increment the version suffix:
+ *   e.g. `cache:course:v2:<id>`
+ *
+ * ### Invalidation
+ * Cache invalidation is event-driven via CACHE_EVENTS. Services emit these
+ * events after mutations; the CachingModule subscribes and deletes stale keys.
+ */
 export const CACHE_TTL = {
   USER_SESSION: 604800, // 7 days
   COURSE_METADATA: 900, // 15 minutes
