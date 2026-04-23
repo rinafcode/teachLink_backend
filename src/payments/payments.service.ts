@@ -10,6 +10,7 @@ import { Invoice, InvoiceStatus } from './entities/invoice.entity';
 import { RefundDto } from './dto/refund.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { TransactionService } from '../common/database/transaction.service';
+import { Transactional } from '../common/database/transactional.decorator';
 import { ensureUserExists } from '../common/utils/user.utils';
 import { ProviderFactoryService } from './providers/provider-factory.service';
 import {
@@ -122,6 +123,12 @@ export class PaymentsService {
     };
   }
 
+  /**
+   * Process a refund for a payment
+   * Uses @Transactional to ensure both payment status update and refund record creation
+   * succeed or fail together, preventing orphaned refund records or inconsistent payment states.
+   */
+  @Transactional()
   async processRefund(refundDto: RefundDto): Promise<ProcessRefundResult> {
     const { paymentId, amount, reason } = refundDto;
 
@@ -249,6 +256,11 @@ export class PaymentsService {
     );
   }
 
+  /**
+   * Process refund triggered by a webhook
+   * Uses @Transactional to ensure atomicity between refund record creation and payment status update.
+   */
+  @Transactional()
   async processRefundFromWebhook(
     paymentIntentId: string,
     refundData: RefundWebhookData,
