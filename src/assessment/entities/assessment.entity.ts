@@ -9,6 +9,10 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  Index,
+  DeleteDateColumn,
+  OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Question } from './question.entity';
 

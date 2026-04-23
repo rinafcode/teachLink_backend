@@ -1,4 +1,4 @@
-import { ManyToOne, PrimaryGeneratedColumn, Index } from 'typeorm';
+import {  Entity, ManyToOne, PrimaryGeneratedColumn, Index } from 'typeorm';
 import { Column, DeleteDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
