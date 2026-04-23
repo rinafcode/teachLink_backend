@@ -7,11 +7,18 @@ export class AutoCompleteService {
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
   async getSuggestions(query: string): Promise<string[]> {
+    const sanitizedQuery = (query ?? '').trim().slice(0, 100);
+    if (!sanitizedQuery) {
+      return [];
+    }
+
     const result = await this.elasticsearchService.search({
       index: COURSES_INDEX,
+      _source: false,
+      timeout: '1000ms',
       suggest: {
         title_suggest: {
-          text: query,
+          text: sanitizedQuery,
           completion: {
             field: 'title.suggest',
             skip_duplicates: true,
@@ -22,8 +29,6 @@ export class AutoCompleteService {
     });
 
     const options = result.suggest?.title_suggest?.[0]?.options ?? [];
-    return Array.isArray(options)
-      ? options.map((option: any) => option.text as string)
-      : [];
+    return Array.isArray(options) ? options.map((option: any) => option.text as string) : [];
   }
 }
