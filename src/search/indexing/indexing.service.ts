@@ -61,7 +61,7 @@ export class IndexingService implements OnModuleInit {
     await this.elasticsearchService.delete({ index: COURSES_INDEX, id });
   }
 
-  async reindexAll(courses: Record<string, any>[]) {
+  async reindexAll(courses: Array<Record<string, any>>) {
     if (courses.length === 0) return;
 
     const operations = courses.flatMap((course) => {
@@ -96,12 +96,19 @@ export class IndexingService implements OnModuleInit {
       settings: {
         number_of_shards: 1,
         number_of_replicas: 1,
+        refresh_interval: '30s',
         analysis: {
           analyzer: {
             english_custom: {
               type: 'custom',
               tokenizer: 'standard',
               filter: ['lowercase', 'english_stop', 'english_stemmer'],
+            },
+          },
+          normalizer: {
+            lowercase_normalizer: {
+              type: 'custom',
+              filter: ['lowercase'],
             },
           },
           filter: {
@@ -119,14 +126,15 @@ export class IndexingService implements OnModuleInit {
             fields: {
               keyword: { type: 'keyword' },
               suggest: { type: 'completion' },
+              search: { type: 'search_as_you_type' },
             },
           },
           description: { type: 'text', analyzer: 'english_custom' },
           content: { type: 'text', analyzer: 'english_custom' },
-          tags: { type: 'keyword' },
-          category: { type: 'keyword' },
-          level: { type: 'keyword' },
-          language: { type: 'keyword' },
+          tags: { type: 'keyword', normalizer: 'lowercase_normalizer' },
+          category: { type: 'keyword', normalizer: 'lowercase_normalizer' },
+          level: { type: 'keyword', normalizer: 'lowercase_normalizer' },
+          language: { type: 'keyword', normalizer: 'lowercase_normalizer' },
           price: { type: 'float' },
           rating: { type: 'float' },
           views: { type: 'integer' },
