@@ -5,6 +5,7 @@ import { COURSES_INDEX, SEARCH_ANALYTICS_INDEX } from '../search.service';
 @Injectable()
 export class IndexingService implements OnModuleInit {
   private readonly logger = new Logger(IndexingService.name);
+  private readonly reindexOnBoot = process.env.SEARCH_REINDEX_ON_BOOT === 'true';
 
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
@@ -83,16 +84,95 @@ export class IndexingService implements OnModuleInit {
   // ── Index bootstrap ──────────────────────────────────────────────────────────
 
   private async ensureIndices() {
-    await Promise.all([this.createCoursesIndex(), this.createSearchAnalyticsIndex()]);
+    await Promise.all([
+      this.createCoursesIndex(this.reindexOnBoot),
+      this.createSearchAnalyticsIndex(),
+    ]);
   }
 
-  async createCoursesIndex() {
+  async createCoursesIndex(forceReindex = false) {
     const exists = await this.elasticsearchService.indices.exists({ index: COURSES_INDEX });
-    if (exists) return;
+
+    if (exists) {
+      await this.ensureExistingCoursesIndexSettings();
+      if (forceReindex) {
+        await this.reindexCoursesIndexWithCurrentMapping();
+      }
+      return;
+    }
 
     this.logger.log(`Creating index: ${COURSES_INDEX}`);
     return this.elasticsearchService.indices.create({
       index: COURSES_INDEX,
+      ...this.getCoursesIndexDefinition(),
+    });
+  }
+
+  private async ensureExistingCoursesIndexSettings() {
+    try {
+      await this.elasticsearchService.indices.putSettings({
+        index: COURSES_INDEX,
+        settings: {
+          refresh_interval: '30s',
+        },
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to update settings for ${COURSES_INDEX}: ${String(error)}`);
+    }
+  }
+
+  private async reindexCoursesIndexWithCurrentMapping() {
+    const tempIndex = `${COURSES_INDEX}_tmp_${Date.now()}`;
+    this.logger.log(
+      `SEARCH_REINDEX_ON_BOOT enabled, reindexing ${COURSES_INDEX} using temporary index ${tempIndex}`,
+    );
+
+    try {
+      await this.elasticsearchService.indices.create({
+        index: tempIndex,
+        ...this.getCoursesIndexDefinition(),
+      });
+
+      const sourceCount = await this.elasticsearchService.count({ index: COURSES_INDEX });
+      if (sourceCount.count > 0) {
+        await this.elasticsearchService.reindex({
+          wait_for_completion: true,
+          refresh: true,
+          source: { index: COURSES_INDEX },
+          dest: { index: tempIndex },
+        });
+      }
+
+      await this.elasticsearchService.indices.delete({ index: COURSES_INDEX });
+      await this.elasticsearchService.indices.create({
+        index: COURSES_INDEX,
+        ...this.getCoursesIndexDefinition(),
+      });
+
+      const tempCount = await this.elasticsearchService.count({ index: tempIndex });
+      if (tempCount.count > 0) {
+        await this.elasticsearchService.reindex({
+          wait_for_completion: true,
+          refresh: true,
+          source: { index: tempIndex },
+          dest: { index: COURSES_INDEX },
+        });
+      }
+
+      this.logger.log(`Reindex completed successfully for ${COURSES_INDEX}`);
+    } catch (error) {
+      this.logger.error(`Failed to reindex ${COURSES_INDEX}: ${String(error)}`);
+      throw error;
+    } finally {
+      const tempExists = await this.elasticsearchService.indices.exists({ index: tempIndex });
+      if (tempExists) {
+        await this.elasticsearchService.indices.delete({ index: tempIndex });
+      }
+    }
+  }
+
+  private getCoursesIndexDefinition() {
+    return {
       settings: {
         number_of_shards: 1,
         number_of_replicas: 1,
@@ -150,7 +230,7 @@ export class IndexingService implements OnModuleInit {
           updatedAt: { type: 'date' },
         },
       },
-    });
+    };
   }
 
   async createSearchAnalyticsIndex() {
