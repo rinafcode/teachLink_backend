@@ -7,6 +7,30 @@ import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
 
 export const COURSES_INDEX = 'courses';
 export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
+const SEARCH_SOURCE_FIELDS = [
+  'id',
+  'title',
+  'description',
+  'tags',
+  'category',
+  'level',
+  'language',
+  'price',
+  'rating',
+  'views',
+  'enrollments',
+  'duration',
+  'instructorId',
+  'instructorName',
+  'status',
+  'createdAt',
+  'updatedAt',
+];
+
+type SearchOptions = {
+  page?: number;
+  limit?: number;
+};
 
 @Injectable()
 export class SearchService {
@@ -19,32 +43,27 @@ export class SearchService {
     private readonly cachingService: CachingService,
   ) {}
 
-  async performSearch(query: string, filters: any, sort?: string) {
-    const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(query, filters, sort)}`;
+  async performSearch(query: string, filters: any, sort?: string, options: SearchOptions = {}) {
+    const sanitizedQuery = (query ?? '').trim().slice(0, 200);
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.min(50, Math.max(1, options.limit ?? 20));
+    const from = (page - 1) * limit;
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(sanitizedQuery, filters, sort, page, limit)}`;
+    const hasQuery = sanitizedQuery.length > 0;
 
     return this.cachingService.getOrSet(
       cacheKey,
       async () => {
         const result = await this.elasticsearchService.search({
           index: COURSES_INDEX,
+          from,
+          size: limit,
+          timeout: '1500ms',
+          track_total_hits: 10000,
+          _source: SEARCH_SOURCE_FIELDS,
           query: {
             function_score: {
-              query: {
-                bool: {
-                  must: [
-                    {
-                      multi_match: {
-                        query,
-                        fields: ['title^3', 'description^2', 'content', 'tags^2'],
-                        type: 'best_fields' as const,
-                        fuzziness: 'AUTO',
-                        prefix_length: 1,
-                      },
-                    },
-                  ],
-                  filter: this.buildFilters(filters),
-                },
-              },
+              query: this.buildSearchQuery(sanitizedQuery, filters, hasQuery),
               functions: [
                 {
                   field_value_factor: {
@@ -78,25 +97,21 @@ export class SearchService {
             },
           },
           sort: this.buildSort(sort),
-          track_total_hits: true,
-          highlight: {
-            fields: {
-              title: {},
-              description: { fragment_size: 150, number_of_fragments: 1 },
-            },
-          },
+          highlight: hasQuery
+            ? {
+                fields: {
+                  title: {},
+                  description: { fragment_size: 150, number_of_fragments: 1 },
+                },
+              }
+            : undefined,
           aggs: {
             categories: { terms: { field: 'category' } },
             levels: { terms: { field: 'level' } },
             price_ranges: {
               range: {
                 field: 'price',
-                ranges: [
-                  { to: 50 },
-                  { from: 50, to: 100 },
-                  { from: 100, to: 200 },
-                  { from: 200 },
-                ],
+                ranges: [{ to: 50 }, { from: 50, to: 100 }, { from: 100, to: 200 }, { from: 200 }],
               },
             },
           },
@@ -111,11 +126,13 @@ export class SearchService {
         const aggs = result.aggregations as any;
 
         const rankedResults = this.rankResults(hits);
-        this.logSearch(query, rankedResults.length, filters, sort);
+        this.logSearch(sanitizedQuery, rankedResults.length, filters, sort);
 
         return {
           results: rankedResults,
           total,
+          page,
+          limit,
           facets: {
             categories: aggs?.categories?.buckets ?? [],
             levels: aggs?.levels?.buckets ?? [],
@@ -211,6 +228,43 @@ export class SearchService {
     return esFilters;
   }
 
+  private buildSearchQuery(query: string, filters: any, hasQuery: boolean): Record<string, any> {
+    if (!hasQuery) {
+      return {
+        bool: {
+          filter: this.buildFilters(filters),
+        },
+      };
+    }
+
+    return {
+      bool: {
+        filter: this.buildFilters(filters),
+        should: [
+          {
+            multi_match: {
+              query,
+              fields: ['title^3', 'description^2', 'content', 'tags^2'],
+              type: 'best_fields' as const,
+              operator: 'and' as const,
+              fuzziness: 'AUTO:4,7',
+              prefix_length: 1,
+            },
+          },
+          {
+            multi_match: {
+              query,
+              type: 'bool_prefix' as const,
+              fields: ['title.search', 'title.search._2gram', 'title.search._3gram'],
+              boost: 2,
+            },
+          },
+        ],
+        minimum_should_match: 1,
+      },
+    };
+  }
+
   private buildSort(sort?: string) {
     if (sort === 'relevance') {
       return ['_score'];
@@ -237,12 +291,7 @@ export class SearchService {
     }));
   }
 
-  private logSearch(
-    query: string,
-    resultsCount: number,
-    filters?: any,
-    sort?: string,
-  ): void {
+  private logSearch(query: string, resultsCount: number, filters?: any, sort?: string): void {
     // Fire-and-forget: analytics must not slow down or fail search responses
     this.elasticsearchService
       .index({
@@ -260,8 +309,14 @@ export class SearchService {
       });
   }
 
-  private hashSearchParams(query: string, filters: any, sort?: string): string {
-    const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}`;
+  private hashSearchParams(
+    query: string,
+    filters: any,
+    sort?: string,
+    page = 1,
+    limit = 20,
+  ): string {
+    const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}:${page}:${limit}`;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
