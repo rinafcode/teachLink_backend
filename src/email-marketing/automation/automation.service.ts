@@ -129,7 +129,7 @@ export class AutomationService {
 
     // Update triggers if provided
     if (updateAutomationDto.triggers) {
-      await this.triggerRepository.delete({ workflowId: id });
+      await this.triggerRepository.softDelete({ workflowId: id });
       const triggers = updateAutomationDto.triggers.map((trigger) =>
         this.triggerRepository.create({
           ...trigger,
@@ -141,7 +141,7 @@ export class AutomationService {
 
     // Update actions if provided
     if (updateAutomationDto.actions) {
-      await this.actionRepository.delete({ workflowId: id });
+      await this.actionRepository.softDelete({ workflowId: id });
       const actions = updateAutomationDto.actions.map((action, index) =>
         this.actionRepository.create({
           ...action,
@@ -165,7 +165,11 @@ export class AutomationService {
       throw new BadRequestException('Deactivate workflow before deleting');
     }
 
-    await this.workflowRepository.remove(workflow);
+    await this.workflowRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(AutomationTrigger).softDelete({ workflowId: id });
+      await manager.getRepository(AutomationAction).softDelete({ workflowId: id });
+      await manager.getRepository(AutomationWorkflow).softDelete(id);
+    });
   }
 
   /**
