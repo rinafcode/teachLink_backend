@@ -123,7 +123,10 @@ export class EmailMarketingService {
       throw new BadRequestException('Cannot delete a campaign that is currently sending');
     }
 
-    await this.campaignRepository.remove(campaign);
+    await this.campaignRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(CampaignRecipient).softDelete({ campaignId: id });
+      await manager.getRepository(Campaign).softDelete(id);
+    });
   }
 
   /**
