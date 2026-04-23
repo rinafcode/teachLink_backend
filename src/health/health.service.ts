@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import * as fs from 'fs';
-import * as path from 'path';
+import * as _path from 'path';
 import axios from 'axios';
 
 export interface HealthStatus {
@@ -278,7 +278,7 @@ export class HealthService {
   }> {
     const startTime = Date.now();
     try {
-      const pong = await redis.ping();
+      const pong = await (redis as any).ping();
       const responseTime = Date.now() - startTime;
 
       // Get Redis memory info

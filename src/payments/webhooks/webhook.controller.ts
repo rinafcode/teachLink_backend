@@ -7,12 +7,17 @@ import {
   HttpStatus,
   Req,
   RawBodyRequest,
+  VERSION_NEUTRAL,
+  Version,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
 
+@SkipThrottle()
 @ApiTags('webhooks')
+@Version(VERSION_NEUTRAL)
 @Controller('webhooks')
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
