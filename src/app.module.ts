@@ -51,6 +51,7 @@ import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
+import { CsrfModule } from './common/csrf/csrf.module';
 
 @Module({})
 export class AppModule {
@@ -128,6 +129,7 @@ export class AppModule {
       ApiVersioningModule,
       HealthModule,
       DatabaseModule,
+      CsrfModule,
     ];
 
     // Feature modules - conditionally loaded based on feature flags
