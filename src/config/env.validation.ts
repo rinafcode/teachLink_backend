@@ -123,4 +123,11 @@ export const envValidationSchema = Joi.object({
 
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
+
+  // API Versioning
+  API_VERSION_HEADER_NAME: Joi.string().default('X-API-Version'),
+  API_DEFAULT_VERSION: Joi.string()
+    .pattern(/^\d+(?:\.0+)?$/)
+    .default('1'),
+  API_SUPPORTED_VERSIONS: Joi.string().default('1'),
 });

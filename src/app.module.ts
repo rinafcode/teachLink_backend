@@ -22,6 +22,7 @@ import { CustomThrottleGuard } from './common/guards/throttle.guard';
 import { loadFeatureFlags } from './config/feature-flags.config';
 import { StartupLogger } from './common/lazy-loading/startup-logger.service';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ApiVersioningModule } from './common/modules/api-versioning.module';
 
 // Feature modules - conditionally loaded based on feature flags
 import { SyncModule } from './sync/sync.module';
@@ -127,6 +128,7 @@ export class AppModule {
           limit: parseInt(process.env.THROTTLE_LIMIT || '60'),
         },
       ]),
+      ApiVersioningModule,
       HealthModule,
       DatabaseModule,
       CsrfModule,
