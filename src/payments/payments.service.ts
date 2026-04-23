@@ -36,53 +36,56 @@ export class PaymentsService {
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly transactionService: TransactionService,
     private readonly providerFactory: ProviderFactoryService,
-  ) {}
+  ) { }
 
+  /**
+   * Create a payment intent with a provider and record the pending payment.
+   * Refactored to use @Transactional decorator for consistent transaction management.
+   */
+  @Transactional()
   async createPaymentIntent(
     userId: string,
     createPaymentDto: CreatePaymentDto,
   ): Promise<CreatePaymentIntentResult> {
-    return await this.transactionService.runInTransaction(async (manager) => {
-      const { courseId, amount, currency, provider, metadata } = createPaymentDto;
+    const { courseId, amount, currency, provider, metadata } = createPaymentDto;
 
-      // Verify user exists
-      const userOrNull = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-      const user = ensureUserExists(userOrNull);
-
-      // Get payment provider
-      const paymentProvider = this.providerFactory.getProvider(provider ?? 'stripe');
-
-      // Create payment intent
-      const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency ?? 'USD', {
-        ...metadata,
-        userId,
-        courseId,
-      });
-
-      // Create payment record
-      const payment = manager.create(Payment, {
-        amount,
-        currency,
-        method: PaymentMethod.CREDIT_CARD,
-        provider,
-        providerPaymentId: paymentIntent.paymentIntentId,
-        status: PaymentStatus.PENDING,
-        metadata,
-        user,
-        userId,
-        courseId,
-      });
-
-      await manager.save(payment);
-
-      return {
-        paymentId: payment.id,
-        clientSecret: paymentIntent.clientSecret,
-        requiresAction: paymentIntent.requiresAction,
-      };
+    // Verify user exists
+    const userOrNull = await this.userRepository.findOne({
+      where: { id: userId },
     });
+    const user = ensureUserExists(userOrNull);
+
+    // Get payment provider
+    const paymentProvider = this.providerFactory.getProvider(provider ?? 'stripe');
+
+    // Create payment intent
+    const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency ?? 'USD', {
+      ...metadata,
+      userId,
+      courseId,
+    });
+
+    // Create payment record
+    const payment = this.paymentRepository.create({
+      amount,
+      currency,
+      method: PaymentMethod.CREDIT_CARD,
+      provider,
+      providerPaymentId: paymentIntent.paymentIntentId,
+      status: PaymentStatus.PENDING,
+      metadata,
+      user,
+      userId,
+      courseId,
+    });
+
+    await this.paymentRepository.save(payment);
+
+    return {
+      paymentId: payment.id,
+      clientSecret: paymentIntent.clientSecret,
+      requiresAction: paymentIntent.requiresAction,
+    };
   }
 
   async createSubscription(
@@ -192,6 +195,11 @@ export class PaymentsService {
     });
   }
 
+  /**
+   * Get or generate an invoice for a payment.
+   * Uses @Transactional to prevent race conditions during invoice generation.
+   */
+  @Transactional()
   async getInvoice(paymentId: string, userId: string): Promise<Invoice> {
     // Find payment
     const payment = await this.paymentRepository.findOne({
