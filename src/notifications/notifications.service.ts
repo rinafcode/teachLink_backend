@@ -182,7 +182,7 @@ export class NotificationsService {
    * Delete a notification
    */
   async remove(id: string, userId: string): Promise<void> {
-    const result = await this.notificationRepository.delete({ id, userId });
+    const result = await this.notificationRepository.softDelete({ id, userId });
 
     if (result.affected === 0) {
       throw new NotFoundException(`Notification with ID ${id} not found`);

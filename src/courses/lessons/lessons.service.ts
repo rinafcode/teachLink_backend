@@ -42,7 +42,7 @@ export class LessonsService {
   }
 
   async remove(id: string): Promise<void> {
-    const lesson = await this.findOne(id);
-    await this.lessonsRepository.remove(lesson);
+    await this.findOne(id);
+    await this.lessonsRepository.softDelete(id);
   }
 }

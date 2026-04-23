@@ -1,10 +1,13 @@
 import {
   Column,
   CreateDateColumn,
-  Entity,
   OneToMany,
   PrimaryGeneratedColumn,
   Index,
+  DeleteDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Question } from './question.entity';
 
@@ -31,4 +34,7 @@ export class Assessment {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
