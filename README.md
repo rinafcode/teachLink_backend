@@ -11,6 +11,8 @@
 
 This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features.
 
+- Pagination is limited to a maximum page size of **100** items per request.
+
 ---
 
 ## 🔁 CI / Testing
