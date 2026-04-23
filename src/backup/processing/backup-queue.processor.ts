@@ -229,7 +229,7 @@ export class BackupQueueProcessor {
       }
 
       // Delete from database
-      await this.backupRepository.remove(backup);
+      await this.backupRepository.softRemove(backup);
 
       this.logger.log(`Backup ${backupRecordId} deleted successfully`);
     } catch (error) {

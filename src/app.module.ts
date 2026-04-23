@@ -21,6 +21,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottleGuard } from './common/guards/throttle.guard';
 import { loadFeatureFlags } from './config/feature-flags.config';
 import { StartupLogger } from './common/lazy-loading/startup-logger.service';
+import { ApiVersioningModule } from './common/modules/api-versioning.module';
 
 // Feature modules - conditionally loaded based on feature flags
 import { SyncModule } from './sync/sync.module';
@@ -121,9 +122,10 @@ export class AppModule {
       ThrottlerModule.forRoot([
         {
           ttl: parseInt(process.env.THROTTLE_TTL || '60'),
-          limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
+          limit: parseInt(process.env.THROTTLE_LIMIT || '60'),
         },
       ]),
+      ApiVersioningModule,
       HealthModule,
       DatabaseModule,
     ];

@@ -199,7 +199,12 @@ export class BackupService {
         );
 
         if (shouldRetry) {
-          this.scheduledTaskMonitoringService.recordRetry(taskName, attempt, maxAttempts - 1, errorMessage);
+          this.scheduledTaskMonitoringService.recordRetry(
+            taskName,
+            attempt,
+            maxAttempts - 1,
+            errorMessage,
+          );
           await this.delay(this.scheduledTaskRetryDelayMs);
           continue;
         }

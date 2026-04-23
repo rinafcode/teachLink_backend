@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  DeleteDateColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { Segment } from './segment.entity';
@@ -38,4 +45,7 @@ export class SegmentRule {
   @ApiProperty({ default: 'AND' })
   @Column({ default: 'AND' })
   logicalOperator: 'AND' | 'OR';
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
