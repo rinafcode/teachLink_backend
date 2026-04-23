@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import * as fs from 'fs';
-import * as path from 'path';
 import axios from 'axios';
 
 export interface HealthStatus {

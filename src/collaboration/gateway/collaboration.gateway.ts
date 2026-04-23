@@ -8,7 +8,6 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { wsManager } from '../../common/utils/websocket.utils';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { CollaborationService } from '../collaboration.service';

@@ -119,6 +119,22 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 - 📊 Analytics and activity insights
 - 🧾 DAO integration for content moderation and governance
 
+## 🔀 API Versioning
+
+TeachLink uses a header-based API versioning strategy for application endpoints.
+
+- Send `X-API-Version: 1` with every versioned API request.
+- Supported versions are configured through `API_SUPPORTED_VERSIONS` and default to `1`.
+- `API_DEFAULT_VERSION` controls the currently active route version and defaults to `1`.
+- Health checks, metrics endpoints, the root route, and payment webhooks are version-neutral.
+- Requests with a missing or invalid API version header return a client error before the request reaches the controller.
+
+Example:
+
+```bash
+curl -H "X-API-Version: 1" http://localhost:3000/users
+```
+
 ## 📊 Architecture
 
 ## ⚙️ Tech Stack

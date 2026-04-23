@@ -42,8 +42,9 @@ export class EmailMarketingService {
 
     // Validate segments exist
     if (createCampaignDto.segmentIds?.length) {
-      for (const segmentId of createCampaignDto.segmentIds) {
-        await this.segmentationService.findOne(segmentId);
+      const segments = await this.segmentationService.findByIds(createCampaignDto.segmentIds);
+      if (segments.length !== createCampaignDto.segmentIds.length) {
+        throw new NotFoundException('One or more segments not found');
       }
     }
 
@@ -122,7 +123,10 @@ export class EmailMarketingService {
       throw new BadRequestException('Cannot delete a campaign that is currently sending');
     }
 
-    await this.campaignRepository.remove(campaign);
+    await this.campaignRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(CampaignRecipient).softDelete({ campaignId: id });
+      await manager.getRepository(Campaign).softDelete(id);
+    });
   }
 
   /**

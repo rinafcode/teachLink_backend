@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -14,6 +14,12 @@ import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
+import { API_VERSIONING_DOCUMENTATION } from './common/modules/api-versioning.module';
+import {
+  API_VERSION_HEADER,
+  DEFAULT_API_VERSION,
+  SUPPORTED_API_VERSIONS,
+} from './common/interceptors/api-version.interceptor';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
@@ -21,6 +27,12 @@ async function bootstrapWorker() {
 
   // Create the application with dynamic module loading
   const app = await NestFactory.create(await AppModule.forRoot(), { rawBody: true });
+
+  app.enableVersioning({
+    type: VersioningType.HEADER,
+    header: API_VERSION_HEADER,
+    defaultVersion: DEFAULT_API_VERSION,
+  });
 
   // ─── Security Headers ─────────────────────────────────────────────────────
   app.use(
@@ -91,7 +103,7 @@ async function bootstrapWorker() {
   // ─── Swagger ──────────────────────────────────────────────────────────────
   const config = new DocumentBuilder()
     .setTitle('TeachLink API')
-    .setDescription('The TeachLink API documentation - Unified System')
+    .setDescription(`The TeachLink API documentation - Unified System. ${API_VERSIONING_DOCUMENTATION}`)
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('gamification', 'Gamification and user rewards')
@@ -119,6 +131,9 @@ async function bootstrapWorker() {
 
   logger.log(`🚀 TeachLink API running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs available at http://localhost:${port}/api`);
+  logger.log(
+    `🧭 API versioning enabled via ${API_VERSION_HEADER}. Supported versions: ${SUPPORTED_API_VERSIONS.join(', ')}; default route version: ${DEFAULT_API_VERSION}.`,
+  );
   logger.log(`⏱️  Application startup completed in ${startupTime}ms`);
 }
 

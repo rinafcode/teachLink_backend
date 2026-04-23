@@ -91,12 +91,7 @@ export class SearchService {
             price_ranges: {
               range: {
                 field: 'price',
-                ranges: [
-                  { to: 50 },
-                  { from: 50, to: 100 },
-                  { from: 100, to: 200 },
-                  { from: 200 },
-                ],
+                ranges: [{ to: 50 }, { from: 50, to: 100 }, { from: 100, to: 200 }, { from: 200 }],
               },
             },
           },
@@ -237,12 +232,7 @@ export class SearchService {
     }));
   }
 
-  private logSearch(
-    query: string,
-    resultsCount: number,
-    filters?: any,
-    sort?: string,
-  ): void {
+  private logSearch(query: string, resultsCount: number, filters?: any, sort?: string): void {
     // Fire-and-forget: analytics must not slow down or fail search responses
     this.elasticsearchService
       .index({

@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThan, MoreThan, In, Brackets, WhereExpressionBuilder } from 'typeorm';
+import { Repository, Between, MoreThan } from 'typeorm';
 import { AuditLog } from './audit-log.entity';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
 import { ConfigService } from '@nestjs/config';
+import { sanitizePii } from '../common/utils/pii-sanitizer.utils';
 
 export interface AuditLogEntry {
   userId?: string;
@@ -93,7 +94,9 @@ export class AuditLogService {
 
     try {
       const saved = await this.auditRepo.save(log);
-      this.logger.debug(`Audit log created: ${entry.action} - ${entry.description || 'no description'}`);
+      this.logger.debug(
+        `Audit log created: ${log.action} - ${sanitizePii(log.description || 'no description')}`,
+      );
       return saved;
     } catch (error) {
       this.logger.error('Failed to create audit log:', error);
@@ -169,9 +172,12 @@ export class AuditLogService {
     userAgent: string,
     requestId?: string,
   ): Promise<AuditLog> {
-    const severity = statusCode >= 500 ? AuditSeverity.ERROR :
-                     statusCode >= 400 ? AuditSeverity.WARNING :
-                     AuditSeverity.INFO;
+    const severity =
+      statusCode >= 500
+        ? AuditSeverity.ERROR
+        : statusCode >= 400
+          ? AuditSeverity.WARNING
+          : AuditSeverity.INFO;
 
     return this.log({
       userId: userId || undefined,
@@ -238,11 +244,15 @@ export class AuditLogService {
     }
 
     if (filters.categories && filters.categories.length > 0) {
-      queryBuilder.andWhere('audit.category IN (:...categories)', { categories: filters.categories });
+      queryBuilder.andWhere('audit.category IN (:...categories)', {
+        categories: filters.categories,
+      });
     }
 
     if (filters.severities && filters.severities.length > 0) {
-      queryBuilder.andWhere('audit.severity IN (:...severities)', { severities: filters.severities });
+      queryBuilder.andWhere('audit.severity IN (:...severities)', {
+        severities: filters.severities,
+      });
     }
 
     if (filters.entityType) {
@@ -346,7 +356,11 @@ export class AuditLogService {
   /**
    * Find logs by entity
    */
-  async findByEntity(entityType: string, entityId: string, limit: number = 100): Promise<AuditLog[]> {
+  async findByEntity(
+    entityType: string,
+    entityId: string,
+    limit: number = 100,
+  ): Promise<AuditLog[]> {
     return this.auditRepo.find({
       where: { entityType, entityId },
       order: { timestamp: 'DESC' },
@@ -567,10 +581,9 @@ export class AuditLogService {
       return str;
     };
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.map(escapeCsv).join(',')),
-    ].join('\n');
+    const csvContent = [headers.join(','), ...rows.map((row) => row.map(escapeCsv).join(','))].join(
+      '\n',
+    );
 
     return csvContent;
   }
@@ -591,21 +604,15 @@ export class AuditLogService {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [
-      totalLogs,
-      logsToday,
-      logsThisWeek,
-      logsThisMonth,
-      criticalEvents,
-      errorEvents,
-    ] = await Promise.all([
-      this.auditRepo.count(),
-      this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(today) } }),
-      this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(weekAgo) } }),
-      this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(monthAgo) } }),
-      this.auditRepo.count({ where: { severity: AuditSeverity.CRITICAL } }),
-      this.auditRepo.count({ where: { severity: AuditSeverity.ERROR } }),
-    ]);
+    const [totalLogs, logsToday, logsThisWeek, logsThisMonth, criticalEvents, errorEvents] =
+      await Promise.all([
+        this.auditRepo.count(),
+        this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(today) } }),
+        this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(weekAgo) } }),
+        this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(monthAgo) } }),
+        this.auditRepo.count({ where: { severity: AuditSeverity.CRITICAL } }),
+        this.auditRepo.count({ where: { severity: AuditSeverity.ERROR } }),
+      ]);
 
     return {
       totalLogs,

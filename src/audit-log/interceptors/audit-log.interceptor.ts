@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AuditLogService } from '../audit-log.service';
@@ -31,14 +25,7 @@ export class AuditLogInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse();
     const startTime = Date.now();
 
-    const {
-      method,
-      path,
-      ip,
-      headers,
-      user,
-      requestId,
-    } = request;
+    const { method, path, ip, headers, user, requestId } = request;
 
     const userAgent = headers['user-agent'] || 'Unknown';
     const userId = user?.id || null;
@@ -96,9 +83,12 @@ export class AuditLogInterceptor implements NestInterceptor {
         return;
       }
 
-      const severity = statusCode >= 500 ? AuditSeverity.ERROR :
-                       statusCode >= 400 ? AuditSeverity.WARNING :
-                       AuditSeverity.INFO;
+      const severity =
+        statusCode >= 500
+          ? AuditSeverity.ERROR
+          : statusCode >= 400
+            ? AuditSeverity.WARNING
+            : AuditSeverity.INFO;
 
       await this.auditLogService.log({
         userId: userId || undefined,
