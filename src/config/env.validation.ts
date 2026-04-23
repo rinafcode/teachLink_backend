@@ -123,4 +123,7 @@ export const envValidationSchema = Joi.object({
 
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
+
+  // CORS Configuration
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:4000'),
 });

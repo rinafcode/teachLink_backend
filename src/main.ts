@@ -14,6 +14,7 @@ import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
+import { corsConfig } from './config/cors.config';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
@@ -77,7 +78,7 @@ async function bootstrapWorker() {
   app.useGlobalInterceptors(new TimeoutInterceptor());
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
-  app.enableCors();
+  app.enableCors(corsConfig);
 
   // ─── Validation ──────────────────────────────────────────────────────────
   app.useGlobalPipes(
