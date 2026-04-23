@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import {
@@ -15,6 +15,8 @@ import { CacheInvalidationService } from '../caching/invalidation/invalidation.s
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/sanitization.utils';
+import { CourseModule } from './entities/course-module.entity';
+import { Lesson } from './entities/lesson.entity';
 
 @Injectable()
 export class CoursesService {
@@ -181,11 +183,24 @@ export class CoursesService {
   }
 
   async remove(id: string): Promise<void> {
-    const course = await this.coursesRepository.findOne({ where: { id } });
+    const course = await this.coursesRepository.findOne({
+      where: { id },
+      relations: ['modules'],
+    });
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
     }
-    await this.coursesRepository.remove(course);
+
+    await this.coursesRepository.manager.transaction(async (manager) => {
+      const moduleIds = course.modules.map((module) => module.id);
+
+      if (moduleIds.length > 0) {
+        await manager.getRepository(Lesson).softDelete({ moduleId: In(moduleIds) });
+      }
+
+      await manager.getRepository(CourseModule).softDelete({ courseId: id });
+      await manager.getRepository(Course).softDelete(id);
+    });
 
     // Invalidate cache after delete
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_DELETED, { courseId: id });

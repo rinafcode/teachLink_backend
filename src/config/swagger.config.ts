@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { API_VERSIONING_DOCUMENTATION } from '../common/modules/api-versioning.module';
 
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('TeachLink API')
-    .setDescription('TeachLink backend API documentation')
+    .setDescription(`TeachLink backend API documentation. ${API_VERSIONING_DOCUMENTATION}`)
     .setVersion('1.0')
     .addBearerAuth(
       {
