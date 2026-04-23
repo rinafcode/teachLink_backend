@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { SkipThrottle } from '@nestjs/throttler';
 import { HealthService } from './health.service';
 
+
 @Version(VERSION_NEUTRAL)
 @SkipThrottle()
 @Controller('health')
