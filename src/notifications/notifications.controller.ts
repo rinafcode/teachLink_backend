@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Patch,
   Delete,
   Param,
@@ -15,7 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@ne
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { NotificationResponseDto, UpdateNotificationDto } from './dto/notification.dto';
+import { NotificationResponseDto } from './dto/notification.dto';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
 
 @ApiTags('Notifications')

@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  Index,
+  DeleteDateColumn,
+} from 'typeorm';
 import { Course } from './course.entity';
 import { Lesson } from './lesson.entity';
 
@@ -22,4 +30,7 @@ export class CourseModule {
 
   @OneToMany(() => Lesson, (lesson) => lesson.module)
   lessons: Lesson[];
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

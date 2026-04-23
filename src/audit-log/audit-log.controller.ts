@@ -12,7 +12,14 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { AuditLogService, AuditLogSearchFilters } from './audit-log.service';
 import { AuditLog } from './audit-log.entity';
@@ -32,9 +39,21 @@ export class AuditLogController {
   @ApiOperation({ summary: 'Search audit logs with filters' })
   @ApiQuery({ name: 'userId', required: false, description: 'Filter by user ID' })
   @ApiQuery({ name: 'userEmail', required: false, description: 'Filter by user email' })
-  @ApiQuery({ name: 'actions', required: false, description: 'Filter by actions (comma-separated)' })
-  @ApiQuery({ name: 'categories', required: false, description: 'Filter by categories (comma-separated)' })
-  @ApiQuery({ name: 'severities', required: false, description: 'Filter by severities (comma-separated)' })
+  @ApiQuery({
+    name: 'actions',
+    required: false,
+    description: 'Filter by actions (comma-separated)',
+  })
+  @ApiQuery({
+    name: 'categories',
+    required: false,
+    description: 'Filter by categories (comma-separated)',
+  })
+  @ApiQuery({
+    name: 'severities',
+    required: false,
+    description: 'Filter by severities (comma-separated)',
+  })
   @ApiQuery({ name: 'entityType', required: false, description: 'Filter by entity type' })
   @ApiQuery({ name: 'entityId', required: false, description: 'Filter by entity ID' })
   @ApiQuery({ name: 'ipAddress', required: false, description: 'Filter by IP address' })
@@ -90,7 +109,12 @@ export class AuditLogController {
 
   @Get('recent')
   @ApiOperation({ summary: 'Get recent audit logs' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of logs to return', type: Number })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of logs to return',
+    type: Number,
+  })
   @ApiResponse({ status: 200, description: 'Recent audit logs' })
   async getRecent(
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
@@ -101,7 +125,12 @@ export class AuditLogController {
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get audit logs for a specific user' })
   @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of logs to return', type: Number })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of logs to return',
+    type: Number,
+  })
   @ApiResponse({ status: 200, description: 'User audit logs' })
   async getByUser(
     @Param('userId') userId: string,
@@ -114,7 +143,12 @@ export class AuditLogController {
   @ApiOperation({ summary: 'Get audit logs for a specific entity' })
   @ApiParam({ name: 'entityType', description: 'Entity type (e.g., user, course)' })
   @ApiParam({ name: 'entityId', description: 'Entity ID' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of logs to return', type: Number })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of logs to return',
+    type: Number,
+  })
   @ApiResponse({ status: 200, description: 'Entity audit logs' })
   async getByEntity(
     @Param('entityType') entityType: string,
@@ -127,7 +161,12 @@ export class AuditLogController {
   @Get('ip/:ipAddress')
   @ApiOperation({ summary: 'Get audit logs by IP address' })
   @ApiParam({ name: 'ipAddress', description: 'IP address' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of logs to return', type: Number })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of logs to return',
+    type: Number,
+  })
   @ApiResponse({ status: 200, description: 'IP audit logs' })
   async getByIpAddress(
     @Param('ipAddress') ipAddress: string,
@@ -148,10 +187,7 @@ export class AuditLogController {
   @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
   @ApiQuery({ name: 'endDate', required: true, description: 'End date (ISO 8601)' })
   @ApiResponse({ status: 200, description: 'Audit report' })
-  async generateReport(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
-  ) {
+  async generateReport(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
     if (!startDate || !endDate) {
       throw new HttpException('Start date and end date are required', HttpStatus.BAD_REQUEST);
     }
