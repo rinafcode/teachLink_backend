@@ -46,7 +46,8 @@ class WebSocketManager {
       this.connections.set(userId, new Set());
     }
 
-    const userConnections = this.connections.get(userId);
+    const userConnections = this.connections.get(userId) ?? new Set();
+  
     if (!userConnections) {
       return;
     }
