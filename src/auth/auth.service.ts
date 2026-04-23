@@ -71,7 +71,11 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async register(registerDto: RegisterDto, ipAddress?: string, userAgent?: string): Promise<RegisterResponse> {
+  async register(
+    registerDto: RegisterDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<RegisterResponse> {
     return await this.transactionService.runInTransaction(async (_manager) => {
       // Create user
       const user = await this.usersService.create(registerDto);
@@ -254,7 +258,12 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, sessionId?: string, ipAddress?: string, userAgent?: string): Promise<{ message: string }> {
+  async logout(
+    userId: string,
+    sessionId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ message: string }> {
     const user = await this.usersService.findOne(userId);
 
     await this.sessionService.withLock(`logout:${userId}`, async () => {

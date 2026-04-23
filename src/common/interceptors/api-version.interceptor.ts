@@ -32,7 +32,7 @@ export class ApiVersionInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const version = this.extractVersion(request);
-    
+
     // Attach version to request
     (request as VersionedRequest).apiVersion = version;
 
@@ -96,7 +96,7 @@ export class ApiVersionInterceptor implements NestInterceptor {
     if (!path) return null;
 
     // Match /api/v1 or /v1 patterns
-    const match = path.match(/[\/]v(\d+)(?:\.(\d+))?[\/]/);
+    const match = path.match(/[/]v(\d+)(?:\.(\d+))?[/]/);
     if (match) {
       const version: ApiVersion = {
         major: parseInt(match[1], 10),
@@ -192,7 +192,7 @@ export class ApiVersionGuard {
  * Decorator for version-specific endpoints
  */
 export function ApiVersion(version: string): MethodDecorator {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
     Reflect.defineMetadata('api:version', version, descriptor.value);
     return descriptor;
   };
@@ -202,7 +202,7 @@ export function ApiVersion(version: string): MethodDecorator {
  * Decorator to get the current API version from request
  */
 export function GetApiVersion(): ParameterDecorator {
-  return function (target: object, propertyKey: string | symbol, parameterIndex: number) {
+  return function (_target: object, _propertyKey: string | symbol, _parameterIndex: number) {
     // This will be handled by the interceptor to inject the version
   };
 }
