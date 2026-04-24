@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MessagingService } from './messaging.service';
 import { EventBusService } from './event-bus/event-bus.service';
@@ -18,7 +19,7 @@ import { createBullRedisClient } from '../common/utils/bull-redis.util';
       createClient: createBullRedisClient,
     }),
     BullModule.registerQueue({
-      name: 'message-queue',
+      name: QUEUE_NAMES.MESSAGE_QUEUE,
     }),
     EventEmitterModule.forRoot(),
   ],

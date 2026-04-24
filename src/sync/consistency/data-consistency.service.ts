@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { APP_EVENTS } from '../../common/constants/event.constants';
 
 export interface IntegrityCheckResult {
   consistent: boolean;
@@ -15,7 +17,7 @@ export class DataConsistencyService {
 
   constructor(
     private eventEmitter: EventEmitter2,
-    @InjectQueue('sync-tasks') private syncQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.SYNC_TASKS) private syncQueue: Queue,
   ) {}
 
   /**
@@ -26,7 +28,7 @@ export class DataConsistencyService {
 
     // Add to queue for background processing
     await this.syncQueue.add(
-      'consistency-check',
+      JOB_NAMES.CONSISTENCY_CHECK,
       {
         dataId,
         payload,
@@ -42,7 +44,7 @@ export class DataConsistencyService {
     );
 
     // Emit event for real-time subscribers
-    this.eventEmitter.emit('data.consistency.scheduled', { dataId, timestamp: new Date() });
+    this.eventEmitter.emit(APP_EVENTS.DATA_CONSISTENCY_SCHEDULED, { dataId, timestamp: new Date() });
   }
 
   /**
@@ -69,7 +71,7 @@ export class DataConsistencyService {
 
     if (!consistent) {
       this.logger.warn(`Integrity check failed with issues: ${issues.join(', ')}`);
-      this.eventEmitter.emit('data.integrity.violation', { issues, timestamp: new Date() });
+      this.eventEmitter.emit(APP_EVENTS.DATA_INTEGRITY_VIOLATION, { issues, timestamp: new Date() });
     }
 
     return {

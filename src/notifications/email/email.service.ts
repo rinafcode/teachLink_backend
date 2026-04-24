@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 
 export interface EmailOptions {
   to: string;
@@ -22,7 +23,7 @@ export class EmailService {
 
   constructor(
     private readonly configService: ConfigService,
-    @InjectQueue('email') private readonly emailQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.EMAIL) private readonly emailQueue: Queue,
   ) {
     this.initializeTransporter();
   }
@@ -43,7 +44,7 @@ export class EmailService {
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
 
     await this.emailQueue.add(
-      'send-email',
+      JOB_NAMES.SEND_EMAIL,
       {
         to: email,
         subject: 'Verify Your Email - TeachLink',
@@ -69,7 +70,7 @@ export class EmailService {
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
 
     await this.emailQueue.add(
-      'send-email',
+      JOB_NAMES.SEND_EMAIL,
       {
         to: email,
         subject: 'Reset Your Password - TeachLink',

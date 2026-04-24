@@ -1,4 +1,5 @@
 import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../../common/constants/queue.constants';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { RetryLogicService } from '../retry/retry-logic.service';
@@ -8,7 +9,7 @@ import { sanitizeEmail, sanitizePii } from '../../common/utils/pii-sanitizer.uti
  * Default Queue Processor
  * Processes jobs from the default queue
  */
-@Processor('default')
+@Processor(QUEUE_NAMES.DEFAULT)
 export class DefaultQueueProcessor {
   private readonly logger = new Logger(DefaultQueueProcessor.name);
 

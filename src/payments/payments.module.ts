@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { WebhookController } from './webhooks/webhook.controller';
@@ -27,10 +28,10 @@ import { TransactionHelperService } from '../common/database/transaction-helper.
     TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User, WebhookRetry]),
     BullModule.registerQueue(
       {
-        name: 'subscriptions',
+        name: QUEUE_NAMES.SUBSCRIPTIONS,
       },
       {
-        name: 'webhooks',
+        name: QUEUE_NAMES.WEBHOOKS,
       },
     ),
     UsersModule,

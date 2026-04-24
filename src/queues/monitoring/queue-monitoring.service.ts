@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
+import { QUEUE_NAMES } from '../../common/constants/queue.constants';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueMetrics } from '../interfaces/queue.interfaces';
 
@@ -14,7 +15,7 @@ export class QueueMonitoringService {
   private metricsHistory: Map<string, QueueMetrics[]> = new Map();
   private readonly MAX_HISTORY_SIZE = 100;
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
+  constructor(@InjectQueue(QUEUE_NAMES.DEFAULT) private readonly defaultQueue: Queue) {}
 
   /**
    * Get current queue metrics

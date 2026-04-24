@@ -1,6 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Injectable, Logger } from '@nestjs/common';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
@@ -45,7 +46,7 @@ interface WebhookJobData {
 }
 
 @Injectable()
-@Processor('webhooks')
+@Processor(QUEUE_NAMES.WEBHOOKS)
 export class WebhookRetryProcessor {
   private readonly logger = new Logger(WebhookRetryProcessor.name);
 
@@ -61,7 +62,7 @@ export class WebhookRetryProcessor {
     private readonly paymentsService: PaymentsService,
   ) {}
 
-  @Process('process-webhook')
+  @Process(JOB_NAMES.PROCESS_WEBHOOK)
   async processWebhook(job: Job<WebhookJobData>) {
     const { webhookRetryId, provider, payload, signature, externalEventId, headers } =
       job.data;

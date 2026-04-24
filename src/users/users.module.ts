@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { User } from './entities/user.entity';
@@ -16,7 +17,7 @@ import {
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),
-    BullModule.registerQueue({ name: 'user-data-export' }),
+    BullModule.registerQueue({ name: QUEUE_NAMES.USER_DATA_EXPORT }),
   ],
   controllers: [UsersController],
   providers: [UsersService, ExportService, UserDataExportProcessor, RolesGuard, JwtAuthGuard],
