@@ -5,7 +5,8 @@ import {
   ApiResponse,
   ApiTags,
   ApiBearerAuth,
-  UseGuards,
+  UseGuards,VERSION_NEUTRAL,
+ Version 
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
@@ -14,6 +15,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { HealthService } from './health.service';
 import { HealthStatus } from './health.service';
 
+@Version(VERSION_NEUTRAL)
 @SkipThrottle()
 @ApiTags('health')
 @ApiBearerAuth()

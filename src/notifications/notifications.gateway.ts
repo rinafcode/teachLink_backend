@@ -11,6 +11,8 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
 import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { Notification } from './entities/notification.entity';
+import { wsManager } from '../common/utils/websocket.utils';
+import { WsThrottlerGuard } from '../common/guards/ws-throttler.guard';
 
 @WebSocketGateway({
   cors: {
@@ -18,6 +20,7 @@ import { Notification } from './entities/notification.entity';
   },
   namespace: 'notifications',
 })
+@UseGuards(WsThrottlerGuard)
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -26,10 +29,20 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   private userSockets: Map<string, Set<string>> = new Map();
 
   async handleConnection(client: Socket) {
+    // Optionally we can get userId here from token if required, but currently it handles subscribe via message.
+    // However, for connection limit we can temporarily register with client id if no token or if handled at subscribe.
+    // Let's enforce global connection limits here.
+    if (wsManager.getTotalConnections() >= 5000) {
+      // Same as MAX_GLOBAL_CONNECTIONS
+      client.emit('error', { message: 'Server is at maximum capacity' });
+      client.disconnect(true);
+      return;
+    }
     this.logger.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
+    wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
     this.removeSocketId(client.id);
   }
@@ -46,6 +59,11 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     if (!userId) {
       this.logger.warn(`User ID not found for client: ${client.id}`);
       return;
+    }
+
+    const registered = wsManager.registerConnection(userId, client);
+    if (!registered) {
+      return { status: 'error', message: 'Connection limit reached' };
     }
 
     this.addSocketId(userId, client.id);

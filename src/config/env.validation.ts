@@ -29,6 +29,9 @@ export const envValidationSchema = Joi.object({
   // Encryption
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
 
+  // Security Configuration
+  BCRYPT_ROUNDS: Joi.number().integer().min(4).max(15).default(10),
+
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
@@ -111,6 +114,7 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
   I18N_DEFAULT_LOCALE: Joi.string().default('en'),
@@ -123,4 +127,15 @@ export const envValidationSchema = Joi.object({
 
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
+
+  // API Versioning
+  API_VERSION_HEADER_NAME: Joi.string().default('X-API-Version'),
+  API_DEFAULT_VERSION: Joi.string()
+    .pattern(/^\d+(?:\.0+)?$/)
+    .default('1'),
+  API_SUPPORTED_VERSIONS: Joi.string().default('1'),
+
+  // Malware scanning
+  CLAMAV_URL: Joi.string().uri().optional(),
+  VIRUSTOTAL_API_KEY: Joi.string().optional(),
 });

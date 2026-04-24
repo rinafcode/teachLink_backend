@@ -32,7 +32,11 @@ export const AuditCreate = (entityType: string, options?: Partial<AuditLogOption
     ...options,
   });
 
-export const AuditUpdate = (entityType: string, entityIdParam: string, options?: Partial<AuditLogOptions>) =>
+export const AuditUpdate = (
+  entityType: string,
+  entityIdParam: string,
+  options?: Partial<AuditLogOptions>,
+) =>
   AuditLog({
     action: AuditAction.DATA_UPDATED,
     category: AuditCategory.DATA_MODIFICATION,
@@ -41,7 +45,11 @@ export const AuditUpdate = (entityType: string, entityIdParam: string, options?:
     ...options,
   });
 
-export const AuditDelete = (entityType: string, entityIdParam: string, options?: Partial<AuditLogOptions>) =>
+export const AuditDelete = (
+  entityType: string,
+  entityIdParam: string,
+  options?: Partial<AuditLogOptions>,
+) =>
   AuditLog({
     action: AuditAction.DATA_DELETED,
     category: AuditCategory.DATA_MODIFICATION,
@@ -51,7 +59,11 @@ export const AuditDelete = (entityType: string, entityIdParam: string, options?:
     ...options,
   });
 
-export const AuditView = (entityType: string, entityIdParam?: string, options?: Partial<AuditLogOptions>) =>
+export const AuditView = (
+  entityType: string,
+  entityIdParam?: string,
+  options?: Partial<AuditLogOptions>,
+) =>
   AuditLog({
     action: AuditAction.DATA_VIEWED,
     category: AuditCategory.DATA_ACCESS,
