@@ -47,6 +47,9 @@ class WebSocketManager {
       this.connections.set(userId, new Set());
     }
 
+    const userConnections = this.connections.get(userId);
+    if (!userConnections) {
+      return;
     const userConnections = this.connections.get(userId) || new Set<Socket>();
 
     // enforce global connection limits

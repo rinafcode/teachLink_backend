@@ -70,7 +70,7 @@ export class ApiVersionInterceptor implements NestInterceptor {
     if (!path) return null;
 
     // Match /api/v1 or /v1 patterns
-    const match = path.match(/[/]v(\d+)(?:\.(\d+))?[/]/);
+    const match = path.match(/\/v(\d+)(?:\.(\d+))?\//);
     if (match) {
       const version: ApiVersion = {
         major: parseInt(match[1], 10),
