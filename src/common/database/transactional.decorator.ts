@@ -25,7 +25,7 @@ export const Transactional = (options: TransactionalOptions = {}) =>
       if (!transactionService) {
         throw new Error(
           `TransactionService not injected in ${target.constructor.name}. ` +
-            `Please inject it via constructor.`,
+            'Please inject it via constructor.',
         );
       }
 

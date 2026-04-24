@@ -130,7 +130,6 @@ export class CreateWebhookRetriesTable1681234567890 implements MigrationInterfac
   }
 }
 `;
-
 // Database cleanup and maintenance queries
 export const maintenanceQueries = {
   // Get dead letter queue stats

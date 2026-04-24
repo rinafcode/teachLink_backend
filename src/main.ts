@@ -11,17 +11,17 @@ import { GlobalExceptionFilter } from './common/interceptors/global-exception.fi
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { correlationMiddleware } from './common/utils/correlation.utils';
-import { sessionConfig } from './config/cache.config';
-import { SESSION_REDIS_CLIENT } from './session/session.constants';
-import helmet from 'helmet';
-import { corsConfig } from './config/cors.config';
-import { ShutdownStateService } from './common/services/shutdown-state.service';
 import {
   API_VERSION_HEADER,
   DEFAULT_API_VERSION,
   SUPPORTED_API_VERSIONS,
 } from './common/interceptors/api-version.interceptor';
 import { API_VERSIONING_DOCUMENTATION } from './common/modules/api-versioning.module';
+import { sessionConfig } from './config/cache.config';
+import { SESSION_REDIS_CLIENT } from './session/session.constants';
+import helmet from 'helmet';
+import { corsConfig } from './config/cors.config';
+import { ShutdownStateService } from './common/services/shutdown-state.service';
 
 async function bootstrapWorker(): Promise<void> {
   const logger = new Logger('Bootstrap');
@@ -272,7 +272,7 @@ async function bootstrap(): Promise<void> {
       for (const id in cluster.workers) {
         const worker = cluster.workers[id];
         if (worker) {
-          worker.process.kill(signal as any);
+          worker.process.kill(signal as NodeJS.Signals);
         }
       }
     };

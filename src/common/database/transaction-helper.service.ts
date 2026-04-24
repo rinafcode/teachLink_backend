@@ -27,7 +27,7 @@ export class TransactionHelperService {
         operations.map((operation) => operation(queryRunner.manager)),
       );
       await queryRunner.commitTransaction();
-      this.logger.debug(`Transaction committed successfully`);
+      this.logger.debug('Transaction committed successfully');
       return results;
     } catch (error) {
       await queryRunner.rollbackTransaction();

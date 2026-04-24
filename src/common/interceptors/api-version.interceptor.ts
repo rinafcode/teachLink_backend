@@ -1,19 +1,17 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 
 export const API_VERSION_HEADER = process.env.API_VERSION_HEADER_NAME?.trim() || 'X-API-Version';
 export const API_VERSION_HEADER_KEY = API_VERSION_HEADER.toLowerCase();
 
-export interface ApiVersion {
-  major: number;
-  minor: number;
-  string: string;
+const VERSION_NEUTRAL_PATH_PREFIXES = ['/api', '/health', '/metrics', '/webhooks'];
+const VERSION_NEUTRAL_EXACT_PATHS = ['/', '/api-json', '/favicon.ico'];
+
+export interface VersionedRequest {
+  apiVersion?: string;
+  path?: string;
+  url?: string;
+  headers?: Record<string, string | string[] | undefined>;
 }
 
 export function normalizeRequestedApiVersion(version?: string | string[]): string | null {
@@ -57,13 +55,6 @@ export function parseSupportedApiVersions(raw = process.env.API_SUPPORTED_VERSIO
 
 export const SUPPORTED_API_VERSIONS = parseSupportedApiVersions(process.env.API_SUPPORTED_VERSIONS);
 
-const VERSION_NEUTRAL_PATH_PREFIXES = ['/api', '/health', '/metrics', '/webhooks'];
-const VERSION_NEUTRAL_EXACT_PATHS = ['/', '/api-json', '/favicon.ico'];
-
-export interface VersionedRequest {
-  apiVersion?: string;
-}
-
 export function isVersionNeutralPath(pathOrUrl: string): boolean {
   const path = (pathOrUrl || '/').split('?')[0];
 
@@ -78,19 +69,21 @@ export function isVersionNeutralPath(pathOrUrl: string): boolean {
 
 @Injectable()
 export class ApiVersionInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(ApiVersionInterceptor.name);
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const http = context.switchToHttp();
-    const request = http.getRequest<VersionedRequest & { headers?: Record<string, string> }>();
+    const request = http.getRequest<VersionedRequest>();
     const response = http.getResponse<{ setHeader: (name: string, value: string) => void }>();
 
+    const path = request.path || request.url || '/';
+
     const resolvedVersion =
-      request.apiVersion || request.headers?.[API_VERSION_HEADER_KEY] || DEFAULT_API_VERSION;
+      request.apiVersion ||
+      normalizeRequestedApiVersion(request.headers?.[API_VERSION_HEADER_KEY]) ||
+      DEFAULT_API_VERSION;
 
     request.apiVersion = resolvedVersion;
 
-    if (!isVersionNeutralPath((request as any).path || '')) {
+    if (!isVersionNeutralPath(path)) {
       response.setHeader(API_VERSION_HEADER, resolvedVersion);
     }
 
@@ -98,11 +91,8 @@ export class ApiVersionInterceptor implements NestInterceptor {
   }
 }
 
-/**
- * Decorator to get the current API version from request
- */
 export function GetApiVersion(): ParameterDecorator {
-  return function (_target: object, _propertyKey: string | symbol, _parameterIndex: number) {
-    // This will be handled by the interceptor to inject the version
+  return (_target: object, _propertyKey: string | symbol, _parameterIndex: number): void => {
+    // Intentionally a marker decorator for future injection.
   };
 }

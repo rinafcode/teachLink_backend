@@ -57,9 +57,9 @@ export class CreateUsersTableMigration implements MigrationConfig {
       );
     `);
 
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_users_email     ON users (email);`);
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_users_username  ON users (username);`);
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users (tenant_id);`);
+    await connection.query('CREATE INDEX IF NOT EXISTS idx_users_email     ON users (email);');
+    await connection.query('CREATE INDEX IF NOT EXISTS idx_users_username  ON users (username);');
+    await connection.query('CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users (tenant_id);');
 
     this.logger.log('Migration applied: create users table');
   }
@@ -67,9 +67,9 @@ export class CreateUsersTableMigration implements MigrationConfig {
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create users table');
 
-    await connection.query(`DROP TABLE IF EXISTS users CASCADE;`);
-    await connection.query(`DROP TYPE IF EXISTS user_role;`);
-    await connection.query(`DROP TYPE IF EXISTS user_status;`);
+    await connection.query('DROP TABLE IF EXISTS users CASCADE;');
+    await connection.query('DROP TYPE IF EXISTS user_role;');
+    await connection.query('DROP TYPE IF EXISTS user_status;');
 
     this.logger.log('Migration rolled back: create users table');
   }

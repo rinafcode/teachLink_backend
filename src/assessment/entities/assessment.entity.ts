@@ -1,11 +1,11 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
+  Index,
   OneToMany,
   PrimaryGeneratedColumn,
-  Index,
-  DeleteDateColumn,
 } from 'typeorm';
 import { Question } from './question.entity';
 

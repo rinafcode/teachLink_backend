@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, VERSION_NEUTRAL, Version } from '@nestjs/common';
+import { Controller, Get, HttpStatus } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
 

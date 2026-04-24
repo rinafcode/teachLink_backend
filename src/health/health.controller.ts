@@ -6,8 +6,6 @@ import {
   Query,
   Res,
   UseGuards,
-  VERSION_NEUTRAL,
-  Version,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

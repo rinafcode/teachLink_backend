@@ -54,11 +54,14 @@ export class TimeoutController {
   @Get('check')
   @ApiOperation({ summary: 'Get timeout for a specific request' })
   @ApiResponse({ status: 200, description: 'Timeout calculated successfully' })
-  checkTimeout(@Body() body: { method: string; path: string }): { timeout: number; source: string } {
+  checkTimeout(@Body() body: { method: string; path: string }): {
+    timeout: number;
+    source: string;
+  } {
     const timeout = this.timeoutConfig.getTimeoutForRequest(body.method, body.path);
     const endpointTimeout = this.timeoutConfig.getEndpointTimeout(body.path);
     const methodTimeout = this.timeoutConfig.getMethodTimeout(body.method);
-    
+
     let source = 'default';
     if (endpointTimeout) {
       source = 'endpoint';

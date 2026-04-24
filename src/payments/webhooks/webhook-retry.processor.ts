@@ -64,8 +64,14 @@ export class WebhookRetryProcessor {
 
   @Process(JOB_NAMES.PROCESS_WEBHOOK)
   async processWebhook(job: Job<WebhookJobData>) {
-    const { webhookRetryId, provider, payload, signature, externalEventId, headers } =
-      job.data;
+    const {
+      webhookRetryId,
+      provider,
+      payload,
+      signature,
+      externalEventId: _externalEventId,
+      headers,
+    } = job.data;
 
     try {
       // Update status to processing
@@ -85,11 +91,7 @@ export class WebhookRetryProcessor {
       if (provider === WebhookProvider.STRIPE) {
         await this.handleStripeWebhook(payload as Buffer, signature, webhookRetryId);
       } else if (provider === WebhookProvider.PAYPAL) {
-        await this.handlePayPalWebhook(
-          payload as Record<string, unknown>,
-          headers,
-          webhookRetryId,
-        );
+        await this.handlePayPalWebhook(payload as Record<string, unknown>, headers, webhookRetryId);
       }
 
       // Mark as succeeded
@@ -168,7 +170,7 @@ export class WebhookRetryProcessor {
   private async handleStripeWebhook(
     payload: Buffer,
     signature: string,
-    webhookRetryId: string,
+    _webhookRetryId: string,
   ): Promise<void> {
     if (!payload) {
       throw new Error('Missing payload for Stripe webhook');
@@ -205,9 +207,7 @@ export class WebhookRetryProcessor {
     }
   }
 
-  private async handlePaymentIntentSucceeded(
-    paymentIntent: StripePaymentIntent,
-  ): Promise<void> {
+  private async handlePaymentIntentSucceeded(paymentIntent: StripePaymentIntent): Promise<void> {
     await this.paymentsService.updatePaymentStatus(
       paymentIntent.id,
       PaymentStatus.COMPLETED,
@@ -235,7 +235,7 @@ export class WebhookRetryProcessor {
   private async handlePayPalWebhook(
     payload: Record<string, unknown>,
     _headers: Record<string, string>,
-    webhookRetryId: string,
+    _webhookRetryId: string,
   ): Promise<void> {
     const paypalPayload = payload as unknown as PayPalWebhookPayload;
     this.logger.log(`Processing PayPal webhook: ${paypalPayload.event_type}`);

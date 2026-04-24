@@ -7,8 +7,6 @@ import {
   HttpStatus,
   Req,
   RawBodyRequest,
-  VERSION_NEUTRAL,
-  Version,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';

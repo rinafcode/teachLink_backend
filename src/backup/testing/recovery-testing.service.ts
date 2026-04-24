@@ -42,7 +42,7 @@ export class RecoveryTestingService {
   async createRecoveryTest(backupId: string): Promise<RecoveryTestResponseDto> {
     const backup = await this.backupService.getLatestBackup();
     if (!backup) {
-      throw new NotFoundException(`No verified backup found`);
+      throw new NotFoundException('No verified backup found');
     }
 
     const testDatabaseName = this.configService.get<string>(
@@ -217,7 +217,7 @@ export class RecoveryTestingService {
 
       // Run validation queries
       const tableCountResult = await client.query(
-        `SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'`,
+        "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'",
       );
       const tableCount = parseInt(tableCountResult.rows[0].count);
 

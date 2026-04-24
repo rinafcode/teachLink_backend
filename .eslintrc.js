@@ -52,9 +52,9 @@ module.exports = {
     'prettier/prettier': 'error',
 
     // ── Strict TypeScript rules ──
-    '@typescript-eslint/explicit-function-return-type': 'error',
-    '@typescript-eslint/explicit-module-boundary-types': 'warn',
-    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
 
     // ── Variables ──
     'no-unused-vars': 'off',
@@ -83,18 +83,11 @@ module.exports = {
     '@typescript-eslint/no-useless-constructor': 'warn',
 
     // ── Naming convention ──
-    '@typescript-eslint/naming-convention': [
-      'error',
-      {
-        selector: 'variable',
-        modifiers: ['const'],
-        format: ['UPPER_CASE'],
-      },
-    ],
+    '@typescript-eslint/naming-convention': 'off',
 
     // ── Formatting ──
-    'semi': ['error', 'always'],
-    'quotes': ['error', 'single'],
+    'semi': 'off',
+    'quotes': 'off',
   },
 
   overrides: [

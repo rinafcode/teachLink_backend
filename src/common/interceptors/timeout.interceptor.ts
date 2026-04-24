@@ -27,7 +27,6 @@ export class TimeoutInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const handler = context.getHandler();
-    const controller = context.getClass();
     const customTimeout = Reflect.getMetadata('timeout', handler);
 
     const request = context.switchToHttp().getRequest();

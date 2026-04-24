@@ -2,9 +2,9 @@ import {
   Column,
   DeleteDateColumn,
   Entity,
+  Index,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Index,
 } from 'typeorm';
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
