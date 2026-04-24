@@ -23,6 +23,7 @@ import { QueueService } from './queue.service';
 import { PrioritizationService } from './prioritization/prioritization.service';
 import { JobSchedulerService } from './scheduler/job-scheduler.service';
 import { QueueMonitoringService } from './monitoring/queue-monitoring.service';
+import { JobOptions } from './interfaces/queue.interfaces';
 
 import {
   AddJobDto,
@@ -234,7 +235,7 @@ export class QueueController {
   @Roles('admin')
   @ApiOperation({ summary: 'Add a job to the queue (admin)' })
   async addJob(@Body(ValidationPipe) body: AddJobDto) {
-    let options = body.options ?? {};
+    let options: JobOptions = body.options ?? {};
 
     if (body.priorityFactors) {
       const priority = this.prioritizationService.calculatePriority(body.priorityFactors as any);
