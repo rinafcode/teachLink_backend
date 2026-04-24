@@ -16,14 +16,13 @@ import { CacheInvalidationService } from './invalidation/invalidation.service';
 import { CacheWarmingService } from './warming/cache-warming.service';
 import { CacheStrategiesService } from './strategies/cache-strategies.service';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-// import { Role } from '../common/decorators/roles.decorator';
+import { Roles, Role } from '../common/decorators/roles.decorator';
 
 @ApiTags('Cache Management')
 @ApiBearerAuth()
 @Controller('cache')
 @UseGuards(RolesGuard)
-@Roles('admin')
+@Roles(Role.ADMIN)
 export class CacheManagementController {
   constructor(
     private readonly cachingService: CachingService,

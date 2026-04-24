@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { JobOptions, JobMetrics } from './interfaces/queue.interfaces';
 import { JobPriority, JobStatus } from './enums/job-priority.enum';
 
@@ -12,7 +13,7 @@ import { JobPriority, JobStatus } from './enums/job-priority.enum';
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
+  constructor(@InjectQueue(QUEUE_NAMES.DEFAULT) private readonly defaultQueue: Queue) {}
 
   /**
    * Add a job to the queue with priority and options

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from './../../common/constants/queue.constants';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { BackupRecord } from './entities/backup-record.entity';
@@ -29,7 +30,7 @@ export class BackupService {
   constructor(
     @InjectRepository(BackupRecord)
     private readonly backupRepository: Repository<BackupRecord>,
-    @InjectQueue('backup-processing')
+    @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING)
     private readonly backupQueue: Queue,
     private readonly configService: ConfigService,
     private readonly alertingService: AlertingService,
@@ -103,7 +104,7 @@ export class BackupService {
 
         // Queue backup job
         await this.backupQueue.add(
-          'create-backup',
+          JOB_NAMES.CREATE_BACKUP,
           {
             backupRecordId: backupRecord.id,
             backupType: BackupType.FULL,
@@ -157,7 +158,7 @@ export class BackupService {
 
         for (const backup of expiredBackups) {
           await this.backupQueue.add(
-            'delete-backup',
+            JOB_NAMES.DELETE_BACKUP,
             { backupRecordId: backup.id },
             {
               attempts: 3,

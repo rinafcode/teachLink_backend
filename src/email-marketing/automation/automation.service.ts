@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { APP_EVENTS } from '../../common/constants/event.constants';
 
 import { AutomationWorkflow } from '../entities/automation-workflow.entity';
 import { AutomationTrigger } from '../entities/automation-trigger.entity';
@@ -24,7 +26,7 @@ export class AutomationService {
     private readonly triggerRepository: Repository<AutomationTrigger>,
     @InjectRepository(AutomationAction)
     private readonly actionRepository: Repository<AutomationAction>,
-    @InjectQueue('email-marketing')
+    @InjectQueue(QUEUE_NAMES.EMAIL_MARKETING)
     private readonly emailQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -129,7 +131,7 @@ export class AutomationService {
 
     // Update triggers if provided
     if (updateAutomationDto.triggers) {
-      await this.triggerRepository.delete({ workflowId: id });
+      await this.triggerRepository.softDelete({ workflowId: id });
       const triggers = updateAutomationDto.triggers.map((trigger) =>
         this.triggerRepository.create({
           ...trigger,
@@ -141,7 +143,7 @@ export class AutomationService {
 
     // Update actions if provided
     if (updateAutomationDto.actions) {
-      await this.actionRepository.delete({ workflowId: id });
+      await this.actionRepository.softDelete({ workflowId: id });
       const actions = updateAutomationDto.actions.map((action, index) =>
         this.actionRepository.create({
           ...action,
@@ -165,7 +167,11 @@ export class AutomationService {
       throw new BadRequestException('Deactivate workflow before deleting');
     }
 
-    await this.workflowRepository.remove(workflow);
+    await this.workflowRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(AutomationTrigger).softDelete({ workflowId: id });
+      await manager.getRepository(AutomationAction).softDelete({ workflowId: id });
+      await manager.getRepository(AutomationWorkflow).softDelete(id);
+    });
   }
 
   /**
@@ -202,7 +208,7 @@ export class AutomationService {
   /**
    * Handle user signup event
    */
-  @OnEvent('user.signup')
+  @OnEvent(APP_EVENTS.USER_SIGNUP)
   async handleUserSignup(payload: { userId: string; email: string }) {
     await this.executeTriggeredWorkflows(TriggerType.USER_SIGNUP, payload);
   }
@@ -210,7 +216,7 @@ export class AutomationService {
   /**
    * Handle course enrollment event
    */
-  @OnEvent('course.enrolled')
+  @OnEvent(APP_EVENTS.COURSE_ENROLLED)
   async handleCourseEnrollment(payload: { userId: string; courseId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.COURSE_ENROLLED, payload);
   }
@@ -218,7 +224,7 @@ export class AutomationService {
   /**
    * Handle course completion event
    */
-  @OnEvent('course.completed')
+  @OnEvent(APP_EVENTS.COURSE_COMPLETED)
   async handleCourseCompletion(payload: { userId: string; courseId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.COURSE_COMPLETED, payload);
   }
@@ -226,7 +232,7 @@ export class AutomationService {
   /**
    * Handle purchase event
    */
-  @OnEvent('payment.completed')
+  @OnEvent(APP_EVENTS.PAYMENT_COMPLETED)
   async handlePurchase(payload: { userId: string; amount: number; productId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.PURCHASE_MADE, payload);
   }
@@ -312,7 +318,7 @@ export class AutomationService {
   ): Promise<void> {
     switch (action.type) {
       case ActionType.SEND_EMAIL:
-        await this.emailQueue.add('send-automation-email', {
+        await this.emailQueue.add(JOB_NAMES.SEND_AUTOMATION_EMAIL, {
           actionId: action.id,
           templateId: action.config.templateId,
           userId: payload.userId,
@@ -322,7 +328,7 @@ export class AutomationService {
 
       case ActionType.WAIT:
         await this.emailQueue.add(
-          'continue-automation',
+          JOB_NAMES.CONTINUE_AUTOMATION,
           {
             workflowId: action.workflowId,
             nextActionOrder: action.order + 1,
@@ -333,28 +339,28 @@ export class AutomationService {
         break;
 
       case ActionType.ADD_TAG:
-        this.eventEmitter.emit('user.addTag', {
+        this.eventEmitter.emit(APP_EVENTS.USER_ADD_TAG, {
           userId: payload.userId,
           tag: action.config.tag,
         });
         break;
 
       case ActionType.REMOVE_TAG:
-        this.eventEmitter.emit('user.removeTag', {
+        this.eventEmitter.emit(APP_EVENTS.USER_REMOVE_TAG, {
           userId: payload.userId,
           tag: action.config.tag,
         });
         break;
 
       case ActionType.ADD_TO_SEGMENT:
-        this.eventEmitter.emit('segment.addUser', {
+        this.eventEmitter.emit(APP_EVENTS.SEGMENT_ADD_USER, {
           userId: payload.userId,
           segmentId: action.config.segmentId,
         });
         break;
 
       case ActionType.WEBHOOK:
-        await this.emailQueue.add('call-webhook', {
+        await this.emailQueue.add(JOB_NAMES.CALL_WEBHOOK, {
           url: action.config.webhookUrl,
           method: action.config.method || 'POST',
           payload: { ...payload, ...action.config.webhookPayload },

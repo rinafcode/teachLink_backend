@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { ConfigService } from '@nestjs/config';
 import { RecoveryTest } from '../entities/recovery-test.entity';
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
@@ -27,7 +28,7 @@ export class RecoveryTestingService {
   constructor(
     @InjectRepository(RecoveryTest)
     private readonly recoveryTestRepository: Repository<RecoveryTest>,
-    @InjectQueue('backup-processing')
+    @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING)
     private readonly backupQueue: Queue,
     private readonly backupService: BackupService,
     private readonly fileStorageService: FileStorageService,
@@ -59,7 +60,7 @@ export class RecoveryTestingService {
 
     // Queue recovery test job
     await this.backupQueue.add(
-      'recovery-test',
+      JOB_NAMES.RECOVERY_TEST,
       {
         recoveryTestId: recoveryTest.id,
         backupRecordId: backupId,

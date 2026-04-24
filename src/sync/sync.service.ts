@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { APP_EVENTS } from '../common/constants/event.constants';
 import {
   ConflictResolutionService,
   ConflictResolutionStrategy,
@@ -46,7 +47,7 @@ export class SyncService {
     return resolvedData;
   }
 
-  @OnEvent('data.updated')
+  @OnEvent(APP_EVENTS.DATA_UPDATED)
   async handleDataUpdate(payload: { entity: string; id: string; data: any }) {
     this.logger.log(`Handling data update event for ${payload.entity}:${payload.id}`);
 

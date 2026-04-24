@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -14,6 +14,7 @@ import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
+import { corsConfig } from './config/cors.config';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
@@ -22,6 +23,12 @@ async function bootstrapWorker() {
   // Create the application with dynamic module loading
   const app = await NestFactory.create(await AppModule.forRoot(), { rawBody: true });
 
+  app.enableVersioning({
+    type: VersioningType.HEADER,
+    header: API_VERSION_HEADER,
+    defaultVersion: DEFAULT_API_VERSION,
+  });
+
   // ─── Security Headers ─────────────────────────────────────────────────────
   app.use(
     helmet({
@@ -29,6 +36,15 @@ async function bootstrapWorker() {
         maxAge: 31536000,
         includeSubDomains: true,
         preload: true,
+      },
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
       },
     }),
   );
@@ -57,11 +73,31 @@ async function bootstrapWorker() {
       cookie: {
         maxAge: sessionConfig.cookieMaxAgeMs,
         httpOnly: true,
-        sameSite: 'lax',
-        secure: sessionConfig.secureCookies,
+        sameSite: 'strict',
+        secure: true,
       },
     }),
   );
+
+  // Session fixation protection: bind session to User-Agent
+  app.use((req: any, res: any, next: any) => {
+    if (!req.session) {
+      return next();
+    }
+
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    if (!req.session.userAgent) {
+      req.session.userAgent = userAgent;
+    } else if (req.session.userAgent !== userAgent) {
+      return req.session.destroy((err: any) => {
+        if (err) {
+          logger.error('Error destroying session', err);
+        }
+        res.status(401).json({ message: 'Session invalidation due to fixation protection' });
+      });
+    }
+    next();
+  });
 
   // ─── Global Exception Filter ──────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -73,11 +109,10 @@ async function bootstrapWorker() {
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
 
   // ─── Global Timeout Interceptor ─────────────────────────────────────────
-  const { TimeoutInterceptor } = await import('./common/interceptors/timeout.interceptor');
-  app.useGlobalInterceptors(new TimeoutInterceptor());
+  // TimeoutInterceptor is now provided globally via APP_INTERCEPTOR in AppModule
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
-  app.enableCors();
+  app.enableCors(corsConfig);
 
   // ─── Validation ──────────────────────────────────────────────────────────
   app.useGlobalPipes(
@@ -91,7 +126,9 @@ async function bootstrapWorker() {
   // ─── Swagger ──────────────────────────────────────────────────────────────
   const config = new DocumentBuilder()
     .setTitle('TeachLink API')
-    .setDescription('The TeachLink API documentation - Unified System')
+    .setDescription(
+      `The TeachLink API documentation - Unified System. ${API_VERSIONING_DOCUMENTATION}`,
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('gamification', 'Gamification and user rewards')
@@ -119,6 +156,9 @@ async function bootstrapWorker() {
 
   logger.log(`🚀 TeachLink API running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs available at http://localhost:${port}/api`);
+  logger.log(
+    `🧭 API versioning enabled via ${API_VERSION_HEADER}. Supported versions: ${SUPPORTED_API_VERSIONS.join(', ')}; default route version: ${DEFAULT_API_VERSION}.`,
+  );
   logger.log(`⏱️  Application startup completed in ${startupTime}ms`);
 }
 

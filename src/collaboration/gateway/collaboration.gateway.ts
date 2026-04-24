@@ -8,9 +8,11 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
+import { COLLABORATION_EVENTS } from '../constants/collaboration-events.constants';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { CollaborationService } from '../collaboration.service';
+import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
 import { SharedDocumentService } from '../documents/shared-document.service';
 import { WhiteboardService } from '../whiteboard/whiteboard.service';
 import { VersionControlService } from '../versioning/version-control.service';
@@ -34,6 +36,7 @@ export interface CollaborativeOperation {
     credentials: true,
   },
 })
+@UseGuards(WsThrottlerGuard)
 export class CollaborationGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -53,6 +56,11 @@ export class CollaborationGateway
   }
 
   async handleConnection(_server: any, @ConnectedSocket() client: Socket) {
+    if (wsManager.getTotalConnections() >= 5000) {
+      client.emit('error', { message: 'Server is at maximum capacity' });
+      client.disconnect(true);
+      return;
+    }
     this.logger.log(`Client connected: ${client.id}`);
 
     // Optionally authenticate the user here based on token
@@ -61,13 +69,14 @@ export class CollaborationGateway
   }
 
   async handleDisconnect(@ConnectedSocket() client: Socket) {
+    wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
 
     // Clean up any session associations for this client
     // Remove client from any active sessions
   }
 
-  @SubscribeMessage('join-session')
+  @SubscribeMessage(COLLABORATION_EVENTS.JOIN_SESSION)
   async handleJoinSession(
     @MessageBody() data: { sessionId: string; userId: string; resourceType: string },
     @ConnectedSocket() client: Socket,
@@ -79,6 +88,12 @@ export class CollaborationGateway
       const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
       if (!hasPermission) {
         client.emit('error', { message: 'Insufficient permissions to join session' });
+        return;
+      }
+
+      const registered = wsManager.registerConnection(userId, client);
+      if (!registered) {
+        client.emit('error', { message: 'Connection limit reached' });
         return;
       }
 
@@ -108,10 +123,10 @@ export class CollaborationGateway
       }
 
       // Notify other users in the session
-      client.to(sessionId).emit('user-joined', { userId, sessionId });
+      client.to(sessionId).emit(COLLABORATION_EVENTS.USER_JOINED, { userId, sessionId });
 
       // Send current resource state to the joining user
-      client.emit('session-state', {
+      client.emit(COLLABORATION_EVENTS.SESSION_STATE, {
         sessionId,
         resourceType,
         resource,
@@ -125,7 +140,7 @@ export class CollaborationGateway
     }
   }
 
-  @SubscribeMessage('collaborative-operation')
+  @SubscribeMessage(COLLABORATION_EVENTS.COLLABORATIVE_OPERATION)
   async handleCollaborativeOperation(
     @MessageBody() operation: CollaborativeOperation,
     @ConnectedSocket() client: Socket,
@@ -161,7 +176,7 @@ export class CollaborationGateway
       });
 
       // Broadcast the operation to all other clients in the session
-      client.to(sessionId).emit('operation-applied', {
+      client.to(sessionId).emit(COLLABORATION_EVENTS.OPERATION_APPLIED, {
         operation: opData,
         userId,
         timestamp: Date.now(),
@@ -175,7 +190,7 @@ export class CollaborationGateway
     }
   }
 
-  @SubscribeMessage('request-sync')
+  @SubscribeMessage(COLLABORATION_EVENTS.REQUEST_SYNC)
   async handleSyncRequest(
     @MessageBody() data: { sessionId: string; userId: string },
     @ConnectedSocket() client: Socket,
@@ -193,7 +208,7 @@ export class CollaborationGateway
       const document = await this.sharedDocumentService.getDocument(sessionId);
       const whiteboard = await this.whiteboardService.getWhiteboard(sessionId);
 
-      client.emit('full-sync', {
+      client.emit(COLLABORATION_EVENTS.FULL_SYNC, {
         sessionId,
         document: document || null,
         whiteboard: whiteboard || null,
@@ -204,7 +219,7 @@ export class CollaborationGateway
     }
   }
 
-  @SubscribeMessage('resolve-conflict')
+  @SubscribeMessage(COLLABORATION_EVENTS.RESOLVE_CONFLICT)
   async handleConflictResolution(
     @MessageBody()
     data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
@@ -232,7 +247,7 @@ export class CollaborationGateway
       }
 
       // Broadcast resolved state to all clients
-      this.server.to(sessionId).emit('conflict-resolved', {
+      this.server.to(sessionId).emit(COLLABORATION_EVENTS.CONFLICT_RESOLVED, {
         sessionId,
         resourceType,
         resolvedState: result,

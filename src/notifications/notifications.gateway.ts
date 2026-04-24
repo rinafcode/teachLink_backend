@@ -11,6 +11,9 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards, Logger } from '@nestjs/common';
 import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { Notification } from './entities/notification.entity';
+import { wsManager } from '../common/utils/websocket.utils';
+import { WsThrottlerGuard } from '../common/guards/ws-throttler.guard';
+import { NOTIFICATION_GATEWAY_EVENTS } from '../collaboration/constants/collaboration-events.constants';
 
 @WebSocketGateway({
   cors: {
@@ -18,6 +21,7 @@ import { Notification } from './entities/notification.entity';
   },
   namespace: 'notifications',
 })
+@UseGuards(WsThrottlerGuard)
 export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -26,16 +30,26 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   private userSockets: Map<string, Set<string>> = new Map();
 
   async handleConnection(client: Socket) {
+    // Optionally we can get userId here from token if required, but currently it handles subscribe via message.
+    // However, for connection limit we can temporarily register with client id if no token or if handled at subscribe.
+    // Let's enforce global connection limits here.
+    if (wsManager.getTotalConnections() >= 5000) {
+      // Same as MAX_GLOBAL_CONNECTIONS
+      client.emit('error', { message: 'Server is at maximum capacity' });
+      client.disconnect(true);
+      return;
+    }
     this.logger.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
+    wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
     this.removeSocketId(client.id);
   }
 
   @UseGuards(WsJwtAuthGuard)
-  @SubscribeMessage('subscribe')
+  @SubscribeMessage(NOTIFICATION_GATEWAY_EVENTS.SUBSCRIBE)
   async handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userId: string },
@@ -46,6 +60,11 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     if (!userId) {
       this.logger.warn(`User ID not found for client: ${client.id}`);
       return;
+    }
+
+    const registered = wsManager.registerConnection(userId, client);
+    if (!registered) {
+      return { status: 'error', message: 'Connection limit reached' };
     }
 
     this.addSocketId(userId, client.id);
@@ -59,7 +78,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
    * Send notification to a specific user in real-time
    */
   async sendToUser(userId: string, notification: Notification) {
-    this.server.to(`user:${userId}`).emit('notification', notification);
+    this.server.to(`user:${userId}`).emit(NOTIFICATION_GATEWAY_EVENTS.NOTIFICATION, notification);
     this.logger.debug(`Notification sent to user:${userId}`);
   }
 
@@ -67,7 +86,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
    * Broadcast notification to all users
    */
   async broadcast(notification: Partial<Notification>) {
-    this.server.emit('broadcast_notification', notification);
+    this.server.emit(NOTIFICATION_GATEWAY_EVENTS.BROADCAST_NOTIFICATION, notification);
     this.logger.debug('Broadcast notification sent');
   }
 

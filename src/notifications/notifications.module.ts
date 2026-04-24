@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { NotificationsService } from './notifications.service';
@@ -23,7 +24,7 @@ import { NotificationPreferences } from './entities/notification-preferences.ent
       signOptions: { expiresIn: '24h' },
     }),
     BullModule.registerQueue({
-      name: 'email',
+      name: QUEUE_NAMES.EMAIL,
     }),
   ],
   controllers: [NotificationsController],

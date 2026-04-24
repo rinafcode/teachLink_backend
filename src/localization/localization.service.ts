@@ -149,10 +149,33 @@ export class LocalizationService {
   }
 
   async create(dto: CreateTranslationDto): Promise<TranslationListItemDto> {
+    const namespace = dto.namespace.trim();
+    const key = dto.key.trim();
+    const locale = languageDetectionNormalize(dto.locale);
+    const existing = await this.translationRepo.findOne({
+      where: { namespace, translationKey: key, locale },
+      withDeleted: true,
+    });
+
+    if (existing) {
+      if (!existing.deletedAt) {
+        throw new ConflictException(
+          'Translation already exists for this namespace, key, and locale',
+        );
+      }
+
+      existing.value = dto.value;
+      existing.deletedAt = null;
+
+      const restored = await this.translationRepo.save(existing);
+      await this.invalidateBundles([{ namespace: restored.namespace, locale: restored.locale }]);
+      return this.toItem(restored);
+    }
+
     const entity = this.translationRepo.create({
-      namespace: dto.namespace.trim(),
-      translationKey: dto.key.trim(),
-      locale: languageDetectionNormalize(dto.locale),
+      namespace,
+      translationKey: key,
+      locale,
       value: dto.value,
     });
     try {
@@ -228,7 +251,7 @@ export class LocalizationService {
   async remove(id: string): Promise<void> {
     const row = await this.translationRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Translation not found');
-    await this.translationRepo.remove(row);
+    await this.translationRepo.softRemove(row);
     await this.invalidateBundles([{ namespace: row.namespace, locale: row.locale }]);
   }
 
@@ -236,18 +259,33 @@ export class LocalizationService {
     if (!rows?.length) {
       throw new BadRequestException('Import payload must contain at least one row');
     }
-    const entities = rows.map((r) =>
-      this.translationRepo.create({
-        namespace: r.namespace.trim(),
-        translationKey: r.key.trim(),
-        locale: languageDetectionNormalize(r.locale),
-        value: r.value,
-      }),
-    );
-    await this.translationRepo.upsert(entities, {
-      conflictPaths: ['namespace', 'translationKey', 'locale'],
-      skipUpdateIfNoValuesChanged: true,
-    });
+
+    for (const row of rows) {
+      const namespace = row.namespace.trim();
+      const translationKey = row.key.trim();
+      const locale = languageDetectionNormalize(row.locale);
+      const existing = await this.translationRepo.findOne({
+        where: { namespace, translationKey, locale },
+        withDeleted: true,
+      });
+
+      if (existing) {
+        existing.value = row.value;
+        existing.deletedAt = null;
+        await this.translationRepo.save(existing);
+        continue;
+      }
+
+      await this.translationRepo.save(
+        this.translationRepo.create({
+          namespace,
+          translationKey,
+          locale,
+          value: row.value,
+        }),
+      );
+    }
+
     const pairs = rows.map((r) => ({
       namespace: r.namespace.trim(),
       locale: languageDetectionNormalize(r.locale),

@@ -1,5 +1,8 @@
 import { IsOptional, IsInt, Min, Max, IsString, IsIn, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
+import { APP_CONSTANTS } from '../constants/app.constants';
+
+const { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } = APP_CONSTANTS;
 
 export enum SortOrder {
   ASC = 'ASC',
@@ -23,9 +26,9 @@ export class PaginationQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(MAX_PAGE_SIZE, { message: `Page size cannot exceed ${MAX_PAGE_SIZE}` })
   @IsNumber()
-  limit?: number = 10;
+  limit?: number = DEFAULT_PAGE_SIZE;
 
   @IsOptional()
   @IsString()
@@ -49,8 +52,8 @@ export class CursorPaginationQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
-  limit?: number = 10;
+  @Max(MAX_PAGE_SIZE, { message: `Page size cannot exceed ${MAX_PAGE_SIZE}` })
+  limit?: number = DEFAULT_PAGE_SIZE;
 
   @IsOptional()
   @IsString()
