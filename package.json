@@ -26,7 +26,13 @@
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit --runInBand",
     "test:ml-models": "jest src/ml-models --maxWorkers=1 --max-old-space-size=2048",
     "test:ml-models-basic": "jest src/ml-models/ml-models.service.basic.spec.ts --maxWorkers=1 --max-old-space-size=2048",
-    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js"
+    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js",
+    "migrate:run": "curl -s -X POST http://localhost:3000/migrations/run | npx json",
+    "migrate:status": "curl -s http://localhost:3000/migrations | npx json",
+    "migrate:rollback": "curl -s -X POST http://localhost:3000/migrations/rollback | npx json",
+    "migrate:rollback:count": "curl -s -X POST http://localhost:3000/migrations/rollback/${COUNT:-1} | npx json",
+    "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
+    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",

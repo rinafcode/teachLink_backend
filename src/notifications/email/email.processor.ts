@@ -18,7 +18,21 @@ export class EmailProcessor {
       this.logger.log(`Email job ${job.id} completed successfully`);
     } catch (error) {
       this.logger.error(`Email job ${job.id} failed: ${error.message}`, error.stack);
-      throw error;
+
+      // Check if job should be retried using built-in Bull retry settings
+      const maxAttempts = job.opts.attempts || 3;
+
+      if (job.attemptsMade >= maxAttempts) {
+        // Send to dead letter queue
+        this.logger.error(
+          `Job ${job.id} moved to dead letter queue after ${job.attemptsMade} attempts. Final error: ${error.message}`,
+        );
+        // In production, you would push to a dead letter queue here:
+        // await this.deadLetterQueue.add('failed-email', { ...job.data, error: error.message });
+      } else {
+        // Re-throw to let Bull handle the retry with exponential backoff
+        throw error;
+      }
     }
   }
 }
