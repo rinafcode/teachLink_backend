@@ -73,11 +73,31 @@ async function bootstrapWorker() {
       cookie: {
         maxAge: sessionConfig.cookieMaxAgeMs,
         httpOnly: true,
-        sameSite: 'lax',
-        secure: sessionConfig.secureCookies,
+        sameSite: 'strict',
+        secure: true,
       },
     }),
   );
+
+  // Session fixation protection: bind session to User-Agent
+  app.use((req: any, res: any, next: any) => {
+    if (!req.session) {
+      return next();
+    }
+
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    if (!req.session.userAgent) {
+      req.session.userAgent = userAgent;
+    } else if (req.session.userAgent !== userAgent) {
+      return req.session.destroy((err: any) => {
+        if (err) {
+          logger.error('Error destroying session', err);
+        }
+        res.status(401).json({ message: 'Session invalidation due to fixation protection' });
+      });
+    }
+    next();
+  });
 
   // ─── Global Exception Filter ──────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter());
