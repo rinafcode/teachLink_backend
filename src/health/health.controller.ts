@@ -1,22 +1,37 @@
 import { Controller, Get, Query, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  OnModuleDestroy,
+  Query,
+  Res,
+  UseGuards,
+  VERSION_NEUTRAL,
+  Version,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Response } from 'express';
 import { HealthService } from './health.service';
+import { ShutdownStateService } from '../common/services/shutdown-state.service';
 
 @SkipThrottle()
 @ApiTags('health')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('health')
-export class HealthController {
+export class HealthController implements OnModuleDestroy {
   private redis: Redis;
 
   constructor(
     private readonly dataSource: DataSource,
     private readonly healthService: HealthService,
+    private readonly shutdownState: ShutdownStateService,
   ) {
     this.redis = new Redis({
       host: process.env.REDIS_HOST,
@@ -28,6 +43,12 @@ export class HealthController {
     });
   }
 
+  async onModuleDestroy(): Promise<void> {
+    if (this.redis.status !== 'end') {
+      await this.redis.quit();
+    }
+  }
+
   @Get()
   @ApiResponse({ status: HttpStatus.OK, description: 'Health check response' })
   async checkHealth() {
@@ -37,8 +58,22 @@ export class HealthController {
 
   @Get('liveness')
   @ApiResponse({ status: HttpStatus.OK, description: 'Liveness check response' })
-  async checkLiveness() {
-    return { status: 'ok', timestamp: new Date().toISOString() };
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: 'Application is shutting down',
+  })
+  checkLiveness(@Res() res: Response) {
+    if (this.shutdownState.isShuttingDown()) {
+      return res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        status: 'shutting_down',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return res.status(HttpStatus.OK).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    });
   }
 
   @Get('readiness')
@@ -46,9 +81,20 @@ export class HealthController {
     status: HttpStatus.OK,
     description: 'Readiness check response',
   })
-  async checkReadiness() {
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: 'Application is shutting down',
+  })
+  async checkReadiness(@Res() res: Response) {
+    if (this.shutdownState.isShuttingDown()) {
+      return res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        status: 'shutting_down',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const healthStatus = await this.healthService.checkReadiness(this.dataSource, this.redis);
-    return healthStatus;
+    return res.status(HttpStatus.OK).json(healthStatus);
   }
 
   @Get('dependencies')

@@ -1,4 +1,4 @@
-import { Module, DynamicModule, Type } from '@nestjs/common';
+import { Module, DynamicModule, Type, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -54,7 +54,9 @@ import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
+import { ShutdownStateService } from './common/services/shutdown-state.service';
 
+@Global()
 @Module({})
 export class AppModule {
   static async forRoot(): Promise<DynamicModule> {
@@ -382,6 +384,7 @@ export class AppModule {
       providers: [
         AppService,
         StartupLogger,
+        ShutdownStateService,
         {
           provide: APP_INTERCEPTOR,
           useClass: MonitoringInterceptor,
@@ -395,6 +398,7 @@ export class AppModule {
           useClass: CustomThrottleGuard,
         },
       ],
+      exports: [ShutdownStateService],
     };
   }
 }
