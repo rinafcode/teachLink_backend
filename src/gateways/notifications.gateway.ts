@@ -11,6 +11,7 @@ import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { WsThrottlerGuard } from '../common/guards/ws-throttler.guard';
 import { wsManager } from '../common/utils/websocket.utils';
 import { JwtService } from '@nestjs/jwt';
+import { NOTIFICATION_GATEWAY_EVENTS } from '../collaboration/constants/collaboration-events.constants';
 
 @WebSocketGateway({ namespace: '/notifications' })
 @UseGuards(WsThrottlerGuard)
@@ -48,7 +49,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   @UseGuards(WsJwtAuthGuard)
-  @SubscribeMessage('subscribe_notifications')
+  @SubscribeMessage(NOTIFICATION_GATEWAY_EVENTS.SUBSCRIBE_NOTIFICATIONS)
   async handleSubscribe(@ConnectedSocket() client: Socket) {
     const user = (client as any).user;
     return { userId: user.sub, subscribed: true };

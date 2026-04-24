@@ -13,6 +13,7 @@ import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
 import { Notification } from './entities/notification.entity';
 import { wsManager } from '../common/utils/websocket.utils';
 import { WsThrottlerGuard } from '../common/guards/ws-throttler.guard';
+import { NOTIFICATION_GATEWAY_EVENTS } from '../collaboration/constants/collaboration-events.constants';
 
 @WebSocketGateway({
   cors: {
@@ -48,7 +49,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   @UseGuards(WsJwtAuthGuard)
-  @SubscribeMessage('subscribe')
+  @SubscribeMessage(NOTIFICATION_GATEWAY_EVENTS.SUBSCRIBE)
   async handleSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userId: string },
@@ -77,7 +78,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
    * Send notification to a specific user in real-time
    */
   async sendToUser(userId: string, notification: Notification) {
-    this.server.to(`user:${userId}`).emit('notification', notification);
+    this.server.to(`user:${userId}`).emit(NOTIFICATION_GATEWAY_EVENTS.NOTIFICATION, notification);
     this.logger.debug(`Notification sent to user:${userId}`);
   }
 
@@ -85,7 +86,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
    * Broadcast notification to all users
    */
   async broadcast(notification: Partial<Notification>) {
-    this.server.emit('broadcast_notification', notification);
+    this.server.emit(NOTIFICATION_GATEWAY_EVENTS.BROADCAST_NOTIFICATION, notification);
     this.logger.debug('Broadcast notification sent');
   }
 

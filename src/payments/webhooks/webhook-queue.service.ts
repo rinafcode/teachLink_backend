@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
@@ -19,7 +20,7 @@ export class WebhookQueueService {
   private readonly logger = new Logger(WebhookQueueService.name);
 
   constructor(
-    @InjectQueue('webhooks')
+    @InjectQueue(QUEUE_NAMES.WEBHOOKS)
     private readonly webhookQueue: Queue,
     @InjectRepository(WebhookRetry)
     private readonly webhookRetryRepository: Repository<WebhookRetry>,
@@ -65,7 +66,7 @@ export class WebhookQueueService {
       }
 
       // Queue the job for processing
-      const job = await this.webhookQueue.add('process-webhook', payload, {
+      const job = await this.webhookQueue.add(JOB_NAMES.PROCESS_WEBHOOK, payload, {
         attempts: 1, // Let our processor handle retries
         backoff: {
           type: 'exponential',

@@ -47,7 +47,7 @@ export class UsersService {
   }
 
   async findAll(filter?: GetUsersDto): Promise<PaginatedResponse<User>> {
-    const cacheKey = `cache:users:list:${JSON.stringify(filter || {})}`;
+    const cacheKey = `${CACHE_PREFIXES.USERS_LIST}:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(
       cacheKey,

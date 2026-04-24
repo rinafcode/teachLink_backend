@@ -1,4 +1,5 @@
 import { Processor, Process, OnQueueFailed, OnQueueCompleted } from '@nestjs/bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { Job } from 'bull';
 import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
@@ -11,7 +12,7 @@ import { Repository } from 'typeorm';
 import { UploadedFile } from '../../common/types/file.types';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
 
-@Processor('media-processing')
+@Processor(QUEUE_NAMES.MEDIA_PROCESSING)
 export class VideoProcessor {
   private readonly logger = new Logger(VideoProcessor.name);
 
@@ -21,7 +22,7 @@ export class VideoProcessor {
     private readonly contentRepo: Repository<ContentMetadata>,
   ) {}
 
-  @Process('transcode-video')
+  @Process(JOB_NAMES.TRANSCODE_VIDEO)
   async handleTranscode(job: Job) {
     const { contentId, url, fileName } = job.data as {
       contentId: string;
