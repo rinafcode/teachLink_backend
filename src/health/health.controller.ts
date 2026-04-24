@@ -1,21 +1,22 @@
-
 import {
   Controller,
   Get,
-  Query,
   HttpStatus,
-  ApiResponse,
-  ApiTags,
-  ApiBearerAuth,
-  UseGuards,VERSION_NEUTRAL,
- Version 
+  OnModuleDestroy,
+  Query,
+  Res,
+  UseGuards,
+  VERSION_NEUTRAL,
+  Version,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Response } from 'express';
 import { HealthService } from './health.service';
-import { HealthStatus } from './health.service';
+import { ShutdownStateService } from '../common/services/shutdown-state.service';
 
 @Version(VERSION_NEUTRAL)
 @SkipThrottle()
@@ -23,12 +24,13 @@ import { HealthStatus } from './health.service';
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('health')
-export class HealthController {
+export class HealthController implements OnModuleDestroy {
   private redis: Redis;
 
   constructor(
     private readonly dataSource: DataSource,
     private readonly healthService: HealthService,
+    private readonly shutdownState: ShutdownStateService,
   ) {
     this.redis = new Redis({
       host: process.env.REDIS_HOST,
@@ -40,8 +42,14 @@ export class HealthController {
     });
   }
 
+  async onModuleDestroy(): Promise<void> {
+    if (this.redis.status !== 'end') {
+      await this.redis.quit();
+    }
+  }
+
   @Get()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Health check response', type: HealthStatus })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Health check response' })
   async checkHealth() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
     return healthStatus;
@@ -49,19 +57,43 @@ export class HealthController {
 
   @Get('liveness')
   @ApiResponse({ status: HttpStatus.OK, description: 'Liveness check response' })
-  async checkLiveness() {
-    return { status: 'ok', timestamp: new Date().toISOString() };
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: 'Application is shutting down',
+  })
+  checkLiveness(@Res() res: Response) {
+    if (this.shutdownState.isShuttingDown()) {
+      return res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        status: 'shutting_down',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return res.status(HttpStatus.OK).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    });
   }
 
   @Get('readiness')
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Readiness check response',
-    type: HealthStatus,
   })
-  async checkReadiness() {
+  @ApiResponse({
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    description: 'Application is shutting down',
+  })
+  async checkReadiness(@Res() res: Response) {
+    if (this.shutdownState.isShuttingDown()) {
+      return res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
+        status: 'shutting_down',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const healthStatus = await this.healthService.checkReadiness(this.dataSource, this.redis);
-    return healthStatus;
+    return res.status(HttpStatus.OK).json(healthStatus);
   }
 
   @Get('dependencies')
@@ -134,9 +166,15 @@ export class HealthController {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
 
     const serviceCount = Object.keys(healthStatus.services).length;
-    const healthyCount = Object.values(healthStatus.services).filter(status => status === 'up').length;
-    const degradedCount = Object.values(healthStatus.services).filter(status => status === 'degraded' || status === 'warning').length;
-    const criticalCount = Object.values(healthStatus.services).filter(status => status === 'down' || status === 'critical').length;
+    const healthyCount = Object.values(healthStatus.services).filter(
+      (status) => status === 'up',
+    ).length;
+    const degradedCount = Object.values(healthStatus.services).filter(
+      (status) => status === 'degraded' || status === 'warning',
+    ).length;
+    const criticalCount = Object.values(healthStatus.services).filter(
+      (status) => status === 'down' || status === 'critical',
+    ).length;
 
     return {
       overall: healthStatus.status,
