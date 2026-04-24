@@ -1,22 +1,11 @@
-import {
-  Controller,
-  Get,
-  Query,
-  HttpStatus,
-  ApiResponse,
-  ApiTags,
-  ApiBearerAuth,
-  UseGuards,
-  VERSION_NEUTRAL,
-  Version,
-} from '@nestjs/common';
+import { Controller, Get, Query, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import { SkipThrottle } from '@nestjs/throttler';
-import { HealthService, HealthStatus } from './health.service';
+import { HealthService } from './health.service';
 
-@Version(VERSION_NEUTRAL)
 @SkipThrottle()
 @ApiTags('health')
 @ApiBearerAuth()
@@ -40,7 +29,7 @@ export class HealthController {
   }
 
   @Get()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Health check response', type: HealthStatus })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Health check response' })
   async checkHealth() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
     return healthStatus;
@@ -56,7 +45,6 @@ export class HealthController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Readiness check response',
-    type: HealthStatus,
   })
   async checkReadiness() {
     const healthStatus = await this.healthService.checkReadiness(this.dataSource, this.redis);

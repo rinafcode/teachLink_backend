@@ -1,9 +1,8 @@
-import { Controller, Get, Query, Res, VERSION_NEUTRAL, Version } from '@nestjs/common';
+import { Controller, Get, Query, Res } from '@nestjs/common';
 import { MetricsCollectionService } from './metrics/metrics-collection.service';
 import { Response } from 'express';
 import { ScheduledTaskMonitoringService } from './scheduled-task-monitoring.service';
 
-@Version(VERSION_NEUTRAL)
 @Controller('metrics')
 export class MonitoringController {
   constructor(
