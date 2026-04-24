@@ -49,10 +49,7 @@ export const ALLOWED_FILE_TYPES = {
   ],
 
   // Archives (limited)
-  ARCHIVES: [
-    'application/zip',
-    'application/x-zip-compressed',
-  ],
+  ARCHIVES: ['application/zip', 'application/x-zip-compressed'],
 } as const;
 
 export const ALLOWED_EXTENSIONS = {
@@ -82,6 +79,15 @@ export const FILE_SIZE_LIMITS = {
   // Default: 10MB
   DEFAULT_MAX_SIZE: 10 * 1024 * 1024,
 } as const;
+
+export const ALL_ALLOWED_FILE_TYPES = Object.values(ALLOWED_FILE_TYPES).flat();
+export const MAX_UPLOAD_FILE_SIZE = Math.max(
+  FILE_SIZE_LIMITS.IMAGE_MAX_SIZE,
+  FILE_SIZE_LIMITS.VIDEO_MAX_SIZE,
+  FILE_SIZE_LIMITS.DOCUMENT_MAX_SIZE,
+  FILE_SIZE_LIMITS.AUDIO_MAX_SIZE,
+  FILE_SIZE_LIMITS.ARCHIVE_MAX_SIZE,
+);
 
 export const IMAGE_DIMENSION_LIMITS = {
   MIN_WIDTH: 1,
@@ -124,24 +130,35 @@ export const UPLOAD_PROGRESS_CONFIG = {
 
 export const MAGIC_NUMBERS: Record<string, Buffer[]> = {
   // Images
-  'image/jpeg': [Buffer.from([0xFF, 0xD8, 0xFF])],
-  'image/png': [Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])],
-  'image/gif': [Buffer.from([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]), Buffer.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])],
+  'image/jpeg': [Buffer.from([0xff, 0xd8, 0xff])],
+  'image/png': [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+  'image/gif': [
+    Buffer.from([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]),
+    Buffer.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]),
+  ],
   'image/webp': [Buffer.from([0x52, 0x49, 0x46, 0x46])], // RIFF header
-  'image/bmp': [Buffer.from([0x42, 0x4D])], // BM
-  'image/tiff': [Buffer.from([0x49, 0x49, 0x2A, 0x00]), Buffer.from([0x4D, 0x4D, 0x00, 0x2A])],
+  'image/bmp': [Buffer.from([0x42, 0x4d])], // BM
+  'image/tiff': [Buffer.from([0x49, 0x49, 0x2a, 0x00]), Buffer.from([0x4d, 0x4d, 0x00, 0x2a])],
 
   // PDF
   'application/pdf': [Buffer.from([0x25, 0x50, 0x44, 0x46])], // %PDF
 
   // ZIP (also for docx, xlsx, pptx)
-  'application/zip': [Buffer.from([0x50, 0x4B, 0x03, 0x04])],
+  'application/zip': [Buffer.from([0x50, 0x4b, 0x03, 0x04])],
 
   // MP4
-  'video/mp4': [Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]), Buffer.from([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70])],
+  'video/mp4': [
+    Buffer.from([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70]),
+    Buffer.from([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]),
+  ],
 
   // MP3
-  'audio/mpeg': [Buffer.from([0xFF, 0xFB]), Buffer.from([0xFF, 0xF3]), Buffer.from([0xFF, 0xF2]), Buffer.from([0x49, 0x44, 0x33])],
+  'audio/mpeg': [
+    Buffer.from([0xff, 0xfb]),
+    Buffer.from([0xff, 0xf3]),
+    Buffer.from([0xff, 0xf2]),
+    Buffer.from([0x49, 0x44, 0x33]),
+  ],
 
   // WAV
   'audio/wav': [Buffer.from([0x52, 0x49, 0x46, 0x46])], // RIFF

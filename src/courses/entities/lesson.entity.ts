@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Index,
+  DeleteDateColumn,
+} from 'typeorm';
 import { CourseModule } from './course-module.entity';
 
 @Entity()
@@ -27,4 +34,7 @@ export class Lesson {
   @Column({ name: 'module_id' })
   @Index()
   moduleId: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
