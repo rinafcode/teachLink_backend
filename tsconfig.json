@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "strictFunctionTypes": true,
+    "alwaysStrict": true,
     "module": "commonjs",
     "declaration": false,
     "removeComments": true,
