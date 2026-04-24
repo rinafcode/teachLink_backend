@@ -36,7 +36,7 @@ export class PaymentsService {
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly transactionService: TransactionService,
     private readonly providerFactory: ProviderFactoryService,
-  ) { }
+  ) {}
 
   /**
    * Create a payment intent with a provider and record the pending payment.
@@ -225,7 +225,7 @@ export class PaymentsService {
         invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         items: [
           {
-            description: `Payment for course`,
+            description: 'Payment for course',
             amount: payment.amount,
             quantity: 1,
           },

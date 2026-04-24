@@ -286,8 +286,8 @@ export class HealthService {
       try {
         const info = await redis.info('memory');
         const lines = info.split('\r\n');
-        const usedMemory = lines.find(line => line.startsWith('used_memory:'))?.split(':')[1];
-        const maxMemory = lines.find(line => line.startsWith('maxmemory:'))?.split(':')[1];
+        const usedMemory = lines.find((line) => line.startsWith('used_memory:'))?.split(':')[1];
+        const maxMemory = lines.find((line) => line.startsWith('maxmemory:'))?.split(':')[1];
 
         if (usedMemory) {
           const used = parseInt(usedMemory);
@@ -453,8 +453,8 @@ export class HealthService {
       try {
         const info = await redis.info('stats');
         const lines = info.split('\r\n');
-        const hits = lines.find(line => line.startsWith('keyspace_hits:'))?.split(':')[1];
-        const misses = lines.find(line => line.startsWith('keyspace_misses:'))?.split(':')[1];
+        const hits = lines.find((line) => line.startsWith('keyspace_hits:'))?.split(':')[1];
+        const misses = lines.find((line) => line.startsWith('keyspace_misses:'))?.split(':')[1];
 
         if (hits && misses) {
           const totalHits = parseInt(hits);

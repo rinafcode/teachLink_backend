@@ -25,10 +25,16 @@ describe('UsersService', () => {
       getOrSet: jest.fn().mockImplementation(async (_key: string, handler: any) => handler()),
     };
 
-    service = new UsersService(userRepository, cachingService, { emit: jest.fn() } as any);
+    service = new UsersService(
+      userRepository,
+      cachingService,
+      { emit: jest.fn() } as any,
+      { get: jest.fn().mockReturnValue(10) } as any,
+    );
   });
 
   it('sanitizes search input and uses parameterized ILIKE', async () => {
+    // eslint-disable-next-line quotes
     const maliciousSearch = "a%_b\\ test' OR 1=1 --";
 
     await expect(
@@ -41,9 +47,11 @@ describe('UsersService', () => {
 
     expect(userRepository.createQueryBuilder).toHaveBeenCalledWith('user');
 
+    // eslint-disable-next-line quotes
     expect(queryBuilder.andWhere).toHaveBeenCalledWith(
-      "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')",
+      "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')", // eslint-disable-line quotes
       {
+        // eslint-disable-next-line quotes
         search: "%a\\%\\_b\\\\ test' OR 1=1 --%",
       },
     );

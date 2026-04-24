@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { WebhookRetryProcessor } from '../webhook-retry.processor';
-import { WebhookRetry, WebhookStatus, WebhookProvider } from '../entities/webhook-retry.entity';
-import { ProviderFactoryService } from '../../providers/provider-factory.service';
-import { PaymentsService } from '../../payments.service';
+import { WebhookRetryProcessor } from './webhook-retry.processor';
+import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
+import { ProviderFactoryService } from '../providers/provider-factory.service';
+import { PaymentsService } from '../payments.service';
 
 describe('WebhookRetryProcessor', () => {
   let processor: WebhookRetryProcessor;

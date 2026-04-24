@@ -6,8 +6,6 @@ import {
   Query,
   Res,
   UseGuards,
-  VERSION_NEUTRAL,
-  Version,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,7 +16,6 @@ import { Response } from 'express';
 import { HealthService } from './health.service';
 import { ShutdownStateService } from '../common/services/shutdown-state.service';
 
-@Version(VERSION_NEUTRAL)
 @SkipThrottle()
 @ApiTags('health')
 @ApiBearerAuth()

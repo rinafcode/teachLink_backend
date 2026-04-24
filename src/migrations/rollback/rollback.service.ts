@@ -135,7 +135,10 @@ export class RollbackService {
     });
 
     const whereClause = targetRecord?.appliedAt
-      ? { status: MigrationStatus.COMPLETED, appliedAt: Raw((alias) => `${alias} > :appliedAt`, { appliedAt: targetRecord.appliedAt }) }
+      ? {
+          status: MigrationStatus.COMPLETED,
+          appliedAt: Raw((alias) => `${alias} > :appliedAt`, { appliedAt: targetRecord.appliedAt }),
+        }
       : { status: MigrationStatus.COMPLETED };
 
     const migrationsToRollback = await this.migrationRepository.find({

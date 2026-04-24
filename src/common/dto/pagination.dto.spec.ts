@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { validateSync } from 'class-validator';
 import { PaginationQueryDto, CursorPaginationQueryDto } from './pagination.dto';
 import { APP_CONSTANTS } from '../constants/app.constants';

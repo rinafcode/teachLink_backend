@@ -11,6 +11,12 @@ import { GlobalExceptionFilter } from './common/interceptors/global-exception.fi
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { correlationMiddleware } from './common/utils/correlation.utils';
+import {
+  API_VERSION_HEADER,
+  DEFAULT_API_VERSION,
+  SUPPORTED_API_VERSIONS,
+} from './common/interceptors/api-version.interceptor';
+import { API_VERSIONING_DOCUMENTATION } from './common/modules/api-versioning.module';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
@@ -266,7 +272,7 @@ async function bootstrap() {
       for (const id in cluster.workers) {
         const worker = cluster.workers[id];
         if (worker) {
-          worker.process.kill(signal);
+          worker.process.kill(signal as NodeJS.Signals);
         }
       }
     };
