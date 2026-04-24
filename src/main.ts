@@ -14,12 +14,7 @@ import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
-import { API_VERSIONING_DOCUMENTATION } from './common/modules/api-versioning.module';
-import {
-  API_VERSION_HEADER,
-  DEFAULT_API_VERSION,
-  SUPPORTED_API_VERSIONS,
-} from './common/interceptors/api-version.interceptor';
+import { corsConfig } from './config/cors.config';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
@@ -97,7 +92,7 @@ async function bootstrapWorker() {
   // TimeoutInterceptor is now provided globally via APP_INTERCEPTOR in AppModule
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
-  app.enableCors();
+  app.enableCors(corsConfig);
 
   // ─── Validation ──────────────────────────────────────────────────────────
   app.useGlobalPipes(

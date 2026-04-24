@@ -128,14 +128,6 @@ export const envValidationSchema = Joi.object({
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
 
-  // API Versioning
-  API_VERSION_HEADER_NAME: Joi.string().default('X-API-Version'),
-  API_DEFAULT_VERSION: Joi.string()
-    .pattern(/^\d+(?:\.0+)?$/)
-    .default('1'),
-  API_SUPPORTED_VERSIONS: Joi.string().default('1'),
-
-  // Malware scanning
-  CLAMAV_URL: Joi.string().uri().optional(),
-  VIRUSTOTAL_API_KEY: Joi.string().optional(),
+  // CORS Configuration
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:4000'),
 });
