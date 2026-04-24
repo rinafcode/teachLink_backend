@@ -15,6 +15,7 @@ import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
+import { ShutdownStateService } from './common/services/shutdown-state.service';
 
 async function bootstrapWorker() {
   const logger = new Logger('Bootstrap');
@@ -22,6 +23,7 @@ async function bootstrapWorker() {
 
   // Create the application with dynamic module loading
   const app = await NestFactory.create(await AppModule.forRoot(), { rawBody: true });
+  const shutdownState = app.get(ShutdownStateService);
 
   app.enableVersioning({
     type: VersioningType.HEADER,
@@ -144,6 +146,7 @@ async function bootstrapWorker() {
   SwaggerModule.setup('api', app, document);
 
   const port = process.env.PORT || 3000;
+  app.enableShutdownHooks();
   await app.listen(port);
 
   const startupTime = Date.now() - bootstrapStartTime;
@@ -160,6 +163,44 @@ async function bootstrapWorker() {
     `🧭 API versioning enabled via ${API_VERSION_HEADER}. Supported versions: ${SUPPORTED_API_VERSIONS.join(', ')}; default route version: ${DEFAULT_API_VERSION}.`,
   );
   logger.log(`⏱️  Application startup completed in ${startupTime}ms`);
+
+  const shutdownTimeoutMs = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || '30000', 10);
+  let isShuttingDown = false;
+
+  const shutdown = async (signal: string) => {
+    if (isShuttingDown) {
+      return;
+    }
+
+    isShuttingDown = true;
+    shutdownState.markShuttingDown();
+    logger.log(`Received ${signal}. Starting graceful shutdown...`);
+
+    const forceExitTimer = setTimeout(() => {
+      logger.error(`Graceful shutdown timed out after ${shutdownTimeoutMs}ms. Forcing exit.`);
+      process.exit(1);
+    }, shutdownTimeoutMs);
+    forceExitTimer.unref();
+
+    try {
+      await app.close();
+      logger.log('Graceful shutdown completed.');
+      process.exit(0);
+    } catch (error) {
+      logger.error(
+        'Error during graceful shutdown',
+        error instanceof Error ? error.stack : String(error),
+      );
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => {
+    void shutdown('SIGTERM');
+  });
+  process.on('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
 }
 
 async function bootstrap() {
@@ -168,6 +209,9 @@ async function bootstrap() {
 
   if (clusterModeEnabled && cluster.isPrimary) {
     const workerCount = parseInt(process.env.CLUSTER_WORKERS || `${cpus().length}`, 10);
+    const shutdownTimeoutMs = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || '30000', 10);
+    let isShuttingDown = false;
+    let forceExitTimer: NodeJS.Timeout | undefined;
 
     logger.log(`Primary process started in cluster mode with ${workerCount} workers.`);
 
@@ -175,8 +219,63 @@ async function bootstrap() {
       cluster.fork();
     }
 
-    cluster.on('exit', () => {
+    cluster.on('exit', (worker, code, signal) => {
+      if (isShuttingDown) {
+        logger.log(
+          `Worker ${worker.id} (${worker.process.pid}) exited during shutdown (code: ${code}, signal: ${signal}).`,
+        );
+        const remainingWorkers = Object.keys(cluster.workers || {}).length;
+        if (remainingWorkers === 0) {
+          if (forceExitTimer) {
+            clearTimeout(forceExitTimer);
+          }
+          logger.log('All workers have exited. Primary shutting down.');
+          process.exit(0);
+        }
+        return;
+      }
+
+      logger.warn(
+        `Worker ${worker.id} (${worker.process.pid}) died (code: ${code}, signal: ${signal}). Restarting...`,
+      );
       cluster.fork();
+    });
+
+    const shutdownCluster = (signal: string) => {
+      if (isShuttingDown) {
+        return;
+      }
+
+      isShuttingDown = true;
+      logger.log(
+        `Primary received ${signal}. Shutting down ${Object.keys(cluster.workers || {}).length} workers...`,
+      );
+
+      forceExitTimer = setTimeout(() => {
+        logger.error(`Cluster shutdown timed out after ${shutdownTimeoutMs}ms. Forcing exit.`);
+        for (const id in cluster.workers) {
+          const worker = cluster.workers[id];
+          if (worker && !worker.isDead()) {
+            worker.process.kill('SIGKILL');
+          }
+        }
+        process.exit(1);
+      }, shutdownTimeoutMs);
+      forceExitTimer.unref();
+
+      for (const id in cluster.workers) {
+        const worker = cluster.workers[id];
+        if (worker) {
+          worker.process.kill(signal);
+        }
+      }
+    };
+
+    process.on('SIGTERM', () => {
+      shutdownCluster('SIGTERM');
+    });
+    process.on('SIGINT', () => {
+      shutdownCluster('SIGINT');
     });
 
     return;
