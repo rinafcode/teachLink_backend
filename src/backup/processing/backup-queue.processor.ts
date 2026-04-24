@@ -180,7 +180,7 @@ export class BackupQueueProcessor {
 
   @Process(JOB_NAMES.RECOVERY_TEST)
   async handleRecoveryTest(_job: Job<RecoveryTestJobData>) {
-    this.logger.log(`Recovery test processing handled by RecoveryTestingService`);
+    this.logger.log('Recovery test processing handled by RecoveryTestingService');
     // Delegated to RecoveryTestingService.executeRecoveryTest()
   }
 
@@ -276,7 +276,7 @@ export class BackupQueueProcessor {
     const sourceBucket = this.configService.get<string>('AWS_S3_BUCKET', '');
     const targetBucket = this.configService.get<string>('AWS_S3_BUCKET_SECONDARY', sourceBucket);
 
-    const targetKey = storageKey.replace(`backups/`, `backups-${targetRegion}/`);
+    const targetKey = storageKey.replace('backups/', `backups-${targetRegion}/`);
 
     const copyCommand = new CopyObjectCommand({
       CopySource: `${sourceBucket}/${storageKey}`,

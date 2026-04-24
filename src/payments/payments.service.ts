@@ -225,7 +225,7 @@ export class PaymentsService {
         invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         items: [
           {
-            description: `Payment for course`,
+            description: 'Payment for course',
             amount: payment.amount,
             quantity: 1,
           },

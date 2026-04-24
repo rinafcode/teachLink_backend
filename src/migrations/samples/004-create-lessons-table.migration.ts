@@ -33,7 +33,7 @@ export class CreateLessonsTableMigration implements MigrationConfig {
     `);
 
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_lesson_module_id ON lesson (module_id);`,
+      'CREATE INDEX IF NOT EXISTS idx_lesson_module_id ON lesson (module_id);',
     );
 
     this.logger.log('Migration applied: create lesson table');
@@ -42,7 +42,7 @@ export class CreateLessonsTableMigration implements MigrationConfig {
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create lesson table');
 
-    await connection.query(`DROP TABLE IF EXISTS lesson CASCADE;`);
+    await connection.query('DROP TABLE IF EXISTS lesson CASCADE;');
 
     this.logger.log('Migration rolled back: create lesson table');
   }

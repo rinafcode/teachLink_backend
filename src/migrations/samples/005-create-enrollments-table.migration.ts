@@ -33,19 +33,19 @@ export class CreateEnrollmentsTableMigration implements MigrationConfig {
     `);
 
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_enrollment_user_id   ON enrollment (user_id);`,
+      'CREATE INDEX IF NOT EXISTS idx_enrollment_user_id   ON enrollment (user_id);',
     );
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_enrollment_course_id ON enrollment (course_id);`,
+      'CREATE INDEX IF NOT EXISTS idx_enrollment_course_id ON enrollment (course_id);',
     );
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_enrollment_status    ON enrollment (status);`,
+      'CREATE INDEX IF NOT EXISTS idx_enrollment_status    ON enrollment (status);',
     );
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_enrollment_user_status   ON enrollment (user_id, status);`,
+      'CREATE INDEX IF NOT EXISTS idx_enrollment_user_status   ON enrollment (user_id, status);',
     );
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_enrollment_course_status ON enrollment (course_id, status);`,
+      'CREATE INDEX IF NOT EXISTS idx_enrollment_course_status ON enrollment (course_id, status);',
     );
 
     this.logger.log('Migration applied: create enrollment table');
@@ -54,7 +54,7 @@ export class CreateEnrollmentsTableMigration implements MigrationConfig {
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create enrollment table');
 
-    await connection.query(`DROP TABLE IF EXISTS enrollment CASCADE;`);
+    await connection.query('DROP TABLE IF EXISTS enrollment CASCADE;');
 
     this.logger.log('Migration rolled back: create enrollment table');
   }

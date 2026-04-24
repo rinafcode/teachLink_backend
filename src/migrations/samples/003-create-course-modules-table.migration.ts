@@ -30,7 +30,7 @@ export class CreateCourseModulesTableMigration implements MigrationConfig {
     `);
 
     await connection.query(
-      `CREATE INDEX IF NOT EXISTS idx_course_module_course_id ON course_module (course_id);`,
+      'CREATE INDEX IF NOT EXISTS idx_course_module_course_id ON course_module (course_id);',
     );
 
     this.logger.log('Migration applied: create course_module table');
@@ -39,7 +39,7 @@ export class CreateCourseModulesTableMigration implements MigrationConfig {
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create course_module table');
 
-    await connection.query(`DROP TABLE IF EXISTS course_module CASCADE;`);
+    await connection.query('DROP TABLE IF EXISTS course_module CASCADE;');
 
     this.logger.log('Migration rolled back: create course_module table');
   }

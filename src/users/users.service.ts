@@ -70,8 +70,9 @@ export class UsersService {
 
         if (filter?.search) {
           const safeSearch = sanitizeSqlLike(filter.search);
+          // eslint-disable-next-line quotes
           query.andWhere(
-            "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')",
+            "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')", // eslint-disable-line quotes
             { search: `%${safeSearch}%` },
           );
         }

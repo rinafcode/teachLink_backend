@@ -272,7 +272,7 @@ async function bootstrap() {
       for (const id in cluster.workers) {
         const worker = cluster.workers[id];
         if (worker) {
-          worker.process.kill(signal);
+          worker.process.kill(signal as NodeJS.Signals);
         }
       }
     };

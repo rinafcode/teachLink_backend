@@ -1,5 +1,3 @@
-import { Controller, Get, Query, HttpStatus, UseGuards } from '@nestjs/common';
-import { ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import {
   Controller,
   Get,
@@ -8,8 +6,6 @@ import {
   Query,
   Res,
   UseGuards,
-  VERSION_NEUTRAL,
-  Version,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
