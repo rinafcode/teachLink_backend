@@ -23,7 +23,7 @@ export class UsersService {
     private readonly cachingService: CachingService,
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user already exists

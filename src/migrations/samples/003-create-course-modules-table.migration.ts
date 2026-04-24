@@ -29,7 +29,9 @@ export class CreateCourseModulesTableMigration implements MigrationConfig {
       );
     `);
 
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_course_module_course_id ON course_module (course_id);`);
+    await connection.query(
+      `CREATE INDEX IF NOT EXISTS idx_course_module_course_id ON course_module (course_id);`,
+    );
 
     this.logger.log('Migration applied: create course_module table');
   }

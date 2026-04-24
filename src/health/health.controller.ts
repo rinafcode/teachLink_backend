@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Get,
@@ -7,15 +6,15 @@ import {
   ApiResponse,
   ApiTags,
   ApiBearerAuth,
-  UseGuards,VERSION_NEUTRAL,
- Version 
+  UseGuards,
+  VERSION_NEUTRAL,
+  Version,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import { SkipThrottle } from '@nestjs/throttler';
-import { HealthService } from './health.service';
-import { HealthStatus } from './health.service';
+import { HealthService, HealthStatus } from './health.service';
 
 @Version(VERSION_NEUTRAL)
 @SkipThrottle()
@@ -134,9 +133,15 @@ export class HealthController {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
 
     const serviceCount = Object.keys(healthStatus.services).length;
-    const healthyCount = Object.values(healthStatus.services).filter(status => status === 'up').length;
-    const degradedCount = Object.values(healthStatus.services).filter(status => status === 'degraded' || status === 'warning').length;
-    const criticalCount = Object.values(healthStatus.services).filter(status => status === 'down' || status === 'critical').length;
+    const healthyCount = Object.values(healthStatus.services).filter(
+      (status) => status === 'up',
+    ).length;
+    const degradedCount = Object.values(healthStatus.services).filter(
+      (status) => status === 'degraded' || status === 'warning',
+    ).length;
+    const criticalCount = Object.values(healthStatus.services).filter(
+      (status) => status === 'down' || status === 'critical',
+    ).length;
 
     return {
       overall: healthStatus.status,

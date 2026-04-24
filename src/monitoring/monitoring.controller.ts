@@ -1,5 +1,4 @@
-import { Controller, Get, Res, Query } from '@nestjs/common';
-import { Controller, Get, Res, VERSION_NEUTRAL, Version } from '@nestjs/common';
+import { Controller, Get, Query, Res, VERSION_NEUTRAL, Version } from '@nestjs/common';
 import { MetricsCollectionService } from './metrics/metrics-collection.service';
 import { Response } from 'express';
 import { ScheduledTaskMonitoringService } from './scheduled-task-monitoring.service';
@@ -10,7 +9,7 @@ export class MonitoringController {
   constructor(
     private readonly metricsService: MetricsCollectionService,
     private readonly scheduledTaskMonitoringService: ScheduledTaskMonitoringService,
-  ) { }
+  ) {}
 
   @Get()
   async getMetrics(@Res() res: Response) {
@@ -25,8 +24,8 @@ export class MonitoringController {
     @Query('include') include?: string,
     @Query('exclude') exclude?: string,
   ) {
-    const includeTypes = include?.split(',').map(s => s.trim()) || [];
-    const excludeTypes = exclude?.split(',').map(s => s.trim()) || [];
+    const includeTypes = include?.split(',').map((s) => s.trim()) || [];
+    const excludeTypes = exclude?.split(',').map((s) => s.trim()) || [];
 
     // Get base Prometheus metrics
     const prometheusMetrics = await this.metricsService.getMetrics();
@@ -40,10 +39,11 @@ export class MonitoringController {
       scheduledTasks: scheduledTasksMetrics,
       timestamp: new Date().toISOString(),
       metadata: {
-        totalMetrics: prometheusMetrics.split('\n').filter(line => line && !line.startsWith('#')).length,
+        totalMetrics: prometheusMetrics.split('\n').filter((line) => line && !line.startsWith('#'))
+          .length,
         includeTypes,
         excludeTypes,
-      }
+      },
     };
 
     // Return in requested format
@@ -66,8 +66,10 @@ export class MonitoringController {
         scheduledTasks: 'active',
       },
       registry: {
-        metricsCount: (await this.metricsService.getMetrics()).split('\n').filter(line => line && !line.startsWith('#')).length,
-      }
+        metricsCount: (await this.metricsService.getMetrics())
+          .split('\n')
+          .filter((line) => line && !line.startsWith('#')).length,
+      },
     };
   }
 

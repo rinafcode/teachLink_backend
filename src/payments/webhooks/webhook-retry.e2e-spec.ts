@@ -4,7 +4,11 @@ import * as request from 'supertest';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { PaymentsModule } from '../payments.module';
-import { WebhookRetry, WebhookStatus, WebhookProvider } from '../webhooks/entities/webhook-retry.entity';
+import {
+  WebhookRetry,
+  WebhookStatus,
+  WebhookProvider,
+} from '../webhooks/entities/webhook-retry.entity';
 
 /**
  * Integration Tests for Webhook Retry System
@@ -113,7 +117,7 @@ describe('Webhook Retry System (e2e)', () => {
         resource: {
           id: 'sale_123456',
           parent_payment: 'payment_123456',
-          amount: 100.00,
+          amount: 100.0,
         },
       };
 
@@ -163,9 +167,7 @@ describe('Webhook Retry System (e2e)', () => {
 
       await webhookRepository.save(webhook);
 
-      const response = await request(app.getHttpServer())
-        .get('/webhooks/dead-letter')
-        .expect(200);
+      const response = await request(app.getHttpServer()).get('/webhooks/dead-letter').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body.length).toBeGreaterThan(0);

@@ -34,8 +34,12 @@ export class CreateCoursesTableMigration implements MigrationConfig {
       );
     `);
 
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_course_status        ON course (status);`);
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_course_instructor_id ON course (instructor_id);`);
+    await connection.query(
+      `CREATE INDEX IF NOT EXISTS idx_course_status        ON course (status);`,
+    );
+    await connection.query(
+      `CREATE INDEX IF NOT EXISTS idx_course_instructor_id ON course (instructor_id);`,
+    );
 
     this.logger.log('Migration applied: create courses table');
   }

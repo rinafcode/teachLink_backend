@@ -55,7 +55,6 @@ import { LocalizationModule } from './localization/localization.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
 
-
 @Module({})
 export class AppModule {
   static async forRoot(): Promise<DynamicModule> {
@@ -134,7 +133,6 @@ export class AppModule {
       DatabaseModule,
       CsrfModule,
       TimeoutModule,
-
     ];
 
     // Feature modules - conditionally loaded based on feature flags

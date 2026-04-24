@@ -32,7 +32,9 @@ export class CreateLessonsTableMigration implements MigrationConfig {
       );
     `);
 
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_lesson_module_id ON lesson (module_id);`);
+    await connection.query(
+      `CREATE INDEX IF NOT EXISTS idx_lesson_module_id ON lesson (module_id);`,
+    );
 
     this.logger.log('Migration applied: create lesson table');
   }

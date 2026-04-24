@@ -44,7 +44,10 @@ export class DataConsistencyService {
     );
 
     // Emit event for real-time subscribers
-    this.eventEmitter.emit(APP_EVENTS.DATA_CONSISTENCY_SCHEDULED, { dataId, timestamp: new Date() });
+    this.eventEmitter.emit(APP_EVENTS.DATA_CONSISTENCY_SCHEDULED, {
+      dataId,
+      timestamp: new Date(),
+    });
   }
 
   /**
@@ -71,7 +74,10 @@ export class DataConsistencyService {
 
     if (!consistent) {
       this.logger.warn(`Integrity check failed with issues: ${issues.join(', ')}`);
-      this.eventEmitter.emit(APP_EVENTS.DATA_INTEGRITY_VIOLATION, { issues, timestamp: new Date() });
+      this.eventEmitter.emit(APP_EVENTS.DATA_INTEGRITY_VIOLATION, {
+        issues,
+        timestamp: new Date(),
+      });
     }
 
     return {

@@ -1,6 +1,4 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { Req, RawBodyRequest } from '@nestjs/common';
-import { Request } from 'express';
 import { ProviderFactoryService } from '../providers/provider-factory.service';
 import { PaymentsService } from '../payments.service';
 import { PaymentStatus } from '../entities/payment.entity';

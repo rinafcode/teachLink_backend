@@ -36,7 +36,7 @@ export class PaymentsService {
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly transactionService: TransactionService,
     private readonly providerFactory: ProviderFactoryService,
-  ) { }
+  ) {}
 
   /**
    * Create a payment intent with a provider and record the pending payment.
