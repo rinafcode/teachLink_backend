@@ -22,6 +22,9 @@ export interface ICacheAnalyticsSummary {
   patternStats: Map<string, { hits: number; misses: number }>;
 }
 
+/**
+ * Provides cache Analytics operations.
+ */
 @Injectable()
 export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheAnalyticsService.name);
@@ -31,12 +34,18 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly cachingService: CachingService) {}
 
+  /**
+   * Executes on Module Init.
+   */
   onModuleInit(): void {
     // Start periodic metrics aggregation
     this.startMetricsFlush();
     this.logger.log('Cache analytics service initialized');
   }
 
+  /**
+   * Executes on Module Destroy.
+   */
   onModuleDestroy(): void {
     if (this.flushInterval) {
       clearInterval(this.flushInterval);

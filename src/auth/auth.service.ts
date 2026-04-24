@@ -58,6 +58,9 @@ interface ITokenUser {
   role: UserRole;
 }
 
+/**
+ * Provides auth operations.
+ */
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -73,6 +76,13 @@ export class AuthService {
     private readonly passwordPolicyService: PasswordPolicyService,
   ) {}
 
+  /**
+   * Registers register.
+   * @param registerDto The request payload.
+   * @param ipAddress The ip address.
+   * @param userAgent The user agent.
+   * @returns The resulting register response.
+   */
   async register(
     registerDto: RegisterDto,
     ipAddress?: string,
@@ -262,6 +272,14 @@ export class AuthService {
     }
   }
 
+  /**
+   * Executes logout.
+   * @param userId The user identifier.
+   * @param sessionId The session identifier.
+   * @param ipAddress The ip address.
+   * @param userAgent The user agent.
+   * @returns The operation result.
+   */
   async logout(
     userId: string,
     sessionId?: string,
@@ -290,6 +308,11 @@ export class AuthService {
     return { message: 'Logout successful' };
   }
 
+  /**
+   * Executes forgot Password.
+   * @param email The email address.
+   * @returns The operation result.
+   */
   async forgotPassword(email: string): Promise<{ message: string }> {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
@@ -309,6 +332,11 @@ export class AuthService {
     return { message: 'If the email exists, a password reset link has been sent.' };
   }
 
+  /**
+   * Resets password.
+   * @param resetPasswordDto The request payload.
+   * @returns The operation result.
+   */
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
     await this.passwordPolicyService.enforce(resetPasswordDto.newPassword);
 
@@ -330,6 +358,14 @@ export class AuthService {
     return { message: 'Password has been reset successfully' };
   }
 
+  /**
+   * Executes change Password.
+   * @param userId The user identifier.
+   * @param changePasswordDto The request payload.
+   * @param ipAddress The ip address.
+   * @param userAgent The user agent.
+   * @returns The operation result.
+   */
   async changePassword(
     userId: string,
     changePasswordDto: ChangePasswordDto,
@@ -371,6 +407,11 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
+  /**
+   * Validates email.
+   * @param token The token value.
+   * @returns The operation result.
+   */
   async verifyEmail(token: string): Promise<{ message: string }> {
     // Find user by verification token
     const userOrNull = await this.usersService.findByEmailVerificationToken(token);

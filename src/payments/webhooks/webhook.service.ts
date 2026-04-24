@@ -32,6 +32,9 @@ interface IPayPalWebhookPayload {
   resource: IPayPalResource;
 }
 
+/**
+ * Provides webhook operations.
+ */
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
@@ -42,6 +45,12 @@ export class WebhookService {
     private readonly webhookQueueService: WebhookQueueService,
   ) {}
 
+  /**
+   * Handles stripe Webhook.
+   * @param payload The payload to process.
+   * @param signature The signature.
+   * @returns The operation result.
+   */
   async handleStripeWebhook(
     payload: Buffer | undefined,
     signature: string,
@@ -109,6 +118,16 @@ export class WebhookService {
     await this.paymentsService.handleSubscriptionEvent(event);
   }
 
+  /**
+   * Handles pay Pal Webhook.
+   * @param payload The payload to process.
+   * @param _transmissionId The transmission identifier.
+   * @param _transmissionTime The transmission time.
+   * @param _transmissionSig The transmission sig.
+   * @param _certUrl The cert url.
+   * @param _authAlgo The auth algo.
+   * @returns The operation result.
+   */
   async handlePayPalWebhook(
     payload: Record<string, unknown>,
     _transmissionId: string,

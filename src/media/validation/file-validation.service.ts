@@ -31,6 +31,9 @@ export interface ImageDimensions {
   height: number;
 }
 
+/**
+ * Provides file Validation operations.
+ */
 @Injectable()
 export class FileValidationService {
   private readonly logger = new Logger(FileValidationService.name);

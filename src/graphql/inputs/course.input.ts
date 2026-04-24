@@ -1,6 +1,9 @@
 import { InputType, Field, Float } from '@nestjs/graphql';
 import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
 
+/**
+ * Provides create Course Input behavior.
+ */
 @InputType()
 export class CreateCourseInput {
   @Field()
@@ -26,6 +29,9 @@ export class CreateCourseInput {
   instructorId: string;
 }
 
+/**
+ * Provides update Course Input behavior.
+ */
 @InputType()
 export class UpdateCourseInput {
   @Field({ nullable: true })
@@ -55,6 +61,9 @@ export class UpdateCourseInput {
   thumbnailUrl?: string;
 }
 
+/**
+ * Provides course Filter Input behavior.
+ */
 @InputType()
 export class CourseFilterInput {
   @Field({ nullable: true })

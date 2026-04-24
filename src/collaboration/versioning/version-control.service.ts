@@ -21,6 +21,9 @@ export interface IVersionHistory {
   updatedAt: Date;
 }
 
+/**
+ * Provides version Control operations.
+ */
 @Injectable()
 export class VersionControlService {
   private readonly logger = Logger;

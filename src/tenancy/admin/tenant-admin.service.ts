@@ -22,6 +22,9 @@ export interface ITenantHealth {
   score: number;
 }
 
+/**
+ * Provides tenant Admin operations.
+ */
 @Injectable()
 export class TenantAdminService {
   constructor(

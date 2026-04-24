@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { IRolloutConfig, IUserContext } from '../interfaces';
 
+/**
+ * Provides rollout operations.
+ */
 @Injectable()
 export class RolloutService {
   /**

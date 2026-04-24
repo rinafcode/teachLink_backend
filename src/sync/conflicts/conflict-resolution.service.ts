@@ -13,6 +13,9 @@ export interface ISyncData {
   data: any;
 }
 
+/**
+ * Provides conflict Resolution operations.
+ */
 @Injectable()
 export class ConflictResolutionService {
   private readonly logger = new Logger(ConflictResolutionService.name);

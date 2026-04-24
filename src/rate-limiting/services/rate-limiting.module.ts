@@ -5,6 +5,9 @@ import { QuotaManagementService } from './quota.service';
 import { AdaptiveRateLimitingService } from './adaptive-rate-limiting.service';
 import { DistributedLimiterService } from './distrubutes.service';
 
+/**
+ * Registers the rate Limiting module.
+ */
 @Module({
   providers: [
     RateLimitingService,

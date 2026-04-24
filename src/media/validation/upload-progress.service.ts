@@ -39,6 +39,9 @@ export interface IProgressUpdate {
   result?: IUploadProgress['result'];
 }
 
+/**
+ * Provides upload Progress operations.
+ */
 @Injectable()
 export class UploadProgressService {
   private readonly logger = new Logger(UploadProgressService.name);

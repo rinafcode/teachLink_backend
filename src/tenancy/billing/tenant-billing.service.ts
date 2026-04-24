@@ -20,6 +20,9 @@ export interface IBillingRecord {
   invoiceId?: string;
 }
 
+/**
+ * Provides tenant Billing operations.
+ */
 @Injectable()
 export class TenantBillingService {
   constructor(

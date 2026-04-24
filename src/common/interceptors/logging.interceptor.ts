@@ -62,6 +62,12 @@ export class LoggingInterceptor implements NestInterceptor {
 
   constructor(private readonly logShipper: LogShipperService) {}
 
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<unknown>.
+   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     // Only intercept HTTP contexts (skip WebSockets, microservices, etc.)
     if (context.getType() !== 'http') {

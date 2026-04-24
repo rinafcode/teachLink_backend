@@ -23,6 +23,9 @@ export interface IContentDeliveryOptions {
   responsive?: boolean;
 }
 
+/**
+ * Provides cdn operations.
+ */
 @Injectable()
 export class CdnService {
   private readonly logger = new Logger(CdnService.name);
@@ -80,6 +83,10 @@ export class CdnService {
     return edgeUrl;
   }
 
+  /**
+   * Invalidates content.
+   * @param contentId The content identifier.
+   */
   async invalidateContent(contentId: string): Promise<void> {
     // Purge from edge caches
     await this.edgeCachingService.purgeContent(contentId);
@@ -90,6 +97,12 @@ export class CdnService {
     this.logger.warn(`Cache invalidation for ${contentId} - manual cleanup may be required`);
   }
 
+  /**
+   * Uploads content.
+   * @param file The file to process.
+   * @param options The options.
+   * @returns The resulting content metadata.
+   */
   async uploadContent(
     file: IUploadedFile,
     options: IContentDeliveryOptions = {},

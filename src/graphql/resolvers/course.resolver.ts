@@ -11,6 +11,12 @@ import { UsersService } from '../../users/users.service';
 export class CourseResolver {
   constructor(private readonly usersService: UsersService) {}
 
+  /**
+   * Executes instructor.
+   * @param course The course.
+   * @param context The context.
+   * @returns The operation result.
+   */
   @ResolveField(() => UserType, { nullable: true })
   async instructor(
     @Parent() course: CourseType,

@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
+/**
+ * Defines the export Query payload.
+ */
 export class ExportQueryDto {
   @ApiProperty({ example: 'errors' })
   @IsString()

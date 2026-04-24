@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Provides csrf operations.
+ */
 @Injectable()
 export class CsrfService {
   private readonly csrfTokens = new Map<string, { token: string; expires: number }>();
@@ -11,6 +14,11 @@ export class CsrfService {
     this.tokenExpiryTime = this.configService.get<number>('CSRF_TOKEN_EXPIRY', 3600000); // 1 hour default
   }
 
+  /**
+   * Generates token.
+   * @param sessionId The session identifier.
+   * @returns The resulting string value.
+   */
   generateToken(sessionId: string): string {
     const token = uuidv4();
     const expires = Date.now() + this.tokenExpiryTime;
@@ -19,6 +27,12 @@ export class CsrfService {
     return token;
   }
 
+  /**
+   * Validates token.
+   * @param sessionId The session identifier.
+   * @param token The token value.
+   * @returns Whether the operation succeeded.
+   */
   validateToken(sessionId: string, token: string): boolean {
     const storedToken = this.csrfTokens.get(sessionId);
 
@@ -29,10 +43,19 @@ export class CsrfService {
     return storedToken.token === token;
   }
 
+  /**
+   * Invalidates token.
+   * @param sessionId The session identifier.
+   */
   invalidateToken(sessionId: string): void {
     this.csrfTokens.delete(sessionId);
   }
 
+  /**
+   * Retrieves token.
+   * @param sessionId The session identifier.
+   * @returns The operation result.
+   */
   getToken(sessionId: string): string | null {
     const storedToken = this.csrfTokens.get(sessionId);
 
@@ -43,6 +66,9 @@ export class CsrfService {
     return storedToken.token;
   }
 
+  /**
+   * Executes cleanup Expired Tokens.
+   */
   cleanupExpiredTokens(): void {
     const now = Date.now();
     for (const [sessionId, tokenData] of this.csrfTokens.entries()) {

@@ -14,12 +14,21 @@ interface IRequestWithUser extends Request {
   requestId?: string;
 }
 
+/**
+ * Intercepts audit Log request handling.
+ */
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditLogInterceptor.name);
 
   constructor(private readonly auditLogService: AuditLogService) {}
 
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<unknown>.
+   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<IRequestWithUser>();
     const response = context.switchToHttp().getResponse();

@@ -24,6 +24,9 @@ export enum UserStatus {
   SUSPENDED = 'suspended',
 }
 
+/**
+ * Represents the user entity.
+ */
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')

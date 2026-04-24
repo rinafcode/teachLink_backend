@@ -8,6 +8,9 @@ import { LanguageMiddleware } from './language.middleware';
 import { LocalizationController } from './localization.controller';
 import { LocalizationService } from './localization.service';
 
+/**
+ * Registers the localization module.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([Translation])],
   controllers: [LocalizationController],
@@ -21,6 +24,11 @@ import { LocalizationService } from './localization.service';
   exports: [LocalizationService, LanguageDetectionService],
 })
 export class LocalizationModule implements NestModule {
+  /**
+   * Executes configure.
+   * @param consumer The consumer.
+   * @returns The operation result.
+   */
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(LanguageMiddleware).forRoutes(LocalizationController);
   }

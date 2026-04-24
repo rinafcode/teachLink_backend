@@ -5,6 +5,9 @@ import { Challenge } from '../entities/challenge.entity';
 import { UserChallenge } from '../entities/user-challenge.entity';
 import { User } from '../../users/entities/user.entity';
 
+/**
+ * Provides challenges operations.
+ */
 @Injectable()
 export class ChallengesService {
   constructor(

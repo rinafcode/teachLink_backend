@@ -26,6 +26,9 @@ export interface ISendEmailResult {
   error?: string;
 }
 
+/**
+ * Provides email Sender operations.
+ */
 @Injectable()
 export class EmailSenderService {
   private readonly logger = new Logger(EmailSenderService.name);

@@ -21,6 +21,9 @@ export enum WebhookProvider {
   PAYPAL = 'paypal',
 }
 
+/**
+ * Represents the webhook Retry entity.
+ */
 @Entity('webhook_retries')
 @Index(['provider', 'externalEventId'], { unique: true })
 @Index(['status', 'nextRetryTime'])

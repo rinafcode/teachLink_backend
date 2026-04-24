@@ -26,6 +26,9 @@ import { TransactionService } from '../common/database/transaction.service';
 import { TransactionHelperService } from '../common/database/transaction-helper.service';
 import { IdempotencyService } from '../common/services/idempotency.service';
 
+/**
+ * Registers the payments module.
+ */
 @Module({
   imports: [
     ConfigModule,

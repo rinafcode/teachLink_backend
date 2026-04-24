@@ -16,6 +16,9 @@ export interface IMigrationConfig {
   dependencies?: string[];
 }
 
+/**
+ * Provides migration operations.
+ */
 @Injectable()
 export class MigrationService {
   private readonly logger = new Logger(MigrationService.name);

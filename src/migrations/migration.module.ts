@@ -9,6 +9,9 @@ import { ConflictResolutionService } from './conflicts/conflict-resolution.servi
 import { MigrationController } from './migration.controller';
 import { MigrationRunnerService } from './migration-runner.service';
 
+/**
+ * Registers the migration module.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([Migration])],
   controllers: [MigrationController],

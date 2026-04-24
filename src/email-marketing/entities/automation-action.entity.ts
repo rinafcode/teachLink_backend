@@ -12,6 +12,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { AutomationWorkflow } from './automation-workflow.entity';
 import { ActionType } from '../enums/action-type.enum';
 
+/**
+ * Represents the automation Action entity.
+ */
 @Entity('automation_actions')
 export class AutomationAction {
   @ApiProperty()

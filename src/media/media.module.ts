@@ -15,6 +15,9 @@ import { ContentMetadata } from '../cdn/entities/content-metadata.entity';
 import { VideoProcessor } from './processing/video.processor';
 import { FileCleanupTask } from './file-cleanup.task';
 
+/**
+ * Registers the media module.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([ContentMetadata]),

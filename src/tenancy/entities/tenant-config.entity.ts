@@ -12,6 +12,9 @@ import {
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
+/**
+ * Represents the tenant Config entity.
+ */
 @Entity('tenant_configs')
 export class TenantConfig {
   @PrimaryGeneratedColumn('uuid')

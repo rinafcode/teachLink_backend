@@ -3,6 +3,9 @@ import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { COURSES_INDEX } from '../search.service';
 import { SEARCH_CONSTANTS } from '../search.constants';
 
+/**
+ * Provides search Filters operations.
+ */
 @Injectable()
 export class SearchFiltersService {
   constructor(private readonly elasticsearchService: ElasticsearchService) {}

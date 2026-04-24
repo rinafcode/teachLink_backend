@@ -13,6 +13,9 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TenantStatus, TenantPlan } from '../entities/tenant.entity';
 
+/**
+ * Defines the create Tenant payload.
+ */
 export class CreateTenantDto {
   @ApiProperty({ example: 'acme-corp' })
   @IsString()
@@ -77,6 +80,9 @@ export class CreateTenantDto {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Defines the update Tenant payload.
+ */
 export class UpdateTenantDto {
   @ApiPropertyOptional({ example: 'Acme Corporation' })
   @IsOptional()
@@ -135,6 +141,9 @@ export class UpdateTenantDto {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Defines the update Tenant Config payload.
+ */
 export class UpdateTenantConfigDto {
   @ApiPropertyOptional({ example: 'en' })
   @IsOptional()
@@ -182,6 +191,9 @@ export class UpdateTenantConfigDto {
   customSettings?: Record<string, any>;
 }
 
+/**
+ * Defines the update Tenant Customization payload.
+ */
 export class UpdateTenantCustomizationDto {
   @ApiPropertyOptional({ example: 'https://example.com/logo.png' })
   @IsOptional()

@@ -16,6 +16,9 @@ export interface IEmailOptions {
   context: Record<string, any>;
 }
 
+/**
+ * Provides email operations.
+ */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -41,6 +44,11 @@ export class EmailService {
     });
   }
 
+  /**
+   * Sends verification Email.
+   * @param email The email address.
+   * @param token The token value.
+   */
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
 
@@ -67,6 +75,11 @@ export class EmailService {
     this.logger.log(`Verification email queued for ${email}`);
   }
 
+  /**
+   * Sends password Reset Email.
+   * @param email The email address.
+   * @param token The token value.
+   */
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
 
@@ -140,6 +153,10 @@ export class EmailService {
     return template;
   }
 
+  /**
+   * Validates connection.
+   * @returns Whether the operation succeeded.
+   */
   async verifyConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();

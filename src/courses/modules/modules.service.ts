@@ -6,6 +6,9 @@ import { CreateModuleDto } from '../dto/create-module.dto';
 import { Course } from '../entities/course.entity';
 import { Lesson } from '../entities/lesson.entity';
 
+/**
+ * Provides modules operations.
+ */
 @Injectable()
 export class ModulesService {
   constructor(
@@ -15,6 +18,11 @@ export class ModulesService {
     private coursesRepository: Repository<Course>,
   ) {}
 
+  /**
+   * Creates a new record.
+   * @param createModuleDto The request payload.
+   * @returns The resulting course module.
+   */
   async create(createModuleDto: CreateModuleDto): Promise<CourseModule> {
     const course = await this.coursesRepository.findOneBy({ id: createModuleDto.courseId });
     if (!course) {
@@ -28,6 +36,11 @@ export class ModulesService {
     return this.modulesRepository.save(module);
   }
 
+  /**
+   * Retrieves the requested record.
+   * @param id The identifier.
+   * @returns The resulting course module.
+   */
   async findOne(id: string): Promise<CourseModule> {
     const module = await this.modulesRepository.findOne({
       where: { id },
@@ -44,12 +57,22 @@ export class ModulesService {
     return module;
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateData The data to process.
+   * @returns The resulting course module.
+   */
   async update(id: string, updateData: Partial<CreateModuleDto>): Promise<CourseModule> {
     const module = await this.findOne(id);
     Object.assign(module, updateData);
     return this.modulesRepository.save(module);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   async remove(id: string): Promise<void> {
     const module = await this.findOne(id);
     await this.modulesRepository.manager.transaction(async (manager) => {

@@ -23,6 +23,9 @@ export enum ContentStatus {
   FAILED = 'failed',
 }
 
+/**
+ * Represents the content Metadata entity.
+ */
 @Entity('content_metadata')
 @Index(['contentId'], { unique: true })
 @Index(['status'])

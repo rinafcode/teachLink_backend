@@ -4,6 +4,9 @@ import { ApiTags, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service';
 import { AnalyticsService } from './analytics/analytics.service';
 
+/**
+ * Exposes app endpoints.
+ */
 @ApiTags('app')
 @Controller()
 export class AppController {
@@ -12,6 +15,10 @@ export class AppController {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
+  /**
+   * Returns hello.
+   * @returns The resulting string value.
+   */
   @Get()
   @ApiResponse({ status: HttpStatus.OK, description: 'Root endpoint response' })
   getHello(): string {

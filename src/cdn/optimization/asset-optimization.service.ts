@@ -9,8 +9,17 @@ export interface IOptimizationResult {
   format: string;
 }
 
+/**
+ * Provides asset Optimization operations.
+ */
 @Injectable()
 export class AssetOptimizationService {
+  /**
+   * Optimizes image.
+   * @param contentId The content identifier.
+   * @param _options The options.
+   * @returns The resulting string value.
+   */
   async optimizeImage(contentId: string, _options: any): Promise<string> {
     try {
       // Download image (in real implementation, you'd fetch from storage)
@@ -58,6 +67,12 @@ export class AssetOptimizationService {
     }
   }
 
+  /**
+   * Optimizes video.
+   * @param contentId The content identifier.
+   * @param _options The options.
+   * @returns The resulting string value.
+   */
   async optimizeVideo(contentId: string, _options: any): Promise<string> {
     // Implementation for video optimization using ffmpeg
     // For now, return original
@@ -123,6 +138,16 @@ export class AssetOptimizationService {
     return parts.join('_');
   }
 
+  /**
+   * Retrieves optimization Stats.
+   * @param _contentId The content identifier.
+   * @returns The resulting promise<{
+    original size: number;
+    optimized size: number;
+    savings percentage: number;
+    formats: string[];
+  }>.
+   */
   async getOptimizationStats(_contentId: string): Promise<{
     originalSize: number;
     optimizedSize: number;

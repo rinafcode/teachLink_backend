@@ -5,6 +5,9 @@ import { Migration, MigrationStatus } from '../entities/migration.entity';
 import { IMigrationConfig } from '../migration.service';
 import { MIGRATION_REGISTRY } from '../migration.registry';
 
+/**
+ * Provides rollback operations.
+ */
 @Injectable()
 export class RollbackService {
   private readonly logger = new Logger(RollbackService.name);
@@ -180,6 +183,11 @@ export class RollbackService {
 
     await this.rollbackMigration(migrationConfig);
   }
+  /**
+   * Executes can Rollback Migration.
+   * @param migrationName The migration name.
+   * @returns Whether the operation succeeded.
+   */
   async canRollbackMigration(migrationName: string): Promise<boolean> {
     // Check if the migration exists and is completed
     const migration = await this.migrationRepository.findOne({

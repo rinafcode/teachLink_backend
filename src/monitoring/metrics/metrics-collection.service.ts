@@ -1,6 +1,9 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Registry, collectDefaultMetrics, Histogram, Gauge, Counter } from 'prom-client';
 
+/**
+ * Provides metrics Collection operations.
+ */
 @Injectable()
 export class MetricsCollectionService implements OnModuleInit {
   private registry: Registry;
@@ -126,52 +129,123 @@ export class MetricsCollectionService implements OnModuleInit {
     });
   }
 
+  /**
+   * Executes on Module Init.
+   * @returns The operation result.
+   */
   onModuleInit() {
     // Collect default system metrics (CPU, Memory, Event Loop, etc.)
     collectDefaultMetrics({ register: this.registry });
   }
 
+  /**
+   * Retrieves registry.
+   * @returns The resulting registry.
+   */
   getRegistry(): Registry {
     return this.registry;
   }
 
+  /**
+   * Retrieves metrics.
+   * @returns The resulting string value.
+   */
   async getMetrics(): Promise<string> {
     return this.registry.metrics();
   }
 
+  /**
+   * Records http Request.
+   * @param method The method.
+   * @param route The route.
+   * @param statusCode The status value.
+   * @param duration The duration.
+   * @returns The operation result.
+   */
   recordHttpRequest(method: string, route: string, statusCode: number, duration: number) {
     this.httpRequestDuration.observe({ method, route, status_code: statusCode }, duration);
   }
 
+  /**
+   * Records db Query.
+   * @param queryType The query value.
+   * @param table The table.
+   * @param duration The duration.
+   * @returns The operation result.
+   */
   recordDbQuery(queryType: string, table: string, duration: number) {
     this.dbQueryDuration.observe({ query_type: queryType, table }, duration);
   }
 
   // Custom business metrics methods
+  /**
+   * Records user Registration.
+   * @param userType The user type.
+   * @param source The source.
+   * @returns The operation result.
+   */
   recordUserRegistration(userType: string, source: string) {
     this.userRegistrations.inc({ user_type: userType, source });
   }
 
+  /**
+   * Records assessment Completion.
+   * @param assessmentType The assessment type.
+   * @param difficulty The difficulty.
+   * @returns The operation result.
+   */
   recordAssessmentCompletion(assessmentType: string, difficulty: string) {
     this.assessmentCompletions.inc({ assessment_type: assessmentType, difficulty });
   }
 
+  /**
+   * Updates learning Path Progress.
+   * @param pathId The path identifier.
+   * @param userId The user identifier.
+   * @param progress The progress.
+   * @returns The operation result.
+   */
   updateLearningPathProgress(pathId: string, userId: string, progress: number) {
     this.learningPathProgress.set({ path_id: pathId, user_id: userId }, progress);
   }
 
+  /**
+   * Updates cache Hit Rate.
+   * @param cacheType The cache type.
+   * @param hitRate The hit rate.
+   * @returns The operation result.
+   */
   updateCacheHitRate(cacheType: string, hitRate: number) {
     this.cacheHitRate.set({ cache_type: cacheType }, hitRate);
   }
 
+  /**
+   * Records queue Processing Time.
+   * @param queueName The queue name.
+   * @param jobType The job type.
+   * @param duration The duration.
+   * @returns The operation result.
+   */
   recordQueueProcessingTime(queueName: string, jobType: string, duration: number) {
     this.queueProcessingTime.observe({ queue_name: queueName, job_type: jobType }, duration);
   }
 
+  /**
+   * Records email Campaign Sent.
+   * @param campaignType The campaign type.
+   * @param status The status value.
+   * @returns The operation result.
+   */
   recordEmailCampaignSent(campaignType: string, status: string) {
     this.emailCampaignsSent.inc({ campaign_type: campaignType, status });
   }
 
+  /**
+   * Records backup Operation.
+   * @param operationType The operation type.
+   * @param status The status value.
+   * @returns The operation result.
+   */
   recordBackupOperation(operationType: string, status: string) {
     this.backupOperations.inc({ operation_type: operationType, status });
   }

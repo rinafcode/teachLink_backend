@@ -11,6 +11,9 @@ import { ExperimentationService } from '../experimentation/experimentation.servi
 import { RolloutService } from '../rollout/rollout.service';
 import { TargetingService } from '../targeting/targeting.service';
 
+/**
+ * Provides flag Evaluation operations.
+ */
 @Injectable()
 export class FlagEvaluationService {
   private readonly flags = new Map<string, IFeatureFlag>();
@@ -182,6 +185,12 @@ export class FlagEvaluationService {
     }
   }
 
+  /**
+   * Updates flag.
+   * @param flagKey The flag key.
+   * @param updates The updates.
+   * @returns The operation result.
+   */
   updateFlag(
     flagKey: string,
     updates: Partial<Omit<IFeatureFlag, 'key' | 'id'>>,
@@ -202,6 +211,11 @@ export class FlagEvaluationService {
     return updated;
   }
 
+  /**
+   * Removes flag.
+   * @param flagKey The flag key.
+   * @returns Whether the operation succeeded.
+   */
   removeFlag(flagKey: string): boolean {
     return this.flags.delete(flagKey);
   }

@@ -20,6 +20,9 @@ import {
 } from '../monitoring/scheduled-task-monitoring.service';
 import { TIME } from '../common/constants/time.constants';
 
+/**
+ * Provides backup operations.
+ */
 @Injectable()
 export class BackupService {
   private readonly logger = new Logger(BackupService.name);
@@ -230,6 +233,11 @@ export class BackupService {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  /**
+   * Retrieves latest Backup.
+   * @param region The region.
+   * @returns The operation result.
+   */
   async getLatestBackup(region?: Region): Promise<BackupRecord | null> {
     const where: any = {
       status: BackupStatus.COMPLETED,
@@ -245,6 +253,12 @@ export class BackupService {
     });
   }
 
+  /**
+   * Updates backup Status.
+   * @param backupId The backup identifier.
+   * @param status The status value.
+   * @param updates The updates.
+   */
   async updateBackupStatus(
     backupId: string,
     status: BackupStatus,
@@ -271,6 +285,11 @@ export class BackupService {
     }
   }
 
+  /**
+   * Executes to Response Dto.
+   * @param backup The backup.
+   * @returns The resulting backup response dto.
+   */
   toResponseDto(backup: BackupRecord): BackupResponseDto {
     return {
       id: backup.id,

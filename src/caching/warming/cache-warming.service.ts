@@ -59,6 +59,9 @@ export interface ICacheWarmableProvider {
   getWarmableData(): Promise<Array<{ key: string; data: any; ttl?: number }>>;
 }
 
+/**
+ * Provides cache Warming operations.
+ */
 @Injectable()
 export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheWarmingService.name);
@@ -94,6 +97,9 @@ export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
     this.dataProviders.push(provider);
   }
 
+  /**
+   * Executes on Module Init.
+   */
   async onModuleInit(): Promise<void> {
     if (!this.config.enabled) {
       this.logger.log('Cache warming is disabled');
@@ -111,6 +117,9 @@ export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
     this.schedulePeriodicWarmup();
   }
 
+  /**
+   * Executes on Module Destroy.
+   */
   onModuleDestroy(): void {
     if (this.warmupInterval) {
       clearInterval(this.warmupInterval);

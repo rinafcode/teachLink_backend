@@ -5,6 +5,9 @@ import { UserProgress } from '../entities/user-progress.entity';
 import { PointTransaction } from '../entities/point-transaction.entity';
 import { User } from '../../users/entities/user.entity';
 
+/**
+ * Provides points operations.
+ */
 @Injectable()
 export class PointsService {
   constructor(

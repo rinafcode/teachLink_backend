@@ -27,6 +27,9 @@ export enum SubscriptionInterval {
   WEEKLY = 'weekly',
 }
 
+/**
+ * Represents the subscription entity.
+ */
 @Entity('subscriptions')
 @Index(['userId', 'status'])
 export class Subscription {

@@ -27,6 +27,9 @@ import {
   IRefundWebhookData,
 } from './interfaces/payment-provider.interface';
 
+/**
+ * Provides payment operations.
+ */
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -139,6 +142,12 @@ export class PaymentsService {
     };
   }
 
+  /**
+   * Creates subscription.
+   * @param userId The user identifier.
+   * @param createSubscriptionDto The request payload.
+   * @returns The resulting create subscription result.
+   */
   async createSubscription(
     userId: string,
     createSubscriptionDto: CreateSubscriptionDto,
@@ -270,6 +279,13 @@ export class PaymentsService {
     };
   }
 
+  /**
+   * Retrieves user Payments.
+   * @param userId The user identifier.
+   * @param limit The maximum number of results.
+   * @param page The page number.
+   * @returns The matching results.
+   */
   async getUserPayments(userId: string, limit: number, page: number): Promise<Payment[]> {
     const skip = (page - 1) * limit;
 
@@ -281,6 +297,11 @@ export class PaymentsService {
     });
   }
 
+  /**
+   * Retrieves user Subscriptions.
+   * @param userId The user identifier.
+   * @returns The matching results.
+   */
   async getUserSubscriptions(userId: string): Promise<Subscription[]> {
     return await this.subscriptionRepository.find({
       where: { userId },
@@ -334,6 +355,12 @@ export class PaymentsService {
     return invoice;
   }
 
+  /**
+   * Updates payment Status.
+   * @param paymentId The payment identifier.
+   * @param status The status value.
+   * @param metadata The data to process.
+   */
   async updatePaymentStatus(
     paymentId: string,
     status: PaymentStatus,

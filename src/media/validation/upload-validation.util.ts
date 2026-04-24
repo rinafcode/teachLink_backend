@@ -45,6 +45,10 @@ export const MEDIA_UPLOAD_INTERCEPTOR_OPTIONS = {
   },
 } as const;
 
+/**
+ * Builds upload Validation Details.
+ * @returns The operation result.
+ */
 export function buildUploadValidationDetails() {
   return {
     allowedTypes: ALL_ALLOWED_FILE_TYPES,

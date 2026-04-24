@@ -18,6 +18,9 @@ import { CacheStrategiesService } from './strategies/cache-strategies.service';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles, Role } from '../common/decorators/roles.decorator';
 
+/**
+ * Exposes cache Management endpoints.
+ */
 @ApiTags('Cache Management')
 @ApiBearerAuth()
 @Controller('cache')
@@ -32,6 +35,10 @@ export class CacheManagementController {
     private readonly strategiesService: CacheStrategiesService,
   ) {}
 
+  /**
+   * Returns stats.
+   * @returns The operation result.
+   */
   @Get('stats')
   @ApiOperation({ summary: 'Get cache statistics' })
   @ApiResponse({
@@ -62,6 +69,10 @@ export class CacheManagementController {
     };
   }
 
+  /**
+   * Returns analytics.
+   * @returns The operation result.
+   */
   @Get('analytics')
   @ApiOperation({ summary: 'Get detailed cache analytics' })
   @ApiResponse({
@@ -84,6 +95,10 @@ export class CacheManagementController {
     };
   }
 
+  /**
+   * Returns prometheus Metrics.
+   * @returns The operation result.
+   */
   @Get('metrics/prometheus')
   @ApiOperation({ summary: 'Get Prometheus-compatible metrics' })
   @ApiResponse({
@@ -94,6 +109,10 @@ export class CacheManagementController {
     return this.analyticsService.getPrometheusMetrics();
   }
 
+  /**
+   * Returns strategies.
+   * @returns The operation result.
+   */
   @Get('strategies')
   @ApiOperation({ summary: 'Get all cache strategies' })
   @ApiResponse({
@@ -107,6 +126,10 @@ export class CacheManagementController {
     };
   }
 
+  /**
+   * Returns warmed Keys.
+   * @returns The operation result.
+   */
   @Get('warmed')
   @ApiOperation({ summary: 'Get warmed cache keys' })
   @ApiResponse({
@@ -120,6 +143,11 @@ export class CacheManagementController {
     };
   }
 
+  /**
+   * Returns key.
+   * @param key The key.
+   * @returns The operation result.
+   */
   @Get('key/:key')
   @ApiOperation({ summary: 'Get a cached value by key' })
   @ApiParam({ name: 'key', description: 'Cache key to retrieve' })
@@ -143,6 +171,10 @@ export class CacheManagementController {
     };
   }
 
+  /**
+   * Clears all.
+   * @returns The operation result.
+   */
   @Delete('clear')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Clear all cache' })
@@ -154,6 +186,11 @@ export class CacheManagementController {
     await this.cachingService.clearAll();
   }
 
+  /**
+   * Clears by Pattern.
+   * @param pattern The pattern.
+   * @returns The operation result.
+   */
   @Delete('clear/:pattern')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Clear cache by pattern' })
@@ -168,6 +205,11 @@ export class CacheManagementController {
     await this.cachingService.delPattern(`cache:${decodedPattern}`);
   }
 
+  /**
+   * Invalidates course.
+   * @param courseId The course identifier.
+   * @returns The operation result.
+   */
   @Delete('invalidate/course/:courseId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Invalidate all cache for a specific course' })
@@ -180,6 +222,11 @@ export class CacheManagementController {
     await this.invalidationService.invalidateCourse(courseId);
   }
 
+  /**
+   * Invalidates user.
+   * @param userId The user identifier.
+   * @returns The operation result.
+   */
   @Delete('invalidate/user/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Invalidate all cache for a specific user' })
@@ -192,6 +239,10 @@ export class CacheManagementController {
     await this.invalidationService.invalidateUser(userId);
   }
 
+  /**
+   * Invalidates search.
+   * @returns The operation result.
+   */
   @Delete('invalidate/search')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Invalidate all search cache' })
@@ -203,6 +254,10 @@ export class CacheManagementController {
     await this.invalidationService.invalidateSearch();
   }
 
+  /**
+   * Warms cache.
+   * @returns The operation result.
+   */
   @Post('warm')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Manually trigger cache warming' })
@@ -218,6 +273,11 @@ export class CacheManagementController {
     };
   }
 
+  /**
+   * Resets analytics.
+   * @param pattern The pattern.
+   * @returns The operation result.
+   */
   @Post('analytics/reset')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset analytics metrics' })

@@ -13,18 +13,32 @@ import { TimeoutConfigService } from '../timeout/timeout-config.service';
 
 export const DEFAULT_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '30000', 10); // 30 seconds default
 
+/**
+ * Executes timeout.
+ * @param ms The ms.
+ * @returns The resulting method decorator.
+ */
 export function Timeout(ms?: number): MethodDecorator {
   return (target, propertyKey, descriptor) => {
     Reflect.defineMetadata('timeout', ms, descriptor.value ?? target);
   };
 }
 
+/**
+ * Intercepts timeout request handling.
+ */
 @Injectable()
 export class TimeoutInterceptor implements NestInterceptor {
   private readonly logger = new Logger(TimeoutInterceptor.name);
 
   constructor(@Inject(TimeoutConfigService) private timeoutConfig: TimeoutConfigService) {}
 
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<any>.
+   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const handler = context.getHandler();
     const customTimeout = Reflect.getMetadata('timeout', handler);

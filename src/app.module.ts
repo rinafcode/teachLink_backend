@@ -65,6 +65,10 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 @Global()
 @Module({})
 export class AppModule {
+  /**
+   * Creates the root application module.
+   * @returns The resulting dynamic module.
+   */
   static async forRoot(): Promise<DynamicModule> {
     const flags = loadFeatureFlags();
     const startupLogger = new StartupLogger();

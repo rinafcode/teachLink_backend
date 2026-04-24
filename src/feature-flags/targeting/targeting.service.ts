@@ -8,6 +8,9 @@ import {
   IUserContext,
 } from '../interfaces';
 
+/**
+ * Provides targeting operations.
+ */
 @Injectable()
 export class TargetingService {
   /**

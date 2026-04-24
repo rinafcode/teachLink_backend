@@ -5,6 +5,9 @@ import { Experiment } from '../entities/experiment.entity';
 import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
 
+/**
+ * Provides statistical Analysis operations.
+ */
 @Injectable()
 export class StatisticalAnalysisService {
   private readonly logger = new Logger(StatisticalAnalysisService.name);

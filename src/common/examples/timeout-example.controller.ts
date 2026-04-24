@@ -2,9 +2,16 @@ import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Timeout } from '../interceptors/timeout.interceptor';
 
+/**
+ * Exposes timeout Example endpoints.
+ */
 @ApiTags('Timeout Examples')
 @Controller('examples')
 export class TimeoutExampleController {
+  /**
+   * Returns quick Response.
+   * @returns The operation result.
+   */
   @Get('quick')
   @ApiOperation({ summary: 'Quick endpoint with custom timeout' })
   @Timeout(5000) // 5 seconds timeout
@@ -13,6 +20,10 @@ export class TimeoutExampleController {
     return { message: 'Quick response' };
   }
 
+  /**
+   * Returns slow Response.
+   * @returns The operation result.
+   */
   @Get('slow')
   @ApiOperation({ summary: 'Slow endpoint with longer timeout' })
   @Timeout(120000) // 2 minutes timeout
@@ -22,6 +33,11 @@ export class TimeoutExampleController {
     return { message: 'Slow response completed' };
   }
 
+  /**
+   * Processes data.
+   * @param data The data to process.
+   * @returns The operation result.
+   */
   @Post('process')
   @ApiOperation({ summary: 'Processing endpoint with custom timeout' })
   @Timeout(60000) // 1 minute timeout
@@ -31,6 +47,10 @@ export class TimeoutExampleController {
     return { result: 'Data processed successfully' };
   }
 
+  /**
+   * Returns default Timeout.
+   * @returns The operation result.
+   */
   @Get('default')
   @ApiOperation({ summary: 'Endpoint using default timeout' })
   getDefaultTimeout(): { message: string; timeout: string } {

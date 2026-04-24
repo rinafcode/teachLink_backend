@@ -28,8 +28,17 @@ export const API_VERSIONING_DOCUMENTATION = [
   'Health, metrics, root, and webhook endpoints are version-neutral.',
 ].join(' ');
 
+/**
+ * Registers the api Version Validation module.
+ */
 @Injectable()
 export class ApiVersionValidationMiddleware implements NestMiddleware {
+  /**
+   * Executes use.
+   * @param req The req.
+   * @param res The res.
+   * @param next The next.
+   */
   use(
     req: Request & IVersionedRequest & { headers: Record<string, string | string[] | undefined> },
     res: Response,
@@ -70,6 +79,9 @@ export class ApiVersionValidationMiddleware implements NestMiddleware {
   }
 }
 
+/**
+ * Registers the api Versioning module.
+ */
 @Module({
   providers: [
     ApiVersionValidationMiddleware,
@@ -82,6 +94,10 @@ export class ApiVersionValidationMiddleware implements NestMiddleware {
   exports: [ApiVersionValidationMiddleware, ApiVersionInterceptor],
 })
 export class ApiVersioningModule implements NestModule {
+  /**
+   * Executes configure.
+   * @param consumer The consumer.
+   */
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(ApiVersionValidationMiddleware).forRoutes({
       path: '*',

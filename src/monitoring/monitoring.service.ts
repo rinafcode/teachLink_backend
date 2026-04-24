@@ -4,6 +4,9 @@ import { PerformanceAnalysisService } from './performance/performance-analysis.s
 import { OptimizationService } from './optimization/optimization.service';
 import { AlertingService } from './alerting/alerting.service';
 
+/**
+ * Provides monitoring operations.
+ */
 @Injectable()
 export class MonitoringService {
   private readonly logger = new Logger(MonitoringService.name);
@@ -14,6 +17,10 @@ export class MonitoringService {
     private readonly alertingService: AlertingService,
   ) {}
 
+  /**
+   * Handles cron.
+   * @returns The operation result.
+   */
   @Cron(CronExpression.EVERY_MINUTE)
   async handleCron() {
     this.logger.debug('Running system performance analysis...');

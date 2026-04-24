@@ -11,6 +11,9 @@ import { ScheduledTaskMonitoringService } from './scheduled-task-monitoring.serv
 import { CostSchedulerService } from './cost-scheduler.service';
 import { AwsCostCollectorService } from './cloud/aws-cost-collector.service';
 
+/**
+ * Registers the monitoring module.
+ */
 @Module({
   imports: [ScheduleModule.forRoot()],
   controllers: [MonitoringController],

@@ -38,6 +38,9 @@ import {
   FILE_SIZE_LIMITS,
 } from '../media/validation/file-validation.constants';
 
+/**
+ * Exposes cdn endpoints.
+ */
 @ApiTags('CDN')
 @Controller('cdn')
 export class CdnController {
@@ -50,6 +53,12 @@ export class CdnController {
     private readonly imageProcessing: ImageProcessingService,
   ) {}
 
+  /**
+   * Uploads content.
+   * @param file The file to process.
+   * @param options The options.
+   * @returns The resulting content metadata.
+   */
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Upload content to CDN with full validation' })
@@ -129,6 +138,11 @@ export class CdnController {
     }
   }
 
+  /**
+   * Validates file.
+   * @param file The file to process.
+   * @returns The resulting file validation result.
+   */
   @Post('validate')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Validate file without uploading' })
@@ -168,6 +182,11 @@ export class CdnController {
     return this.fileValidation.validateFile(file);
   }
 
+  /**
+   * Executes scan File.
+   * @param file The file to process.
+   * @returns The operation result.
+   */
   @Post('scan')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Scan file for malware without uploading' })
@@ -204,6 +223,10 @@ export class CdnController {
     return this.malwareScanning.scanFile(file);
   }
 
+  /**
+   * Returns allowed Types.
+   * @returns The operation result.
+   */
   @Get('allowed-types')
   @ApiOperation({ summary: 'Get allowed file types and size limits' })
   @ApiResponse({
@@ -239,6 +262,11 @@ export class CdnController {
     };
   }
 
+  /**
+   * Executes compress Preview.
+   * @param file The file to process.
+   * @returns The operation result.
+   */
   @Post('compress-preview')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Preview image compression without saving' })
@@ -284,6 +312,18 @@ export class CdnController {
     }
   }
 
+  /**
+   * Returns content Url.
+   * @param contentId The content identifier.
+   * @param optimize The optimize.
+   * @param width The width.
+   * @param height The height.
+   * @param quality The quality.
+   * @param format The format.
+   * @param userLocation The user location.
+   * @param bandwidth The bandwidth.
+   * @returns The operation result.
+   */
   @Get('content/:contentId')
   @ApiOperation({ summary: 'Get optimized content URL' })
   @ApiParam({ name: 'contentId', description: 'Content identifier' })
@@ -329,6 +369,11 @@ export class CdnController {
     }
   }
 
+  /**
+   * Invalidates content.
+   * @param contentId The content identifier.
+   * @returns The operation result.
+   */
   @Delete('content/:contentId')
   @ApiOperation({ summary: 'Invalidate content cache' })
   @ApiParam({ name: 'contentId', description: 'Content identifier' })
@@ -345,6 +390,14 @@ export class CdnController {
     }
   }
 
+  /**
+   * Returns health.
+   * @returns The resulting promise<{
+    status: string;
+    providers: record<string, boolean>;
+    timestamp: string;
+  }>.
+   */
   @Get('health')
   @ApiOperation({ summary: 'Check CDN health status' })
   @ApiResponse({ status: 200, description: 'CDN health status' })
@@ -371,6 +424,12 @@ export class CdnController {
     }
   }
 
+  /**
+   * Returns analytics.
+   * @param startDate The start date.
+   * @param endDate The end date.
+   * @returns The operation result.
+   */
   @Get('analytics')
   @ApiOperation({ summary: 'Get CDN analytics' })
   @ApiQuery({ name: 'startDate', required: false })

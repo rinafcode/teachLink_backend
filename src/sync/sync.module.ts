@@ -7,6 +7,9 @@ import { ConflictResolutionService } from './conflicts/conflict-resolution.servi
 import { CacheInvalidationService } from './cache/cache-invalidation.service';
 import { ReplicationService } from './replication/replication.service';
 
+/**
+ * Registers the sync module.
+ */
 @Module({
   imports: [
     BullModule.registerQueue({

@@ -17,6 +17,10 @@ export class CreateCourseModulesTableMigration implements IMigrationConfig {
 
   private readonly logger = new Logger(CreateCourseModulesTableMigration.name);
 
+  /**
+   * Executes up.
+   * @param connection The connection.
+   */
   async up(connection: any): Promise<void> {
     this.logger.log('Applying migration: create course_module table');
 
@@ -36,6 +40,10 @@ export class CreateCourseModulesTableMigration implements IMigrationConfig {
     this.logger.log('Migration applied: create course_module table');
   }
 
+  /**
+   * Executes down.
+   * @param connection The connection.
+   */
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create course_module table');
 

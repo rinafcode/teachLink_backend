@@ -2,6 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
 import { IsNotEmpty, IsUUID, IsString, IsOptional, IsNumber, IsDate } from 'class-validator';
 
+/**
+ * Defines the recovery Test Response payload.
+ */
 export class RecoveryTestResponseDto {
   @ApiProperty()
   @IsNotEmpty()

@@ -64,7 +64,19 @@ export class StructuredLoggerService implements LoggerService {
    * Log info message
    */
   log(message: string, metadata?: Record<string, any>): void;
+  /**
+   * Executes log.
+   * @param level The level.
+   * @param message The message.
+   * @param metadata The data to process.
+   */
   log(level: LogLevel, message: string, metadata?: Record<string, any>): void;
+  /**
+   * Executes log.
+   * @param messageOrLevel The message or level.
+   * @param messageOrMetadata The data to process.
+   * @param metadata The data to process.
+   */
   log(
     messageOrLevel: string | LogLevel,
     messageOrMetadata?: string | Record<string, any>,
@@ -105,7 +117,19 @@ export class StructuredLoggerService implements LoggerService {
    * Log error message
    */
   error(message: string, trace?: string, metadata?: Record<string, any>): void;
+  /**
+   * Executes error.
+   * @param message The message.
+   * @param error The error.
+   * @param metadata The data to process.
+   */
   error(message: string, error?: Error, metadata?: Record<string, any>): void;
+  /**
+   * Executes error.
+   * @param message The message.
+   * @param traceOrError The trace or error.
+   * @param metadata The data to process.
+   */
   error(message: string, traceOrError?: string | Error, metadata?: Record<string, any>): void {
     let errorDetails: IErrorDetails | undefined;
 

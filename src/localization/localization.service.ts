@@ -35,6 +35,9 @@ export interface IPaginatedTranslations {
   limit: number;
 }
 
+/**
+ * Provides localization operations.
+ */
 @Injectable()
 export class LocalizationService {
   constructor(
@@ -66,6 +69,10 @@ export class LocalizationService {
     };
   }
 
+  /**
+   * Invalidates bundles.
+   * @param pairs The pairs.
+   */
   async invalidateBundles(pairs: Array<{ namespace: string; locale: string }>): Promise<void> {
     const seen = new Set<string>();
     for (const { namespace, locale } of pairs) {
@@ -91,6 +98,12 @@ export class LocalizationService {
     return map;
   }
 
+  /**
+   * Retrieves raw Bundle Cached.
+   * @param namespace The namespace.
+   * @param locale The locale.
+   * @returns The resulting record<string, string>.
+   */
   async getRawBundleCached(namespace: string, locale: string): Promise<Record<string, string>> {
     const loc = languageDetectionNormalize(locale);
     const key = bundleCacheKey(namespace, loc);
@@ -106,6 +119,12 @@ export class LocalizationService {
     return fresh;
   }
 
+  /**
+   * Retrieves messages Merged.
+   * @param namespace The namespace.
+   * @param locale The locale.
+   * @returns The resulting record<string, string>.
+   */
   async getMessagesMerged(namespace: string, locale: string): Promise<Record<string, string>> {
     const loc = this.languageDetection.pickSupported(locale) || this.getDefaultLocale();
     const primary = await this.getRawBundleCached(namespace, loc);
@@ -117,6 +136,12 @@ export class LocalizationService {
     return { ...fallback, ...primary };
   }
 
+  /**
+   * Executes interpolate.
+   * @param template The template.
+   * @param vars The vars.
+   * @returns The resulting string value.
+   */
   interpolate(template: string, vars?: Record<string, string | number>): string {
     if (!vars) return template;
     return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) =>
@@ -124,6 +149,14 @@ export class LocalizationService {
     );
   }
 
+  /**
+   * Executes translate.
+   * @param namespace The namespace.
+   * @param key The key.
+   * @param locale The locale.
+   * @param vars The vars.
+   * @returns The resulting string value.
+   */
   async translate(
     namespace: string,
     key: string,
@@ -139,6 +172,12 @@ export class LocalizationService {
     return this.interpolate(text, vars);
   }
 
+  /**
+   * Retrieves bundle For Api.
+   * @param namespace The namespace.
+   * @param locale The locale.
+   * @returns The operation result.
+   */
   async getBundleForApi(
     namespace: string,
     locale: string,
@@ -248,6 +287,10 @@ export class LocalizationService {
     }
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   async remove(id: string): Promise<void> {
     const row = await this.translationRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Translation not found');
@@ -255,6 +298,11 @@ export class LocalizationService {
     await this.invalidateBundles([{ namespace: row.namespace, locale: row.locale }]);
   }
 
+  /**
+   * Imports rows.
+   * @param rows The rows.
+   * @returns The operation result.
+   */
   async importRows(rows: TranslationImportRowDto[]): Promise<{ upserted: number }> {
     if (!rows?.length) {
       throw new BadRequestException('Import payload must contain at least one row');
@@ -294,6 +342,12 @@ export class LocalizationService {
     return { upserted: rows.length };
   }
 
+  /**
+   * Exports rows.
+   * @param namespace The namespace.
+   * @param locale The locale.
+   * @returns The resulting array<{ namespace: string; key: string; locale: string; value: string }>.
+   */
   async exportRows(
     namespace: string,
     locale?: string,
@@ -314,6 +368,11 @@ export class LocalizationService {
     }));
   }
 
+  /**
+   * Executes to Csv.
+   * @param rows The rows.
+   * @returns The resulting string value.
+   */
   static toCsv(
     rows: Array<{ namespace: string; key: string; locale: string; value: string }>,
   ): string {

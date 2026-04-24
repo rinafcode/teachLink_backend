@@ -18,6 +18,9 @@ export enum BillingCycle {
   YEARLY = 'yearly',
 }
 
+/**
+ * Represents the tenant Billing entity.
+ */
 @Entity('tenant_billing')
 export class TenantBilling {
   @PrimaryGeneratedColumn('uuid')

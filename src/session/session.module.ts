@@ -4,6 +4,9 @@ import { getSharedRedisClient } from '../config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session.constants';
 import { SessionService } from './session.service';
 
+/**
+ * Registers the session module.
+ */
 @Global()
 @Module({
   imports: [ConfigModule],

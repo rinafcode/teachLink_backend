@@ -15,6 +15,10 @@ export class CreateUsersTableMigration implements IMigrationConfig {
 
   private readonly logger = new Logger(CreateUsersTableMigration.name);
 
+  /**
+   * Executes up.
+   * @param connection The connection.
+   */
   async up(connection: any): Promise<void> {
     this.logger.log('Applying migration: create users table');
 
@@ -64,6 +68,10 @@ export class CreateUsersTableMigration implements IMigrationConfig {
     this.logger.log('Migration applied: create users table');
   }
 
+  /**
+   * Executes down.
+   * @param connection The connection.
+   */
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create users table');
 

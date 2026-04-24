@@ -15,6 +15,9 @@ import { MigrationService } from './migration.service';
 import { RollbackService } from './rollback/rollback.service';
 import { ConflictResolutionService } from './conflicts/conflict-resolution.service';
 
+/**
+ * Exposes migration endpoints.
+ */
 @Controller('migrations')
 export class MigrationController {
   private readonly logger = new Logger(MigrationController.name);
@@ -25,12 +28,21 @@ export class MigrationController {
     private conflictResolutionService: ConflictResolutionService,
   ) {}
 
+  /**
+   * Returns all Migrations.
+   * @returns The operation result.
+   */
   @Get()
   async getAllMigrations(): Promise<any> {
     this.logger.log('Fetching all migrations');
     return await this.migrationService.listMigrations();
   }
 
+  /**
+   * Executes run Migrations.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Post('run')
   @HttpCode(HttpStatus.OK)
   async runMigrations(@Res() res: Response): Promise<Response> {
@@ -52,12 +64,23 @@ export class MigrationController {
     }
   }
 
+  /**
+   * Executes rollback Migrations Default.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Post('rollback')
   @HttpCode(HttpStatus.OK)
   async rollbackMigrationsDefault(@Res() res: Response): Promise<Response> {
     return this.rollbackMigrationsWithCount('1', res);
   }
 
+  /**
+   * Executes rollback Migrations With Count.
+   * @param count The count.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Post('rollback/:count')
   @HttpCode(HttpStatus.OK)
   async rollbackMigrationsWithCount(
@@ -84,6 +107,11 @@ export class MigrationController {
     }
   }
 
+  /**
+   * Resets all Migrations.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Delete('reset')
   @HttpCode(HttpStatus.OK)
   async resetAllMigrations(@Res() res: Response): Promise<Response> {
@@ -105,6 +133,12 @@ export class MigrationController {
     }
   }
 
+  /**
+   * Executes rollback Specific Migration.
+   * @param migrationName The migration name.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Put(':migrationName/rollback')
   @HttpCode(HttpStatus.OK)
   async rollbackSpecificMigration(
@@ -129,6 +163,12 @@ export class MigrationController {
     }
   }
 
+  /**
+   * Executes rollback To Version.
+   * @param migrationName The migration name.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Post('rollback/to/:migrationName')
   @HttpCode(HttpStatus.OK)
   async rollbackToVersion(
@@ -153,12 +193,21 @@ export class MigrationController {
     }
   }
 
+  /**
+   * Returns migration Conflicts.
+   * @returns The operation result.
+   */
   @Get('conflicts')
   async getMigrationConflicts(): Promise<any> {
     this.logger.log('Fetching migration conflicts');
     return this.conflictResolutionService.getConflictHistory();
   }
 
+  /**
+   * Synchronizes environments.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Post('sync-environments')
   @HttpCode(HttpStatus.OK)
   async syncEnvironments(@Res() res: Response): Promise<Response> {

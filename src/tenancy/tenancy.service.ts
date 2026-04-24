@@ -10,6 +10,9 @@ import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
 import { TENANT_DEFAULTS } from './tenancy.constants';
 
+/**
+ * Provides tenancy operations.
+ */
 @Injectable()
 export class TenancyService {
   constructor(

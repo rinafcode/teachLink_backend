@@ -11,6 +11,12 @@ import { CoursesService } from '../../courses/courses.service';
 export class UserResolver {
   constructor(private readonly coursesService: CoursesService) {}
 
+  /**
+   * Executes courses.
+   * @param user The user.
+   * @param context The context.
+   * @returns The matching results.
+   */
   @ResolveField(() => [CourseType])
   async courses(@Parent() user: UserType, @Context() context: any): Promise<CourseType[]> {
     const { coursesByInstructorLoader } = context.loaders || {};

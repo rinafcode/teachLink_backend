@@ -7,6 +7,9 @@ import { EmailTemplate } from '../entities/email-template.entity';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 
+/**
+ * Provides template Management operations.
+ */
 @Injectable()
 export class TemplateManagementService {
   constructor(

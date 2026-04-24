@@ -10,6 +10,9 @@ import {
 } from 'class-validator';
 import { NotificationType, NotificationPriority } from '../entities/notification.entity';
 
+/**
+ * Defines the create Notification payload.
+ */
 export class CreateNotificationDto {
   @ApiProperty({ description: 'The ID of the user the notification is for' })
   @IsUUID()
@@ -42,6 +45,9 @@ export class CreateNotificationDto {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Defines the update Notification payload.
+ */
 export class UpdateNotificationDto {
   @ApiPropertyOptional({ description: 'Mark as read or unread' })
   @IsBoolean()
@@ -49,6 +55,9 @@ export class UpdateNotificationDto {
   isRead?: boolean;
 }
 
+/**
+ * Defines the notification Response payload.
+ */
 export class NotificationResponseDto {
   @ApiProperty()
   id: string;

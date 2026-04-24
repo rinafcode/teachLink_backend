@@ -16,6 +16,12 @@ export class TransactionalInterceptor implements NestInterceptor {
     private readonly transactionService: TransactionService,
   ) {}
 
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<any>.
+   */
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const options = this.reflector.get<ITransactionalOptions>(
       TRANSACTIONAL_KEY,

@@ -7,6 +7,9 @@ export interface ITimeoutConfig {
   methods: Record<string, number>;
 }
 
+/**
+ * Provides timeout Config operations.
+ */
 @Injectable()
 export class TimeoutConfigService {
   private readonly config: ITimeoutConfig;
@@ -39,10 +42,19 @@ export class TimeoutConfigService {
     };
   }
 
+  /**
+   * Retrieves default Timeout.
+   * @returns The calculated numeric value.
+   */
   getDefaultTimeout(): number {
     return this.config.default;
   }
 
+  /**
+   * Retrieves endpoint Timeout.
+   * @param path The path.
+   * @returns The operation result.
+   */
   getEndpointTimeout(path: string): number | null {
     // Check for exact path match
     if (this.config.endpoints[path]) {
@@ -59,10 +71,21 @@ export class TimeoutConfigService {
     return null;
   }
 
+  /**
+   * Retrieves method Timeout.
+   * @param method The method.
+   * @returns The operation result.
+   */
   getMethodTimeout(method: string): number | null {
     return this.config.methods[method.toUpperCase()] || null;
   }
 
+  /**
+   * Retrieves timeout For Request.
+   * @param method The method.
+   * @param path The path.
+   * @returns The calculated numeric value.
+   */
   getTimeoutForRequest(method: string, path: string): number {
     // Priority: endpoint > method > default
     const endpointTimeout = this.getEndpointTimeout(path);
@@ -87,14 +110,28 @@ export class TimeoutConfigService {
     return false;
   }
 
+  /**
+   * Updates endpoint Timeout.
+   * @param path The path.
+   * @param timeout The timeout.
+   */
   updateEndpointTimeout(path: string, timeout: number): void {
     this.config.endpoints[path] = timeout;
   }
 
+  /**
+   * Updates method Timeout.
+   * @param method The method.
+   * @param timeout The timeout.
+   */
   updateMethodTimeout(method: string, timeout: number): void {
     this.config.methods[method.toUpperCase()] = timeout;
   }
 
+  /**
+   * Updates default Timeout.
+   * @param timeout The timeout.
+   */
   updateDefaultTimeout(timeout: number): void {
     this.config.default = timeout;
   }

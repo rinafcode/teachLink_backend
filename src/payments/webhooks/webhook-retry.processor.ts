@@ -46,6 +46,9 @@ interface IWebhookJobData {
   headers?: Record<string, string>;
 }
 
+/**
+ * Processes webhook Retry jobs.
+ */
 @Injectable()
 @Processor(QUEUE_NAMES.WEBHOOKS)
 export class WebhookRetryProcessor {

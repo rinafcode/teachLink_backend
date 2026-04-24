@@ -13,6 +13,9 @@ import { User } from '../users/entities/user.entity';
 import { SearchModule } from '../search/search.module';
 import { CourseSearchSyncService } from './search-sync/course-search-sync.service';
 
+/**
+ * Registers the courses module.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Course, CourseModuleEntity, Lesson, Enrollment, User]),

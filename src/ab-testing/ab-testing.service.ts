@@ -36,6 +36,9 @@ export interface ICreateMetricDto {
   configuration?: any;
 }
 
+/**
+ * Provides aBTesting operations.
+ */
 @Injectable()
 export class ABTestingService {
   private readonly logger = new Logger(ABTestingService.name);

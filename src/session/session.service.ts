@@ -13,6 +13,9 @@ interface ISessionRecord {
   updatedAt: number;
 }
 
+/**
+ * Provides session operations.
+ */
 @Injectable()
 export class SessionService implements OnModuleDestroy {
   private readonly logger = new Logger(SessionService.name);
@@ -45,12 +48,21 @@ export class SessionService implements OnModuleDestroy {
     );
   }
 
+  /**
+   * Executes on Module Destroy.
+   */
   async onModuleDestroy(): Promise<void> {
     if (this.redis.status !== 'end') {
       await this.redis.quit();
     }
   }
 
+  /**
+   * Creates session.
+   * @param userId The user identifier.
+   * @param metadata The data to process.
+   * @returns The resulting string value.
+   */
   async createSession(userId: string, metadata: Record<string, unknown> = {}): Promise<string> {
     const sid = randomUUID();
     const now = Date.now();
@@ -86,6 +98,11 @@ export class SessionService implements OnModuleDestroy {
     }
   }
 
+  /**
+   * Executes touch Session.
+   * @param sid The sid.
+   * @param metadataPatch The data to process.
+   */
   async touchSession(sid: string, metadataPatch: Record<string, unknown> = {}): Promise<void> {
     const session = await this.getSession(sid);
     if (!session) {
@@ -109,10 +126,20 @@ export class SessionService implements OnModuleDestroy {
       .exec();
   }
 
+  /**
+   * Removes session.
+   * @param sid The sid.
+   */
   async removeSession(sid: string): Promise<void> {
     await this.redis.del(this.sessionKey(sid));
   }
 
+  /**
+   * Executes migrate Session.
+   * @param oldSid The old sid.
+   * @param newSid The new sid.
+   * @returns The resulting string value.
+   */
   async migrateSession(oldSid: string, newSid = randomUUID()): Promise<string> {
     const existing = await this.getSession(oldSid);
     if (!existing) {
@@ -135,6 +162,12 @@ export class SessionService implements OnModuleDestroy {
     return newSid;
   }
 
+  /**
+   * Executes with Lock.
+   * @param lockName The lock name.
+   * @param handler The handler.
+   * @returns The resulting t.
+   */
   async withLock<T>(lockName: string, handler: () => Promise<T>): Promise<T> {
     const lockKey = `lock:${lockName}`;
     const lockToken = randomUUID();

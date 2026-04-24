@@ -21,6 +21,9 @@ interface IValidatedUser {
   sid: string;
 }
 
+/**
+ * Implements the jwt strategy.
+ */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(

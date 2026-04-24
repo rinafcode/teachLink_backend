@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 
+/**
+ * Provides encryption operations.
+ */
 @Injectable()
 export class EncryptionService {
   private readonly algorithm = 'aes-256-gcm';
@@ -16,6 +19,11 @@ export class EncryptionService {
     return secret;
   }
 
+  /**
+   * Executes encrypt.
+   * @param text The text.
+   * @returns The operation result.
+   */
   encrypt(text: string) {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(this.algorithm, this.key, iv);
@@ -29,6 +37,11 @@ export class EncryptionService {
     };
   }
 
+  /**
+   * Executes decrypt.
+   * @param payload The payload to process.
+   * @returns The operation result.
+   */
   decrypt(payload: { iv: string; content: string; tag: string }) {
     const decipher = crypto.createDecipheriv(
       this.algorithm,

@@ -4,11 +4,19 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CsrfService } from './csrf.service';
 
+/**
+ * Exposes csrf endpoints.
+ */
 @ApiTags('CSRF')
 @Controller('csrf')
 export class CsrfController {
   constructor(private readonly csrfService: CsrfService) {}
 
+  /**
+   * Returns csrf Token.
+   * @param req The req.
+   * @param res The res.
+   */
   @Get('token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get CSRF token' })
@@ -21,6 +29,11 @@ export class CsrfController {
     res.json({ csrfToken: token });
   }
 
+  /**
+   * Validates csrf Token.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Post('validate')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -35,6 +48,11 @@ export class CsrfController {
     return { valid: isValid };
   }
 
+  /**
+   * Invalidates csrf Token.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Post('invalidate')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

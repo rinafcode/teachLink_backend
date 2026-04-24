@@ -7,6 +7,11 @@ import { AssessmentType, QuestionType } from '../types/assessment.type';
  */
 @Resolver(() => AssessmentType)
 export class AssessmentResolver {
+  /**
+   * Executes questions.
+   * @param assessment The assessment.
+   * @returns The matching results.
+   */
   @ResolveField(() => [QuestionType])
   async questions(@Parent() assessment: AssessmentType): Promise<QuestionType[]> {
     // Questions are typically loaded with the assessment

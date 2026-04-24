@@ -15,12 +15,21 @@ export interface IPurgeResult {
   provider: string;
 }
 
+/**
+ * Provides edge Caching operations.
+ */
 @Injectable()
 export class EdgeCachingService {
   private readonly logger = new Logger(EdgeCachingService.name);
 
   constructor(private cloudflareService: CloudflareService) {}
 
+  /**
+   * Retrieves edge Url.
+   * @param originalUrl The original url.
+   * @param location The location.
+   * @returns The resulting string value.
+   */
   async getEdgeUrl(originalUrl: string, location?: string): Promise<string> {
     // In a real implementation, this would return the CDN URL for the optimal edge location
     // For now, just return the original URL with CDN prefix
@@ -94,6 +103,10 @@ export class EdgeCachingService {
     return this.purgeUrls(urls);
   }
 
+  /**
+   * Warms cache.
+   * @param urls The urls.
+   */
   async warmCache(urls: string[]): Promise<void> {
     this.logger.log(`Warming cache for ${urls.length} URLs`);
 
@@ -107,6 +120,16 @@ export class EdgeCachingService {
     }
   }
 
+  /**
+   * Retrieves cache Status.
+   * @param _url The url.
+   * @returns The resulting promise<{
+    cached: boolean;
+    age?: number;
+    expires?: date;
+    last modified?: date;
+  }>.
+   */
   async getCacheStatus(_url: string): Promise<{
     cached: boolean;
     age?: number;

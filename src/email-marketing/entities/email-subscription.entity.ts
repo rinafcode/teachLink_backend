@@ -8,6 +8,9 @@ import {
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Represents the email Subscription entity.
+ */
 @Entity('email_subscriptions')
 @Index(['email'], { unique: true })
 export class EmailSubscription {

@@ -34,6 +34,9 @@ export interface ICollaborativeWhiteboard {
   updatedAt: Date;
 }
 
+/**
+ * Provides whiteboard operations.
+ */
 @Injectable()
 export class WhiteboardService {
   private readonly logger = Logger;

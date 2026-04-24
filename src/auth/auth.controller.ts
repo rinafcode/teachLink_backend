@@ -16,11 +16,20 @@ import {
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
+/**
+ * Exposes auth endpoints.
+ */
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Registers register.
+   * @param registerDto The request payload.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Post('register')
   @Throttle({ default: THROTTLE.STRICT })
   @ApiOperation({ summary: 'Register a new user' })
@@ -30,6 +39,12 @@ export class AuthController {
     return this.authService.register(registerDto, ipAddress, userAgent);
   }
 
+  /**
+   * Executes login.
+   * @param loginDto The request payload.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Post('login')
   @Throttle({ default: THROTTLE.AUTH_LOGIN })
   @ApiOperation({ summary: 'Login user and get tokens' })
@@ -39,6 +54,11 @@ export class AuthController {
     return this.authService.login(loginDto, ipAddress, userAgent);
   }
 
+  /**
+   * Refreshes refresh.
+   * @param refreshTokenDto The request payload.
+   * @returns The operation result.
+   */
   @Post('refresh')
   @Throttle({ default: THROTTLE.REFRESH })
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
@@ -46,6 +66,12 @@ export class AuthController {
     return this.authService.refreshToken(refreshTokenDto.refreshToken);
   }
 
+  /**
+   * Executes logout.
+   * @param user The user.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -56,6 +82,11 @@ export class AuthController {
     return this.authService.logout(user.userId, user.sessionId, ipAddress, userAgent);
   }
 
+  /**
+   * Executes forgot Password.
+   * @param forgotPasswordDto The request payload.
+   * @returns The operation result.
+   */
   @Post('forgot-password')
   @Throttle({ default: THROTTLE.AUTH_DEFAULT })
   @ApiOperation({ summary: 'Request a password reset link' })
@@ -63,6 +94,11 @@ export class AuthController {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
+  /**
+   * Resets password.
+   * @param resetPasswordDto The request payload.
+   * @returns The operation result.
+   */
   @Post('reset-password')
   @Throttle({ default: THROTTLE.AUTH_DEFAULT })
   @ApiOperation({ summary: 'Reset password using token' })
@@ -70,6 +106,13 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
+  /**
+   * Executes change Password.
+   * @param user The user.
+   * @param changePasswordDto The request payload.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -84,6 +127,11 @@ export class AuthController {
     return this.authService.changePassword(user.userId, changePasswordDto, ipAddress, userAgent);
   }
 
+  /**
+   * Validates email.
+   * @param verifyEmailDto The request payload.
+   * @returns The operation result.
+   */
   @Post('verify-email')
   @Throttle({ default: THROTTLE.MODERATE })
   @ApiOperation({ summary: 'Verify email using token' })

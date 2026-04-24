@@ -4,6 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 
+/**
+ * Protects ws Jwt Auth execution paths.
+ */
 @Injectable()
 export class WsJwtAuthGuard implements CanActivate {
   constructor(
@@ -11,6 +14,11 @@ export class WsJwtAuthGuard implements CanActivate {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * Executes can Activate.
+   * @param context The context.
+   * @returns Whether the operation succeeded.
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient<Socket>();
     const token =

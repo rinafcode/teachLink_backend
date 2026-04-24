@@ -63,6 +63,9 @@ export interface ICDCEvent {
   transactionId?: string;
 }
 
+/**
+ * Provides incremental Loader operations.
+ */
 @Injectable()
 export class IncrementalLoaderService {
   private readonly logger = new Logger(IncrementalLoaderService.name);

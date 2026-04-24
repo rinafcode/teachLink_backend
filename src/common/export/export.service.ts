@@ -24,6 +24,9 @@ export enum UserExportStatus {
   FAILED = 'failed',
 }
 
+/**
+ * Provides user Export History operations.
+ */
 @Entity('user_export_history')
 @Index(['userId', 'createdAt'])
 export class UserExportHistory {
@@ -107,6 +110,9 @@ interface IPreparedExportData {
   };
 }
 
+/**
+ * Provides export operations.
+ */
 @Injectable()
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
@@ -124,6 +130,12 @@ export class ExportService {
     private readonly exportQueue: Queue,
   ) {}
 
+  /**
+   * Executes request User Data Export.
+   * @param userId The user identifier.
+   * @param format The format.
+   * @returns The operation result.
+   */
   async requestUserDataExport(userId: string, format: ExportFormat = 'json') {
     this.ensureValidFormat(format);
 
@@ -168,6 +180,11 @@ export class ExportService {
     };
   }
 
+  /**
+   * Retrieves user Export History.
+   * @param userId The user identifier.
+   * @returns The operation result.
+   */
   async getUserExportHistory(userId: string) {
     const history = await this.exportHistoryRepository.find({
       where: { userId },
@@ -188,6 +205,16 @@ export class ExportService {
     }));
   }
 
+  /**
+   * Retrieves completed Export File.
+   * @param userId The user identifier.
+   * @param exportId The export identifier.
+   * @returns The resulting promise<{
+    file name: string;
+    mime type: string;
+    content: buffer;
+  }>.
+   */
   async getCompletedExportFile(
     userId: string,
     exportId: string,
@@ -506,12 +533,19 @@ export class ExportService {
   }
 }
 
+/**
+ * Provides user Data Export operations.
+ */
 @Processor('user-data-export')
 export class UserDataExportProcessor {
   private readonly logger = new Logger(UserDataExportProcessor.name);
 
   constructor(private readonly exportService: ExportService) {}
 
+  /**
+   * Handles generate User Data Export.
+   * @param job The job.
+   */
   @Process('generate-user-data-export')
   async handleGenerateUserDataExport(job: Job<IExportJobData>): Promise<void> {
     this.logger.log(`Processing user export job: ${job.id}`);

@@ -36,6 +36,9 @@ export interface ImageMetadata {
   channels?: number;
 }
 
+/**
+ * Provides image Processing operations.
+ */
 @Injectable()
 export class ImageProcessingService {
   private readonly logger = new Logger(ImageProcessingService.name);

@@ -13,6 +13,9 @@ export interface IReplicationEvent {
   timestamp: Date;
 }
 
+/**
+ * Provides replication operations.
+ */
 @Injectable()
 export class ReplicationService {
   private readonly logger = new Logger(ReplicationService.name);

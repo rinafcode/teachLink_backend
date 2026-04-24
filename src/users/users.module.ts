@@ -18,6 +18,9 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
 import { MaskingAuditService } from '../utils/masking/masking-audit.service';
 import { MaskingInterceptor } from '../utils/masking/masking.interceptor';
 
+/**
+ * Registers the users module.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),

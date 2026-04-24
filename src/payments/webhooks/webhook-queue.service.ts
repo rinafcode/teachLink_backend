@@ -16,6 +16,9 @@ export interface IWebhookQueuePayload {
   headers?: Record<string, string>;
 }
 
+/**
+ * Provides webhook Queue operations.
+ */
 @Injectable()
 export class WebhookQueueService {
   private readonly logger = new Logger(WebhookQueueService.name);

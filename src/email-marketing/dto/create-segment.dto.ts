@@ -12,6 +12,9 @@ import { Type } from 'class-transformer';
 import { SegmentRuleField } from '../enums/segment-rule-field.enum';
 import { SegmentRuleOperator } from '../enums/segment-rule-operator.enum';
 
+/**
+ * Defines the create Segment Rule payload.
+ */
 export class CreateSegmentRuleDto {
   @ApiProperty({ enum: SegmentRuleField, example: 'email' })
   @IsEnum(SegmentRuleField)
@@ -33,6 +36,9 @@ export class CreateSegmentRuleDto {
   logicalOperator?: 'AND' | 'OR';
 }
 
+/**
+ * Defines the create Segment payload.
+ */
 export class CreateSegmentDto {
   @ApiProperty({ description: 'Segment name', example: 'Active Users' })
   @IsString()

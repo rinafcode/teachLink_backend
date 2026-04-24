@@ -13,6 +13,9 @@ export interface IWinnerSelectionCriteria {
   durationThreshold: number; // in days
 }
 
+/**
+ * Provides automated Decision operations.
+ */
 @Injectable()
 export class AutomatedDecisionService {
   private readonly logger = new Logger(AutomatedDecisionService.name);

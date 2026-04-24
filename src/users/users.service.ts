@@ -16,6 +16,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import { USER_CONSTANTS } from './user.constants';
 
+/**
+ * Provides user operations.
+ */
 @Injectable()
 export class UsersService {
   constructor(
@@ -26,6 +29,11 @@ export class UsersService {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * Creates a new record.
+   * @param createUserDto The request payload.
+   * @returns The resulting user.
+   */
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user already exists
     const existingUser = await this.userRepository.findOne({
@@ -85,6 +93,11 @@ export class UsersService {
     );
   }
 
+  /**
+   * Retrieves records by their identifiers.
+   * @param ids The identifiers.
+   * @returns The matching results.
+   */
   async findByIds(ids: string[]): Promise<User[]> {
     if (ids.length === 0) return [];
     return await this.userRepository.findByIds(ids);
@@ -99,6 +112,11 @@ export class UsersService {
     return ensureUserExists(user, 'User not found');
   }
 
+  /**
+   * Retrieves the requested record.
+   * @param id The identifier.
+   * @returns The resulting user.
+   */
   async findOne(id: string): Promise<User> {
     const cacheKey = `${CACHE_PREFIXES.USER_PROFILE}:${id}`;
 
@@ -111,22 +129,43 @@ export class UsersService {
     );
   }
 
+  /**
+   * Retrieves a record by email address.
+   * @param email The email address.
+   * @returns The operation result.
+   */
   async findByEmail(email: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { email } });
   }
 
+  /**
+   * Retrieves a record by password reset token.
+   * @param token The token value.
+   * @returns The operation result.
+   */
   async findByPasswordResetToken(token: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { passwordResetToken: token },
     });
   }
 
+  /**
+   * Retrieves a record by email verification token.
+   * @param token The token value.
+   * @returns The operation result.
+   */
   async findByEmailVerificationToken(token: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { emailVerificationToken: token },
     });
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateUserDto The request payload.
+   * @returns The resulting user.
+   */
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findUserOrThrow(id);
 
@@ -160,12 +199,23 @@ export class UsersService {
     return saved;
   }
 
+  /**
+   * Updates the stored refresh token.
+   * @param userId The user identifier.
+   * @param refreshToken The token value.
+   */
   async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {
     await this.userRepository.update(userId, { refreshToken: refreshToken as unknown as string });
     // Invalidate user cache
     this.eventEmitter.emit(CACHE_EVENTS.USER_UPDATED, { userId });
   }
 
+  /**
+   * Updates the password reset token.
+   * @param userId The user identifier.
+   * @param token The token value.
+   * @param expires The expires.
+   */
   async updatePasswordResetToken(
     userId: string,
     token: string | null,
@@ -177,6 +227,12 @@ export class UsersService {
     });
   }
 
+  /**
+   * Updates the email verification token.
+   * @param userId The user identifier.
+   * @param token The token value.
+   * @param expires The expires.
+   */
   async updateEmailVerificationToken(
     userId: string,
     token: string | null,
@@ -188,10 +244,18 @@ export class UsersService {
     });
   }
 
+  /**
+   * Updates the last login timestamp.
+   * @param userId The user identifier.
+   */
   async updateLastLogin(userId: string): Promise<void> {
     await this.userRepository.update(userId, { lastLoginAt: new Date() });
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   async remove(id: string): Promise<void> {
     await this.findUserOrThrow(id);
     await this.userRepository.softDelete(id);

@@ -40,12 +40,21 @@ interface IAuthenticatedRequest {
   };
 }
 
+/**
+ * Exposes payments endpoints.
+ */
 @ApiTags('payments')
 @Controller('payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  /**
+   * Creates payment Intent.
+   * @param req The req.
+   * @param createPaymentDto The request payload.
+   * @returns The resulting create payment intent result.
+   */
   @Post('create-intent')
   @Throttle({ default: THROTTLE.MODERATE }) // 10 requests per hour
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
@@ -66,6 +75,12 @@ export class PaymentsController {
     return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto, idempotencyKey);
   }
 
+  /**
+   * Creates subscription.
+   * @param req The req.
+   * @param createSubscriptionDto The request payload.
+   * @returns The resulting create subscription result.
+   */
   @Post('subscriptions')
   @Throttle({ default: THROTTLE.AUTH_DEFAULT }) // 5 requests per hour
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
@@ -90,6 +105,11 @@ export class PaymentsController {
     );
   }
 
+  /**
+   * Processes refund.
+   * @param refundDto The request payload.
+   * @returns The resulting process refund result.
+   */
   @Post('refund')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Idempotent({ ttl: 86400 })
@@ -108,6 +128,12 @@ export class PaymentsController {
     return this.paymentsService.processRefund(refundDto, idempotencyKey);
   }
 
+  /**
+   * Returns invoice.
+   * @param paymentId The payment identifier.
+   * @param req The req.
+   * @returns The resulting invoice.
+   */
   @Get('invoices/:paymentId')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get invoice for a payment' })
@@ -119,6 +145,13 @@ export class PaymentsController {
     return this.paymentsService.getInvoice(paymentId, req.user.id);
   }
 
+  /**
+   * Returns user Payments.
+   * @param req The req.
+   * @param limit The maximum number of results.
+   * @param page The page number.
+   * @returns The matching results.
+   */
   @Get('user/payments')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user payment history' })
@@ -131,6 +164,11 @@ export class PaymentsController {
     return this.paymentsService.getUserPayments(req.user.id, limit, page);
   }
 
+  /**
+   * Returns user Subscriptions.
+   * @param req The req.
+   * @returns The matching results.
+   */
   @Get('user/subscriptions')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user subscriptions' })

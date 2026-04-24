@@ -15,6 +15,11 @@ export class MonitoringController {
     @Optional() private readonly costTrackingService?: CostTrackingService,
   ) {}
 
+  /**
+   * Returns metrics.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Get()
   async getMetrics(@Res() res: Response) {
     const metrics = await this.metricsService.getMetrics();
@@ -22,6 +27,13 @@ export class MonitoringController {
     res.send(metrics);
   }
 
+  /**
+   * Returns unified Metrics.
+   * @param format The format.
+   * @param include The include.
+   * @param exclude The exclude.
+   * @returns The operation result.
+   */
   @Get('unified')
   async getUnifiedMetrics(
     @Query('format') format?: string,
@@ -60,6 +72,10 @@ export class MonitoringController {
     return metrics;
   }
 
+  /**
+   * Returns metrics Health.
+   * @returns The operation result.
+   */
   @Get('health')
   async getMetricsHealth() {
     return {
@@ -77,6 +93,11 @@ export class MonitoringController {
     };
   }
 
+  /**
+   * Returns custom Metrics.
+   * @param type The type.
+   * @returns The operation result.
+   */
   @Get('custom')
   async getCustomMetrics(@Query('type') type?: string) {
     const customMetrics = {

@@ -2,6 +2,9 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 // import { Connection, QueryRunner } from 'typeorm';
 import { IMigrationConfig } from '../migration.service';
 
+/**
+ * Provides schema Validation operations.
+ */
 @Injectable()
 export class SchemaValidationService {
   private readonly logger = new Logger(SchemaValidationService.name);

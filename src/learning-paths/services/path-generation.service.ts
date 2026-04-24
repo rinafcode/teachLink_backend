@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
 
+/**
+ * Provides path Generation operations.
+ */
 @Injectable()
 export class PathGenerationService {
+  /**
+   * Generates generate.
+   * @param assessment The assessment.
+   * @returns The operation result.
+   */
   generate(assessment: { level: string; goal: string }) {
     const milestones = [];
 

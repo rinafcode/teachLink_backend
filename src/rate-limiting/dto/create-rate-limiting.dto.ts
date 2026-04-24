@@ -17,6 +17,9 @@ export enum RateLimitType {
   GLOBAL = 'global',
 }
 
+/**
+ * Defines the create Rate Limiting payload.
+ */
 export class CreateRateLimitingDto {
   @ApiProperty({
     description: 'Name of the rate limit rule',

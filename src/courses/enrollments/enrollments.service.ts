@@ -5,6 +5,9 @@ import { Enrollment } from '../entities/enrollment.entity';
 import { Course } from '../entities/course.entity';
 import { User } from '../../users/entities/user.entity';
 
+/**
+ * Provides enrollments operations.
+ */
 @Injectable()
 export class EnrollmentsService {
   constructor(
@@ -16,6 +19,12 @@ export class EnrollmentsService {
     private usersRepository: Repository<User>,
   ) {}
 
+  /**
+   * Executes enroll.
+   * @param userId The user identifier.
+   * @param courseId The course identifier.
+   * @returns The resulting enrollment.
+   */
   async enroll(userId: string, courseId: string): Promise<Enrollment> {
     const existing = await this.enrollmentsRepository.findOne({
       where: { user: { id: userId }, course: { id: courseId } },
@@ -39,6 +48,11 @@ export class EnrollmentsService {
     return this.enrollmentsRepository.save(enrollment);
   }
 
+  /**
+   * Retrieves user Enrollments.
+   * @param userId The user identifier.
+   * @returns The matching results.
+   */
   async findUserEnrollments(userId: string): Promise<Enrollment[]> {
     return this.enrollmentsRepository.find({
       where: { user: { id: userId } },
@@ -46,6 +60,12 @@ export class EnrollmentsService {
     });
   }
 
+  /**
+   * Updates progress.
+   * @param enrollmentId The enrollment identifier.
+   * @param progress The progress.
+   * @returns The resulting enrollment.
+   */
   async updateProgress(enrollmentId: string, progress: number): Promise<Enrollment> {
     const enrollment = await this.enrollmentsRepository.findOneBy({ id: enrollmentId });
     if (!enrollment) throw new NotFoundException('Enrollment not found');

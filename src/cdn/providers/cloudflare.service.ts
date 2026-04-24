@@ -23,6 +23,9 @@ export interface IPurgeResult {
   failedUrls: string[];
 }
 
+/**
+ * Provides cloudflare operations.
+ */
 @Injectable()
 export class CloudflareService {
   private readonly logger = new Logger(CloudflareService.name);
@@ -95,6 +98,10 @@ export class CloudflareService {
     }
   }
 
+  /**
+   * Executes purge Everything.
+   * @returns Whether the operation succeeded.
+   */
   async purgeEverything(): Promise<boolean> {
     try {
       const response = await this.httpClient.post(`/zones/${this.config.zoneId}/purge_cache`, {
@@ -108,6 +115,12 @@ export class CloudflareService {
     }
   }
 
+  /**
+   * Retrieves analytics.
+   * @param startDate The start date.
+   * @param endDate The end date.
+   * @returns The operation result.
+   */
   async getAnalytics(startDate: Date, endDate: Date): Promise<any> {
     try {
       const response = await this.httpClient.get(
@@ -127,6 +140,11 @@ export class CloudflareService {
     }
   }
 
+  /**
+   * Creates custom Domain.
+   * @param domain The domain.
+   * @returns Whether the operation succeeded.
+   */
   async createCustomDomain(domain: string): Promise<boolean> {
     try {
       const response = await this.httpClient.post(
@@ -145,6 +163,10 @@ export class CloudflareService {
     }
   }
 
+  /**
+   * Retrieves zone Settings.
+   * @returns The operation result.
+   */
   async getZoneSettings(): Promise<any> {
     try {
       const response = await this.httpClient.get(`/zones/${this.config.zoneId}/settings`);
@@ -156,6 +178,11 @@ export class CloudflareService {
     }
   }
 
+  /**
+   * Updates cache Settings.
+   * @param settings The settings.
+   * @returns Whether the operation succeeded.
+   */
   async updateCacheSettings(settings: any): Promise<boolean> {
     try {
       const response = await this.httpClient.patch(
@@ -198,6 +225,11 @@ export class CloudflareService {
     };
   }
 
+  /**
+   * Retrieves image Variants.
+   * @param imageId The image identifier.
+   * @returns The matching results.
+   */
   async getImageVariants(imageId: string): Promise<string[]> {
     try {
       const response = await this.httpClient.get(
@@ -211,6 +243,11 @@ export class CloudflareService {
     }
   }
 
+  /**
+   * Removes image.
+   * @param imageId The image identifier.
+   * @returns Whether the operation succeeded.
+   */
   async deleteImage(imageId: string): Promise<boolean> {
     try {
       const response = await this.httpClient.delete(

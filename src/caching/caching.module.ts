@@ -10,6 +10,9 @@ import { CacheAnalyticsService } from './analytics/cache-analytics.service';
 import { CacheManagementController } from './cache-management.controller';
 import { getSharedRedisClient } from '../config/cache.config';
 
+/**
+ * Registers the caching module.
+ */
 @Global()
 @Module({
   imports: [ConfigModule, EventEmitterModule],

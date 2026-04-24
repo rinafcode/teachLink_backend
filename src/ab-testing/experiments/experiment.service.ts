@@ -6,6 +6,9 @@ import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { ExperimentMetric } from '../entities/experiment-metric.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
 
+/**
+ * Provides experiment operations.
+ */
 @Injectable()
 export class ExperimentService {
   private readonly logger = new Logger(ExperimentService.name);

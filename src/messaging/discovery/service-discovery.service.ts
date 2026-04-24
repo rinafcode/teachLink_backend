@@ -12,6 +12,9 @@ export interface IServiceInstance {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Provides service Discovery operations.
+ */
 @Injectable()
 export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ServiceDiscoveryService.name);
@@ -22,6 +25,9 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly tracingService: TracingService) {}
 
+  /**
+   * Executes on Module Init.
+   */
   async onModuleInit(): Promise<void> {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
@@ -36,6 +42,9 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     this.startHeartbeat();
   }
 
+  /**
+   * Executes on Module Destroy.
+   */
   async onModuleDestroy(): Promise<void> {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -65,6 +74,11 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Executes deregister Service.
+   * @param serviceName The service name.
+   * @param serviceId The service identifier.
+   */
   async deregisterService(serviceName: string, serviceId: string): Promise<void> {
     const span = this.tracingService.startSpan('deregister-service');
     try {
@@ -101,6 +115,12 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Updates health.
+   * @param serviceName The service name.
+   * @param serviceId The service identifier.
+   * @param health The health.
+   */
   async updateHealth(
     serviceName: string,
     serviceId: string,

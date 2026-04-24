@@ -6,6 +6,9 @@ export interface INotificationTemplate {
   content: string;
 }
 
+/**
+ * Provides notification Templates operations.
+ */
 @Injectable()
 export class NotificationTemplatesService {
   private readonly logger = new Logger(NotificationTemplatesService.name);

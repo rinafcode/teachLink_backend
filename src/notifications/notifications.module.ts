@@ -15,6 +15,9 @@ import { NotificationsQueueService } from './notifications.queue';
 import { Notification } from './entities/notification.entity';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
 
+/**
+ * Registers the notifications module.
+ */
 @Global()
 @Module({
   imports: [

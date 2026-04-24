@@ -14,6 +14,9 @@ import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
 
+/**
+ * Represents the course entity.
+ */
 @Entity()
 export class Course {
   @PrimaryGeneratedColumn('uuid')

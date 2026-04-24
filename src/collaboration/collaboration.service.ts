@@ -4,6 +4,9 @@ import { WhiteboardService } from './whiteboard/whiteboard.service';
 import { VersionControlService } from './versioning/version-control.service';
 import { CollaborationPermissionsService } from './permissions/collaboration-permissions.service';
 
+/**
+ * Provides collaboration operations.
+ */
 @Injectable()
 export class CollaborationService {
   constructor(

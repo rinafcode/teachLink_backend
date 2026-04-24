@@ -100,6 +100,9 @@ export interface IQueryFilter {
   value: any;
 }
 
+/**
+ * Provides dimensional Modeling operations.
+ */
 @Injectable()
 export class DimensionalModelingService {
   private readonly logger = new Logger(DimensionalModelingService.name);

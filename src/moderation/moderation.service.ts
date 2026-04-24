@@ -4,6 +4,9 @@ import { ManualReviewService } from './manual/manual-review.service';
 import { ContentSafetyService } from './safety/content-safety.service';
 import { ModerationAnalyticsService } from './analytics/moderation-analytics.service';
 
+/**
+ * Provides moderation operations.
+ */
 @Injectable()
 export class ModerationService {
   constructor(
@@ -13,6 +16,11 @@ export class ModerationService {
     private readonly analytics: ModerationAnalyticsService,
   ) {}
 
+  /**
+   * Moderates content.
+   * @param content The content.
+   * @returns The operation result.
+   */
   async moderateContent(content: string) {
     const autoResult = await this.autoModeration.analyze(content);
     const safetyScore = this.safetyService.scoreContent(content);

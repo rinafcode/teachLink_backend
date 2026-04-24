@@ -3,6 +3,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../entities/user.entity';
 import { IsStrongPassword } from '../../common/validators/password.validator';
 
+/**
+ * Defines the create User payload.
+ */
 export class CreateUserDto {
   @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'Please provide a valid email format' })

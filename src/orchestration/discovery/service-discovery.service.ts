@@ -18,6 +18,9 @@ interface IRegisterServiceInput extends Omit<IRegisteredService, 'boundary'> {
   boundary?: IServiceBoundaryDefinition;
 }
 
+/**
+ * Provides service Discovery operations.
+ */
 @Injectable()
 export class ServiceDiscoveryService {
   private readonly services = new Map<string, IRegisteredService[]>();

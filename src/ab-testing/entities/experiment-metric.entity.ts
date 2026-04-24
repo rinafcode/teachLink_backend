@@ -17,6 +17,9 @@ export enum MetricType {
   CUSTOM = 'custom',
 }
 
+/**
+ * Represents the experiment Metric entity.
+ */
 @Entity({ name: 'experiment_metrics' })
 export class ExperimentMetric {
   @PrimaryGeneratedColumn('uuid')
