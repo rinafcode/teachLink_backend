@@ -53,8 +53,7 @@ export interface BulkRetryResult {
 }
 
 /**
- * Queue Monitoring Service
- *
+ * Queue Monitoring Servic
  * Responsibilities:
  *  1. Periodic metric snapshots with real timestamps (fixes broken throughput)
  *  2. Health checks with configurable thresholds
