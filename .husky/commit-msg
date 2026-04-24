@@ -12,7 +12,7 @@
 #
 # See commitlint.config.js for the full rule set.
 
-. "$(dirname -- "$0")/_/husky.sh"
+#. "$(dirname -- "$0")/_/husky.sh"
 
 echo "📝 Validating commit message..."
 

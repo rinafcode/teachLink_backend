@@ -4,10 +4,12 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
   OneToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -24,10 +26,12 @@ export class Campaign {
 
   @ApiProperty()
   @Column()
+  @Index()
   name: string;
 
   @ApiProperty()
   @Column()
+  @Index()
   subject: string;
 
   @ApiProperty({ required: false })
@@ -40,6 +44,7 @@ export class Campaign {
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  @Index()
   templateId?: string;
 
   @ManyToOne(() => EmailTemplate, { nullable: true })
@@ -52,14 +57,17 @@ export class Campaign {
 
   @ApiProperty({ enum: CampaignStatus })
   @Column({ type: 'enum', enum: CampaignStatus, default: CampaignStatus.DRAFT })
+  @Index()
   status: CampaignStatus;
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  @Index()
   scheduledAt?: Date;
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  @Index()
   sentAt?: Date;
 
   @ApiProperty()
@@ -79,4 +87,7 @@ export class Campaign {
   @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

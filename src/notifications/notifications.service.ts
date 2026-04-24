@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
+import { APP_EVENTS } from '../common/constants/event.constants';
 import {
   Notification,
   NotificationType,
@@ -182,7 +183,7 @@ export class NotificationsService {
    * Delete a notification
    */
   async remove(id: string, userId: string): Promise<void> {
-    const result = await this.notificationRepository.delete({ id, userId });
+    const result = await this.notificationRepository.softDelete({ id, userId });
 
     if (result.affected === 0) {
       throw new NotFoundException(`Notification with ID ${id} not found`);
@@ -227,7 +228,7 @@ export class NotificationsService {
   /**
    * Event listener for system-wide notifications
    */
-  @OnEvent('notification.send')
+  @OnEvent(APP_EVENTS.NOTIFICATION_SEND)
   async handleSendNotification(payload: CreateNotificationDto): Promise<void> {
     await this.create(payload);
   }
@@ -235,7 +236,7 @@ export class NotificationsService {
   /**
    * Event listener for specific templates
    */
-  @OnEvent('notification.template.send')
+  @OnEvent(APP_EVENTS.NOTIFICATION_TEMPLATE_SEND)
   async handleSendTemplateNotification(payload: {
     userId: string;
     templateType: string;

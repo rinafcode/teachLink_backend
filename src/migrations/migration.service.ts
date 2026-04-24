@@ -6,6 +6,7 @@ import { ConflictResolutionService } from './conflicts/conflict-resolution.servi
 import { SchemaValidationService } from './validation/schema-validation.service';
 import { RollbackService } from './rollback/rollback.service';
 import { EnvironmentSyncService } from './environments/environment-sync.service';
+import { MIGRATION_REGISTRY } from './migration.registry';
 
 export interface MigrationConfig {
   name: string;
@@ -109,9 +110,7 @@ export class MigrationService {
    * Gets all registered migrations
    */
   private getRegisteredMigrations(): MigrationConfig[] {
-    // In a real implementation, this would load migrations from files or configuration
-    // For now, returning an empty array - this would be populated based on your actual migrations
-    return [];
+    return MIGRATION_REGISTRY;
   }
 
   /**

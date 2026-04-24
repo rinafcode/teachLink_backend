@@ -1,6 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -24,7 +25,7 @@ import { S3Client, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/clien
 const execAsync = promisify(exec);
 const MAX_RETRIES = 3;
 
-@Processor('backup-processing')
+@Processor(QUEUE_NAMES.BACKUP_PROCESSING)
 export class BackupQueueProcessor {
   private readonly logger = new Logger(BackupQueueProcessor.name);
   private readonly kmsClient: KMSClient;
@@ -57,7 +58,7 @@ export class BackupQueueProcessor {
     });
   }
 
-  @Process('create-backup')
+  @Process(JOB_NAMES.CREATE_BACKUP)
   async handleCreateBackup(job: Job<BackupJobData>) {
     const { backupRecordId, databaseName } = job.data;
     this.logger.log(`Processing backup creation for: ${backupRecordId}`);
@@ -136,7 +137,7 @@ export class BackupQueueProcessor {
 
       // Queue verification job
       await (job.queue as any).add(
-        'verify-backup',
+        JOB_NAMES.VERIFY_BACKUP,
         { backupRecordId, storageKey: encryptedKey },
         {
           attempts: 3,
@@ -151,7 +152,7 @@ export class BackupQueueProcessor {
     }
   }
 
-  @Process('verify-backup')
+  @Process(JOB_NAMES.VERIFY_BACKUP)
   async handleVerifyBackup(job: Job<VerificationJobData>) {
     const { backupRecordId } = job.data;
     this.logger.log(`Verifying backup integrity: ${backupRecordId}`);
@@ -177,13 +178,13 @@ export class BackupQueueProcessor {
     }
   }
 
-  @Process('recovery-test')
+  @Process(JOB_NAMES.RECOVERY_TEST)
   async handleRecoveryTest(_job: Job<RecoveryTestJobData>) {
     this.logger.log(`Recovery test processing handled by RecoveryTestingService`);
     // Delegated to RecoveryTestingService.executeRecoveryTest()
   }
 
-  @Process('delete-backup')
+  @Process(JOB_NAMES.DELETE_BACKUP)
   async handleDeleteBackup(job: Job<{ backupRecordId: string }>) {
     const { backupRecordId } = job.data;
     this.logger.log(`Deleting expired backup: ${backupRecordId}`);
@@ -229,7 +230,7 @@ export class BackupQueueProcessor {
       }
 
       // Delete from database
-      await this.backupRepository.remove(backup);
+      await this.backupRepository.softRemove(backup);
 
       this.logger.log(`Backup ${backupRecordId} deleted successfully`);
     } catch (error) {

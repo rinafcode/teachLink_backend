@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { CourseModule } from '../entities/course-module.entity';
 import { CreateModuleDto } from '../dto/create-module.dto';
 import { Course } from '../entities/course.entity';
+import { Lesson } from '../entities/lesson.entity';
 
 @Injectable()
 export class ModulesService {
@@ -51,6 +52,9 @@ export class ModulesService {
 
   async remove(id: string): Promise<void> {
     const module = await this.findOne(id);
-    await this.modulesRepository.remove(module);
+    await this.modulesRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(Lesson).softDelete({ moduleId: module.id });
+      await manager.getRepository(CourseModule).softDelete(module.id);
+    });
   }
 }

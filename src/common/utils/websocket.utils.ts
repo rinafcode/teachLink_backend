@@ -11,6 +11,7 @@ class WebSocketManager {
   private meta = new Map<string, ConnectionMeta>(); // socketId -> meta
 
   private MAX_CONNECTIONS_PER_USER = 3;
+  private MAX_GLOBAL_CONNECTIONS = 5000;
   private HEARTBEAT_INTERVAL = 30000; // 30s
   private TIMEOUT = 60000; // 60s
 
@@ -49,6 +50,13 @@ class WebSocketManager {
     const userConnections = this.connections.get(userId);
     if (!userConnections) {
       return;
+    const userConnections = this.connections.get(userId) || new Set<Socket>();
+
+    // enforce global connection limits
+    if (this.meta.size >= this.MAX_GLOBAL_CONNECTIONS) {
+      socket.emit('error', { message: 'Server is at maximum capacity' });
+      socket.disconnect(true);
+      return false;
     }
 
     // enforce max connections
@@ -65,6 +73,7 @@ class WebSocketManager {
       lastSeen: Date.now(),
       isAlive: true,
     });
+    return true;
   }
 
   cleanupSocket(socket: Socket) {

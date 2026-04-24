@@ -153,6 +153,8 @@ module.exports = {
       },
     },
 
+
+    
     // ── Config / seed files ───────────────────────────────────────────────────
     {
       files: ['src/**/*.config.ts', 'src/**/*.seed.ts'],
@@ -160,5 +162,6 @@ module.exports = {
         'no-console': 'off',
       },
     },
+    
   ],
 };

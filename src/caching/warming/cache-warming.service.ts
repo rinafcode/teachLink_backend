@@ -219,7 +219,7 @@ export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
   private async warmSystemConfig(): Promise<void> {
     this.logger.debug('Warming system configuration...');
 
-    const configKey = 'cache:system:config';
+    const configKey = CACHE_PREFIXES.SYSTEM_CONFIG;
 
     const configData = {
       version: this.configService.get<string>('npm_package_version') || '1.0.0',

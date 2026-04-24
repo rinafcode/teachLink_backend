@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
 import { FileStorageService } from './storage/file-storage.service';
@@ -16,7 +17,7 @@ import { VideoProcessor } from './processing/video.processor';
 @Module({
   imports: [
     TypeOrmModule.forFeature([ContentMetadata]),
-    BullModule.registerQueue({ name: 'media-processing' }),
+    BullModule.registerQueue({ name: QUEUE_NAMES.MEDIA_PROCESSING }),
   ],
   controllers: [MediaController],
   providers: [

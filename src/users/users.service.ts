@@ -13,6 +13,7 @@ import { GetUsersDto } from './dto/get-users.dto';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
@@ -21,17 +22,20 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     private readonly cachingService: CachingService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    private readonly configService: ConfigService,
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user already exists
     const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
+      withDeleted: true,
     });
     ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || 10;
+    const hashedPassword = await bcrypt.hash(createUserDto.password, bcryptRounds);
 
     // Create user
     const user = this.userRepository.create({
@@ -43,7 +47,7 @@ export class UsersService {
   }
 
   async findAll(filter?: GetUsersDto): Promise<PaginatedResponse<User>> {
-    const cacheKey = `cache:users:list:${JSON.stringify(filter || {})}`;
+    const cacheKey = `${CACHE_PREFIXES.USERS_LIST}:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(
       cacheKey,
@@ -140,7 +144,8 @@ export class UsersService {
       // Append current, maintain last 5 entries
       user.passwordHistory = [...recentPasswords, user.password].slice(-5);
 
-      updateUserDto.password = await bcrypt.hash(plainPassword, 10);
+      const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || 10;
+      updateUserDto.password = await bcrypt.hash(plainPassword, bcryptRounds);
     }
 
     Object.assign(user, updateUserDto);
@@ -185,8 +190,8 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<void> {
-    const user = await this.findUserOrThrow(id);
-    await this.userRepository.remove(user);
+    await this.findUserOrThrow(id);
+    await this.userRepository.softDelete(id);
 
     // Invalidate cache after delete
     this.eventEmitter.emit(CACHE_EVENTS.USER_DELETED, { userId: id });
