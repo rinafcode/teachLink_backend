@@ -137,9 +137,8 @@ export class ImageProcessingService {
     const processedBuffer = await pipeline.toBuffer();
     const processedMetadata = await sharp(processedBuffer).metadata();
 
-    const compressionRatio = originalSize > 0
-      ? ((originalSize - processedBuffer.length) / originalSize) * 100
-      : 0;
+    const compressionRatio =
+      originalSize > 0 ? ((originalSize - processedBuffer.length) / originalSize) * 100 : 0;
 
     this.logger.log(
       `Image compressed: ${originalSize} -> ${processedBuffer.length} bytes (${compressionRatio.toFixed(1)}% reduction)`,
@@ -162,7 +161,7 @@ export class ImageProcessingService {
   async generateThumbnails(
     buffer: Buffer,
     options?: {
-      sizes?: { name: string; width: number; height: number }[];
+      sizes?: Array<{ name: string; width: number; height: number }>;
       format?: 'jpeg' | 'png' | 'webp';
       quality?: number;
     },
@@ -328,9 +327,7 @@ export class ImageProcessingService {
    * Strip metadata from image (privacy/security)
    */
   async stripMetadata(buffer: Buffer): Promise<Buffer> {
-    return sharp(buffer)
-      .withMetadata()
-      .toBuffer();
+    return sharp(buffer).withMetadata().toBuffer();
   }
 
   /**

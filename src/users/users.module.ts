@@ -19,13 +19,7 @@ import {
     BullModule.registerQueue({ name: 'user-data-export' }),
   ],
   controllers: [UsersController],
-  providers: [
-    UsersService,
-    ExportService,
-    UserDataExportProcessor,
-    RolesGuard,
-    JwtAuthGuard,
-  ],
+  providers: [UsersService, ExportService, UserDataExportProcessor, RolesGuard, JwtAuthGuard],
   exports: [UsersService],
 })
 export class UsersModule {}

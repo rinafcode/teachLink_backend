@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { MulterError } from 'multer';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
 import { ApiError, ValidationErrorDetail } from '../../interfaces/api-error.interface';
 import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
@@ -70,7 +71,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return this.fromQueryFailedError(exception);
     }
 
-    // 3. TypeORM – entity not found
+    // 3. Multer upload failures
+    if (exception instanceof MulterError) {
+      return this.fromMulterError(exception);
+    }
+
+    // 4. TypeORM – entity not found
     if (exception instanceof EntityNotFoundError) {
       return {
         statusCode: HttpStatus.NOT_FOUND,
@@ -80,7 +86,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // 4. Generic / unexpected Error
+    // 5. Generic / unexpected Error
     if (exception instanceof Error) {
       return {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -92,7 +98,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    // 5. Non-Error throw (strings, objects, etc.)
+    // 6. Non-Error throw (strings, objects, etc.)
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'An unexpected error occurred.',
@@ -177,6 +183,42 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error: 'Database Error',
       stack: exception.stack,
     };
+  }
+
+  private fromMulterError(exception: MulterError): {
+    statusCode: number;
+    message: string;
+    error: string;
+    stack?: string;
+  } {
+    switch (exception.code) {
+      case 'LIMIT_FILE_SIZE':
+        return {
+          statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
+          message: 'Uploaded file exceeds the maximum allowed size.',
+          error: 'Payload Too Large',
+          stack: exception.stack,
+        };
+      case 'LIMIT_FILE_COUNT':
+      case 'LIMIT_PART_COUNT':
+      case 'LIMIT_FIELD_COUNT':
+      case 'LIMIT_FIELD_KEY':
+      case 'LIMIT_FIELD_VALUE':
+      case 'LIMIT_UNEXPECTED_FILE':
+        return {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: exception.message,
+          error: 'Bad Request',
+          stack: exception.stack,
+        };
+      default:
+        return {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: 'Upload validation failed.',
+          error: 'Bad Request',
+          stack: exception.stack,
+        };
+    }
   }
 
   /**

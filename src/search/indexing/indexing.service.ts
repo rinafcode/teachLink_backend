@@ -61,7 +61,7 @@ export class IndexingService implements OnModuleInit {
     await this.elasticsearchService.delete({ index: COURSES_INDEX, id });
   }
 
-  async reindexAll(courses: Record<string, any>[]) {
+  async reindexAll(courses: Array<Record<string, any>>) {
     if (courses.length === 0) return;
 
     const operations = courses.flatMap((course) => {

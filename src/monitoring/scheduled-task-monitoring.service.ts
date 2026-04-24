@@ -200,17 +200,21 @@ export class ScheduledTaskMonitoringService {
     const tasks = Array.from(this.taskConfigs.entries()).map(([taskName, config]) => {
       const history = this.executionHistory.get(taskName) || [];
       const lastExecution = history[history.length - 1] || null;
-      const lastSuccess = [...history].reverse().find((entry) => entry.status === 'SUCCESS') || null;
+      const lastSuccess =
+        [...history].reverse().find((entry) => entry.status === 'SUCCESS') || null;
       const lastFailure =
-        [...history].reverse().find((entry) => entry.status === 'FAILED' || entry.status === 'TIMED_OUT') ||
-        null;
+        [...history]
+          .reverse()
+          .find((entry) => entry.status === 'FAILED' || entry.status === 'TIMED_OUT') || null;
       const activeCount = Array.from(this.activeExecutions.values()).filter(
         (entry) => entry.taskName === taskName,
       ).length;
 
       const threshold = config.expectedIntervalMs + (config.missedExecutionGraceMs || 0);
       const missed =
-        !!lastExecution && now.getTime() - lastExecution.startedAt.getTime() > threshold && activeCount === 0;
+        !!lastExecution &&
+        now.getTime() - lastExecution.startedAt.getTime() > threshold &&
+        activeCount === 0;
 
       const retryStats = this.retryStats.get(taskName) || { totalRetries: 0 };
 
@@ -234,7 +238,8 @@ export class ScheduledTaskMonitoringService {
         activeExecutions: this.activeExecutions.size,
         tasksWithMissedExecutions: tasks.filter((task) => task.missed).length,
         tasksWithRecentFailures: tasks.filter(
-          (task) => task.lastExecution?.status === 'FAILED' || task.lastExecution?.status === 'TIMED_OUT',
+          (task) =>
+            task.lastExecution?.status === 'FAILED' || task.lastExecution?.status === 'TIMED_OUT',
         ).length,
       },
       tasks,

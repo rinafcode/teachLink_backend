@@ -29,6 +29,9 @@ export const envValidationSchema = Joi.object({
   // Encryption
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
 
+  // Security Configuration
+  BCRYPT_ROUNDS: Joi.number().integer().min(4).max(15).default(10),
+
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
@@ -111,6 +114,7 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
   I18N_DEFAULT_LOCALE: Joi.string().default('en'),
