@@ -7,47 +7,37 @@
  *  - `eslint:recommended` + `@typescript-eslint/recommended` as the base.
  *  - `plugin:prettier/recommended` is always last so formatting rules win.
  *  - Type-aware rules (`@typescript-eslint/recommended-requiring-type-checking`)
- *    are NOT enabled globally because they make linting ~10× slower and cause
- *    issues in CI on large monorepo setups. They are enabled in the
- *    `lint:typed` script only, which developers can run locally.
- *  - Rules that are correct in principle but too noisy to enforce right now
- *    are set to `'warn'` rather than being disabled entirely. This surfaces
- *    issues in the developer's IDE without blocking CI. Once the codebase is
- *    clean, bump them to `'error'`.
+ *    are NOT enabled globally because they slow linting in CI. They can be run
+ *    locally via `npm run lint:typed`.
+ *  - Rules that are correct in principle but noisy are set to 'warn' for now.
+ *    Once the codebase is clean, bump them to 'error'.
  */
 
 module.exports = {
   root: true,
 
-  // ── Environment ─────────────────────────────────────────────────────────────
   env: {
     node: true,
     jest: true,
     es2021: true,
   },
 
-  // ── Parser ───────────────────────────────────────────────────────────────────
   parser: '@typescript-eslint/parser',
   parserOptions: {
     sourceType: 'module',
     ecmaVersion: 2021,
     tsconfigRootDir: __dirname,
-    // `project` intentionally left undefined for the default config.
-    // Type-aware linting is opt-in via `npm run lint:typed`.
-    project: undefined,
+    project: undefined, // type-aware linting opt-in only
   },
 
-  // ── Plugins ──────────────────────────────────────────────────────────────────
   plugins: ['@typescript-eslint', 'prettier'],
 
-  // ── Shared extends ───────────────────────────────────────────────────────────
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended', // must be last
   ],
 
-  // ── Global ignore patterns ───────────────────────────────────────────────────
   ignorePatterns: [
     'dist/**',
     'node_modules/**',
@@ -57,19 +47,16 @@ module.exports = {
     'lint-staged.config.js',
   ],
 
-  // ── Rules ────────────────────────────────────────────────────────────────────
   rules: {
-    // ── Prettier (formatting) ─────────────────────────────────────────────────
-    // Prettier violations are errors so they block commits via lint-staged.
+    // ── Prettier formatting ──
     'prettier/prettier': 'error',
 
-    // ── TypeScript — disabled (too noisy on existing codebase) ────────────────
-    '@typescript-eslint/interface-name-prefix': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
+    // ── Strict TypeScript rules ──
+    '@typescript-eslint/explicit-function-return-type': 'error',
+    '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    '@typescript-eslint/no-explicit-any': 'error',
 
-    // ── Variables ─────────────────────────────────────────────────────────────
+    // ── Variables ──
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': [
       'warn',
@@ -81,70 +68,45 @@ module.exports = {
       },
     ],
 
-    // ── Potential bugs ────────────────────────────────────────────────────────
-    '@typescript-eslint/no-floating-promises': 'off',
-    '@typescript-eslint/no-misused-promises': 'off',
+    // ── Potential bugs ──
     'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
     'no-debugger': 'error',
     'no-duplicate-imports': 'error',
-    'no-shadow': 'off',
     '@typescript-eslint/no-shadow': 'warn',
-    'no-return-await': 'off',
-    '@typescript-eslint/return-await': 'off',
 
-    // ── NestJS best practices ─────────────────────────────────────────────────
-    '@typescript-eslint/no-unsafe-return': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    '@typescript-eslint/no-dynamic-delete': 'warn',
-    '@typescript-eslint/prefer-as-const': 'error',
-    'no-empty': ['error', { allowEmptyCatch: false }],
-    eqeqeq: ['error', 'always', { null: 'ignore' }],
-    'require-await': 'off',
-    '@typescript-eslint/require-await': 'off',
-    '@typescript-eslint/array-type': ['warn', { default: 'array-simple' }],
-    '@typescript-eslint/no-non-null-assertion': 'warn',
-    '@typescript-eslint/prefer-ts-expect-error': 'warn',
-    '@typescript-eslint/ban-ts-comment': [
-      'warn',
-      {
-        'ts-ignore': 'allow-with-description',
-        'ts-expect-error': 'allow-with-description',
-        'ts-nocheck': true,
-      },
-    ],
-
-    // ── Code quality ──────────────────────────────────────────────────────────
+    // ── Code quality ──
     'prefer-const': 'error',
     'no-var': 'error',
     'object-shorthand': ['warn', 'always'],
     'prefer-template': 'warn',
     'prefer-arrow-callback': 'warn',
-    'no-useless-constructor': 'off',
     '@typescript-eslint/no-useless-constructor': 'warn',
+
+    // ── Naming convention ──
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        selector: 'variable',
+        modifiers: ['const'],
+        format: ['UPPER_CASE'],
+      },
+    ],
+
+    // ── Formatting ──
+    'semi': ['error', 'always'],
+    'quotes': ['error', 'single'],
   },
 
-  // ── Per-glob overrides ───────────────────────────────────────────────────────
   overrides: [
-    // ── Test files ─────────────────────────────────────────────────────────────
     {
       files: ['**/*.spec.ts', '**/*.e2e-spec.ts', 'test/**/*.ts'],
       rules: {
-        '@typescript-eslint/no-unused-vars': [
-          'warn',
-          {
-            argsIgnorePattern: '.*',
-            varsIgnorePattern: '.*',
-            caughtErrorsIgnorePattern: '.*',
-          },
-        ],
+        '@typescript-eslint/no-unused-vars': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
         'no-console': 'off',
       },
     },
-
-    // ── Migration files ────────────────────────────────────────────────────────
     {
       files: ['src/migrations/**/*.ts'],
       rules: {
@@ -152,16 +114,11 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 'off',
       },
     },
-
-
-    
-    // ── Config / seed files ───────────────────────────────────────────────────
     {
       files: ['src/**/*.config.ts', 'src/**/*.seed.ts'],
       rules: {
         'no-console': 'off',
       },
     },
-    
   ],
 };
