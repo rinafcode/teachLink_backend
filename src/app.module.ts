@@ -2,7 +2,6 @@ import { Module, DynamicModule, Type, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { redisStore } from 'cache-manager-redis-store';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -14,6 +13,7 @@ import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { envValidationSchema } from './config/env.validation';
+import { cacheConfig } from './config/cache.config';
 import { HealthModule } from './health/health.module';
 import { SessionModule } from './session/session.module';
 import { createBullRedisClient } from './common/utils/bull-redis.util';
@@ -117,12 +117,7 @@ export class AppModule {
         },
         createClient: createBullRedisClient,
       }),
-      CacheModule.register({
-        isGlobal: true,
-        store: redisStore,
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      }),
+      CacheModule.register(cacheConfig),
       SessionModule,
       ThrottlerModule.forRoot([
         {

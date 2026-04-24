@@ -88,13 +88,13 @@ module.exports = {
       {
         selector: 'variable',
         modifiers: ['const'],
-        format: ['UPPER_CASE'],
+        format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
       },
     ],
 
     // ── Formatting ──
     'semi': ['error', 'always'],
-    'quotes': ['error', 'single'],
+    'quotes': ['error', 'single', { avoidEscape: true }],
   },
 
   overrides: [
