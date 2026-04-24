@@ -7,7 +7,7 @@ import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 export class SubscriptionJobProcessor {
   private readonly logger = new Logger(SubscriptionJobProcessor.name);
   @Process(JOB_NAMES.PROCESS_SUBSCRIPTION)
-  async handleSubscription(job: Job<any>) {
+  async handleSubscription(job: Job<any>): Promise<any> {
     // Process subscription job
     this.logger.log('Processing subscription job:', job.data);
     return { success: true };

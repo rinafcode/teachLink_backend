@@ -11,7 +11,7 @@ export const corsConfig: CorsOptions = {
    * In production, this should be restricted to specific frontend domains.
    * If CORS_ALLOWED_ORIGINS is not set, it defaults to common local development ports.
    */
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void): void => {
     const rawOrigins = process.env.CORS_ALLOWED_ORIGINS;
     
     // Default allowed origins if none are configured

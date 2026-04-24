@@ -140,8 +140,8 @@ export class WebhookRetryProcessor {
         `Webhook ${webhookRetryId} will be retried at ${webhookRetry.nextRetryTime}. Retry ${webhookRetry.retryCount}/${webhookRetry.maxRetries}`,
       );
 
-      // Re-queue the job with delay
-      await job.retry(new Error(`Retry ${webhookRetry.retryCount}/${webhookRetry.maxRetries}`));
+      // Re-queue the job with delay (Bull's retry() takes no arguments in this version)
+      await job.retry();
     } else {
       // All retries exhausted - move to dead letter
       webhookRetry.status = WebhookStatus.DEAD_LETTER;
@@ -237,7 +237,7 @@ export class WebhookRetryProcessor {
     _headers: Record<string, string>,
     webhookRetryId: string,
   ): Promise<void> {
-    const paypalPayload = payload as PayPalWebhookPayload;
+    const paypalPayload = payload as unknown as PayPalWebhookPayload;
     this.logger.log(`Processing PayPal webhook: ${paypalPayload.event_type}`);
 
     switch (paypalPayload.event_type) {

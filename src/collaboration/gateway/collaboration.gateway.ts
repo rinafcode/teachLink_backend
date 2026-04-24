@@ -20,6 +20,7 @@ import {
   CollaborationPermissionsService,
   PermissionLevel,
 } from '../permissions/collaboration-permissions.service';
+import { wsManager } from '../../common/utils/websocket.utils';
 
 export interface CollaborativeOperation {
   sessionId: string;
@@ -51,11 +52,11 @@ export class CollaborationGateway
     private readonly permissionsService: CollaborationPermissionsService,
   ) {}
 
-  afterInit(_server: Server) {
+  afterInit(_server: Server): void {
     this.logger.log('Collaboration Gateway initialized');
   }
 
-  async handleConnection(_server: any, @ConnectedSocket() client: Socket) {
+  async handleConnection(_server: any, @ConnectedSocket() client: Socket): Promise<void> {
     if (wsManager.getTotalConnections() >= 5000) {
       client.emit('error', { message: 'Server is at maximum capacity' });
       client.disconnect(true);
@@ -68,7 +69,7 @@ export class CollaborationGateway
     // const user = await this.authService.validateToken(token);
   }
 
-  async handleDisconnect(@ConnectedSocket() client: Socket) {
+  async handleDisconnect(@ConnectedSocket() client: Socket): Promise<void> {
     wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
 
@@ -80,7 +81,7 @@ export class CollaborationGateway
   async handleJoinSession(
     @MessageBody() data: { sessionId: string; userId: string; resourceType: string },
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId, resourceType } = data;
 
     try {
@@ -144,7 +145,7 @@ export class CollaborationGateway
   async handleCollaborativeOperation(
     @MessageBody() operation: CollaborativeOperation,
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId, resourceType, operation: opData } = operation;
 
     try {
@@ -194,7 +195,7 @@ export class CollaborationGateway
   async handleSyncRequest(
     @MessageBody() data: { sessionId: string; userId: string },
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId } = data;
 
     try {
@@ -224,7 +225,7 @@ export class CollaborationGateway
     @MessageBody()
     data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId, resourceType, operations } = data;
 
     try {
@@ -261,7 +262,7 @@ export class CollaborationGateway
   }
 
   // Method to broadcast to a specific session
-  broadcastToSession(sessionId: string, event: string, data: any) {
+  broadcastToSession(sessionId: string, event: string, data: any): void {
     this.server.to(sessionId).emit(event, data);
   }
 }

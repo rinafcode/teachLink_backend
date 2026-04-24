@@ -10,7 +10,7 @@ export class LeaderboardService {
     private userProgressRepository: Repository<UserProgress>,
   ) {}
 
-  async getTopPlayers(limit: number = 10) {
+  async getTopPlayers(limit: number = 10): Promise<UserProgress[]> {
     return await this.userProgressRepository.find({
       order: { totalPoints: 'DESC' },
       take: limit,
@@ -18,7 +18,7 @@ export class LeaderboardService {
     });
   }
 
-  async getUserRank(userId: string) {
+  async getUserRank(userId: string): Promise<number | null> {
     const allProgress = await this.userProgressRepository.find({
       order: { totalPoints: 'DESC' },
     });

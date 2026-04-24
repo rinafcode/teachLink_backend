@@ -18,7 +18,6 @@ import { Response } from 'express';
 import { HealthService } from './health.service';
 import { ShutdownStateService } from '../common/services/shutdown-state.service';
 
-@Version(VERSION_NEUTRAL)
 @SkipThrottle()
 @ApiTags('health')
 @ApiBearerAuth()

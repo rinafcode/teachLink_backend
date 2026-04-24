@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { QUEUE_NAMES, JOB_NAMES } from './../../common/constants/queue.constants';
+import { QUEUE_NAMES, JOB_NAMES } from '../common/constants/queue.constants';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { BackupRecord } from './entities/backup-record.entity';
