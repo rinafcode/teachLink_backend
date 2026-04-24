@@ -9,7 +9,7 @@ export const APP_CONSTANTS = {
 
   // Pagination defaults
   DEFAULT_PAGE_SIZE: 10,
-  MAX_PAGE_SIZE: 100,
+  MAX_PAGE_SIZE: 100, // Max items allowed per page for paginated API responses
 
   // Status values
   COURSE_STATUS: {
