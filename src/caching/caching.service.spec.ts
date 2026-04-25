@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { CachingService } from './caching.service';
 import { CACHE_REDIS_CLIENT } from './caching.constants';
+import { createMockRedisClient, createMockConfigService } from 'test/utils/mock-factories';
 import Redis from 'ioredis';
 
 describe('CachingService', () => {
@@ -9,32 +10,15 @@ describe('CachingService', () => {
   let mockRedis: jest.Mocked<Redis>;
 
   beforeEach(async () => {
-    mockRedis = {
-      get: jest.fn(),
-      set: jest.fn(),
-      del: jest.fn(),
-      scan: jest.fn(),
-      pipeline: jest.fn(),
-      mget: jest.fn(),
-      ttl: jest.fn(),
-      expire: jest.fn(),
-      exists: jest.fn(),
-      incr: jest.fn(),
-      incrby: jest.fn(),
-      info: jest.fn(),
-      eval: jest.fn(),
-      status: 'ready',
-      quit: jest.fn(),
-    } as unknown as jest.Mocked<Redis>;
+    // ─── Initialize Mocks ──────────────────────────────────────────────────
+    mockRedis = createMockRedisClient();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CachingService,
         {
           provide: ConfigService,
-          useValue: {
-            get: jest.fn().mockReturnValue('300'),
-          },
+          useValue: createMockConfigService({ CACHE_TTL: 300 }),
         },
         {
           provide: CACHE_REDIS_CLIENT,
@@ -44,6 +28,10 @@ describe('CachingService', () => {
     }).compile();
 
     service = module.get<CachingService>(CachingService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('get', () => {
