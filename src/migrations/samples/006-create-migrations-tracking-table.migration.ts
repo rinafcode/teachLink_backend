@@ -50,8 +50,8 @@ export class CreateMigrationsTrackingTableMigration implements MigrationConfig {
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create migrations tracking table');
 
-    await connection.query(`DROP TABLE IF EXISTS migrations CASCADE;`);
-    await connection.query(`DROP TYPE IF EXISTS migration_status;`);
+    await connection.query('DROP TABLE IF EXISTS migrations CASCADE;');
+    await connection.query('DROP TYPE IF EXISTS migration_status;');
 
     this.logger.log('Migration rolled back: create migrations tracking table');
   }

@@ -130,11 +130,10 @@ export class CreateWebhookRetriesTable1681234567890 implements MigrationInterfac
   }
 }
 `;
-
 // Database cleanup and maintenance queries
 export const maintenanceQueries = {
   // Get dead letter queue stats
-  getDeadLetterStats: \`
+  getDeadLetterStats: `
     SELECT 
       COUNT(*) as total_dead_letters,
       COUNT(DISTINCT provider) as providers,
@@ -142,10 +141,10 @@ export const maintenanceQueries = {
       MIN("createdAt") as newest_entry
     FROM webhook_retries
     WHERE status = 'dead_letter';
-  \`,
+  `,
 
   // Get retry statistics
-  getRetryStats: \`
+  getRetryStats: `
     SELECT 
       status,
       COUNT(*) as count,
@@ -154,30 +153,29 @@ export const maintenanceQueries = {
       PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY "retryCount") as median_retries
     FROM webhook_retries
     GROUP BY status;
-  \`,
+  `,
 
   // Get webhooks pending processing
-  getPending: \`
+  getPending: `
     SELECT id, provider, "externalEventId", "nextRetryTime", "retryCount"
     FROM webhook_retries
     WHERE status = 'pending'
     AND ("nextRetryTime" IS NULL OR "nextRetryTime" <= NOW())
     ORDER BY "nextRetryTime" ASC
     LIMIT 100;
-  \`,
+  `,
 
   // Archive old succeeded webhooks (cleanup)
-  archiveSuccessful: \`
+  archiveSuccessful: `
     DELETE FROM webhook_retries
     WHERE status = 'succeeded'
     AND "processedAt" < NOW() - INTERVAL '30 days';
-  \`,
+  `,
 
   // Archive old dead letter webhooks (after review period)
-  archiveDeadLetter: \`
+  archiveDeadLetter: `
     DELETE FROM webhook_retries
     WHERE status = 'dead_letter'
     AND "createdAt" < NOW() - INTERVAL '90 days';
-  \`,
+  `,
 };
-`;

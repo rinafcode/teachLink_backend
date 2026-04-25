@@ -76,7 +76,7 @@ export class AssessmentsService {
         .getRepository(Question)
         .createQueryBuilder()
         .softDelete()
-        .where(`"assessmentId" = :assessmentId`, { assessmentId: id })
+        .where('"assessmentId" = :assessmentId', { assessmentId: id })
         .execute();
       await manager.getRepository(Assessment).softDelete(id);
     });

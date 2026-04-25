@@ -30,11 +30,11 @@ export class TimeoutConfigService {
       },
       methods: {
         // HTTP method-specific timeouts
-        'GET': 30000, // 30 seconds for GET requests
-        'POST': 60000, // 1 minute for POST requests
-        'PUT': 45000, // 45 seconds for PUT requests
-        'DELETE': 30000, // 30 seconds for DELETE requests
-        'PATCH': 45000, // 45 seconds for PATCH requests
+        GET: 30000, // 30 seconds for GET requests
+        POST: 60000, // 1 minute for POST requests
+        PUT: 45000, // 45 seconds for PUT requests
+        DELETE: 30000, // 30 seconds for DELETE requests
+        PATCH: 45000, // 45 seconds for PATCH requests
       },
     };
   }

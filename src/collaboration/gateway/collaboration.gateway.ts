@@ -20,6 +20,7 @@ import {
   CollaborationPermissionsService,
   PermissionLevel,
 } from '../permissions/collaboration-permissions.service';
+import { wsManager } from '../../common/utils/websocket.utils';
 
 export interface CollaborativeOperation {
   sessionId: string;

@@ -60,6 +60,7 @@ describe('UsersService', () => {
     expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
       "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')",
       {
+        // eslint-disable-next-line quotes
         search: "%a\\%\\_b\\\\ test' OR 1=1 --%",
       },
     );

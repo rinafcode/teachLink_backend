@@ -13,12 +13,15 @@ export const corsConfig: CorsOptions = {
    */
   origin: (origin, callback) => {
     const rawOrigins = process.env.CORS_ALLOWED_ORIGINS;
-    
+
     // Default allowed origins if none are configured
     const defaultOrigins = ['http://localhost:3000', 'http://localhost:4000'];
-    
+
     const allowedOrigins = rawOrigins
-      ? rawOrigins.split(',').map((o) => o.trim()).filter((o) => o !== '')
+      ? rawOrigins
+          .split(',')
+          .map((o) => o.trim())
+          .filter((o) => o !== '')
       : defaultOrigins;
 
     // Allow requests with no origin (like mobile apps or curl requests)

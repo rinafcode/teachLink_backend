@@ -5,28 +5,19 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class NamingService {
   toCamelCase(input: string): string {
-    return input
-      .toLowerCase()
-      .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''));
+    return input.toLowerCase().replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''));
   }
 
   toSnakeCase(input: string): string {
-    return input
-      .replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
-      .replace(/^_/, '');
+    return input.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`).replace(/^_/, '');
   }
 
   toPascalCase(input: string): string {
-    return input
-      .replace(/(^\w|[-_\s]+\w)/g, word =>
-        word.replace(/[-_\s]+/, '').toUpperCase(),
-      );
+    return input.replace(/(^\w|[-_\s]+\w)/g, (word) => word.replace(/[-_\s]+/, '').toUpperCase());
   }
 
   toKebabCase(input: string): string {
-    return input
-      .replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)
-      .replace(/^-/, '');
+    return input.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`).replace(/^-/, '');
   }
 
   normalizeKey(input: string): string {

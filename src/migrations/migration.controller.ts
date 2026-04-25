@@ -128,10 +128,7 @@ export class MigrationController {
 
   @Post('rollback/to/:migrationName')
   @HttpCode(HttpStatus.OK)
-  async rollbackToVersion(
-    @Param('migrationName') migrationName: string,
-    @Res() res: Response,
-  ) {
+  async rollbackToVersion(@Param('migrationName') migrationName: string, @Res() res: Response) {
     this.logger.log(`Rolling back to version: ${migrationName}`);
 
     try {
