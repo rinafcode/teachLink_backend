@@ -8,7 +8,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { wsManager } from '../../common/utils/websocket.utils';
+// import { wsManager } from '../../common/utils/websocket.utils';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { CollaborationService } from '../collaboration.service';
@@ -19,6 +19,7 @@ import {
   CollaborationPermissionsService,
   PermissionLevel,
 } from '../permissions/collaboration-permissions.service';
+// import { ResourceType } from '../dto/create-session.dto';
 
 export interface CollaborativeOperation {
   sessionId: string;
@@ -26,6 +27,23 @@ export interface CollaborativeOperation {
   resourceType: 'document' | 'whiteboard';
   operation: any;
   timestamp: number;
+}
+
+/**
+ * Sanitize input to prevent injection attacks
+ */
+function sanitizeInput(input: string): string {
+  if (typeof input !== 'string') return input;
+  // Remove potentially dangerous characters
+  return input.replace(/[<>'";&|`$]/g, '').trim();
+}
+
+/**
+ * Validate UUID format
+ */
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 }
 
 @WebSocketGateway({
@@ -73,7 +91,22 @@ export class CollaborationGateway
     @MessageBody() data: { sessionId: string; userId: string; resourceType: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const { sessionId, userId, resourceType } = data;
+    // Sanitize inputs
+    const sessionId = sanitizeInput(data.sessionId);
+    const userId = sanitizeInput(data.userId);
+    const resourceType = sanitizeInput(data.resourceType);
+
+    // Validate UUIDs
+    if (!isValidUUID(sessionId) || !isValidUUID(userId)) {
+      client.emit('error', { message: 'Invalid session or user ID format' });
+      return;
+    }
+
+    // Validate resource type
+    if (resourceType !== 'document' && resourceType !== 'whiteboard') {
+      client.emit('error', { message: 'Invalid resource type' });
+      return;
+    }
 
     try {
       // Check permissions
@@ -131,7 +164,22 @@ export class CollaborationGateway
     @MessageBody() operation: CollaborativeOperation,
     @ConnectedSocket() client: Socket,
   ) {
-    const { sessionId, userId, resourceType, operation: opData } = operation;
+    // Sanitize inputs
+    const sessionId = sanitizeInput(operation.sessionId);
+    const userId = sanitizeInput(operation.userId);
+    const resourceType = sanitizeInput(operation.resourceType);
+
+    // Validate UUIDs
+    if (!isValidUUID(sessionId) || !isValidUUID(userId)) {
+      client.emit('error', { message: 'Invalid session or user ID format' });
+      return;
+    }
+
+    // Validate resource type
+    if (resourceType !== 'document' && resourceType !== 'whiteboard') {
+      client.emit('error', { message: 'Invalid resource type' });
+      return;
+    }
 
     try {
       // Validate permissions
@@ -149,21 +197,29 @@ export class CollaborationGateway
       // Process the operation based on resource type
       let result: any;
       if (resourceType === 'document') {
-        result = await this.sharedDocumentService.applyOperation(sessionId, userId, opData);
+        result = await this.sharedDocumentService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
       } else if (resourceType === 'whiteboard') {
-        result = await this.whiteboardService.applyOperation(sessionId, userId, opData);
+        result = await this.whiteboardService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
       }
 
       // Record the change for version control
       await this.collaborationService.trackChange(sessionId, userId, {
-        operation: opData,
+        operation: operation.operation,
         resourceType,
         result,
       });
 
       // Broadcast the operation to all other clients in the session
       client.to(sessionId).emit('operation-applied', {
-        operation: opData,
+        operation: operation.operation,
         userId,
         timestamp: Date.now(),
         result,
@@ -181,7 +237,15 @@ export class CollaborationGateway
     @MessageBody() data: { sessionId: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const { sessionId, userId } = data;
+    // Sanitize inputs
+    const sessionId = sanitizeInput(data.sessionId);
+    const userId = sanitizeInput(data.userId);
+
+    // Validate UUIDs
+    if (!isValidUUID(sessionId) || !isValidUUID(userId)) {
+      client.emit('error', { message: 'Invalid session or user ID format' });
+      return;
+    }
 
     try {
       const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
@@ -211,7 +275,22 @@ export class CollaborationGateway
     data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
     @ConnectedSocket() client: Socket,
   ) {
-    const { sessionId, userId, resourceType, operations } = data;
+    // Sanitize inputs
+    const sessionId = sanitizeInput(data.sessionId);
+    const userId = sanitizeInput(data.userId);
+    const resourceType = sanitizeInput(data.resourceType);
+
+    // Validate UUIDs
+    if (!isValidUUID(sessionId) || !isValidUUID(userId)) {
+      client.emit('error', { message: 'Invalid session or user ID format' });
+      return;
+    }
+
+    // Validate resource type
+    if (resourceType !== 'document' && resourceType !== 'whiteboard') {
+      client.emit('error', { message: 'Invalid resource type' });
+      return;
+    }
 
     try {
       // Only admins/owners can resolve conflicts
@@ -227,9 +306,9 @@ export class CollaborationGateway
 
       let result: any;
       if (resourceType === 'document') {
-        result = await this.sharedDocumentService.resolveConflicts(sessionId, operations);
+        result = await this.sharedDocumentService.resolveConflicts(sessionId, data.operations);
       } else if (resourceType === 'whiteboard') {
-        result = await this.whiteboardService.resolveConflicts(sessionId, operations);
+        result = await this.whiteboardService.resolveConflicts(sessionId, data.operations);
       }
 
       // Broadcast resolved state to all clients

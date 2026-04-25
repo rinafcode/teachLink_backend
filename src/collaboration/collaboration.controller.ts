@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CollaborationService } from './collaboration.service';
 import { SharedDocumentService } from './documents/shared-document.service';
@@ -19,6 +20,9 @@ import {
 } from './permissions/collaboration-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CreateSessionDto } from './dto/create-session.dto';
+// import { IsString, IsNotEmpty } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -35,11 +39,10 @@ export class CollaborationController {
    * Initialize a new collaborative session
    */
   @Post('session')
-  async createSession(
-    @Request() req,
-    @Body() body: { sessionId: string; resourceType: 'document' | 'whiteboard' },
-  ) {
-    const { sessionId, resourceType } = body;
+  async createSession(@Request() req, @Body() body: CreateSessionDto) {
+    // Sanitize and validate input using DTO
+    const sanitizedInput = plainToInstance(CreateSessionDto, body);
+    const { sessionId, resourceType } = sanitizedInput;
     const userId = req.user.id;
 
     const session = await this.collaborationService.initializeSession(
@@ -60,7 +63,7 @@ export class CollaborationController {
    * Get collaborative document
    */
   @Get('document/:id')
-  async getDocument(@Param('id') documentId: string, @Request() req) {
+  async getDocument(@Param('id', ParseUUIDPipe) documentId: string, @Request() req) {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       documentId,
@@ -84,7 +87,7 @@ export class CollaborationController {
    * Get collaborative whiteboard
    */
   @Get('whiteboard/:id')
-  async getWhiteboard(@Param('id') whiteboardId: string, @Request() req) {
+  async getWhiteboard(@Param('id', ParseUUIDPipe) whiteboardId: string, @Request() req) {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       whiteboardId,
@@ -109,7 +112,7 @@ export class CollaborationController {
    */
   @Put('document/:id')
   async updateDocument(
-    @Param('id') documentId: string,
+    @Param('id', ParseUUIDPipe) documentId: string,
     @Request() req,
     @Body() body: { operation: any },
   ) {
@@ -138,7 +141,7 @@ export class CollaborationController {
    */
   @Put('whiteboard/:id')
   async updateWhiteboard(
-    @Param('id') whiteboardId: string,
+    @Param('id', ParseUUIDPipe) whiteboardId: string,
     @Request() req,
     @Body() body: { operation: any },
   ) {
@@ -166,7 +169,7 @@ export class CollaborationController {
    * Get document history
    */
   @Get('document/:id/history')
-  async getDocumentHistory(@Param('id') documentId: string, @Request() req) {
+  async getDocumentHistory(@Param('id', ParseUUIDPipe) documentId: string, @Request() req) {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       documentId,
@@ -190,7 +193,7 @@ export class CollaborationController {
    * Get whiteboard history
    */
   @Get('whiteboard/:id/history')
-  async getWhiteboardHistory(@Param('id') whiteboardId: string, @Request() req) {
+  async getWhiteboardHistory(@Param('id', ParseUUIDPipe) whiteboardId: string, @Request() req) {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       whiteboardId,
