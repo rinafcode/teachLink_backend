@@ -69,7 +69,7 @@ export class AuthService {
     private readonly transactionService: TransactionService,
     private readonly notificationsService: NotificationsService,
     private readonly auditLogService: AuditLogService,
-  ) { }
+  ) {}
 
   async register(
     registerDto: RegisterDto,
@@ -422,7 +422,8 @@ export class AuthService {
     }
 
     const secrets = this.parseJwtSecrets(jwtSecretsRaw);
-    const currentSecret = (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
+    const currentSecret =
+      (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
     return { currentVersion, currentSecret: currentSecret || 'your-secret-key' };
   }
 

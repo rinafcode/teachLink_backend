@@ -24,10 +24,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       passReqToCallback: true,
-      secretOrKeyProvider: (req: Request, rawJwtToken: string, done: (err: any, secret?: string) => void) => {
+      secretOrKeyProvider: (
+        req: Request,
+        rawJwtToken: string,
+        done: (err: any, secret?: string) => void,
+      ) => {
         const { secrets } = this.getJwtAccessSecrets();
         const decoded = jwt.decode(rawJwtToken, { complete: true }) as jwt.Jwt | null;
-        const kid = decoded && typeof decoded === 'object' ? (decoded.header as any)?.kid : undefined;
+        const kid =
+          decoded && typeof decoded === 'object' ? (decoded.header as any)?.kid : undefined;
 
         if (kid && secrets[kid]) {
           (req as any).jwtAccessSecretVersionUsed = kid;
@@ -107,13 +112,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return typeof kid === 'string' ? kid : null;
   }
 
-  private getJwtAccessSecrets(): { currentVersion: string | null; secrets: Record<string, string> } {
+  private getJwtAccessSecrets(): {
+    currentVersion: string | null;
+    secrets: Record<string, string>;
+  } {
     const jwtSecretsRaw = this.configService.get<string>('JWT_SECRETS');
     const currentVersion = this.configService.get<string>('JWT_SECRET_CURRENT_VERSION') || null;
 
     if (!jwtSecretsRaw) {
       const secret = this.configService.get<string>('JWT_SECRET') || 'your-secret-key';
-      return { currentVersion, secrets: currentVersion ? { [currentVersion]: secret } : { default: secret } };
+      return {
+        currentVersion,
+        secrets: currentVersion ? { [currentVersion]: secret } : { default: secret },
+      };
     }
 
     return { currentVersion, secrets: this.parseJwtSecrets(jwtSecretsRaw) };
@@ -121,8 +132,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   private getCurrentJwtAccessSecret(): { currentVersion: string | null; currentSecret: string } {
     const { currentVersion, secrets } = this.getJwtAccessSecrets();
-    const currentSecret = (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
-    return { currentVersion, currentSecret: currentSecret || Object.values(secrets)[0] || 'your-secret-key' };
+    const currentSecret =
+      (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
+    return {
+      currentVersion,
+      currentSecret: currentSecret || Object.values(secrets)[0] || 'your-secret-key',
+    };
   }
 
   private parseJwtSecrets(raw: string): Record<string, string> {

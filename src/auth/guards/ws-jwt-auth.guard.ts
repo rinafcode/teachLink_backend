@@ -9,7 +9,7 @@ export class WsJwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient<Socket>();
@@ -64,13 +64,19 @@ export class WsJwtAuthGuard implements CanActivate {
     return typeof kid === 'string' ? kid : null;
   }
 
-  private getJwtAccessSecrets(): { currentVersion: string | null; secrets: Record<string, string> } {
+  private getJwtAccessSecrets(): {
+    currentVersion: string | null;
+    secrets: Record<string, string>;
+  } {
     const jwtSecretsRaw = this.configService.get<string>('JWT_SECRETS');
     const currentVersion = this.configService.get<string>('JWT_SECRET_CURRENT_VERSION') || null;
 
     if (!jwtSecretsRaw) {
       const secret = this.configService.get<string>('JWT_SECRET') || 'your-secret-key';
-      return { currentVersion, secrets: currentVersion ? { [currentVersion]: secret } : { default: secret } };
+      return {
+        currentVersion,
+        secrets: currentVersion ? { [currentVersion]: secret } : { default: secret },
+      };
     }
 
     return { currentVersion, secrets: this.parseJwtSecrets(jwtSecretsRaw) };

@@ -42,7 +42,8 @@ function getCurrentJwtAccessSecret(configService: ConfigService): string {
 
   const currentVersion = configService.get<string>('JWT_SECRET_CURRENT_VERSION');
   const secrets = parseJwtSecrets(jwtSecretsRaw);
-  const current = (currentVersion && secrets[currentVersion]) || configService.get<string>('JWT_SECRET');
+  const current =
+    (currentVersion && secrets[currentVersion]) || configService.get<string>('JWT_SECRET');
   return current || Object.values(secrets)[0] || 'your-secret-key';
 }
 
@@ -71,4 +72,4 @@ function getCurrentJwtAccessSecret(configService: ConfigService): string {
   providers: [AuthService, JwtStrategy, TransactionService],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

@@ -26,7 +26,7 @@ export class WebhookController {
   async handleStripeWebhook(
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
-  ) {
+  ): Promise<any> {
     return this.webhookService.handleStripeWebhook(req.rawBody, signature);
   }
 
@@ -41,7 +41,7 @@ export class WebhookController {
     @Headers('paypal-cert-url') certUrl: string,
     @Headers('paypal-auth-algo') authAlgo: string,
     @Body() payload: any,
-  ) {
+  ): Promise<any> {
     return this.webhookService.handlePayPalWebhook(
       payload,
       transmissionId,

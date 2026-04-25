@@ -11,7 +11,7 @@ export class GamificationService {
     private challengesService: ChallengesService,
   ) {}
 
-  async handleActivity(userId: string, activityType: string, points: number = 10) {
+  async handleActivity(userId: string, activityType: string, points: number = 10): Promise<any> {
     // 1. Add points
     const progress = await this.pointsService.addPoints(userId, points, activityType);
 

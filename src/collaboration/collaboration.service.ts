@@ -20,7 +20,7 @@ export class CollaborationService {
     sessionId: string,
     userId: string,
     resourceType: 'document' | 'whiteboard',
-  ) {
+  ): Promise<any> {
     // Set up initial permissions and session tracking
     await this.permissionsService.grantAccess(sessionId, userId);
 
@@ -41,7 +41,7 @@ export class CollaborationService {
     userId: string,
     operation: any,
     resourceType: 'document' | 'whiteboard',
-  ) {
+  ): Promise<any> {
     // Check permissions
     const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
     if (!hasPermission) {
@@ -60,7 +60,7 @@ export class CollaborationService {
   /**
    * Track changes for version control
    */
-  async trackChange(sessionId: string, userId: string, change: any) {
+  async trackChange(sessionId: string, userId: string, change: any): Promise<any> {
     return await this.versionControlService.recordChange(sessionId, userId, change);
   }
 }

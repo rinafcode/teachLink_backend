@@ -23,7 +23,7 @@ import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
 
-async function bootstrapWorker() {
+async function bootstrapWorker(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
 
@@ -173,7 +173,7 @@ async function bootstrapWorker() {
   const shutdownTimeoutMs = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || '30000', 10);
   let isShuttingDown = false;
 
-  const shutdown = async (signal: string) => {
+  const shutdown = async (signal: string): Promise<void> => {
     if (isShuttingDown) {
       return;
     }
@@ -209,7 +209,7 @@ async function bootstrapWorker() {
   });
 }
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const logger = new Logger('Cluster');
   const clusterModeEnabled = (process.env.CLUSTER_MODE || 'false') === 'true';
 
@@ -247,7 +247,7 @@ async function bootstrap() {
       cluster.fork();
     });
 
-    const shutdownCluster = (signal: string) => {
+    const shutdownCluster = (signal: string): void => {
       if (isShuttingDown) {
         return;
       }

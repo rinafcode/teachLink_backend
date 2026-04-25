@@ -6,7 +6,7 @@ import { COURSES_INDEX } from '../search.service';
 export class SearchFiltersService {
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
-  async getFilters() {
+  async getFilters(): Promise<any> {
     const result = await this.elasticsearchService.search({
       index: COURSES_INDEX,
       size: 0,

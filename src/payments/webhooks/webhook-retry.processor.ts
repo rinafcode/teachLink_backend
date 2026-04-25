@@ -142,7 +142,7 @@ export class WebhookRetryProcessor {
         `Webhook ${webhookRetryId} will be retried at ${webhookRetry.nextRetryTime}. Retry ${webhookRetry.retryCount}/${webhookRetry.maxRetries}`,
       );
 
-      // Re-queue the job with delay
+      // Re-queue the job with delay (Bull's retry() takes no arguments in this version)
       await job.retry();
     } else {
       // All retries exhausted - move to dead letter
