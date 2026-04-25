@@ -3,7 +3,8 @@ import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
-import session from 'express-session';
+import { json, urlencoded, type NextFunction, type Request, type Response } from 'express';
+import session, { type Session, type SessionData } from 'express-session';
 import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 import { AppModule } from './app.module';
@@ -23,9 +24,18 @@ import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
 
+type SessionRequest = Request & {
+  session?: Session & Partial<SessionData> & { userAgent?: string };
+};
+
 async function bootstrapWorker(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
+  const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '1mb';
+  const fileUploadMaxBytes = parseInt(
+    process.env.FILE_UPLOAD_MAX_BYTES || `${10 * 1024 * 1024}`,
+    10,
+  );
 
   // Create the application with dynamic module loading
   const app = await NestFactory.create(await AppModule.forRoot(), { rawBody: true });
@@ -56,6 +66,36 @@ async function bootstrapWorker(): Promise<void> {
       },
     }),
   );
+
+  app.use(json({ limit: requestBodyLimit }));
+  app.use(urlencoded({ extended: true, limit: requestBodyLimit }));
+
+  app.use((req: Request, res: Response, next: NextFunction): void => {
+    const contentType = req.headers['content-type'];
+    const contentLengthHeader = req.headers['content-length'];
+    const isMultipart =
+      typeof contentType === 'string' && contentType.toLowerCase().includes('multipart/form-data');
+
+    if (!isMultipart) {
+      next();
+      return;
+    }
+
+    const contentLengthValue = Array.isArray(contentLengthHeader)
+      ? contentLengthHeader[0]
+      : contentLengthHeader;
+    const contentLength = parseInt(contentLengthValue || '', 10);
+
+    if (!Number.isNaN(contentLength) && contentLength > fileUploadMaxBytes) {
+      res.status(413).json({
+        message: 'File upload too large',
+        maxBytes: fileUploadMaxBytes,
+      });
+      return;
+    }
+
+    next();
+  });
 
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
 
@@ -88,16 +128,17 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   // Session fixation protection: bind session to User-Agent
-  app.use((req: any, res: any, next: any) => {
+  app.use((req: SessionRequest, res: Response, next: NextFunction): void => {
     if (!req.session) {
-      return next();
+      next();
+      return;
     }
 
     const userAgent = req.headers['user-agent'] || 'unknown';
     if (!req.session.userAgent) {
       req.session.userAgent = userAgent;
     } else if (req.session.userAgent !== userAgent) {
-      return req.session.destroy((err: any) => {
+      req.session.destroy((err: unknown): void => {
         if (err) {
           logger.error('Error destroying session', err);
         }
@@ -128,6 +169,12 @@ async function bootstrapWorker(): Promise<void> {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      forbidUnknownValues: true,
+      stopAtFirstError: true,
+      validationError: {
+        target: false,
+        value: false,
+      },
     }),
   );
 
@@ -290,4 +337,4 @@ async function bootstrap(): Promise<void> {
   await bootstrapWorker();
 }
 
-bootstrap();
+void bootstrap();

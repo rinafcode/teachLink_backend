@@ -83,11 +83,18 @@ module.exports = {
     '@typescript-eslint/no-useless-constructor': 'warn',
 
     // ── Naming convention ──
-    '@typescript-eslint/naming-convention': 'off',
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        selector: 'variable',
+        modifiers: ['const'],
+        format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+      },
+    ],
 
     // ── Formatting ──
-    'semi': 'off',
-    'quotes': 'off',
+    'semi': ['error', 'always'],
+    'quotes': ['error', 'single', { avoidEscape: true }],
   },
 
   overrides: [
