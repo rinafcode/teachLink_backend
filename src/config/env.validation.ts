@@ -92,7 +92,7 @@ export const envValidationSchema = Joi.object({
 
   // Feature Flags
   ENABLE_AUTH: Joi.boolean().default(true),
-  ENABLE_SESSION_MANAGEMENT: Joi.boolean().default(true),
+
   ENABLE_PAYMENTS: Joi.boolean().default(true),
   ENABLE_AB_TESTING: Joi.boolean().default(false),
   ENABLE_DATA_WAREHOUSE: Joi.boolean().default(false),
@@ -118,6 +118,8 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  // TODO: ENABLE_MALWARE_SCANNING is used in media/validation/malware-scanning.service.ts
+  // but is not defined in feature-flags.config.ts — add it there or migrate to ConfigService only
   ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
