@@ -30,6 +30,23 @@ export interface CollaborativeOperation {
   timestamp: number;
 }
 
+/**
+ * Sanitize input to prevent injection attacks
+ */
+function sanitizeInput(input: string): string {
+  if (typeof input !== 'string') return input;
+  // Remove potentially dangerous characters
+  return input.replace(/[<>'";&|`$]/g, '').trim();
+}
+
+/**
+ * Validate UUID format
+ */
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -164,14 +181,22 @@ export class CollaborationGateway
       // Process the operation based on resource type
       let result: any;
       if (resourceType === 'document') {
-        result = await this.sharedDocumentService.applyOperation(sessionId, userId, opData);
+        result = await this.sharedDocumentService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
       } else if (resourceType === 'whiteboard') {
-        result = await this.whiteboardService.applyOperation(sessionId, userId, opData);
+        result = await this.whiteboardService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
       }
 
       // Record the change for version control
       await this.collaborationService.trackChange(sessionId, userId, {
-        operation: opData,
+        operation: operation.operation,
         resourceType,
         result,
       });
@@ -242,9 +267,9 @@ export class CollaborationGateway
 
       let result: any;
       if (resourceType === 'document') {
-        result = await this.sharedDocumentService.resolveConflicts(sessionId, operations);
+        result = await this.sharedDocumentService.resolveConflicts(sessionId, data.operations);
       } else if (resourceType === 'whiteboard') {
-        result = await this.whiteboardService.resolveConflicts(sessionId, operations);
+        result = await this.whiteboardService.resolveConflicts(sessionId, data.operations);
       }
 
       // Broadcast resolved state to all clients

@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CollaborationService } from './collaboration.service';
 import { SharedDocumentService } from './documents/shared-document.service';
@@ -19,6 +20,9 @@ import {
 } from './permissions/collaboration-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CreateSessionDto } from './dto/create-session.dto';
+// import { IsString, IsNotEmpty } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -109,7 +113,7 @@ export class CollaborationController {
    */
   @Put('document/:id')
   async updateDocument(
-    @Param('id') documentId: string,
+    @Param('id', ParseUUIDPipe) documentId: string,
     @Request() req,
     @Body() body: { operation: any },
   ): Promise<any> {
@@ -138,7 +142,7 @@ export class CollaborationController {
    */
   @Put('whiteboard/:id')
   async updateWhiteboard(
-    @Param('id') whiteboardId: string,
+    @Param('id', ParseUUIDPipe) whiteboardId: string,
     @Request() req,
     @Body() body: { operation: any },
   ): Promise<any> {
