@@ -13,29 +13,29 @@ import { EmailService } from './email/email.service';
 import { EmailProcessor } from './email/email.processor';
 import { Notification } from './entities/notification.entity';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
-
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Notification, NotificationPreferences]),
-    ConfigModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'default-secret',
-      signOptions: { expiresIn: '24h' },
-    }),
-    BullModule.registerQueue({
-      name: QUEUE_NAMES.EMAIL,
-    }),
-  ],
-  controllers: [NotificationsController],
-  providers: [
-    NotificationsService,
-    NotificationsGateway,
-    NotificationTemplatesService,
-    PreferencesService,
-    EmailService,
-    EmailProcessor,
-  ],
-  exports: [NotificationsService, PreferencesService],
+    imports: [
+        TypeOrmModule.forFeature([Notification, NotificationPreferences]),
+        ConfigModule,
+        JwtModule.register({
+            secret: process.env.JWT_SECRET || 'default-secret',
+            signOptions: { expiresIn: '24h' },
+        }),
+        BullModule.registerQueue({
+            name: QUEUE_NAMES.EMAIL,
+        }),
+    ],
+    controllers: [NotificationsController],
+    providers: [
+        NotificationsService,
+        NotificationsGateway,
+        NotificationTemplatesService,
+        PreferencesService,
+        EmailService,
+        EmailProcessor,
+    ],
+    exports: [NotificationsService, PreferencesService],
 })
-export class NotificationsModule {}
+export class NotificationsModule {
+}

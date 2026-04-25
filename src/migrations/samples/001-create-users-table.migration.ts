@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MigrationConfig } from '../migration.service';
-
 /**
  * Migration 001 — Create users table
  *
@@ -9,30 +8,25 @@ import { MigrationConfig } from '../migration.service';
  */
 @Injectable()
 export class CreateUsersTableMigration implements MigrationConfig {
-  name = '001-create-users-table';
-  version = '1.0.0';
-  dependencies: string[] = [];
-
-  private readonly logger = new Logger(CreateUsersTableMigration.name);
-
-  async up(connection: any): Promise<void> {
-    this.logger.log('Applying migration: create users table');
-
-    await connection.query(`
+    name = '001-create-users-table';
+    version = '1.0.0';
+    dependencies: string[] = [];
+    private readonly logger = new Logger(CreateUsersTableMigration.name);
+    async up(connection: unknown): Promise<void> {
+        this.logger.log('Applying migration: create users table');
+        await connection.query(`
       DO $$ BEGIN
         CREATE TYPE user_role AS ENUM ('student', 'teacher', 'admin');
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$;
     `);
-
-    await connection.query(`
+        await connection.query(`
       DO $$ BEGIN
         CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended');
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$;
     `);
-
-    await connection.query(`
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email                      VARCHAR(255) NOT NULL UNIQUE,
@@ -56,21 +50,16 @@ export class CreateUsersTableMigration implements MigrationConfig {
         updated_at                 TIMESTAMP NOT NULL DEFAULT NOW()
       );
     `);
-
-    await connection.query('CREATE INDEX IF NOT EXISTS idx_users_email     ON users (email);');
-    await connection.query('CREATE INDEX IF NOT EXISTS idx_users_username  ON users (username);');
-    await connection.query('CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users (tenant_id);');
-
-    this.logger.log('Migration applied: create users table');
-  }
-
-  async down(connection: any): Promise<void> {
-    this.logger.log('Rolling back migration: create users table');
-
-    await connection.query('DROP TABLE IF EXISTS users CASCADE;');
-    await connection.query('DROP TYPE IF EXISTS user_role;');
-    await connection.query('DROP TYPE IF EXISTS user_status;');
-
-    this.logger.log('Migration rolled back: create users table');
-  }
+        await connection.query('CREATE INDEX IF NOT EXISTS idx_users_email     ON users (email);');
+        await connection.query('CREATE INDEX IF NOT EXISTS idx_users_username  ON users (username);');
+        await connection.query('CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users (tenant_id);');
+        this.logger.log('Migration applied: create users table');
+    }
+    async down(connection: unknown): Promise<void> {
+        this.logger.log('Rolling back migration: create users table');
+        await connection.query('DROP TABLE IF EXISTS users CASCADE;');
+        await connection.query('DROP TYPE IF EXISTS user_role;');
+        await connection.query('DROP TYPE IF EXISTS user_status;');
+        this.logger.log('Migration rolled back: create users table');
+    }
 }

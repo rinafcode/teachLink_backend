@@ -13,31 +13,31 @@ import { MalwareScanningService } from './validation/malware-scanning.service';
 import { UploadProgressService } from './validation/upload-progress.service';
 import { ContentMetadata } from '../cdn/entities/content-metadata.entity';
 import { VideoProcessor } from './processing/video.processor';
-
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ContentMetadata]),
-    BullModule.registerQueue({ name: QUEUE_NAMES.MEDIA_PROCESSING }),
-  ],
-  controllers: [MediaController],
-  providers: [
-    MediaService,
-    FileStorageService,
-    VideoProcessingService,
-    DocumentProcessingService,
-    ImageProcessingService,
-    FileValidationService,
-    MalwareScanningService,
-    UploadProgressService,
-    // processors
-    VideoProcessor,
-  ],
-  exports: [
-    MediaService,
-    FileStorageService,
-    VideoProcessingService,
-    FileValidationService,
-    ImageProcessingService,
-  ],
+    imports: [
+        TypeOrmModule.forFeature([ContentMetadata]),
+        BullModule.registerQueue({ name: QUEUE_NAMES.MEDIA_PROCESSING }),
+    ],
+    controllers: [MediaController],
+    providers: [
+        MediaService,
+        FileStorageService,
+        VideoProcessingService,
+        DocumentProcessingService,
+        ImageProcessingService,
+        FileValidationService,
+        MalwareScanningService,
+        UploadProgressService,
+        // processors
+        VideoProcessor,
+    ],
+    exports: [
+        MediaService,
+        FileStorageService,
+        VideoProcessingService,
+        FileValidationService,
+        ImageProcessingService,
+    ],
 })
-export class MediaModule {}
+export class MediaModule {
+}

@@ -9,16 +9,16 @@ import { FeedbackGenerationService } from './feedback/feedback-generation.servic
 import { QuestionBankService } from './questions/question-bank.service';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { Module } from '@nestjs/common';
-
 @Module({
-  imports: [TypeOrmModule.forFeature([Assessment, Question, AssessmentAttempt, Answer])],
-  controllers: [AssessmentsController],
-  providers: [
-    AssessmentsService,
-    QuestionBankService,
-    ScoreCalculationService,
-    FeedbackGenerationService,
-  ],
-  exports: [AssessmentsService],
+    imports: [TypeOrmModule.forFeature([Assessment, Question, AssessmentAttempt, Answer])],
+    controllers: [AssessmentsController],
+    providers: [
+        AssessmentsService,
+        QuestionBankService,
+        ScoreCalculationService,
+        FeedbackGenerationService,
+    ],
+    exports: [AssessmentsService],
 })
-export class AssessmentsModule {}
+export class AssessmentsModule {
+}

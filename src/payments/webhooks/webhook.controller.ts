@@ -1,54 +1,41 @@
-import {
-  Controller,
-  Post,
-  Headers,
-  Body,
-  HttpCode,
-  HttpStatus,
-  Req,
-  RawBodyRequest,
-} from '@nestjs/common';
+import { Controller, Post, Headers, Body, HttpCode, HttpStatus, Req, RawBodyRequest, } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
-
 @SkipThrottle()
 @ApiTags('webhooks')
 @Controller('webhooks')
 export class WebhookController {
-  constructor(private readonly webhookService: WebhookService) {}
-
-  @Post('stripe')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Handle Stripe webhook events' })
-  @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handleStripeWebhook(
-    @Headers('stripe-signature') signature: string,
-    @Req() req: RawBodyRequest<Request>,
-  ): Promise<any> {
-    return this.webhookService.handleStripeWebhook(req.rawBody, signature);
-  }
-
-  @Post('paypal')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Handle PayPal webhook events' })
-  @ApiResponse({ status: 200, description: 'Webhook processed' })
-  async handlePayPalWebhook(
-    @Headers('paypal-transmission-id') transmissionId: string,
-    @Headers('paypal-transmission-time') transmissionTime: string,
-    @Headers('paypal-transmission-sig') transmissionSig: string,
-    @Headers('paypal-cert-url') certUrl: string,
-    @Headers('paypal-auth-algo') authAlgo: string,
-    @Body() payload: any,
-  ): Promise<any> {
-    return this.webhookService.handlePayPalWebhook(
-      payload,
-      transmissionId,
-      transmissionTime,
-      transmissionSig,
-      certUrl,
-      authAlgo,
-    );
-  }
+    constructor(private readonly webhookService: WebhookService) { }
+    @Post('stripe')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Handle Stripe webhook events' })
+    @ApiResponse({ status: 200, description: 'Webhook processed' })
+    async handleStripeWebhook(
+    @Headers('stripe-signature')
+    signature: string, 
+    @Req()
+    req: RawBodyRequest<Request>): Promise<unknown> {
+        return this.webhookService.handleStripeWebhook(req.rawBody, signature);
+    }
+    @Post('paypal')
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: 'Handle PayPal webhook events' })
+    @ApiResponse({ status: 200, description: 'Webhook processed' })
+    async handlePayPalWebhook(
+    @Headers('paypal-transmission-id')
+    transmissionId: string, 
+    @Headers('paypal-transmission-time')
+    transmissionTime: string, 
+    @Headers('paypal-transmission-sig')
+    transmissionSig: string, 
+    @Headers('paypal-cert-url')
+    certUrl: string, 
+    @Headers('paypal-auth-algo')
+    authAlgo: string, 
+    @Body()
+    payload: unknown): Promise<unknown> {
+        return this.webhookService.handlePayPalWebhook(payload, transmissionId, transmissionTime, transmissionSig, certUrl, authAlgo);
+    }
 }

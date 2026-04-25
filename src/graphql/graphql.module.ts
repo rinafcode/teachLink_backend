@@ -15,58 +15,58 @@ import { CourseResolver } from './resolvers/course.resolver';
 import { AssessmentResolver } from './resolvers/assessment.resolver';
 import { DataLoaderService } from './services/dataloader.service';
 import { QueryComplexityService } from './services/query-complexity.service';
-
 @Module({
-  imports: [
-    NestGraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/graphql/schema/schema.graphql'),
-      sortSchema: true,
-      playground: true,
-      subscriptions: {
-        'graphql-ws': true,
-        'subscriptions-transport-ws': true,
-      },
-      // Enable query complexity validation
-      validationRules: [],
-      // Custom plugins for query complexity
-      plugins: [],
-      context: ({ req, connection }, _, { injector }) => {
-        if (connection) {
-          return { req: connection.context };
-        }
-        // Attach DataLoaders to context for N+1 prevention
-        const dataLoaderService = injector?.get(DataLoaderService);
-        const loaders = dataLoaderService?.createLoaders() || {};
-        return { req, loaders };
-      },
-      formatError: (error) => {
-        return {
-          message: error.message,
-          code: error.extensions?.code,
-          path: error.path,
-        };
-      },
-    }),
-    UsersModule,
-    CoursesModule,
-    AssessmentsModule,
-    AuthModule,
-  ],
-  providers: [
-    QueryResolver,
-    MutationResolver,
-    SubscriptionResolver,
-    UserResolver,
-    CourseResolver,
-    AssessmentResolver,
-    DataLoaderService,
-    QueryComplexityService,
-    {
-      provide: 'PUB_SUB',
-      useValue: new PubSub(),
-    },
-  ],
-  exports: [DataLoaderService, QueryComplexityService, 'PUB_SUB'],
+    imports: [
+        NestGraphQLModule.forRoot<ApolloDriverConfig>({
+            driver: ApolloDriver,
+            autoSchemaFile: join(process.cwd(), 'src/graphql/schema/schema.graphql'),
+            sortSchema: true,
+            playground: true,
+            subscriptions: {
+                'graphql-ws': true,
+                'subscriptions-transport-ws': true,
+            },
+            // Enable query complexity validation
+            validationRules: [],
+            // Custom plugins for query complexity
+            plugins: [],
+            context: ({ req, connection }, _, { injector }) => {
+                if (connection) {
+                    return { req: connection.context };
+                }
+                // Attach DataLoaders to context for N+1 prevention
+                const dataLoaderService = injector?.get(DataLoaderService);
+                const loaders = dataLoaderService?.createLoaders() || {};
+                return { req, loaders };
+            },
+            formatError: (error) => {
+                return {
+                    message: error.message,
+                    code: error.extensions?.code,
+                    path: error.path,
+                };
+            },
+        }),
+        UsersModule,
+        CoursesModule,
+        AssessmentsModule,
+        AuthModule,
+    ],
+    providers: [
+        QueryResolver,
+        MutationResolver,
+        SubscriptionResolver,
+        UserResolver,
+        CourseResolver,
+        AssessmentResolver,
+        DataLoaderService,
+        QueryComplexityService,
+        {
+            provide: 'PUB_SUB',
+            useValue: new PubSub(),
+        },
+    ],
+    exports: [DataLoaderService, QueryComplexityService, 'PUB_SUB'],
 })
-export class GraphQLModule {}
+export class GraphQLModule {
+}

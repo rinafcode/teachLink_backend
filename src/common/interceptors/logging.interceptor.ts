@@ -2,30 +2,23 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } fr
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import {
-  CORRELATION_ID_HEADER,
-  generateCorrelationId,
-  getCorrelationId,
-} from '../utils/correlation.utils';
-
+import { CORRELATION_ID_HEADER, generateCorrelationId, getCorrelationId, } from '../utils/correlation.utils';
 export interface RequestLog {
-  requestId: string;
-  timestamp: string;
-  method: string;
-  url: string;
-  route: string;
-  ip: string;
-  userAgent: string;
-  userId?: string | number;
-  userRole?: string;
+    requestId: string;
+    timestamp: string;
+    method: string;
+    url: string;
+    route: string;
+    ip: string;
+    userAgent: string;
+    userId?: string | number;
+    userRole?: string;
 }
-
 export interface ResponseLog extends RequestLog {
-  statusCode: number;
-  responseTimeMs: number;
-  contentLength?: number;
+    statusCode: number;
+    responseTimeMs: number;
+    contentLength?: number;
 }
-
 /**
  * #154 – LoggingInterceptor
  *
@@ -37,105 +30,87 @@ export interface ResponseLog extends RequestLog {
  */
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(LoggingInterceptor.name);
-  private readonly isProd = process.env.NODE_ENV === 'production';
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    // Only intercept HTTP contexts (skip WebSockets, microservices, etc.)
-    if (context.getType() !== 'http') {
-      return next.handle();
+    private readonly logger = new Logger(LoggingInterceptor.name);
+    private readonly isProd = process.env.NODE_ENV === 'production';
+    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+        // Only intercept HTTP contexts (skip WebSockets, microservices, etc.)
+        if (context.getType() !== 'http') {
+            return next.handle();
+        }
+        const httpCtx = context.switchToHttp();
+        const request = httpCtx.getRequest<Request & {
+            user?: Record<string, unknown>;
+        }>();
+        if (!request) {
+            return next.handle();
+        }
+        const startTime = Date.now();
+        const requestId = getCorrelationId() || generateCorrelationId();
+        const response = httpCtx.getResponse<Response>();
+        response?.setHeader(CORRELATION_ID_HEADER, requestId);
+        const baseLog: RequestLog = {
+            requestId,
+            timestamp: new Date().toISOString(),
+            method: request.method ?? 'UNKNOWN',
+            url: request.url,
+            route: request.route?.path ?? request.url,
+            ip: this.resolveClientIp(request),
+            userAgent: (request.headers['user-agent'] as string) ?? 'unknown',
+            ...(request.user?.id !== undefined && { userId: request.user.id as string | number }),
+            ...(request.user?.role !== undefined && { userRole: request.user.role as string }),
+        };
+        this.logIncoming(baseLog);
+        return next.handle().pipe(tap(() => {
+            const res = httpCtx.getResponse<Response>();
+            this.logOutgoing({
+                ...baseLog,
+                statusCode: res.statusCode,
+                responseTimeMs: Date.now() - startTime,
+                contentLength: this.getContentLength(res),
+            });
+        }), catchError((error: unknown) => {
+            const status = typeof error === 'object' && error !== null && 'status' in error
+                ? (error as {
+                    status: number;
+                }).status
+                : 500;
+            this.logOutgoing({
+                ...baseLog,
+                statusCode: status,
+                responseTimeMs: Date.now() - startTime,
+            });
+            return throwError(() => error);
+        }));
     }
-
-    const httpCtx = context.switchToHttp();
-    const request = httpCtx.getRequest<Request & { user?: Record<string, unknown> }>();
-
-    if (!request) {
-      return next.handle();
+    // ─── Private helpers ───────────────────────────────────────────────────────
+    private logIncoming(log: RequestLog): void {
+        const message = `→ ${log.method} ${log.url}`;
+        if (this.isProd) {
+            this.logger.log(JSON.stringify({ event: 'request.incoming', ...log }));
+        }
+        else {
+            this.logger.log(`${message} | id=${log.requestId} ip=${log.ip}${log.userId ? ` user=${log.userId}` : ''}`);
+        }
     }
-
-    const startTime = Date.now();
-    const requestId = getCorrelationId() || generateCorrelationId();
-
-    const response = httpCtx.getResponse<Response>();
-    response?.setHeader(CORRELATION_ID_HEADER, requestId);
-
-    const baseLog: RequestLog = {
-      requestId,
-      timestamp: new Date().toISOString(),
-      method: request.method ?? 'UNKNOWN',
-      url: request.url,
-      route: request.route?.path ?? request.url,
-      ip: this.resolveClientIp(request),
-      userAgent: (request.headers['user-agent'] as string) ?? 'unknown',
-      ...(request.user?.id !== undefined && { userId: request.user.id as string | number }),
-      ...(request.user?.role !== undefined && { userRole: request.user.role as string }),
-    };
-
-    this.logIncoming(baseLog);
-
-    return next.handle().pipe(
-      tap(() => {
-        const res = httpCtx.getResponse<Response>();
-        this.logOutgoing({
-          ...baseLog,
-          statusCode: res.statusCode,
-          responseTimeMs: Date.now() - startTime,
-          contentLength: this.getContentLength(res),
-        });
-      }),
-      catchError((error: unknown) => {
-        const status =
-          typeof error === 'object' && error !== null && 'status' in error
-            ? (error as { status: number }).status
-            : 500;
-
-        this.logOutgoing({
-          ...baseLog,
-          statusCode: status,
-          responseTimeMs: Date.now() - startTime,
-        });
-
-        return throwError(() => error);
-      }),
-    );
-  }
-
-  // ─── Private helpers ───────────────────────────────────────────────────────
-
-  private logIncoming(log: RequestLog): void {
-    const message = `→ ${log.method} ${log.url}`;
-    if (this.isProd) {
-      this.logger.log(JSON.stringify({ event: 'request.incoming', ...log }));
-    } else {
-      this.logger.log(
-        `${message} | id=${log.requestId} ip=${log.ip}${log.userId ? ` user=${log.userId}` : ''}`,
-      );
+    private logOutgoing(log: ResponseLog): void {
+        const message = `← ${log.method} ${log.url} ${log.statusCode} ${log.responseTimeMs}ms`;
+        const level = log.statusCode >= 500 ? 'error' : log.statusCode >= 400 ? 'warn' : 'log';
+        if (this.isProd) {
+            this.logger[level](JSON.stringify({ event: 'request.completed', ...log }));
+        }
+        else {
+            this.logger[level](`${message} | id=${log.requestId}${log.userId ? ` user=${log.userId}` : ''}`);
+        }
     }
-  }
-
-  private logOutgoing(log: ResponseLog): void {
-    const message = `← ${log.method} ${log.url} ${log.statusCode} ${log.responseTimeMs}ms`;
-    const level = log.statusCode >= 500 ? 'error' : log.statusCode >= 400 ? 'warn' : 'log';
-
-    if (this.isProd) {
-      this.logger[level](JSON.stringify({ event: 'request.completed', ...log }));
-    } else {
-      this.logger[level](
-        `${message} | id=${log.requestId}${log.userId ? ` user=${log.userId}` : ''}`,
-      );
+    private resolveClientIp(request: Request): string {
+        const forwarded = request.headers['x-forwarded-for'];
+        if (typeof forwarded === 'string') {
+            return forwarded.split(',')[0].trim();
+        }
+        return request.ip ?? request.socket?.remoteAddress ?? 'unknown';
     }
-  }
-
-  private resolveClientIp(request: Request): string {
-    const forwarded = request.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string') {
-      return forwarded.split(',')[0].trim();
+    private getContentLength(response: Response): number | undefined {
+        const header = response.getHeader('content-length');
+        return header !== undefined ? Number(header) : undefined;
     }
-    return request.ip ?? request.socket?.remoteAddress ?? 'unknown';
-  }
-
-  private getContentLength(response: Response): number | undefined {
-    const header = response.getHeader('content-length');
-    return header !== undefined ? Number(header) : undefined;
-  }
 }

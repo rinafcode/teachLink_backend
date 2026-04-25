@@ -1,5 +1,1 @@
-export {
-  IsStrongPassword,
-  calculatePasswordStrength,
-  PasswordStrengthResult,
-} from './password.validator';
+export { IsStrongPassword, calculatePasswordStrength, PasswordStrengthResult, } from './password.validator';

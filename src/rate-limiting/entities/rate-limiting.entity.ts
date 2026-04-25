@@ -1,1 +1,2 @@
-export class RateLimiting {}
+export class RateLimiting {
+}

@@ -10,11 +10,11 @@ import { CourseModule as CourseModuleEntity } from './entities/course-module.ent
 import { Lesson } from './entities/lesson.entity';
 import { Enrollment } from './entities/enrollment.entity';
 import { User } from '../users/entities/user.entity';
-
 @Module({
-  imports: [TypeOrmModule.forFeature([Course, CourseModuleEntity, Lesson, Enrollment, User])],
-  controllers: [CoursesController],
-  providers: [CoursesService, ModulesService, LessonsService, EnrollmentsService],
-  exports: [CoursesService],
+    imports: [TypeOrmModule.forFeature([Course, CourseModuleEntity, Lesson, Enrollment, User])],
+    controllers: [CoursesController],
+    providers: [CoursesService, ModulesService, LessonsService, EnrollmentsService],
+    exports: [CoursesService],
 })
-export class CoursesModule {}
+export class CoursesModule {
+}

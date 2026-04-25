@@ -7,21 +7,20 @@ import { LanguageDetectionService } from './language-detection.service';
 import { LanguageMiddleware } from './language.middleware';
 import { LocalizationController } from './localization.controller';
 import { LocalizationService } from './localization.service';
-
 @Module({
-  imports: [TypeOrmModule.forFeature([Translation])],
-  controllers: [LocalizationController],
-  providers: [
-    LocalizationService,
-    LanguageDetectionService,
-    LanguageMiddleware,
-    JwtAuthGuard,
-    RolesGuard,
-  ],
-  exports: [LocalizationService, LanguageDetectionService],
+    imports: [TypeOrmModule.forFeature([Translation])],
+    controllers: [LocalizationController],
+    providers: [
+        LocalizationService,
+        LanguageDetectionService,
+        LanguageMiddleware,
+        JwtAuthGuard,
+        RolesGuard,
+    ],
+    exports: [LocalizationService, LanguageDetectionService],
 })
 export class LocalizationModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LanguageMiddleware).forRoutes(LocalizationController);
-  }
+    configure(consumer: MiddlewareConsumer) {
+        consumer.apply(LanguageMiddleware).forRoutes(LocalizationController);
+    }
 }

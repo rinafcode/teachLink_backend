@@ -5,7 +5,6 @@ import { CreateCourseModulesTableMigration } from './samples/003-create-course-m
 import { CreateLessonsTableMigration } from './samples/004-create-lessons-table.migration';
 import { CreateEnrollmentsTableMigration } from './samples/005-create-enrollments-table.migration';
 import { CreateMigrationsTrackingTableMigration } from './samples/006-create-migrations-tracking-table.migration';
-
 /**
  * Central registry of all migrations in execution order.
  *
@@ -16,10 +15,10 @@ import { CreateMigrationsTrackingTableMigration } from './samples/006-create-mig
  * - Never remove or reorder existing entries — only append new ones.
  */
 export const MIGRATION_REGISTRY: MigrationConfig[] = [
-  new CreateMigrationsTrackingTableMigration(),
-  new CreateUsersTableMigration(),
-  new CreateCoursesTableMigration(),
-  new CreateCourseModulesTableMigration(),
-  new CreateLessonsTableMigration(),
-  new CreateEnrollmentsTableMigration(),
+    new CreateMigrationsTrackingTableMigration(),
+    new CreateUsersTableMigration(),
+    new CreateCoursesTableMigration(),
+    new CreateCourseModulesTableMigration(),
+    new CreateLessonsTableMigration(),
+    new CreateEnrollmentsTableMigration(),
 ];

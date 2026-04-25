@@ -7,18 +7,18 @@ import { IndexingService } from './indexing/indexing.service';
 import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
 import { createElasticsearchConfig } from '../config/elasticsearch.config';
-
 @Module({
-  imports: [
-    ConfigModule,
-    ElasticsearchModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: createElasticsearchConfig,
-    }),
-  ],
-  controllers: [SearchController],
-  providers: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService],
-  exports: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService],
+    imports: [
+        ConfigModule,
+        ElasticsearchModule.registerAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: createElasticsearchConfig,
+        }),
+    ],
+    controllers: [SearchController],
+    providers: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService],
+    exports: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService],
 })
-export class SearchModule {}
+export class SearchModule {
+}

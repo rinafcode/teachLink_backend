@@ -8,19 +8,15 @@ import { User } from './entities/user.entity';
 import { Enrollment } from '../courses/entities/enrollment.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  ExportService,
-  UserDataExportProcessor,
-  UserExportHistory,
-} from '../common/export/export.service';
-
+import { ExportService, UserDataExportProcessor, UserExportHistory, } from '../common/export/export.service';
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),
-    BullModule.registerQueue({ name: QUEUE_NAMES.USER_DATA_EXPORT }),
-  ],
-  controllers: [UsersController],
-  providers: [UsersService, ExportService, UserDataExportProcessor, RolesGuard, JwtAuthGuard],
-  exports: [UsersService],
+    imports: [
+        TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),
+        BullModule.registerQueue({ name: QUEUE_NAMES.USER_DATA_EXPORT }),
+    ],
+    controllers: [UsersController],
+    providers: [UsersService, ExportService, UserDataExportProcessor, RolesGuard, JwtAuthGuard],
+    exports: [UsersService],
 })
-export class UsersModule {}
+export class UsersModule {
+}

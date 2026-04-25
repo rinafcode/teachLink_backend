@@ -10,25 +10,25 @@ import { StatisticalAnalysisService } from './analysis/statistical-analysis.serv
 import { AutomatedDecisionService } from './automation/automated-decision.service';
 import { ABTestingReportsService } from './reporting/ab-testing-reports.service';
 import { ABTestingController } from './ab-testing.controller';
-
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Experiment, ExperimentVariant, ExperimentMetric, VariantMetric]),
-  ],
-  controllers: [ABTestingController],
-  providers: [
-    ABTestingService,
-    ExperimentService,
-    StatisticalAnalysisService,
-    AutomatedDecisionService,
-    ABTestingReportsService,
-  ],
-  exports: [
-    ABTestingService,
-    ExperimentService,
-    StatisticalAnalysisService,
-    AutomatedDecisionService,
-    ABTestingReportsService,
-  ],
+    imports: [
+        TypeOrmModule.forFeature([Experiment, ExperimentVariant, ExperimentMetric, VariantMetric]),
+    ],
+    controllers: [ABTestingController],
+    providers: [
+        ABTestingService,
+        ExperimentService,
+        StatisticalAnalysisService,
+        AutomatedDecisionService,
+        ABTestingReportsService,
+    ],
+    exports: [
+        ABTestingService,
+        ExperimentService,
+        StatisticalAnalysisService,
+        AutomatedDecisionService,
+        ABTestingReportsService,
+    ],
 })
-export class ABTestingModule {}
+export class ABTestingModule {
+}

@@ -14,40 +14,40 @@ import { ContentMetadata } from './entities/content-metadata.entity';
 import { FileValidationService } from '../media/validation/file-validation.service';
 import { MalwareScanningService } from '../media/validation/malware-scanning.service';
 import { ImageProcessingService } from '../media/processing/image-processing.service';
-
 @Module({
-  imports: [
-    ConfigModule,
-    CacheModule.register(),
-    TypeOrmModule.forFeature([ContentMetadata]),
-    MulterModule.register({
-      dest: './uploads',
-      limits: {
-        fileSize: 500 * 1024 * 1024, // 500MB limit (largest for videos)
-      },
-    }),
-  ],
-  controllers: [CdnController],
-  providers: [
-    CdnService,
-    AssetOptimizationService,
-    EdgeCachingService,
-    GeoLocationService,
-    CloudflareService,
-    AWSCloudFrontService,
-    FileValidationService,
-    MalwareScanningService,
-    ImageProcessingService,
-  ],
-  exports: [
-    CdnService,
-    AssetOptimizationService,
-    EdgeCachingService,
-    GeoLocationService,
-    CloudflareService,
-    AWSCloudFrontService,
-    FileValidationService,
-    ImageProcessingService,
-  ],
+    imports: [
+        ConfigModule,
+        CacheModule.register(),
+        TypeOrmModule.forFeature([ContentMetadata]),
+        MulterModule.register({
+            dest: './uploads',
+            limits: {
+                fileSize: 500 * 1024 * 1024, // 500MB limit (largest for videos)
+            },
+        }),
+    ],
+    controllers: [CdnController],
+    providers: [
+        CdnService,
+        AssetOptimizationService,
+        EdgeCachingService,
+        GeoLocationService,
+        CloudflareService,
+        AWSCloudFrontService,
+        FileValidationService,
+        MalwareScanningService,
+        ImageProcessingService,
+    ],
+    exports: [
+        CdnService,
+        AssetOptimizationService,
+        EdgeCachingService,
+        GeoLocationService,
+        CloudflareService,
+        AWSCloudFrontService,
+        FileValidationService,
+        ImageProcessingService,
+    ],
 })
-export class CdnModule {}
+export class CdnModule {
+}

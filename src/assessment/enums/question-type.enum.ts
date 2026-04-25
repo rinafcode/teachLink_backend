@@ -1,5 +1,5 @@
 export enum QuestionType {
-  MULTIPLE_CHOICE = 'multiple_choice',
-  TRUE_FALSE = 'true_false',
-  CODING = 'coding',
+    MULTIPLE_CHOICE = 'multiple_choice',
+    TRUE_FALSE = 'true_false',
+    CODING = 'coding'
 }

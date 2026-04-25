@@ -8,128 +8,104 @@ import { FeedbackGenerationService } from './feedback/feedback-generation.servic
 import { Answer } from './entities/answer.entity';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { Question } from './entities/question.entity';
-
 @Injectable()
 export class AssessmentsService {
-  constructor(
+    constructor(
     @InjectRepository(Assessment)
-    private readonly assessmentRepo: Repository<Assessment>,
+    private readonly assessmentRepo: Repository<Assessment>, 
     @InjectRepository(AssessmentAttempt)
-    private readonly attemptRepo: Repository<AssessmentAttempt>,
+    private readonly attemptRepo: Repository<AssessmentAttempt>, 
     @InjectRepository(Answer)
-    private readonly answerRepo: Repository<Answer>,
-    private readonly scoringService: ScoreCalculationService,
-    private readonly feedbackService: FeedbackGenerationService,
-  ) {}
-
-  async startAssessment(studentId: string, assessmentId: string) {
-    const assessment = await this.assessmentRepo.findOne({
-      where: { id: assessmentId },
-      relations: ['questions'],
-    });
-
-    return this.attemptRepo.save({
-      studentId,
-      assessment,
-      status: AssessmentStatus.IN_PROGRESS,
-      startedAt: new Date(),
-    });
-  }
-
-  async findAll(): Promise<Assessment[]> {
-    return await this.assessmentRepo.find({
-      relations: ['questions'],
-    });
-  }
-
-  async findOne(id: string): Promise<Assessment> {
-    return await this.assessmentRepo.findOne({
-      where: { id },
-      relations: ['questions'],
-    });
-  }
-
-  async findByIds(ids: string[]): Promise<Assessment[]> {
-    if (ids.length === 0) return [];
-    return await this.assessmentRepo.findByIds(ids);
-  }
-
-  async create(data: any): Promise<Assessment> {
-    const assessment = this.assessmentRepo.create(data);
-    const saved = await this.assessmentRepo.save(assessment);
-    return Array.isArray(saved) ? saved[0] : saved;
-  }
-
-  async update(id: string, data: any): Promise<Assessment> {
-    await this.assessmentRepo.update(id, data);
-    return this.findOne(id);
-  }
-
-  async remove(id: string): Promise<void> {
-    const assessment = await this.findOne(id);
-    if (!assessment) {
-      return;
+    private readonly answerRepo: Repository<Answer>, private readonly scoringService: ScoreCalculationService, private readonly feedbackService: FeedbackGenerationService) { }
+    async startAssessment(studentId: string, assessmentId: string) {
+        const assessment = await this.assessmentRepo.findOne({
+            where: { id: assessmentId },
+            relations: ['questions'],
+        });
+        return this.attemptRepo.save({
+            studentId,
+            assessment,
+            status: AssessmentStatus.IN_PROGRESS,
+            startedAt: new Date(),
+        });
     }
-
-    await this.assessmentRepo.manager.transaction(async (manager) => {
-      await manager
-        .getRepository(Question)
-        .createQueryBuilder()
-        .softDelete()
-        .where('"assessmentId" = :assessmentId', { assessmentId: id })
-        .execute();
-      await manager.getRepository(Assessment).softDelete(id);
-    });
-  }
-
-  async submitAssessment(attemptId: string, answers: any[]) {
-    const attempt = await this.attemptRepo.findOne({
-      where: { id: attemptId },
-      relations: ['assessment', 'assessment.questions'],
-    });
-
-    const endTime =
-      new Date(attempt.startedAt).getTime() + attempt.assessment.durationMinutes * 60000;
-
-    if (Date.now() > endTime) {
-      attempt.status = AssessmentStatus.TIMED_OUT;
-      return this.attemptRepo.save(attempt);
+    async findAll(): Promise<Assessment[]> {
+        return await this.assessmentRepo.find({
+            relations: ['questions'],
+        });
     }
-
-    let totalScore = 0;
-    let maxScore = 0;
-
-    for (const question of attempt.assessment.questions) {
-      const response = answers.find((a) => a.questionId === question.id)?.response;
-
-      const score = this.scoringService.calculate(question, response);
-      maxScore += question.points;
-      totalScore += score;
-
-      await this.answerRepo.save({
-        attempt,
-        question,
-        response,
-        awardedPoints: score,
-      });
+    async findOne(id: string): Promise<Assessment> {
+        return await this.assessmentRepo.findOne({
+            where: { id },
+            relations: ['questions'],
+        });
     }
-
-    attempt.score = totalScore;
-    attempt.status = AssessmentStatus.GRADED;
-    attempt.submittedAt = new Date();
-
-    const feedback = this.feedbackService.generate(totalScore, maxScore);
-
-    return {
-      attempt: await this.attemptRepo.save(attempt),
-      feedback,
-    };
-  }
-
-  getResults(attemptId: string) {
-    return this.attemptRepo.findOne({
-      where: { id: attemptId },
-      relations: ['answers', 'answers.question'],
-    });
-  }
+    async findByIds(ids: string[]): Promise<Assessment[]> {
+        if (ids.length === 0)
+            return [];
+        return await this.assessmentRepo.findByIds(ids);
+    }
+    async create(data: unknown): Promise<Assessment> {
+        const assessment = this.assessmentRepo.create(data);
+        const saved = await this.assessmentRepo.save(assessment);
+        return Array.isArray(saved) ? saved[0] : saved;
+    }
+    async update(id: string, data: unknown): Promise<Assessment> {
+        await this.assessmentRepo.update(id, data);
+        return this.findOne(id);
+    }
+    async remove(id: string): Promise<void> {
+        const assessment = await this.findOne(id);
+        if (!assessment) {
+            return;
+        }
+        await this.assessmentRepo.manager.transaction(async (manager) => {
+            await manager
+                .getRepository(Question)
+                .createQueryBuilder()
+                .softDelete()
+                .where('"assessmentId" = :assessmentId', { assessmentId: id })
+                .execute();
+            await manager.getRepository(Assessment).softDelete(id);
+        });
+    }
+    async submitAssessment(attemptId: string, answers: unknown[]) {
+        const attempt = await this.attemptRepo.findOne({
+            where: { id: attemptId },
+            relations: ['assessment', 'assessment.questions'],
+        });
+        const endTime = new Date(attempt.startedAt).getTime() + attempt.assessment.durationMinutes * 60000;
+        if (Date.now() > endTime) {
+            attempt.status = AssessmentStatus.TIMED_OUT;
+            return this.attemptRepo.save(attempt);
+        }
+        let totalScore = 0;
+        let maxScore = 0;
+        for (const question of attempt.assessment.questions) {
+            const response = answers.find((a) => a.questionId === question.id)?.response;
+            const score = this.scoringService.calculate(question, response);
+            maxScore += question.points;
+            totalScore += score;
+            await this.answerRepo.save({
+                attempt,
+                question,
+                response,
+                awardedPoints: score,
+            });
+        }
+        attempt.score = totalScore;
+        attempt.status = AssessmentStatus.GRADED;
+        attempt.submittedAt = new Date();
+        const feedback = this.feedbackService.generate(totalScore, maxScore);
+        return {
+            attempt: await this.attemptRepo.save(attempt),
+            feedback,
+        };
+    }
+    getResults(attemptId: string) {
+        return this.attemptRepo.findOne({
+            where: { id: attemptId },
+            relations: ['answers', 'answers.question'],
+        });
+    }
 }

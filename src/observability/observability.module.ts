@@ -7,30 +7,30 @@ import { LogAggregationService } from './logging/log-aggregation.service';
 import { DistributedTracingService } from './tracing/distributed-tracing.service';
 import { MetricsAnalysisService } from './metrics/metrics-analysis.service';
 import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
-
 /**
  * Observability Module
  * Comprehensive logging, tracing, metrics, and anomaly detection
  */
 @Global()
 @Module({
-  imports: [ScheduleModule.forRoot()],
-  controllers: [ObservabilityController],
-  providers: [
-    ObservabilityService,
-    StructuredLoggerService,
-    LogAggregationService,
-    DistributedTracingService,
-    MetricsAnalysisService,
-    AnomalyDetectionService,
-  ],
-  exports: [
-    ObservabilityService,
-    StructuredLoggerService,
-    LogAggregationService,
-    DistributedTracingService,
-    MetricsAnalysisService,
-    AnomalyDetectionService,
-  ],
+    imports: [ScheduleModule.forRoot()],
+    controllers: [ObservabilityController],
+    providers: [
+        ObservabilityService,
+        StructuredLoggerService,
+        LogAggregationService,
+        DistributedTracingService,
+        MetricsAnalysisService,
+        AnomalyDetectionService,
+    ],
+    exports: [
+        ObservabilityService,
+        StructuredLoggerService,
+        LogAggregationService,
+        DistributedTracingService,
+        MetricsAnalysisService,
+        AnomalyDetectionService,
+    ],
 })
-export class ObservabilityModule {}
+export class ObservabilityModule {
+}

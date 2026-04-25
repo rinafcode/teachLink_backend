@@ -1,54 +1,46 @@
 import { SetMetadata } from '@nestjs/common';
-
 export const CACHE_KEY_METADATA = 'cache:key';
 export const CACHE_TTL_METADATA = 'cache:ttl';
 export const CACHE_EVICT_METADATA = 'cache:evict';
 export const CACHE_PREFIX_METADATA = 'cache:prefix';
 export const CACHE_CONDITION_METADATA = 'cache:condition';
-
 /**
  * Options for cacheable decorator
  */
 export interface CacheableOptions {
-  /**
-   * Time to live in seconds
-   */
-  ttl?: number;
-
-  /**
-   * Cache key prefix
-   */
-  prefix?: string;
-
-  /**
-   * Custom cache key generator
-   * If provided, this function will be used to generate the cache key
-   */
-  keyGenerator?: (...args: any[]) => string;
-
-  /**
-   * Condition to determine if result should be cached
-   * Return true to cache, false to skip caching
-   */
-  condition?: (...args: any[]) => boolean;
+    /**
+     * Time to live in seconds
+     */
+    ttl?: number;
+    /**
+     * Cache key prefix
+     */
+    prefix?: string;
+    /**
+     * Custom cache key generator
+     * If provided, this function will be used to generate the cache key
+     */
+    keyGenerator?: (...args: unknown[]) => string;
+    /**
+     * Condition to determine if result should be cached
+     * Return true to cache, false to skip caching
+     */
+    condition?: (...args: unknown[]) => boolean;
 }
-
 /**
  * Options for cache evict decorator
  */
 export interface CacheEvictOptions {
-  /**
-   * Pattern(s) to evict (supports wildcards)
-   */
-  patterns: string | string[];
-
-  /**
-   * Whether to evict before method execution
-   * Default: false (evict after successful execution)
-   */
-  beforeInvocation?: boolean;
+    /**
+     * Pattern(s) to evict (supports wildcards)
+     */
+    patterns: string | string[];
+    /**
+     * Whether to evict before method execution
+     * Default: false (evict after successful execution)
+     */
+    beforeInvocation?: boolean;
 }
-
 /**
  * Decorator to cache method result
  *
@@ -69,34 +61,23 @@ export interface CacheEvictOptions {
  * ```
  */
 export function Cacheable(ttlOrOptions?: number | CacheableOptions): MethodDecorator {
-  const options: CacheableOptions =
-    typeof ttlOrOptions === 'number' ? { ttl: ttlOrOptions } : (ttlOrOptions ?? {});
-
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    if (options.ttl) {
-      SetMetadata(CACHE_TTL_METADATA, options.ttl)(target, propertyKey, descriptor);
-    }
-
-    if (options.prefix) {
-      SetMetadata(CACHE_PREFIX_METADATA, options.prefix)(target, propertyKey, descriptor);
-    }
-
-    if (options.keyGenerator) {
-      SetMetadata(CACHE_KEY_METADATA, options.keyGenerator)(target, propertyKey, descriptor);
-    }
-
-    if (options.condition) {
-      SetMetadata(CACHE_CONDITION_METADATA, options.condition)(target, propertyKey, descriptor);
-    }
-
-    return descriptor;
-  };
+    const options: CacheableOptions = typeof ttlOrOptions === 'number' ? { ttl: ttlOrOptions } : (ttlOrOptions ?? {});
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        if (options.ttl) {
+            SetMetadata(CACHE_TTL_METADATA, options.ttl)(target, propertyKey, descriptor);
+        }
+        if (options.prefix) {
+            SetMetadata(CACHE_PREFIX_METADATA, options.prefix)(target, propertyKey, descriptor);
+        }
+        if (options.keyGenerator) {
+            SetMetadata(CACHE_KEY_METADATA, options.keyGenerator)(target, propertyKey, descriptor);
+        }
+        if (options.condition) {
+            SetMetadata(CACHE_CONDITION_METADATA, options.condition)(target, propertyKey, descriptor);
+        }
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to evict cache entries when method is executed
  *
@@ -115,26 +96,17 @@ export function Cacheable(ttlOrOptions?: number | CacheableOptions): MethodDecor
  * }
  * ```
  */
-export function CacheEvict(
-  patternsOrOptions: string | string[] | CacheEvictOptions,
-): MethodDecorator {
-  const options: CacheEvictOptions =
-    typeof patternsOrOptions === 'string'
-      ? { patterns: [patternsOrOptions] }
-      : Array.isArray(patternsOrOptions)
-        ? { patterns: patternsOrOptions }
-        : patternsOrOptions;
-
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_EVICT_METADATA, options)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+export function CacheEvict(patternsOrOptions: string | string[] | CacheEvictOptions): MethodDecorator {
+    const options: CacheEvictOptions = typeof patternsOrOptions === 'string'
+        ? { patterns: [patternsOrOptions] }
+        : Array.isArray(patternsOrOptions)
+            ? { patterns: patternsOrOptions }
+            : patternsOrOptions;
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_EVICT_METADATA, options)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to set a custom cache key for a method
  *
@@ -155,17 +127,12 @@ export function CacheEvict(
  * }
  * ```
  */
-export function CacheKey(key: string | ((...args: any[]) => string)): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_KEY_METADATA, key)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+export function CacheKey(key: string | ((...args: unknown[]) => string)): MethodDecorator {
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_KEY_METADATA, key)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to set TTL for a cached method
  *
@@ -181,16 +148,11 @@ export function CacheKey(key: string | ((...args: any[]) => string)): MethodDeco
  * ```
  */
 export function CacheTTL(ttl: number): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_TTL_METADATA, ttl)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_TTL_METADATA, ttl)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to set cache prefix for a method
  *
@@ -206,16 +168,11 @@ export function CacheTTL(ttl: number): MethodDecorator {
  * ```
  */
 export function CachePrefix(prefix: string): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_PREFIX_METADATA, prefix)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_PREFIX_METADATA, prefix)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to conditionally cache based on method arguments
  *
@@ -230,15 +187,9 @@ export function CachePrefix(prefix: string): MethodDecorator {
  * }
  * ```
  */
-export function CacheCondition(
-  condition: (result: any, ...args: any[]) => boolean,
-): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_CONDITION_METADATA, condition)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+export function CacheCondition(condition: (result: unknown, ...args: unknown[]) => boolean): MethodDecorator {
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_CONDITION_METADATA, condition)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }

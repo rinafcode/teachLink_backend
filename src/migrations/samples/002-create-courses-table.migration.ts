@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MigrationConfig } from '../migration.service';
-
 /**
  * Migration 002 — Create courses table
  *
@@ -11,16 +10,13 @@ import { MigrationConfig } from '../migration.service';
  */
 @Injectable()
 export class CreateCoursesTableMigration implements MigrationConfig {
-  name = '002-create-courses-table';
-  version = '1.0.0';
-  dependencies = ['001-create-users-table'];
-
-  private readonly logger = new Logger(CreateCoursesTableMigration.name);
-
-  async up(connection: any): Promise<void> {
-    this.logger.log('Applying migration: create courses table');
-
-    await connection.query(`
+    name = '002-create-courses-table';
+    version = '1.0.0';
+    dependencies = ['001-create-users-table'];
+    private readonly logger = new Logger(CreateCoursesTableMigration.name);
+    async up(connection: unknown): Promise<void> {
+        this.logger.log('Applying migration: create courses table');
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS course (
         id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title          VARCHAR(255) NOT NULL,
@@ -33,22 +29,13 @@ export class CreateCoursesTableMigration implements MigrationConfig {
         updated_at     TIMESTAMP NOT NULL DEFAULT NOW()
       );
     `);
-
-    await connection.query(
-      'CREATE INDEX IF NOT EXISTS idx_course_status        ON course (status);',
-    );
-    await connection.query(
-      'CREATE INDEX IF NOT EXISTS idx_course_instructor_id ON course (instructor_id);',
-    );
-
-    this.logger.log('Migration applied: create courses table');
-  }
-
-  async down(connection: any): Promise<void> {
-    this.logger.log('Rolling back migration: create courses table');
-
-    await connection.query('DROP TABLE IF EXISTS course CASCADE;');
-
-    this.logger.log('Migration rolled back: create courses table');
-  }
+        await connection.query('CREATE INDEX IF NOT EXISTS idx_course_status        ON course (status);');
+        await connection.query('CREATE INDEX IF NOT EXISTS idx_course_instructor_id ON course (instructor_id);');
+        this.logger.log('Migration applied: create courses table');
+    }
+    async down(connection: unknown): Promise<void> {
+        this.logger.log('Rolling back migration: create courses table');
+        await connection.query('DROP TABLE IF EXISTS course CASCADE;');
+        this.logger.log('Migration rolled back: create courses table');
+    }
 }

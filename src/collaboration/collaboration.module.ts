@@ -6,24 +6,24 @@ import { CollaborationPermissionsService } from './permissions/collaboration-per
 import { CollaborationService } from './collaboration.service';
 import { CollaborationGateway } from './gateway/collaboration.gateway';
 import { CollaborationController } from './collaboration.controller';
-
 @Module({
-  imports: [],
-  controllers: [CollaborationController],
-  providers: [
-    CollaborationService,
-    SharedDocumentService,
-    WhiteboardService,
-    VersionControlService,
-    CollaborationPermissionsService,
-    CollaborationGateway,
-  ],
-  exports: [
-    CollaborationService,
-    SharedDocumentService,
-    WhiteboardService,
-    VersionControlService,
-    CollaborationPermissionsService,
-  ],
+    imports: [],
+    controllers: [CollaborationController],
+    providers: [
+        CollaborationService,
+        SharedDocumentService,
+        WhiteboardService,
+        VersionControlService,
+        CollaborationPermissionsService,
+        CollaborationGateway,
+    ],
+    exports: [
+        CollaborationService,
+        SharedDocumentService,
+        WhiteboardService,
+        VersionControlService,
+        CollaborationPermissionsService,
+    ],
 })
-export class CollaborationModule {}
+export class CollaborationModule {
+}

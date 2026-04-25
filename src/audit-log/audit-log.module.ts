@@ -7,11 +7,11 @@ import { AuditLogService } from './audit-log.service';
 import { AuditLogController } from './audit-log.controller';
 import { AuditLogInterceptor } from './interceptors/audit-log.interceptor';
 import { AuditRetentionTask } from './tasks/audit-retention.task';
-
 @Module({
-  imports: [TypeOrmModule.forFeature([AuditLog]), ConfigModule, ScheduleModule.forRoot()],
-  controllers: [AuditLogController],
-  providers: [AuditLogService, AuditLogInterceptor, AuditRetentionTask],
-  exports: [AuditLogService, AuditLogInterceptor],
+    imports: [TypeOrmModule.forFeature([AuditLog]), ConfigModule, ScheduleModule.forRoot()],
+    controllers: [AuditLogController],
+    providers: [AuditLogService, AuditLogInterceptor, AuditRetentionTask],
+    exports: [AuditLogService, AuditLogInterceptor],
 })
-export class AuditLogModule {}
+export class AuditLogModule {
+}

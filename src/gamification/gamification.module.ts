@@ -12,26 +12,26 @@ import { LeaderboardService } from './leaderboards/leaderboards.service';
 import { ChallengesService } from './challenges/challenges.service';
 import { GamificationService } from './gamification.service';
 import { GamificationController } from './gamification.controller';
-
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      PointTransaction,
-      UserProgress,
-      Badge,
-      UserBadge,
-      Challenge,
-      UserChallenge,
-    ]),
-  ],
-  providers: [
-    PointsService,
-    BadgesService,
-    LeaderboardService,
-    ChallengesService,
-    GamificationService,
-  ],
-  controllers: [GamificationController],
-  exports: [GamificationService, PointsService, BadgesService, ChallengesService],
+    imports: [
+        TypeOrmModule.forFeature([
+            PointTransaction,
+            UserProgress,
+            Badge,
+            UserBadge,
+            Challenge,
+            UserChallenge,
+        ]),
+    ],
+    providers: [
+        PointsService,
+        BadgesService,
+        LeaderboardService,
+        ChallengesService,
+        GamificationService,
+    ],
+    controllers: [GamificationController],
+    exports: [GamificationService, PointsService, BadgesService, ChallengesService],
 })
-export class GamificationModule {}
+export class GamificationModule {
+}

@@ -3,18 +3,14 @@ import { AssessmentAttempt } from './assessment-attempt.entity';
 import { Question } from './question.entity';
 @Entity()
 export class Answer {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @ManyToOne(() => AssessmentAttempt, (a) => a.answers)
-  attempt: AssessmentAttempt;
-
-  @ManyToOne(() => Question)
-  question: Question;
-
-  @Column({ type: 'json' })
-  response: string | any;
-
-  @Column({ nullable: true })
-  awardedPoints?: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
+    @ManyToOne(() => AssessmentAttempt, (a) => a.answers)
+    attempt: AssessmentAttempt;
+    @ManyToOne(() => Question)
+    question: Question;
+    @Column({ type: 'json' })
+    response: string | unknown;
+    @Column({ nullable: true })
+    awardedPoints?: number;
 }

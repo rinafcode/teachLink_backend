@@ -1,15 +1,14 @@
 export interface ApiError {
-  statusCode: number;
-  message: string | string[];
-  error?: string;
-  details?: ValidationErrorDetail[];
-  timestamp?: string;
-  path?: string;
-  correlationId?: string;
-  stack?: string;
+    statusCode: number;
+    message: string | string[];
+    error?: string;
+    details?: ValidationErrorDetail[];
+    timestamp?: string;
+    path?: string;
+    correlationId?: string;
+    stack?: string;
 }
-
 export interface ValidationErrorDetail {
-  property: string;
-  constraints: string[] | Record<string, string>;
+    property: string;
+    constraints: string[] | Record<string, string>;
 }

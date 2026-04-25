@@ -22,33 +22,30 @@ import { UsersModule } from '../users/users.module';
 import { User } from '../users/entities/user.entity';
 import { TransactionService } from '../common/database/transaction.service';
 import { TransactionHelperService } from '../common/database/transaction-helper.service';
-
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User, WebhookRetry]),
-    BullModule.registerQueue(
-      {
-        name: QUEUE_NAMES.SUBSCRIPTIONS,
-      },
-      {
-        name: QUEUE_NAMES.WEBHOOKS,
-      },
-    ),
-    UsersModule,
-  ],
-  controllers: [PaymentsController, WebhookController, WebhookManagementController],
-  providers: [
-    PaymentsService,
-    WebhookService,
-    WebhookQueueService,
-    WebhookRetryProcessor,
-    SubscriptionsService,
-    SubscriptionJobProcessor,
-    StripeService,
-    ProviderFactoryService,
-    TransactionService,
-    TransactionHelperService,
-  ],
-  exports: [PaymentsService, ProviderFactoryService, WebhookQueueService],
+    imports: [
+        TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User, WebhookRetry]),
+        BullModule.registerQueue({
+            name: QUEUE_NAMES.SUBSCRIPTIONS,
+        }, {
+            name: QUEUE_NAMES.WEBHOOKS,
+        }),
+        UsersModule,
+    ],
+    controllers: [PaymentsController, WebhookController, WebhookManagementController],
+    providers: [
+        PaymentsService,
+        WebhookService,
+        WebhookQueueService,
+        WebhookRetryProcessor,
+        SubscriptionsService,
+        SubscriptionJobProcessor,
+        StripeService,
+        ProviderFactoryService,
+        TransactionService,
+        TransactionHelperService,
+    ],
+    exports: [PaymentsService, ProviderFactoryService, WebhookQueueService],
 })
-export class PaymentsModule {}
+export class PaymentsModule {
+}
