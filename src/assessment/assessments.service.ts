@@ -7,6 +7,7 @@ import { AssessmentAttempt } from './entities/assessment-attempt.entity';
 import { FeedbackGenerationService } from './feedback/feedback-generation.service';
 import { Answer } from './entities/answer.entity';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
+import { Question } from './entities/question.entity';
 
 @Injectable()
 export class AssessmentsService {
@@ -65,7 +66,20 @@ export class AssessmentsService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.assessmentRepo.delete(id);
+    const assessment = await this.findOne(id);
+    if (!assessment) {
+      return;
+    }
+
+    await this.assessmentRepo.manager.transaction(async (manager) => {
+      await manager
+        .getRepository(Question)
+        .createQueryBuilder()
+        .softDelete()
+        .where('"assessmentId" = :assessmentId', { assessmentId: id })
+        .execute();
+      await manager.getRepository(Assessment).softDelete(id);
+    });
   }
 
   async submitAssessment(attemptId: string, answers: any[]) {

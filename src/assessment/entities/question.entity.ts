@@ -1,4 +1,11 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  Index,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
 
@@ -8,9 +15,11 @@ export class Question {
   id: string;
 
   @Column({ type: 'enum', enum: QuestionType })
+  @Index()
   type: QuestionType;
 
   @Column()
+  @Index()
   prompt: string;
 
   @Column({ type: 'json', nullable: true })
@@ -26,4 +35,7 @@ export class Question {
     onDelete: 'CASCADE',
   })
   assessment: Assessment;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

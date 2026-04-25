@@ -24,9 +24,19 @@
     "test:ci": "jest --config jest.config.js --coverage --forceExit --runInBand && node ./test/utils/check-coverage-summary.js",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit --runInBand",
+    "test:e2e:stability": "node test/utils/e2e-test-runner.js --runs 5",
+    "test:e2e:stability:quick": "node test/utils/e2e-test-runner.js --runs 3",
+    "test:e2e:stability:auth": "node test/utils/e2e-test-runner.js --pattern \"auth.e2e-spec.ts\" --runs 5",
+    "test:e2e:flaky": "node test/utils/e2e-test-runner.js --runs 10",
     "test:ml-models": "jest src/ml-models --maxWorkers=1 --max-old-space-size=2048",
     "test:ml-models-basic": "jest src/ml-models/ml-models.service.basic.spec.ts --maxWorkers=1 --max-old-space-size=2048",
-    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js"
+    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js",
+    "migrate:run": "curl -s -X POST http://localhost:3000/migrations/run | npx json",
+    "migrate:status": "curl -s http://localhost:3000/migrations | npx json",
+    "migrate:rollback": "curl -s -X POST http://localhost:3000/migrations/rollback | npx json",
+    "migrate:rollback:count": "curl -s -X POST http://localhost:3000/migrations/rollback/${COUNT:-1} | npx json",
+    "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
+    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
@@ -35,8 +45,6 @@
     "@aws-sdk/client-s3": "^3.975.0",
     "@elastic/elasticsearch": "^8.19.1",
     "@huggingface/inference": "^4.13.12",
-    "@langchain/community": "^0.3.55",
-    "@langchain/openai": "^0.6.11",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/apollo": "^12.2.2",
     "@nestjs/axios": "^4.0.1",
@@ -62,13 +70,13 @@
     "@opentelemetry/exporter-prometheus": "^0.203.0",
     "@opentelemetry/instrumentation": "^0.203.0",
     "@opentelemetry/sdk-node": "^0.203.0",
+    "@types/csurf": "^1.11.5",
     "@types/express-session": "^1.18.2",
     "@types/handlebars": "^4.0.40",
     "@types/multer": "^1.4.12",
     "@types/nodemailer": "^7.0.5",
     "@types/stripe": "^8.0.416",
     "@xenova/transformers": "^2.17.2",
-    "aws-sdk": "^2.1692.0",
     "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
@@ -79,7 +87,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "connect-redis": "^9.0.0",
-    "crypto": "^1.0.1",
+    "csurf": "^1.11.0",
     "dataloader": "^2.2.3",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
@@ -88,9 +96,9 @@
     "graphql": "^16.12.0",
     "graphql-subscriptions": "^3.0.0",
     "handlebars": "^4.7.8",
+    "helmet": "^8.0.0",
     "ioredis": "^5.9.3",
     "joi": "^17.13.3",
-    "langchain": "^0.3.30",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.12",
     "opossum": "^9.0.0",
@@ -106,7 +114,7 @@
     "stripe": "^18.3.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
-    "uuid": "^11.1.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
@@ -149,9 +157,9 @@
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.0",
-    "ts-loader": "^9.4.3",
+    "ts-loader": "^9.5.7",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   }
 }

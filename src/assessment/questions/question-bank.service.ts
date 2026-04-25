@@ -10,11 +10,11 @@ export class QuestionBankService {
     private readonly questionRepo: Repository<Question>,
   ) {}
 
-  create(question: Partial<Question>) {
+  create(question: Partial<Question>): Promise<Question> {
     return this.questionRepo.save(question);
   }
 
-  findByAssessment(assessmentId: string) {
+  findByAssessment(assessmentId: string): Promise<Question[]> {
     return this.questionRepo.find({
       where: { assessment: { id: assessmentId } },
     });

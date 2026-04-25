@@ -10,6 +10,7 @@ import { Invoice, InvoiceStatus } from './entities/invoice.entity';
 import { RefundDto } from './dto/refund.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { TransactionService } from '../common/database/transaction.service';
+import { Transactional } from '../common/database/transactional.decorator';
 import { ensureUserExists } from '../common/utils/user.utils';
 import { ProviderFactoryService } from './providers/provider-factory.service';
 import {
@@ -37,51 +38,54 @@ export class PaymentsService {
     private readonly providerFactory: ProviderFactoryService,
   ) {}
 
+  /**
+   * Create a payment intent with a provider and record the pending payment.
+   * Refactored to use @Transactional decorator for consistent transaction management.
+   */
+  @Transactional()
   async createPaymentIntent(
     userId: string,
     createPaymentDto: CreatePaymentDto,
   ): Promise<CreatePaymentIntentResult> {
-    return await this.transactionService.runInTransaction(async (manager) => {
-      const { courseId, amount, currency, provider, metadata } = createPaymentDto;
+    const { courseId, amount, currency, provider, metadata } = createPaymentDto;
 
-      // Verify user exists
-      const userOrNull = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-      const user = ensureUserExists(userOrNull);
-
-      // Get payment provider
-      const paymentProvider = this.providerFactory.getProvider(provider ?? 'stripe');
-
-      // Create payment intent
-      const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency ?? 'USD', {
-        ...metadata,
-        userId,
-        courseId,
-      });
-
-      // Create payment record
-      const payment = manager.create(Payment, {
-        amount,
-        currency,
-        method: PaymentMethod.CREDIT_CARD,
-        provider,
-        providerPaymentId: paymentIntent.paymentIntentId,
-        status: PaymentStatus.PENDING,
-        metadata,
-        user,
-        userId,
-        courseId,
-      });
-
-      await manager.save(payment);
-
-      return {
-        paymentId: payment.id,
-        clientSecret: paymentIntent.clientSecret,
-        requiresAction: paymentIntent.requiresAction,
-      };
+    // Verify user exists
+    const userOrNull = await this.userRepository.findOne({
+      where: { id: userId },
     });
+    const user = ensureUserExists(userOrNull);
+
+    // Get payment provider
+    const paymentProvider = this.providerFactory.getProvider(provider ?? 'stripe');
+
+    // Create payment intent
+    const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency ?? 'USD', {
+      ...metadata,
+      userId,
+      courseId,
+    });
+
+    // Create payment record
+    const payment = this.paymentRepository.create({
+      amount,
+      currency,
+      method: PaymentMethod.CREDIT_CARD,
+      provider,
+      providerPaymentId: paymentIntent.paymentIntentId,
+      status: PaymentStatus.PENDING,
+      metadata,
+      user,
+      userId,
+      courseId,
+    });
+
+    await this.paymentRepository.save(payment);
+
+    return {
+      paymentId: payment.id,
+      clientSecret: paymentIntent.clientSecret,
+      requiresAction: paymentIntent.requiresAction,
+    };
   }
 
   async createSubscription(
@@ -122,6 +126,12 @@ export class PaymentsService {
     };
   }
 
+  /**
+   * Process a refund for a payment
+   * Uses @Transactional to ensure both payment status update and refund record creation
+   * succeed or fail together, preventing orphaned refund records or inconsistent payment states.
+   */
+  @Transactional()
   async processRefund(refundDto: RefundDto): Promise<ProcessRefundResult> {
     const { paymentId, amount, reason } = refundDto;
 
@@ -185,6 +195,11 @@ export class PaymentsService {
     });
   }
 
+  /**
+   * Get or generate an invoice for a payment.
+   * Uses @Transactional to prevent race conditions during invoice generation.
+   */
+  @Transactional()
   async getInvoice(paymentId: string, userId: string): Promise<Invoice> {
     // Find payment
     const payment = await this.paymentRepository.findOne({
@@ -210,7 +225,7 @@ export class PaymentsService {
         invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         items: [
           {
-            description: `Payment for course`,
+            description: 'Payment for course',
             amount: payment.amount,
             quantity: 1,
           },
@@ -249,6 +264,11 @@ export class PaymentsService {
     );
   }
 
+  /**
+   * Process refund triggered by a webhook
+   * Uses @Transactional to ensure atomicity between refund record creation and payment status update.
+   */
+  @Transactional()
   async processRefundFromWebhook(
     paymentIntentId: string,
     refundData: RefundWebhookData,

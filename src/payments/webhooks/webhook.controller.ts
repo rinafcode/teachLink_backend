@@ -10,8 +10,10 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
 
+@SkipThrottle()
 @ApiTags('webhooks')
 @Controller('webhooks')
 export class WebhookController {
@@ -24,7 +26,7 @@ export class WebhookController {
   async handleStripeWebhook(
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
-  ) {
+  ): Promise<any> {
     return this.webhookService.handleStripeWebhook(req.rawBody, signature);
   }
 
@@ -39,7 +41,7 @@ export class WebhookController {
     @Headers('paypal-cert-url') certUrl: string,
     @Headers('paypal-auth-algo') authAlgo: string,
     @Body() payload: any,
-  ) {
+  ): Promise<any> {
     return this.webhookService.handlePayPalWebhook(
       payload,
       transmissionId,

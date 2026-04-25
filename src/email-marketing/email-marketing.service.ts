@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../common/constants/queue.constants';
 
 import { Campaign } from './entities/campaign.entity';
 import { CampaignRecipient } from './entities/campaign-recipient.entity';
@@ -23,7 +24,7 @@ export class EmailMarketingService {
     private readonly campaignRepository: Repository<Campaign>,
     @InjectRepository(CampaignRecipient)
     private readonly recipientRepository: Repository<CampaignRecipient>,
-    @InjectQueue('email-marketing')
+    @InjectQueue(QUEUE_NAMES.EMAIL_MARKETING)
     private readonly emailQueue: Queue,
     private readonly segmentationService: SegmentationService,
     private readonly templateService: TemplateManagementService,
@@ -42,8 +43,9 @@ export class EmailMarketingService {
 
     // Validate segments exist
     if (createCampaignDto.segmentIds?.length) {
-      for (const segmentId of createCampaignDto.segmentIds) {
-        await this.segmentationService.findOne(segmentId);
+      const segments = await this.segmentationService.findByIds(createCampaignDto.segmentIds);
+      if (segments.length !== createCampaignDto.segmentIds.length) {
+        throw new NotFoundException('One or more segments not found');
       }
     }
 
@@ -122,7 +124,10 @@ export class EmailMarketingService {
       throw new BadRequestException('Cannot delete a campaign that is currently sending');
     }
 
-    await this.campaignRepository.remove(campaign);
+    await this.campaignRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(CampaignRecipient).softDelete({ campaignId: id });
+      await manager.getRepository(Campaign).softDelete(id);
+    });
   }
 
   /**
@@ -146,7 +151,7 @@ export class EmailMarketingService {
     // Add to queue with delay
     const delay = scheduledDate.getTime() - Date.now();
     await this.emailQueue.add(
-      'send-campaign',
+      JOB_NAMES.SEND_CAMPAIGN,
       { campaignId: id },
       { delay, jobId: `campaign-${id}` },
     );
@@ -180,7 +185,7 @@ export class EmailMarketingService {
     await this.campaignRepository.save(campaign);
 
     // Queue emails for sending
-    await this.emailQueue.add('process-campaign', {
+    await this.emailQueue.add(JOB_NAMES.PROCESS_CAMPAIGN, {
       campaignId: id,
       recipients: recipients.map((r) => r.id),
     });
@@ -227,7 +232,7 @@ export class EmailMarketingService {
 
     // Otherwise, resume sending
     campaign.status = CampaignStatus.SENDING;
-    await this.emailQueue.add('resume-campaign', { campaignId: id });
+    await this.emailQueue.add(JOB_NAMES.RESUME_CAMPAIGN, { campaignId: id });
 
     return this.campaignRepository.save(campaign);
   }

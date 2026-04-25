@@ -21,13 +21,20 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().required(),
 
   // JWT Configuration
-  JWT_SECRET: Joi.string().min(10).required(),
+  JWT_SECRETS: Joi.string().optional(),
+  JWT_SECRET_CURRENT_VERSION: Joi.string().optional(),
+  JWT_SECRET: Joi.string()
+    .min(10)
+    .when('JWT_SECRETS', { is: Joi.exist(), then: Joi.optional(), otherwise: Joi.required() }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().min(10).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   // Encryption
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
+
+  // Security Configuration
+  BCRYPT_ROUNDS: Joi.number().integer().min(4).max(15).default(10),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
@@ -57,6 +64,15 @@ export const envValidationSchema = Joi.object({
   // SendGrid Configuration
   SENDGRID_API_KEY: Joi.string().required(),
   SENDGRID_HEALTH_URL: Joi.string().uri().optional(),
+
+  // Elasticsearch Configuration
+  ELASTICSEARCH_NODE: Joi.string().uri().default('http://localhost:9200'),
+  ELASTICSEARCH_USERNAME: Joi.string().optional(),
+  ELASTICSEARCH_PASSWORD: Joi.string().optional(),
+  ELASTICSEARCH_API_KEY: Joi.string().optional(),
+  ELASTICSEARCH_CA_FINGERPRINT: Joi.string().optional(),
+  ELASTICSEARCH_REQUEST_TIMEOUT: Joi.number().integer().default(30000),
+  ELASTICSEARCH_MAX_RETRIES: Joi.number().integer().default(3),
 
   // Rate Limiting
   THROTTLE_TTL: Joi.number().default(60),
@@ -101,6 +117,13 @@ export const envValidationSchema = Joi.object({
   ENABLE_SECURITY: Joi.boolean().default(true),
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
+  ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
+
+  // i18n / localization
+  I18N_DEFAULT_LOCALE: Joi.string().default('en'),
+  I18N_SUPPORTED_LOCALES: Joi.string().default('en'),
+  I18N_CACHE_TTL_SECONDS: Joi.number().integer().min(0).default(300),
 
   // Cluster Mode
   CLUSTER_MODE: Joi.boolean().default(false),
@@ -108,4 +131,7 @@ export const envValidationSchema = Joi.object({
 
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
+
+  // CORS Configuration
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:4000'),
 });

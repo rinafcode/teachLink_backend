@@ -1,14 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
-import { CourseSearchDto } from './dto/course-search.dto';
+import {
+  paginate,
+  paginateWithCursor,
+  PaginatedResponse,
+  CursorPaginatedResponse,
+} from '../common/utils/pagination.util';
+import { CourseSearchDto, CursorCourseSearchDto } from './dto/course-search.dto';
 import { CachingService } from '../caching/caching.service';
 import { CacheInvalidationService } from '../caching/invalidation/invalidation.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/sanitization.utils';
+import { CourseModule } from './entities/course-module.entity';
+import { Lesson } from './entities/lesson.entity';
 
 @Injectable()
 export class CoursesService {
@@ -40,6 +48,46 @@ export class CoursesService {
         query.leftJoinAndSelect('course.instructor', 'instructor');
 
         if (filter?.search) {
+          const safeSearch = sanitizeSqlLike(filter.search);
+          query.andWhere(
+            "(course.title ILIKE :search ESCAPE '\\' OR course.description ILIKE :search ESCAPE '\\')",
+            { search: `%${safeSearch}%` },
+          );
+        }
+
+        if (filter?.status) {
+          const allowedStatuses = ['draft', 'published', 'archived'] as const;
+          const status = enforceWhitelistedValue(filter.status, allowedStatuses, 'status');
+          query.andWhere('course.status = :status', { status });
+        }
+
+        if (filter?.instructorId) {
+          query.andWhere('course.instructorId = :instructorId', {
+            instructorId: filter.instructorId,
+          });
+        }
+
+        query.orderBy('course.createdAt', 'DESC');
+
+        return await paginate(query, filter);
+      },
+      CACHE_TTL.COURSE_METADATA,
+    );
+  }
+
+  async findAllWithCursor(
+    filter?: CursorCourseSearchDto,
+  ): Promise<CursorPaginatedResponse<Course>> {
+    const cacheKey = `${CACHE_PREFIXES.COURSES_LIST}:cursor:${JSON.stringify(filter || {})}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
+        const query = this.coursesRepository.createQueryBuilder('course');
+
+        query.leftJoinAndSelect('course.instructor', 'instructor');
+
+        if (filter?.search) {
           query.andWhere('(course.title ILIKE :search OR course.description ILIKE :search)', {
             search: `%${filter.search}%`,
           });
@@ -55,9 +103,15 @@ export class CoursesService {
           });
         }
 
-        query.orderBy('course.createdAt', 'DESC');
+        if (filter?.minPrice !== undefined) {
+          query.andWhere('course.price >= :minPrice', { minPrice: filter.minPrice });
+        }
 
-        return await paginate(query, filter);
+        if (filter?.maxPrice !== undefined) {
+          query.andWhere('course.price <= :maxPrice', { maxPrice: filter.maxPrice });
+        }
+
+        return await paginateWithCursor(query, filter ?? {});
       },
       CACHE_TTL.COURSE_METADATA,
     );
@@ -129,11 +183,24 @@ export class CoursesService {
   }
 
   async remove(id: string): Promise<void> {
-    const course = await this.coursesRepository.findOne({ where: { id } });
+    const course = await this.coursesRepository.findOne({
+      where: { id },
+      relations: ['modules'],
+    });
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
     }
-    await this.coursesRepository.remove(course);
+
+    await this.coursesRepository.manager.transaction(async (manager) => {
+      const moduleIds = course.modules.map((module) => module.id);
+
+      if (moduleIds.length > 0) {
+        await manager.getRepository(Lesson).softDelete({ moduleId: In(moduleIds) });
+      }
+
+      await manager.getRepository(CourseModule).softDelete({ courseId: id });
+      await manager.getRepository(Course).softDelete(id);
+    });
 
     // Invalidate cache after delete
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_DELETED, { courseId: id });

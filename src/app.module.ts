@@ -1,4 +1,4 @@
-import { Module, DynamicModule, Type } from '@nestjs/common';
+import { Module, DynamicModule, Type, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -21,6 +21,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottleGuard } from './common/guards/throttle.guard';
 import { loadFeatureFlags } from './config/feature-flags.config';
 import { StartupLogger } from './common/lazy-loading/startup-logger.service';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { ApiVersioningModule } from './common/modules/api-versioning.module';
 
 // Feature modules - conditionally loaded based on feature flags
 import { SyncModule } from './sync/sync.module';
@@ -49,7 +51,12 @@ import { TenancyModule } from './tenancy/tenancy.module';
 import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
+import { LocalizationModule } from './localization/localization.module';
+import { CsrfModule } from './common/csrf/csrf.module';
+import { TimeoutModule } from './common/timeout/timeout.module';
+import { ShutdownStateService } from './common/services/shutdown-state.service';
 
+@Global()
 @Module({})
 export class AppModule {
   static async forRoot(): Promise<DynamicModule> {
@@ -120,11 +127,14 @@ export class AppModule {
       ThrottlerModule.forRoot([
         {
           ttl: parseInt(process.env.THROTTLE_TTL || '60'),
-          limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
+          limit: parseInt(process.env.THROTTLE_LIMIT || '60'),
         },
       ]),
+      ApiVersioningModule,
       HealthModule,
       DatabaseModule,
+      CsrfModule,
+      TimeoutModule,
     ];
 
     // Feature modules - conditionally loaded based on feature flags
@@ -355,6 +365,15 @@ export class AppModule {
       startupLogger.recordModuleSkipped('CDNModule', 'ENABLE_CDN=false');
     }
 
+    // Localization Module
+    if (flags.ENABLE_LOCALIZATION) {
+      const startTime = Date.now();
+      featureModules.push(LocalizationModule);
+      startupLogger.recordModuleLoaded('LocalizationModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('LocalizationModule', 'ENABLE_LOCALIZATION=false');
+    }
+
     // Queue Module (always loaded for Bull)
     featureModules.push(QueueModule);
 
@@ -365,15 +384,21 @@ export class AppModule {
       providers: [
         AppService,
         StartupLogger,
+        ShutdownStateService,
         {
           provide: APP_INTERCEPTOR,
           useClass: MonitoringInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: TimeoutInterceptor,
         },
         {
           provide: APP_GUARD,
           useClass: CustomThrottleGuard,
         },
       ],
+      exports: [ShutdownStateService],
     };
   }
 }

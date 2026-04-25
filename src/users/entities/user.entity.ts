@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   OneToMany,
 } from 'typeorm';
@@ -83,6 +84,9 @@ export class User {
   @Column({ nullable: true })
   refreshToken?: string;
 
+  @Column('text', { array: true, default: [] })
+  passwordHistory: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
@@ -97,4 +101,7 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

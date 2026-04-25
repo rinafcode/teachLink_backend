@@ -23,14 +23,20 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { UploadedFile as FileUpload } from '../common/types/file.types';
 import { CdnService } from './cdn.service';
 import { UploadContentDto } from './dto/upload-content.dto';
 import { ContentMetadata } from './entities/content-metadata.entity';
-import { FileValidationService } from '../media/validation/file-validation.service';
+import {
+  FileValidationService,
+  FileValidationResult,
+} from '../media/validation/file-validation.service';
 import { MalwareScanningService } from '../media/validation/malware-scanning.service';
 import { ImageProcessingService } from '../media/processing/image-processing.service';
-import { FileValidationResult } from '../media/validation/file-validation.service';
-import { ALLOWED_FILE_TYPES, FILE_SIZE_LIMITS } from '../media/validation/file-validation.constants';
+import {
+  ALLOWED_FILE_TYPES,
+  FILE_SIZE_LIMITS,
+} from '../media/validation/file-validation.constants';
 
 @ApiTags('CDN')
 @Controller('cdn')
@@ -63,7 +69,7 @@ export class CdnController {
   @ApiResponse({ status: 415, description: 'Unsupported media type' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async uploadContent(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: FileUpload,
     @Body() options: UploadContentDto,
   ): Promise<ContentMetadata> {
     try {
@@ -76,7 +82,10 @@ export class CdnController {
       // Step 1: Validate file
       const validationResult = await this.fileValidation.validateFile(file);
       if (!validationResult.valid) {
-        this.logger.warn(`File validation failed for ${file.originalname}:`, validationResult.errors);
+        this.logger.warn(
+          `File validation failed for ${file.originalname}:`,
+          validationResult.errors,
+        );
         throw new BadRequestException({
           message: 'File validation failed',
           errors: validationResult.errors,
@@ -92,9 +101,10 @@ export class CdnController {
         const scanResult = await this.malwareScanning.scanFile(file);
 
         if (!scanResult.clean) {
-          const errorMsg = scanResult.threats.length > 0
-            ? `Malware detected: ${scanResult.threats.join(', ')}`
-            : 'File failed security scan';
+          const errorMsg =
+            scanResult.threats.length > 0
+              ? `Malware detected: ${scanResult.threats.join(', ')}`
+              : 'File failed security scan';
           this.logger.error(`Malware detected in ${file.originalname}:`, scanResult.threats);
           throw new HttpException(errorMsg, HttpStatus.FORBIDDEN);
         }
@@ -149,9 +159,7 @@ export class CdnController {
     },
   })
   @ApiResponse({ status: 400, description: 'No file provided' })
-  async validateFile(
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<FileValidationResult> {
+  async validateFile(@UploadedFile() file: FileUpload): Promise<FileValidationResult> {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -180,7 +188,7 @@ export class CdnController {
   })
   @ApiResponse({ status: 400, description: 'No file provided' })
   @ApiResponse({ status: 503, description: 'Scanning service not available' })
-  async scanFile(@UploadedFile() file: Express.Multer.File) {
+  async scanFile(@UploadedFile() file: FileUpload) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -251,7 +259,7 @@ export class CdnController {
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid file or not an image' })
-  async compressPreview(@UploadedFile() file: Express.Multer.File) {
+  async compressPreview(@UploadedFile() file: FileUpload) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -403,6 +411,6 @@ export class CdnController {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   }
 }

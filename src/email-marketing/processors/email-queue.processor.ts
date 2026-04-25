@@ -1,6 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -12,7 +13,7 @@ import { ABTestingService } from '../ab-testing/ab-testing.service';
 import { CampaignStatus } from '../enums/campaign-status.enum';
 import { RecipientStatus } from '../enums/recipient-status.enum';
 
-@Processor('email-marketing')
+@Processor(QUEUE_NAMES.EMAIL_MARKETING)
 export class EmailQueueProcessor {
   private readonly logger = new Logger(EmailQueueProcessor.name);
 
@@ -26,7 +27,7 @@ export class EmailQueueProcessor {
     private readonly abTestingService: ABTestingService,
   ) {}
 
-  @Process('send-campaign')
+  @Process(JOB_NAMES.SEND_CAMPAIGN)
   async handleScheduledCampaign(job: Job<{ campaignId: string }>) {
     this.logger.log(`Processing scheduled campaign: ${job.data.campaignId}`);
 
@@ -51,7 +52,7 @@ export class EmailQueueProcessor {
     await this.processRecipients(campaign, users);
   }
 
-  @Process('process-campaign')
+  @Process(JOB_NAMES.PROCESS_CAMPAIGN)
   async handleCampaignProcessing(job: Job<{ campaignId: string; recipients: string[] }>) {
     this.logger.log(`Processing campaign: ${job.data.campaignId}`);
 
@@ -74,7 +75,7 @@ export class EmailQueueProcessor {
     await this.processRecipients(campaign, users);
   }
 
-  @Process('send-automation-email')
+  @Process(JOB_NAMES.SEND_AUTOMATION_EMAIL)
   async handleAutomationEmail(
     job: Job<{
       actionId: string;
@@ -97,7 +98,7 @@ export class EmailQueueProcessor {
     });
   }
 
-  @Process('resume-campaign')
+  @Process(JOB_NAMES.RESUME_CAMPAIGN)
   async handleResumeCampaign(job: Job<{ campaignId: string }>) {
     this.logger.log(`Resuming campaign: ${job.data.campaignId}`);
 

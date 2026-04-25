@@ -11,6 +11,8 @@
 
 This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features.
 
+- Pagination is limited to a maximum page size of **100** items per request.
+
 ---
 
 ## 🔁 CI / Testing
@@ -92,18 +94,42 @@ For the full contribution and review policy, see [CONTRIBUTING.md](CONTRIBUTING.
 ```
 src/
 ├── modules/
-│   ├── auth/             # JWT, Google OAuth, Refresh tokens
-│   ├── users/            # Profile, roles, preferences
-│   ├── knowledge/        # Courses, content, categories
-│   ├── consulting/       # 1:1 sessions, scheduling, payments
-│   ├── messaging/        # Real-time chat, discussions
-│   ├── notifications/    # In-app/email alerts
-│   ├── analytics/        # Insights, course tracking
-│   ├── web3/             # Wallet connection, token gating
-│   └── file-upload/      # Cloudinary upload, avatar, files
-├── config/              # TypeORM, validation, ENV configs
-├── common/              # DTOs, guards, interceptors, pipes
-└── main.ts              # Entry point
+│   ├── auth/                 # JWT, session management, wallet login
+│   ├── users/                # Profile management, roles, preferences
+│   ├── courses/              # Course creation, enrollment, content
+│   ├── payments/             # Stripe integration, transactions
+│   ├── search/               # Elasticsearch integration, search APIs
+│   ├── notifications/        # Real-time alerts, email, push notifications
+│   ├── messaging/            # Real-time chat, discussions
+│   ├── media/                # File upload, processing, CDN
+│   ├── collaboration/        # Real-time collaboration features
+│   ├── assessment/           # Quizzes, tests, grading
+│   ├── learning-paths/       # Personalized learning journeys
+│   ├── gamification/         # Points, badges, leaderboards
+│   ├── moderation/           # Content moderation, reporting
+│   ├── email-marketing/      # Campaign management, templates
+│   ├── ab-testing/           # Feature experimentation
+│   ├── data-warehouse/       # Analytics, reporting
+│   ├── backup/               # Data backup and recovery
+│   ├── sync/                 # Data synchronization
+│   ├── tenancy/              # Multi-tenant support
+│   ├── security/             # Security utilities, monitoring
+│   ├── caching/              # Redis caching strategies
+│   ├── rate-limiting/        # API rate limiting
+│   ├── observability/        # Metrics, logging, tracing
+│   ├── queue/                # Background job processing
+│   └── health/               # Health checks, monitoring
+├── common/
+│   ├── database/             # Database configuration, connection
+│   ├── decorators/           # Custom decorators
+│   ├── guards/               # Authentication & authorization guards
+│   ├── interceptors/         # Request/response interceptors
+│   ├── pipes/                # Data validation pipes
+│   ├── dto/                  # Data transfer objects
+│   └── utils/                # Utility functions
+├── config/                   # Environment configuration
+├── graphql/                  # GraphQL schemas and resolvers
+└── main.ts                   # Application entry point
 ```
 
 ## 🔧 Project Overview
@@ -118,6 +144,22 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 - 🔔 Real-time notifications via WebSockets
 - 📊 Analytics and activity insights
 - 🧾 DAO integration for content moderation and governance
+
+## 🔀 API Versioning
+
+TeachLink uses a header-based API versioning strategy for application endpoints.
+
+- Send `X-API-Version: 1` with every versioned API request.
+- Supported versions are configured through `API_SUPPORTED_VERSIONS` and default to `1`.
+- `API_DEFAULT_VERSION` controls the currently active route version and defaults to `1`.
+- Health checks, metrics endpoints, the root route, and payment webhooks are version-neutral.
+- Requests with a missing or invalid API version header return a client error before the request reaches the controller.
+
+Example:
+
+```bash
+curl -H "X-API-Version: 1" http://localhost:3000/users
+```
 
 ## 📊 Architecture
 
@@ -136,9 +178,134 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 | Auth          | JWT + Wallet Sign-In       |
 | Deployment    | Docker, Railway, or Fly.io |
 | File Upload   | Cloudinary                 |
-| Documentation | Swagger                    |
+| Security      | Helmet + bcrypt            | Security headers and password hashing |
+### System Overview
 
-## �️ Database
+TeachLink Backend follows a **modular microservices architecture** built on NestJS, designed for scalability and maintainability. The system uses a layered approach with clear separation of concerns:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    API Gateway Layer                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │   REST API  │ │   GraphQL   │ │    WebSocket Gateway    │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                  Business Logic Layer                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │    Auth     │ │   Users     │ │      Courses            │ │
+│  │   Module    │ │   Module    │ │      Module             │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │  Payments   │ │   Search    │ │     Notifications       │ │
+│  │   Module    │ │   Module    │ │      Module             │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                   Infrastructure Layer                       │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │ PostgreSQL  │ │    Redis    │ │      File Storage       │ │
+│  │ (Primary)   │ │  (Caching)  │ │     (AWS S3)            │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Architectural Patterns
+
+- **Modular Design**: Each business domain is encapsulated in its own module
+- **Dependency Injection**: Leverages NestJS DI for loose coupling
+- **Repository Pattern**: Data access abstraction via TypeORM
+- **Event-Driven Architecture**: Uses EventEmitter for inter-module communication
+- **CQRS Pattern**: Separation of read/write operations in complex modules
+- **Feature Flags**: Dynamic module loading based on configuration
+
+### Data Flow
+
+1. **Request Processing**: API Gateway → Authentication → Authorization → Business Logic
+2. **Data Persistence**: Business Logic → Repository → PostgreSQL
+3. **Caching Strategy**: Redis for frequently accessed data and session management
+4. **Async Operations**: BullMQ for background jobs and email processing
+5. **File Handling**: AWS S3/Cloudinary for media storage with CDN distribution
+
+## 📦 Tech Stack
+
+| Layer              | Technology                          | Purpose                               |
+| ------------------ | ----------------------------------- | ------------------------------------- |
+| **Framework**      | NestJS                              | Node.js application framework         |
+| **Language**       | TypeScript                          | Type-safe JavaScript                  |
+| **Database**       | PostgreSQL + TypeORM                | Primary data storage                  |
+| **Caching**        | Redis + IORedis                     | Session store, caching, queues        |
+| **Authentication** | JWT + Passport                      | Token-based authentication            |
+| **GraphQL**        | Apollo Server                       | GraphQL API (optional)                |
+| **Real-time**      | Socket.io                           | WebSocket connections                 |
+| **File Storage**   | AWS S3 + Cloudinary                 | Media file storage and CDN            |
+| **Email**          | SendGrid + Nodemailer               | Email delivery and marketing          |
+| **Payments**       | Stripe                              | Payment processing                    |
+| **Search**         | Elasticsearch                       | Full-text search capabilities         |
+| **Queue**          | BullMQ                              | Background job processing             |
+| **Monitoring**     | OpenTelemetry + Prometheus          | Metrics and observability             |
+| **Testing**        | Jest + Supertest                    | Unit and integration tests            |
+| **Documentation**  | Swagger                             | API documentation                     |
+| **Validation**     | class-validator + class-transformer | DTO validation                        |
+| **Security**       | Helmet + bcrypt                     | Security headers and password hashing |
+
+## 🔐 Security
+
+### Password Hashing Configuration
+
+The application uses **bcrypt** for password hashing with configurable rounds via the `BCRYPT_ROUNDS` environment variable.
+
+#### Recommended Bcrypt Rounds by Environment
+
+| Environment | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
+| ----------- | ----------------- | -------------- | -------------- | ------------------ |
+| **Development** | 8-10 | 50-100 | Good | Low |
+| **Staging** | 10-12 | 100-300 | High | Medium |
+| **Production** | 12-14 | 300-1000 | Very High | High |
+
+#### Security vs Performance Tradeoffs
+
+**Lower Rounds (4-8):**
+- ✅ Faster authentication
+- ✅ Lower CPU usage
+- ⚠️ Reduced security against brute force attacks
+- ⚠️ May be vulnerable to GPU-based cracking
+
+**Higher Rounds (12-15):**
+- ✅ Strong resistance against brute force attacks
+- ✅ Future-proof against computational advances
+- ❌ Slower authentication (may impact user experience)
+- ❌ Higher CPU usage (may affect scalability)
+
+#### Configuration Example
+
+```env
+# Development (faster, less secure)
+BCRYPT_ROUNDS=8
+
+# Production (slower, more secure)
+BCRYPT_ROUNDS=12
+```
+
+#### Security Best Practices
+
+1. **Minimum 10 rounds** for production environments
+2. **Monitor authentication performance** when increasing rounds
+3. **Consider rate limiting** to prevent brute force attacks
+4. **Use hardware security modules** for high-security applications
+5. **Regular security audits** to assess adequate protection levels
+
+#### Migration Considerations
+
+When changing `BCRYPT_ROUNDS`:
+- Existing passwords remain valid until users change them
+- New passwords will use the configured rounds
+- Consider forcing password reset for sensitive accounts
+- Gradually increase rounds to monitor performance impact
+
+## 🗄️ Database
 
 ### Index Strategy
 
@@ -178,7 +345,7 @@ The application uses strategic database indexes to optimize query performance, e
 
 ### Connection Pooling (TypeORM + PostgreSQL)
 
-The backend now supports explicit database pool tuning through environment variables:
+The backend supports explicit database pool tuning through environment variables:
 
 - `DATABASE_POOL_MAX` (default: `30`)
 - `DATABASE_POOL_MIN` (default: `5`)
@@ -199,170 +366,144 @@ Sizing rule:
 - Formula: `DATABASE_POOL_MAX x app_instances x cluster_workers <= postgres_max_connections - reserved_connections`.
 - Reserve at least 20 to 30 connections for migrations, admin access, and background jobs.
 
-Load testing checklist:
-
-```bash
-# 1) Start API
-npm run start:dev
-
-# 2) In another terminal, run concurrent load against a DB-backed endpoint
-npx autocannon -c 100 -d 60 http://localhost:3000/health
-
-# 3) Observe active connections in PostgreSQL (replace DB name)
-psql -d teachlink -c "select count(*) as active_connections from pg_stat_activity where datname='teachlink';"
-```
-
-Expected result: no connection-acquire timeouts, stable latency under sustained concurrency, and active connections staying within configured pool bounds.
-
-## �🚀 Deployment
+## �🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- PostgreSQL
-- Redis
-- Docker (optional)
+- **Node.js** 18+ with npm
+- **PostgreSQL** 14+ (or Docker)
+- **Redis** 6+ (for caching and queues)
+- **Git** for version control
 
-### Steps
-
-1. Set up `.env`
-2. Run `npm i`
-3. Start: `npm run start:dev` or Docker Compose
-4. Swagger: `http://localhost:3000/api`
-
-## 🤝 Contribution
-
-# 🤝 Contributing to TeachLink
-
-## 🛠 Development Workflow
-
-1. Fork the repo and clone locally.
-2. Set up your environment using `.env.example`
-3. Use conventional commits.
-4. Run tests locally before PR.
-5. Open a PR with title like: `✨ Add: Tutor Booking API`
-
-## 🧪 PR Must Include:
-
-- [ ] Linked issue (`Closes #issue_number`)
-- [ ] Clear title and description
-- [ ] Screenshots (if UI)
-- [ ] Tests (if backend)
-
-## 📬 Join the Community
-
-- [Telegram](t.me/teachlinkOD)
-
-## 📁 Folder Structure
-
-/src
-/auth → Wallet-based login, JWT, refresh tokens
-/posts → CRUD for markdown posts
-/topics → Topic entities and filtering
-/users → Profiles, roles, reputation
-/tipping → On-chain tipping integrations
-/notifications → Real-time alerts (email, WebSocket)
-/analytics → Activity tracking & metrics
-/dao → Governance logic for post moderation
-/common → DTOs, decorators, interceptors, guards
-
-yaml
-Copy
-Edit
-
----
-
-## 🛠 Setup Instructions
+### Quick Start
 
 1. **Clone the repository**
 
 ```bash
 git clone https://github.com/teachlink/backend.git
-cd backend
-Install dependencies
-
-bash
-Copy
-Edit
-npm install
-Create .env file
-
-env
-Copy
-Edit
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=yourpassword
-DB_NAME=teachlink
-
-JWT_SECRET=your_jwt_secret
-ENCRYPTION_SECRET=your_32_char_encryption_secret
-JWT_EXPIRATION=3600
-
-CLOUDINARY_API_KEY=your_key
-CLOUDINARY_API_SECRET=your_secret
-CLOUDINARY_CLOUD_NAME=your_name
-Run PostgreSQL locally or connect to remote DB
-
-Start the development server
-
-bash
-Copy
-Edit
-npm run start:dev
-Database Migration (if applicable)
-
-bash
-Copy
-Edit
-npm run typeorm migration:run
-📌 Key Development Milestones
-✅ PostgreSQL + TypeORM setup
-
-✅ JWT-based auth with Starknet wallet login
-
-✅ Post CRUD with markdown support
-
-✅ Topic categorization + filtering
-
-✅ Tipping logic integration
-
-✅ Real-time notifications setup
-
-🚧 Governance API for moderation
-
-🚧 Contribution analytics and scoring
-
-🔐 API Modules
-Module	Description
-Auth Module	Wallet login, JWT, refresh tokens
-Post Module	Markdown post management
-User Module	Profile management and reputation
-Topic Module	Knowledge categories & filtering
-Tip Module	Send/receive tips on-chain
-Notif Module	In-app + external notifications
-DAO Module	Voting and governance decisions
-File Module	Upload and serve media via Cloudinary
-
-✅ Contribution Guidelines
-Fork the repo and create a feature branch
-
-All PRs must link to a GitHub Issue (Close #5)
-
-Follow NestJS best practices and clean code principles
-
-Include unit tests for services/controllers
-
-Join our Telegram Group for support
-
-🧪 Testing
-Run unit and integration tests:
-
-bash
-Copy
-Edit
-npm run test
-📜 License
-MIT © 2025 TeachLink DAO
+cd teachlink_backend
 ```
+
+2. **Install dependencies**
+
+```bash
+npm install
+```
+
+3. **Set up environment variables**
+
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. **Start PostgreSQL and Redis**
+
+```bash
+# Using Docker (recommended)
+docker-compose up -d postgres redis
+
+# Or install locally and start services
+# PostgreSQL: sudo systemctl start postgresql
+# Redis: sudo systemctl start redis
+```
+
+5. **Run database migrations**
+
+```bash
+npm run typeorm migration:run
+```
+
+6. **Start the development server**
+
+```bash
+npm run start:dev
+```
+
+7. **Access the API**
+
+- **REST API**: http://localhost:3000
+- **API Documentation**: http://localhost:3000/api
+- **Health Check**: http://localhost:3000/health
+
+### Environment Configuration
+
+Key environment variables to configure:
+
+```env
+# Database
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=yourpassword
+DATABASE_NAME=teachlink
+
+# Authentication
+JWT_SECRET=your-super-secret-jwt-key
+ENCRYPTION_SECRET=your-32-char-encryption-key
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# External Services (Optional)
+STRIPE_SECRET_KEY=your_stripe_key
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+```
+
+### Docker Setup
+
+For complete development environment with Docker:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Please follow our guidelines to ensure a smooth contribution process.
+
+### Development Workflow
+
+1. **Fork the repository** and clone locally
+2. **Set up your environment** using `.env.example`
+3. **Create a feature branch** from `develop`
+4. **Make your changes** following our coding standards
+5. **Run tests locally** to ensure everything works
+6. **Submit a pull request** with a clear description
+
+### Code Standards
+
+- Use **conventional commits** (feat:, fix:, docs:, etc.)
+- Follow **TypeScript** best practices
+- Write **unit tests** for new features
+- Update **documentation** as needed
+- Ensure **linting** and **formatting** pass
+
+### Pull Request Requirements
+
+- [ ] Linked issue (`Closes #issue_number`)
+- [ ] Clear title and description
+- [ ] Tests pass locally (`npm run test:ci`)
+- [ ] Code follows style guidelines (`npm run lint:ci`)
+- [ ] Documentation updated if applicable
+
+### Getting Help
+
+- 📖 [Documentation](./docs/)
+- 💬 [Telegram Community](https://t.me/teachlinkOD)
+- 🐛 [Report Issues](https://github.com/teachlink/backend/issues)
+
+---
+
+## 📄 License
+
+MIT © 2025 TeachLink DAO

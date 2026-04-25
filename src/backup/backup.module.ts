@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 
 // Entities
 import { BackupRecord } from './entities/backup-record.entity';
@@ -31,7 +32,7 @@ import { MonitoringModule } from '../monitoring/monitoring.module';
     ScheduleModule.forRoot(),
     TypeOrmModule.forFeature([BackupRecord, RecoveryTest]),
     BullModule.registerQueue({
-      name: 'backup-processing',
+      name: QUEUE_NAMES.BACKUP_PROCESSING,
     }),
     MediaModule, // For FileStorageService
     MonitoringModule, // For AlertingService and MetricsCollectionService

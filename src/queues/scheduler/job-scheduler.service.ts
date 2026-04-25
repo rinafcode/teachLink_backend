@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES } from '../../common/constants/queue.constants';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { JobOptions } from '../interfaces/queue.interfaces';
@@ -14,7 +15,7 @@ export class JobSchedulerService {
   private readonly logger = new Logger(JobSchedulerService.name);
 
   constructor(
-    @InjectQueue('default') private readonly defaultQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.DEFAULT) private readonly defaultQueue: Queue,
     private readonly schedulerRegistry: SchedulerRegistry,
   ) {}
 

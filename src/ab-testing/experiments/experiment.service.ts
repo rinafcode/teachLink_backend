@@ -73,7 +73,7 @@ export class ExperimentService {
    */
   async removeVariant(variantId: string): Promise<void> {
     this.logger.log(`Removing variant: ${variantId}`);
-    await this.variantRepository.delete(variantId);
+    await this.variantRepository.softDelete(variantId);
     this.logger.log(`Variant removed: ${variantId}`);
   }
 

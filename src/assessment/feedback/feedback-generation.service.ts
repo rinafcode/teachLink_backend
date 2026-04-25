@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class FeedbackGenerationService {
-  generate(score: number, maxScore: number) {
+  generate(score: number, maxScore: number): string {
     const percentage = (score / maxScore) * 100;
 
     if (percentage >= 80) return 'Excellent performance 🎉';

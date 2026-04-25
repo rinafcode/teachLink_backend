@@ -26,14 +26,14 @@ export class MigrationController {
   ) {}
 
   @Get()
-  async getAllMigrations() {
+  async getAllMigrations(): Promise<any> {
     this.logger.log('Fetching all migrations');
     return await this.migrationService.listMigrations();
   }
 
   @Post('run')
   @HttpCode(HttpStatus.OK)
-  async runMigrations(@Res() res: Response) {
+  async runMigrations(@Res() res: Response): Promise<Response> {
     this.logger.log('Running pending migrations');
 
     try {
@@ -54,13 +54,13 @@ export class MigrationController {
 
   @Post('rollback')
   @HttpCode(HttpStatus.OK)
-  async rollbackMigrationsDefault(@Res() res: Response) {
+  async rollbackMigrationsDefault(@Res() res: Response): Promise<Response> {
     return this.rollbackMigrationsWithCount('1', res);
   }
 
   @Post('rollback/:count')
   @HttpCode(HttpStatus.OK)
-  async rollbackMigrationsWithCount(@Param('count') count: string, @Res() res: Response) {
+  async rollbackMigrationsWithCount(@Param('count') count: string, @Res() res: Response): Promise<Response> {
     const rollbackCount = count && !isNaN(parseInt(count, 10)) ? parseInt(count, 10) : 1;
 
     this.logger.log(`Rolling back ${rollbackCount} migrations`);
@@ -83,7 +83,7 @@ export class MigrationController {
 
   @Delete('reset')
   @HttpCode(HttpStatus.OK)
-  async resetAllMigrations(@Res() res: Response) {
+  async resetAllMigrations(@Res() res: Response): Promise<Response> {
     this.logger.log('Resetting all migrations');
 
     try {
@@ -107,27 +107,58 @@ export class MigrationController {
   async rollbackSpecificMigration(
     @Param('migrationName') migrationName: string,
     @Res() res: Response,
-  ) {
+  ): Promise<Response> {
     this.logger.log(`Rolling back specific migration: ${migrationName}`);
 
-    // Note: In a real implementation, you'd need to map the migration name to the actual migration config
-    // For now, this is a placeholder
+    try {
+      await this.rollbackService.rollbackByName(migrationName);
+      return res.status(HttpStatus.OK).json({
+        success: true,
+        message: `Successfully rolled back migration: ${migrationName}`,
+      });
+    } catch (error) {
+      this.logger.error(`Error rolling back migration ${migrationName}`, error.stack);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: `Failed to rollback migration: ${migrationName}`,
+        error: error.message,
+      });
+    }
+  }
 
-    return res.status(HttpStatus.NOT_IMPLEMENTED).json({
-      success: false,
-      message: 'Specific migration rollback not implemented in this example',
-    });
+  @Post('rollback/to/:migrationName')
+  @HttpCode(HttpStatus.OK)
+  async rollbackToVersion(
+    @Param('migrationName') migrationName: string,
+    @Res() res: Response,
+  ): Promise<Response> {
+    this.logger.log(`Rolling back to version: ${migrationName}`);
+
+    try {
+      await this.rollbackService.rollbackToVersion(migrationName);
+      return res.status(HttpStatus.OK).json({
+        success: true,
+        message: `Successfully rolled back to version: ${migrationName}`,
+      });
+    } catch (error) {
+      this.logger.error(`Error rolling back to version ${migrationName}`, error.stack);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: `Failed to rollback to version: ${migrationName}`,
+        error: error.message,
+      });
+    }
   }
 
   @Get('conflicts')
-  async getMigrationConflicts() {
+  async getMigrationConflicts(): Promise<any> {
     this.logger.log('Fetching migration conflicts');
     return this.conflictResolutionService.getConflictHistory();
   }
 
   @Post('sync-environments')
   @HttpCode(HttpStatus.OK)
-  async syncEnvironments(@Res() res: Response) {
+  async syncEnvironments(@Res() res: Response): Promise<Response> {
     this.logger.log('Syncing environments');
 
     try {

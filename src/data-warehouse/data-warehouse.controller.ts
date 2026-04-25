@@ -20,26 +20,26 @@ export class DataWarehouseController {
 
   // ETL Pipeline endpoints
   @Post('etl/pipeline')
-  async createETLPipeline(@Body() config: any, @Request() _req) {
+  async createETLPipeline(@Body() config: any, @Request() _req): Promise<any> {
     const pipeline = await this.etlService.createPipeline(config);
     return { success: true, pipeline };
   }
 
   @Get('etl/pipeline/:id')
-  async getETLPipeline(@Param('id') id: string) {
+  async getETLPipeline(@Param('id') id: string): Promise<any> {
     const pipeline = await this.etlService.getJobStatus(id);
     return { success: true, pipeline };
   }
 
   @Get('etl/pipelines')
-  async getAllETLPipelines() {
+  async getAllETLPipelines(): Promise<any> {
     const pipelines = await this.etlService.getAllJobs();
     return { success: true, pipelines };
   }
 
   // Dimensional Modeling endpoints
   @Post('modeling/star-schema')
-  async createStarSchema(@Body() body: { name: string; factTable: any; dimensionTables: any[] }) {
+  async createStarSchema(@Body() body: { name: string; factTable: any; dimensionTables: any[] }): Promise<any> {
     const model = await this.modelingService.createStarSchema(
       body.name,
       body.factTable,
@@ -51,7 +51,7 @@ export class DataWarehouseController {
   @Post('modeling/snowflake-schema')
   async createSnowflakeSchema(
     @Body() body: { name: string; factTable: any; dimensionTables: any[]; subDimensions: any },
-  ) {
+  ): Promise<any> {
     const model = await this.modelingService.createSnowflakeSchema(
       body.name,
       body.factTable,
@@ -62,50 +62,50 @@ export class DataWarehouseController {
   }
 
   @Get('modeling/models')
-  async getAllModels() {
+  async getAllModels(): Promise<any> {
     const models = await this.modelingService.getAllModels();
     return { success: true, models };
   }
 
   @Get('modeling/model/:id')
-  async getModel(@Param('id') id: string) {
+  async getModel(@Param('id') id: string): Promise<any> {
     const model = await this.modelingService.getModel(id);
     return { success: true, model };
   }
 
   @Post('modeling/query')
-  async createQuery(@Body() queryConfig: any) {
+  async createQuery(@Body() queryConfig: any): Promise<any> {
     const query = await this.modelingService.createQuery(queryConfig);
     return { success: true, query };
   }
 
   @Post('modeling/query/:id/execute')
-  async executeQuery(@Param('id') id: string, @Body() body: { parameters?: any }) {
+  async executeQuery(@Param('id') id: string, @Body() body: { parameters?: any }): Promise<any> {
     const results = await this.modelingService.executeQuery(id, body.parameters);
     return { success: true, results };
   }
 
   // Data Quality endpoints
   @Post('quality/profile')
-  async createQualityProfile(@Body() profileConfig: any) {
+  async createQualityProfile(@Body() profileConfig: any): Promise<any> {
     const profile = await this.qualityService.createProfile(profileConfig);
     return { success: true, profile };
   }
 
   @Post('quality/profiles/standard')
-  async createStandardProfiles() {
+  async createStandardProfiles(): Promise<any> {
     const profiles = await this.qualityService.createStandardProfiles();
     return { success: true, profiles };
   }
 
   @Post('quality/check/:profileId')
-  async runQualityCheck(@Param('profileId') profileId: string, @Body() body: { data: any[] }) {
+  async runQualityCheck(@Param('profileId') profileId: string, @Body() body: { data: any[] }): Promise<any> {
     const check = await this.qualityService.runQualityChecks(profileId, body.data);
     return { success: true, check };
   }
 
   @Get('quality/checks/:profileId')
-  async getQualityChecks(@Param('profileId') profileId: string) {
+  async getQualityChecks(@Param('profileId') profileId: string): Promise<any> {
     const checks = await this.qualityService.getChecksForProfile(profileId);
     return { success: true, checks };
   }
@@ -115,7 +115,7 @@ export class DataWarehouseController {
     @Query('profileId') profileId?: string,
     @Query('severity') severity?: string,
     @Query('resolved') resolved?: string,
-  ) {
+  ): Promise<any> {
     const resolvedBool = resolved === 'true' ? true : resolved === 'false' ? false : undefined;
     const issues = await this.qualityService.getQualityIssues(profileId, severity, resolvedBool);
     return { success: true, issues };
@@ -123,31 +123,31 @@ export class DataWarehouseController {
 
   // Data Lineage endpoints
   @Post('lineage/graph')
-  async createLineageGraph(@Body() graphConfig: any) {
+  async createLineageGraph(@Body() graphConfig: any): Promise<any> {
     const graph = await this.lineageService.createGraph(graphConfig);
     return { success: true, graph };
   }
 
   @Post('lineage/graphs/standard')
-  async createStandardLineage() {
+  async createStandardLineage(): Promise<any> {
     const graph = await this.lineageService.createStandardLineage();
     return { success: true, graph };
   }
 
   @Get('lineage/graphs')
-  async getAllLineageGraphs() {
+  async getAllLineageGraphs(): Promise<any> {
     const graphs = await this.lineageService.getAllGraphs();
     return { success: true, graphs };
   }
 
   @Post('lineage/graph/:id/node')
-  async addLineageNode(@Param('id') graphId: string, @Body() nodeConfig: any) {
+  async addLineageNode(@Param('id') graphId: string, @Body() nodeConfig: any): Promise<any> {
     const node = await this.lineageService.addNode(graphId, nodeConfig);
     return { success: true, node };
   }
 
   @Post('lineage/graph/:id/edge')
-  async addLineageEdge(@Param('id') graphId: string, @Body() edgeConfig: any) {
+  async addLineageEdge(@Param('id') graphId: string, @Body() edgeConfig: any): Promise<any> {
     const edge = await this.lineageService.addEdge(graphId, edgeConfig);
     return { success: true, edge };
   }
@@ -157,21 +157,21 @@ export class DataWarehouseController {
     @Param('id') graphId: string,
     @Param('nodeId') nodeId: string,
     @Body() body: { traceType?: 'upstream' | 'downstream' | 'complete' },
-  ) {
+  ): Promise<any> {
     const traceType = body.traceType || 'complete';
     const trace = await this.lineageService.traceLineage(graphId, nodeId, traceType);
     return { success: true, trace };
   }
 
   @Post('lineage/graph/:id/impact/:nodeId')
-  async analyzeImpact(@Param('id') graphId: string, @Param('nodeId') nodeId: string) {
+  async analyzeImpact(@Param('id') graphId: string, @Param('nodeId') nodeId: string): Promise<any> {
     const analysis = await this.lineageService.analyzeImpact(graphId, nodeId);
     return { success: true, analysis };
   }
 
   // Incremental Loading endpoints
   @Post('loading/job')
-  async createLoadJob(@Body() body: { config: any; source: any; target: any }) {
+  async createLoadJob(@Body() body: { config: any; source: any; target: any }): Promise<any> {
     const job = await this.loaderService.createLoadJob(body.config, body.source, body.target);
     return { success: true, job };
   }
@@ -180,25 +180,25 @@ export class DataWarehouseController {
   async executeLoadJob(
     @Param('id') jobId: string,
     @Body() body: { sourceTable: string; targetTable: string },
-  ) {
+  ): Promise<any> {
     const job = await this.loaderService.executeLoad(jobId, body.sourceTable, body.targetTable);
     return { success: true, job };
   }
 
   @Get('loading/jobs')
-  async getAllLoadJobs() {
+  async getAllLoadJobs(): Promise<any> {
     const jobs = await this.loaderService.getAllJobs();
     return { success: true, jobs };
   }
 
   @Get('loading/job/:id')
-  async getLoadJob(@Param('id') id: string) {
+  async getLoadJob(@Param('id') id: string): Promise<any> {
     const job = await this.loaderService.getJobStatus(id);
     return { success: true, job };
   }
 
   @Post('loading/watermark')
-  async setWatermark(@Body() body: { tableName: string; columnName: string; value: any }) {
+  async setWatermark(@Body() body: { tableName: string; columnName: string; value: any }): Promise<any> {
     const watermark = await this.loaderService.setWatermark(
       body.tableName,
       body.columnName,
@@ -211,7 +211,7 @@ export class DataWarehouseController {
   async getWatermark(
     @Param('tableName') tableName: string,
     @Param('columnName') columnName: string,
-  ) {
+  ): Promise<any> {
     const watermark = await this.loaderService.getWatermark(tableName, columnName);
     return { success: true, watermark };
   }

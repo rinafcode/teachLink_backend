@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationPreferences } from '../entities/notification-preferences.entity';
@@ -28,7 +28,10 @@ export class PreferencesService {
   /**
    * Update user preferences
    */
-  async updatePreferences(userId: string, updateDto: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+  async updatePreferences(
+    userId: string,
+    updateDto: Partial<NotificationPreferences>,
+  ): Promise<NotificationPreferences> {
     const preferences = await this.getPreferences(userId);
     Object.assign(preferences, updateDto);
     return this.preferencesRepository.save(preferences);
@@ -37,7 +40,10 @@ export class PreferencesService {
   /**
    * Check if a specific channel is enabled for a user
    */
-  async isChannelEnabled(userId: string, channel: 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled'): Promise<boolean> {
+  async isChannelEnabled(
+    userId: string,
+    channel: 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled',
+  ): Promise<boolean> {
     const preferences = await this.getPreferences(userId);
     return !!preferences[channel];
   }
@@ -45,7 +51,10 @@ export class PreferencesService {
   /**
    * Toggle a specific channel for a user
    */
-  async toggleChannel(userId: string, channel: 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled'): Promise<void> {
+  async toggleChannel(
+    userId: string,
+    channel: 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled',
+  ): Promise<void> {
     const preferences = await this.getPreferences(userId);
     preferences[channel] = !preferences[channel];
     await this.preferencesRepository.save(preferences);

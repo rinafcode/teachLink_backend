@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { APP_EVENTS } from '../../common/constants/event.constants';
 
 @Injectable()
 export class CacheInvalidationService {
@@ -18,7 +19,7 @@ export class CacheInvalidationService {
   async invalidateKey(key: string): Promise<void> {
     this.logger.log(`Invalidating cache key: ${key}`);
     await this.cacheManager.del(key);
-    this.eventEmitter.emit('cache.invalidated', { key, type: 'single' });
+    this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { key, type: 'single' });
   }
 
   /**
@@ -31,7 +32,7 @@ export class CacheInvalidationService {
 
     // In a production environment with Redis, we'd use 'SCAN' and 'DEL'
     // For now, we'll emit an event that other specialized listeners might handle
-    this.eventEmitter.emit('cache.invalidated', { pattern, type: 'pattern' });
+    this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { pattern, type: 'pattern' });
 
     // If the store supports a store-specific method, call it here.
     const store: any = (this.cacheManager as any).store;
@@ -67,6 +68,6 @@ export class CacheInvalidationService {
     } else if (typeof (this.cacheManager as any).reset === 'function') {
       await (this.cacheManager as any).reset();
     }
-    this.eventEmitter.emit('cache.purged', { timestamp: new Date() });
+    this.eventEmitter.emit(APP_EVENTS.CACHE_PURGED, { timestamp: new Date() });
   }
 }

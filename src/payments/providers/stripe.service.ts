@@ -19,7 +19,7 @@ export class StripeService {
     this.stripe = new Stripe(secretKey || 'sk_test_placeholder');
   }
 
-  async createPaymentIntent(amount: number, currency: string, metadata: any) {
+  async createPaymentIntent(amount: number, currency: string, metadata: any): Promise<any> {
     const paymentIntent = await this.stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Stripe expects amount in cents
       currency: currency.toLowerCase(),
@@ -33,7 +33,7 @@ export class StripeService {
     };
   }
 
-  async refundPayment(paymentId: string, amount?: number) {
+  async refundPayment(paymentId: string, amount?: number): Promise<any> {
     const refundData: Stripe.RefundCreateParams = {
       payment_intent: paymentId,
     };
@@ -50,7 +50,7 @@ export class StripeService {
     };
   }
 
-  async handleWebhook(payload: string | Buffer, signature: string) {
+  async handleWebhook(payload: string | Buffer, signature: string): Promise<Stripe.Event> {
     if (!this.stripeWebhookSecret) {
       throw new InternalServerErrorException('Stripe webhook secret is missing');
     }

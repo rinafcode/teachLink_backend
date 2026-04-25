@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import { UploadedFile } from '../../common/types/file.types';
 
 export interface CloudflareConfig {
   apiToken: string;
@@ -45,7 +46,7 @@ export class CloudflareService {
     });
   }
 
-  async uploadFile(file: Express.Multer.File): Promise<UploadResult> {
+  async uploadFile(file: UploadedFile): Promise<UploadResult> {
     try {
       this.logger.log(`Uploading file ${file.originalname} to Cloudflare`);
 
@@ -171,7 +172,7 @@ export class CloudflareService {
     }
   }
 
-  private async uploadImage(file: Express.Multer.File): Promise<UploadResult> {
+  private async uploadImage(file: UploadedFile): Promise<UploadResult> {
     // Use Cloudflare Images API
     // In real implementation, would use proper multipart/form-data
     // For now, return mock result
@@ -184,7 +185,7 @@ export class CloudflareService {
     };
   }
 
-  private async uploadToR2(file: Express.Multer.File): Promise<UploadResult> {
+  private async uploadToR2(file: UploadedFile): Promise<UploadResult> {
     // Use Cloudflare R2 for non-image files
     // This would require R2 bucket configuration
     // For now, return mock result

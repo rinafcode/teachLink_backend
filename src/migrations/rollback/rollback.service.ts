@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Raw } from 'typeorm';
 import { Migration, MigrationStatus } from '../entities/migration.entity';
 import { MigrationConfig } from '../migration.service';
+import { MIGRATION_REGISTRY } from '../migration.registry';
 
 @Injectable()
 export class RollbackService {
@@ -110,14 +111,75 @@ export class RollbackService {
    * Gets all registered migrations
    */
   private getRegisteredMigrations(): MigrationConfig[] {
-    // In a real implementation, this would load migrations from files or configuration
-    // For now, returning an empty array - this would be populated based on your actual migrations
-    return [];
+    return MIGRATION_REGISTRY;
   }
 
   /**
-   * Checks if a migration can be safely rolled back
+   * Rolls back all migrations down to (but not including) the target version.
+   * Migrations are rolled back in reverse-applied order.
    */
+  async rollbackToVersion(targetMigrationName: string): Promise<void> {
+    this.logger.log(`Rolling back to version: ${targetMigrationName}`);
+
+    const registeredMigrations = this.getRegisteredMigrations();
+
+    // Verify the target migration exists in the registry
+    const targetExists = registeredMigrations.some((m) => m.name === targetMigrationName);
+    if (!targetExists) {
+      throw new Error(`Target migration not found in registry: ${targetMigrationName}`);
+    }
+
+    // Get all applied migrations that were applied AFTER the target, in reverse order
+    const targetRecord = await this.migrationRepository.findOne({
+      where: { name: targetMigrationName },
+    });
+
+    const whereClause = targetRecord?.appliedAt
+      ? {
+          status: MigrationStatus.COMPLETED,
+          appliedAt: Raw((alias) => `${alias} > :appliedAt`, { appliedAt: targetRecord.appliedAt }),
+        }
+      : { status: MigrationStatus.COMPLETED };
+
+    const migrationsToRollback = await this.migrationRepository.find({
+      where: whereClause,
+      order: { appliedAt: 'DESC' },
+    });
+
+    for (const appliedMigration of migrationsToRollback) {
+      const migrationConfig = registeredMigrations.find((m) => m.name === appliedMigration.name);
+      if (migrationConfig) {
+        await this.rollbackMigration(migrationConfig);
+      } else {
+        this.logger.warn(`Could not find migration config for: ${appliedMigration.name}`);
+      }
+    }
+
+    this.logger.log(`Rollback to version ${targetMigrationName} complete.`);
+  }
+
+  /**
+   * Rolls back a specific named migration regardless of order.
+   */
+  async rollbackByName(migrationName: string): Promise<void> {
+    this.logger.log(`Rolling back specific migration by name: ${migrationName}`);
+
+    const registeredMigrations = this.getRegisteredMigrations();
+    const migrationConfig = registeredMigrations.find((m) => m.name === migrationName);
+
+    if (!migrationConfig) {
+      throw new Error(`Migration not found in registry: ${migrationName}`);
+    }
+
+    const canRollback = await this.canRollbackMigration(migrationName);
+    if (!canRollback) {
+      throw new Error(
+        `Cannot roll back migration ${migrationName}: it either hasn't been applied or has dependent migrations applied after it.`,
+      );
+    }
+
+    await this.rollbackMigration(migrationConfig);
+  }
   async canRollbackMigration(migrationName: string): Promise<boolean> {
     // Check if the migration exists and is completed
     const migration = await this.migrationRepository.findOne({

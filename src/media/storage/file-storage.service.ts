@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
+import { UploadedFile } from '../../common/types/file.types';
 
 @Injectable()
 export class FileStorageService {
@@ -29,7 +30,7 @@ export class FileStorageService {
 
   // Legacy method for backward compatibility
   async uploadFile(
-    file: Express.Multer.File,
+    file: UploadedFile,
     metadata: ContentMetadata,
   ): Promise<{ url: string; etag?: string }> {
     const key = `${metadata.contentId}/${Date.now()}_${file.originalname}`;

@@ -39,10 +39,11 @@ export class CollaborationController {
    * Initialize a new collaborative session
    */
   @Post('session')
-  async createSession(@Request() req, @Body() body: CreateSessionDto) {
-    // Sanitize and validate input using DTO
-    const sanitizedInput = plainToInstance(CreateSessionDto, body);
-    const { sessionId, resourceType } = sanitizedInput;
+  async createSession(
+    @Request() req,
+    @Body() body: { sessionId: string; resourceType: 'document' | 'whiteboard' },
+  ): Promise<any> {
+    const { sessionId, resourceType } = body;
     const userId = req.user.id;
 
     const session = await this.collaborationService.initializeSession(
@@ -63,7 +64,7 @@ export class CollaborationController {
    * Get collaborative document
    */
   @Get('document/:id')
-  async getDocument(@Param('id', ParseUUIDPipe) documentId: string, @Request() req) {
+  async getDocument(@Param('id') documentId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       documentId,
@@ -87,7 +88,7 @@ export class CollaborationController {
    * Get collaborative whiteboard
    */
   @Get('whiteboard/:id')
-  async getWhiteboard(@Param('id', ParseUUIDPipe) whiteboardId: string, @Request() req) {
+  async getWhiteboard(@Param('id') whiteboardId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       whiteboardId,
@@ -115,7 +116,7 @@ export class CollaborationController {
     @Param('id', ParseUUIDPipe) documentId: string,
     @Request() req,
     @Body() body: { operation: any },
-  ) {
+  ): Promise<any> {
     const { operation } = body;
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
@@ -144,7 +145,7 @@ export class CollaborationController {
     @Param('id', ParseUUIDPipe) whiteboardId: string,
     @Request() req,
     @Body() body: { operation: any },
-  ) {
+  ): Promise<any> {
     const { operation } = body;
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
@@ -169,7 +170,7 @@ export class CollaborationController {
    * Get document history
    */
   @Get('document/:id/history')
-  async getDocumentHistory(@Param('id', ParseUUIDPipe) documentId: string, @Request() req) {
+  async getDocumentHistory(@Param('id') documentId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       documentId,
@@ -193,7 +194,7 @@ export class CollaborationController {
    * Get whiteboard history
    */
   @Get('whiteboard/:id/history')
-  async getWhiteboardHistory(@Param('id', ParseUUIDPipe) whiteboardId: string, @Request() req) {
+  async getWhiteboardHistory(@Param('id') whiteboardId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       whiteboardId,
@@ -217,7 +218,7 @@ export class CollaborationController {
    * Get version history for a session
    */
   @Get('version-history/:sessionId')
-  async getVersionHistory(@Param('sessionId') sessionId: string, @Request() req) {
+  async getVersionHistory(@Param('sessionId') sessionId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       sessionId,
@@ -241,7 +242,7 @@ export class CollaborationController {
    * Get current version of a session
    */
   @Get('version-current/:sessionId')
-  async getCurrentVersion(@Param('sessionId') sessionId: string, @Request() req) {
+  async getCurrentVersion(@Param('sessionId') sessionId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       sessionId,
@@ -270,7 +271,7 @@ export class CollaborationController {
     @Param('userId') userId: string,
     @Request() req,
     @Body() body: { permission: PermissionLevel },
-  ) {
+  ): Promise<any> {
     const adminUserId = req.user.id;
     const { permission } = body;
 
@@ -306,7 +307,7 @@ export class CollaborationController {
     @Param('resourceId') resourceId: string,
     @Param('userId') userId: string,
     @Request() req,
-  ) {
+  ): Promise<any> {
     const adminUserId = req.user.id;
 
     // Check if the requesting user has admin permissions
@@ -332,7 +333,7 @@ export class CollaborationController {
    * Get users with access to a resource
    */
   @Get('users/:resourceId')
-  async getUsersForResource(@Param('resourceId') resourceId: string, @Request() req) {
+  async getUsersForResource(@Param('resourceId') resourceId: string, @Request() req): Promise<any> {
     const userId = req.user.id;
     const hasPermission = await this.permissionsService.hasAccess(
       resourceId,

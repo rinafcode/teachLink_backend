@@ -4,7 +4,14 @@ import { UPLOAD_PROGRESS_CONFIG } from './file-validation.constants';
 
 export interface UploadProgress {
   uploadId: string;
-  status: 'pending' | 'validating' | 'scanning' | 'processing' | 'uploading' | 'completed' | 'failed';
+  status:
+    | 'pending'
+    | 'validating'
+    | 'scanning'
+    | 'processing'
+    | 'uploading'
+    | 'completed'
+    | 'failed';
   progress: number; // 0-100
   fileName: string;
   fileSize: number;
@@ -181,8 +188,8 @@ export class UploadProgressService {
         }
       }
 
-      return uploads.sort((a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      return uploads.sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
     } catch (error) {
       this.logger.error('Failed to list active uploads:', error);
@@ -214,8 +221,10 @@ export class UploadProgressService {
           const updatedAt = new Date(progress.updatedAt).getTime();
 
           // Delete if old and completed/failed
-          if ((progress.status === 'completed' || progress.status === 'failed') &&
-              (now - updatedAt > maxAgeMs)) {
+          if (
+            (progress.status === 'completed' || progress.status === 'failed') &&
+            now - updatedAt > maxAgeMs
+          ) {
             await this.redis.del(keys[i]);
             deletedCount++;
           }
@@ -301,11 +310,7 @@ export class UploadProgressService {
    */
   private async saveProgress(uploadId: string, progress: UploadProgress): Promise<void> {
     const key = this.getRedisKey(uploadId);
-    await this.redis.setex(
-      key,
-      UPLOAD_PROGRESS_CONFIG.EXPIRY_SECONDS,
-      JSON.stringify(progress),
-    );
+    await this.redis.setex(key, UPLOAD_PROGRESS_CONFIG.EXPIRY_SECONDS, JSON.stringify(progress));
   }
 
   /**

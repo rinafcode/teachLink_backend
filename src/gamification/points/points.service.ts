@@ -14,7 +14,7 @@ export class PointsService {
     private pointTransactionRepository: Repository<PointTransaction>,
   ) {}
 
-  async addPoints(userId: string, points: number, activityType: string) {
+  async addPoints(userId: string, points: number, activityType: string): Promise<UserProgress> {
     // Log the transaction
     const transaction = this.pointTransactionRepository.create({
       user: { id: userId } as User,
@@ -50,7 +50,7 @@ export class PointsService {
     return await this.userProgressRepository.save(progress);
   }
 
-  async getUserProgress(userId: string) {
+  async getUserProgress(userId: string): Promise<UserProgress | null> {
     return await this.userProgressRepository.findOne({
       where: { user: { id: userId } },
     });

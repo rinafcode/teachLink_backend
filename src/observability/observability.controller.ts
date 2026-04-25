@@ -24,7 +24,7 @@ export class ObservabilityController {
    * Get observability dashboard
    */
   @Get('dashboard')
-  async getDashboard() {
+  async getDashboard(): Promise<any> {
     return this.observabilityService.getObservabilityDashboard();
   }
 
@@ -32,7 +32,7 @@ export class ObservabilityController {
    * Get system overview
    */
   @Get('overview')
-  async getOverview() {
+  async getOverview(): Promise<any> {
     return this.observabilityService.getSystemOverview();
   }
 
@@ -40,7 +40,7 @@ export class ObservabilityController {
    * Search logs
    */
   @Post('logs/search')
-  async searchLogs(@Body() query: LogQuery) {
+  async searchLogs(@Body() query: LogQuery): Promise<any> {
     return this.logAggregation.searchLogs(query);
   }
 
@@ -48,7 +48,7 @@ export class ObservabilityController {
    * Get logs by correlation ID
    */
   @Get('logs/correlation/:id')
-  async getLogsByCorrelation(@Query('id') id: string) {
+  async getLogsByCorrelation(@Query('id') id: string): Promise<any> {
     return this.logAggregation.getLogsByCorrelationId(id);
   }
 
@@ -56,7 +56,7 @@ export class ObservabilityController {
    * Get error logs
    */
   @Get('logs/errors')
-  async getErrorLogs(@Query('limit') limit?: number) {
+  async getErrorLogs(@Query('limit') limit?: number): Promise<any> {
     return this.logAggregation.getErrorLogs(limit ? parseInt(limit.toString()) : 100);
   }
 
@@ -67,7 +67,7 @@ export class ObservabilityController {
   async getLogStatistics(
     @Query('startTime') startTime?: string,
     @Query('endTime') endTime?: string,
-  ) {
+  ): Promise<any> {
     const timeRange =
       startTime && endTime ? { start: new Date(startTime), end: new Date(endTime) } : undefined;
 
@@ -78,7 +78,7 @@ export class ObservabilityController {
    * Get recent logs
    */
   @Get('logs/recent')
-  async getRecentLogs(@Query('limit') limit?: number) {
+  async getRecentLogs(@Query('limit') limit?: number): Promise<any> {
     return this.logAggregation.getRecentLogs(limit ? parseInt(limit.toString()) : 100);
   }
 
@@ -86,7 +86,7 @@ export class ObservabilityController {
    * Get trace by ID
    */
   @Get('traces/:id')
-  async getTrace(@Query('id') id: string) {
+  async getTrace(@Query('id') id: string): Promise<any> {
     return this.tracing.getTraceById(id);
   }
 
@@ -94,7 +94,7 @@ export class ObservabilityController {
    * Get all traces
    */
   @Get('traces')
-  async getAllTraces() {
+  async getAllTraces(): Promise<any> {
     return this.tracing.getAllSpans();
   }
 
@@ -102,7 +102,7 @@ export class ObservabilityController {
    * Get trace statistics
    */
   @Get('traces/statistics')
-  async getTraceStatistics() {
+  async getTraceStatistics(): Promise<any> {
     return this.tracing.getTraceStatistics();
   }
 
@@ -110,7 +110,7 @@ export class ObservabilityController {
    * Get metrics
    */
   @Get('metrics/:name')
-  async getMetrics(@Query('name') name: string, @Query('limit') limit?: number) {
+  async getMetrics(@Query('name') name: string, @Query('limit') limit?: number): Promise<any> {
     return this.metrics.getMetrics(name, limit ? parseInt(limit.toString()) : undefined);
   }
 
@@ -122,7 +122,7 @@ export class ObservabilityController {
     @Query('name') name: string,
     @Query('startTime') startTime?: string,
     @Query('endTime') endTime?: string,
-  ) {
+  ): Promise<any> {
     const timeRange =
       startTime && endTime ? { start: new Date(startTime), end: new Date(endTime) } : undefined;
 
@@ -133,7 +133,7 @@ export class ObservabilityController {
    * Get all metrics
    */
   @Get('metrics')
-  async getAllMetrics() {
+  async getAllMetrics(): Promise<any> {
     return {
       names: this.metrics.getMetricNames(),
       statistics: this.metrics.getAllMetricsStatistics(),
@@ -144,7 +144,7 @@ export class ObservabilityController {
    * Get dashboard metrics
    */
   @Get('metrics/dashboard')
-  async getDashboardMetrics() {
+  async getDashboardMetrics(): Promise<any> {
     return this.metrics.getDashboardMetrics();
   }
 
@@ -152,7 +152,7 @@ export class ObservabilityController {
    * Export Prometheus metrics
    */
   @Get('metrics/export/prometheus')
-  async exportPrometheusMetrics() {
+  async exportPrometheusMetrics(): Promise<any> {
     return this.metrics.exportPrometheusMetrics();
   }
 
@@ -160,7 +160,7 @@ export class ObservabilityController {
    * Get anomalies
    */
   @Get('anomalies')
-  async getAnomalies(@Query('limit') limit?: number) {
+  async getAnomalies(@Query('limit') limit?: number): Promise<any> {
     return this.anomalyDetection.getAnomalies(limit ? parseInt(limit.toString()) : undefined);
   }
 
@@ -168,7 +168,7 @@ export class ObservabilityController {
    * Get anomalies by metric
    */
   @Get('anomalies/metric/:name')
-  async getAnomaliesByMetric(@Query('name') name: string) {
+  async getAnomaliesByMetric(@Query('name') name: string): Promise<any> {
     return this.anomalyDetection.getAnomaliesByMetric(name);
   }
 
@@ -176,7 +176,7 @@ export class ObservabilityController {
    * Get recent anomalies
    */
   @Get('anomalies/recent')
-  async getRecentAnomalies(@Query('minutes') minutes?: number) {
+  async getRecentAnomalies(@Query('minutes') minutes?: number): Promise<any> {
     return this.anomalyDetection.getRecentAnomalies(minutes ? parseInt(minutes.toString()) : 60);
   }
 
@@ -184,7 +184,7 @@ export class ObservabilityController {
    * Get anomaly statistics
    */
   @Get('anomalies/statistics')
-  async getAnomalyStatistics() {
+  async getAnomalyStatistics(): Promise<any> {
     return this.anomalyDetection.getAnomalyStatistics();
   }
 
@@ -192,7 +192,7 @@ export class ObservabilityController {
    * Get system health
    */
   @Get('health')
-  async getSystemHealth() {
+  async getSystemHealth(): Promise<any> {
     return this.anomalyDetection.getSystemHealth();
   }
 
@@ -200,7 +200,7 @@ export class ObservabilityController {
    * Detect anomalies in a metric
    */
   @Post('anomalies/detect')
-  async detectAnomalies(@Body() body: { metricName: string; windowSize?: number }) {
+  async detectAnomalies(@Body() body: { metricName: string; windowSize?: number }): Promise<any> {
     return this.anomalyDetection.detectAnomalies(body.metricName, body.windowSize);
   }
 }

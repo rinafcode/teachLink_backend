@@ -35,7 +35,7 @@ export class AuditRetentionTask {
 
       const report = await this.auditLogService.generateReport(startDate, endDate);
 
-      this.logger.log(`Weekly report generated:`, {
+      this.logger.log('Weekly report generated:', {
         totalEvents: report.totalEvents,
         criticalEvents: report.eventsBySeverity['CRITICAL'] || 0,
         errorEvents: report.eventsBySeverity['ERROR'] || 0,

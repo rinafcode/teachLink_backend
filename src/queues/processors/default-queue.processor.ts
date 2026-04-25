@@ -1,13 +1,15 @@
 import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../../common/constants/queue.constants';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { RetryLogicService } from '../retry/retry-logic.service';
+import { sanitizeEmail, sanitizePii } from '../../common/utils/pii-sanitizer.utils';
 
 /**
  * Default Queue Processor
  * Processes jobs from the default queue
  */
-@Processor('default')
+@Processor(QUEUE_NAMES.DEFAULT)
 export class DefaultQueueProcessor {
   private readonly logger = new Logger(DefaultQueueProcessor.name);
 
@@ -54,7 +56,7 @@ export class DefaultQueueProcessor {
   private async processSendEmail(job: Job): Promise<any> {
     await job.progress(30);
     // Email sending logic here
-    this.logger.log(`Sending email to ${job.data.to}`);
+    this.logger.log(`Sending email to ${sanitizeEmail(job.data.to)}`);
     await this.simulateWork(2000);
     await job.progress(80);
     return { status: 'sent', recipient: job.data.to };
@@ -99,7 +101,9 @@ export class DefaultQueueProcessor {
   onCompleted(job: Job, result: any) {
     const processingTime = (job.finishedOn ?? Date.now()) - (job.processedOn ?? Date.now());
     this.logger.log(
-      `Job ${job.name} (${job.id}) completed in ${processingTime}ms - Result: ${JSON.stringify(result)}`,
+      `Job ${job.name} (${job.id}) completed in ${processingTime}ms - Result: ${JSON.stringify(
+        sanitizePii(result),
+      )}`,
     );
   }
 

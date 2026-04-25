@@ -71,7 +71,11 @@ export class AuthService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async register(registerDto: RegisterDto, ipAddress?: string, userAgent?: string): Promise<RegisterResponse> {
+  async register(
+    registerDto: RegisterDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<RegisterResponse> {
     return await this.transactionService.runInTransaction(async (_manager) => {
       // Create user
       const user = await this.usersService.create(registerDto);
@@ -254,7 +258,12 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, sessionId?: string, ipAddress?: string, userAgent?: string): Promise<{ message: string }> {
+  async logout(
+    userId: string,
+    sessionId?: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ message: string }> {
     const user = await this.usersService.findOne(userId);
 
     await this.sessionService.withLock(`logout:${userId}`, async () => {
@@ -381,10 +390,13 @@ export class AuthService {
       sid: sessionId,
     };
 
+    const { currentVersion, currentSecret } = this.getCurrentJwtAccessSecret();
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET') || 'your-secret-key',
+        secret: currentSecret,
         expiresIn: parseInt(this.configService.get<string>('JWT_EXPIRES_IN') || '900', 10), // 900s = 15m
+        header: currentVersion ? { kid: currentVersion } : undefined,
       }),
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
@@ -396,6 +408,48 @@ export class AuthService {
     ]);
 
     return { accessToken, refreshToken };
+  }
+
+  private getCurrentJwtAccessSecret(): { currentVersion: string | null; currentSecret: string } {
+    const jwtSecretsRaw = this.configService.get<string>('JWT_SECRETS');
+    const currentVersion = this.configService.get<string>('JWT_SECRET_CURRENT_VERSION') || null;
+
+    if (!jwtSecretsRaw) {
+      return {
+        currentVersion,
+        currentSecret: this.configService.get<string>('JWT_SECRET') || 'your-secret-key',
+      };
+    }
+
+    const secrets = this.parseJwtSecrets(jwtSecretsRaw);
+    const currentSecret =
+      (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
+    return { currentVersion, currentSecret: currentSecret || 'your-secret-key' };
+  }
+
+  private parseJwtSecrets(raw: string): Record<string, string> {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, string>;
+      }
+    } catch {
+      // ignore
+    }
+
+    return raw
+      .split(',')
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .reduce<Record<string, string>>((acc, pair) => {
+        const idx = pair.indexOf(':');
+        if (idx <= 0) return acc;
+        const version = pair.slice(0, idx).trim();
+        const secret = pair.slice(idx + 1).trim();
+        if (!version || !secret) return acc;
+        acc[version] = secret;
+        return acc;
+      }, {});
   }
 
   private generateRandomToken(): string {

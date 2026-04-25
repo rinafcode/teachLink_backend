@@ -8,7 +8,7 @@ export class AssessmentsController {
 
   @Post(':id/start')
   @UseGuards(JwtAuthGuard)
-  start(@Request() req, @Param('id') id: string) {
+  start(@Request() req: any, @Param('id') id: string): any {
     const studentId = req.user.id;
     if (!studentId) {
       throw new Error('User not authenticated');
@@ -18,13 +18,13 @@ export class AssessmentsController {
 
   @Post('attempts/:id/submit')
   @UseGuards(JwtAuthGuard)
-  submit(@Request() req, @Param('id') id: string, @Body('answers') answers: any[]) {
+  submit(@Request() req: any, @Param('id') id: string, @Body('answers') answers: any[]): any {
     return this.service.submitAssessment(id, answers);
   }
 
   @Get('attempts/:id')
   @UseGuards(JwtAuthGuard)
-  results(@Request() req, @Param('id') id: string) {
+  results(@Request() req: any, @Param('id') id: string): any {
     return this.service.getResults(id);
   }
 }

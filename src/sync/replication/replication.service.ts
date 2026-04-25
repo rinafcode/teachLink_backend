@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 
 export interface ReplicationEvent {
   entityId: string;
@@ -18,7 +19,7 @@ export class ReplicationService {
 
   constructor(
     private eventEmitter: EventEmitter2,
-    @InjectQueue('sync-tasks') private syncQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.SYNC_TASKS) private syncQueue: Queue,
   ) {}
 
   /**
@@ -41,7 +42,7 @@ export class ReplicationService {
     };
 
     // Add to queue for asynchronous replication
-    await this.syncQueue.add('replicate-data', event, {
+    await this.syncQueue.add(JOB_NAMES.REPLICATE_DATA, event, {
       attempts: 5,
       backoff: {
         type: 'exponential',
