@@ -9,29 +9,29 @@ export class IndexingService implements OnModuleInit {
 
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
-  async onModuleInit() {
+  async onModuleInit(): Promise<void> {
     await this.ensureIndices();
   }
 
   // ── Generic document operations ─────────────────────────────────────────────
 
-  async indexDocument(index: string, id: string, document: any) {
+  async indexDocument(index: string, id: string, document: any): Promise<any> {
     return this.elasticsearchService.index({ index, id, document });
   }
 
-  async updateDocument(index: string, id: string, document: any) {
+  async updateDocument(index: string, id: string, document: any): Promise<any> {
     return this.elasticsearchService.update({ index, id, doc: document });
   }
 
-  async deleteDocument(index: string, id: string) {
+  async deleteDocument(index: string, id: string): Promise<any> {
     return this.elasticsearchService.delete({ index, id });
   }
 
-  async createIndex(index: string, mapping: any) {
+  async createIndex(index: string, mapping: any): Promise<any> {
     return this.elasticsearchService.indices.create({ index, mappings: mapping });
   }
 
-  async bulkIndex(documents: any[]) {
+  async bulkIndex(documents: any[]): Promise<any> {
     const operations = documents.flatMap((doc) => [
       { index: { _index: COURSES_INDEX, _id: String(doc.id) } },
       doc,
@@ -41,7 +41,7 @@ export class IndexingService implements OnModuleInit {
 
   // ── Course-specific sync operations ─────────────────────────────────────────
 
-  async syncCourse(course: Record<string, any>) {
+  async syncCourse(course: Record<string, any>): Promise<void> {
     const { id, ...fields } = course;
     await this.elasticsearchService.index({
       index: COURSES_INDEX,
@@ -50,7 +50,7 @@ export class IndexingService implements OnModuleInit {
     });
   }
 
-  async updateCourse(id: string, fields: Record<string, any>) {
+  async updateCourse(id: string, fields: Record<string, any>): Promise<void> {
     await this.elasticsearchService.update({
       index: COURSES_INDEX,
       id,
@@ -58,11 +58,11 @@ export class IndexingService implements OnModuleInit {
     });
   }
 
-  async removeCourse(id: string) {
+  async removeCourse(id: string): Promise<void> {
     await this.elasticsearchService.delete({ index: COURSES_INDEX, id });
   }
 
-  async reindexAll(courses: Array<Record<string, any>>) {
+  async reindexAll(courses: Array<Record<string, any>>): Promise<any> {
     if (courses.length === 0) return;
 
     const operations = courses.flatMap((course) => {
@@ -83,14 +83,14 @@ export class IndexingService implements OnModuleInit {
 
   // ── Index bootstrap ──────────────────────────────────────────────────────────
 
-  private async ensureIndices() {
+  private async ensureIndices(): Promise<void> {
     await Promise.all([
       this.createCoursesIndex(this.reindexOnBoot),
       this.createSearchAnalyticsIndex(),
     ]);
   }
 
-  async createCoursesIndex(forceReindex = false) {
+  async createCoursesIndex(forceReindex = false): Promise<any> {
     const exists = await this.elasticsearchService.indices.exists({ index: COURSES_INDEX });
 
     if (exists) {
@@ -108,7 +108,7 @@ export class IndexingService implements OnModuleInit {
     });
   }
 
-  private async ensureExistingCoursesIndexSettings() {
+  private async ensureExistingCoursesIndexSettings(): Promise<void> {
     try {
       await this.elasticsearchService.indices.putSettings({
         index: COURSES_INDEX,
@@ -121,7 +121,7 @@ export class IndexingService implements OnModuleInit {
     }
   }
 
-  private async reindexCoursesIndexWithCurrentMapping() {
+  private async reindexCoursesIndexWithCurrentMapping(): Promise<void> {
     const tempIndex = `${COURSES_INDEX}_tmp_${Date.now()}`;
     this.logger.log(
       `SEARCH_REINDEX_ON_BOOT enabled, reindexing ${COURSES_INDEX} using temporary index ${tempIndex}`,
@@ -233,7 +233,7 @@ export class IndexingService implements OnModuleInit {
     };
   }
 
-  async createSearchAnalyticsIndex() {
+  async createSearchAnalyticsIndex(): Promise<any> {
     const exists = await this.elasticsearchService.indices.exists({
       index: SEARCH_ANALYTICS_INDEX,
     });

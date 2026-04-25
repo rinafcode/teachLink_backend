@@ -187,7 +187,7 @@ export class TransactionExampleService {
         },
         rollback: async (_manager) => {
           // Rollback record creation
-          this.logger.warn(`Rolled back record creation`);
+          this.logger.warn('Rolled back record creation');
         },
         condition: () => Math.random() > 0.5, // 50% chance of success
       },

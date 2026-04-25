@@ -14,7 +14,7 @@ export class SearchController {
     @Query('sort') sort?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ) {
+  ): Promise<any> {
     let parsedFilters: Record<string, any> = {};
     if (filters) {
       try {
@@ -42,17 +42,17 @@ export class SearchController {
   }
 
   @Get('autocomplete')
-  async autocomplete(@Query('q') query: string) {
+  async autocomplete(@Query('q') query: string): Promise<any> {
     return this.searchService.getAutoComplete(query);
   }
 
   @Get('filters')
-  async getFilters() {
+  async getFilters(): Promise<any> {
     return this.searchService.getAvailableFilters();
   }
 
   @Get('analytics')
-  async getAnalytics(@Query('days') days?: string) {
+  async getAnalytics(@Query('days') days?: string): Promise<any> {
     const parsedDays = days ? parseInt(days, 10) : 7;
     return this.searchService.getSearchAnalytics(parsedDays);
   }

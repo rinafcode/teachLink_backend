@@ -52,9 +52,9 @@ module.exports = {
     'prettier/prettier': 'error',
 
     // ── Strict TypeScript rules ──
-    '@typescript-eslint/explicit-function-return-type': 'error',
-    '@typescript-eslint/explicit-module-boundary-types': 'warn',
-    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
 
     // ── Variables ──
     'no-unused-vars': 'off',

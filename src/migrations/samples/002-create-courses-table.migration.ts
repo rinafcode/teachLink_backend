@@ -34,8 +34,12 @@ export class CreateCoursesTableMigration implements MigrationConfig {
       );
     `);
 
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_course_status        ON course (status);`);
-    await connection.query(`CREATE INDEX IF NOT EXISTS idx_course_instructor_id ON course (instructor_id);`);
+    await connection.query(
+      'CREATE INDEX IF NOT EXISTS idx_course_status        ON course (status);',
+    );
+    await connection.query(
+      'CREATE INDEX IF NOT EXISTS idx_course_instructor_id ON course (instructor_id);',
+    );
 
     this.logger.log('Migration applied: create courses table');
   }
@@ -43,7 +47,7 @@ export class CreateCoursesTableMigration implements MigrationConfig {
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create courses table');
 
-    await connection.query(`DROP TABLE IF EXISTS course CASCADE;`);
+    await connection.query('DROP TABLE IF EXISTS course CASCADE;');
 
     this.logger.log('Migration rolled back: create courses table');
   }

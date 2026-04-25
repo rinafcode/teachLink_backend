@@ -5,7 +5,7 @@ import { StripeService } from './stripe.service';
 export class ProviderFactoryService {
   constructor(private readonly stripeService: StripeService) {}
 
-  getProvider(provider: string) {
+  getProvider(provider: string): StripeService {
     switch (provider.toLowerCase()) {
       case 'stripe':
         return this.stripeService;

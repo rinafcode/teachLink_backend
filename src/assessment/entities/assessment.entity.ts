@@ -1,16 +1,9 @@
 import {
   Column,
   CreateDateColumn,
-  Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  Index,
   DeleteDateColumn,
   Entity,
-  OneToMany,
-  PrimaryGeneratedColumn,
   Index,
-  DeleteDateColumn,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';

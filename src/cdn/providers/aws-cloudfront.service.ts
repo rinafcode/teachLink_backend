@@ -240,7 +240,7 @@ export class AWSCloudFrontService {
         await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 seconds
         attempts++;
       } catch (error) {
-        this.logger.error(`Error checking invalidation status:`, error);
+        this.logger.error('Error checking invalidation status:', error);
         attempts++;
       }
     }

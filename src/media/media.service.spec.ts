@@ -3,26 +3,15 @@ import { ContentStatus } from '../cdn/entities/content-metadata.entity';
 import { MediaService } from './media.service';
 
 describe('MediaService', () => {
+  // ─── Declarations ──────────────────────────────────────────────────────────
   let service: MediaService;
-  let contentRepo: {
-    create: jest.Mock;
-    save: jest.Mock;
-    findOne: jest.Mock;
-  };
-  let storage: { uploadFile: jest.Mock; uploadProcessedFile: jest.Mock };
-  let videoProcessing: { enqueueTranscode: jest.Mock };
-  let fileValidation: { validateFile: jest.Mock };
-  let malwareScanning: { isScanningAvailable: jest.Mock; scanFile: jest.Mock };
-  let imageProcessing: { compressImage: jest.Mock; generateThumbnails: jest.Mock };
-  let uploadProgress: {
-    initializeUpload: jest.Mock;
-    updateProgress: jest.Mock;
-    markFailed: jest.Mock;
-    markCompleted: jest.Mock;
-    getProgress: jest.Mock;
-    listActiveUploads: jest.Mock;
-    getStatistics: jest.Mock;
-  };
+  let mockContentRepo: jest.Mocked<any>;
+  let mockStorage: jest.Mocked<any>;
+  let mockVideoProcessing: jest.Mocked<any>;
+  let mockFileValidation: jest.Mocked<any>;
+  let mockMalwareScanning: jest.Mocked<any>;
+  let mockImageProcessing: jest.Mocked<any>;
+  let mockUploadProgress: jest.Mocked<any>;
 
   const file = {
     originalname: 'avatar.png',
@@ -31,39 +20,47 @@ describe('MediaService', () => {
     buffer: Buffer.from('png'),
   };
 
+  // ─── Setup ─────────────────────────────────────────────────────────────────
   beforeEach(() => {
-    contentRepo = {
+    // Initialize all dependency mocks with proper typing
+    mockContentRepo = {
       create: jest.fn().mockImplementation((value) => value),
       save: jest.fn().mockImplementation(async (value) => ({
         status: ContentStatus.READY,
         ...value,
       })),
       findOne: jest.fn(),
-    };
-    storage = {
+    } as jest.Mocked<any>;
+
+    mockStorage = {
       uploadFile: jest.fn(),
       uploadProcessedFile: jest.fn(),
-    };
-    videoProcessing = {
+    } as jest.Mocked<any>;
+
+    mockVideoProcessing = {
       enqueueTranscode: jest.fn(),
-    };
-    fileValidation = {
+    } as jest.Mocked<any>;
+
+    mockFileValidation = {
       validateFile: jest.fn().mockResolvedValue({
         valid: true,
         errors: [],
         warnings: [],
         metadata: {},
       }),
-    };
-    malwareScanning = {
+    } as jest.Mocked<any>;
+
+    mockMalwareScanning = {
       isScanningAvailable: jest.fn(),
       scanFile: jest.fn(),
-    };
-    imageProcessing = {
+    } as jest.Mocked<any>;
+
+    mockImageProcessing = {
       compressImage: jest.fn(),
       generateThumbnails: jest.fn(),
-    };
-    uploadProgress = {
+    } as jest.Mocked<any>;
+
+    mockUploadProgress = {
       initializeUpload: jest.fn(),
       updateProgress: jest.fn(),
       markFailed: jest.fn(),
@@ -71,33 +68,37 @@ describe('MediaService', () => {
       getProgress: jest.fn(),
       listActiveUploads: jest.fn(),
       getStatistics: jest.fn(),
-    };
+    } as jest.Mocked<any>;
 
     service = new MediaService(
-      contentRepo as any,
-      storage as any,
-      videoProcessing as any,
-      fileValidation as any,
-      malwareScanning as any,
-      imageProcessing as any,
-      uploadProgress as any,
+      mockContentRepo,
+      mockStorage,
+      mockVideoProcessing,
+      mockFileValidation,
+      mockMalwareScanning,
+      mockImageProcessing,
+      mockUploadProgress,
     );
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('fails closed when malware scanning is required but unavailable', async () => {
-    malwareScanning.isScanningAvailable.mockReturnValue(false);
+    mockMalwareScanning.isScanningAvailable.mockReturnValue(false);
 
     await expect(
       service.createFromUpload('user-1', 'tenant-1', file as any),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
 
-    expect(malwareScanning.scanFile).not.toHaveBeenCalled();
-    expect(uploadProgress.markFailed).toHaveBeenCalled();
+    expect(mockMalwareScanning.scanFile).not.toHaveBeenCalled();
+    expect(mockUploadProgress.markFailed).toHaveBeenCalled();
   });
 
   it('blocks uploads when malware is detected', async () => {
-    malwareScanning.isScanningAvailable.mockReturnValue(true);
-    malwareScanning.scanFile.mockResolvedValue({
+    mockMalwareScanning.isScanningAvailable.mockReturnValue(true);
+    mockMalwareScanning.scanFile.mockResolvedValue({
       clean: false,
       threats: ['EICAR-Test-File'],
       scanTime: 42,
@@ -107,7 +108,7 @@ describe('MediaService', () => {
       service.createFromUpload('user-1', 'tenant-1', file as any),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
-    expect(uploadProgress.markFailed).toHaveBeenCalledWith(
+    expect(mockUploadProgress.markFailed).toHaveBeenCalledWith(
       expect.any(String),
       'Malware detected: EICAR-Test-File',
     );

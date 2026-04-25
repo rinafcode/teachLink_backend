@@ -3,8 +3,8 @@ import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Queue } from 'bull';
 import { getQueueToken } from '@nestjs/bull';
-import { WebhookQueueService } from '../webhook-queue.service';
-import { WebhookRetry, WebhookStatus, WebhookProvider } from '../entities/webhook-retry.entity';
+import { WebhookQueueService } from './webhook-queue.service';
+import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
 
 describe('WebhookQueueService', () => {
   let service: WebhookQueueService;
@@ -43,7 +43,7 @@ describe('WebhookQueueService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('queueWebhook', () => {
@@ -62,7 +62,7 @@ describe('WebhookQueueService', () => {
         provider: WebhookProvider.STRIPE,
         externalEventId: 'evt_123',
         status: WebhookStatus.PENDING,
-        payload: webhookPayload.payload as Record<string, unknown>,
+        payload: webhookPayload.payload as unknown as Record<string, unknown>,
         signature: 'test-signature',
         retryCount: 0,
       };
