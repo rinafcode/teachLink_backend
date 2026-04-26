@@ -10,7 +10,6 @@ import Redis from 'ioredis';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { correlationMiddleware } from './common/utils/correlation.utils';
 import {
   API_VERSION_HEADER,
@@ -150,9 +149,6 @@ async function bootstrapWorker(): Promise<void> {
 
   // ─── Global Exception Filter ──────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter());
-
-  // ─── Global Logging Interceptor ───────────────────────────────────────────
-  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // ─── Global Response Transform Interceptor ───────────────────────────────
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
