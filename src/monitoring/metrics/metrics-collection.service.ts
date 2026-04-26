@@ -7,6 +7,12 @@ export class MetricsCollectionService implements OnModuleInit {
   public httpRequestDuration: Histogram;
   public dbQueryDuration: Histogram;
   public activeConnections: Gauge;
+  /** Tracks total DB pool connections acquired since startup (#274) */
+  public dbPoolConnectionsAcquired: Counter;
+  /** Tracks total DB pool connections released since startup (#274) */
+  public dbPoolConnectionsReleased: Counter;
+  /** Tracks current DB pool size (active + idle) (#274) */
+  public dbPoolSize: Gauge;
   public userRegistrations: Counter;
   public assessmentCompletions: Counter;
   public learningPathProgress: Gauge;
@@ -43,6 +49,22 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
+    // DB connection pool metrics (#274)
+    this.dbPoolConnectionsAcquired = new Counter({
+      name: 'db_pool_connections_acquired_total',
+      help: 'Total number of DB pool connections acquired',
+      registers: [this.registry],
+    });
+
+    this.dbPoolConnectionsReleased = new Counter({
+      name: 'db_pool_connections_released_total',
+      help: 'Total number of DB pool connections released',
+      registers: [this.registry],
+    });
+
+    this.dbPoolSize = new Gauge({
+      name: 'db_pool_size',
+      help: 'Current DB connection pool size (active + idle)',
     // User Registrations Counter
     this.userRegistrations = new Counter({
       name: 'user_registrations_total',

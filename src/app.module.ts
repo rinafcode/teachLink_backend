@@ -1,4 +1,4 @@
-import { Module, DynamicModule, Type, Global } from '@nestjs/common';
+import { Module, DynamicModule, Type, Logger, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -88,6 +88,13 @@ export class AppModule {
             10,
           );
 
+          // Log pool configuration at startup for observability (#274)
+          const poolLogger = new Logger('DatabasePool');
+          poolLogger.log(
+            `DB pool config — max: ${poolMax}, min: ${poolMin}, ` +
+              `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
+          );
+
           return {
             type: 'postgres',
             host: process.env.DATABASE_HOST || 'localhost',
@@ -106,6 +113,17 @@ export class AppModule {
               min: poolMin,
               connectionTimeoutMillis: poolAcquireTimeoutMs,
               idleTimeoutMillis: poolIdleTimeoutMs,
+              // Pool event hooks for Prometheus metrics (#274).
+              // pg fires these on the underlying Pool instance after each
+              // acquire/release so we can track connection churn over time.
+              afterPoolConnect: (_client: unknown, _eventCount: number) => {
+                metricsService.dbPoolConnectionsAcquired.inc();
+                metricsService.dbPoolSize.inc();
+              },
+              afterPoolRelease: (_client: unknown, _eventCount: number) => {
+                metricsService.dbPoolConnectionsReleased.inc();
+                metricsService.dbPoolSize.dec();
+              },
             },
           };
         },
