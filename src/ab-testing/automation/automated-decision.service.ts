@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
 import { ExperimentVariant } from '../entities/experiment-variant.entity';
 import { StatisticalAnalysisService } from '../analysis/statistical-analysis.service';
+import { AB_TESTING_CONSTANTS } from '../ab-testing.constants';
 
 export interface WinnerSelectionCriteria {
   confidenceLevel: number;
@@ -44,10 +45,10 @@ export class AutomatedDecisionService {
     }
 
     const defaultCriteria: WinnerSelectionCriteria = {
-      confidenceLevel: experiment.confidenceLevel || 95,
-      minimumSampleSize: experiment.minimumSampleSize || 100,
-      effectSizeThreshold: 0.1,
-      durationThreshold: 7,
+      confidenceLevel: experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
+      minimumSampleSize: experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
+      effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
+      durationThreshold: AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS,
     };
 
     const selectionCriteria = { ...defaultCriteria, ...criteria };
@@ -213,14 +214,14 @@ export class AutomatedDecisionService {
 
     // Check if experiment has run for minimum duration
     const duration = this.calculateExperimentDuration(experiment);
-    const minimumDuration = 7; // 7 days minimum
+    const minimumDuration = AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS; // 7 days minimum
 
     if (duration < minimumDuration) {
       return false;
     }
 
     // Check if all variants have sufficient sample size
-    const _minimumSampleSize = experiment.minimumSampleSize || 100;
+    const _minimumSampleSize = experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
 
     for (const _variant of experiment.variants) {
       // This would check actual sample sizes from metrics
@@ -272,10 +273,10 @@ export class AutomatedDecisionService {
         await this.statisticalAnalysisService.calculateStatisticalSignificance(experimentId);
       if (statisticalResults.statisticallySignificant) {
         const winner = await this.determineWinner(experiment, statisticalResults, {
-          confidenceLevel: experiment.confidenceLevel || 95,
-          minimumSampleSize: experiment.minimumSampleSize || 100,
-          effectSizeThreshold: 0.1,
-          durationThreshold: 7,
+          confidenceLevel: experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
+          minimumSampleSize: experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
+          effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
+          durationThreshold: AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS,
         });
 
         if (winner) {
@@ -286,7 +287,7 @@ export class AutomatedDecisionService {
         }
       }
     } else {
-      const remainingDays = Math.max(0, 7 - duration);
+      const remainingDays = Math.max(0, AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS - duration);
       recommendations.recommendations.push(
         `Wait ${remainingDays} more days before making decision`,
       );

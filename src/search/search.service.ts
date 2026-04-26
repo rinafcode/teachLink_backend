@@ -4,9 +4,42 @@ import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
+import { SEARCH_CONSTANTS } from './search.constants';
 
 export const COURSES_INDEX = 'courses';
 export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
+const SEARCH_SOURCE_FIELDS = [
+  'id',
+  'title',
+  'description',
+  'tags',
+  'category',
+  'level',
+  'language',
+  'price',
+  'rating',
+  'views',
+  'enrollments',
+  'duration',
+  'instructorId',
+  'instructorName',
+  'status',
+  'createdAt',
+  'updatedAt',
+];
+
+type SearchOptions = {
+  page?: number;
+  limit?: number;
+};
+
+type SearchFilters = {
+  category?: string | string[];
+  level?: string | string[];
+  language?: string | string[];
+  instructorId?: string;
+  price?: { gte?: number; lte?: number; gt?: number; lt?: number };
+};
 
 @Injectable()
 export class SearchService {
@@ -19,37 +52,39 @@ export class SearchService {
     private readonly cachingService: CachingService,
   ) {}
 
-  async performSearch(query: string, filters: any, sort?: string) {
-    const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(query, filters, sort)}`;
+  async performSearch(query: string, filters: any, sort?: string, options: SearchOptions = {}) {
+    const sanitizedQuery = (query ?? '').trim().slice(0, SEARCH_CONSTANTS.MAX_QUERY_LENGTH);
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.min(SEARCH_CONSTANTS.MAX_PAGE_SIZE, Math.max(1, options.limit ?? SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE));
+    const from = (page - 1) * limit;
+    const normalizedFilters = this.normalizeFilters(filters);
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(
+      sanitizedQuery,
+      normalizedFilters,
+      sort,
+      page,
+      limit,
+    )}`;
+    const hasQuery = sanitizedQuery.length > 0;
 
     return this.cachingService.getOrSet(
       cacheKey,
       async () => {
         const result = await this.elasticsearchService.search({
           index: COURSES_INDEX,
+          from,
+          size: limit,
+          timeout: SEARCH_CONSTANTS.ELASTICSEARCH_TIMEOUT,
+          track_total_hits: SEARCH_CONSTANTS.TRACK_TOTAL_HITS,
+          _source: SEARCH_SOURCE_FIELDS,
           query: {
             function_score: {
-              query: {
-                bool: {
-                  must: [
-                    {
-                      multi_match: {
-                        query,
-                        fields: ['title^3', 'description^2', 'content', 'tags^2'],
-                        type: 'best_fields' as const,
-                        fuzziness: 'AUTO',
-                        prefix_length: 1,
-                      },
-                    },
-                  ],
-                  filter: this.buildFilters(filters),
-                },
-              },
+              query: this.buildSearchQuery(sanitizedQuery, normalizedFilters, hasQuery),
               functions: [
                 {
                   field_value_factor: {
                     field: 'views',
-                    factor: 0.1,
+                    factor: SEARCH_CONSTANTS.VIEWS_BOOST_FACTOR,
                     modifier: 'log1p' as const,
                     missing: 1,
                   },
@@ -57,7 +92,7 @@ export class SearchService {
                 {
                   field_value_factor: {
                     field: 'rating',
-                    factor: 0.5,
+                    factor: SEARCH_CONSTANTS.RATING_BOOST_FACTOR,
                     modifier: 'none' as const,
                     missing: 0,
                   },
@@ -68,7 +103,7 @@ export class SearchService {
                       origin: 'now',
                       scale: '90d',
                       offset: '7d',
-                      decay: 0.5,
+                      decay: SEARCH_CONSTANTS.TIME_DECAY_FACTOR,
                     },
                   },
                 },
@@ -78,20 +113,21 @@ export class SearchService {
             },
           },
           sort: this.buildSort(sort),
-          track_total_hits: true,
-          highlight: {
-            fields: {
-              title: {},
-              description: { fragment_size: 150, number_of_fragments: 1 },
-            },
-          },
+          highlight: hasQuery
+            ? {
+                fields: {
+                  title: {},
+                  description: { fragment_size: SEARCH_CONSTANTS.HIGHLIGHT_FRAGMENT_SIZE, number_of_fragments: SEARCH_CONSTANTS.HIGHLIGHT_NUM_FRAGMENTS },
+                },
+              }
+            : undefined,
           aggs: {
             categories: { terms: { field: 'category' } },
             levels: { terms: { field: 'level' } },
             price_ranges: {
               range: {
                 field: 'price',
-                ranges: [{ to: 50 }, { from: 50, to: 100 }, { from: 100, to: 200 }, { from: 200 }],
+                ranges: [{ to: SEARCH_CONSTANTS.PRICE_RANGES.LOW }, { from: SEARCH_CONSTANTS.PRICE_RANGES.LOW, to: SEARCH_CONSTANTS.PRICE_RANGES.MID }, { from: SEARCH_CONSTANTS.PRICE_RANGES.MID, to: SEARCH_CONSTANTS.PRICE_RANGES.HIGH }, { from: SEARCH_CONSTANTS.PRICE_RANGES.HIGH }],
               },
             },
           },
@@ -106,11 +142,13 @@ export class SearchService {
         const aggs = result.aggregations as any;
 
         const rankedResults = this.rankResults(hits);
-        this.logSearch(query, rankedResults.length, filters, sort);
+        this.logSearch(sanitizedQuery, rankedResults.length, normalizedFilters, sort);
 
         return {
           results: rankedResults,
           total,
+          page,
+          limit,
           facets: {
             categories: aggs?.categories?.buckets ?? [],
             levels: aggs?.levels?.buckets ?? [],
@@ -123,11 +161,12 @@ export class SearchService {
   }
 
   async getAutoComplete(query: string) {
-    const cacheKey = `${CACHE_PREFIXES.SEARCH}:autocomplete:${query}`;
+    const sanitizedQuery = (query ?? '').trim().slice(0, 100);
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:autocomplete:${sanitizedQuery}`;
 
     return this.cachingService.getOrSet(
       cacheKey,
-      () => this.autoCompleteService.getSuggestions(query),
+      () => this.autoCompleteService.getSuggestions(sanitizedQuery),
       CACHE_TTL.SEARCH_RESULTS,
     );
   }
@@ -157,7 +196,7 @@ export class SearchService {
       aggs: {
         total_searches: { value_count: { field: 'query.keyword' } },
         top_queries: {
-          terms: { field: 'query.keyword', size: 10 },
+          terms: { field: 'query.keyword', size: SEARCH_CONSTANTS.TOP_QUERIES_SIZE },
           aggs: {
             avg_results: { avg: { field: 'resultsCount' } },
           },
@@ -165,7 +204,7 @@ export class SearchService {
         zero_result_queries: {
           filter: { term: { resultsCount: 0 } },
           aggs: {
-            queries: { terms: { field: 'query.keyword', size: 10 } },
+            queries: { terms: { field: 'query.keyword', size: SEARCH_CONSTANTS.TOP_QUERIES_SIZE } },
           },
         },
         searches_over_time: {
@@ -189,21 +228,76 @@ export class SearchService {
   private buildFilters(filters: any) {
     const esFilters: any[] = [];
     if (filters.category) {
-      esFilters.push({ term: { category: filters.category } });
+      const category = this.normalizeKeywordValue(filters.category);
+      if (Array.isArray(category)) {
+        esFilters.push({ terms: { category } });
+      } else if (category) {
+        esFilters.push({ term: { category } });
+      }
     }
     if (filters.level) {
-      esFilters.push({ term: { level: filters.level } });
+      const level = this.normalizeKeywordValue(filters.level);
+      if (Array.isArray(level)) {
+        esFilters.push({ terms: { level } });
+      } else if (level) {
+        esFilters.push({ term: { level } });
+      }
     }
     if (filters.price) {
       esFilters.push({ range: { price: filters.price } });
     }
     if (filters.language) {
-      esFilters.push({ term: { language: filters.language } });
+      const language = this.normalizeKeywordValue(filters.language);
+      if (Array.isArray(language)) {
+        esFilters.push({ terms: { language } });
+      } else if (language) {
+        esFilters.push({ term: { language } });
+      }
     }
     if (filters.instructorId) {
-      esFilters.push({ term: { instructorId: filters.instructorId } });
+      const instructorId = this.normalizeString(filters.instructorId, false);
+      if (instructorId) {
+        esFilters.push({ term: { instructorId } });
+      }
     }
     return esFilters;
+  }
+
+  private buildSearchQuery(query: string, filters: any, hasQuery: boolean): Record<string, any> {
+    if (!hasQuery) {
+      return {
+        bool: {
+          filter: this.buildFilters(filters),
+        },
+      };
+    }
+
+    return {
+      bool: {
+        filter: this.buildFilters(filters),
+        should: [
+          {
+            multi_match: {
+              query,
+              fields: ['title^3', 'description^2', 'content', 'tags^2'],
+              type: 'best_fields' as const,
+              operator: 'and' as const,
+              fuzziness: 'AUTO:4,7',
+              prefix_length: 1,
+            },
+          },
+          {
+            multi_match: {
+              query,
+              type: 'bool_prefix' as const,
+              fields: ['title.search', 'title.search._2gram', 'title.search._3gram'],
+              boost: 2,
+            },
+          },
+        ],
+        minimum_should_match: 1,
+      },
+    };
   }
 
   private buildSort(sort?: string) {
@@ -250,8 +344,14 @@ export class SearchService {
       });
   }
 
-  private hashSearchParams(query: string, filters: any, sort?: string): string {
-    const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}`;
+  private hashSearchParams(
+    query: string,
+    filters: any,
+    sort?: string,
+    page = 1,
+    limit: number = SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE,
+  ): string {
+    const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}:${page}:${limit}`;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
@@ -259,5 +359,83 @@ export class SearchService {
       hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
+  }
+
+  private normalizeFilters(filters: any): SearchFilters {
+    const safeFilters = filters && typeof filters === 'object' ? filters : {};
+    const normalized: SearchFilters = {};
+
+    const category = this.normalizeKeywordValue(safeFilters.category);
+    if (category) {
+      normalized.category = category;
+    }
+
+    const level = this.normalizeKeywordValue(safeFilters.level);
+    if (level) {
+      normalized.level = level;
+    }
+
+    const language = this.normalizeKeywordValue(safeFilters.language);
+    if (language) {
+      normalized.language = language;
+    }
+
+    const instructorId = this.normalizeString(safeFilters.instructorId, false);
+    if (instructorId) {
+      normalized.instructorId = instructorId;
+    }
+
+    const price = this.normalizePriceRange(safeFilters.price);
+    if (price) {
+      normalized.price = price;
+    }
+
+    return normalized;
+  }
+
+  private normalizeKeywordValue(value: unknown): string | string[] | null {
+    if (Array.isArray(value)) {
+      const normalized = value
+        .map((item) => this.normalizeString(item, true))
+        .filter((item): item is string => !!item);
+      if (normalized.length === 0) {
+        return null;
+      }
+      return Array.from(new Set(normalized)).sort();
+    }
+
+    return this.normalizeString(value, true);
+  }
+
+  private normalizeString(value: unknown, lowerCase: boolean): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalized = value.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    return lowerCase ? normalized.toLowerCase() : normalized;
+  }
+
+  private normalizePriceRange(
+    value: unknown,
+  ): { gte?: number; lte?: number; gt?: number; lt?: number } | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    const range = value as Record<string, unknown>;
+    const normalized: { gte?: number; lte?: number; gt?: number; lt?: number } = {};
+    for (const key of ['gte', 'lte', 'gt', 'lt'] as const) {
+      const currentValue = range[key];
+      if (typeof currentValue === 'number' && Number.isFinite(currentValue)) {
+        normalized[key] = currentValue;
+      }
+    }
+
+    return Object.keys(normalized).length > 0 ? normalized : null;
   }
 }

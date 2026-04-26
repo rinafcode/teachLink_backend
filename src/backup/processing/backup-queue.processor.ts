@@ -1,6 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -20,11 +21,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { KMSClient, EncryptCommand } from '@aws-sdk/client-kms';
 import { S3Client, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { TIME } from '../../common/constants/time.constants';
 
 const execAsync = promisify(exec);
-const MAX_RETRIES = 3;
+const BACKUP_MAX_RETRIES = 3;
 
-@Processor('backup-processing')
+@Processor(QUEUE_NAMES.BACKUP_PROCESSING)
 export class BackupQueueProcessor {
   private readonly logger = new Logger(BackupQueueProcessor.name);
   private readonly kmsClient: KMSClient;
@@ -57,7 +59,7 @@ export class BackupQueueProcessor {
     });
   }
 
-  @Process('create-backup')
+  @Process(JOB_NAMES.CREATE_BACKUP)
   async handleCreateBackup(job: Job<BackupJobData>) {
     const { backupRecordId, databaseName } = job.data;
     this.logger.log(`Processing backup creation for: ${backupRecordId}`);
@@ -136,11 +138,11 @@ export class BackupQueueProcessor {
 
       // Queue verification job
       await (job.queue as any).add(
-        'verify-backup',
+        JOB_NAMES.VERIFY_BACKUP,
         { backupRecordId, storageKey: encryptedKey },
         {
           attempts: 3,
-          backoff: { type: 'exponential', delay: 5000 },
+          backoff: { type: 'exponential', delay: TIME.FIVE_SECONDS_MS },
         },
       );
 
@@ -151,7 +153,7 @@ export class BackupQueueProcessor {
     }
   }
 
-  @Process('verify-backup')
+  @Process(JOB_NAMES.VERIFY_BACKUP)
   async handleVerifyBackup(job: Job<VerificationJobData>) {
     const { backupRecordId } = job.data;
     this.logger.log(`Verifying backup integrity: ${backupRecordId}`);
@@ -177,13 +179,13 @@ export class BackupQueueProcessor {
     }
   }
 
-  @Process('recovery-test')
+  @Process(JOB_NAMES.RECOVERY_TEST)
   async handleRecoveryTest(_job: Job<RecoveryTestJobData>) {
-    this.logger.log(`Recovery test processing handled by RecoveryTestingService`);
+    this.logger.log('Recovery test processing handled by RecoveryTestingService');
     // Delegated to RecoveryTestingService.executeRecoveryTest()
   }
 
-  @Process('delete-backup')
+  @Process(JOB_NAMES.DELETE_BACKUP)
   async handleDeleteBackup(job: Job<{ backupRecordId: string }>) {
     const { backupRecordId } = job.data;
     this.logger.log(`Deleting expired backup: ${backupRecordId}`);
@@ -275,7 +277,7 @@ export class BackupQueueProcessor {
     const sourceBucket = this.configService.get<string>('AWS_S3_BUCKET', '');
     const targetBucket = this.configService.get<string>('AWS_S3_BUCKET_SECONDARY', sourceBucket);
 
-    const targetKey = storageKey.replace(`backups/`, `backups-${targetRegion}/`);
+    const targetKey = storageKey.replace('backups/', `backups-${targetRegion}/`);
 
     const copyCommand = new CopyObjectCommand({
       CopySource: `${sourceBucket}/${storageKey}`,
@@ -298,7 +300,7 @@ export class BackupQueueProcessor {
     backup.retryCount = attemptsMade;
     backup.errorMessage = error.message;
 
-    if (attemptsMade >= MAX_RETRIES) {
+    if (attemptsMade >= BACKUP_MAX_RETRIES) {
       backup.status = BackupStatus.FAILED;
       this.logger.error(`Max retries exceeded for backup ${backup.id}`);
     }

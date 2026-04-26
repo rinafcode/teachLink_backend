@@ -21,13 +21,20 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().required(),
 
   // JWT Configuration
-  JWT_SECRET: Joi.string().min(10).required(),
+  JWT_SECRETS: Joi.string().optional(),
+  JWT_SECRET_CURRENT_VERSION: Joi.string().optional(),
+  JWT_SECRET: Joi.string()
+    .min(10)
+    .when('JWT_SECRETS', { is: Joi.exist(), then: Joi.optional(), otherwise: Joi.required() }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().min(10).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   // Encryption
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
+
+  // Security Configuration
+  BCRYPT_ROUNDS: Joi.number().integer().min(4).max(15).default(10),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
@@ -85,7 +92,7 @@ export const envValidationSchema = Joi.object({
 
   // Feature Flags
   ENABLE_AUTH: Joi.boolean().default(true),
-  ENABLE_SESSION_MANAGEMENT: Joi.boolean().default(true),
+
   ENABLE_PAYMENTS: Joi.boolean().default(true),
   ENABLE_AB_TESTING: Joi.boolean().default(false),
   ENABLE_DATA_WAREHOUSE: Joi.boolean().default(false),
@@ -111,6 +118,9 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  // TODO: ENABLE_MALWARE_SCANNING is used in media/validation/malware-scanning.service.ts
+  // but is not defined in feature-flags.config.ts — add it there or migrate to ConfigService only
+  ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
   I18N_DEFAULT_LOCALE: Joi.string().default('en'),
@@ -124,10 +134,6 @@ export const envValidationSchema = Joi.object({
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
 
-  // API Versioning
-  API_VERSION_HEADER_NAME: Joi.string().default('X-API-Version'),
-  API_DEFAULT_VERSION: Joi.string()
-    .pattern(/^\d+(?:\.0+)?$/)
-    .default('1'),
-  API_SUPPORTED_VERSIONS: Joi.string().default('1'),
+  // CORS Configuration
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:4000'),
 });

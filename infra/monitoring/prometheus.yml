@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    service: teachlink-backend
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: teachlink-backend
+    metrics_path: /observability/metrics/export/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+        labels:
+          service: teachlink-backend
+          env: local
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

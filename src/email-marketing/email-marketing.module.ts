@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 
 // Services
 import { EmailMarketingService } from './email-marketing.service';
@@ -56,7 +57,7 @@ import { EmailQueueProcessor } from './processors/email-queue.processor';
       EmailSubscription,
     ]),
     BullModule.registerQueue({
-      name: 'email-marketing',
+      name: QUEUE_NAMES.EMAIL_MARKETING,
     }),
   ],
   controllers: [

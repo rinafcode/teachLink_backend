@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "strictFunctionTypes": true,
+    "alwaysStrict": true,
     "module": "commonjs",
     "declaration": false,
     "removeComments": true,
@@ -9,7 +11,6 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
     "strict": false,

@@ -52,6 +52,8 @@ export const CACHE_PREFIXES = {
   POPULAR: 'cache:popular',
   ENROLLMENT: 'cache:enrollment',
   FEATURED: 'cache:featured',
+  SYSTEM_CONFIG: 'cache:system:config',
+  USERS_LIST: 'cache:users:list',
 } as const;
 
 export const CACHE_EVENTS = {
@@ -62,4 +64,6 @@ export const CACHE_EVENTS = {
   ENROLLMENT_CREATED: 'cache.enrollment.created',
   ENROLLMENT_UPDATED: 'cache.enrollment.updated',
   SEARCH_INDEX_UPDATED: 'cache.search.updated',
+  CACHE_INVALIDATED: 'cache.invalidated',
+  CACHE_PURGED: 'cache.purged',
 } as const;

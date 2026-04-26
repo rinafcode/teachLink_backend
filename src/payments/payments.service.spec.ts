@@ -54,7 +54,7 @@ describe('PaymentsService', () => {
     const invoiceRepoMock = createRepositoryMock();
 
     const mockTransactionService = {
-      runInTransaction: jest.fn(
+      runWithRetry: jest.fn(
         <T>(operation: (manager: { create: jest.Mock; save: jest.Mock }) => Promise<T>) =>
           operation({
             create: jest.fn((_Entity: unknown, data: Record<string, unknown>) => ({

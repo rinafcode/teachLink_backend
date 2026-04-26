@@ -13,6 +13,8 @@ import { GetUsersDto } from './dto/get-users.dto';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
+import { USER_CONSTANTS } from './user.constants';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +23,7 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     private readonly cachingService: CachingService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -32,7 +35,8 @@ export class UsersService {
     ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || USER_CONSTANTS.BCRYPT_ROUNDS;
+    const hashedPassword = await bcrypt.hash(createUserDto.password, bcryptRounds);
 
     // Create user
     const user = this.userRepository.create({
@@ -44,7 +48,7 @@ export class UsersService {
   }
 
   async findAll(filter?: GetUsersDto): Promise<PaginatedResponse<User>> {
-    const cacheKey = `cache:users:list:${JSON.stringify(filter || {})}`;
+    const cacheKey = `${CACHE_PREFIXES.USERS_LIST}:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(
       cacheKey,
@@ -67,8 +71,9 @@ export class UsersService {
 
         if (filter?.search) {
           const safeSearch = sanitizeSqlLike(filter.search);
+          // eslint-disable-next-line quotes
           query.andWhere(
-            "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')",
+            "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')", // eslint-disable-line quotes
             { search: `%${safeSearch}%` },
           );
         }
@@ -141,7 +146,8 @@ export class UsersService {
       // Append current, maintain last 5 entries
       user.passwordHistory = [...recentPasswords, user.password].slice(-5);
 
-      updateUserDto.password = await bcrypt.hash(plainPassword, 10);
+      const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || 10;
+      updateUserDto.password = await bcrypt.hash(plainPassword, bcryptRounds);
     }
 
     Object.assign(user, updateUserDto);

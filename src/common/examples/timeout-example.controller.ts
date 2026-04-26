@@ -25,7 +25,7 @@ export class TimeoutExampleController {
   @Post('process')
   @ApiOperation({ summary: 'Processing endpoint with custom timeout' })
   @Timeout(60000) // 1 minute timeout
-  async processData(@Body() data: any): Promise<{ result: string }> {
+  async processData(@Body() _data: any): Promise<{ result: string }> {
     // Simulate data processing
     await new Promise((resolve) => setTimeout(resolve, 30000)); // 30 second processing
     return { result: 'Data processed successfully' };

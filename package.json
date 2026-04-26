@@ -24,9 +24,19 @@
     "test:ci": "jest --config jest.config.js --coverage --forceExit --runInBand && node ./test/utils/check-coverage-summary.js",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit --runInBand",
+    "test:e2e:stability": "node test/utils/e2e-test-runner.js --runs 5",
+    "test:e2e:stability:quick": "node test/utils/e2e-test-runner.js --runs 3",
+    "test:e2e:stability:auth": "node test/utils/e2e-test-runner.js --pattern \"auth.e2e-spec.ts\" --runs 5",
+    "test:e2e:flaky": "node test/utils/e2e-test-runner.js --runs 10",
     "test:ml-models": "jest src/ml-models --maxWorkers=1 --max-old-space-size=2048",
     "test:ml-models-basic": "jest src/ml-models/ml-models.service.basic.spec.ts --maxWorkers=1 --max-old-space-size=2048",
-    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js"
+    "test:optimized": "node --max-old-space-size=2048 node_modules/.bin/jest --maxWorkers=1 --config jest.config.js",
+    "migrate:run": "curl -s -X POST http://localhost:3000/migrations/run | npx json",
+    "migrate:status": "curl -s http://localhost:3000/migrations | npx json",
+    "migrate:rollback": "curl -s -X POST http://localhost:3000/migrations/rollback | npx json",
+    "migrate:rollback:count": "curl -s -X POST http://localhost:3000/migrations/rollback/${COUNT:-1} | npx json",
+    "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
+    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
@@ -104,7 +114,7 @@
     "stripe": "^18.3.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
-    "uuid": "^11.1.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
@@ -147,9 +157,9 @@
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.0",
-    "ts-loader": "^9.4.3",
+    "ts-loader": "^9.5.7",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   }
 }

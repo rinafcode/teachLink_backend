@@ -11,9 +11,11 @@ import {
   HttpStatus,
   Logger,
   Body,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
 import {
   ApiTags,
   ApiOperation,
@@ -26,6 +28,10 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
 import { UploadedFile as FileUpload } from '../common/types/file.types';
+import {
+  buildUploadValidationDetails,
+  MEDIA_UPLOAD_INTERCEPTOR_OPTIONS,
+} from './validation/upload-validation.util';
 
 @ApiTags('Media')
 @ApiBearerAuth()
@@ -36,9 +42,9 @@ export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
-  @Throttle({ default: { limit: 10, ttl: 3600000 } })
+  @Throttle({ default: THROTTLE.MODERATE })
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', MEDIA_UPLOAD_INTERCEPTOR_OPTIONS))
   @ApiOperation({ summary: 'Upload media file with full validation' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -61,11 +67,6 @@ export class MediaController {
           description: 'Generate thumbnails for images',
           default: true,
         },
-        scanForMalware: {
-          type: 'boolean',
-          description: 'Scan file for malware',
-          default: true,
-        },
       },
     },
   })
@@ -73,11 +74,20 @@ export class MediaController {
   @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 403, description: 'Malware detected' })
   @ApiResponse({ status: 413, description: 'File too large' })
+  @ApiResponse({ status: 415, description: 'Unsupported file type' })
+  @ApiResponse({ status: 503, description: 'Malware scanning unavailable' })
   async upload(
     @UploadedFile() file: FileUpload,
     @Req() req: any,
-    @Body() body?: { compress?: string; generateThumbnails?: string; scanForMalware?: string },
+    @Body() body?: { compress?: string; generateThumbnails?: string },
   ) {
+    if (req.uploadValidationError) {
+      throw new UnsupportedMediaTypeException({
+        message: req.uploadValidationError.message,
+        ...buildUploadValidationDetails(),
+      });
+    }
+
     if (!file) {
       throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
     }
@@ -88,7 +98,6 @@ export class MediaController {
     const options = {
       compress: body?.compress !== 'false',
       generateThumbnails: body?.generateThumbnails !== 'false',
-      scanForMalware: body?.scanForMalware !== 'false',
       trackProgress: true,
     };
 

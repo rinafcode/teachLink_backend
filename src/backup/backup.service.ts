@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../common/constants/queue.constants';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { BackupRecord } from './entities/backup-record.entity';
@@ -17,6 +18,7 @@ import {
   ScheduledTaskConfig,
   ScheduledTaskMonitoringService,
 } from '../monitoring/scheduled-task-monitoring.service';
+import { TIME } from '../common/constants/time.constants';
 
 @Injectable()
 export class BackupService {
@@ -29,7 +31,7 @@ export class BackupService {
   constructor(
     @InjectRepository(BackupRecord)
     private readonly backupRepository: Repository<BackupRecord>,
-    @InjectQueue('backup-processing')
+    @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING)
     private readonly backupQueue: Queue,
     private readonly configService: ConfigService,
     private readonly alertingService: AlertingService,
@@ -47,16 +49,16 @@ export class BackupService {
     );
     this.scheduledTaskTimeoutMs = this.configService.get<number>(
       'BACKUP_SCHEDULED_TASK_TIMEOUT_MS',
-      30 * 60 * 1000,
+      30 * TIME.ONE_MINUTE_MS,
     );
 
     this.scheduledTaskMonitoringService.registerTask('weekly-database-backup', {
-      expectedIntervalMs: 7 * 24 * 60 * 60 * 1000,
+      expectedIntervalMs: 7 * TIME.ONE_DAY_SECONDS * 1000,
       timeoutMs: this.scheduledTaskTimeoutMs,
       maxRetries: this.scheduledTaskRetryLimit,
     });
     this.scheduledTaskMonitoringService.registerTask('cleanup-expired-backups', {
-      expectedIntervalMs: 24 * 60 * 60 * 1000,
+      expectedIntervalMs: TIME.ONE_DAY_SECONDS * 1000,
       timeoutMs: this.scheduledTaskTimeoutMs,
       maxRetries: this.scheduledTaskRetryLimit,
     });
@@ -103,7 +105,7 @@ export class BackupService {
 
         // Queue backup job
         await this.backupQueue.add(
-          'create-backup',
+          JOB_NAMES.CREATE_BACKUP,
           {
             backupRecordId: backupRecord.id,
             backupType: BackupType.FULL,
@@ -114,9 +116,9 @@ export class BackupService {
             attempts: 3,
             backoff: {
               type: 'exponential',
-              delay: 10000,
+              delay: TIME.TEN_SECONDS_MS,
             },
-            timeout: 3600000, // 1 hour timeout
+            timeout: TIME.ONE_HOUR_MS, // 1 hour timeout
           },
         );
 
@@ -157,11 +159,11 @@ export class BackupService {
 
         for (const backup of expiredBackups) {
           await this.backupQueue.add(
-            'delete-backup',
+            JOB_NAMES.DELETE_BACKUP,
             { backupRecordId: backup.id },
             {
               attempts: 3,
-              backoff: { type: 'exponential', delay: 5000 },
+              backoff: { type: 'exponential', delay: TIME.FIVE_SECONDS_MS },
             },
           );
         }

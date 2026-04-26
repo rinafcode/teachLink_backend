@@ -54,6 +54,10 @@ module.exports = {
   // ─── Setup ─────────────────────────────────────────────────────────────────
   setupFilesAfterEnv: ['<rootDir>/../test/setup.ts'],
 
+  moduleNameMapper: {
+    '^uuid$': '<rootDir>/../test/mocks/uuid.ts',
+  },
+
   // ─── Ignore patterns ───────────────────────────────────────────────────────
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/'],
 

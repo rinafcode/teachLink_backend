@@ -11,6 +11,8 @@
 
 This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features.
 
+- Pagination is limited to a maximum page size of **100** items per request.
+
 ---
 
 ## 🔁 CI / Testing
@@ -161,6 +163,22 @@ curl -H "X-API-Version: 1" http://localhost:3000/users
 
 ## 📊 Architecture
 
+## ⚙️ Tech Stack
+
+| Layer         | Technology                 |
+| ------------- | -------------------------- |
+| Framework     | NestJS                     |
+| Database      | PostgreSQL + TypeORM       |
+| Blockchain    | Starknet + Starknet.js     |
+| Realtime      | WebSockets (Gateway)       |
+| Queues/Async  | BullMQ + Redis (optional)  |
+| File Uploads  | Cloudinary                 |
+| Config Mgmt   | @nestjs/config             |
+| Testing       | Jest + Supertest           |
+| Auth          | JWT + Wallet Sign-In       |
+| Deployment    | Docker, Railway, or Fly.io |
+| File Upload   | Cloudinary                 |
+| Security      | Helmet + bcrypt            | Security headers and password hashing |
 ### System Overview
 
 TeachLink Backend follows a **modular microservices architecture** built on NestJS, designed for scalability and maintainability. The system uses a layered approach with clear separation of concerns:
@@ -213,27 +231,81 @@ TeachLink Backend follows a **modular microservices architecture** built on Nest
 
 ## 📦 Tech Stack
 
-| Layer             | Technology                     | Purpose                              |
-| ----------------- | ------------------------------ | ------------------------------------ |
-| **Framework**     | NestJS                         | Node.js application framework        |
-| **Language**      | TypeScript                     | Type-safe JavaScript                 |
-| **Database**      | PostgreSQL + TypeORM           | Primary data storage                  |
-| **Caching**       | Redis + IORedis                | Session store, caching, queues       |
-| **Authentication**| JWT + Passport                 | Token-based authentication           |
-| **GraphQL**       | Apollo Server                  | GraphQL API (optional)               |
-| **Real-time**     | Socket.io                      | WebSocket connections                |
-| **File Storage**  | AWS S3 + Cloudinary            | Media file storage and CDN           |
-| **Email**         | SendGrid + Nodemailer          | Email delivery and marketing          |
-| **Payments**      | Stripe                         | Payment processing                   |
-| **Search**        | Elasticsearch                  | Full-text search capabilities        |
-| **Queue**         | BullMQ                         | Background job processing             |
-| **Monitoring**    | OpenTelemetry + Prometheus     | Metrics and observability            |
-| **Testing**       | Jest + Supertest               | Unit and integration tests           |
-| **Documentation** | Swagger                        | API documentation                    |
-| **Validation**    | class-validator + class-transformer | DTO validation                    |
-| **Security**      | Helmet + bcrypt                | Security headers and password hashing |
+| Layer              | Technology                          | Purpose                               |
+| ------------------ | ----------------------------------- | ------------------------------------- |
+| **Framework**      | NestJS                              | Node.js application framework         |
+| **Language**       | TypeScript                          | Type-safe JavaScript                  |
+| **Database**       | PostgreSQL + TypeORM                | Primary data storage                  |
+| **Caching**        | Redis + IORedis                     | Session store, caching, queues        |
+| **Authentication** | JWT + Passport                      | Token-based authentication            |
+| **GraphQL**        | Apollo Server                       | GraphQL API (optional)                |
+| **Real-time**      | Socket.io                           | WebSocket connections                 |
+| **File Storage**   | AWS S3 + Cloudinary                 | Media file storage and CDN            |
+| **Email**          | SendGrid + Nodemailer               | Email delivery and marketing          |
+| **Payments**       | Stripe                              | Payment processing                    |
+| **Search**         | Elasticsearch                       | Full-text search capabilities         |
+| **Queue**          | BullMQ                              | Background job processing             |
+| **Monitoring**     | OpenTelemetry + Prometheus          | Metrics and observability             |
+| **Testing**        | Jest + Supertest                    | Unit and integration tests            |
+| **Documentation**  | Swagger                             | API documentation                     |
+| **Validation**     | class-validator + class-transformer | DTO validation                        |
+| **Security**       | Helmet + bcrypt                     | Security headers and password hashing |
 
-## �️ Database
+## 🔐 Security
+
+### Password Hashing Configuration
+
+The application uses **bcrypt** for password hashing with configurable rounds via the `BCRYPT_ROUNDS` environment variable.
+
+#### Recommended Bcrypt Rounds by Environment
+
+| Environment | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
+| ----------- | ----------------- | -------------- | -------------- | ------------------ |
+| **Development** | 8-10 | 50-100 | Good | Low |
+| **Staging** | 10-12 | 100-300 | High | Medium |
+| **Production** | 12-14 | 300-1000 | Very High | High |
+
+#### Security vs Performance Tradeoffs
+
+**Lower Rounds (4-8):**
+- ✅ Faster authentication
+- ✅ Lower CPU usage
+- ⚠️ Reduced security against brute force attacks
+- ⚠️ May be vulnerable to GPU-based cracking
+
+**Higher Rounds (12-15):**
+- ✅ Strong resistance against brute force attacks
+- ✅ Future-proof against computational advances
+- ❌ Slower authentication (may impact user experience)
+- ❌ Higher CPU usage (may affect scalability)
+
+#### Configuration Example
+
+```env
+# Development (faster, less secure)
+BCRYPT_ROUNDS=8
+
+# Production (slower, more secure)
+BCRYPT_ROUNDS=12
+```
+
+#### Security Best Practices
+
+1. **Minimum 10 rounds** for production environments
+2. **Monitor authentication performance** when increasing rounds
+3. **Consider rate limiting** to prevent brute force attacks
+4. **Use hardware security modules** for high-security applications
+5. **Regular security audits** to assess adequate protection levels
+
+#### Migration Considerations
+
+When changing `BCRYPT_ROUNDS`:
+- Existing passwords remain valid until users change them
+- New passwords will use the configured rounds
+- Consider forcing password reset for sensitive accounts
+- Gradually increase rounds to monitor performance impact
+
+## 🗄️ Database
 
 ### Index Strategy
 

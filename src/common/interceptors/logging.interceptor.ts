@@ -7,10 +7,25 @@ import {
   generateCorrelationId,
   getCorrelationId,
 } from '../utils/correlation.utils';
+import { LogShipperService } from '../services/log-shipper.service';
 
+/** Standard log-level labels used in the JSON envelope. */
+export type LogLevel = 'info' | 'warn' | 'error';
+
+/**
+ * Standard log envelope emitted for every HTTP request/response.
+ *
+ * All fields are present in every log entry so consumers can build
+ * consistent Elasticsearch mappings and Kibana dashboards without
+ * per-environment special-casing.
+ */
 export interface RequestLog {
-  requestId: string;
-  timestamp: string;
+  '@timestamp': string;
+  service: string;
+  environment: string;
+  level: LogLevel;
+  event: string;
+  correlationId: string;
   method: string;
   url: string;
   route: string;
@@ -27,18 +42,25 @@ export interface ResponseLog extends RequestLog {
 }
 
 /**
- * #154 – LoggingInterceptor
+ * #154 / #360 – LoggingInterceptor
  *
- * Logs every HTTP request with:
+ * Logs every HTTP request with a standardized JSON envelope:
+ *  - @timestamp, service, environment, level, event
+ *  - correlationId (propagated via AsyncLocalStorage / x-request-id header)
  *  - method, URL, resolved route, IP, user-agent
  *  - authenticated user ID + role (when present on request.user)
  *  - response status code and wall-clock response time
- *  - structured JSON output in production, pretty-printed in development
+ *
+ * JSON format is used in all environments for consistent parsing by
+ * log shippers and aggregators (#360).
  */
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(LoggingInterceptor.name);
-  private readonly isProd = process.env.NODE_ENV === 'production';
+  private readonly service = process.env.npm_package_name ?? 'teachlink-api';
+  private readonly environment = process.env.NODE_ENV ?? 'development';
+
+  constructor(private readonly logShipper: LogShipperService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     // Only intercept HTTP contexts (skip WebSockets, microservices, etc.)
@@ -54,14 +76,18 @@ export class LoggingInterceptor implements NestInterceptor {
     }
 
     const startTime = Date.now();
-    const requestId = getCorrelationId() || generateCorrelationId();
+    const correlationId = getCorrelationId() || generateCorrelationId();
 
     const response = httpCtx.getResponse<Response>();
-    response?.setHeader(CORRELATION_ID_HEADER, requestId);
+    response?.setHeader(CORRELATION_ID_HEADER, correlationId);
 
     const baseLog: RequestLog = {
-      requestId,
-      timestamp: new Date().toISOString(),
+      '@timestamp': new Date().toISOString(),
+      service: this.service,
+      environment: this.environment,
+      level: 'info',
+      event: 'request.incoming',
+      correlationId,
       method: request.method ?? 'UNKNOWN',
       url: request.url,
       route: request.route?.path ?? request.url,
@@ -71,17 +97,23 @@ export class LoggingInterceptor implements NestInterceptor {
       ...(request.user?.role !== undefined && { userRole: request.user.role as string }),
     };
 
-    this.logIncoming(baseLog);
+    this.emit('log', baseLog);
 
     return next.handle().pipe(
       tap(() => {
         const res = httpCtx.getResponse<Response>();
-        this.logOutgoing({
+        const outgoing: ResponseLog = {
           ...baseLog,
+          event: 'request.completed',
           statusCode: res.statusCode,
           responseTimeMs: Date.now() - startTime,
           contentLength: this.getContentLength(res),
-        });
+        };
+        outgoing.level = this.resolveLevel(res.statusCode);
+        this.emit(
+          outgoing.level === 'error' ? 'error' : outgoing.level === 'warn' ? 'warn' : 'log',
+          outgoing,
+        );
       }),
       catchError((error: unknown) => {
         const status =
@@ -89,11 +121,17 @@ export class LoggingInterceptor implements NestInterceptor {
             ? (error as { status: number }).status
             : 500;
 
-        this.logOutgoing({
+        const outgoing: ResponseLog = {
           ...baseLog,
+          event: 'request.completed',
+          level: this.resolveLevel(status),
           statusCode: status,
           responseTimeMs: Date.now() - startTime,
-        });
+        };
+        this.emit(
+          outgoing.level === 'error' ? 'error' : outgoing.level === 'warn' ? 'warn' : 'log',
+          outgoing,
+        );
 
         return throwError(() => error);
       }),
@@ -102,28 +140,16 @@ export class LoggingInterceptor implements NestInterceptor {
 
   // ─── Private helpers ───────────────────────────────────────────────────────
 
-  private logIncoming(log: RequestLog): void {
-    const message = `→ ${log.method} ${log.url}`;
-    if (this.isProd) {
-      this.logger.log(JSON.stringify({ event: 'request.incoming', ...log }));
-    } else {
-      this.logger.log(
-        `${message} | id=${log.requestId} ip=${log.ip}${log.userId ? ` user=${log.userId}` : ''}`,
-      );
-    }
+  /** Emit a structured JSON log entry and ship it to the external aggregator. */
+  private emit(nestLevel: 'log' | 'warn' | 'error', entry: RequestLog | ResponseLog): void {
+    this.logger[nestLevel](JSON.stringify(entry));
+    this.logShipper.ship(entry);
   }
 
-  private logOutgoing(log: ResponseLog): void {
-    const message = `← ${log.method} ${log.url} ${log.statusCode} ${log.responseTimeMs}ms`;
-    const level = log.statusCode >= 500 ? 'error' : log.statusCode >= 400 ? 'warn' : 'log';
-
-    if (this.isProd) {
-      this.logger[level](JSON.stringify({ event: 'request.completed', ...log }));
-    } else {
-      this.logger[level](
-        `${message} | id=${log.requestId}${log.userId ? ` user=${log.userId}` : ''}`,
-      );
-    }
+  private resolveLevel(statusCode: number): LogLevel {
+    if (statusCode >= 500) return 'error';
+    if (statusCode >= 400) return 'warn';
+    return 'info';
   }
 
   private resolveClientIp(request: Request): string {

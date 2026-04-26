@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ComplianceService {
-  async exportUserData(userId: string) {
+  async exportUserData(userId: string): Promise<any> {
     // Fetch from all relevant tables
     return {
       userId,
@@ -12,12 +12,12 @@ export class ComplianceService {
     };
   }
 
-  async deleteUserData(_userId: string) {
+  async deleteUserData(_userId: string): Promise<any> {
     // Soft delete or anonymize
     return { success: true };
   }
 
-  async anonymizeData(data: any) {
+  async anonymizeData(data: any): Promise<any> {
     return {
       ...data,
       email: 'anonymized@domain.com',

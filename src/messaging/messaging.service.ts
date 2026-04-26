@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { TracingService } from './tracing/tracing.service';
 
 @Injectable()
@@ -8,7 +9,7 @@ export class MessagingService {
   private readonly logger = new Logger(MessagingService.name);
 
   constructor(
-    @InjectQueue('message-queue')
+    @InjectQueue(QUEUE_NAMES.MESSAGE_QUEUE)
     private readonly messageQueue: Queue,
     private readonly tracingService: TracingService,
   ) {}

@@ -4,7 +4,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 export class ThreatDetectionService {
   private failedAttempts = new Map<string, number>();
 
-  analyzeRequest(ip: string) {
+  analyzeRequest(ip: string): void {
     const attempts = this.failedAttempts.get(ip) || 0;
 
     if (attempts > 10) {
@@ -12,12 +12,12 @@ export class ThreatDetectionService {
     }
   }
 
-  recordFailure(ip: string) {
+  recordFailure(ip: string): void {
     const attempts = this.failedAttempts.get(ip) || 0;
     this.failedAttempts.set(ip, attempts + 1);
   }
 
-  reset(ip: string) {
+  reset(ip: string): void {
     this.failedAttempts.delete(ip);
   }
 }

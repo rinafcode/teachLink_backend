@@ -1,0 +1,59 @@
+groups:
+  - name: teachlink-backend
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(api_requests_total{status=~"5.."}[5m]))
+            / sum(rate(api_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: '5xx error rate above 5% for 5m'
+          description: 'Error rate is {{ $value | humanizePercentage }} on {{ $labels.service }}.'
+          runbook: 'https://github.com/teachlink/backend/blob/main/docs/monitoring-dashboard.md#runbook'
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(api_response_time_bucket[5m]))
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'p95 API latency above 1s for 10m'
+          description: 'p95 latency is {{ $value }}s.'
+
+      - alert: BackendDown
+        expr: up{job="teachlink-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: 'Prometheus cannot scrape teachlink-backend'
+          description: 'Target {{ $labels.instance }} has been unreachable for 2m.'
+
+      - alert: AnomalySpike
+        expr: increase(anomalies_detected_total[15m]) > 10
+        for: 15m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Anomaly detector reported >10 anomalies in 15m'
+          description: '{{ $value }} anomalies detected in the last 15 minutes.'
+
+      - alert: EventLoopLagHigh
+        expr: nodejs_eventloop_lag_seconds > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Node.js event loop lag above 200ms for 5m'
+          description: 'Event loop lag is {{ $value }}s.'

@@ -8,9 +8,11 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
+import { COLLABORATION_EVENTS } from '../constants/collaboration-events.constants';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { CollaborationService } from '../collaboration.service';
+import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
 import { SharedDocumentService } from '../documents/shared-document.service';
 import { WhiteboardService } from '../whiteboard/whiteboard.service';
 import { VersionControlService } from '../versioning/version-control.service';
@@ -18,6 +20,7 @@ import {
   CollaborationPermissionsService,
   PermissionLevel,
 } from '../permissions/collaboration-permissions.service';
+import { wsManager } from '../../common/utils/websocket.utils';
 
 export interface CollaborativeOperation {
   sessionId: string;
@@ -27,6 +30,23 @@ export interface CollaborativeOperation {
   timestamp: number;
 }
 
+/**
+ * Sanitize input to prevent injection attacks
+ */
+function sanitizeInput(input: string): string {
+  if (typeof input !== 'string') return input;
+  // Remove potentially dangerous characters
+  return input.replace(/[<>'";&|`$]/g, '').trim();
+}
+
+/**
+ * Validate UUID format
+ */
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -34,6 +54,7 @@ export interface CollaborativeOperation {
     credentials: true,
   },
 })
+@UseGuards(WsThrottlerGuard)
 export class CollaborationGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -48,11 +69,16 @@ export class CollaborationGateway
     private readonly permissionsService: CollaborationPermissionsService,
   ) {}
 
-  afterInit(_server: Server) {
+  afterInit(_server: Server): void {
     this.logger.log('Collaboration Gateway initialized');
   }
 
-  async handleConnection(_server: any, @ConnectedSocket() client: Socket) {
+  async handleConnection(_server: any, @ConnectedSocket() client: Socket): Promise<void> {
+    if (wsManager.getTotalConnections() >= 5000) {
+      client.emit('error', { message: 'Server is at maximum capacity' });
+      client.disconnect(true);
+      return;
+    }
     this.logger.log(`Client connected: ${client.id}`);
 
     // Optionally authenticate the user here based on token
@@ -60,18 +86,19 @@ export class CollaborationGateway
     // const user = await this.authService.validateToken(token);
   }
 
-  async handleDisconnect(@ConnectedSocket() client: Socket) {
+  async handleDisconnect(@ConnectedSocket() client: Socket): Promise<void> {
+    wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
 
     // Clean up any session associations for this client
     // Remove client from any active sessions
   }
 
-  @SubscribeMessage('join-session')
+  @SubscribeMessage(COLLABORATION_EVENTS.JOIN_SESSION)
   async handleJoinSession(
     @MessageBody() data: { sessionId: string; userId: string; resourceType: string },
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId, resourceType } = data;
 
     try {
@@ -79,6 +106,12 @@ export class CollaborationGateway
       const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
       if (!hasPermission) {
         client.emit('error', { message: 'Insufficient permissions to join session' });
+        return;
+      }
+
+      const registered = wsManager.registerConnection(userId, client);
+      if (!registered) {
+        client.emit('error', { message: 'Connection limit reached' });
         return;
       }
 
@@ -108,10 +141,10 @@ export class CollaborationGateway
       }
 
       // Notify other users in the session
-      client.to(sessionId).emit('user-joined', { userId, sessionId });
+      client.to(sessionId).emit(COLLABORATION_EVENTS.USER_JOINED, { userId, sessionId });
 
       // Send current resource state to the joining user
-      client.emit('session-state', {
+      client.emit(COLLABORATION_EVENTS.SESSION_STATE, {
         sessionId,
         resourceType,
         resource,
@@ -125,11 +158,11 @@ export class CollaborationGateway
     }
   }
 
-  @SubscribeMessage('collaborative-operation')
+  @SubscribeMessage(COLLABORATION_EVENTS.COLLABORATIVE_OPERATION)
   async handleCollaborativeOperation(
     @MessageBody() operation: CollaborativeOperation,
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId, resourceType, operation: opData } = operation;
 
     try {
@@ -148,20 +181,28 @@ export class CollaborationGateway
       // Process the operation based on resource type
       let result: any;
       if (resourceType === 'document') {
-        result = await this.sharedDocumentService.applyOperation(sessionId, userId, opData);
+        result = await this.sharedDocumentService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
       } else if (resourceType === 'whiteboard') {
-        result = await this.whiteboardService.applyOperation(sessionId, userId, opData);
+        result = await this.whiteboardService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
       }
 
       // Record the change for version control
       await this.collaborationService.trackChange(sessionId, userId, {
-        operation: opData,
+        operation: operation.operation,
         resourceType,
         result,
       });
 
       // Broadcast the operation to all other clients in the session
-      client.to(sessionId).emit('operation-applied', {
+      client.to(sessionId).emit(COLLABORATION_EVENTS.OPERATION_APPLIED, {
         operation: opData,
         userId,
         timestamp: Date.now(),
@@ -175,11 +216,11 @@ export class CollaborationGateway
     }
   }
 
-  @SubscribeMessage('request-sync')
+  @SubscribeMessage(COLLABORATION_EVENTS.REQUEST_SYNC)
   async handleSyncRequest(
     @MessageBody() data: { sessionId: string; userId: string },
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId } = data;
 
     try {
@@ -193,7 +234,7 @@ export class CollaborationGateway
       const document = await this.sharedDocumentService.getDocument(sessionId);
       const whiteboard = await this.whiteboardService.getWhiteboard(sessionId);
 
-      client.emit('full-sync', {
+      client.emit(COLLABORATION_EVENTS.FULL_SYNC, {
         sessionId,
         document: document || null,
         whiteboard: whiteboard || null,
@@ -204,12 +245,12 @@ export class CollaborationGateway
     }
   }
 
-  @SubscribeMessage('resolve-conflict')
+  @SubscribeMessage(COLLABORATION_EVENTS.RESOLVE_CONFLICT)
   async handleConflictResolution(
     @MessageBody()
     data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
     @ConnectedSocket() client: Socket,
-  ) {
+  ): Promise<void> {
     const { sessionId, userId, resourceType, operations } = data;
 
     try {
@@ -226,13 +267,13 @@ export class CollaborationGateway
 
       let result: any;
       if (resourceType === 'document') {
-        result = await this.sharedDocumentService.resolveConflicts(sessionId, operations);
+        result = await this.sharedDocumentService.resolveConflicts(sessionId, data.operations);
       } else if (resourceType === 'whiteboard') {
-        result = await this.whiteboardService.resolveConflicts(sessionId, operations);
+        result = await this.whiteboardService.resolveConflicts(sessionId, data.operations);
       }
 
       // Broadcast resolved state to all clients
-      this.server.to(sessionId).emit('conflict-resolved', {
+      this.server.to(sessionId).emit(COLLABORATION_EVENTS.CONFLICT_RESOLVED, {
         sessionId,
         resourceType,
         resolvedState: result,
@@ -246,7 +287,7 @@ export class CollaborationGateway
   }
 
   // Method to broadcast to a specific session
-  broadcastToSession(sessionId: string, event: string, data: any) {
+  broadcastToSession(sessionId: string, event: string, data: any): void {
     this.server.to(sessionId).emit(event, data);
   }
 }

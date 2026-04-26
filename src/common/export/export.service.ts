@@ -13,6 +13,7 @@ import {
 import { Job, Queue } from 'bull';
 import { User } from '../../users/entities/user.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
+import { TIME } from '../constants/time.constants';
 
 export type ExportFormat = 'json' | 'pdf';
 
@@ -153,7 +154,7 @@ export class ExportService {
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 2000,
+          delay: TIME.TWO_SECONDS_MS,
         },
         removeOnComplete: 50,
         removeOnFail: 50,

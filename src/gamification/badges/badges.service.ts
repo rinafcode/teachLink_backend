@@ -14,7 +14,7 @@ export class BadgesService {
     private userBadgeRepository: Repository<UserBadge>,
   ) {}
 
-  async awardBadge(userId: string, badgeId: string) {
+  async awardBadge(userId: string, badgeId: string): Promise<UserBadge> {
     const existingBadge = await this.userBadgeRepository.findOne({
       where: { user: { id: userId }, badge: { id: badgeId } },
     });
@@ -31,14 +31,14 @@ export class BadgesService {
     return await this.userBadgeRepository.save(userBadge);
   }
 
-  async getUserBadges(userId: string) {
+  async getUserBadges(userId: string): Promise<UserBadge[]> {
     return await this.userBadgeRepository.find({
       where: { user: { id: userId } },
       relations: ['badge'],
     });
   }
 
-  async getAllBadges() {
+  async getAllBadges(): Promise<Badge[]> {
     return await this.badgeRepository.find();
   }
 }

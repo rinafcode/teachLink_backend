@@ -1,34 +1,50 @@
 import { UsersService } from './users.service';
 import { UserRole, UserStatus } from './entities/user.entity';
 import * as bcrypt from 'bcryptjs';
+import {
+  createMockRepository,
+  createMockCachingService,
+  createMockQueryBuilder,
+  createMockEventEmitter,
+} from 'test/utils/mock-factories';
+import { Repository } from 'typeorm';
 
 describe('UsersService', () => {
   let service: UsersService;
-  let queryBuilder: any;
-  let userRepository: any;
-  let cachingService: any;
+  let mockUserRepository: jest.Mocked<Repository<any>>;
+  let mockCachingService: jest.Mocked<any>;
+  let mockEventEmitter: jest.Mocked<any>;
 
   beforeEach(() => {
-    queryBuilder = {
-      andWhere: jest.fn().mockReturnThis(),
-      getCount: jest.fn().mockResolvedValue(1),
-      skip: jest.fn().mockReturnThis(),
-      take: jest.fn().mockReturnThis(),
-      getMany: jest.fn().mockResolvedValue([{ id: 'user-1', email: 'test@example.com' }]),
-    };
+    // ─── Initialize Mocks ──────────────────────────────────────────────────
+    mockUserRepository = createMockRepository();
+    mockCachingService = createMockCachingService();
+    mockEventEmitter = createMockEventEmitter();
 
-    userRepository = {
-      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-    };
+    // ─── Configure Default QueryBuilder ────────────────────────────────────
+    const mockQueryBuilder = createMockQueryBuilder();
+    mockQueryBuilder.getMany.mockResolvedValue([
+      { id: 'user-1', email: 'test@example.com' },
+    ]);
+    mockQueryBuilder.getCount.mockResolvedValue(1);
+    mockUserRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
-    cachingService = {
-      getOrSet: jest.fn().mockImplementation(async (_key: string, handler: any) => handler()),
-    };
+    // ─── Service Instantiation ─────────────────────────────────────────────
+    service = new UsersService(
+      mockUserRepository,
+      mockCachingService,
+      mockEventEmitter,
+    );
+  });
 
-    service = new UsersService(userRepository, cachingService, { emit: jest.fn() } as any);
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('sanitizes search input and uses parameterized ILIKE', async () => {
+    const mockQueryBuilder = createMockQueryBuilder();
+    mockUserRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
+
     const maliciousSearch = "a%_b\\ test' OR 1=1 --";
 
     await expect(
@@ -39,9 +55,9 @@ describe('UsersService', () => {
       }),
     ).resolves.toBeDefined();
 
-    expect(userRepository.createQueryBuilder).toHaveBeenCalledWith('user');
+    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledWith('user');
 
-    expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
       "(user.email ILIKE :search ESCAPE '\\' OR user.firstName ILIKE :search ESCAPE '\\' OR user.lastName ILIKE :search ESCAPE '\\')",
       {
         search: "%a\\%\\_b\\\\ test' OR 1=1 --%",
@@ -64,13 +80,13 @@ describe('UsersService', () => {
   it('rejects password reuse via current password', async () => {
     const currentHash = await bcrypt.hash('CurrentPass1!', 10);
 
-    userRepository.findOne = jest.fn().mockResolvedValue({
+    mockUserRepository.findOne.mockResolvedValue({
       id: 'user-1',
       email: 'test@example.com',
       password: currentHash,
       passwordHistory: [],
     });
-    userRepository.save = jest.fn().mockResolvedValue(true);
+    mockUserRepository.save.mockResolvedValue(true as any);
 
     await expect(service.update('user-1', { password: 'CurrentPass1!' })).rejects.toThrow(
       /New password must be different from the current password/,
@@ -81,13 +97,13 @@ describe('UsersService', () => {
     const currentHash = await bcrypt.hash('CurrentPass1!', 10);
     const oldHash = await bcrypt.hash('OldPass1!', 10);
 
-    userRepository.findOne = jest.fn().mockResolvedValue({
+    mockUserRepository.findOne.mockResolvedValue({
       id: 'user-1',
       email: 'test@example.com',
       password: currentHash,
       passwordHistory: [oldHash],
     });
-    userRepository.save = jest.fn().mockResolvedValue(true);
+    mockUserRepository.save.mockResolvedValue(true as any);
 
     await expect(service.update('user-1', { password: 'OldPass1!' })).rejects.toThrow(
       /New password must not match your last 5 passwords/,
@@ -97,13 +113,13 @@ describe('UsersService', () => {
   it('updates password and appends current password to history', async () => {
     const currentHash = await bcrypt.hash('CurrentPass1!', 10);
 
-    userRepository.findOne = jest.fn().mockResolvedValue({
+    mockUserRepository.findOne.mockResolvedValue({
       id: 'user-1',
       email: 'test@example.com',
       password: currentHash,
       passwordHistory: [],
     });
-    userRepository.save = jest.fn().mockImplementation(async (user: any) => user);
+    mockUserRepository.save.mockImplementation(async (user: any) => user);
 
     const result = await service.update('user-1', { password: 'NewPass1!' });
 

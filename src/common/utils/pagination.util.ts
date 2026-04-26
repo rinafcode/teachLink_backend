@@ -6,6 +6,9 @@ import {
   CursorPaginationQueryDto,
   CursorDirection,
 } from '../dto/pagination.dto';
+import { APP_CONSTANTS } from '../constants/app.constants';
+
+const { DEFAULT_PAGE_SIZE } = APP_CONSTANTS;
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -34,7 +37,7 @@ export async function paginate<T>(
   options: PaginationQueryDto,
 ): Promise<PaginatedResponse<T>> {
   const page = options.page || 1;
-  const limit = options.limit || 10;
+  const limit = options.limit || DEFAULT_PAGE_SIZE;
   const skip = (page - 1) * limit;
 
   // Apply sorting
@@ -116,7 +119,7 @@ export async function paginateWithCursor<T extends Record<string, any>>(
   queryBuilder: SelectQueryBuilder<T>,
   options: CursorPaginationQueryDto,
 ): Promise<CursorPaginatedResponse<T>> {
-  const limit = options.limit || 10;
+  const limit = options.limit || DEFAULT_PAGE_SIZE;
   const sortBy = options.sortBy || 'createdAt';
   const order = options.order || SortOrder.DESC;
   const direction = options.direction || CursorDirection.FORWARD;

@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { JobOptions, JobMetrics } from './interfaces/queue.interfaces';
 import { JobPriority, JobStatus } from './enums/job-priority.enum';
+import { QUEUE_DEFAULTS } from './queues.constants';
 
 /**
  * Core Queue Service
@@ -12,7 +14,7 @@ import { JobPriority, JobStatus } from './enums/job-priority.enum';
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
+  constructor(@InjectQueue(QUEUE_NAMES.DEFAULT) private readonly defaultQueue: Queue) {}
 
   /**
    * Add a job to the queue with priority and options
@@ -21,13 +23,13 @@ export class QueueService {
     try {
       const job = await this.defaultQueue.add(name, data, {
         priority: options?.priority || JobPriority.NORMAL,
-        attempts: options?.attempts || 3,
+        attempts: options?.attempts || QUEUE_DEFAULTS.MAX_RETRIES,
         backoff: options?.backoff || {
           type: 'exponential',
           delay: 2000,
         },
         delay: options?.delay,
-        timeout: options?.timeout || 30000,
+        timeout: options?.timeout || QUEUE_DEFAULTS.DEFAULT_TIMEOUT_MS,
         removeOnComplete: options?.removeOnComplete ?? true,
         removeOnFail: options?.removeOnFail ?? false,
       });
@@ -55,7 +57,7 @@ export class QueueService {
         data: job.data,
         opts: {
           priority: job.options?.priority || JobPriority.NORMAL,
-          attempts: job.options?.attempts || 3,
+          attempts: job.options?.attempts || QUEUE_DEFAULTS.MAX_RETRIES,
           backoff: job.options?.backoff || {
             type: 'exponential',
             delay: 2000,
@@ -94,7 +96,7 @@ export class QueueService {
       status: state as JobStatus,
       priority: job.opts.priority as JobPriority,
       attempts: job.attemptsMade,
-      maxAttempts: job.opts.attempts || 3,
+      maxAttempts: job.opts?.attempts || QUEUE_DEFAULTS.MAX_RETRIES,
       progress: await job.progress(),
       createdAt: new Date(job.timestamp),
       processedAt: job.processedOn ? new Date(job.processedOn) : undefined,
@@ -145,7 +147,7 @@ export class QueueService {
   /**
    * Clean old jobs from the queue
    */
-  async cleanQueue(grace: number = 5000, status?: 'completed' | 'failed'): Promise<void> {
+  async cleanQueue(grace: number = QUEUE_DEFAULTS.CLEAN_GRACE_MS, status?: 'completed' | 'failed'): Promise<void> {
     if (status) {
       await this.defaultQueue.clean(grace, status);
       this.logger.log(`Cleaned ${status} jobs older than ${grace}ms`);

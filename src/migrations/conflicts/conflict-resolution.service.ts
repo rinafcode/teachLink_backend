@@ -1,5 +1,6 @@
 import { Injectable, Logger, ConflictException, BadRequestException } from '@nestjs/common';
 import { MigrationConfig } from '../migration.service';
+import { TIME } from '../../common/constants/time.constants';
 
 export enum ConflictResolutionStrategy {
   SKIP = 'skip',
@@ -107,7 +108,7 @@ export class ConflictResolutionService {
       case ConflictResolutionStrategy.RETRY:
         this.logger.log(`Retrying migration ${migration.name} after conflict`);
         // Wait a bit before retrying
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, TIME.ONE_SECOND_MS));
         break;
 
       case ConflictResolutionStrategy.ABORT:

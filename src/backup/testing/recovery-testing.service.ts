@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { ConfigService } from '@nestjs/config';
 import { RecoveryTest } from '../entities/recovery-test.entity';
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
@@ -27,7 +28,7 @@ export class RecoveryTestingService {
   constructor(
     @InjectRepository(RecoveryTest)
     private readonly recoveryTestRepository: Repository<RecoveryTest>,
-    @InjectQueue('backup-processing')
+    @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING)
     private readonly backupQueue: Queue,
     private readonly backupService: BackupService,
     private readonly fileStorageService: FileStorageService,
@@ -41,7 +42,7 @@ export class RecoveryTestingService {
   async createRecoveryTest(backupId: string): Promise<RecoveryTestResponseDto> {
     const backup = await this.backupService.getLatestBackup();
     if (!backup) {
-      throw new NotFoundException(`No verified backup found`);
+      throw new NotFoundException('No verified backup found');
     }
 
     const testDatabaseName = this.configService.get<string>(
@@ -59,7 +60,7 @@ export class RecoveryTestingService {
 
     // Queue recovery test job
     await this.backupQueue.add(
-      'recovery-test',
+      JOB_NAMES.RECOVERY_TEST,
       {
         recoveryTestId: recoveryTest.id,
         backupRecordId: backupId,
@@ -216,7 +217,7 @@ export class RecoveryTestingService {
 
       // Run validation queries
       const tableCountResult = await client.query(
-        `SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'`,
+        "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'",
       );
       const tableCount = parseInt(tableCountResult.rows[0].count);
 

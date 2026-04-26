@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AlertingService } from './alerting/alerting.service';
+import { TIME } from '../common/constants/time.constants';
 
 export type ScheduledTaskStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | 'TIMED_OUT';
 
@@ -46,7 +47,7 @@ export class ScheduledTaskMonitoringService {
     this.taskConfigs.set(taskName, {
       ...config,
       maxRetries: config.maxRetries ?? 0,
-      missedExecutionGraceMs: config.missedExecutionGraceMs ?? 60000,
+      missedExecutionGraceMs: config.missedExecutionGraceMs ?? TIME.ONE_MINUTE_MS,
     });
   }
 

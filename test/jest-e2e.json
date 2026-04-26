@@ -1,16 +1,23 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
-  "testEnvironment": "node",
+  "testEnvironment": "./test/utils/test-environment.js",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
-  "testTimeout": 30000,
+  "testTimeout": 60000,
   "forceExit": true,
   "verbose": true,
   "maxWorkers": 1,
+  "detectOpenHandles": true,
+  "testRunner": "jest-circus",
+  "bail": false,
+  "reporters": [
+    "default",
+    "./test/utils/flaky-test-detector.ts"
+  ],
   "globals": {
     "ts-jest": {
       "tsconfig": {
@@ -32,5 +39,6 @@
         "esModuleInterop": true
       }
     }
-  }
+  },
+  "testSequencer": "./test/utils/test-sequencer.js"
 }

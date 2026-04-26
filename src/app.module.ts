@@ -1,8 +1,7 @@
-import { Module, DynamicModule, Type, Logger } from '@nestjs/common';
+import { Module, DynamicModule, Type, Logger, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { redisStore } from 'cache-manager-redis-store';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -14,6 +13,7 @@ import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { envValidationSchema } from './config/env.validation';
+import { cacheConfig } from './config/cache.config';
 import { HealthModule } from './health/health.module';
 import { SessionModule } from './session/session.module';
 import { createBullRedisClient } from './common/utils/bull-redis.util';
@@ -54,7 +54,11 @@ import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
+import { ShutdownStateService } from './common/services/shutdown-state.service';
+import { LogShipperService } from './common/services/log-shipper.service';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
+@Global()
 @Module({})
 export class AppModule {
   static async forRoot(): Promise<DynamicModule> {
@@ -133,12 +137,7 @@ export class AppModule {
         },
         createClient: createBullRedisClient,
       }),
-      CacheModule.register({
-        isGlobal: true,
-        store: redisStore,
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      }),
+      CacheModule.register(cacheConfig),
       SessionModule,
       ThrottlerModule.forRoot([
         {
@@ -400,6 +399,12 @@ export class AppModule {
       providers: [
         AppService,
         StartupLogger,
+        ShutdownStateService,
+        LogShipperService,
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: LoggingInterceptor,
+        },
         {
           provide: APP_INTERCEPTOR,
           useClass: MonitoringInterceptor,
@@ -413,6 +418,7 @@ export class AppModule {
           useClass: CustomThrottleGuard,
         },
       ],
+      exports: [ShutdownStateService, LogShipperService],
     };
   }
 }

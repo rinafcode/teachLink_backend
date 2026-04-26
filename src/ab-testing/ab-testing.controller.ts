@@ -37,13 +37,13 @@ export class ABTestingController {
 
   @Get('experiments')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  async getAllExperiments() {
+  async getAllExperiments(): Promise<any> {
     this.logger.log('Fetching all experiments');
     return await this.abTestingService.getAllExperiments();
   }
 
   @Get('experiments/:id')
-  async getExperimentById(@Param('id') id: string) {
+  async getExperimentById(@Param('id') id: string): Promise<any> {
     this.logger.log(`Fetching experiment: ${id}`);
     return await this.abTestingService.getExperimentById(id);
   }
@@ -51,7 +51,7 @@ export class ABTestingController {
   @Post('experiments')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
-  async createExperiment(@Body() createExperimentDto: CreateExperimentDto) {
+  async createExperiment(@Body() createExperimentDto: CreateExperimentDto): Promise<any> {
     this.logger.log(`Creating new experiment: ${createExperimentDto.name}`);
     return await this.abTestingService.createExperiment(createExperimentDto);
   }
@@ -59,7 +59,7 @@ export class ABTestingController {
   @Post('experiments/:id/start')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async startExperiment(@Param('id') id: string) {
+  async startExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Starting experiment: ${id}`);
     return await this.abTestingService.startExperiment(id);
   }
@@ -67,7 +67,7 @@ export class ABTestingController {
   @Post('experiments/:id/stop')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async stopExperiment(@Param('id') id: string) {
+  async stopExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Stopping experiment: ${id}`);
     return await this.abTestingService.stopExperiment(id);
   }
@@ -75,7 +75,7 @@ export class ABTestingController {
   @Put('experiments/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async updateExperiment(@Param('id') id: string, @Body() updateData: any) {
+  async updateExperiment(@Param('id') id: string, @Body() updateData: any): Promise<any> {
     this.logger.log(`Updating experiment: ${id}`);
     return await this.experimentService.updateExperiment(id, updateData);
   }
@@ -83,14 +83,14 @@ export class ABTestingController {
   @Delete('experiments/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async deleteExperiment(@Param('id') id: string) {
+  async deleteExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Deleting experiment: ${id}`);
     // Implementation would go here
     return { message: 'Experiment deleted successfully' };
   }
 
   @Get('experiments/:id/results')
-  async getExperimentResults(@Param('id') id: string) {
+  async getExperimentResults(@Param('id') id: string): Promise<any> {
     this.logger.log(`Fetching results for experiment: ${id}`);
     return await this.experimentService.getExperimentResults(id);
   }
@@ -98,7 +98,7 @@ export class ABTestingController {
   @Post('experiments/:id/variants')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
-  async addVariant(@Param('id') experimentId: string, @Body() variantData: any) {
+  async addVariant(@Param('id') experimentId: string, @Body() variantData: any): Promise<any> {
     this.logger.log(`Adding variant to experiment: ${experimentId}`);
     return await this.experimentService.addVariant(experimentId, variantData);
   }
@@ -106,7 +106,7 @@ export class ABTestingController {
   @Delete('variants/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async removeVariant(@Param('id') variantId: string) {
+  async removeVariant(@Param('id') variantId: string): Promise<any> {
     this.logger.log(`Removing variant: ${variantId}`);
     await this.experimentService.removeVariant(variantId);
     return { message: 'Variant removed successfully' };
@@ -118,20 +118,20 @@ export class ABTestingController {
   async updateTrafficAllocation(
     @Param('id') experimentId: string,
     @Body() allocations: Record<string, number>,
-  ) {
+  ): Promise<any> {
     this.logger.log(`Updating traffic allocation for experiment: ${experimentId}`);
     await this.experimentService.updateTrafficAllocation(experimentId, allocations);
     return { message: 'Traffic allocation updated successfully' };
   }
 
   @Get('experiments/:id/statistical-analysis')
-  async getStatisticalAnalysis(@Param('id') id: string) {
+  async getStatisticalAnalysis(@Param('id') id: string): Promise<any> {
     this.logger.log(`Performing statistical analysis for experiment: ${id}`);
     return await this.statisticalAnalysisService.calculateStatisticalSignificance(id);
   }
 
   @Get('experiments/:id/effect-size')
-  async getEffectSize(@Param('id') id: string) {
+  async getEffectSize(@Param('id') id: string): Promise<any> {
     this.logger.log(`Calculating effect size for experiment: ${id}`);
     return await this.statisticalAnalysisService.calculateEffectSize(id);
   }
@@ -139,13 +139,13 @@ export class ABTestingController {
   @Post('experiments/:id/auto-select-winner')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async autoSelectWinner(@Param('id') id: string, @Body() criteria?: any) {
+  async autoSelectWinner(@Param('id') id: string, @Body() criteria?: any): Promise<any> {
     this.logger.log(`Auto-selecting winner for experiment: ${id}`);
     return await this.automatedDecisionService.autoSelectWinner(id, criteria);
   }
 
   @Get('experiments/:id/decision-recommendations')
-  async getDecisionRecommendations(@Param('id') id: string) {
+  async getDecisionRecommendations(@Param('id') id: string): Promise<any> {
     this.logger.log(`Getting decision recommendations for experiment: ${id}`);
     return await this.automatedDecisionService.getDecisionRecommendations(id);
   }
@@ -153,7 +153,7 @@ export class ABTestingController {
   @Post('experiments/:id/auto-allocate-traffic')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async autoAllocateTraffic(@Param('id') id: string) {
+  async autoAllocateTraffic(@Param('id') id: string): Promise<any> {
     this.logger.log(`Auto-allocating traffic for experiment: ${id}`);
     await this.automatedDecisionService.autoAllocateTraffic(id);
     return { message: 'Traffic auto-allocated successfully' };
@@ -161,31 +161,31 @@ export class ABTestingController {
 
   @Get('reports/dashboard')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  async getDashboardSummary(@Query() filters?: any) {
+  async getDashboardSummary(@Query() filters?: any): Promise<any> {
     this.logger.log('Generating dashboard summary');
     return await this.reportsService.getDashboardSummary(filters);
   }
 
   @Get('reports/experiment/:id')
-  async generateExperimentReport(@Param('id') id: string) {
+  async generateExperimentReport(@Param('id') id: string): Promise<any> {
     this.logger.log(`Generating report for experiment: ${id}`);
     return await this.reportsService.generateExperimentReport(id);
   }
 
   @Get('reports/performance-comparison')
-  async getPerformanceComparisonReport() {
+  async getPerformanceComparisonReport(): Promise<any> {
     this.logger.log('Generating performance comparison report');
     return await this.reportsService.generatePerformanceComparisonReport();
   }
 
   @Get('reports/timeline')
-  async getExperimentTimeline() {
+  async getExperimentTimeline(): Promise<any> {
     this.logger.log('Generating experiment timeline');
     return await this.reportsService.getExperimentTimeline();
   }
 
   @Get('reports/experiment/:id/export')
-  async exportExperimentData(@Param('id') id: string) {
+  async exportExperimentData(@Param('id') id: string): Promise<any> {
     this.logger.log(`Exporting data for experiment: ${id}`);
     const csvData = await this.reportsService.exportExperimentData(id);
     return {
@@ -197,7 +197,7 @@ export class ABTestingController {
   @Post('experiments/:id/pause')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async pauseExperiment(@Param('id') id: string) {
+  async pauseExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Pausing experiment: ${id}`);
     return await this.experimentService.pauseExperiment(id);
   }
@@ -205,7 +205,7 @@ export class ABTestingController {
   @Post('experiments/:id/resume')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async resumeExperiment(@Param('id') id: string) {
+  async resumeExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Resuming experiment: ${id}`);
     return await this.experimentService.resumeExperiment(id);
   }
@@ -213,14 +213,14 @@ export class ABTestingController {
   @Post('experiments/:id/archive')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async archiveExperiment(@Param('id') id: string) {
+  async archiveExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Archiving experiment: ${id}`);
     return await this.experimentService.archiveExperiment(id);
   }
 
   @Get('experiments/:id/assign-user/:userId')
   @Roles(UserRole.ADMIN)
-  async assignUserToVariant(@Param('id') experimentId: string, @Param('userId') userId: string) {
+  async assignUserToVariant(@Param('id') experimentId: string, @Param('userId') userId: string): Promise<any> {
     this.logger.log(`Assigning user ${userId} to variant for experiment: ${experimentId}`);
     return await this.abTestingService.assignUserToVariant(experimentId, userId);
   }

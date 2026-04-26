@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GraphQLSchema, FieldNode, OperationDefinitionNode, visit, parse } from 'graphql';
+import { GRAPHQL_CONSTANTS } from './query-complexity.constants';
 
 /**
  * Query complexity analysis configuration
@@ -44,39 +45,11 @@ export class QueryComplexityService {
   private readonly logger = new Logger(QueryComplexityService.name);
 
   private readonly defaultConfig: ComplexityConfig = {
-    maxDepth: 10,
-    maxComplexity: 1000,
-    listScalarMultiplier: 10,
+    maxDepth: GRAPHQL_CONSTANTS.MAX_DEPTH,
+    maxComplexity: GRAPHQL_CONSTANTS.MAX_COMPLEXITY,
+    listScalarMultiplier: GRAPHQL_CONSTANTS.LIST_SCALAR_MULTIPLIER,
     defaultFieldComplexity: 1,
-    fieldComplexityMap: {
-      // User queries
-      User: 5,
-      users: 10,
-      currentUser: 2,
-
-      // Course queries - higher cost for list queries
-      Course: 5,
-      courses: 15,
-      courseById: 3,
-      popularCourses: 20,
-      searchCourses: 25,
-
-      // Assessment queries
-      Assessment: 5,
-      assessments: 15,
-      assessmentById: 3,
-      questions: 20,
-
-      // Results and analytics
-      results: 30,
-      analytics: 50,
-      statistics: 40,
-
-      // Connection/N+1 patterns
-      edges: 2,
-      node: 1,
-      pageInfo: 1,
-    },
+    fieldComplexityMap: GRAPHQL_CONSTANTS.FIELD_COMPLEXITY_MAP,
   };
 
   private config: ComplexityConfig;
@@ -86,9 +59,9 @@ export class QueryComplexityService {
     // Initialize with environment-based configuration
     this.config = {
       ...this.defaultConfig,
-      maxDepth: parseInt(process.env.GRAPHQL_MAX_DEPTH || '10', 10),
-      maxComplexity: parseInt(process.env.GRAPHQL_MAX_COMPLEXITY || '1000', 10),
-      listScalarMultiplier: parseInt(process.env.GRAPHQL_LIST_MULTIPLIER || '10', 10),
+      maxDepth: parseInt(process.env.GRAPHQL_MAX_DEPTH || `${GRAPHQL_CONSTANTS.MAX_DEPTH}`, 10),
+      maxComplexity: parseInt(process.env.GRAPHQL_MAX_COMPLEXITY || `${GRAPHQL_CONSTANTS.MAX_COMPLEXITY}`, 10),
+      listScalarMultiplier: parseInt(process.env.GRAPHQL_LIST_MULTIPLIER || `${GRAPHQL_CONSTANTS.LIST_SCALAR_MULTIPLIER}`, 10),
     };
   }
 

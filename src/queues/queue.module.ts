@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { ScheduleModule } from '@nestjs/schedule';
 import { QueueService } from './queue.service';
 import { QueueController } from './queue.controller';
@@ -16,7 +17,7 @@ import { DefaultQueueProcessor } from './processors/default-queue.processor';
 @Module({
   imports: [
     BullModule.registerQueue({
-      name: 'default',
+      name: QUEUE_NAMES.DEFAULT,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
