@@ -14,21 +14,21 @@ import {
 } from '../cdn/entities/content-metadata.entity';
 import { FileStorageService } from './storage/file-storage.service';
 import { VideoProcessingService } from './processing/video-processing.service';
-import { UploadedFile } from '../common/types/file.types';
+import { IUploadedFile } from '../common/types/file.types';
 import { FileValidationService } from './validation/file-validation.service';
 import { MalwareScanningService } from './validation/malware-scanning.service';
 import { ImageProcessingService } from './processing/image-processing.service';
 import { UploadProgressService } from './validation/upload-progress.service';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface UploadOptions {
+export interface IUploadOptions {
   compress?: boolean;
   generateThumbnails?: boolean;
   scanForMalware?: boolean;
   trackProgress?: boolean;
 }
 
-export interface UploadResult {
+export interface IUploadResult {
   content: ContentMetadata;
   thumbnails?: Array<{ name: string; url: string }>;
   compressionRatio?: number;
@@ -53,11 +53,11 @@ export class MediaService {
   async createFromUpload(
     ownerId: string,
     tenantId: string | undefined,
-    file: UploadedFile,
-    options: UploadOptions = {},
-  ): Promise<UploadResult> {
+    file: IUploadedFile,
+    options: IUploadOptions = {},
+  ): Promise<IUploadResult> {
     const uploadId = uuidv4();
-    const result: UploadResult = { content: null as unknown as ContentMetadata };
+    const result: IUploadResult = { content: null as unknown as ContentMetadata };
 
     try {
       // Initialize progress tracking if enabled

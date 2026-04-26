@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface DataLineageNode {
+export interface IDataLineageNode {
   id: string;
   name: string;
   type: 'source' | 'transformation' | 'target' | 'process';
@@ -13,7 +13,7 @@ export interface DataLineageNode {
   createdAt: Date;
 }
 
-export interface DataLineageEdge {
+export interface IDataLineageEdge {
   id: string;
   sourceId: string;
   targetId: string;
@@ -23,25 +23,25 @@ export interface DataLineageEdge {
   metadata: any;
 }
 
-export interface DataLineageGraph {
+export interface IDataLineageGraph {
   id: string;
   name: string;
   description: string;
-  nodes: DataLineageNode[];
-  edges: DataLineageEdge[];
+  nodes: IDataLineageNode[];
+  edges: IDataLineageEdge[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface LineageTrace {
+export interface ILineageTrace {
   id: string;
   nodeId: string;
   traceType: 'upstream' | 'downstream' | 'complete';
-  path: LineagePath[];
+  path: ILineagePath[];
   createdAt: Date;
 }
 
-export interface LineagePath {
+export interface ILineagePath {
   fromNode: string;
   toNode: string;
   transformation: string;
@@ -60,18 +60,18 @@ export interface ImpactAnalysis {
 @Injectable()
 export class DataLineageService {
   private readonly logger = new Logger(DataLineageService.name);
-  private graphs: Map<string, DataLineageGraph> = new Map();
-  private traces: Map<string, LineageTrace> = new Map();
+  private graphs: Map<string, IDataLineageGraph> = new Map();
+  private traces: Map<string, ILineageTrace> = new Map();
   private impactAnalyses: Map<string, ImpactAnalysis> = new Map();
 
   /**
    * Create a new lineage graph
    */
   async createGraph(
-    graphConfig: Omit<DataLineageGraph, 'id' | 'createdAt' | 'updatedAt' | 'nodes' | 'edges'>,
-  ): Promise<DataLineageGraph> {
+    graphConfig: Omit<IDataLineageGraph, 'id' | 'createdAt' | 'updatedAt' | 'nodes' | 'edges'>,
+  ): Promise<IDataLineageGraph> {
     const graphId = uuidv4();
-    const graph: DataLineageGraph = {
+    const graph: IDataLineageGraph = {
       id: graphId,
       ...graphConfig,
       nodes: [],
@@ -89,14 +89,14 @@ export class DataLineageService {
   /**
    * Get a lineage graph
    */
-  async getGraph(graphId: string): Promise<DataLineageGraph | null> {
+  async getGraph(graphId: string): Promise<IDataLineageGraph | null> {
     return this.graphs.get(graphId) || null;
   }
 
   /**
    * Get all lineage graphs
    */
-  async getAllGraphs(): Promise<DataLineageGraph[]> {
+  async getAllGraphs(): Promise<IDataLineageGraph[]> {
     return Array.from(this.graphs.values());
   }
 
@@ -105,14 +105,14 @@ export class DataLineageService {
    */
   async addNode(
     graphId: string,
-    nodeConfig: Omit<DataLineageNode, 'id' | 'createdAt'>,
-  ): Promise<DataLineageNode> {
+    nodeConfig: Omit<IDataLineageNode, 'id' | 'createdAt'>,
+  ): Promise<IDataLineageNode> {
     const graph = this.graphs.get(graphId);
     if (!graph) {
       throw new Error(`Graph ${graphId} not found`);
     }
 
-    const node: DataLineageNode = {
+    const node: IDataLineageNode = {
       id: uuidv4(),
       ...nodeConfig,
       createdAt: new Date(),
@@ -131,8 +131,8 @@ export class DataLineageService {
    */
   async addEdge(
     graphId: string,
-    edgeConfig: Omit<DataLineageEdge, 'id' | 'timestamp'>,
-  ): Promise<DataLineageEdge> {
+    edgeConfig: Omit<IDataLineageEdge, 'id' | 'timestamp'>,
+  ): Promise<IDataLineageEdge> {
     const graph = this.graphs.get(graphId);
     if (!graph) {
       throw new Error(`Graph ${graphId} not found`);
@@ -146,7 +146,7 @@ export class DataLineageService {
       throw new Error('Source or target node not found in graph');
     }
 
-    const edge: DataLineageEdge = {
+    const edge: IDataLineageEdge = {
       id: uuidv4(),
       ...edgeConfig,
       timestamp: new Date(),
@@ -167,14 +167,14 @@ export class DataLineageService {
     graphId: string,
     nodeId: string,
     traceType: 'upstream' | 'downstream' | 'complete' = 'complete',
-  ): Promise<LineageTrace> {
+  ): Promise<ILineageTrace> {
     const graph = this.graphs.get(graphId);
     if (!graph) {
       throw new Error(`Graph ${graphId} not found`);
     }
 
     const traceId = uuidv4();
-    const path: LineagePath[] = [];
+    const path: ILineagePath[] = [];
 
     if (traceType === 'upstream' || traceType === 'complete') {
       this.traceUpstream(graph, nodeId, path);
@@ -184,7 +184,7 @@ export class DataLineageService {
       this.traceDownstream(graph, nodeId, path);
     }
 
-    const trace: LineageTrace = {
+    const trace: ILineageTrace = {
       id: traceId,
       nodeId,
       traceType,
@@ -229,7 +229,7 @@ export class DataLineageService {
   /**
    * Get lineage trace
    */
-  async getTrace(traceId: string): Promise<LineageTrace | null> {
+  async getTrace(traceId: string): Promise<ILineageTrace | null> {
     return this.traces.get(traceId) || null;
   }
 
@@ -243,7 +243,7 @@ export class DataLineageService {
   /**
    * Get all traces for a graph
    */
-  async getTracesForGraph(graphId: string): Promise<LineageTrace[]> {
+  async getTracesForGraph(graphId: string): Promise<ILineageTrace[]> {
     const traces = Array.from(this.traces.values());
     return traces.filter((trace) => {
       const graph = this.graphs.get(graphId);
@@ -265,7 +265,7 @@ export class DataLineageService {
   /**
    * Create standard lineage for common data flows
    */
-  async createStandardLineage(): Promise<DataLineageGraph> {
+  async createStandardLineage(): Promise<IDataLineageGraph> {
     const graph = await this.createGraph({
       name: 'Standard Data Flow',
       description: 'Standard lineage for user and post data flow',
@@ -363,8 +363,8 @@ export class DataLineageService {
   /**
    * Search for nodes in lineage graphs
    */
-  async searchNodes(searchTerm: string, graphId?: string): Promise<DataLineageNode[]> {
-    let nodes: DataLineageNode[] = [];
+  async searchNodes(searchTerm: string, graphId?: string): Promise<IDataLineageNode[]> {
+    let nodes: IDataLineageNode[] = [];
 
     if (graphId) {
       const graph = this.graphs.get(graphId);
@@ -388,7 +388,7 @@ export class DataLineageService {
   }
 
   // Helper methods
-  private traceUpstream(graph: DataLineageGraph, nodeId: string, path: LineagePath[]): void {
+  private traceUpstream(graph: IDataLineageGraph, nodeId: string, path: ILineagePath[]): void {
     const incomingEdges = graph.edges.filter((edge) => edge.targetId === nodeId);
 
     for (const edge of incomingEdges) {
@@ -403,7 +403,7 @@ export class DataLineageService {
     }
   }
 
-  private traceDownstream(graph: DataLineageGraph, nodeId: string, path: LineagePath[]): void {
+  private traceDownstream(graph: IDataLineageGraph, nodeId: string, path: ILineagePath[]): void {
     const outgoingEdges = graph.edges.filter((edge) => edge.sourceId === nodeId);
 
     for (const edge of outgoingEdges) {
@@ -418,7 +418,7 @@ export class DataLineageService {
     }
   }
 
-  private findAffectedNodes(graph: DataLineageGraph, nodeId: string): string[] {
+  private findAffectedNodes(graph: IDataLineageGraph, nodeId: string): string[] {
     const affectedNodes: string[] = [];
     const visited = new Set<string>();
 

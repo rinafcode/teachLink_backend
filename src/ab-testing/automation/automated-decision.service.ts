@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
-import { ExperimentVariant } from '../entities/experiment-variant.entity';
+import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { StatisticalAnalysisService } from '../analysis/statistical-analysis.service';
 import { AB_TESTING_CONSTANTS } from '../ab-testing.constants';
 
-export interface WinnerSelectionCriteria {
+export interface IWinnerSelectionCriteria {
   confidenceLevel: number;
   minimumSampleSize: number;
   effectSizeThreshold: number;
@@ -20,15 +20,15 @@ export class AutomatedDecisionService {
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
-    @InjectRepository(ExperimentVariant)
-    private variantRepository: Repository<ExperimentVariant>,
+    @InjectRepository(IExperimentVariant)
+    private variantRepository: Repository<IExperimentVariant>,
     private statisticalAnalysisService: StatisticalAnalysisService,
   ) {}
 
   /**
    * Automatically selects winner for an experiment
    */
-  async autoSelectWinner(experimentId: string, criteria?: WinnerSelectionCriteria): Promise<any> {
+  async autoSelectWinner(experimentId: string, criteria?: IWinnerSelectionCriteria): Promise<any> {
     this.logger.log(`Auto-selecting winner for experiment: ${experimentId}`);
 
     const experiment = await this.experimentRepository.findOne({
@@ -44,7 +44,7 @@ export class AutomatedDecisionService {
       throw new Error('Only running experiments can have winners selected');
     }
 
-    const defaultCriteria: WinnerSelectionCriteria = {
+    const defaultCriteria: IWinnerSelectionCriteria = {
       confidenceLevel: experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
       minimumSampleSize: experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
       effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
@@ -112,12 +112,12 @@ export class AutomatedDecisionService {
   private async determineWinner(
     experiment: Experiment,
     statisticalResults: any,
-    criteria: WinnerSelectionCriteria,
-  ): Promise<ExperimentVariant | null> {
+    criteria: IWinnerSelectionCriteria,
+  ): Promise<IExperimentVariant | null> {
     const controlVariant = experiment.variants.find((v) => v.isControl);
     if (!controlVariant) return null;
 
-    let bestVariant: ExperimentVariant | null = null;
+    let bestVariant: IExperimentVariant | null = null;
     let bestPerformance = -Infinity;
 
     // Find the variant with the best performance that meets criteria
@@ -336,7 +336,7 @@ export class AutomatedDecisionService {
   /**
    * Calculates performance scores for variants
    */
-  private async calculateVariantPerformanceScores(variants: ExperimentVariant[]): Promise<any[]> {
+  private async calculateVariantPerformanceScores(variants: IExperimentVariant[]): Promise<any[]> {
     // This would fetch actual performance data
     // For now, returning equal scores
     return variants.map((variant) => ({

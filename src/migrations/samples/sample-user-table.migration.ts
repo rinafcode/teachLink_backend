@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 
 @Injectable()
-export class SampleUserTableMigration implements MigrationConfig {
+export class SampleUserTableMigration implements IMigrationConfig {
   name = 'sample-user-table';
   version = '1.0.0';
   dependencies = []; // List any dependencies this migration has

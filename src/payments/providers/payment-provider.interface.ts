@@ -1,4 +1,4 @@
-export interface PaymentProvider {
+export interface IPaymentProvider {
   name: string;
 
   createPaymentIntent(

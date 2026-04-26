@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import {
   ConditionOperator,
   FlagValueType,
-  TargetingCondition,
-  TargetingConfig,
-  TargetingRule,
-  UserContext,
+  ITargetingCondition,
+  ITargetingConfig,
+  ITargetingRule,
+  IUserContext,
 } from '../interfaces';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class TargetingService {
    * Evaluates targeting rules against a user context.
    * Returns the matched variation key, or null if no rule matches.
    */
-  evaluateTargeting(config: TargetingConfig, userContext: UserContext): string | null {
+  evaluateTargeting(config: ITargetingConfig, userContext: IUserContext): string | null {
     const sortedRules = [...config.rules].sort((a, b) => a.priority - b.priority);
 
     for (const rule of sortedRules) {
@@ -26,7 +26,7 @@ export class TargetingService {
     return null;
   }
 
-  private evaluateRule(rule: TargetingRule, userContext: UserContext): boolean {
+  private evaluateRule(rule: ITargetingRule, userContext: IUserContext): boolean {
     if (!rule.conditions || rule.conditions.length === 0) return false;
 
     if (rule.conditionsOperator === 'OR') {
@@ -36,7 +36,7 @@ export class TargetingService {
     return rule.conditions.every((c) => this.evaluateCondition(c, userContext));
   }
 
-  private evaluateCondition(condition: TargetingCondition, userContext: UserContext): boolean {
+  private evaluateCondition(condition: ITargetingCondition, userContext: IUserContext): boolean {
     const attributeValue = this.resolveAttribute(condition.attribute, userContext);
 
     return this.applyOperator(condition.operator, attributeValue, condition.value);
@@ -127,7 +127,7 @@ export class TargetingService {
    * Resolves an attribute name from the user context.
    * Checks top-level properties first, then custom attributes map.
    */
-  private resolveAttribute(attribute: string, userContext: UserContext): unknown {
+  private resolveAttribute(attribute: string, userContext: IUserContext): unknown {
     const topLevel: Record<string, unknown> = {
       userId: userContext.userId,
       email: userContext.email,

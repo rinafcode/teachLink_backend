@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 import { ABTestingService } from './ab-testing.service';
 import { CreateABTestDto } from '../dto/create-ab-test.dto';
@@ -13,7 +13,7 @@ export class ABTestingController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new A/B test' })
-  @ApiResponse({ status: 201, description: 'A/B test created successfully' })
+  @IApiResponse({ status: 201, description: 'A/B test created successfully' })
   async create(@Body() createABTestDto: CreateABTestDto): Promise<ABTest> {
     return this.abTestingService.create(createABTestDto);
   }
@@ -28,7 +28,7 @@ export class ABTestingController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get an A/B test by ID' })
-  @ApiResponse({ status: 404, description: 'A/B test not found' })
+  @IApiResponse({ status: 404, description: 'A/B test not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<ABTest> {
     return this.abTestingService.findOne(id);
   }

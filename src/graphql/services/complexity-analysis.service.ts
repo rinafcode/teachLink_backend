@@ -7,13 +7,13 @@ import {
   ComplexityEstimator,
 } from 'graphql-query-complexity';
 
-export interface ComplexityConfig {
+export interface IComplexityConfig {
   maxComplexity: number;
   maxDepth: number;
   defaultCost: number;
 }
 
-export interface ComplexityAnalysisResult {
+export interface IComplexityAnalysisResult {
   allowed: boolean;
   complexity: number;
   depth: number;
@@ -24,7 +24,7 @@ export interface ComplexityAnalysisResult {
 export class ComplexityAnalysisService {
   private readonly logger = new Logger(ComplexityAnalysisService.name);
 
-  readonly config: ComplexityConfig = {
+  readonly config: IComplexityConfig = {
     maxComplexity: Number(process.env.GRAPHQL_MAX_COMPLEXITY) || 100,
     maxDepth: Number(process.env.GRAPHQL_MAX_DEPTH) || 10,
     defaultCost: 1,
@@ -66,8 +66,8 @@ export class ComplexityAnalysisService {
     schema: GraphQLSchema,
     document: DocumentNode,
     variables: Record<string, any> = {},
-  ): ComplexityAnalysisResult {
-    const result: ComplexityAnalysisResult = {
+  ): IComplexityAnalysisResult {
+    const result: IComplexityAnalysisResult = {
       allowed: true,
       complexity: 0,
       depth: 0,

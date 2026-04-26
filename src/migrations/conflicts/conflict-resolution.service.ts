@@ -1,5 +1,5 @@
 import { Injectable, Logger, ConflictException, BadRequestException } from '@nestjs/common';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 import { TIME } from '../../common/constants/time.constants';
 
 export enum ConflictResolutionStrategy {
@@ -10,7 +10,7 @@ export enum ConflictResolutionStrategy {
   REORDER = 'reorder',
 }
 
-export interface MigrationConflict {
+export interface IMigrationConflict {
   migrationName: string;
   conflictingMigration: string;
   conflictType: string;
@@ -22,12 +22,12 @@ export interface MigrationConflict {
 @Injectable()
 export class ConflictResolutionService {
   private readonly logger = new Logger(ConflictResolutionService.name);
-  private conflictHistory: MigrationConflict[] = [];
+  private conflictHistory: IMigrationConflict[] = [];
 
   /**
    * Checks if there are conflicts with the given migration
    */
-  async checkForConflicts(migration: MigrationConfig): Promise<boolean> {
+  async checkForConflicts(migration: IMigrationConfig): Promise<boolean> {
     this.logger.log(`Checking for conflicts with migration: ${migration.name}`);
 
     // In a real implementation, this would check for various types of conflicts
@@ -44,7 +44,7 @@ export class ConflictResolutionService {
   /**
    * Resolves a migration conflict using the appropriate strategy
    */
-  async resolveConflict(migration: MigrationConfig): Promise<MigrationConflict | null> {
+  async resolveConflict(migration: IMigrationConfig): Promise<IMigrationConflict | null> {
     this.logger.log(`Resolving conflict for migration: ${migration.name}`);
 
     // Determine the appropriate resolution strategy
@@ -55,7 +55,7 @@ export class ConflictResolutionService {
     }
 
     // Create conflict record
-    const conflict: MigrationConflict = {
+    const conflict: IMigrationConflict = {
       migrationName: migration.name,
       conflictingMigration: 'unknown', // Would be determined in real implementation
       conflictType: 'unknown', // Would be determined in real implementation
@@ -80,7 +80,7 @@ export class ConflictResolutionService {
    * Determines the appropriate resolution strategy for a conflict
    */
   private async determineResolutionStrategy(
-    _migration: MigrationConfig,
+    _migration: IMigrationConfig,
   ): Promise<ConflictResolutionStrategy> {
     // In a real implementation, this would analyze the specific conflict
     // and determine the best strategy based on:
@@ -97,7 +97,7 @@ export class ConflictResolutionService {
    * Applies the specified resolution strategy
    */
   private async applyResolutionStrategy(
-    migration: MigrationConfig,
+    migration: IMigrationConfig,
     strategy: ConflictResolutionStrategy,
   ): Promise<void> {
     switch (strategy) {
@@ -132,10 +132,10 @@ export class ConflictResolutionService {
   /**
    * Detects potential conflicts between migrations
    */
-  async detectPotentialConflicts(_migrations: MigrationConfig[]): Promise<MigrationConflict[]> {
+  async detectPotentialConflicts(_migrations: IMigrationConfig[]): Promise<IMigrationConflict[]> {
     this.logger.log('Detecting potential conflicts between migrations');
 
-    const conflicts: MigrationConflict[] = [];
+    const conflicts: IMigrationConflict[] = [];
 
     // Check for potential conflicts between migrations
     // This could include:
@@ -150,7 +150,7 @@ export class ConflictResolutionService {
   /**
    * Handles concurrent migration execution conflicts
    */
-  async handleConcurrentExecution(migration: MigrationConfig): Promise<boolean> {
+  async handleConcurrentExecution(migration: IMigrationConfig): Promise<boolean> {
     this.logger.log(`Handling concurrent execution for migration: ${migration.name}`);
 
     // In a real implementation, this would implement distributed locking
@@ -163,7 +163,7 @@ export class ConflictResolutionService {
   /**
    * Gets the conflict resolution history
    */
-  getConflictHistory(): MigrationConflict[] {
+  getConflictHistory(): IMigrationConflict[] {
     return [...this.conflictHistory];
   }
 
@@ -192,7 +192,7 @@ export class ConflictResolutionService {
    * Gets the most appropriate resolution strategy for a migration
    */
   async getResolutionStrategy(
-    _migration: MigrationConfig,
+    _migration: IMigrationConfig,
     _conflictType?: string,
   ): Promise<ConflictResolutionStrategy> {
     // Determine strategy based on migration characteristics and optional conflict type

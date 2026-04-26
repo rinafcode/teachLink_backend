@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import Redis from 'ioredis';
 import { TracingService } from '../tracing/tracing.service';
 
-export interface ServiceInstance {
+export interface IServiceInstance {
   id: string;
   name: string;
   host: string;
@@ -45,10 +45,10 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async registerService(service: Omit<ServiceInstance, 'lastHeartbeat'>): Promise<void> {
+  async registerService(service: Omit<IServiceInstance, 'lastHeartbeat'>): Promise<void> {
     const span = this.tracingService.startSpan('register-service');
     try {
-      const serviceInstance: ServiceInstance = {
+      const serviceInstance: IServiceInstance = {
         ...service,
         lastHeartbeat: new Date(),
       };
@@ -79,11 +79,11 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getServiceInstances(serviceName: string): Promise<ServiceInstance[]> {
+  async getServiceInstances(serviceName: string): Promise<IServiceInstance[]> {
     const span = this.tracingService.startSpan('get-service-instances');
     try {
       const keys = await this.redis.keys(`${this.servicePrefix}${serviceName}:*`);
-      const instances: ServiceInstance[] = [];
+      const instances: IServiceInstance[] = [];
 
       for (const key of keys) {
         const data = await this.redis.get(key);
@@ -112,7 +112,7 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
       const data = await this.redis.get(key);
 
       if (data) {
-        const instance: ServiceInstance = JSON.parse(data);
+        const instance: IServiceInstance = JSON.parse(data);
         instance.health = health;
         instance.lastHeartbeat = new Date();
         await this.redis.setex(key, 120, JSON.stringify(instance));
@@ -137,16 +137,16 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
     }, this.heartbeatInterval);
   }
 
-  async getAllServices(): Promise<Record<string, ServiceInstance[]>> {
+  async getAllServices(): Promise<Record<string, IServiceInstance[]>> {
     const span = this.tracingService.startSpan('get-all-services');
     try {
       const keys = await this.redis.keys(`${this.servicePrefix}*`);
-      const services: Record<string, ServiceInstance[]> = {};
+      const services: Record<string, IServiceInstance[]> = {};
 
       for (const key of keys) {
         const data = await this.redis.get(key);
         if (data) {
-          const instance: ServiceInstance = JSON.parse(data);
+          const instance: IServiceInstance = JSON.parse(data);
           if (!services[instance.name]) {
             services[instance.name] = [];
           }

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TracingService } from '../tracing/tracing.service';
 
-export interface EventData {
+export interface IEventData {
   type: string;
   payload: any;
   source: string;
@@ -21,7 +21,7 @@ export class EventBusService {
   async publish(eventType: string, payload: any, source: string = 'unknown'): Promise<void> {
     const span = this.tracingService.startSpan(`publish-event-${eventType}`);
     try {
-      const eventData: EventData = {
+      const eventData: IEventData = {
         type: eventType,
         payload,
         source,
@@ -38,17 +38,17 @@ export class EventBusService {
     }
   }
 
-  async subscribe(eventType: string, handler: (event: EventData) => void): Promise<void> {
+  async subscribe(eventType: string, handler: (event: IEventData) => void): Promise<void> {
     this.eventEmitter.on(eventType, handler);
     this.logger.log(`Subscribed to event: ${eventType}`);
   }
 
-  async subscribeOnce(eventType: string, handler: (event: EventData) => void): Promise<void> {
+  async subscribeOnce(eventType: string, handler: (event: IEventData) => void): Promise<void> {
     this.eventEmitter.once(eventType, handler);
     this.logger.log(`Subscribed once to event: ${eventType}`);
   }
 
-  async unsubscribe(eventType: string, handler: (event: EventData) => void): Promise<void> {
+  async unsubscribe(eventType: string, handler: (event: IEventData) => void): Promise<void> {
     this.eventEmitter.off(eventType, handler);
     this.logger.log(`Unsubscribed from event: ${eventType}`);
   }
@@ -60,7 +60,7 @@ export class EventBusService {
   async emitAsync(eventType: string, payload: any, source: string = 'unknown'): Promise<void> {
     const span = this.tracingService.startSpan(`emit-async-event-${eventType}`);
     try {
-      const eventData: EventData = {
+      const eventData: IEventData = {
         type: eventType,
         payload,
         source,

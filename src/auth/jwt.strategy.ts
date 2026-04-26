@@ -7,14 +7,14 @@ import type { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 import { UserRole } from '../users/entities/user.entity';
 
-interface JwtPayload {
+interface IJwtPayload {
   sub: string;
   email: string;
   role: UserRole;
   sid: string;
 }
 
-interface ValidatedUser {
+interface IValidatedUser {
   sub: string;
   email: string;
   role: UserRole;
@@ -68,7 +68,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req: Request, payload: JwtPayload): Promise<ValidatedUser> {
+  async validate(req: Request, payload: IJwtPayload): Promise<IValidatedUser> {
     const { currentVersion, currentSecret } = this.getCurrentJwtAccessSecret();
     const token = this.extractBearerToken(req);
     const tokenKid = token ? this.getTokenKid(token) : null;

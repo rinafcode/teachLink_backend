@@ -10,7 +10,7 @@ import { SegmentRuleOperator } from '../enums/segment-rule-operator.enum';
 import { SegmentRuleField } from '../enums/segment-rule-field.enum';
 
 // Note: Import User entity from users module when integrating
-export interface UserProfile {
+export interface IUserProfile {
   id: string;
   email: string;
   firstName?: string;
@@ -161,7 +161,7 @@ export class SegmentationService {
   /**
    * Get users from multiple segments
    */
-  async getUsersFromSegments(segmentIds: string[]): Promise<UserProfile[]> {
+  async getUsersFromSegments(segmentIds: string[]): Promise<IUserProfile[]> {
     if (!segmentIds.length) {
       return [];
     }
@@ -174,7 +174,7 @@ export class SegmentationService {
     const userSets = await Promise.all(segments.map((segment) => this.getSegmentMembers(segment)));
 
     // Combine all users (union)
-    const userMap = new Map<string, UserProfile>();
+    const userMap = new Map<string, IUserProfile>();
     for (const users of userSets) {
       for (const user of users) {
         userMap.set(user.id, user);
@@ -187,7 +187,7 @@ export class SegmentationService {
   /**
    * Get members of a specific segment
    */
-  async getSegmentMembers(segmentOrId: Segment | string): Promise<UserProfile[]> {
+  async getSegmentMembers(segmentOrId: Segment | string): Promise<IUserProfile[]> {
     let segment: Segment;
 
     if (typeof segmentOrId === 'string') {
@@ -218,7 +218,7 @@ export class SegmentationService {
    */
   async previewSegment(rules: CreateSegmentDto['rules']): Promise<{
     count: number;
-    sample: UserProfile[];
+    sample: IUserProfile[];
   }> {
     const ruleEntities = rules.map((rule, index) =>
       this.ruleRepository.create({ ...rule, order: index }),
@@ -320,7 +320,7 @@ export class SegmentationService {
   /**
    * Get members of a static segment
    */
-  private async getStaticSegmentMembers(segmentId: string): Promise<UserProfile[]> {
+  private async getStaticSegmentMembers(segmentId: string): Promise<IUserProfile[]> {
     const segment = await this.segmentRepository.findOne({
       where: { id: segmentId },
     });
@@ -341,7 +341,7 @@ export class SegmentationService {
   /**
    * Evaluate segment rules and return matching users
    */
-  private async evaluateSegmentRules(rules: SegmentRule[]): Promise<UserProfile[]> {
+  private async evaluateSegmentRules(rules: SegmentRule[]): Promise<IUserProfile[]> {
     if (!rules.length) {
       return [];
     }

@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Param, Get, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, IApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
 import { PaymentsService } from './payments.service';
@@ -14,12 +14,12 @@ import { Payment } from './entities/payment.entity';
 import { Subscription } from './entities/subscription.entity';
 import { Invoice } from './entities/invoice.entity';
 import {
-  CreatePaymentIntentResult,
-  CreateSubscriptionResult,
-  ProcessRefundResult,
+  ICreatePaymentIntentResult,
+  ICreateSubscriptionResult,
+  IProcessRefundResult,
 } from './interfaces/payment-provider.interface';
 
-interface AuthenticatedRequest {
+interface IAuthenticatedRequest {
   user: {
     id: string;
     email: string;
@@ -37,11 +37,11 @@ export class PaymentsController {
   @Throttle({ default: THROTTLE.MODERATE }) // 10 requests per hour
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
-  @ApiResponse({ status: 201, description: 'Payment intent created' })
+  @IApiResponse({ status: 201, description: 'Payment intent created' })
   async createPaymentIntent(
-    @Request() req: AuthenticatedRequest,
+    @Request() req: IAuthenticatedRequest,
     @Body() createPaymentDto: CreatePaymentDto,
-  ): Promise<CreatePaymentIntentResult> {
+  ): Promise<ICreatePaymentIntentResult> {
     return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto);
   }
 
@@ -49,29 +49,29 @@ export class PaymentsController {
   @Throttle({ default: THROTTLE.AUTH_DEFAULT }) // 5 requests per hour
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @ApiOperation({ summary: 'Create a subscription for premium course' })
-  @ApiResponse({ status: 201, description: 'Subscription created' })
+  @IApiResponse({ status: 201, description: 'Subscription created' })
   async createSubscription(
-    @Request() req: AuthenticatedRequest,
+    @Request() req: IAuthenticatedRequest,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
-  ): Promise<CreateSubscriptionResult> {
+  ): Promise<ICreateSubscriptionResult> {
     return this.paymentsService.createSubscription(req.user.id, createSubscriptionDto);
   }
 
   @Post('refund')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({ summary: 'Process a refund' })
-  @ApiResponse({ status: 200, description: 'Refund processed' })
-  async processRefund(@Body() refundDto: RefundDto): Promise<ProcessRefundResult> {
+  @IApiResponse({ status: 200, description: 'Refund processed' })
+  async processRefund(@Body() refundDto: RefundDto): Promise<IProcessRefundResult> {
     return this.paymentsService.processRefund(refundDto);
   }
 
   @Get('invoices/:paymentId')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get invoice for a payment' })
-  @ApiResponse({ status: 200, description: 'Invoice retrieved' })
+  @IApiResponse({ status: 200, description: 'Invoice retrieved' })
   async getInvoice(
     @Param('paymentId') paymentId: string,
-    @Request() req: AuthenticatedRequest,
+    @Request() req: IAuthenticatedRequest,
   ): Promise<Invoice> {
     return this.paymentsService.getInvoice(paymentId, req.user.id);
   }
@@ -79,9 +79,9 @@ export class PaymentsController {
   @Get('user/payments')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user payment history' })
-  @ApiResponse({ status: 200, description: 'Payment history retrieved' })
+  @IApiResponse({ status: 200, description: 'Payment history retrieved' })
   async getUserPayments(
-    @Request() req: AuthenticatedRequest,
+    @Request() req: IAuthenticatedRequest,
     @Query('limit') limit: number = 10,
     @Query('page') page: number = 1,
   ): Promise<Payment[]> {
@@ -91,8 +91,8 @@ export class PaymentsController {
   @Get('user/subscriptions')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user subscriptions' })
-  @ApiResponse({ status: 200, description: 'Subscriptions retrieved' })
-  async getUserSubscriptions(@Request() req: AuthenticatedRequest): Promise<Subscription[]> {
+  @IApiResponse({ status: 200, description: 'Subscriptions retrieved' })
+  async getUserSubscriptions(@Request() req: IAuthenticatedRequest): Promise<Subscription[]> {
     return this.paymentsService.getUserSubscriptions(req.user.id);
   }
 }

@@ -4,7 +4,7 @@ import { TransactionService } from '../database/transaction.service';
 import { TransactionHelperService } from '../database/transaction-helper.service';
 
 // Mock entities for example
-interface User {
+interface IUser {
   id: string;
   email: string;
   password: string;
@@ -18,7 +18,7 @@ interface User {
   profileCompleted?: boolean;
 }
 
-interface Payment {
+interface IPayment {
   id: string;
   userId: string;
   amount: number;
@@ -49,10 +49,10 @@ export class TransactionExampleService {
   private readonly logger = new Logger(TransactionExampleService.name);
 
   constructor(
-    private readonly userRepository: Repository<User>,
+    private readonly userRepository: Repository<IUser>,
     private readonly transactionService: TransactionService,
     private readonly transactionHelper: TransactionHelperService,
-    private readonly paymentRepository: Repository<Payment>,
+    private readonly paymentRepository: Repository<IPayment>,
     private readonly invoiceRepository: Repository<Invoice>,
   ) {}
 

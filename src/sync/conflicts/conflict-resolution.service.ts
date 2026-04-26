@@ -6,7 +6,7 @@ export enum ConflictResolutionStrategy {
   MANUAL_MERGE = 'MANUAL_MERGE',
 }
 
-export interface SyncData {
+export interface ISyncData {
   id: string;
   version: number;
   lastModified: Date;
@@ -21,10 +21,10 @@ export class ConflictResolutionService {
    * Resolves conflicts between two sets of data based on a strategy.
    */
   resolve(
-    localData: SyncData,
-    remoteData: SyncData,
+    localData: ISyncData,
+    remoteData: ISyncData,
     strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.LAST_WRITE_WINS,
-  ): SyncData {
+  ): ISyncData {
     this.logger.log(`Resolving conflict for ${localData.id} using ${strategy}`);
 
     switch (strategy) {
@@ -40,15 +40,15 @@ export class ConflictResolutionService {
     }
   }
 
-  private lastWriteWins(local: SyncData, remote: SyncData): SyncData {
+  private lastWriteWins(local: ISyncData, remote: ISyncData): ISyncData {
     return local.lastModified >= remote.lastModified ? local : remote;
   }
 
-  private versioning(local: SyncData, remote: SyncData): SyncData {
+  private versioning(local: ISyncData, remote: ISyncData): ISyncData {
     return local.version >= remote.version ? local : remote;
   }
 
-  private manualMerge(local: SyncData, remote: SyncData): SyncData {
+  private manualMerge(local: ISyncData, remote: ISyncData): ISyncData {
     // In a real scenario, this would trigger a notification or
     // flag the record for human intervention.
     // For now, we'll mark it as "needs_merge" in the data.

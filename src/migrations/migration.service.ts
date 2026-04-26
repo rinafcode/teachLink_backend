@@ -8,7 +8,7 @@ import { RollbackService } from './rollback/rollback.service';
 import { EnvironmentSyncService } from './environments/environment-sync.service';
 import { MIGRATION_REGISTRY } from './migration.registry';
 
-export interface MigrationConfig {
+export interface IMigrationConfig {
   name: string;
   up: (connection: any) => Promise<void>;
   down: (connection: any) => Promise<void>;
@@ -66,7 +66,7 @@ export class MigrationService {
   /**
    * Executes a single migration
    */
-  private async executeMigration(migration: MigrationConfig): Promise<void> {
+  private async executeMigration(migration: IMigrationConfig): Promise<void> {
     this.logger.log(`Executing migration: ${migration.name}`);
 
     try {
@@ -109,7 +109,7 @@ export class MigrationService {
   /**
    * Gets all registered migrations
    */
-  private getRegisteredMigrations(): MigrationConfig[] {
+  private getRegisteredMigrations(): IMigrationConfig[] {
     return MIGRATION_REGISTRY;
   }
 
@@ -117,7 +117,7 @@ export class MigrationService {
    * Validates migration dependencies
    */
   private validateDependencies(
-    migration: MigrationConfig,
+    migration: IMigrationConfig,
     appliedMigrations: Migration[],
   ): boolean {
     if (!migration.dependencies || migration.dependencies.length === 0) {

@@ -17,19 +17,19 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
 
-interface JwtTokenPayload {
+interface IJwtTokenPayload {
   sub: string;
   email: string;
   role: UserRole;
   sid: string;
 }
 
-interface AuthTokens {
+interface IAuthTokens {
   accessToken: string;
   refreshToken: string;
 }
 
-interface AuthUserResponse {
+interface IAuthUserResponse {
   id: string;
   email: string;
   firstName: string;
@@ -38,20 +38,20 @@ interface AuthUserResponse {
   isEmailVerified: boolean;
 }
 
-interface RegisterResponse {
-  user: AuthUserResponse;
+interface IRegisterResponse {
+  user: IAuthUserResponse;
   accessToken: string;
   refreshToken: string;
   message: string;
 }
 
-interface LoginResponse {
-  user: AuthUserResponse;
+interface ILoginResponse {
+  user: IAuthUserResponse;
   accessToken: string;
   refreshToken: string;
 }
 
-interface TokenUser {
+interface ITokenUser {
   id: string;
   email: string;
   role: UserRole;
@@ -75,7 +75,7 @@ export class AuthService {
     registerDto: RegisterDto,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<RegisterResponse> {
+  ): Promise<IRegisterResponse> {
     return await this.transactionService.runInTransaction(async (_manager) => {
       // Create user
       const user = await this.usersService.create(registerDto);
@@ -126,7 +126,7 @@ export class AuthService {
     });
   }
 
-  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string): Promise<LoginResponse> {
+  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string): Promise<ILoginResponse> {
     // Find user
     const userOrNull = await this.usersService.findByEmail(loginDto.email);
 
@@ -211,7 +211,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(refreshToken: string): Promise<AuthTokens> {
+  async refreshToken(refreshToken: string): Promise<IAuthTokens> {
     try {
       // Verify refresh token
       const payload = this.jwtService.verify(refreshToken, {
@@ -382,8 +382,8 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  private async generateTokens(user: TokenUser, sessionId: string): Promise<AuthTokens> {
-    const payload: JwtTokenPayload = {
+  private async generateTokens(user: ITokenUser, sessionId: string): Promise<IAuthTokens> {
+    const payload: IJwtTokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,

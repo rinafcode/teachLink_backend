@@ -10,7 +10,7 @@ import { APP_CONSTANTS } from '../constants/app.constants';
 
 const { DEFAULT_PAGE_SIZE } = APP_CONSTANTS;
 
-export interface PaginatedResponse<T> {
+export interface IPaginatedResponse<T> {
   data: T[];
   meta: {
     totalItems: number;
@@ -21,7 +21,7 @@ export interface PaginatedResponse<T> {
   };
 }
 
-export interface CursorPaginatedResponse<T> {
+export interface ICursorPaginatedResponse<T> {
   data: T[];
   meta: {
     nextCursor: string | null;
@@ -35,7 +35,7 @@ export interface CursorPaginatedResponse<T> {
 export async function paginate<T>(
   queryBuilder: SelectQueryBuilder<T>,
   options: PaginationQueryDto,
-): Promise<PaginatedResponse<T>> {
+): Promise<IPaginatedResponse<T>> {
   const page = options.page || 1;
   const limit = options.limit || DEFAULT_PAGE_SIZE;
   const skip = (page - 1) * limit;
@@ -118,7 +118,7 @@ export function validateCursor(cursor: string): boolean {
 export async function paginateWithCursor<T extends Record<string, any>>(
   queryBuilder: SelectQueryBuilder<T>,
   options: CursorPaginationQueryDto,
-): Promise<CursorPaginatedResponse<T>> {
+): Promise<ICursorPaginatedResponse<T>> {
   const limit = options.limit || DEFAULT_PAGE_SIZE;
   const sortBy = options.sortBy || 'createdAt';
   const order = options.order || SortOrder.DESC;

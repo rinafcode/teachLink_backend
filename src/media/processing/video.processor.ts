@@ -9,7 +9,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import { FileStorageService } from '../storage/file-storage.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UploadedFile } from '../../common/types/file.types';
+import { IUploadedFile } from '../../common/types/file.types';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
 
 @Processor(QUEUE_NAMES.MEDIA_PROCESSING)
@@ -61,7 +61,7 @@ export class VideoProcessor {
       const p = path.join(hlsDir, f);
       const buffer = fs.readFileSync(p);
       // store each file under contentId/hls/
-      const fakeFile: UploadedFile = {
+      const fakeFile: IUploadedFile = {
         buffer,
         originalname: f,
         mimetype: 'application/octet-stream',

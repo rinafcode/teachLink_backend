@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import {
   EvaluationReason,
-  FeatureFlag,
-  FlagEvaluationResult,
+  IFeatureFlag,
+  IFlagEvaluationResult,
   FlagValueType,
-  UserContext,
+  IUserContext,
 } from '../interfaces';
 import { FlagAnalyticsService } from '../analytics/flag-analytics.service';
 import { ExperimentationService } from '../experimentation/experimentation.service';
@@ -13,7 +13,7 @@ import { TargetingService } from '../targeting/targeting.service';
 
 @Injectable()
 export class FlagEvaluationService {
-  private readonly flags = new Map<string, FeatureFlag>();
+  private readonly flags = new Map<string, IFeatureFlag>();
 
   constructor(
     private readonly targetingService: TargetingService,
@@ -33,7 +33,7 @@ export class FlagEvaluationService {
    *  5. Gradual rollout           → default variation
    *  6. Default                   → default variation
    */
-  evaluate(flagKey: string, userContext: UserContext): FlagEvaluationResult {
+  evaluate(flagKey: string, userContext: IUserContext): IFlagEvaluationResult {
     try {
       const flag = this.flags.get(flagKey);
 
@@ -82,7 +82,7 @@ export class FlagEvaluationService {
           userContext,
         );
         if (experimentResult) {
-          const result: FlagEvaluationResult = {
+          const result: IFlagEvaluationResult = {
             flagKey,
             value: experimentResult.value,
             variationKey: this.variationKeyForValue(flag, experimentResult.value),
@@ -136,8 +136,8 @@ export class FlagEvaluationService {
   /**
    * Evaluates all registered flags for the given user context.
    */
-  evaluateAll(userContext: UserContext): Record<string, FlagEvaluationResult> {
-    const results: Record<string, FlagEvaluationResult> = {};
+  evaluateAll(userContext: IUserContext): Record<string, IFlagEvaluationResult> {
+    const results: Record<string, IFlagEvaluationResult> = {};
     for (const flagKey of this.flags.keys()) {
       results[flagKey] = this.evaluate(flagKey, userContext);
     }
@@ -147,7 +147,7 @@ export class FlagEvaluationService {
   /**
    * Convenience method — returns the boolean value of a flag.
    */
-  evaluateBoolean(flagKey: string, userContext: UserContext, defaultValue = false): boolean {
+  evaluateBoolean(flagKey: string, userContext: IUserContext, defaultValue = false): boolean {
     const result = this.evaluate(flagKey, userContext);
     return result.reason === 'ERROR' ? defaultValue : Boolean(result.value);
   }
@@ -155,7 +155,7 @@ export class FlagEvaluationService {
   /**
    * Convenience method — returns the string value of a flag.
    */
-  evaluateString(flagKey: string, userContext: UserContext, defaultValue = ''): string {
+  evaluateString(flagKey: string, userContext: IUserContext, defaultValue = ''): string {
     const result = this.evaluate(flagKey, userContext);
     return result.reason === 'ERROR' ? defaultValue : String(result.value);
   }
@@ -163,7 +163,7 @@ export class FlagEvaluationService {
   /**
    * Convenience method — returns the numeric value of a flag.
    */
-  evaluateNumber(flagKey: string, userContext: UserContext, defaultValue = 0): number {
+  evaluateNumber(flagKey: string, userContext: IUserContext, defaultValue = 0): number {
     const result = this.evaluate(flagKey, userContext);
     return result.reason === 'ERROR' ? defaultValue : Number(result.value);
   }
@@ -172,11 +172,11 @@ export class FlagEvaluationService {
   // Flag management
   // ---------------------------------------------------------------------------
 
-  setFlag(flag: FeatureFlag): void {
+  setFlag(flag: IFeatureFlag): void {
     this.flags.set(flag.key, { ...flag, updatedAt: new Date() });
   }
 
-  setFlags(flags: FeatureFlag[]): void {
+  setFlags(flags: IFeatureFlag[]): void {
     for (const flag of flags) {
       this.setFlag(flag);
     }
@@ -184,12 +184,12 @@ export class FlagEvaluationService {
 
   updateFlag(
     flagKey: string,
-    updates: Partial<Omit<FeatureFlag, 'key' | 'id'>>,
-  ): FeatureFlag | null {
+    updates: Partial<Omit<IFeatureFlag, 'key' | 'id'>>,
+  ): IFeatureFlag | null {
     const existing = this.flags.get(flagKey);
     if (!existing) return null;
 
-    const updated: FeatureFlag = {
+    const updated: IFeatureFlag = {
       ...existing,
       ...updates,
       key: existing.key,
@@ -206,11 +206,11 @@ export class FlagEvaluationService {
     return this.flags.delete(flagKey);
   }
 
-  getFlag(flagKey: string): FeatureFlag | undefined {
+  getFlag(flagKey: string): IFeatureFlag | undefined {
     return this.flags.get(flagKey);
   }
 
-  getAllFlags(): FeatureFlag[] {
+  getAllFlags(): IFeatureFlag[] {
     return Array.from(this.flags.values());
   }
 
@@ -219,18 +219,18 @@ export class FlagEvaluationService {
   // ---------------------------------------------------------------------------
 
   private buildResult(
-    flag: FeatureFlag,
+    flag: IFeatureFlag,
     variationKey: string,
     reason: EvaluationReason,
     ruleId?: string,
-  ): FlagEvaluationResult {
+  ): IFlagEvaluationResult {
     const variation = flag.variations.find((v) => v.key === variationKey);
     const value: FlagValueType = variation?.value ?? flag.variations[0]?.value ?? false;
 
     return { flagKey: flag.key, value, variationKey, reason, ruleId, timestamp: new Date() };
   }
 
-  private errorResult(flagKey: string): FlagEvaluationResult {
+  private errorResult(flagKey: string): IFlagEvaluationResult {
     return {
       flagKey,
       value: false,
@@ -240,11 +240,11 @@ export class FlagEvaluationService {
     };
   }
 
-  private variationKeyForValue(flag: FeatureFlag, value: FlagValueType): string {
+  private variationKeyForValue(flag: IFeatureFlag, value: FlagValueType): string {
     return flag.variations.find((v) => v.value === value)?.key ?? flag.defaultVariationKey;
   }
 
-  private recordEvaluation(result: FlagEvaluationResult, userContext: UserContext): void {
+  private recordEvaluation(result: IFlagEvaluationResult, userContext: IUserContext): void {
     this.analyticsService.trackEvaluation({
       eventType: 'evaluation',
       flagKey: result.flagKey,

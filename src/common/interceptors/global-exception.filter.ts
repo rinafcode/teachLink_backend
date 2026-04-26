@@ -9,7 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { MulterError } from 'multer';
 import { QueryFailedError, EntityNotFoundError } from 'typeorm';
-import { ApiError, ValidationErrorDetail } from '../../interfaces/api-error.interface';
+import { IApiError, IValidationErrorDetail } from '../../interfaces/api-error.interface';
 import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
 
 @Catch()
@@ -26,7 +26,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const correlationId = getCorrelationId();
 
-    const errorResponse: ApiError = {
+    const errorResponse: IApiError = {
       statusCode,
       message,
       error,
@@ -58,7 +58,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     statusCode: number;
     message: string | string[];
     error: string;
-    details?: ValidationErrorDetail[];
+    details?: IValidationErrorDetail[];
     stack?: string;
   } {
     // 1. NestJS HttpException (includes class-validator BadRequestException)
@@ -110,7 +110,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     statusCode: number;
     message: string | string[];
     error: string;
-    details?: ValidationErrorDetail[];
+    details?: IValidationErrorDetail[];
     stack?: string;
   } {
     const statusCode = exception.getStatus();
@@ -225,10 +225,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    * Converts class-validator nested error objects into structured details when
    * the raw message array contains constraint objects rather than plain strings.
    */
-  private extractValidationDetails(raw: unknown): ValidationErrorDetail[] {
+  private extractValidationDetails(raw: unknown): IValidationErrorDetail[] {
     if (!Array.isArray(raw)) return [];
 
-    return raw.reduce<ValidationErrorDetail[]>((acc, item) => {
+    return raw.reduce<IValidationErrorDetail[]>((acc, item) => {
       if (
         typeof item === 'object' &&
         item !== null &&

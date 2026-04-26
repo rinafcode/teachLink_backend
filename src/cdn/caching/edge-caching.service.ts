@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CloudflareService } from '../providers/cloudflare.service';
 
-export interface CacheEntry {
+export interface ICacheEntry {
   url: string;
   ttl: number;
   lastModified: Date;
   etag?: string;
 }
 
-export interface PurgeResult {
+export interface IPurgeResult {
   success: boolean;
   purgedUrls: string[];
   failedUrls: string[];
@@ -34,15 +34,15 @@ export class EdgeCachingService {
     return cdnUrl;
   }
 
-  async purgeContent(contentId: string): Promise<PurgeResult> {
+  async purgeContent(contentId: string): Promise<IPurgeResult> {
     const urls = await this.getContentUrls(contentId);
     return this.purgeUrls(urls);
   }
 
-  async purgeUrls(urls: string[]): Promise<PurgeResult> {
+  async purgeUrls(urls: string[]): Promise<IPurgeResult> {
     this.logger.log(`Purging ${urls.length} URLs from edge cache`);
 
-    const results: PurgeResult[] = [];
+    const results: IPurgeResult[] = [];
 
     // Purge from Cloudflare
     try {
@@ -76,7 +76,7 @@ export class EdgeCachingService {
     };
   }
 
-  async purgeByTags(tags: string[]): Promise<PurgeResult> {
+  async purgeByTags(tags: string[]): Promise<IPurgeResult> {
     this.logger.log(`Purging content by tags: ${tags.join(', ')}`);
 
     // Get URLs associated with tags
@@ -85,7 +85,7 @@ export class EdgeCachingService {
     return this.purgeUrls(urls);
   }
 
-  async purgeByPattern(pattern: string): Promise<PurgeResult> {
+  async purgeByPattern(pattern: string): Promise<IPurgeResult> {
     this.logger.log(`Purging content by pattern: ${pattern}`);
 
     // Get URLs matching pattern
@@ -123,7 +123,7 @@ export class EdgeCachingService {
     };
   }
 
-  async setCacheRules(rules: CacheRule[]): Promise<void> {
+  async setCacheRules(rules: ICacheRule[]): Promise<void> {
     // Apply caching rules to CDN configuration
     for (const rule of rules) {
       await this.applyCacheRule(rule);
@@ -155,13 +155,13 @@ export class EdgeCachingService {
     // This might involve calling CDN APIs or making HTTP requests
   }
 
-  private async applyCacheRule(rule: CacheRule): Promise<void> {
+  private async applyCacheRule(rule: ICacheRule): Promise<void> {
     // Implementation would update CDN configuration
     this.logger.log(`Applying cache rule: ${rule.pattern} -> TTL: ${rule.ttl}`);
   }
 }
 
-export interface CacheRule {
+export interface ICacheRule {
   pattern: string;
   ttl: number;
   headers?: Record<string, string>;

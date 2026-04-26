@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 
 export enum EnvironmentType {
   DEVELOPMENT = 'development',
@@ -23,7 +23,7 @@ export class EnvironmentSyncService {
   /**
    * Synchronizes migrations across environments after a successful migration
    */
-  async syncAfterMigration(migration: MigrationConfig): Promise<void> {
+  async syncAfterMigration(migration: IMigrationConfig): Promise<void> {
     this.logger.log(`Synchronizing migration ${migration.name} across environments`);
 
     try {
@@ -48,7 +48,7 @@ export class EnvironmentSyncService {
    * Records a migration in the current environment
    */
   async recordMigrationInEnvironment(
-    migration: MigrationConfig,
+    migration: IMigrationConfig,
     environment: EnvironmentType,
   ): Promise<void> {
     // In a real implementation, this would record the migration in an environment-specific registry
@@ -59,7 +59,7 @@ export class EnvironmentSyncService {
   /**
    * Synchronizes a migration to other environments
    */
-  async syncToOtherEnvironments(migration: MigrationConfig): Promise<void> {
+  async syncToOtherEnvironments(migration: IMigrationConfig): Promise<void> {
     this.logger.log(`Syncing migration ${migration.name} to other environments`);
 
     // In a real implementation, this would communicate with other environments
@@ -84,7 +84,7 @@ export class EnvironmentSyncService {
    * Simulates synchronization to a specific environment (for demo purposes)
    */
   private async simulateEnvironmentSync(
-    migration: MigrationConfig,
+    migration: IMigrationConfig,
     environment: EnvironmentType,
   ): Promise<void> {
     // Simulate the sync process
@@ -115,7 +115,7 @@ export class EnvironmentSyncService {
    * Applies a migration to a specific environment
    */
   async applyMigrationToEnvironment(
-    migration: MigrationConfig,
+    migration: IMigrationConfig,
     environment: EnvironmentType,
   ): Promise<void> {
     this.logger.log(`Applying migration ${migration.name} to ${environment} environment`);
@@ -165,7 +165,7 @@ export class EnvironmentSyncService {
   /**
    * Gets migration configurations for the current environment
    */
-  getEnvironmentSpecificConfigurations(migration: MigrationConfig): MigrationConfig {
+  getEnvironmentSpecificConfigurations(migration: IMigrationConfig): IMigrationConfig {
     // In a real implementation, this might adjust the migration based on environment-specific settings
     // For now, return the original migration config
     return migration;

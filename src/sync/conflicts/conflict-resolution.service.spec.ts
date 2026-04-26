@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   ConflictResolutionService,
   ConflictResolutionStrategy,
-  SyncData,
+  ISyncData,
 } from './conflict-resolution.service';
 
 describe('ConflictResolutionService', () => {
@@ -21,14 +21,14 @@ describe('ConflictResolutionService', () => {
   });
 
   describe('resolve', () => {
-    const localData: SyncData = {
+    const localData: ISyncData = {
       id: '1',
       version: 2,
       lastModified: new Date('2023-01-01T10:00:00Z'),
       data: { name: 'Local' },
     };
 
-    const remoteData: SyncData = {
+    const remoteData: ISyncData = {
       id: '1',
       version: 3,
       lastModified: new Date('2023-01-01T11:00:00Z'),

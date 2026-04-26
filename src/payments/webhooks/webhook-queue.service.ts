@@ -7,7 +7,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
 
-export interface WebhookQueuePayload {
+export interface IWebhookQueuePayload {
   webhookRetryId: string;
   provider: WebhookProvider;
   payload: Buffer | Record<string, unknown>;
@@ -30,7 +30,7 @@ export class WebhookQueueService {
   /**
    * Queue a webhook for processing with retry logic
    */
-  async queueWebhook(payload: WebhookQueuePayload): Promise<string> {
+  async queueWebhook(payload: IWebhookQueuePayload): Promise<string> {
     try {
       // Check if webhook already exists (idempotency)
       const existingWebhook = await this.webhookRetryRepository.findOne({
@@ -116,7 +116,7 @@ export class WebhookQueueService {
       await this.webhookRetryRepository.save(webhookRetry);
 
       // Re-queue the job
-      const payload: WebhookQueuePayload = {
+      const payload: IWebhookQueuePayload = {
         webhookRetryId: webhookRetry.id,
         provider: webhookRetry.provider,
         payload: webhookRetry.payload,

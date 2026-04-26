@@ -5,14 +5,14 @@ import { TIME } from '../common/constants/time.constants';
 
 export type ScheduledTaskStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | 'TIMED_OUT';
 
-export interface ScheduledTaskConfig {
+export interface IScheduledTaskConfig {
   expectedIntervalMs: number;
   timeoutMs: number;
   maxRetries?: number;
   missedExecutionGraceMs?: number;
 }
 
-export interface ScheduledTaskExecution {
+export interface IScheduledTaskExecution {
   executionId: string;
   taskName: string;
   status: ScheduledTaskStatus;
@@ -30,16 +30,16 @@ export class ScheduledTaskMonitoringService {
   private readonly logger = new Logger(ScheduledTaskMonitoringService.name);
   private readonly historyLimitPerTask = 50;
 
-  private readonly taskConfigs = new Map<string, ScheduledTaskConfig>();
-  private readonly activeExecutions = new Map<string, ScheduledTaskExecution>();
-  private readonly executionHistory = new Map<string, ScheduledTaskExecution[]>();
+  private readonly taskConfigs = new Map<string, IScheduledTaskConfig>();
+  private readonly activeExecutions = new Map<string, IScheduledTaskExecution>();
+  private readonly executionHistory = new Map<string, IScheduledTaskExecution[]>();
   private readonly retryStats = new Map<string, { totalRetries: number; lastRetryAt?: Date }>();
   private readonly lastMissedAlertAt = new Map<string, Date>();
   private readonly taskRegisteredAt = new Map<string, Date>();
 
   constructor(private readonly alertingService: AlertingService) {}
 
-  registerTask(taskName: string, config: ScheduledTaskConfig): void {
+  registerTask(taskName: string, config: IScheduledTaskConfig): void {
     if (!this.taskRegisteredAt.has(taskName)) {
       this.taskRegisteredAt.set(taskName, new Date());
     }
@@ -53,13 +53,13 @@ export class ScheduledTaskMonitoringService {
 
   startExecution(
     taskName: string,
-    config: ScheduledTaskConfig,
+    config: IScheduledTaskConfig,
     metadata: Record<string, unknown> = {},
   ): string {
     this.registerTask(taskName, config);
 
     const executionId = `${taskName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const execution: ScheduledTaskExecution = {
+    const execution: IScheduledTaskExecution = {
       executionId,
       taskName,
       status: 'RUNNING',
@@ -247,7 +247,7 @@ export class ScheduledTaskMonitoringService {
     };
   }
 
-  private pushHistory(taskName: string, execution: ScheduledTaskExecution): void {
+  private pushHistory(taskName: string, execution: IScheduledTaskExecution): void {
     const existing = this.executionHistory.get(taskName) || [];
     existing.push(execution);
 

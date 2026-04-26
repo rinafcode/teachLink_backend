@@ -1,6 +1,6 @@
 import {
   defaultFeatureFlags,
-  FeatureFlagsConfig,
+  IFeatureFlagsConfig,
   loadFeatureFlags,
   getEnabledModules,
   getDisabledModules,
@@ -12,7 +12,7 @@ import {
  */
 
 /** All flags that should exist in the config. Keep this list alphabetically sorted. */
-const EXPECTED_FLAGS: (keyof FeatureFlagsConfig)[] = [
+const EXPECTED_FLAGS: (keyof IFeatureFlagsConfig)[] = [
   'ENABLE_AB_TESTING',
   'ENABLE_ASSESSMENT',
   'ENABLE_AUTH',
@@ -41,7 +41,7 @@ const EXPECTED_FLAGS: (keyof FeatureFlagsConfig)[] = [
   'ENABLE_TENANCY',
 ];
 
-describe('FeatureFlagsConfig', () => {
+describe('IFeatureFlagsConfig', () => {
   describe('defaultFeatureFlags', () => {
     it('should define all expected flags', () => {
       for (const flag of EXPECTED_FLAGS) {
@@ -109,7 +109,7 @@ describe('FeatureFlagsConfig', () => {
   describe('getEnabledModules', () => {
     it('should return all modules when all flags are true', () => {
       const allTrue = { ...defaultFeatureFlags };
-      for (const key of Object.keys(allTrue) as (keyof FeatureFlagsConfig)[]) {
+      for (const key of Object.keys(allTrue) as (keyof IFeatureFlagsConfig)[]) {
         allTrue[key] = true;
       }
       const modules = getEnabledModules(allTrue);
@@ -118,7 +118,7 @@ describe('FeatureFlagsConfig', () => {
 
     it('should return empty array when all flags are false', () => {
       const allFalse = { ...defaultFeatureFlags };
-      for (const key of Object.keys(allFalse) as (keyof FeatureFlagsConfig)[]) {
+      for (const key of Object.keys(allFalse) as (keyof IFeatureFlagsConfig)[]) {
         allFalse[key] = false;
       }
       const modules = getEnabledModules(allFalse);
@@ -144,7 +144,7 @@ describe('FeatureFlagsConfig', () => {
 
     it('should return more disabled modules when flags are false', () => {
       const allFalse = { ...defaultFeatureFlags };
-      for (const key of Object.keys(allFalse) as (keyof FeatureFlagsConfig)[]) {
+      for (const key of Object.keys(allFalse) as (keyof IFeatureFlagsConfig)[]) {
         allFalse[key] = false;
       }
       const disabledAll = getDisabledModules(allFalse);

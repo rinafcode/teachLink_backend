@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
-import { JobOptions, JobMetrics } from './interfaces/queue.interfaces';
+import { IJobOptions, IJobMetrics } from './interfaces/queue.interfaces';
 import { JobPriority, JobStatus } from './enums/job-priority.enum';
 import { QUEUE_DEFAULTS } from './queues.constants';
 
@@ -19,7 +19,7 @@ export class QueueService {
   /**
    * Add a job to the queue with priority and options
    */
-  async addJob<T = any>(name: string, data: T, options?: JobOptions): Promise<Job<T>> {
+  async addJob<T = any>(name: string, data: T, options?: IJobOptions): Promise<Job<T>> {
     try {
       const job = await this.defaultQueue.add(name, data, {
         priority: options?.priority || JobPriority.NORMAL,
@@ -49,7 +49,7 @@ export class QueueService {
    * Add multiple jobs in bulk
    */
   async addBulkJobs<T = any>(
-    jobs: Array<{ name: string; data: T; options?: JobOptions }>,
+    jobs: Array<{ name: string; data: T; options?: IJobOptions }>,
   ): Promise<Array<Job<T>>> {
     try {
       const bulkJobs = jobs.map((job) => ({
@@ -84,7 +84,7 @@ export class QueueService {
   /**
    * Get job metrics
    */
-  async getJobMetrics(jobId: string): Promise<JobMetrics | null> {
+  async getJobMetrics(jobId: string): Promise<IJobMetrics | null> {
     const job = await this.getJob(jobId);
     if (!job) return null;
 

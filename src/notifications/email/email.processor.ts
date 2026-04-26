@@ -1,7 +1,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
-import { EmailService, EmailOptions } from './email.service';
+import { EmailService, IEmailOptions } from './email.service';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 
 @Processor(QUEUE_NAMES.EMAIL)
@@ -11,7 +11,7 @@ export class EmailProcessor {
   constructor(private readonly emailService: EmailService) {}
 
   @Process(JOB_NAMES.SEND_EMAIL)
-  async handleSendEmail(job: Job<EmailOptions>) {
+  async handleSendEmail(job: Job<IEmailOptions>) {
     this.logger.log(`Processing email job ${job.id} for ${job.data.to}`);
 
     try {

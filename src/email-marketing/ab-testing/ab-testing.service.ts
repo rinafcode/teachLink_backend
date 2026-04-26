@@ -9,7 +9,7 @@ import { CreateABTestDto } from '../dto/create-ab-test.dto';
 import { ABTestStatus } from '../enums/ab-test-status.enum';
 import { EmailEventType } from '../enums/email-event-type.enum';
 
-export interface VariantStats {
+export interface IVariantStats {
   variantId: string;
   name: string;
   sent: number;
@@ -117,12 +117,12 @@ export class ABTestingService {
    */
   async getTestResults(id: string): Promise<{
     test: ABTest;
-    variants: VariantStats[];
+    variants: IVariantStats[];
     isSignificant: boolean;
     recommendedWinner: string | null;
   }> {
     const test = await this.findOne(id);
-    const variantStats: VariantStats[] = [];
+    const variantStats: IVariantStats[] = [];
 
     for (const variant of test.variants) {
       const sent = variant.recipientCount || 0;
@@ -211,7 +211,7 @@ export class ABTestingService {
   }
 
   private calculateSignificance(
-    variants: VariantStats[],
+    variants: IVariantStats[],
     criteria: string,
   ): { isSignificant: boolean; winner: string | null; confidenceLevel: number } {
     if (variants.length < 2) {

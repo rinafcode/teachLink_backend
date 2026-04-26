@@ -2,7 +2,7 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } fr
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { TransactionService } from './transaction.service';
-import { TRANSACTIONAL_KEY, TransactionalOptions } from './transactional.decorator';
+import { TRANSACTIONAL_KEY, ITransactionalOptions } from './transactional.decorator';
 
 /**
  * Interceptor to automatically wrap methods in transactions
@@ -17,7 +17,7 @@ export class TransactionalInterceptor implements NestInterceptor {
   ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
-    const options = this.reflector.get<TransactionalOptions>(
+    const options = this.reflector.get<ITransactionalOptions>(
       TRANSACTIONAL_KEY,
       context.getHandler(),
     );

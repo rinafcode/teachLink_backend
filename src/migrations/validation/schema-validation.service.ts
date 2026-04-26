@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 // import { Connection, QueryRunner } from 'typeorm';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 
 @Injectable()
 export class SchemaValidationService {
@@ -9,7 +9,7 @@ export class SchemaValidationService {
   /**
    * Validates the schema before applying a migration
    */
-  async validateBeforeMigration(migration: MigrationConfig): Promise<boolean> {
+  async validateBeforeMigration(migration: IMigrationConfig): Promise<boolean> {
     this.logger.log(`Validating schema before migration: ${migration.name}`);
 
     try {
@@ -31,7 +31,7 @@ export class SchemaValidationService {
   /**
    * Validates the schema after applying a migration
    */
-  async validateAfterMigration(migration: MigrationConfig): Promise<boolean> {
+  async validateAfterMigration(migration: IMigrationConfig): Promise<boolean> {
     this.logger.log(`Validating schema after migration: ${migration.name}`);
 
     try {
@@ -59,7 +59,7 @@ export class SchemaValidationService {
    * Performs pre-migration validation checks
    */
   // Fix: prefix unused param with _ — stub method, real implementation pending
-  private async performPreMigrationValidation(_migration: MigrationConfig): Promise<boolean> {
+  private async performPreMigrationValidation(_migration: IMigrationConfig): Promise<boolean> {
     // Check if required tables/columns exist before running migration
     // This is a simplified version - in practice, you'd check for dependencies
 
@@ -71,7 +71,7 @@ export class SchemaValidationService {
    * Performs post-migration validation checks
    */
   // Fix: prefix unused param with _ — stub method, real implementation pending
-  private async performPostMigrationValidation(_migration: MigrationConfig): Promise<boolean> {
+  private async performPostMigrationValidation(_migration: IMigrationConfig): Promise<boolean> {
     // Check if the expected schema changes were applied correctly
     // This would involve checking if tables/columns exist as expected after migration
 
@@ -98,7 +98,7 @@ export class SchemaValidationService {
   /**
    * Checks for potential breaking changes in a migration
    */
-  async checkForBreakingChanges(migration: MigrationConfig): Promise<string[]> {
+  async checkForBreakingChanges(migration: IMigrationConfig): Promise<string[]> {
     this.logger.log(`Checking for breaking changes in migration: ${migration.name}`);
 
     const breakingChanges: string[] = [];
@@ -114,7 +114,7 @@ export class SchemaValidationService {
   /**
    * Creates a backup of the current schema before migration
    */
-  async backupSchemaBeforeMigration(migration: MigrationConfig): Promise<string | null> {
+  async backupSchemaBeforeMigration(migration: IMigrationConfig): Promise<string | null> {
     this.logger.log(`Creating schema backup before migration: ${migration.name}`);
 
     try {
@@ -134,7 +134,7 @@ export class SchemaValidationService {
    * Validates migration dependencies
    */
   async validateMigrationDependencies(
-    migration: MigrationConfig,
+    migration: IMigrationConfig,
     appliedMigrations: string[],
   ): Promise<boolean> {
     if (!migration.dependencies || migration.dependencies.length === 0) {

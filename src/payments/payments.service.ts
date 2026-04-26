@@ -14,11 +14,11 @@ import { Transactional } from '../common/database/transactional.decorator';
 import { ensureUserExists } from '../common/utils/user.utils';
 import { ProviderFactoryService } from './providers/provider-factory.service';
 import {
-  CreatePaymentIntentResult,
-  CreateSubscriptionResult,
-  ProcessRefundResult,
-  SubscriptionWebhookEvent,
-  RefundWebhookData,
+  ICreatePaymentIntentResult,
+  ICreateSubscriptionResult,
+  IProcessRefundResult,
+  ISubscriptionWebhookEvent,
+  IRefundWebhookData,
 } from './interfaces/payment-provider.interface';
 
 @Injectable()
@@ -46,7 +46,7 @@ export class PaymentsService {
   async createPaymentIntent(
     userId: string,
     createPaymentDto: CreatePaymentDto,
-  ): Promise<CreatePaymentIntentResult> {
+  ): Promise<ICreatePaymentIntentResult> {
     const { courseId, amount, currency, provider, metadata } = createPaymentDto;
 
     // Verify user exists
@@ -91,7 +91,7 @@ export class PaymentsService {
   async createSubscription(
     userId: string,
     createSubscriptionDto: CreateSubscriptionDto,
-  ): Promise<CreateSubscriptionResult> {
+  ): Promise<ICreateSubscriptionResult> {
     const { interval } = createSubscriptionDto;
 
     // Verify user exists
@@ -132,7 +132,7 @@ export class PaymentsService {
    * succeed or fail together, preventing orphaned refund records or inconsistent payment states.
    */
   @Transactional()
-  async processRefund(refundDto: RefundDto): Promise<ProcessRefundResult> {
+  async processRefund(refundDto: RefundDto): Promise<IProcessRefundResult> {
     const { paymentId, amount, reason } = refundDto;
 
     // Find payment
@@ -252,7 +252,7 @@ export class PaymentsService {
     );
   }
 
-  async handleSubscriptionEvent(event: SubscriptionWebhookEvent): Promise<void> {
+  async handleSubscriptionEvent(event: ISubscriptionWebhookEvent): Promise<void> {
     // Handle subscription events from webhook
     const subscriptionId = event.data.object.id;
     const status = event.data.object.status;
@@ -271,7 +271,7 @@ export class PaymentsService {
   @Transactional()
   async processRefundFromWebhook(
     paymentIntentId: string,
-    refundData: RefundWebhookData,
+    refundData: IRefundWebhookData,
   ): Promise<void> {
     // Find payment by provider ID
     const payment = await this.paymentRepository.findOne({

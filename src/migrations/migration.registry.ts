@@ -1,4 +1,4 @@
-import { MigrationConfig } from './migration.service';
+import { IMigrationConfig } from './migration.service';
 import { CreateUsersTableMigration } from './samples/001-create-users-table.migration';
 import { CreateCoursesTableMigration } from './samples/002-create-courses-table.migration';
 import { CreateCourseModulesTableMigration } from './samples/003-create-course-modules-table.migration';
@@ -15,7 +15,7 @@ import { CreateMigrationsTrackingTableMigration } from './samples/006-create-mig
  * - To add a new migration: create the file in `samples/`, then append it here.
  * - Never remove or reorder existing entries — only append new ones.
  */
-export const MIGRATION_REGISTRY: MigrationConfig[] = [
+export const MIGRATION_REGISTRY: IMigrationConfig[] = [
   new CreateMigrationsTrackingTableMigration(),
   new CreateUsersTableMigration(),
   new CreateCoursesTableMigration(),

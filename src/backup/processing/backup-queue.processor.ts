@@ -11,9 +11,9 @@ import { BackupService } from '../backup.service';
 import { FileStorageService } from '../../media/storage/file-storage.service';
 import { DataIntegrityService } from '../integrity/data-integrity.service';
 import {
-  BackupJobData,
-  VerificationJobData,
-  RecoveryTestJobData,
+  IBackupJobData,
+  IVerificationJobData,
+  IRecoveryTestJobData,
 } from '../interfaces/backup.interfaces';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -60,7 +60,7 @@ export class BackupQueueProcessor {
   }
 
   @Process(JOB_NAMES.CREATE_BACKUP)
-  async handleCreateBackup(job: Job<BackupJobData>) {
+  async handleCreateBackup(job: Job<IBackupJobData>) {
     const { backupRecordId, databaseName } = job.data;
     this.logger.log(`Processing backup creation for: ${backupRecordId}`);
 
@@ -154,7 +154,7 @@ export class BackupQueueProcessor {
   }
 
   @Process(JOB_NAMES.VERIFY_BACKUP)
-  async handleVerifyBackup(job: Job<VerificationJobData>) {
+  async handleVerifyBackup(job: Job<IVerificationJobData>) {
     const { backupRecordId } = job.data;
     this.logger.log(`Verifying backup integrity: ${backupRecordId}`);
 
@@ -180,7 +180,7 @@ export class BackupQueueProcessor {
   }
 
   @Process(JOB_NAMES.RECOVERY_TEST)
-  async handleRecoveryTest(_job: Job<RecoveryTestJobData>) {
+  async handleRecoveryTest(_job: Job<IRecoveryTestJobData>) {
     this.logger.log('Recovery test processing handled by RecoveryTestingService');
     // Delegated to RecoveryTestingService.executeRecoveryTest()
   }

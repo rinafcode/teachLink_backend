@@ -1,23 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { UploadedFile } from '../../common/types/file.types';
+import { IUploadedFile } from '../../common/types/file.types';
 
-export interface CloudflareConfig {
+export interface ICloudflareConfig {
   apiToken: string;
   accountId: string;
   zoneId: string;
   baseUrl?: string;
 }
 
-export interface UploadResult {
+export interface IUploadResult {
   id: string;
   url: string;
   etag?: string;
   size: number;
 }
 
-export interface PurgeResult {
+export interface IPurgeResult {
   success: boolean;
   purgedUrls: string[];
   failedUrls: string[];
@@ -27,7 +27,7 @@ export interface PurgeResult {
 export class CloudflareService {
   private readonly logger = new Logger(CloudflareService.name);
   private readonly httpClient: AxiosInstance;
-  private readonly config: CloudflareConfig;
+  private readonly config: ICloudflareConfig;
 
   constructor(private configService: ConfigService) {
     this.config = {
@@ -46,7 +46,7 @@ export class CloudflareService {
     });
   }
 
-  async uploadFile(file: UploadedFile): Promise<UploadResult> {
+  async uploadFile(file: IUploadedFile): Promise<IUploadResult> {
     try {
       this.logger.log(`Uploading file ${file.originalname} to Cloudflare`);
 
@@ -63,7 +63,7 @@ export class CloudflareService {
     }
   }
 
-  async purgeUrls(urls: string[]): Promise<PurgeResult> {
+  async purgeUrls(urls: string[]): Promise<IPurgeResult> {
     try {
       this.logger.log(`Purging ${urls.length} URLs from Cloudflare`);
 
@@ -172,7 +172,7 @@ export class CloudflareService {
     }
   }
 
-  private async uploadImage(file: UploadedFile): Promise<UploadResult> {
+  private async uploadImage(file: IUploadedFile): Promise<IUploadResult> {
     // Use Cloudflare Images API
     // In real implementation, would use proper multipart/form-data
     // For now, return mock result
@@ -185,7 +185,7 @@ export class CloudflareService {
     };
   }
 
-  private async uploadToR2(file: UploadedFile): Promise<UploadResult> {
+  private async uploadToR2(file: IUploadedFile): Promise<IUploadResult> {
     // Use Cloudflare R2 for non-image files
     // This would require R2 bucket configuration
     // For now, return mock result

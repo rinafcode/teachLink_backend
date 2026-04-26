@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Experiment } from '../entities/experiment.entity';
-import { ExperimentVariant } from '../entities/experiment-variant.entity';
+import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
 
 @Injectable()
@@ -12,8 +12,8 @@ export class StatisticalAnalysisService {
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
-    @InjectRepository(ExperimentVariant)
-    private variantRepository: Repository<ExperimentVariant>,
+    @InjectRepository(IExperimentVariant)
+    private variantRepository: Repository<IExperimentVariant>,
     @InjectRepository(VariantMetric)
     private variantMetricRepository: Repository<VariantMetric>,
   ) {}
@@ -63,7 +63,7 @@ export class StatisticalAnalysisService {
   /**
    * Analyzes a single variant's metrics
    */
-  private async analyzeVariant(variant: ExperimentVariant, confidenceLevel: number): Promise<any> {
+  private async analyzeVariant(variant: IExperimentVariant, confidenceLevel: number): Promise<any> {
     const metrics = await this.getVariantMetrics(variant.id);
 
     const analysis = {
@@ -140,7 +140,7 @@ export class StatisticalAnalysisService {
    * Checks if any variant is significantly different from control
    */
   private async checkSignificanceAgainstControl(
-    variants: ExperimentVariant[],
+    variants: IExperimentVariant[],
     controlMetrics: VariantMetric[],
     confidenceLevel: number,
   ): Promise<boolean> {

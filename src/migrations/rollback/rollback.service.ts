@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Raw } from 'typeorm';
 import { Migration, MigrationStatus } from '../entities/migration.entity';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 import { MIGRATION_REGISTRY } from '../migration.registry';
 
 @Injectable()
@@ -17,7 +17,7 @@ export class RollbackService {
   /**
    * Rolls back a specific migration
    */
-  async rollbackMigration(migration: MigrationConfig): Promise<void> {
+  async rollbackMigration(migration: IMigrationConfig): Promise<void> {
     this.logger.log(`Rolling back migration: ${migration.name}`);
 
     try {
@@ -110,7 +110,7 @@ export class RollbackService {
   /**
    * Gets all registered migrations
    */
-  private getRegisteredMigrations(): MigrationConfig[] {
+  private getRegisteredMigrations(): IMigrationConfig[] {
     return MIGRATION_REGISTRY;
   }
 

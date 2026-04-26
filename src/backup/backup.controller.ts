@@ -9,7 +9,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, IApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RecoveryTestingService } from './testing/recovery-testing.service';
 import { DisasterRecoveryService } from './disaster-recovery/disaster-recovery.service';
@@ -31,7 +31,7 @@ export class BackupController {
 
   @Post('restore')
   @ApiOperation({ summary: 'Restore from backup' })
-  @ApiResponse({ status: HttpStatus.ACCEPTED, description: 'Restore initiated' })
+  @IApiResponse({ status: HttpStatus.ACCEPTED, description: 'Restore initiated' })
   @HttpCode(HttpStatus.ACCEPTED)
   async restoreBackup(@Body() dto: RestoreBackupDto): Promise<{ message: string }> {
     await this.disasterRecoveryService.executeRestore(dto.backupRecordId);
@@ -40,14 +40,14 @@ export class BackupController {
 
   @Post('test')
   @ApiOperation({ summary: 'Trigger recovery test' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Recovery test triggered' })
+  @IApiResponse({ status: HttpStatus.OK, description: 'Recovery test triggered' })
   async triggerRecoveryTest(@Body() dto: TriggerRecoveryTestDto): Promise<RecoveryTestResponseDto> {
     return this.recoveryTestingService.createRecoveryTest(dto.backupRecordId);
   }
 
   @Get('test/:testId')
   @ApiOperation({ summary: 'Get recovery test results' })
-  @ApiResponse({
+  @IApiResponse({
     status: HttpStatus.OK,
     description: 'Recovery test results',
     type: RecoveryTestResponseDto,
@@ -60,7 +60,7 @@ export class BackupController {
 
   @Get('health')
   @ApiOperation({ summary: 'Get backup system health' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Backup health status' })
+  @IApiResponse({ status: HttpStatus.OK, description: 'Backup health status' })
   async getBackupHealth(): Promise<{ healthy: boolean; issues: string[] }> {
     return this.backupMonitoringService.checkBackupHealth();
   }

@@ -30,7 +30,7 @@ export type FlagType = 'boolean' | 'string' | 'number';
 
 export type ExperimentStatus = 'draft' | 'running' | 'paused' | 'completed';
 
-export interface UserContext {
+export interface IUserContext {
   userId: string;
   email?: string;
   country?: string;
@@ -42,41 +42,41 @@ export interface UserContext {
   ipAddress?: string;
 }
 
-export interface TargetingCondition {
+export interface ITargetingCondition {
   attribute: string;
   operator: ConditionOperator;
   value?: FlagValueType | FlagValueType[];
 }
 
-export interface TargetingRule {
+export interface ITargetingRule {
   id: string;
   name?: string;
-  conditions: TargetingCondition[];
+  conditions: ITargetingCondition[];
   conditionsOperator: 'AND' | 'OR';
   serveVariationKey: string;
   priority: number;
 }
 
-export interface TargetingConfig {
-  rules: TargetingRule[];
+export interface ITargetingConfig {
+  rules: ITargetingRule[];
   defaultServeVariationKey: string;
 }
 
-export interface RampStep {
+export interface IRampStep {
   at: Date;
   percentage: number;
 }
 
-export interface RolloutConfig {
+export interface IRolloutConfig {
   percentage: number;
   bucketByAttribute?: string;
   sticky?: boolean;
   startDate?: Date;
   endDate?: Date;
-  rampSchedule?: RampStep[];
+  rampSchedule?: IRampStep[];
 }
 
-export interface ExperimentVariant {
+export interface IExperimentVariant {
   key: string;
   name: string;
   weight: number;
@@ -85,11 +85,11 @@ export interface ExperimentVariant {
   description?: string;
 }
 
-export interface ExperimentConfig {
+export interface IExperimentConfig {
   experimentId: string;
   name: string;
   hypothesis?: string;
-  variants: ExperimentVariant[];
+  variants: IExperimentVariant[];
   trafficAllocation: number;
   bucketByAttribute?: string;
   startDate?: Date;
@@ -99,19 +99,19 @@ export interface ExperimentConfig {
   metrics?: string[];
 }
 
-export interface FlagVariation {
+export interface IFlagVariation {
   key: string;
   name: string;
   value: FlagValueType;
   description?: string;
 }
 
-export interface FlagPrerequisite {
+export interface IFlagPrerequisite {
   flagKey: string;
   requiredVariationKey: string;
 }
 
-export interface FeatureFlag {
+export interface IFeatureFlag {
   id: string;
   key: string;
   name: string;
@@ -120,11 +120,11 @@ export interface FeatureFlag {
   enabled: boolean;
   defaultVariationKey: string;
   offVariationKey: string;
-  variations: FlagVariation[];
-  targeting?: TargetingConfig;
-  rollout?: RolloutConfig;
-  experiment?: ExperimentConfig;
-  prerequisites?: FlagPrerequisite[];
+  variations: IFlagVariation[];
+  targeting?: ITargetingConfig;
+  rollout?: IRolloutConfig;
+  experiment?: IExperimentConfig;
+  prerequisites?: IFlagPrerequisite[];
   tags?: string[];
   projectId?: string;
   environmentId?: string;
@@ -136,7 +136,7 @@ export interface FeatureFlag {
   updatedBy?: string;
 }
 
-export interface FlagEvaluationResult {
+export interface IFlagEvaluationResult {
   flagKey: string;
   value: FlagValueType;
   variationKey: string;
@@ -147,14 +147,14 @@ export interface FlagEvaluationResult {
   timestamp: Date;
 }
 
-export interface ExperimentResult {
+export interface IExperimentResult {
   experimentId: string;
   variantKey: string;
   value: FlagValueType;
   isControl: boolean;
 }
 
-export interface FlagAnalyticsEvent {
+export interface IFlagAnalyticsEvent {
   eventId: string;
   eventType: 'evaluation' | 'impression' | 'conversion' | 'error';
   flagKey?: string;
@@ -169,7 +169,7 @@ export interface FlagAnalyticsEvent {
   timestamp: Date;
 }
 
-export interface FlagEvaluationStats {
+export interface IFlagEvaluationStats {
   flagKey: string;
   totalEvaluations: number;
   evaluationsByVariation: Record<string, number>;
@@ -178,7 +178,7 @@ export interface FlagEvaluationStats {
   errorRate: number;
 }
 
-export interface ExperimentVariantStats {
+export interface IExperimentVariantStats {
   variantKey: string;
   impressions: number;
   conversions: number;
@@ -186,13 +186,13 @@ export interface ExperimentVariantStats {
   isControl: boolean;
 }
 
-export interface ExperimentStats {
+export interface IExperimentStats {
   experimentId: string;
   totalImpressions: number;
-  variants: Record<string, ExperimentVariantStats>;
+  variants: Record<string, IExperimentVariantStats>;
 }
 
-export interface FlagSummary {
+export interface IFlagSummary {
   flagKey: string;
   totalEvaluations: number;
   lastEvaluatedAt?: Date;

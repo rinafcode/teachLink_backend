@@ -9,7 +9,7 @@ import { RecoveryTest } from '../entities/recovery-test.entity';
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
 import { BackupService } from '../backup.service';
 import { RecoveryTestResponseDto } from '../dto/recovery-test-response.dto';
-import { RecoveryTestJobData } from '../interfaces/backup.interfaces';
+import { IRecoveryTestJobData } from '../interfaces/backup.interfaces';
 import { FileStorageService } from '../../media/storage/file-storage.service';
 import { KMSClient, DecryptCommand } from '@aws-sdk/client-kms';
 import { AlertingService } from '../../monitoring/alerting/alerting.service';
@@ -65,7 +65,7 @@ export class RecoveryTestingService {
         recoveryTestId: recoveryTest.id,
         backupRecordId: backupId,
         testDatabaseName,
-      } as RecoveryTestJobData,
+      } as IRecoveryTestJobData,
       {
         attempts: 3,
         backoff: { type: 'exponential', delay: 10000 },

@@ -4,7 +4,7 @@ import { APP_EVENTS } from '../common/constants/event.constants';
 import {
   ConflictResolutionService,
   ConflictResolutionStrategy,
-  SyncData,
+  ISyncData,
 } from './conflicts/conflict-resolution.service';
 import { DataConsistencyService } from './consistency/data-consistency.service';
 import { CacheInvalidationService } from './cache/cache-invalidation.service';
@@ -25,10 +25,10 @@ export class SyncService {
    * Synchronizes data between two sources.
    */
   async synchronize(
-    localData: SyncData,
-    remoteData: SyncData,
+    localData: ISyncData,
+    remoteData: ISyncData,
     strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.LAST_WRITE_WINS,
-  ): Promise<SyncData> {
+  ): Promise<ISyncData> {
     this.logger.log(`Starting synchronization for ${localData.id}`);
 
     // Resolve any conflicts

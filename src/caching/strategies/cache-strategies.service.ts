@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching.constants';
 
-export interface CacheStrategy {
+export interface ICacheStrategy {
   ttl: number;
   prefix: string;
   invalidateOn: string[];
 }
 
-export interface CacheStrategyConfig {
+export interface ICacheStrategyConfig {
   name: string;
   ttl: number;
   prefix: string;
@@ -17,7 +17,7 @@ export interface CacheStrategyConfig {
 
 @Injectable()
 export class CacheStrategiesService {
-  private readonly strategies: Map<string, CacheStrategyConfig> = new Map();
+  private readonly strategies: Map<string, ICacheStrategyConfig> = new Map();
 
   constructor() {
     this.initializeStrategies();
@@ -114,14 +114,14 @@ export class CacheStrategiesService {
   /**
    * Register a new cache strategy
    */
-  registerStrategy(config: CacheStrategyConfig): void {
+  registerStrategy(config: ICacheStrategyConfig): void {
     this.strategies.set(config.name, config);
   }
 
   /**
    * Get a strategy by name
    */
-  getStrategy(name: string): CacheStrategyConfig | undefined {
+  getStrategy(name: string): ICacheStrategyConfig | undefined {
     return this.strategies.get(name);
   }
 
@@ -160,8 +160,8 @@ export class CacheStrategiesService {
   /**
    * Get all strategies that should be invalidated for a given event
    */
-  getStrategiesForEvent(eventName: string): CacheStrategyConfig[] {
-    const strategies: CacheStrategyConfig[] = [];
+  getStrategiesForEvent(eventName: string): ICacheStrategyConfig[] {
+    const strategies: ICacheStrategyConfig[] = [];
 
     for (const strategy of this.strategies.values()) {
       if (strategy.invalidateOnEvents.includes(eventName)) {
@@ -191,7 +191,7 @@ export class CacheStrategiesService {
   /**
    * Get all registered strategies
    */
-  getAllStrategies(): CacheStrategyConfig[] {
+  getAllStrategies(): ICacheStrategyConfig[] {
     return Array.from(this.strategies.values());
   }
 
@@ -206,7 +206,7 @@ export class CacheStrategiesService {
   /**
    * Get default strategy configuration
    */
-  getDefaultStrategy(): CacheStrategyConfig {
+  getDefaultStrategy(): ICacheStrategyConfig {
     return {
       name: 'default',
       ttl: CACHE_TTL.COURSE_DETAILS,

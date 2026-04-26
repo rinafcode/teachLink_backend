@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RolloutConfig, UserContext } from '../interfaces';
+import { IRolloutConfig, IUserContext } from '../interfaces';
 
 @Injectable()
 export class RolloutService {
@@ -7,7 +7,7 @@ export class RolloutService {
    * Determines whether a user falls within the configured rollout percentage.
    * Uses consistent hashing so the same user always gets the same result.
    */
-  isUserInRollout(config: RolloutConfig, flagKey: string, userContext: UserContext): boolean {
+  isUserInRollout(config: IRolloutConfig, flagKey: string, userContext: IUserContext): boolean {
     const now = new Date();
 
     if (config.startDate && now < config.startDate) return false;
@@ -27,7 +27,7 @@ export class RolloutService {
    * Returns the effective rollout percentage at the current time,
    * accounting for any ramp schedule defined on the config.
    */
-  getCurrentPercentage(config: RolloutConfig): number {
+  getCurrentPercentage(config: IRolloutConfig): number {
     if (!config.rampSchedule || config.rampSchedule.length === 0) {
       return config.percentage;
     }
@@ -59,7 +59,7 @@ export class RolloutService {
     return hash % 100;
   }
 
-  private resolveBucketKey(attribute: string, userContext: UserContext): string {
+  private resolveBucketKey(attribute: string, userContext: IUserContext): string {
     switch (attribute) {
       case 'userId':
         return userContext.userId;

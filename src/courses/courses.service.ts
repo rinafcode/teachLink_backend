@@ -6,8 +6,8 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import {
   paginate,
   paginateWithCursor,
-  PaginatedResponse,
-  CursorPaginatedResponse,
+  IPaginatedResponse,
+  ICursorPaginatedResponse,
 } from '../common/utils/pagination.util';
 import { CourseSearchDto, CursorCourseSearchDto } from './dto/course-search.dto';
 import { CachingService } from '../caching/caching.service';
@@ -37,7 +37,7 @@ export class CoursesService {
     return Array.isArray(saved) ? saved[0] : saved;
   }
 
-  async findAll(filter?: CourseSearchDto): Promise<PaginatedResponse<Course>> {
+  async findAll(filter?: CourseSearchDto): Promise<IPaginatedResponse<Course>> {
     const cacheKey = `${CACHE_PREFIXES.COURSES_LIST}:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(
@@ -77,7 +77,7 @@ export class CoursesService {
 
   async findAllWithCursor(
     filter?: CursorCourseSearchDto,
-  ): Promise<CursorPaginatedResponse<Course>> {
+  ): Promise<ICursorPaginatedResponse<Course>> {
     const cacheKey = `${CACHE_PREFIXES.COURSES_LIST}:cursor:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(

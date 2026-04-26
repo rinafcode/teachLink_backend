@@ -1,13 +1,13 @@
 import { Injectable, Logger, DynamicModule } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-export interface LazyModuleOptions {
+export interface ILazyModuleOptions {
   moduleName: string;
   featureFlag?: string;
   dependencies?: string[];
 }
 
-export interface ModuleLoadResult {
+export interface IModuleLoadResult {
   moduleName: string;
   loadedAt: Date;
   loadTimeMs: number;
@@ -19,7 +19,7 @@ export interface ModuleLoadResult {
 export class LazyModuleLoader {
   private readonly logger = new Logger(LazyModuleLoader.name);
   private loadedModules = new Map<string, Promise<DynamicModule>>();
-  private moduleLoadResults = new Map<string, ModuleLoadResult>();
+  private moduleLoadResults = new Map<string, IModuleLoadResult>();
   private moduleRegistry = new Map<string, () => Promise<DynamicModule>>();
 
   constructor(private readonly moduleRef: ModuleRef) {}
@@ -105,14 +105,14 @@ export class LazyModuleLoader {
   /**
    * Get load result for a module
    */
-  getLoadResult(moduleName: string): ModuleLoadResult | undefined {
+  getLoadResult(moduleName: string): IModuleLoadResult | undefined {
     return this.moduleLoadResults.get(moduleName);
   }
 
   /**
    * Get all load results
    */
-  getAllLoadResults(): ModuleLoadResult[] {
+  getAllLoadResults(): IModuleLoadResult[] {
     return Array.from(this.moduleLoadResults.values());
   }
 
@@ -164,7 +164,7 @@ export class LazyModuleLoader {
     loaded: number;
     totalLoadTime: number;
     averageLoadTime: number;
-    modules: ModuleLoadResult[];
+    modules: IModuleLoadResult[];
   } {
     const results = this.getAllLoadResults();
     const successfulLoads = results.filter((r) => r.success);
@@ -188,7 +188,7 @@ export class LazyModuleLoader {
       const module = await factory();
       const loadTimeMs = Date.now() - startTime;
 
-      const result: ModuleLoadResult = {
+      const result: IModuleLoadResult = {
         moduleName,
         loadedAt: new Date(),
         loadTimeMs,
@@ -202,7 +202,7 @@ export class LazyModuleLoader {
     } catch (error) {
       const loadTimeMs = Date.now() - startTime;
 
-      const result: ModuleLoadResult = {
+      const result: IModuleLoadResult = {
         moduleName,
         loadedAt: new Date(),
         loadTimeMs,

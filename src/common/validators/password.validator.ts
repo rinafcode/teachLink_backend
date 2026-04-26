@@ -6,7 +6,7 @@ import {
   ValidationArguments,
 } from 'class-validator';
 
-export interface PasswordStrengthResult {
+export interface IPasswordStrengthResult {
   isValid: boolean;
   errors: string[];
   score: number;
@@ -21,7 +21,7 @@ export const PASSWORD_REQUIREMENTS = {
   special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
 };
 
-export function calculatePasswordStrength(password: string): PasswordStrengthResult {
+export function calculatePasswordStrength(password: string): IPasswordStrengthResult {
   const errors: string[] = [];
 
   if (typeof password !== 'string') {

@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { ExperimentVariant } from './experiment-variant.entity';
+import { IExperimentVariant } from './experiment-variant.entity';
 import { ExperimentMetric } from './experiment-metric.entity';
 
 export enum ExperimentStatus {
@@ -81,8 +81,8 @@ export class Experiment {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => ExperimentVariant, (variant) => variant.experiment)
-  variants: ExperimentVariant[];
+  @OneToMany(() => IExperimentVariant, (variant) => variant.experiment)
+  variants: IExperimentVariant[];
 
   @OneToMany(() => ExperimentMetric, (metric) => metric.experiment)
   metrics: ExperimentMetric[];

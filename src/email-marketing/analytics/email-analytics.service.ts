@@ -6,7 +6,7 @@ import { EmailEvent } from '../entities/email-event.entity';
 import { Campaign } from '../entities/campaign.entity';
 import { EmailEventType } from '../enums/email-event-type.enum';
 
-export interface CampaignMetrics {
+export interface ICampaignMetrics {
   sent: number;
   delivered: number;
   opened: number;
@@ -18,7 +18,7 @@ export interface CampaignMetrics {
   bounceRate: number;
 }
 
-export interface TimeSeriesData {
+export interface ITimeSeriesData {
   date: string;
   opens: number;
   clicks: number;
@@ -57,7 +57,7 @@ export class EmailAnalyticsService {
   /**
    * Get campaign metrics
    */
-  async getCampaignMetrics(campaignId: string): Promise<CampaignMetrics> {
+  async getCampaignMetrics(campaignId: string): Promise<ICampaignMetrics> {
     const campaign = await this.campaignRepository.findOne({
       where: { id: campaignId },
     });
@@ -96,7 +96,7 @@ export class EmailAnalyticsService {
     campaignId: string,
     startDate: Date,
     endDate: Date,
-  ): Promise<TimeSeriesData[]> {
+  ): Promise<ITimeSeriesData[]> {
     const events = await this.eventRepository.find({
       where: {
         campaignId,
@@ -105,7 +105,7 @@ export class EmailAnalyticsService {
       order: { occurredAt: 'ASC' },
     });
 
-    const dataMap = new Map<string, TimeSeriesData>();
+    const dataMap = new Map<string, ITimeSeriesData>();
 
     for (const event of events) {
       const dateKey = event.occurredAt.toISOString().split('T')[0];
@@ -220,7 +220,7 @@ export class EmailAnalyticsService {
   /**
    * Batch fetch metrics for multiple campaigns to prevent N+1 queries
    */
-  private async getBatchMetrics(campaignIds: string[]): Promise<Map<string, CampaignMetrics>> {
+  private async getBatchMetrics(campaignIds: string[]): Promise<Map<string, ICampaignMetrics>> {
     if (!campaignIds.length) return new Map();
 
     // Query 1: Regular counts (delivered, bounced, unsubscribed)
@@ -255,9 +255,9 @@ export class EmailAnalyticsService {
     const campaigns = await this.campaignRepository.findByIds(campaignIds);
     const campaignMap = new Map(campaigns.map((c) => [c.id, c]));
 
-    const metricsMap = new Map<string, CampaignMetrics>();
+    const metricsMap = new Map<string, ICampaignMetrics>();
 
-    const getMetrics = (id: string): CampaignMetrics => {
+    const getMetrics = (id: string): ICampaignMetrics => {
       let metrics = metricsMap.get(id);
       if (!metrics) {
         const campaign = campaignMap.get(id);

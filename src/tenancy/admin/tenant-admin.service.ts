@@ -8,7 +8,7 @@ import { TenantBilling } from '../entities/tenant-billing.entity';
 import { TenantCustomization } from '../entities/tenant-customization.entity';
 import { TENANT_PLAN_LIMITS, TENANT_HEALTH_SCORE, TENANT_DEFAULTS } from '../tenancy.constants';
 
-export interface TenantStatistics {
+export interface ITenantStatistics {
   totalUsers: number;
   activeUsers: number;
   storageUsed: number;
@@ -16,7 +16,7 @@ export interface TenantStatistics {
   lastActivityAt?: Date;
 }
 
-export interface TenantHealth {
+export interface ITenantHealth {
   status: string;
   issues: string[];
   score: number;
@@ -38,7 +38,7 @@ export class TenantAdminService {
   /**
    * Get tenant statistics
    */
-  async getTenantStatistics(tenantId: string): Promise<TenantStatistics> {
+  async getTenantStatistics(tenantId: string): Promise<ITenantStatistics> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
       throw new NotFoundException(`Tenant ${tenantId} not found`);
@@ -129,7 +129,7 @@ export class TenantAdminService {
   /**
    * Check tenant health
    */
-  async checkTenantHealth(tenantId: string): Promise<TenantHealth> {
+  async checkTenantHealth(tenantId: string): Promise<ITenantHealth> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
       throw new NotFoundException(`Tenant ${tenantId} not found`);

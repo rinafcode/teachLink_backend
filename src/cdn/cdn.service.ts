@@ -8,9 +8,9 @@ import { EdgeCachingService } from './caching/edge-caching.service';
 import { GeoLocationService } from './geo/geo-location.service';
 import { CloudflareService } from './providers/cloudflare.service';
 import { ContentMetadata, ContentType, ContentStatus } from './entities/content-metadata.entity';
-import { UploadedFile } from '../common/types/file.types';
+import { IUploadedFile } from '../common/types/file.types';
 
-export interface ContentDeliveryOptions {
+export interface IContentDeliveryOptions {
   optimize?: boolean;
   quality?: number;
   format?: 'webp' | 'jpeg' | 'png';
@@ -35,7 +35,7 @@ export class CdnService {
     private cloudflareService: CloudflareService,
   ) {}
 
-  async deliverContent(contentId: string, options: ContentDeliveryOptions = {}): Promise<string> {
+  async deliverContent(contentId: string, options: IContentDeliveryOptions = {}): Promise<string> {
     const cacheKey = `cdn:${contentId}:${JSON.stringify(options)}`;
 
     // Check cache first
@@ -87,8 +87,8 @@ export class CdnService {
   }
 
   async uploadContent(
-    file: UploadedFile,
-    options: ContentDeliveryOptions = {},
+    file: IUploadedFile,
+    options: IContentDeliveryOptions = {},
   ): Promise<ContentMetadata> {
     try {
       // Upload to primary CDN provider with failover
@@ -155,7 +155,7 @@ export class CdnService {
     await this.contentMetadataRepository.save(metadata);
   }
 
-  private async uploadWithFailover(file: UploadedFile): Promise<{
+  private async uploadWithFailover(file: IUploadedFile): Promise<{
     url: string;
     etag?: string;
     provider: string;
@@ -181,7 +181,7 @@ export class CdnService {
 
   private async optimizeContentAsync(
     metadata: ContentMetadata,
-    options: ContentDeliveryOptions,
+    options: IContentDeliveryOptions,
   ): Promise<void> {
     try {
       metadata.status = ContentStatus.PROCESSING;
@@ -226,11 +226,11 @@ export class CdnService {
     return url;
   }
 
-  private isImageFile(file: UploadedFile): boolean {
+  private isImageFile(file: IUploadedFile): boolean {
     return file.mimetype.startsWith('image/');
   }
 
-  private getContentType(file: UploadedFile): 'image' | 'video' | 'document' {
+  private getContentType(file: IUploadedFile): 'image' | 'video' | 'document' {
     if (file.mimetype.startsWith('image/')) return 'image';
     if (file.mimetype.startsWith('video/')) return 'video';
     return 'document';

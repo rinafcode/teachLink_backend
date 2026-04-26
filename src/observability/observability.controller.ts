@@ -4,7 +4,7 @@ import { LogAggregationService } from './logging/log-aggregation.service';
 import { DistributedTracingService } from './tracing/distributed-tracing.service';
 import { MetricsAnalysisService } from './metrics/metrics-analysis.service';
 import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
-import { LogQuery } from './interfaces/observability.interfaces';
+import { ILogQuery } from './interfaces/observability.interfaces';
 
 /**
  * Observability Controller
@@ -40,7 +40,7 @@ export class ObservabilityController {
    * Search logs
    */
   @Post('logs/search')
-  async searchLogs(@Body() query: LogQuery): Promise<any> {
+  async searchLogs(@Body() query: ILogQuery): Promise<any> {
     return this.logAggregation.searchLogs(query);
   }
 

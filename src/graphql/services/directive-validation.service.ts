@@ -7,7 +7,7 @@ import {
   GraphQLField,
 } from 'graphql';
 
-export interface DirectiveValidationResult {
+export interface IDirectiveValidationResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -33,8 +33,8 @@ export class DirectiveValidationService {
     'specifiedBy',
   ];
 
-  validateDirectives(schema: GraphQLSchema): DirectiveValidationResult {
-    const result: DirectiveValidationResult = {
+  validateDirectives(schema: GraphQLSchema): IDirectiveValidationResult {
+    const result: IDirectiveValidationResult = {
       valid: true,
       errors: [],
       warnings: [],
@@ -66,7 +66,7 @@ export class DirectiveValidationService {
 
   private validateBuiltInDirectives(
     directives: readonly GraphQLDirective[],
-    result: DirectiveValidationResult,
+    result: IDirectiveValidationResult,
   ): void {
     const names = directives.map((d) => d.name);
     const required = ['skip', 'include', 'deprecated'];
@@ -80,7 +80,7 @@ export class DirectiveValidationService {
 
   private validateCustomDirectives(
     directives: readonly GraphQLDirective[],
-    result: DirectiveValidationResult,
+    result: IDirectiveValidationResult,
   ): void {
     for (const directive of directives) {
       if (this.BUILT_IN_DIRECTIVES.includes(directive.name)) continue;
@@ -106,7 +106,7 @@ export class DirectiveValidationService {
 
   private validateDirectiveUsageOnFields(
     schema: GraphQLSchema,
-    result: DirectiveValidationResult,
+    result: IDirectiveValidationResult,
   ): void {
     const typeMap = schema.getTypeMap();
     const allKnown = [...this.BUILT_IN_DIRECTIVES, ...this.KNOWN_CUSTOM_DIRECTIVES];

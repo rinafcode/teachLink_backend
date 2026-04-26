@@ -5,31 +5,31 @@ import { PaymentStatus } from '../entities/payment.entity';
 import { WebhookQueueService } from './webhook-queue.service';
 import { WebhookProvider } from './entities/webhook-retry.entity';
 import {
-  SubscriptionWebhookEvent,
-  RefundWebhookData,
+  ISubscriptionWebhookEvent,
+  IRefundWebhookData,
 } from '../interfaces/payment-provider.interface';
 
-interface StripePaymentIntent {
+interface IStripePaymentIntent {
   id: string;
   metadata: Record<string, unknown>;
 }
 
-interface StripeCharge {
+interface IStripeCharge {
   payment_intent: string;
   refunds: {
-    data: RefundWebhookData[];
+    data: IRefundWebhookData[];
   };
 }
 
-interface PayPalResource {
+interface IPayPalResource {
   id: string;
   parent_payment: string;
   amount: number;
 }
 
-interface PayPalWebhookPayload {
+interface IPayPalWebhookPayload {
   event_type: string;
-  resource: PayPalResource;
+  resource: IPayPalResource;
 }
 
 @Injectable()
@@ -80,7 +80,7 @@ export class WebhookService {
     }
   }
 
-  private async handlePaymentIntentSucceeded(paymentIntent: StripePaymentIntent): Promise<void> {
+  private async handlePaymentIntentSucceeded(paymentIntent: IStripePaymentIntent): Promise<void> {
     // Update payment status to completed
     await this.paymentsService.updatePaymentStatus(
       paymentIntent.id,
@@ -89,7 +89,7 @@ export class WebhookService {
     );
   }
 
-  private async handlePaymentIntentFailed(paymentIntent: StripePaymentIntent): Promise<void> {
+  private async handlePaymentIntentFailed(paymentIntent: IStripePaymentIntent): Promise<void> {
     // Update payment status to failed
     await this.paymentsService.updatePaymentStatus(
       paymentIntent.id,
@@ -98,13 +98,13 @@ export class WebhookService {
     );
   }
 
-  private async handleChargeRefunded(charge: StripeCharge): Promise<void> {
+  private async handleChargeRefunded(charge: IStripeCharge): Promise<void> {
     // Process refund
     const refund = charge.refunds.data[0];
     await this.paymentsService.processRefundFromWebhook(charge.payment_intent, refund);
   }
 
-  private async handleSubscriptionEvent(event: SubscriptionWebhookEvent): Promise<void> {
+  private async handleSubscriptionEvent(event: ISubscriptionWebhookEvent): Promise<void> {
     // Handle subscription events
     await this.paymentsService.handleSubscriptionEvent(event);
   }
@@ -117,7 +117,7 @@ export class WebhookService {
     _certUrl: string,
     _authAlgo: string,
   ): Promise<{ received: boolean; webhookRetryId?: string }> {
-    const paypalPayload = payload as unknown as PayPalWebhookPayload;
+    const paypalPayload = payload as unknown as IPayPalWebhookPayload;
 
     try {
       // Queue the webhook for processing with retry logic
@@ -143,12 +143,12 @@ export class WebhookService {
     }
   }
 
-  private async handlePayPalPaymentCompleted(resource: PayPalResource): Promise<void> {
+  private async handlePayPalPaymentCompleted(resource: IPayPalResource): Promise<void> {
     // Update payment status to completed
     await this.paymentsService.updatePaymentStatus(resource.id, PaymentStatus.COMPLETED);
   }
 
-  private async handlePayPalRefundCompleted(resource: PayPalResource): Promise<void> {
+  private async handlePayPalRefundCompleted(resource: IPayPalResource): Promise<void> {
     // Process refund
     await this.paymentsService.processRefundFromWebhook(resource.parent_payment, {
       id: resource.id,

@@ -1,21 +1,21 @@
 import { JobPriority, JobStatus } from '../enums/job-priority.enum';
 
-export interface JobOptions {
+export interface IJobOptions {
   priority?: JobPriority;
   attempts?: number;
-  backoff?: number | BackoffOptions;
+  backoff?: number | IBackoffOptions;
   delay?: number;
   timeout?: number;
   removeOnComplete?: boolean | number;
   removeOnFail?: boolean | number;
 }
 
-export interface BackoffOptions {
+export interface IBackoffOptions {
   type: 'fixed' | 'exponential';
   delay: number;
 }
 
-export interface JobMetrics {
+export interface IJobMetrics {
   jobId: string;
   name: string;
   status: JobStatus;
@@ -30,7 +30,7 @@ export interface JobMetrics {
   data: any;
 }
 
-export interface QueueMetrics {
+export interface IQueueMetrics {
   queueName: string;
   waiting: number;
   active: number;
@@ -43,7 +43,7 @@ export interface QueueMetrics {
   avgProcessingTime: number;
 }
 
-export interface RetryStrategy {
+export interface IRetryStrategy {
   maxAttempts: number;
   backoffType: 'fixed' | 'exponential';
   initialDelay: number;

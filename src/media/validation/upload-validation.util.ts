@@ -4,18 +4,18 @@ import {
   MAX_UPLOAD_FILE_SIZE,
 } from './file-validation.constants';
 
-export interface UploadValidationRequestLike {
+export interface IUploadValidationRequestLike {
   uploadValidationError?: {
     message: string;
     allowedMimeTypes: string[];
   };
 }
 
-export interface UploadValidationFileLike {
+export interface IUploadValidationFileLike {
   mimetype?: string;
 }
 
-export interface UploadFilterCallback {
+export interface IUploadFilterCallback {
   (error: Error | null, acceptFile: boolean): void;
 }
 
@@ -25,9 +25,9 @@ export const MEDIA_UPLOAD_INTERCEPTOR_OPTIONS = {
     files: 1,
   },
   fileFilter: (
-    req: UploadValidationRequestLike,
-    file: UploadValidationFileLike,
-    callback: UploadFilterCallback,
+    req: IUploadValidationRequestLike,
+    file: IUploadValidationFileLike,
+    callback: IUploadFilterCallback,
   ): void => {
     const allowedMimeTypes = ALL_ALLOWED_FILE_TYPES as readonly string[];
     const normalizedMimeType = file.mimetype?.toLowerCase().trim() || '';

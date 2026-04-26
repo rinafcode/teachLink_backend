@@ -9,7 +9,7 @@ import {
   RawBodyRequest,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, IApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
 
@@ -22,7 +22,7 @@ export class WebhookController {
   @Post('stripe')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Handle Stripe webhook events' })
-  @ApiResponse({ status: 200, description: 'Webhook processed' })
+  @IApiResponse({ status: 200, description: 'Webhook processed' })
   async handleStripeWebhook(
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
@@ -33,7 +33,7 @@ export class WebhookController {
   @Post('paypal')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Handle PayPal webhook events' })
-  @ApiResponse({ status: 200, description: 'Webhook processed' })
+  @IApiResponse({ status: 200, description: 'Webhook processed' })
   async handlePayPalWebhook(
     @Headers('paypal-transmission-id') transmissionId: string,
     @Headers('paypal-transmission-time') transmissionTime: string,

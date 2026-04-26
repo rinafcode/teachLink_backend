@@ -5,7 +5,7 @@ import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
 import { Tenant } from '../entities/tenant.entity';
 import { TENANT_BILLING_RATES } from '../tenancy.constants';
 
-export interface UsageMetrics {
+export interface IUsageMetrics {
   activeUsers?: number;
   storageUsed?: number;
   apiCalls?: number;
@@ -13,7 +13,7 @@ export interface UsageMetrics {
   [key: string]: any;
 }
 
-export interface BillingRecord {
+export interface IBillingRecord {
   date: Date;
   amount: number;
   status: string;
@@ -65,7 +65,7 @@ export class TenantBillingService {
   /**
    * Update usage metrics
    */
-  async updateUsageMetrics(tenantId: string, metrics: UsageMetrics): Promise<TenantBilling> {
+  async updateUsageMetrics(tenantId: string, metrics: IUsageMetrics): Promise<TenantBilling> {
     const billing = await this.getBillingInfo(tenantId);
 
     billing.usageMetrics = {
@@ -86,7 +86,7 @@ export class TenantBillingService {
   ): Promise<TenantBilling> {
     const billing = await this.getBillingInfo(tenantId);
 
-    const billingRecord: BillingRecord = {
+    const billingRecord: IBillingRecord = {
       date: new Date(),
       amount,
       status: 'paid',
@@ -105,11 +105,11 @@ export class TenantBillingService {
   /**
    * Generate invoice
    */
-  async generateInvoice(tenantId: string): Promise<BillingRecord> {
+  async generateInvoice(tenantId: string): Promise<IBillingRecord> {
     const billing = await this.getBillingInfo(tenantId);
     const amount = Number(billing.monthlyFee);
 
-    const invoice: BillingRecord = {
+    const invoice: IBillingRecord = {
       date: new Date(),
       amount,
       status: 'pending',
@@ -139,7 +139,7 @@ export class TenantBillingService {
   /**
    * Get billing history
    */
-  async getBillingHistory(tenantId: string): Promise<BillingRecord[]> {
+  async getBillingHistory(tenantId: string): Promise<IBillingRecord[]> {
     const billing = await this.getBillingInfo(tenantId);
     return billing.billingHistory || [];
   }

@@ -15,13 +15,13 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
+  IApiResponse,
   ApiQuery,
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { AuditLogService, AuditLogSearchFilters } from './audit-log.service';
+import { AuditLogService, IAuditLogSearchFilters } from './audit-log.service';
 import { AuditLog } from './audit-log.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuditAction, AuditCategory, AuditSeverity } from './enums/audit-action.enum';
@@ -66,7 +66,7 @@ export class AuditLogController {
   @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number', type: Number })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: Number })
-  @ApiResponse({ status: 200, description: 'Search results' })
+  @IApiResponse({ status: 200, description: 'Search results' })
   async search(
     @Query('userId') userId?: string,
     @Query('userEmail') userEmail?: string,
@@ -86,7 +86,7 @@ export class AuditLogController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
   ) {
-    const filters: AuditLogSearchFilters = {};
+    const filters: IAuditLogSearchFilters = {};
 
     if (userId) filters.userId = userId;
     if (userEmail) filters.userEmail = userEmail;
@@ -115,7 +115,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @ApiResponse({ status: 200, description: 'Recent audit logs' })
+  @IApiResponse({ status: 200, description: 'Recent audit logs' })
   async getRecent(
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
   ): Promise<AuditLog[]> {
@@ -131,7 +131,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @ApiResponse({ status: 200, description: 'User audit logs' })
+  @IApiResponse({ status: 200, description: 'User audit logs' })
   async getByUser(
     @Param('userId') userId: string,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
@@ -149,7 +149,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @ApiResponse({ status: 200, description: 'Entity audit logs' })
+  @IApiResponse({ status: 200, description: 'Entity audit logs' })
   async getByEntity(
     @Param('entityType') entityType: string,
     @Param('entityId') entityId: string,
@@ -167,7 +167,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @ApiResponse({ status: 200, description: 'IP audit logs' })
+  @IApiResponse({ status: 200, description: 'IP audit logs' })
   async getByIpAddress(
     @Param('ipAddress') ipAddress: string,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
@@ -177,7 +177,7 @@ export class AuditLogController {
 
   @Get('statistics')
   @ApiOperation({ summary: 'Get audit log statistics' })
-  @ApiResponse({ status: 200, description: 'Statistics' })
+  @IApiResponse({ status: 200, description: 'Statistics' })
   async getStatistics() {
     return this.auditLogService.getStatistics();
   }
@@ -186,7 +186,7 @@ export class AuditLogController {
   @ApiOperation({ summary: 'Generate audit report' })
   @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
   @ApiQuery({ name: 'endDate', required: true, description: 'End date (ISO 8601)' })
-  @ApiResponse({ status: 200, description: 'Audit report' })
+  @IApiResponse({ status: 200, description: 'Audit report' })
   async generateReport(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
     if (!startDate || !endDate) {
       throw new HttpException('Start date and end date are required', HttpStatus.BAD_REQUEST);
@@ -208,7 +208,7 @@ export class AuditLogController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const filters: AuditLogSearchFilters = {};
+    const filters: IAuditLogSearchFilters = {};
     if (userId) filters.userId = userId;
     if (actions) filters.actions = actions.split(',') as AuditAction[];
     if (startDate) filters.startDate = new Date(startDate);
@@ -234,7 +234,7 @@ export class AuditLogController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const filters: AuditLogSearchFilters = {};
+    const filters: IAuditLogSearchFilters = {};
     if (userId) filters.userId = userId;
     if (actions) filters.actions = actions.split(',') as AuditAction[];
     if (startDate) filters.startDate = new Date(startDate);
@@ -249,7 +249,7 @@ export class AuditLogController {
 
   @Post('retention/apply')
   @ApiOperation({ summary: 'Apply retention policy (delete old logs)' })
-  @ApiResponse({ status: 200, description: 'Retention policy applied' })
+  @IApiResponse({ status: 200, description: 'Retention policy applied' })
   async applyRetentionPolicy() {
     const deletedCount = await this.auditLogService.applyRetentionPolicy();
     return {

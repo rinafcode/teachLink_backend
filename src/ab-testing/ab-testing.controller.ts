@@ -12,7 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ABTestingService, CreateExperimentDto } from './ab-testing.service';
+import { ABTestingService, ICreateExperimentDto } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
 import { StatisticalAnalysisService } from './analysis/statistical-analysis.service';
 import { AutomatedDecisionService } from './automation/automated-decision.service';
@@ -51,7 +51,7 @@ export class ABTestingController {
   @Post('experiments')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
-  async createExperiment(@Body() createExperimentDto: CreateExperimentDto): Promise<any> {
+  async createExperiment(@Body() createExperimentDto: ICreateExperimentDto): Promise<any> {
     this.logger.log(`Creating new experiment: ${createExperimentDto.name}`);
     return await this.abTestingService.createExperiment(createExperimentDto);
   }

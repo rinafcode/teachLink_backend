@@ -11,7 +11,7 @@ import { CachingService } from '../caching.service';
 import { CacheStrategiesService } from '../strategies/cache-strategies.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching.constants';
 
-export interface CacheWarmingConfig {
+export interface ICacheWarmingConfig {
   /**
    * Whether cache warming is enabled
    */
@@ -43,7 +43,7 @@ export interface CacheWarmingConfig {
   startupDelay: number;
 }
 
-export interface WarmedData {
+export interface IWarmedData {
   key: string;
   type: string;
   timestamp: Date;
@@ -52,7 +52,7 @@ export interface WarmedData {
 /**
  * Interface for data providers that can be warmed
  */
-export interface CacheWarmableProvider {
+export interface ICacheWarmableProvider {
   /**
    * Get data to warm into cache
    */
@@ -62,16 +62,16 @@ export interface CacheWarmableProvider {
 @Injectable()
 export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheWarmingService.name);
-  private readonly config: CacheWarmingConfig;
-  private warmedKeys: Map<string, WarmedData> = new Map();
+  private readonly config: ICacheWarmingConfig;
+  private warmedKeys: Map<string, IWarmedData> = new Map();
   private warmupInterval?: NodeJS.Timeout;
-  private dataProviders: CacheWarmableProvider[] = [];
+  private dataProviders: ICacheWarmableProvider[] = [];
 
   constructor(
     private readonly cachingService: CachingService,
     private readonly strategiesService: CacheStrategiesService,
     private readonly configService: ConfigService,
-    @Optional() @Inject('CACHE_WARMING_CONFIG') config?: Partial<CacheWarmingConfig>,
+    @Optional() @Inject('CACHE_WARMING_CONFIG') config?: Partial<ICacheWarmingConfig>,
   ) {
     this.config = {
       enabled: this.configService.get<string>('CACHE_WARMING_ENABLED') !== 'false',
@@ -90,7 +90,7 @@ export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
   /**
    * Register a data provider for cache warming
    */
-  registerDataProvider(provider: CacheWarmableProvider): void {
+  registerDataProvider(provider: ICacheWarmableProvider): void {
     this.dataProviders.push(provider);
   }
 
@@ -306,7 +306,7 @@ export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get all warmed keys
    */
-  getWarmedKeys(): WarmedData[] {
+  getWarmedKeys(): IWarmedData[] {
     return Array.from(this.warmedKeys.values());
   }
 }

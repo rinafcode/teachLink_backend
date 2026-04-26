@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 
 /**
  * Migration 004 — Create lesson table
@@ -10,7 +10,7 @@ import { MigrationConfig } from '../migration.service';
  * Depends on: 003-create-course-modules-table
  */
 @Injectable()
-export class CreateLessonsTableMigration implements MigrationConfig {
+export class CreateLessonsTableMigration implements IMigrationConfig {
   name = '004-create-lessons-table';
   version = '1.0.0';
   dependencies = ['003-create-course-modules-table'];

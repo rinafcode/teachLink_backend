@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 
 /**
  * Migration 001 — Create users table
@@ -8,7 +8,7 @@ import { MigrationConfig } from '../migration.service';
  * down: Drops the `users` table and its associated enum types.
  */
 @Injectable()
-export class CreateUsersTableMigration implements MigrationConfig {
+export class CreateUsersTableMigration implements IMigrationConfig {
   name = '001-create-users-table';
   version = '1.0.0';
   dependencies: string[] = [];

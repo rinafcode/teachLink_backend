@@ -18,7 +18,7 @@ import { Translation } from './entities/translation.entity';
 import { bundleCacheKey } from './localization.constants';
 import { LanguageDetectionService } from './language-detection.service';
 
-export interface TranslationListItemDto {
+export interface ITranslationListItemDto {
   id: string;
   namespace: string;
   key: string;
@@ -28,8 +28,8 @@ export interface TranslationListItemDto {
   updatedAt: Date;
 }
 
-export interface PaginatedTranslations {
-  items: TranslationListItemDto[];
+export interface IPaginatedTranslations {
+  items: ITranslationListItemDto[];
   total: number;
   page: number;
   limit: number;
@@ -54,7 +54,7 @@ export class LocalizationService {
     return this.languageDetection.getDefaultLocale();
   }
 
-  private toItem(entity: Translation): TranslationListItemDto {
+  private toItem(entity: Translation): ITranslationListItemDto {
     return {
       id: entity.id,
       namespace: entity.namespace,
@@ -148,7 +148,7 @@ export class LocalizationService {
     return { namespace, locale: loc, messages };
   }
 
-  async create(dto: CreateTranslationDto): Promise<TranslationListItemDto> {
+  async create(dto: CreateTranslationDto): Promise<ITranslationListItemDto> {
     const namespace = dto.namespace.trim();
     const key = dto.key.trim();
     const locale = languageDetectionNormalize(dto.locale);
@@ -192,7 +192,7 @@ export class LocalizationService {
     }
   }
 
-  async findAll(query: ListTranslationsQueryDto): Promise<PaginatedTranslations> {
+  async findAll(query: ListTranslationsQueryDto): Promise<IPaginatedTranslations> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const qb = this.translationRepo.createQueryBuilder('t');
@@ -220,13 +220,13 @@ export class LocalizationService {
     };
   }
 
-  async findOne(id: string): Promise<TranslationListItemDto> {
+  async findOne(id: string): Promise<ITranslationListItemDto> {
     const row = await this.translationRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Translation not found');
     return this.toItem(row);
   }
 
-  async update(id: string, dto: UpdateTranslationDto): Promise<TranslationListItemDto> {
+  async update(id: string, dto: UpdateTranslationDto): Promise<ITranslationListItemDto> {
     const row = await this.translationRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Translation not found');
     const before = { namespace: row.namespace, locale: row.locale };

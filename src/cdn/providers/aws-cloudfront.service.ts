@@ -7,14 +7,14 @@ import {
 } from '@aws-sdk/client-cloudfront';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
-export interface FileUpload {
+export interface IFileUpload {
   originalname: string;
   buffer: Buffer;
   mimetype: string;
   size: number;
 }
 
-export interface AWSCloudFrontConfig {
+export interface IAWSCloudFrontConfig {
   accessKeyId: string;
   secretAccessKey: string;
   region: string;
@@ -22,14 +22,14 @@ export interface AWSCloudFrontConfig {
   bucketName?: string;
 }
 
-export interface UploadResult {
+export interface IUploadResult {
   id: string;
   url: string;
   etag?: string;
   size: number;
 }
 
-export interface PurgeResult {
+export interface IPurgeResult {
   success: boolean;
   purgedUrls: string[];
   failedUrls: string[];
@@ -41,7 +41,7 @@ export class AWSCloudFrontService {
   private readonly logger = new Logger(AWSCloudFrontService.name);
   private readonly cloudfrontClient: CloudFrontClient;
   private readonly s3Client: S3Client;
-  private readonly config: AWSCloudFrontConfig;
+  private readonly config: IAWSCloudFrontConfig;
 
   constructor(private configService: ConfigService) {
     this.config = {
@@ -69,7 +69,7 @@ export class AWSCloudFrontService {
     });
   }
 
-  async uploadFile(file: FileUpload): Promise<UploadResult> {
+  async uploadFile(file: IFileUpload): Promise<IUploadResult> {
     try {
       this.logger.log(`Uploading file ${file.originalname} to AWS CloudFront/S3`);
 
@@ -103,7 +103,7 @@ export class AWSCloudFrontService {
     }
   }
 
-  async purgeUrls(urls: string[]): Promise<PurgeResult> {
+  async purgeUrls(urls: string[]): Promise<IPurgeResult> {
     try {
       this.logger.log(`Creating CloudFront invalidation for ${urls.length} URLs`);
 
@@ -150,7 +150,7 @@ export class AWSCloudFrontService {
     }
   }
 
-  async purgeEverything(): Promise<PurgeResult> {
+  async purgeEverything(): Promise<IPurgeResult> {
     try {
       this.logger.log('Creating CloudFront invalidation for all content');
 

@@ -7,7 +7,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, IApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
@@ -46,15 +46,15 @@ export class HealthController implements OnModuleDestroy {
   }
 
   @Get()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Health check response' })
+  @IApiResponse({ status: HttpStatus.OK, description: 'Health check response' })
   async checkHealth() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
     return healthStatus;
   }
 
   @Get('liveness')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Liveness check response' })
-  @ApiResponse({
+  @IApiResponse({ status: HttpStatus.OK, description: 'Liveness check response' })
+  @IApiResponse({
     status: HttpStatus.SERVICE_UNAVAILABLE,
     description: 'Application is shutting down',
   })
@@ -73,11 +73,11 @@ export class HealthController implements OnModuleDestroy {
   }
 
   @Get('readiness')
-  @ApiResponse({
+  @IApiResponse({
     status: HttpStatus.OK,
     description: 'Readiness check response',
   })
-  @ApiResponse({
+  @IApiResponse({
     status: HttpStatus.SERVICE_UNAVAILABLE,
     description: 'Application is shutting down',
   })

@@ -4,7 +4,7 @@ import { Request } from 'express';
 
 export type LocaleResolutionSource = 'query' | 'header' | 'default';
 
-export interface ResolvedLocale {
+export interface IResolvedLocale {
   locale: string;
   source: LocaleResolutionSource;
 }
@@ -49,7 +49,7 @@ export class LanguageDetectionService {
     return null;
   }
 
-  resolveWithSource(req: Request, queryLang?: string): ResolvedLocale {
+  resolveWithSource(req: Request, queryLang?: string): IResolvedLocale {
     const defaultLocale = this.getDefaultLocale();
 
     if (queryLang) {

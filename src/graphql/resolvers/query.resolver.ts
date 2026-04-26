@@ -1,4 +1,4 @@
-import { PaginatedResponse } from '../../common/utils/pagination.util';
+import { IPaginatedResponse } from '../../common/utils/pagination.util';
 import { Resolver, Query, Args, ID, Context } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { UsersService } from '../../users/users.service';
@@ -42,7 +42,7 @@ export class QueryResolver {
   async users(
     @Args('filter', { type: () => UserFilterInput, nullable: true })
     filter?: UserFilterInput,
-  ): Promise<PaginatedResponse<UserType>> {
+  ): Promise<IPaginatedResponse<UserType>> {
     return this.usersService.findAll(filter);
   }
 
@@ -73,7 +73,7 @@ export class QueryResolver {
   async courses(
     @Args('filter', { type: () => CourseFilterInput, nullable: true })
     filter?: CourseFilterInput,
-  ): Promise<PaginatedResponse<CourseType>> {
+  ): Promise<IPaginatedResponse<CourseType>> {
     return this.coursesService.findAll(filter);
   }
 

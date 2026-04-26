@@ -2,34 +2,34 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { QueueMetrics } from '../interfaces/queue.interfaces';
+import { IQueueMetrics } from '../interfaces/queue.interfaces';
 import { QUEUE_HEALTH_THRESHOLDS } from '../queues.constants';
 
 // ── Exported interfaces
 
-export interface TimestampedMetrics extends QueueMetrics {
+export interface ITimestampedMetrics extends IQueueMetrics {
   /** Unix timestamp (ms) when this snapshot was taken */
   capturedAt: number;
 }
 
-export interface QueueHealthStatus {
+export interface IQueueHealthStatus {
   status: 'healthy' | 'warning' | 'critical';
   issues: string[];
-  metrics: QueueMetrics;
+  metrics: IQueueMetrics;
   timestamp: Date;
 }
 
-export interface QueueStatistics {
-  current: QueueMetrics;
+export interface IQueueStatistics {
+  current: IQueueMetrics;
   trends: {
     completed: 'up' | 'down' | 'stable';
     failed: 'up' | 'down' | 'stable';
     throughput: 'up' | 'down' | 'stable';
   };
-  health: QueueHealthStatus;
+  health: IQueueHealthStatus;
 }
 
-export interface RetryAnalytics {
+export interface IRetryAnalytics {
   windowMinutes: number;
   totalFailed: number;
   totalRetried: number;
@@ -47,7 +47,7 @@ export interface RetryAnalytics {
   >;
 }
 
-export interface BulkRetryResult {
+export interface IBulkRetryResult {
   requeued: number;
   skipped: number;
   errors: Array<{ jobId: string | number; reason: string }>;
@@ -68,7 +68,7 @@ export class QueueMonitoringService {
   private readonly logger = new Logger(QueueMonitoringService.name);
 
   /** Sliding window of metric snapshots (default: last 100 = ~100 minutes) */
-  private readonly metricsHistory: TimestampedMetrics[] = [];
+  private readonly metricsHistory: ITimestampedMetrics[] = [];
   private readonly MAX_HISTORY_SIZE = QUEUE_HEALTH_THRESHOLDS.MAX_HISTORY_SIZE;
 
   // Health thresholds — tune per environment
@@ -89,7 +89,7 @@ export class QueueMonitoringService {
    * Capture and return the current queue metrics.
    * Appends a timestamped snapshot to the in-memory history window.
    */
-  async getQueueMetrics(): Promise<TimestampedMetrics> {
+  async getQueueMetrics(): Promise<ITimestampedMetrics> {
     const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
       this.defaultQueue.getWaitingCount(),
       this.defaultQueue.getActiveCount(),
@@ -105,7 +105,7 @@ export class QueueMonitoringService {
     const throughput = this.calculateThroughput(completed, capturedAt);
     const avgProcessingTime = await this.calculateAvgProcessingTime();
 
-    const metrics: TimestampedMetrics = {
+    const metrics: ITimestampedMetrics = {
       queueName: 'default',
       waiting,
       active,
@@ -127,11 +127,11 @@ export class QueueMonitoringService {
    * Return the in-memory metrics history.
    * Each entry includes a `capturedAt` timestamp so callers can draw charts.
    */
-  getMetricsHistory(): TimestampedMetrics[] {
+  getMetricsHistory(): ITimestampedMetrics[] {
     return [...this.metricsHistory];
   }
 
-  async checkQueueHealth(): Promise<QueueHealthStatus> {
+  async checkQueueHealth(): Promise<IQueueHealthStatus> {
     const metrics = await this.getQueueMetrics();
     const issues: string[] = [];
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
@@ -176,7 +176,7 @@ export class QueueMonitoringService {
     return { status, issues, metrics, timestamp: new Date() };
   }
 
-  async getQueueStatistics(): Promise<QueueStatistics> {
+  async getQueueStatistics(): Promise<IQueueStatistics> {
     const metrics = await this.getQueueMetrics();
     const history = this.metricsHistory;
 
@@ -210,9 +210,9 @@ export class QueueMonitoringService {
    * Retry every currently-failed job.
    * Returns a summary so callers know what happened.
    */
-  async retryAllFailedJobs(): Promise<BulkRetryResult> {
+  async retryAllFailedJobs(): Promise<IBulkRetryResult> {
     const failed = await this.defaultQueue.getFailed(0, 10_000);
-    const result: BulkRetryResult = { requeued: 0, skipped: 0, errors: [] };
+    const result: IBulkRetryResult = { requeued: 0, skipped: 0, errors: [] };
 
     for (const job of failed) {
       try {
@@ -250,7 +250,7 @@ export class QueueMonitoringService {
    * Examines the last N completed+failed jobs and produces per-job-type
    * breakdowns so engineers can tune `maxAttempts` per queue type.
    */
-  async getRetryAnalytics(windowMinutes: number = QUEUE_HEALTH_THRESHOLDS.ANALYTICS_WINDOW_MINUTES): Promise<RetryAnalytics> {
+  async getRetryAnalytics(windowMinutes: number = QUEUE_HEALTH_THRESHOLDS.ANALYTICS_WINDOW_MINUTES): Promise<IRetryAnalytics> {
     const windowMs = windowMinutes * 60 * 1_000;
     const cutoff = Date.now() - windowMs;
 
@@ -270,7 +270,7 @@ export class QueueMonitoringService {
     const retried = recentFailed.filter((j) => j.attemptsMade > 1);
 
     // Per-job-type breakdown
-    const byJobType: RetryAnalytics['byJobType'] = {};
+    const byJobType: IRetryAnalytics['byJobType'] = {};
     const allRecent = [...recentFailed, ...recentCompleted];
     for (const job of allRecent) {
       const bucket = byJobType[job.name] ?? { failed: 0, retried: 0, avgAttempts: 0 };
@@ -364,7 +364,7 @@ export class QueueMonitoringService {
     }
   }
 
-  private appendToHistory(metrics: TimestampedMetrics): void {
+  private appendToHistory(metrics: ITimestampedMetrics): void {
     this.metricsHistory.push(metrics);
     if (this.metricsHistory.length > this.MAX_HISTORY_SIZE) {
       this.metricsHistory.shift();
@@ -397,7 +397,7 @@ export class QueueMonitoringService {
     }
   }
 
-  private async sendAlert(health: QueueHealthStatus): Promise<void> {
+  private async sendAlert(health: IQueueHealthStatus): Promise<void> {
     this.logger.error(
       'QUEUE_ALERT',
       JSON.stringify({

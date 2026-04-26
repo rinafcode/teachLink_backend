@@ -1,18 +1,18 @@
 import { Region } from '../enums/region.enum';
 
-export interface BackupJobData {
+export interface IBackupJobData {
   backupRecordId: string;
   backupType: string;
   region: Region;
   databaseName: string;
 }
 
-export interface VerificationJobData {
+export interface IVerificationJobData {
   backupRecordId: string;
   storageKey: string;
 }
 
-export interface RecoveryTestJobData {
+export interface IRecoveryTestJobData {
   recoveryTestId: string;
   backupRecordId: string;
   testDatabaseName: string;

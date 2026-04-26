@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-interface RegisteredService {
+interface IRegisteredService {
   name: string;
   baseUrl: string;
   healthy: boolean;
@@ -8,13 +8,13 @@ interface RegisteredService {
 
 @Injectable()
 export class ServiceDiscoveryService {
-  private services = new Map<string, RegisteredService>();
+  private services = new Map<string, IRegisteredService>();
 
-  register(service: RegisteredService) {
+  register(service: IRegisteredService) {
     this.services.set(service.name, service);
   }
 
-  async getService(name: string): Promise<RegisteredService> {
+  async getService(name: string): Promise<IRegisteredService> {
     const service = this.services.get(name);
     if (!service || !service.healthy) {
       throw new Error(`Service ${name} unavailable`);

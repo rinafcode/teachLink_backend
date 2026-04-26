@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export interface LocationInfo {
+export interface ILocationInfo {
   country: string;
   region: string;
   city: string;
@@ -12,7 +12,7 @@ export interface LocationInfo {
   connectionType?: string;
 }
 
-export interface EdgeLocation {
+export interface IEdgeLocation {
   id: string;
   name: string;
   country: string;
@@ -25,7 +25,7 @@ export interface EdgeLocation {
 @Injectable()
 export class GeoLocationService {
   private readonly logger = new Logger(GeoLocationService.name);
-  private edgeLocations: EdgeLocation[] = [
+  private edgeLocations: IEdgeLocation[] = [
     {
       id: 'us-east-1',
       name: 'Virginia',
@@ -84,7 +84,7 @@ export class GeoLocationService {
 
   constructor(private configService: ConfigService) {}
 
-  async getLocationInfo(ipAddress: string): Promise<LocationInfo | null> {
+  async getLocationInfo(ipAddress: string): Promise<ILocationInfo | null> {
     try {
       // In real implementation, use a geolocation service like MaxMind or IP-API
       // For now, return mock data based on IP
@@ -131,7 +131,7 @@ export class GeoLocationService {
     return optimalLocation.id;
   }
 
-  async getNearestEdgeLocations(userLocation: string, limit: number = 3): Promise<EdgeLocation[]> {
+  async getNearestEdgeLocations(userLocation: string, limit: number = 3): Promise<IEdgeLocation[]> {
     const userCoords = await this.getCoordinates(userLocation);
     if (!userCoords) {
       return this.edgeLocations.slice(0, limit);
@@ -225,7 +225,7 @@ export class GeoLocationService {
     return degrees * (Math.PI / 180);
   }
 
-  private mockGeolocation(_ipAddress: string): LocationInfo {
+  private mockGeolocation(_ipAddress: string): ILocationInfo {
     // Mock implementation - in real app, use actual geolocation service
     return {
       country: 'US',

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationType } from './entities/notification.entity';
 
-export interface NotificationTemplate {
+export interface INotificationTemplate {
   title: string;
   content: string;
 }
@@ -9,7 +9,7 @@ export interface NotificationTemplate {
 @Injectable()
 export class NotificationTemplatesService {
   private readonly logger = new Logger(NotificationTemplatesService.name);
-  private readonly templates: Map<string, (data: any) => NotificationTemplate> = new Map();
+  private readonly templates: Map<string, (data: any) => INotificationTemplate> = new Map();
 
   constructor() {
     this.registerTemplates();
@@ -37,7 +37,7 @@ export class NotificationTemplatesService {
     }));
   }
 
-  renderTemplate(type: string, data: any): NotificationTemplate {
+  renderTemplate(type: string, data: any): INotificationTemplate {
     const templateFn = this.templates.get(type);
     if (!templateFn) {
       this.logger.warn(`Template callback not found for type: ${type}`);
@@ -50,7 +50,7 @@ export class NotificationTemplatesService {
     return templateFn(data);
   }
 
-  formatForType(n: NotificationTemplate, type: NotificationType): string {
+  formatForType(n: INotificationTemplate, type: NotificationType): string {
     switch (type) {
       case NotificationType.EMAIL:
         return `<h1>${n.title}</h1><p>${n.content}</p>`;
