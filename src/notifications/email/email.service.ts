@@ -7,6 +7,7 @@ import * as path from 'path';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { TIME } from '../../common/constants/time.constants';
 
 export interface EmailOptions {
   to: string;
@@ -58,7 +59,7 @@ export class EmailService {
         attempts: 5,
         backoff: {
           type: 'exponential',
-          delay: 2000,
+          delay: TIME.TWO_SECONDS_MS,
         },
       },
     );
@@ -84,7 +85,7 @@ export class EmailService {
         attempts: 5,
         backoff: {
           type: 'exponential',
-          delay: 2000,
+          delay: TIME.TWO_SECONDS_MS,
         },
       },
     );

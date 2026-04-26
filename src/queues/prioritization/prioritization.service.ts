@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JobPriority } from '../enums/job-priority.enum';
 import { JobOptions } from '../interfaces/queue.interfaces';
+import {
+  PRIORITY_SCORES,
+  PRIORITY_THRESHOLDS,
+  PRIORITY_JOB_CONFIG,
+  JOB_AGE_THRESHOLDS,
+} from '../queues.constants';
 
 /**
  * Job Prioritization Service
@@ -19,10 +25,10 @@ export class PrioritizationService {
     // User tier weight (0-30 points)
     if (factors.userTier) {
       const tierScores = {
-        premium: 30,
-        pro: 20,
-        basic: 10,
-        free: 0,
+        premium: PRIORITY_SCORES.TIER_PREMIUM,
+        pro: PRIORITY_SCORES.TIER_PRO,
+        basic: PRIORITY_SCORES.TIER_BASIC,
+        free: PRIORITY_SCORES.TIER_FREE,
       };
       score += tierScores[factors.userTier] || 0;
     }
@@ -30,10 +36,10 @@ export class PrioritizationService {
     // Urgency weight (0-25 points)
     if (factors.urgency) {
       const urgencyScores = {
-        critical: 25,
-        high: 20,
-        medium: 10,
-        low: 0,
+        critical: PRIORITY_SCORES.URGENCY_CRITICAL,
+        high: PRIORITY_SCORES.URGENCY_HIGH,
+        medium: PRIORITY_SCORES.URGENCY_MEDIUM,
+        low: PRIORITY_SCORES.URGENCY_LOW,
       };
       score += urgencyScores[factors.urgency] || 0;
     }
@@ -41,10 +47,10 @@ export class PrioritizationService {
     // Business impact weight (0-25 points)
     if (factors.businessImpact) {
       const impactScores = {
-        revenue: 25,
-        customer: 20,
-        operational: 15,
-        internal: 5,
+        revenue: PRIORITY_SCORES.IMPACT_REVENUE,
+        customer: PRIORITY_SCORES.IMPACT_CUSTOMER,
+        operational: PRIORITY_SCORES.IMPACT_OPERATIONAL,
+        internal: PRIORITY_SCORES.IMPACT_INTERNAL,
       };
       score += impactScores[factors.businessImpact] || 0;
     }
@@ -56,10 +62,10 @@ export class PrioritizationService {
       const timeLeft = deadline - now;
       const hoursLeft = timeLeft / (1000 * 60 * 60);
 
-      if (hoursLeft < 1) score += 20;
-      else if (hoursLeft < 6) score += 15;
-      else if (hoursLeft < 24) score += 10;
-      else if (hoursLeft < 72) score += 5;
+      if (hoursLeft < 1) score += PRIORITY_SCORES.TIME_WITHIN_1H;
+      else if (hoursLeft < 6) score += PRIORITY_SCORES.TIME_WITHIN_6H;
+      else if (hoursLeft < 24) score += PRIORITY_SCORES.TIME_WITHIN_24H;
+      else if (hoursLeft < 72) score += PRIORITY_SCORES.TIME_WITHIN_72H;
     }
 
     // Map score to priority level
@@ -70,10 +76,10 @@ export class PrioritizationService {
    * Convert numeric score to JobPriority enum
    */
   private scoreToPriority(score: number): JobPriority {
-    if (score >= 70) return JobPriority.CRITICAL;
-    if (score >= 50) return JobPriority.HIGH;
-    if (score >= 30) return JobPriority.NORMAL;
-    if (score >= 15) return JobPriority.LOW;
+    if (score >= PRIORITY_THRESHOLDS.CRITICAL_MIN) return JobPriority.CRITICAL;
+    if (score >= PRIORITY_THRESHOLDS.HIGH_MIN) return JobPriority.HIGH;
+    if (score >= PRIORITY_THRESHOLDS.NORMAL_MIN) return JobPriority.NORMAL;
+    if (score >= PRIORITY_THRESHOLDS.LOW_MIN) return JobPriority.LOW;
     return JobPriority.BACKGROUND;
   }
 
@@ -84,58 +90,58 @@ export class PrioritizationService {
     const optionsMap: Record<JobPriority, Partial<JobOptions>> = {
       [JobPriority.CRITICAL]: {
         priority: JobPriority.CRITICAL,
-        attempts: 5,
-        timeout: 60000,
+        attempts: PRIORITY_JOB_CONFIG.CRITICAL.attempts,
+        timeout: PRIORITY_JOB_CONFIG.CRITICAL.timeoutMs,
         backoff: {
-          type: 'exponential',
-          delay: 1000,
+          type: PRIORITY_JOB_CONFIG.CRITICAL.backoffType,
+          delay: PRIORITY_JOB_CONFIG.CRITICAL.backoffDelayMs,
         },
-        removeOnComplete: false,
-        removeOnFail: false,
+        removeOnComplete: PRIORITY_JOB_CONFIG.CRITICAL.removeOnComplete,
+        removeOnFail: PRIORITY_JOB_CONFIG.CRITICAL.removeOnFail,
       },
       [JobPriority.HIGH]: {
         priority: JobPriority.HIGH,
-        attempts: 4,
-        timeout: 45000,
+        attempts: PRIORITY_JOB_CONFIG.HIGH.attempts,
+        timeout: PRIORITY_JOB_CONFIG.HIGH.timeoutMs,
         backoff: {
-          type: 'exponential',
-          delay: 2000,
+          type: PRIORITY_JOB_CONFIG.HIGH.backoffType,
+          delay: PRIORITY_JOB_CONFIG.HIGH.backoffDelayMs,
         },
-        removeOnComplete: true,
-        removeOnFail: false,
+        removeOnComplete: PRIORITY_JOB_CONFIG.HIGH.removeOnComplete,
+        removeOnFail: PRIORITY_JOB_CONFIG.HIGH.removeOnFail,
       },
       [JobPriority.NORMAL]: {
         priority: JobPriority.NORMAL,
-        attempts: 3,
-        timeout: 30000,
+        attempts: PRIORITY_JOB_CONFIG.NORMAL.attempts,
+        timeout: PRIORITY_JOB_CONFIG.NORMAL.timeoutMs,
         backoff: {
-          type: 'exponential',
-          delay: 3000,
+          type: PRIORITY_JOB_CONFIG.NORMAL.backoffType,
+          delay: PRIORITY_JOB_CONFIG.NORMAL.backoffDelayMs,
         },
-        removeOnComplete: true,
-        removeOnFail: false,
+        removeOnComplete: PRIORITY_JOB_CONFIG.NORMAL.removeOnComplete,
+        removeOnFail: PRIORITY_JOB_CONFIG.NORMAL.removeOnFail,
       },
       [JobPriority.LOW]: {
         priority: JobPriority.LOW,
-        attempts: 2,
-        timeout: 20000,
+        attempts: PRIORITY_JOB_CONFIG.LOW.attempts,
+        timeout: PRIORITY_JOB_CONFIG.LOW.timeoutMs,
         backoff: {
-          type: 'fixed',
-          delay: 5000,
+          type: PRIORITY_JOB_CONFIG.LOW.backoffType,
+          delay: PRIORITY_JOB_CONFIG.LOW.backoffDelayMs,
         },
-        removeOnComplete: true,
-        removeOnFail: true,
+        removeOnComplete: PRIORITY_JOB_CONFIG.LOW.removeOnComplete,
+        removeOnFail: PRIORITY_JOB_CONFIG.LOW.removeOnFail,
       },
       [JobPriority.BACKGROUND]: {
         priority: JobPriority.BACKGROUND,
-        attempts: 1,
-        timeout: 15000,
+        attempts: PRIORITY_JOB_CONFIG.BACKGROUND.attempts,
+        timeout: PRIORITY_JOB_CONFIG.BACKGROUND.timeoutMs,
         backoff: {
-          type: 'fixed',
-          delay: 10000,
+          type: PRIORITY_JOB_CONFIG.BACKGROUND.backoffType,
+          delay: PRIORITY_JOB_CONFIG.BACKGROUND.backoffDelayMs,
         },
-        removeOnComplete: true,
-        removeOnFail: true,
+        removeOnComplete: PRIORITY_JOB_CONFIG.BACKGROUND.removeOnComplete,
+        removeOnFail: PRIORITY_JOB_CONFIG.BACKGROUND.removeOnFail,
       },
     };
 
@@ -149,14 +155,14 @@ export class PrioritizationService {
     const ageInHours = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
 
     // Increase priority for jobs waiting too long
-    if (ageInHours > 24 && currentPriority > JobPriority.CRITICAL) {
+    if (ageInHours > JOB_AGE_THRESHOLDS.LONG_WAIT_HOURS && currentPriority > JobPriority.CRITICAL) {
       this.logger.log(
         `Increasing priority for job older than 24 hours: ${currentPriority} -> ${currentPriority - 1}`,
       );
       return (currentPriority - 1) as JobPriority;
     }
 
-    if (ageInHours > 12 && currentPriority > JobPriority.HIGH) {
+    if (ageInHours > JOB_AGE_THRESHOLDS.EXTENDED_WAIT_HOURS && currentPriority > JobPriority.HIGH) {
       this.logger.log(
         `Increasing priority for job older than 12 hours: ${currentPriority} -> ${currentPriority - 1}`,
       );

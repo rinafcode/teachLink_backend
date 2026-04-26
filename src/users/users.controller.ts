@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
 import { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -56,7 +57,7 @@ export class UsersController {
   }
 
   @Post('me/export')
-  @Throttle({ default: { limit: 3, ttl: 3600000 } })
+  @Throttle({ default: THROTTLE.STRICT })
   @ApiOperation({ summary: 'Request user data export (JSON or PDF)' })
   requestDataExport(
     @CurrentUser() user: { userId: string },

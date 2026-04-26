@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { TIME } from '../../common/constants/time.constants';
 
 export interface ReplicationEvent {
   entityId: string;
@@ -46,7 +47,7 @@ export class ReplicationService {
       attempts: 5,
       backoff: {
         type: 'exponential',
-        delay: 2000,
+        delay: TIME.TWO_SECONDS_MS,
       },
     });
 

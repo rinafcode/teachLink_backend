@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { COURSES_INDEX } from '../search.service';
+import { SEARCH_CONSTANTS } from '../search.constants';
 
 @Injectable()
 export class AutoCompleteService {
@@ -15,14 +16,14 @@ export class AutoCompleteService {
     const result = await this.elasticsearchService.search({
       index: COURSES_INDEX,
       _source: false,
-      timeout: '1000ms',
+      timeout: SEARCH_CONSTANTS.AUTOCOMPLETE_TIMEOUT,
       suggest: {
         title_suggest: {
           text: sanitizedQuery,
           completion: {
             field: 'title.suggest',
             skip_duplicates: true,
-            size: 10,
+            size: SEARCH_CONSTANTS.AUTOCOMPLETE_SIZE,
           },
         },
       },

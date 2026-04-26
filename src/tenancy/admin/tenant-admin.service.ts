@@ -6,6 +6,7 @@ import { Tenant, TenantStatus, TenantPlan } from '../entities/tenant.entity';
 import { TenantConfig } from '../entities/tenant-config.entity';
 import { TenantBilling } from '../entities/tenant-billing.entity';
 import { TenantCustomization } from '../entities/tenant-customization.entity';
+import { TENANT_PLAN_LIMITS, TENANT_HEALTH_SCORE, TENANT_DEFAULTS } from '../tenancy.constants';
 
 export interface TenantStatistics {
   totalUsers: number;
@@ -135,33 +136,33 @@ export class TenantAdminService {
     }
 
     const issues: string[] = [];
-    let score = 100;
+    let score = TENANT_HEALTH_SCORE.MAX_SCORE;
 
     // Check if tenant is suspended
     if (tenant.status === TenantStatus.SUSPENDED) {
       issues.push('Tenant is suspended');
-      score -= 50;
+      score -= TENANT_HEALTH_SCORE.SUSPENSION_PENALTY;
     }
 
     // Check if approaching user limit
     const userUsagePercent = (tenant.currentUserCount / tenant.userLimit) * 100;
-    if (userUsagePercent > 90) {
+    if (userUsagePercent > TENANT_HEALTH_SCORE.USAGE_WARNING_PERCENT) {
       issues.push('Approaching user limit');
-      score -= 10;
+      score -= TENANT_HEALTH_SCORE.USAGE_LIMIT_PENALTY;
     }
 
     // Check if approaching storage limit
     const storageUsagePercent = (tenant.currentStorageUsage / tenant.storageLimit) * 100;
-    if (storageUsagePercent > 90) {
+    if (storageUsagePercent > TENANT_HEALTH_SCORE.USAGE_WARNING_PERCENT) {
       issues.push('Approaching storage limit');
-      score -= 10;
+      score -= TENANT_HEALTH_SCORE.USAGE_LIMIT_PENALTY;
     }
 
     // Check billing status
     const billing = await this.billingRepository.findOne({ where: { tenantId } });
     if (billing && Number(billing.currentBalance) > 0) {
       issues.push('Outstanding billing balance');
-      score -= 15;
+      score -= TENANT_HEALTH_SCORE.OUTSTANDING_BALANCE_PENALTY;
     }
 
     // Check if trial expired
@@ -171,11 +172,11 @@ export class TenantAdminService {
       tenant.trialEndsAt < new Date()
     ) {
       issues.push('Trial period expired');
-      score -= 20;
+      score -= TENANT_HEALTH_SCORE.TRIAL_EXPIRED_PENALTY;
     }
 
     return {
-      status: score > 70 ? 'healthy' : score > 40 ? 'warning' : 'critical',
+      status: score > TENANT_HEALTH_SCORE.HEALTHY_THRESHOLD ? 'healthy' : score > TENANT_HEALTH_SCORE.WARNING_THRESHOLD ? 'warning' : 'critical',
       issues,
       score,
     };
@@ -226,7 +227,7 @@ export class TenantAdminService {
    */
   async getAllTenants(
     page: number = 1,
-    limit: number = 10,
+    limit: number = TENANT_DEFAULTS.DEFAULT_PAGE_SIZE,
   ): Promise<{ tenants: Tenant[]; total: number }> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
@@ -255,13 +256,6 @@ export class TenantAdminService {
    * Get plan limits
    */
   private getPlanLimits(plan: TenantPlan): { userLimit: number; storageLimit: number } {
-    const limits = {
-      [TenantPlan.FREE]: { userLimit: 10, storageLimit: 1024 }, // 1GB
-      [TenantPlan.BASIC]: { userLimit: 50, storageLimit: 10240 }, // 10GB
-      [TenantPlan.PROFESSIONAL]: { userLimit: 200, storageLimit: 51200 }, // 50GB
-      [TenantPlan.ENTERPRISE]: { userLimit: -1, storageLimit: -1 }, // Unlimited
-    };
-
-    return limits[plan] || limits[TenantPlan.FREE];
+    return TENANT_PLAN_LIMITS[plan] || TENANT_PLAN_LIMITS.FREE;
   }
 }

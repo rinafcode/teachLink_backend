@@ -4,6 +4,7 @@ import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
+import { SEARCH_CONSTANTS } from './search.constants';
 
 export const COURSES_INDEX = 'courses';
 export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
@@ -52,9 +53,9 @@ export class SearchService {
   ) {}
 
   async performSearch(query: string, filters: any, sort?: string, options: SearchOptions = {}) {
-    const sanitizedQuery = (query ?? '').trim().slice(0, 200);
+    const sanitizedQuery = (query ?? '').trim().slice(0, SEARCH_CONSTANTS.MAX_QUERY_LENGTH);
     const page = Math.max(1, options.page ?? 1);
-    const limit = Math.min(50, Math.max(1, options.limit ?? 20));
+    const limit = Math.min(SEARCH_CONSTANTS.MAX_PAGE_SIZE, Math.max(1, options.limit ?? SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE));
     const from = (page - 1) * limit;
     const normalizedFilters = this.normalizeFilters(filters);
     const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(
@@ -73,8 +74,8 @@ export class SearchService {
           index: COURSES_INDEX,
           from,
           size: limit,
-          timeout: '1500ms',
-          track_total_hits: 10000,
+          timeout: SEARCH_CONSTANTS.ELASTICSEARCH_TIMEOUT,
+          track_total_hits: SEARCH_CONSTANTS.TRACK_TOTAL_HITS,
           _source: SEARCH_SOURCE_FIELDS,
           query: {
             function_score: {
@@ -83,7 +84,7 @@ export class SearchService {
                 {
                   field_value_factor: {
                     field: 'views',
-                    factor: 0.1,
+                    factor: SEARCH_CONSTANTS.VIEWS_BOOST_FACTOR,
                     modifier: 'log1p' as const,
                     missing: 1,
                   },
@@ -91,7 +92,7 @@ export class SearchService {
                 {
                   field_value_factor: {
                     field: 'rating',
-                    factor: 0.5,
+                    factor: SEARCH_CONSTANTS.RATING_BOOST_FACTOR,
                     modifier: 'none' as const,
                     missing: 0,
                   },
@@ -102,7 +103,7 @@ export class SearchService {
                       origin: 'now',
                       scale: '90d',
                       offset: '7d',
-                      decay: 0.5,
+                      decay: SEARCH_CONSTANTS.TIME_DECAY_FACTOR,
                     },
                   },
                 },
@@ -116,7 +117,7 @@ export class SearchService {
             ? {
                 fields: {
                   title: {},
-                  description: { fragment_size: 150, number_of_fragments: 1 },
+                  description: { fragment_size: SEARCH_CONSTANTS.HIGHLIGHT_FRAGMENT_SIZE, number_of_fragments: SEARCH_CONSTANTS.HIGHLIGHT_NUM_FRAGMENTS },
                 },
               }
             : undefined,
@@ -126,7 +127,7 @@ export class SearchService {
             price_ranges: {
               range: {
                 field: 'price',
-                ranges: [{ to: 50 }, { from: 50, to: 100 }, { from: 100, to: 200 }, { from: 200 }],
+                ranges: [{ to: SEARCH_CONSTANTS.PRICE_RANGES.LOW }, { from: SEARCH_CONSTANTS.PRICE_RANGES.LOW, to: SEARCH_CONSTANTS.PRICE_RANGES.MID }, { from: SEARCH_CONSTANTS.PRICE_RANGES.MID, to: SEARCH_CONSTANTS.PRICE_RANGES.HIGH }, { from: SEARCH_CONSTANTS.PRICE_RANGES.HIGH }],
               },
             },
           },
@@ -195,7 +196,7 @@ export class SearchService {
       aggs: {
         total_searches: { value_count: { field: 'query.keyword' } },
         top_queries: {
-          terms: { field: 'query.keyword', size: 10 },
+          terms: { field: 'query.keyword', size: SEARCH_CONSTANTS.TOP_QUERIES_SIZE },
           aggs: {
             avg_results: { avg: { field: 'resultsCount' } },
           },
@@ -203,7 +204,7 @@ export class SearchService {
         zero_result_queries: {
           filter: { term: { resultsCount: 0 } },
           aggs: {
-            queries: { terms: { field: 'query.keyword', size: 10 } },
+            queries: { terms: { field: 'query.keyword', size: SEARCH_CONSTANTS.TOP_QUERIES_SIZE } },
           },
         },
         searches_over_time: {
@@ -348,7 +349,7 @@ export class SearchService {
     filters: any,
     sort?: string,
     page = 1,
-    limit = 20,
+    limit: number = SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE,
   ): string {
     const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}:${page}:${limit}`;
     let hash = 0;

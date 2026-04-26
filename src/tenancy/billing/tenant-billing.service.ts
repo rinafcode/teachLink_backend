@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
 import { Tenant } from '../entities/tenant.entity';
+import { TENANT_BILLING_RATES } from '../tenancy.constants';
 
 export interface UsageMetrics {
   activeUsers?: number;
@@ -153,9 +154,9 @@ export class TenantBillingService {
     let cost = 0;
 
     // Example pricing logic (customize as needed)
-    cost += (metrics.activeUsers || 0) * 5; // $5 per active user
-    cost += ((metrics.storageUsed || 0) / 1024) * 0.1; // $0.10 per GB
-    cost += ((metrics.apiCalls || 0) / 1000) * 0.01; // $0.01 per 1000 API calls
+    cost += (metrics.activeUsers || 0) * TENANT_BILLING_RATES.COST_PER_ACTIVE_USER;
+    cost += ((metrics.storageUsed || 0) / 1024) * TENANT_BILLING_RATES.STORAGE_COST_PER_GB;
+    cost += ((metrics.apiCalls || 0) / 1000) * TENANT_BILLING_RATES.API_COST_PER_THOUSAND;
 
     return cost;
   }
@@ -190,9 +191,9 @@ export class TenantBillingService {
   private calculateMonthlyFee(plan: string): number {
     const pricing = {
       free: 0,
-      basic: 29,
-      professional: 99,
-      enterprise: 299,
+      basic: TENANT_BILLING_RATES.MONTHLY_FEE_BASIC,
+      professional: TENANT_BILLING_RATES.MONTHLY_FEE_PROFESSIONAL,
+      enterprise: TENANT_BILLING_RATES.MONTHLY_FEE_ENTERPRISE,
     };
     return pricing[plan] || 0;
   }

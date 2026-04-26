@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { TIME } from '../../common/constants/time.constants';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
@@ -70,7 +71,7 @@ export class WebhookQueueService {
         attempts: 1, // Let our processor handle retries
         backoff: {
           type: 'exponential',
-          delay: 1000,
+          delay: TIME.ONE_SECOND_MS,
         },
         removeOnComplete: false,
         removeOnFail: false,
@@ -128,7 +129,7 @@ export class WebhookQueueService {
         attempts: 1,
         backoff: {
           type: 'exponential',
-          delay: 1000,
+          delay: TIME.ONE_SECOND_MS,
         },
         removeOnComplete: false,
         removeOnFail: false,

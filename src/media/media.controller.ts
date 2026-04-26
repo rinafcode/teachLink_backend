@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
 import {
   ApiTags,
   ApiOperation,
@@ -41,7 +42,7 @@ export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('upload')
-  @Throttle({ default: { limit: 10, ttl: 3600000 } })
+  @Throttle({ default: THROTTLE.MODERATE })
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file', MEDIA_UPLOAD_INTERCEPTOR_OPTIONS))
   @ApiOperation({ summary: 'Upload media file with full validation' })

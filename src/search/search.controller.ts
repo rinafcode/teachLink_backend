@@ -1,8 +1,9 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
 import { SearchService } from './search.service';
 
-@Throttle({ default: { limit: 30, ttl: 60000 } })
+@Throttle({ default: THROTTLE.SEARCH })
 @Controller('search')
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}

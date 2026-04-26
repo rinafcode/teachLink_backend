@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RetryStrategy } from '../interfaces/queue.interfaces';
+import { RETRY_STRATEGIES } from '../queues.constants';
 
 /**
  * Retry Logic Service
@@ -81,48 +82,18 @@ export class RetryLogicService {
    * Get default retry strategy based on job type
    */
   getDefaultStrategy(jobType: string): RetryStrategy {
-    const strategies: Record<string, RetryStrategy> = {
-      email: {
-        maxAttempts: 5,
-        backoffType: 'exponential',
-        initialDelay: 2000,
-        maxDelay: 60000,
-        multiplier: 2,
-      },
-      payment: {
-        maxAttempts: 3,
-        backoffType: 'exponential',
-        initialDelay: 5000,
-        maxDelay: 30000,
-        multiplier: 2,
-      },
-      notification: {
-        maxAttempts: 4,
-        backoffType: 'exponential',
-        initialDelay: 1000,
-        maxDelay: 20000,
-        multiplier: 2,
-      },
-      backup: {
-        maxAttempts: 3,
-        backoffType: 'fixed',
-        initialDelay: 10000,
-      },
-      report: {
-        maxAttempts: 2,
-        backoffType: 'fixed',
-        initialDelay: 5000,
-      },
-      default: {
-        maxAttempts: 3,
-        backoffType: 'exponential',
-        initialDelay: 3000,
-        maxDelay: 30000,
-        multiplier: 2,
-      },
-    };
+    const strategy = RETRY_STRATEGIES[jobType.toLowerCase() as keyof typeof RETRY_STRATEGIES] || RETRY_STRATEGIES.DEFAULT;
+    return this.mapRetryStrategy(strategy);
+  }
 
-    return strategies[jobType] || strategies.default;
+  private mapRetryStrategy(strategy: typeof RETRY_STRATEGIES[keyof typeof RETRY_STRATEGIES]): RetryStrategy {
+    return {
+      maxAttempts: strategy.maxAttempts,
+      backoffType: strategy.backoffType,
+      initialDelay: strategy.initialDelayMs,
+      maxDelay: 'maxDelayMs' in strategy ? strategy.maxDelayMs : undefined,
+      multiplier: 'multiplier' in strategy ? strategy.multiplier : undefined,
+    };
   }
 
   /**

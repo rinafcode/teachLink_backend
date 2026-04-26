@@ -14,6 +14,7 @@ import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES, CACHE_EVENTS } from '../caching/caching.constants';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
+import { USER_CONSTANTS } from './user.constants';
 
 @Injectable()
 export class UsersService {
@@ -34,7 +35,7 @@ export class UsersService {
     ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
     // Hash password
-    const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || 10;
+    const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || USER_CONSTANTS.BCRYPT_ROUNDS;
     const hashedPassword = await bcrypt.hash(createUserDto.password, bcryptRounds);
 
     // Create user
