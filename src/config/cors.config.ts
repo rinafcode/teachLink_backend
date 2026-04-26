@@ -1,4 +1,5 @@
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { TIME } from '../common/constants/time.constants';
 
 /**
  * CORS configuration for the TeachLink API.
@@ -66,5 +67,5 @@ export const corsConfig: CorsOptions = {
   /**
    * Configures how long the results of a preflight request can be cached.
    */
-  maxAge: 3600,
+  maxAge: TIME.ONE_HOUR_SECONDS,
 };

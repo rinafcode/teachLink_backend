@@ -2,6 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Injectable, Logger } from '@nestjs/common';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { TIME } from '../../common/constants/time.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook-retry.entity';
@@ -51,8 +52,8 @@ export class WebhookRetryProcessor {
   private readonly logger = new Logger(WebhookRetryProcessor.name);
 
   // Exponential backoff configuration
-  private readonly initialDelayMs = 1000; // 1 second
-  private readonly maxDelayMs = 3600000; // 1 hour
+  private readonly initialDelayMs = TIME.ONE_SECOND_MS; // 1 second
+  private readonly maxDelayMs = TIME.ONE_HOUR_MS; // 1 hour
   private readonly backoffMultiplier = 2;
 
   constructor(

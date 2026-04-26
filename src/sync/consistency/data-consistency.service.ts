@@ -4,6 +4,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { APP_EVENTS } from '../../common/constants/event.constants';
+import { TIME } from '../../common/constants/time.constants';
 
 export interface IntegrityCheckResult {
   consistent: boolean;
@@ -38,7 +39,7 @@ export class DataConsistencyService {
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 1000,
+          delay: TIME.ONE_SECOND_MS,
         },
       },
     );

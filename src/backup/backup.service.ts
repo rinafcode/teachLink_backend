@@ -18,6 +18,7 @@ import {
   ScheduledTaskConfig,
   ScheduledTaskMonitoringService,
 } from '../monitoring/scheduled-task-monitoring.service';
+import { TIME } from '../common/constants/time.constants';
 
 @Injectable()
 export class BackupService {
@@ -48,16 +49,16 @@ export class BackupService {
     );
     this.scheduledTaskTimeoutMs = this.configService.get<number>(
       'BACKUP_SCHEDULED_TASK_TIMEOUT_MS',
-      30 * 60 * 1000,
+      30 * TIME.ONE_MINUTE_MS,
     );
 
     this.scheduledTaskMonitoringService.registerTask('weekly-database-backup', {
-      expectedIntervalMs: 7 * 24 * 60 * 60 * 1000,
+      expectedIntervalMs: 7 * TIME.ONE_DAY_SECONDS * 1000,
       timeoutMs: this.scheduledTaskTimeoutMs,
       maxRetries: this.scheduledTaskRetryLimit,
     });
     this.scheduledTaskMonitoringService.registerTask('cleanup-expired-backups', {
-      expectedIntervalMs: 24 * 60 * 60 * 1000,
+      expectedIntervalMs: TIME.ONE_DAY_SECONDS * 1000,
       timeoutMs: this.scheduledTaskTimeoutMs,
       maxRetries: this.scheduledTaskRetryLimit,
     });
@@ -115,9 +116,9 @@ export class BackupService {
             attempts: 3,
             backoff: {
               type: 'exponential',
-              delay: 10000,
+              delay: TIME.TEN_SECONDS_MS,
             },
-            timeout: 3600000, // 1 hour timeout
+            timeout: TIME.ONE_HOUR_MS, // 1 hour timeout
           },
         );
 
@@ -162,7 +163,7 @@ export class BackupService {
             { backupRecordId: backup.id },
             {
               attempts: 3,
-              backoff: { type: 'exponential', delay: 5000 },
+              backoff: { type: 'exponential', delay: TIME.FIVE_SECONDS_MS },
             },
           );
         }

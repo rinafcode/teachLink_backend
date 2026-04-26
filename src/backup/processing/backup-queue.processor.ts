@@ -21,9 +21,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { KMSClient, EncryptCommand } from '@aws-sdk/client-kms';
 import { S3Client, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { TIME } from '../../common/constants/time.constants';
 
 const execAsync = promisify(exec);
-const MAX_RETRIES = 3;
+const BACKUP_MAX_RETRIES = 3;
 
 @Processor(QUEUE_NAMES.BACKUP_PROCESSING)
 export class BackupQueueProcessor {
@@ -141,7 +142,7 @@ export class BackupQueueProcessor {
         { backupRecordId, storageKey: encryptedKey },
         {
           attempts: 3,
-          backoff: { type: 'exponential', delay: 5000 },
+          backoff: { type: 'exponential', delay: TIME.FIVE_SECONDS_MS },
         },
       );
 
@@ -299,7 +300,7 @@ export class BackupQueueProcessor {
     backup.retryCount = attemptsMade;
     backup.errorMessage = error.message;
 
-    if (attemptsMade >= MAX_RETRIES) {
+    if (attemptsMade >= BACKUP_MAX_RETRIES) {
       backup.status = BackupStatus.FAILED;
       this.logger.error(`Max retries exceeded for backup ${backup.id}`);
     }

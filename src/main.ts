@@ -23,6 +23,7 @@ import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
+import { TIME, BYTES } from './common/constants/time.constants';
 
 type SessionRequest = Request & {
   session?: Session & Partial<SessionData> & { userAgent?: string };
@@ -33,7 +34,7 @@ async function bootstrapWorker(): Promise<void> {
   const bootstrapStartTime = Date.now();
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '1mb';
   const fileUploadMaxBytes = parseInt(
-    process.env.FILE_UPLOAD_MAX_BYTES || `${10 * 1024 * 1024}`,
+    process.env.FILE_UPLOAD_MAX_BYTES || `${10 * BYTES.ONE_MB_BYTES}`,
     10,
   );
 
@@ -51,7 +52,7 @@ async function bootstrapWorker(): Promise<void> {
   app.use(
     helmet({
       hsts: {
-        maxAge: 31536000,
+        maxAge: TIME.ONE_YEAR_SECONDS,
         includeSubDomains: true,
         preload: true,
       },

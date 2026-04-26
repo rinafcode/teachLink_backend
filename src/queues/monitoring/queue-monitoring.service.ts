@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueMetrics } from '../interfaces/queue.interfaces';
+import { QUEUE_HEALTH_THRESHOLDS } from '../queues.constants';
 
 // ── Exported interfaces
 
@@ -68,18 +69,18 @@ export class QueueMonitoringService {
 
   /** Sliding window of metric snapshots (default: last 100 = ~100 minutes) */
   private readonly metricsHistory: TimestampedMetrics[] = [];
-  private readonly MAX_HISTORY_SIZE = 100;
+  private readonly MAX_HISTORY_SIZE = QUEUE_HEALTH_THRESHOLDS.MAX_HISTORY_SIZE;
 
   // Health thresholds — tune per environment
   private readonly THRESHOLDS = {
-    failureRateCritical: 0.2, // 20 %
-    failureRateWarning: 0.1, // 10 %
-    backlogCritical: 5_000,
-    backlogWarning: 1_000,
-    activeJobsCritical: 500,
-    activeJobsWarning: 100,
-    delayedJobsWarning: 500,
-    stuckThresholdMs: 300_000, // 5 min
+    failureRateCritical: QUEUE_HEALTH_THRESHOLDS.FAILURE_RATE_CRITICAL,
+    failureRateWarning: QUEUE_HEALTH_THRESHOLDS.FAILURE_RATE_WARNING,
+    backlogCritical: QUEUE_HEALTH_THRESHOLDS.BACKLOG_CRITICAL,
+    backlogWarning: QUEUE_HEALTH_THRESHOLDS.BACKLOG_WARNING,
+    activeJobsCritical: QUEUE_HEALTH_THRESHOLDS.ACTIVE_JOBS_CRITICAL,
+    activeJobsWarning: QUEUE_HEALTH_THRESHOLDS.ACTIVE_JOBS_WARNING,
+    delayedJobsWarning: QUEUE_HEALTH_THRESHOLDS.DELAYED_JOBS_WARNING,
+    stuckThresholdMs: QUEUE_HEALTH_THRESHOLDS.STUCK_THRESHOLD_MS,
   } as const;
 
   constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
@@ -232,7 +233,7 @@ export class QueueMonitoringService {
 
   // ── Public API: stuck jobs
 
-  async getStuckJobs(thresholdMs: number = 300_000): Promise<Job[]> {
+  async getStuckJobs(thresholdMs: number = QUEUE_HEALTH_THRESHOLDS.STUCK_THRESHOLD_MS): Promise<Job[]> {
     const activeJobs = await this.defaultQueue.getActive();
     const now = Date.now();
     return activeJobs.filter((job) => {
@@ -249,7 +250,7 @@ export class QueueMonitoringService {
    * Examines the last N completed+failed jobs and produces per-job-type
    * breakdowns so engineers can tune `maxAttempts` per queue type.
    */
-  async getRetryAnalytics(windowMinutes: number = 60): Promise<RetryAnalytics> {
+  async getRetryAnalytics(windowMinutes: number = QUEUE_HEALTH_THRESHOLDS.ANALYTICS_WINDOW_MINUTES): Promise<RetryAnalytics> {
     const windowMs = windowMinutes * 60 * 1_000;
     const cutoff = Date.now() - windowMs;
 

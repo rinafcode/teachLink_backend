@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -39,7 +40,7 @@ import {
 @ApiTags('queues')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@Throttle({ default: THROTTLE.QUEUE_ADMIN })
 @Controller('queues')
 export class QueueController {
   constructor(

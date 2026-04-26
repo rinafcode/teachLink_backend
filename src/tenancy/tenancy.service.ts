@@ -8,6 +8,7 @@ import { TenantCustomization } from './entities/tenant-customization.entity';
 import { CreateTenantDto, UpdateTenantDto, UpdateTenantConfigDto } from './dto/tenant.dto';
 import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
+import { TENANT_DEFAULTS } from './tenancy.constants';
 
 @Injectable()
 export class TenancyService {
@@ -41,8 +42,8 @@ export class TenancyService {
     // Create tenant
     const tenant = this.tenantRepository.create({
       ...createTenantDto,
-      userLimit: createTenantDto.userLimit || 10,
-      storageLimit: createTenantDto.storageLimit || 1024,
+      userLimit: createTenantDto.userLimit || TENANT_DEFAULTS.USER_LIMIT,
+      storageLimit: createTenantDto.storageLimit || TENANT_DEFAULTS.STORAGE_LIMIT_MB,
     });
 
     const savedTenant = await this.tenantRepository.save(tenant);
@@ -62,7 +63,7 @@ export class TenancyService {
    */
   async findAll(
     page: number = 1,
-    limit: number = 10,
+    limit: number = TENANT_DEFAULTS.DEFAULT_PAGE_SIZE,
   ): Promise<{ tenants: Tenant[]; total: number; page: number; totalPages: number }> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
@@ -187,7 +188,7 @@ export class TenancyService {
           requireSpecialChars: true,
           requireUppercase: true,
         },
-        sessionTimeout: 3600,
+        sessionTimeout: TENANT_DEFAULTS.SESSION_TIMEOUT_SECONDS,
       },
     });
 

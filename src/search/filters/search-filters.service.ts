@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { COURSES_INDEX } from '../search.service';
+import { SEARCH_CONSTANTS } from '../search.constants';
 
 @Injectable()
 export class SearchFiltersService {
@@ -11,11 +12,11 @@ export class SearchFiltersService {
       index: COURSES_INDEX,
       size: 0,
       _source: false,
-      timeout: '1500ms',
+      timeout: SEARCH_CONSTANTS.ELASTICSEARCH_TIMEOUT,
       aggs: {
-        categories: { terms: { field: 'category', size: 50 } },
-        levels: { terms: { field: 'level', size: 10 } },
-        languages: { terms: { field: 'language', size: 30 } },
+        categories: { terms: { field: 'category', size: SEARCH_CONSTANTS.AGG_CATEGORIES_SIZE } },
+        levels: { terms: { field: 'level', size: SEARCH_CONSTANTS.AGG_LEVELS_SIZE } },
+        languages: { terms: { field: 'language', size: SEARCH_CONSTANTS.AGG_LANGUAGES_SIZE } },
         price_stats: { stats: { field: 'price' } },
         price_ranges: {
           range: {
