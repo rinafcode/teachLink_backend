@@ -19,21 +19,9 @@ export class MonitoringService {
     this.logger.debug('Running system performance analysis...');
     const analysis = await this.analysisService.analyze();
 
-    // Check for alerts
-    if (analysis.cpuLoad > 80) {
-      this.alertingService.sendAlert(
-        'CPU_HIGH',
-        `CPU Load is at ${analysis.cpuLoad.toFixed(2)}%`,
-        'WARNING',
-      );
-    }
-    if (analysis.memoryUsage > 90) {
-      this.alertingService.sendAlert(
-        'MEMORY_HIGH',
-        `Memory Usage is at ${analysis.memoryUsage.toFixed(2)}%`,
-        'WARNING',
-      );
-    }
+    // Evaluate metrics against defined alert thresholds
+    this.alertingService.evaluateMetricThreshold('cpu_load', analysis.cpuLoad);
+    this.alertingService.evaluateMetricThreshold('memory_usage', analysis.memoryUsage);
 
     // Get optimization recommendations
     const recommendations = this.optimizationService.getOptimizationRecommendations(analysis);
