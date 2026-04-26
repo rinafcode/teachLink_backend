@@ -55,6 +55,8 @@ import { LocalizationModule } from './localization/localization.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
+import { LogShipperService } from './common/services/log-shipper.service';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Global()
 @Module({})
@@ -380,6 +382,11 @@ export class AppModule {
         AppService,
         StartupLogger,
         ShutdownStateService,
+        LogShipperService,
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: LoggingInterceptor,
+        },
         {
           provide: APP_INTERCEPTOR,
           useClass: MonitoringInterceptor,
@@ -393,7 +400,7 @@ export class AppModule {
           useClass: CustomThrottleGuard,
         },
       ],
-      exports: [ShutdownStateService],
+      exports: [ShutdownStateService, LogShipperService],
     };
   }
 }
