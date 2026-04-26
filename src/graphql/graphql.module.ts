@@ -15,38 +15,80 @@ import { CourseResolver } from './resolvers/course.resolver';
 import { AssessmentResolver } from './resolvers/assessment.resolver';
 import { DataLoaderService } from './services/dataloader.service';
 import { QueryComplexityService } from './services/query-complexity.service';
+import { SchemaLintService } from './services/schema-lint.service';
+import { DirectiveValidationService } from './services/directive-validation.service';
+import { ComplexityAnalysisService } from './services/complexity-analysis.service';
 
 @Module({
   imports: [
-    NestGraphQLModule.forRoot<ApolloDriverConfig>({
+    NestGraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/graphql/schema/schema.graphql'),
-      sortSchema: true,
-      playground: true,
-      subscriptions: {
-        'graphql-ws': true,
-        'subscriptions-transport-ws': true,
-      },
-      // Enable query complexity validation
-      validationRules: [],
-      // Custom plugins for query complexity
-      plugins: [],
-      context: ({ req, connection }, _, { injector }) => {
-        if (connection) {
-          return { req: connection.context };
-        }
-        // Attach DataLoaders to context for N+1 prevention
-        const dataLoaderService = injector?.get(DataLoaderService);
-        const loaders = dataLoaderService?.createLoaders() || {};
-        return { req, loaders };
-      },
-      formatError: (error) => {
-        return {
+      useFactory: (complexityService: ComplexityAnalysisService) => ({
+        autoSchemaFile: join(process.cwd(), 'src/graphql/schema/schema.graphql'),
+        sortSchema: true,
+        playground: process.env.NODE_ENV !== 'production',
+        subscriptions: {
+          'graphql-ws': true,
+          'subscriptions-transport-ws': true,
+        },
+
+        // ── Schema Validation: complexity + depth rules per request ──
+        validationRules: [
+          // depth-limit rule applied globally
+          (context) => {
+            const maxDepth = complexityService.config.maxDepth;
+            return {
+              OperationDefinition(node) {
+                const depth = getDepth(node);
+                if (depth > maxDepth) {
+                  context.reportError(
+                    new Error(
+                      `Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`,
+                    ),
+                  );
+                }
+              },
+            };
+          },
+        ],
+
+        plugins: [
+          // ── Per-request complexity analysis plugin ──
+          {
+            requestDidStart: () => ({
+              didResolveOperation({ request, document, schema }) {
+                const variables = request.variables ?? {};
+                const rule = complexityService.buildComplexityRule(
+                  schema,
+                  document,
+                  variables,
+                );
+                const { validate } = require('graphql');
+                const errors = validate(schema, document, [rule]);
+                if (errors.length > 0) {
+                  throw errors[0];
+                }
+              },
+            }),
+          },
+        ],
+
+        context: ({ req, connection }, _, { injector }) => {
+          if (connection) {
+            return { req: connection.context };
+          }
+          const dataLoaderService = injector?.get(DataLoaderService);
+          const loaders = dataLoaderService?.createLoaders() || {};
+          return { req, loaders };
+        },
+
+        formatError: (error) => ({
           message: error.message,
           code: error.extensions?.code,
           path: error.path,
-        };
-      },
+        }),
+      }),
+      inject: [ComplexityAnalysisService],
     }),
     UsersModule,
     CoursesModule,
@@ -62,11 +104,29 @@ import { QueryComplexityService } from './services/query-complexity.service';
     AssessmentResolver,
     DataLoaderService,
     QueryComplexityService,
+    SchemaLintService,
+    DirectiveValidationService,
+    ComplexityAnalysisService,
     {
       provide: 'PUB_SUB',
       useValue: new PubSub(),
     },
   ],
-  exports: [DataLoaderService, QueryComplexityService, 'PUB_SUB'],
+  exports: [
+    DataLoaderService,
+    QueryComplexityService,
+    SchemaLintService,
+    DirectiveValidationService,
+    ComplexityAnalysisService,
+    'PUB_SUB',
+  ],
 })
 export class GraphQLModule {}
+
+// ── Helper: calculate selection depth from AST node ──
+function getDepth(node: any, depth = 0): number {
+  if (!node?.selectionSet?.selections) return depth;
+  return Math.max(
+    ...node.selectionSet.selections.map((s: any) => getDepth(s, depth + 1)),
+  );
+}
