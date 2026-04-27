@@ -14,7 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, IApiResponse } from '@n
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { NotificationResponseDto } from './dto/notification.dto';
+import { NotificationResponseDto, BulkOperationDto } from './dto/notification.dto';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
 
 @ApiTags('Notifications')
@@ -61,6 +61,24 @@ export class NotificationsController {
   @ApiParam({ name: 'id', description: 'Notification ID' })
   async deleteNotification(@Param('id') id: string, @CurrentUser('id') userId: string) {
     await this.notificationsService.remove(id, userId);
+  }
+
+  @Patch('bulk-read')
+  @ApiOperation({ summary: 'Mark multiple notifications as read' })
+  async bulkMarkAsRead(
+    @CurrentUser('id') userId: string,
+    @Body() bulkDto: BulkOperationDto,
+  ) {
+    return this.notificationsService.bulkMarkAsRead(bulkDto.ids, userId);
+  }
+
+  @Delete('bulk-delete')
+  @ApiOperation({ summary: 'Delete multiple notifications' })
+  async bulkDelete(
+    @CurrentUser('id') userId: string,
+    @Body() bulkDto: BulkOperationDto,
+  ) {
+    return this.notificationsService.bulkRemove(bulkDto.ids, userId);
   }
 
   @Get('preferences')

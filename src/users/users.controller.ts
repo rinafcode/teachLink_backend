@@ -6,6 +6,7 @@ import { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BulkUpdateUsersDto, BulkDeleteUsersDto } from './dto/bulk-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -54,6 +55,20 @@ export class UsersController {
   @ApiOperation({ summary: 'Delete user (Admin only)' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Patch('bulk-update')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update multiple users (Admin only)' })
+  bulkUpdate(@Body() bulkDto: BulkUpdateUsersDto) {
+    return this.usersService.bulkUpdate(bulkDto.ids, bulkDto.data);
+  }
+
+  @Delete('bulk-delete')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete multiple users (Admin only)' })
+  bulkRemove(@Body() bulkDto: BulkDeleteUsersDto) {
+    return this.usersService.bulkRemove(bulkDto.ids);
   }
 
   @Post('me/export')

@@ -54,6 +54,10 @@ export const CACHE_PREFIXES = {
   FEATURED: 'cache:featured',
   SYSTEM_CONFIG: 'cache:system:config',
   USERS_LIST: 'cache:users:list',
+  CATEGORY: 'cache:category',
+  TAG: 'cache:tag',
+  LESSON: 'cache:lesson',
+  QUIZ: 'cache:quiz',
 } as const;
 
 export const CACHE_EVENTS = {
@@ -64,6 +68,10 @@ export const CACHE_EVENTS = {
   ENROLLMENT_CREATED: 'cache.enrollment.created',
   ENROLLMENT_UPDATED: 'cache.enrollment.updated',
   SEARCH_INDEX_UPDATED: 'cache.search.updated',
+  CATEGORY_UPDATED: 'cache.category.updated',
+  TAG_UPDATED: 'cache.tag.updated',
+  LESSON_UPDATED: 'cache.lesson.updated',
+  QUIZ_UPDATED: 'cache.quiz.updated',
   CACHE_INVALIDATED: 'cache.invalidated',
   CACHE_PURGED: 'cache.purged',
 } as const;

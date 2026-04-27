@@ -198,4 +198,34 @@ export class UsersService {
     // Invalidate cache after delete
     this.eventEmitter.emit(CACHE_EVENTS.USER_DELETED, { userId: id });
   }
+
+  async bulkUpdate(ids: string[], updateData: UpdateUserDto): Promise<{ success: string[]; failed: string[] }> {
+    const results = { success: [], failed: [] };
+
+    for (const id of ids) {
+      try {
+        await this.update(id, updateData);
+        results.success.push(id);
+      } catch (error) {
+        results.failed.push(id);
+      }
+    }
+
+    return results;
+  }
+
+  async bulkRemove(ids: string[]): Promise<{ success: string[]; failed: string[] }> {
+    const results = { success: [], failed: [] };
+
+    for (const id of ids) {
+      try {
+        await this.remove(id);
+        results.success.push(id);
+      } catch (error) {
+        results.failed.push(id);
+      }
+    }
+
+    return results;
+  }
 }

@@ -26,6 +26,7 @@ export interface IUploadOptions {
   generateThumbnails?: boolean;
   scanForMalware?: boolean;
   trackProgress?: boolean;
+  expiresIn?: number; // TTL in seconds
 }
 
 export interface IUploadResult {
@@ -236,6 +237,11 @@ export class MediaService {
       content.cdnUrl = upload.url;
       content.etag = upload.etag;
       content.status = ContentStatus.READY;
+
+      if (options.expiresIn) {
+        content.expiresAt = new Date(Date.now() + options.expiresIn * 1000);
+      }
+
       await this.contentRepo.save(content);
 
       // Step 5: Video processing (if applicable)
@@ -267,6 +273,91 @@ export class MediaService {
       }
 
       throw error;
+    }
+  }
+
+  async deleteMedia(contentId: string): Promise<void> {
+    const content = await this.findByContentId(contentId);
+    if (!content) {
+      throw new BadRequestException('Content not found');
+    }
+
+    // Delete from storage
+    if (content.originalUrl) {
+      const key = this.extractKeyFromUrl(content.originalUrl);
+      if (key) await this.storage.deleteFile(key);
+    }
+
+    // Delete thumbnails/variants
+    if (content.variants && content.variants.length > 0) {
+      for (const variant of content.variants) {
+        const key = this.extractKeyFromUrl(variant.url);
+        if (key) await this.storage.deleteFile(key);
+      }
+    }
+
+    // Delete from database
+    await this.contentRepo.delete({ contentId });
+    this.logger.log(`Deleted media and metadata for ${contentId}`);
+  }
+
+  async cleanupExpiredFiles(): Promise<number> {
+    const expired = await this.contentRepo
+      .createQueryBuilder('content')
+      .where('content.expiresAt IS NOT NULL')
+      .andWhere('content.expiresAt < :now', { now: new Date() })
+      .getMany();
+
+    if (expired.length === 0) return 0;
+
+    this.logger.log(`Cleaning up ${expired.length} expired files`);
+
+    for (const content of expired) {
+      try {
+        await this.deleteMedia(content.contentId);
+      } catch (error) {
+        this.logger.error(`Failed to cleanup expired file ${content.contentId}`, error);
+      }
+    }
+
+    return expired.length;
+  }
+
+  async getStorageUsage(): Promise<{ totalSize: number; fileCount: number }> {
+    const result = await this.contentRepo
+      .createQueryBuilder('content')
+      .select('SUM(content.fileSize)', 'totalSize')
+      .addSelect('COUNT(content.id)', 'fileCount')
+      .getRawOne();
+
+    return {
+      totalSize: parseInt(result.totalSize || '0', 10),
+      fileCount: parseInt(result.fileCount || '0', 10),
+    };
+  }
+
+  async bulkDeleteMedia(contentIds: string[]): Promise<{ success: string[]; failed: string[] }> {
+    const results = { success: [], failed: [] };
+
+    for (const contentId of contentIds) {
+      try {
+        await this.deleteMedia(contentId);
+        results.success.push(contentId);
+      } catch (error) {
+        this.logger.error(`Failed to delete media ${contentId} in bulk`, error);
+        results.failed.push(contentId);
+      }
+    }
+
+    return results;
+  }
+
+  private extractKeyFromUrl(url: string): string | null {
+    try {
+      const parts = url.split('.s3.amazonaws.com/');
+      return parts.length > 1 ? parts[1] : null;
+    } catch {
+      return null;
     }
   }
 

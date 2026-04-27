@@ -225,6 +225,34 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  @OnEvent(CACHE_EVENTS.CATEGORY_UPDATED)
+  async handleCategoryUpdatedEvent(): Promise<void> {
+    this.logger.debug('Handling category updated event');
+    const patterns = this.strategiesService.getPatternsForEvent(CACHE_EVENTS.CATEGORY_UPDATED);
+    await this.invalidateByPatterns(patterns);
+  }
+
+  @OnEvent(CACHE_EVENTS.TAG_UPDATED)
+  async handleTagUpdatedEvent(): Promise<void> {
+    this.logger.debug('Handling tag updated event');
+    const patterns = this.strategiesService.getPatternsForEvent(CACHE_EVENTS.TAG_UPDATED);
+    await this.invalidateByPatterns(patterns);
+  }
+
+  @OnEvent(CACHE_EVENTS.LESSON_UPDATED)
+  async handleLessonUpdatedEvent(): Promise<void> {
+    this.logger.debug('Handling lesson updated event');
+    const patterns = this.strategiesService.getPatternsForEvent(CACHE_EVENTS.LESSON_UPDATED);
+    await this.invalidateByPatterns(patterns);
+  }
+
+  @OnEvent(CACHE_EVENTS.QUIZ_UPDATED)
+  async handleQuizUpdatedEvent(): Promise<void> {
+    this.logger.debug('Handling quiz updated event');
+    const patterns = this.strategiesService.getPatternsForEvent(CACHE_EVENTS.QUIZ_UPDATED);
+    await this.invalidateByPatterns(patterns);
+  }
+
   /**
    * Get invalidation statistics
    */
