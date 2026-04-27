@@ -10,6 +10,7 @@ import { SessionModule } from '../session/session.module';
 import { TransactionService } from '../common/database/transaction.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { PasswordPolicyService } from './services/password-policy.service';
 
 function parseJwtSecrets(raw: string): Record<string, string> {
   try {
@@ -69,7 +70,7 @@ function getCurrentJwtAccessSecret(configService: ConfigService): string {
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, TransactionService],
+  providers: [AuthService, JwtStrategy, TransactionService, PasswordPolicyService],
   exports: [AuthService],
 })
 export class AuthModule {}
