@@ -77,3 +77,10 @@ export class NotificationResponseDto {
   @ApiProperty()
   createdAt: Date;
 }
+
+export class BulkOperationDto {
+  @ApiProperty({ type: [String], description: 'List of notification IDs' })
+  @IsUUID('all', { each: true })
+  @IsNotEmpty({ each: true })
+  ids: string[];
+}

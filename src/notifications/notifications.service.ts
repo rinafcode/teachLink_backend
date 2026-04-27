@@ -180,6 +180,44 @@ export class NotificationsService {
   }
 
   /**
+   * Mark multiple notifications as read
+   */
+  async bulkMarkAsRead(ids: string[], userId: string): Promise<{ success: string[]; failed: string[] }> {
+    const results = { success: [], failed: [] };
+    
+    for (const id of ids) {
+      try {
+        await this.markAsRead(id, userId);
+        results.success.push(id);
+      } catch (error) {
+        this.logger.error(`Failed to mark notification ${id} as read in bulk`, error);
+        results.failed.push(id);
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * Delete multiple notifications
+   */
+  async bulkRemove(ids: string[], userId: string): Promise<{ success: string[]; failed: string[] }> {
+    const results = { success: [], failed: [] };
+    
+    for (const id of ids) {
+      try {
+        await this.remove(id, userId);
+        results.success.push(id);
+      } catch (error) {
+        this.logger.error(`Failed to delete notification ${id} in bulk`, error);
+        results.failed.push(id);
+      }
+    }
+    
+    return results;
+  }
+
+  /**
    * Delete a notification
    */
   async remove(id: string, userId: string): Promise<void> {

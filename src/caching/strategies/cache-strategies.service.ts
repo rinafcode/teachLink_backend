@@ -109,6 +109,39 @@ export class CacheStrategiesService {
       invalidateOnEvents: [CACHE_EVENTS.COURSE_UPDATED],
       relatedPatterns: ['cache:featured:*'],
     });
+
+    // New strategies
+    this.registerStrategy({
+      name: 'category:list',
+      ttl: CACHE_TTL.STATIC_CONTENT,
+      prefix: CACHE_PREFIXES.CATEGORY,
+      invalidateOnEvents: [CACHE_EVENTS.CATEGORY_UPDATED],
+      relatedPatterns: ['cache:category:*'],
+    });
+
+    this.registerStrategy({
+      name: 'tag:list',
+      ttl: CACHE_TTL.STATIC_CONTENT,
+      prefix: CACHE_PREFIXES.TAG,
+      invalidateOnEvents: [CACHE_EVENTS.TAG_UPDATED],
+      relatedPatterns: ['cache:tag:*'],
+    });
+
+    this.registerStrategy({
+      name: 'lesson:details',
+      ttl: CACHE_TTL.COURSE_DETAILS,
+      prefix: CACHE_PREFIXES.LESSON,
+      invalidateOnEvents: [CACHE_EVENTS.LESSON_UPDATED, CACHE_EVENTS.COURSE_UPDATED],
+      relatedPatterns: ['cache:lesson:*'],
+    });
+
+    this.registerStrategy({
+      name: 'quiz:details',
+      ttl: CACHE_TTL.COURSE_DETAILS,
+      prefix: CACHE_PREFIXES.QUIZ,
+      invalidateOnEvents: [CACHE_EVENTS.QUIZ_UPDATED, CACHE_EVENTS.COURSE_UPDATED],
+      relatedPatterns: ['cache:quiz:*'],
+    });
   }
 
   /**

@@ -11,6 +11,7 @@ import { MetricsCollectionService } from './monitoring/metrics/metrics-collectio
 import { DatabaseModule } from './common/database/database.module';
 import { BullModule } from '@nestjs/bull';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
 import { envValidationSchema } from './config/env.validation';
 import { cacheConfig } from './config/cache.config';
@@ -130,6 +131,7 @@ export class AppModule {
       }),
       MonitoringModule,
       EventEmitterModule.forRoot(),
+      ScheduleModule.forRoot(),
       BullModule.forRoot({
         redis: {
           host: process.env.REDIS_HOST || 'localhost',

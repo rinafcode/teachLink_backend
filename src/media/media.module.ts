@@ -13,6 +13,7 @@ import { MalwareScanningService } from './validation/malware-scanning.service';
 import { UploadProgressService } from './validation/upload-progress.service';
 import { ContentMetadata } from '../cdn/entities/content-metadata.entity';
 import { VideoProcessor } from './processing/video.processor';
+import { FileCleanupTask } from './file-cleanup.task';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { VideoProcessor } from './processing/video.processor';
     UploadProgressService,
     // processors
     VideoProcessor,
+    FileCleanupTask,
   ],
   exports: [
     MediaService,
