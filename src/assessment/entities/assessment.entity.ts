@@ -6,6 +6,7 @@ import {
   Index,
   OneToMany,
   PrimaryGeneratedColumn,
+  VersionColumn,
 } from 'typeorm';
 import { Question } from './question.entity';
 
@@ -13,6 +14,9 @@ import { Question } from './question.entity';
 export class Assessment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()

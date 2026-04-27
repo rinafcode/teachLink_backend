@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  VersionColumn,
 } from 'typeorm';
 import { IExperimentVariant } from './experiment-variant.entity';
 
@@ -12,6 +13,9 @@ import { IExperimentVariant } from './experiment-variant.entity';
 export class VariantMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
   value: number;

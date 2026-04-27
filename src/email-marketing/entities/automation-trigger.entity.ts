@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   DeleteDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -16,6 +17,9 @@ export class AutomationTrigger {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

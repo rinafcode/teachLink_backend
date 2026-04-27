@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  VersionColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { ABTest } from './ab-test.entity';
@@ -8,6 +15,9 @@ export class ABTestVariant {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

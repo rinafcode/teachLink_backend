@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -28,6 +29,9 @@ export enum NotificationPriority {
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()

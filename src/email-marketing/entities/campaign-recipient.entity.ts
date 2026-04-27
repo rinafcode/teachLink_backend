@@ -6,6 +6,7 @@ import {
   JoinColumn,
   Index,
   DeleteDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -18,6 +19,9 @@ export class CampaignRecipient {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

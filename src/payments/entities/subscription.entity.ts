@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -31,6 +32,9 @@ export enum SubscriptionInterval {
 export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'varchar', unique: true, nullable: true })
   providerSubscriptionId: string;

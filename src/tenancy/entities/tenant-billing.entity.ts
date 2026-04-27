@@ -8,6 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
@@ -21,6 +22,9 @@ export enum BillingCycle {
 export class TenantBilling {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()

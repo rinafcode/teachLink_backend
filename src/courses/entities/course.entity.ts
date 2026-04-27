@@ -8,6 +8,7 @@ import {
   ManyToOne,
   OneToMany,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
@@ -17,6 +18,9 @@ import { Enrollment } from './enrollment.entity';
 export class Course {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()

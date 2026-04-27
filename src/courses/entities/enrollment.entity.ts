@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from './course.entity';
@@ -16,6 +17,9 @@ import { Course } from './course.entity';
 export class Enrollment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ManyToOne(() => User, (user) => user.enrollments, { onDelete: 'CASCADE' })
   user: User;

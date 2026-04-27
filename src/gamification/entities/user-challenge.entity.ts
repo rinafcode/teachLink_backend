@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, VersionColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Challenge } from './challenge.entity';
 
@@ -6,6 +6,9 @@ import { Challenge } from './challenge.entity';
 export class UserChallenge {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ManyToOne(() => User)
   user: User;

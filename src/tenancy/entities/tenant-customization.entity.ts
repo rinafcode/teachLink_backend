@@ -8,6 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
@@ -15,6 +16,9 @@ import { Tenant } from './tenant.entity';
 export class TenantCustomization {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()

@@ -1,10 +1,13 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, VersionColumn } from 'typeorm';
 import { AssessmentAttempt } from './assessment-attempt.entity';
 import { Question } from './question.entity';
 @Entity()
 export class Answer {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ManyToOne(() => AssessmentAttempt, (a) => a.answers)
   attempt: AssessmentAttempt;

@@ -10,6 +10,7 @@ import {
   OneToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -23,6 +24,9 @@ export class Campaign {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

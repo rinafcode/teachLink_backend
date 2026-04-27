@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   DeleteDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,6 +18,9 @@ export class SegmentRule {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

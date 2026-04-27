@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 
 export enum ContentType {
@@ -29,6 +30,9 @@ export enum ContentStatus {
 export class ContentMetadata {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ name: 'content_id', unique: true })
   contentId: string;

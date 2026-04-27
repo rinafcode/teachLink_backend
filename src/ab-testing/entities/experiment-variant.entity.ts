@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
 import { Experiment } from './experiment.entity';
 import { VariantMetric } from './variant-metric.entity';
@@ -15,6 +16,9 @@ import { VariantMetric } from './variant-metric.entity';
 export class IExperimentVariant {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   name: string;
