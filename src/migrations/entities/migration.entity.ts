@@ -20,7 +20,7 @@ export class Migration {
   id: string;
 
   @VersionColumn()
-  version: number;
+  lockVersion: number;
 
   @Column({ unique: true })
   name: string;

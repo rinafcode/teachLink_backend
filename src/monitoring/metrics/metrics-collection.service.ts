@@ -65,6 +65,9 @@ export class MetricsCollectionService implements OnModuleInit {
     this.dbPoolSize = new Gauge({
       name: 'db_pool_size',
       help: 'Current DB connection pool size (active + idle)',
+      registers: [this.registry],
+    });
+
     // User Registrations Counter
     this.userRegistrations = new Counter({
       name: 'user_registrations_total',
