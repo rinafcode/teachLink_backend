@@ -88,23 +88,36 @@ export class AppModule {
             process.env.DATABASE_POOL_IDLE_TIMEOUT_MS || '30000',
             10,
           );
+          const replicaPort = parseInt(process.env.DATABASE_REPLICA_PORT || '5432', 10);
+          const replicaHosts = (process.env.DATABASE_REPLICA_HOSTS || '')
+            .split(',')
+            .map((host) => host.trim())
+            .filter((host) => host.length > 0);
 
           // Log pool configuration at startup for observability (#274)
           const poolLogger = new Logger('DatabasePool');
           poolLogger.log(
             `DB pool config — max: ${poolMax}, min: ${poolMin}, ` +
-              `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
+            `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
           );
 
           return {
             type: 'postgres',
-            host: process.env.DATABASE_HOST || 'localhost',
-            port: parseInt(process.env.DATABASE_PORT || '5432'),
+            replication: {
+              master: {
+                host: process.env.DATABASE_HOST || 'localhost',
+                port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+              },
+              slaves: replicaHosts.map((host) => ({
+                host,
+                port: replicaPort,
+              })),
+            },
             username: process.env.DATABASE_USER || 'postgres',
             password: process.env.DATABASE_PASSWORD || 'postgres',
             database: process.env.DATABASE_NAME || 'teachlink',
             autoLoadEntities: true,
-            synchronize: process.env.NODE_ENV !== 'production',
+            synchronize: false,
             logging: true,
             logger: new TypeOrmMonitoringLogger(metricsService),
             maxQueryExecutionTime: 1000,
