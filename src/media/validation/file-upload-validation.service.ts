@@ -1,5 +1,10 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { ALL_ALLOWED_FILE_TYPES, MAX_UPLOAD_FILE_SIZE, FILE_SIZE_LIMITS, MAGIC_NUMBERS } from '../validation/file-validation.constants';
+import {
+  ALL_ALLOWED_FILE_TYPES,
+  MAX_UPLOAD_FILE_SIZE,
+  FILE_SIZE_LIMITS,
+  MAGIC_NUMBERS,
+} from '../validation/file-validation.constants';
 
 @Injectable()
 export class FileUploadValidationService {
@@ -38,7 +43,7 @@ export class FileUploadValidationService {
    */
   validateMagicNumber(buffer: Buffer, mimetype: string): boolean {
     const expectedMagicNumbers = MAGIC_NUMBERS[mimetype];
-    
+
     if (!expectedMagicNumbers || expectedMagicNumbers.length === 0) {
       // If no magic number defined, allow the file
       this.logger.warn(`No magic number definition for ${mimetype}, skipping validation`);
@@ -50,7 +55,7 @@ export class FileUploadValidationService {
       if (buffer.length < magicNumber.length) {
         return false;
       }
-      
+
       for (let i = 0; i < magicNumber.length; i++) {
         if (buffer[i] !== magicNumber[i]) {
           return false;
@@ -68,20 +73,20 @@ export class FileUploadValidationService {
     try {
       // TODO: Integrate with actual antivirus scanning service
       // Example: ClamAV, VirusTotal API, or cloud-based scanning
-      
+
       this.logger.log(`Scanning file ${fileName} for malware...`);
-      
+
       // Placeholder: In production, this would call an external scanning service
       // For now, we perform basic heuristic checks
-      
+
       // Check for potentially dangerous file patterns
       const hasSuspiciousPatterns = this.checkSuspiciousPatterns(fileBuffer);
-      
+
       if (hasSuspiciousPatterns) {
         this.logger.warn(`Suspicious patterns detected in file: ${fileName}`);
         return false;
       }
-      
+
       this.logger.log(`File ${fileName} passed malware scan`);
       return true;
     } catch (error) {
@@ -94,14 +99,12 @@ export class FileUploadValidationService {
   /**
    * Comprehensive file validation
    */
-  async validateFile(
-    file: {
-      buffer: Buffer;
-      mimetype: string;
-      size: number;
-      originalname: string;
-    },
-  ): Promise<void> {
+  async validateFile(file: {
+    buffer: Buffer;
+    mimetype: string;
+    size: number;
+    originalname: string;
+  }): Promise<void> {
     // 1. Validate MIME type
     if (!this.validateMimeType(file.mimetype)) {
       throw new BadRequestException(
@@ -160,22 +163,22 @@ export class FileUploadValidationService {
   private checkSuspiciousPatterns(buffer: Buffer): boolean {
     // Convert buffer to string for pattern matching (for text-based files)
     const content = buffer.toString('utf8');
-    
+
     // Check for common malicious patterns
     const suspiciousPatterns = [
-      /<\?php\s+eval\s*\(/i,  // PHP eval
-      /javascript\s*:/i,       // JavaScript protocol
-      /on(load|error|click)\s*=/i,  // Event handlers
-      /<script/i,              // Script tags
-      /\bexec\s*\(/i,          // Exec calls
-      /\bsystem\s*\(/i,        // System calls
-      /\bpassthru\s*\(/i,      // Passthru calls
-      /shell_exec\s*\(/i,      // Shell exec
+      /<\?php\s+eval\s*\(/i, // PHP eval
+      /javascript\s*:/i, // JavaScript protocol
+      /on(load|error|click)\s*=/i, // Event handlers
+      /<script/i, // Script tags
+      /\bexec\s*\(/i, // Exec calls
+      /\bsystem\s*\(/i, // System calls
+      /\bpassthru\s*\(/i, // Passthru calls
+      /shell_exec\s*\(/i, // Shell exec
     ];
 
     // Only check first 10KB for performance
     const sampleContent = content.slice(0, 10240);
-    
+
     return suspiciousPatterns.some((pattern) => pattern.test(sampleContent));
   }
 }

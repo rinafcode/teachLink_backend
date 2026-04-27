@@ -186,13 +186,7 @@ describe('AuditLogService', () => {
     });
 
     it('should handle null userId and userEmail', async () => {
-      await service.logAuth(
-        AuditAction.LOGIN_FAILED,
-        null,
-        null,
-        '127.0.0.1',
-        'TestAgent',
-      );
+      await service.logAuth(AuditAction.LOGIN_FAILED, null, null, '127.0.0.1', 'TestAgent');
 
       expect(mockAuditRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -456,14 +450,12 @@ describe('AuditLogService', () => {
         totalPages: 1,
       });
 
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'audit.userId = :userId',
-        { userId: 'user-1' },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'audit.action IN (:...actions)',
-        { actions: [AuditAction.LOGIN] },
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('audit.userId = :userId', {
+        userId: 'user-1',
+      });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('audit.action IN (:...actions)', {
+        actions: [AuditAction.LOGIN],
+      });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'audit.timestamp BETWEEN :startDate AND :endDate',
         { startDate: filters.startDate, endDate: filters.endDate },
@@ -637,17 +629,11 @@ describe('AuditLogService', () => {
       { severity: AuditSeverity.WARNING, count: '3' },
     ];
 
-    const mockTopUsers = [
-      { userId: 'user-1', userEmail: 'test@example.com', count: '5' },
-    ];
+    const mockTopUsers = [{ userId: 'user-1', userEmail: 'test@example.com', count: '5' }];
 
-    const mockTopEndpoints = [
-      { endpoint: '/api/users', count: '10' },
-    ];
+    const mockTopEndpoints = [{ endpoint: '/api/users', count: '10' }];
 
-    const mockFailedActions = [
-      { action: AuditAction.API_CALLED, count: '2' },
-    ];
+    const mockFailedActions = [{ action: AuditAction.API_CALLED, count: '2' }];
 
     beforeEach(() => {
       // Mock the main query builder

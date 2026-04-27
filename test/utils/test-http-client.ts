@@ -29,48 +29,83 @@ export class TestHttpClient {
   }
 
   async get(path: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
-    const { timeout = this.defaultTimeout, retries = this.defaultRetries, retryDelay = this.defaultRetryDelay, headers, auth } = options;
+    const {
+      timeout = this.defaultTimeout,
+      retries = this.defaultRetries,
+      retryDelay = this.defaultRetryDelay,
+      headers,
+      auth,
+    } = options;
 
-    return this.withRetry(
-      () => this.makeRequest('get', path, undefined, { headers, auth }),
-      { maxAttempts: retries + 1, delayMs: retryDelay, timeout },
-    );
+    return this.withRetry(() => this.makeRequest('get', path, undefined, { headers, auth }), {
+      maxAttempts: retries + 1,
+      delayMs: retryDelay,
+      timeout,
+    });
   }
 
   async post(path: string, data?: any, options: HttpRequestOptions = {}): Promise<HttpResponse> {
-    const { timeout = this.defaultTimeout, retries = this.defaultRetries, retryDelay = this.defaultRetryDelay, headers, auth } = options;
+    const {
+      timeout = this.defaultTimeout,
+      retries = this.defaultRetries,
+      retryDelay = this.defaultRetryDelay,
+      headers,
+      auth,
+    } = options;
 
-    return this.withRetry(
-      () => this.makeRequest('post', path, data, { headers, auth }),
-      { maxAttempts: retries + 1, delayMs: retryDelay, timeout },
-    );
+    return this.withRetry(() => this.makeRequest('post', path, data, { headers, auth }), {
+      maxAttempts: retries + 1,
+      delayMs: retryDelay,
+      timeout,
+    });
   }
 
   async put(path: string, data?: any, options: HttpRequestOptions = {}): Promise<HttpResponse> {
-    const { timeout = this.defaultTimeout, retries = this.defaultRetries, retryDelay = this.defaultRetryDelay, headers, auth } = options;
+    const {
+      timeout = this.defaultTimeout,
+      retries = this.defaultRetries,
+      retryDelay = this.defaultRetryDelay,
+      headers,
+      auth,
+    } = options;
 
-    return this.withRetry(
-      () => this.makeRequest('put', path, data, { headers, auth }),
-      { maxAttempts: retries + 1, delayMs: retryDelay, timeout },
-    );
+    return this.withRetry(() => this.makeRequest('put', path, data, { headers, auth }), {
+      maxAttempts: retries + 1,
+      delayMs: retryDelay,
+      timeout,
+    });
   }
 
   async delete(path: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
-    const { timeout = this.defaultTimeout, retries = this.defaultRetries, retryDelay = this.defaultRetryDelay, headers, auth } = options;
+    const {
+      timeout = this.defaultTimeout,
+      retries = this.defaultRetries,
+      retryDelay = this.defaultRetryDelay,
+      headers,
+      auth,
+    } = options;
 
-    return this.withRetry(
-      () => this.makeRequest('delete', path, undefined, { headers, auth }),
-      { maxAttempts: retries + 1, delayMs: retryDelay, timeout },
-    );
+    return this.withRetry(() => this.makeRequest('delete', path, undefined, { headers, auth }), {
+      maxAttempts: retries + 1,
+      delayMs: retryDelay,
+      timeout,
+    });
   }
 
   async patch(path: string, data?: any, options: HttpRequestOptions = {}): Promise<HttpResponse> {
-    const { timeout = this.defaultTimeout, retries = this.defaultRetries, retryDelay = this.defaultRetryDelay, headers, auth } = options;
+    const {
+      timeout = this.defaultTimeout,
+      retries = this.defaultRetries,
+      retryDelay = this.defaultRetryDelay,
+      headers,
+      auth,
+    } = options;
 
-    return this.withRetry(
-      () => this.makeRequest('patch', path, data, { headers, auth }),
-      { maxAttempts: retries + 1, delayMs: retryDelay, timeout },
-    );
+    return this.withRetry(() => this.makeRequest('patch', path, data, { headers, auth }), {
+      maxAttempts: retries + 1,
+      delayMs: retryDelay,
+      timeout,
+    });
   }
 
   private async makeRequest(
@@ -161,7 +196,7 @@ export class TestHttpClient {
   }
 
   private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Utility methods for common test scenarios
@@ -185,7 +220,9 @@ export class TestHttpClient {
       await this.delay(checkInterval);
     }
 
-    throw new Error(`Endpoint ${path} did not return status ${expectedStatus} within ${maxWaitTime}ms`);
+    throw new Error(
+      `Endpoint ${path} did not return status ${expectedStatus} within ${maxWaitTime}ms`,
+    );
   }
 
   async waitForDatabase(maxWaitTime = 10000, checkInterval = 500): Promise<void> {

@@ -45,8 +45,12 @@ export function createMockRepository<T>(): jest.Mocked<Repository<T>> {
     create: jest.fn((data: DeepPartial<T>) => data as T),
     save: jest.fn().mockImplementation(async (data: T | T[]) => data),
     insert: jest.fn().mockResolvedValue({ generatedMaps: [], raw: [], affected: 1 }),
-    update: jest.fn().mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] } as UpdateResult),
-    delete: jest.fn().mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] } as DeleteResult),
+    update: jest
+      .fn()
+      .mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] } as UpdateResult),
+    delete: jest
+      .fn()
+      .mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] } as DeleteResult),
     remove: jest.fn(),
     clear: jest.fn(),
 

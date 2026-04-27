@@ -82,11 +82,15 @@ export class RetryLogicService {
    * Get default retry strategy based on job type
    */
   getDefaultStrategy(jobType: string): IRetryStrategy {
-    const strategy = RETRY_STRATEGIES[jobType.toLowerCase() as keyof typeof RETRY_STRATEGIES] || RETRY_STRATEGIES.DEFAULT;
+    const strategy =
+      RETRY_STRATEGIES[jobType.toLowerCase() as keyof typeof RETRY_STRATEGIES] ||
+      RETRY_STRATEGIES.DEFAULT;
     return this.mapRetryStrategy(strategy);
   }
 
-  private mapRetryStrategy(strategy: typeof RETRY_STRATEGIES[keyof typeof RETRY_STRATEGIES]): IRetryStrategy {
+  private mapRetryStrategy(
+    strategy: (typeof RETRY_STRATEGIES)[keyof typeof RETRY_STRATEGIES],
+  ): IRetryStrategy {
     return {
       maxAttempts: strategy.maxAttempts,
       backoffType: strategy.backoffType,

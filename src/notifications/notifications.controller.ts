@@ -65,19 +65,13 @@ export class NotificationsController {
 
   @Patch('bulk-read')
   @ApiOperation({ summary: 'Mark multiple notifications as read' })
-  async bulkMarkAsRead(
-    @CurrentUser('id') userId: string,
-    @Body() bulkDto: BulkOperationDto,
-  ) {
+  async bulkMarkAsRead(@CurrentUser('id') userId: string, @Body() bulkDto: BulkOperationDto) {
     return this.notificationsService.bulkMarkAsRead(bulkDto.ids, userId);
   }
 
   @Delete('bulk-delete')
   @ApiOperation({ summary: 'Delete multiple notifications' })
-  async bulkDelete(
-    @CurrentUser('id') userId: string,
-    @Body() bulkDto: BulkOperationDto,
-  ) {
+  async bulkDelete(@CurrentUser('id') userId: string, @Body() bulkDto: BulkOperationDto) {
     return this.notificationsService.bulkRemove(bulkDto.ids, userId);
   }
 

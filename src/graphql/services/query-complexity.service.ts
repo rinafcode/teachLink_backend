@@ -60,8 +60,14 @@ export class QueryComplexityService {
     this.config = {
       ...this.defaultConfig,
       maxDepth: parseInt(process.env.GRAPHQL_MAX_DEPTH || `${GRAPHQL_CONSTANTS.MAX_DEPTH}`, 10),
-      maxComplexity: parseInt(process.env.GRAPHQL_MAX_COMPLEXITY || `${GRAPHQL_CONSTANTS.MAX_COMPLEXITY}`, 10),
-      listScalarMultiplier: parseInt(process.env.GRAPHQL_LIST_MULTIPLIER || `${GRAPHQL_CONSTANTS.LIST_SCALAR_MULTIPLIER}`, 10),
+      maxComplexity: parseInt(
+        process.env.GRAPHQL_MAX_COMPLEXITY || `${GRAPHQL_CONSTANTS.MAX_COMPLEXITY}`,
+        10,
+      ),
+      listScalarMultiplier: parseInt(
+        process.env.GRAPHQL_LIST_MULTIPLIER || `${GRAPHQL_CONSTANTS.LIST_SCALAR_MULTIPLIER}`,
+        10,
+      ),
     };
   }
 

@@ -221,12 +221,16 @@ export class AutomatedDecisionService {
     }
 
     // Check if all variants have sufficient sample size
-    const _minimumSampleSize = experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
+    const minimumSampleSize =
+      experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
 
-    for (const _variant of experiment.variants) {
+    for (const variant of experiment.variants) {
       // This would check actual sample sizes from metrics
       // For now, we'll assume variants are ready
+      void variant;
     }
+
+    void minimumSampleSize;
 
     return true;
   }
@@ -273,8 +277,10 @@ export class AutomatedDecisionService {
         await this.statisticalAnalysisService.calculateStatisticalSignificance(experimentId);
       if (statisticalResults.statisticallySignificant) {
         const winner = await this.determineWinner(experiment, statisticalResults, {
-          confidenceLevel: experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
-          minimumSampleSize: experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
+          confidenceLevel:
+            experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
+          minimumSampleSize:
+            experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
           effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
           durationThreshold: AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS,
         });

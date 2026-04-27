@@ -35,7 +35,8 @@ export class UsersService {
     ensureUserDoesNotExist(existingUser, 'User with this email already exists');
 
     // Hash password
-    const bcryptRounds = this.configService.get<number>('BCRYPT_ROUNDS') || USER_CONSTANTS.BCRYPT_ROUNDS;
+    const bcryptRounds =
+      this.configService.get<number>('BCRYPT_ROUNDS') || USER_CONSTANTS.BCRYPT_ROUNDS;
     const hashedPassword = await bcrypt.hash(createUserDto.password, bcryptRounds);
 
     // Create user
@@ -199,14 +200,17 @@ export class UsersService {
     this.eventEmitter.emit(CACHE_EVENTS.USER_DELETED, { userId: id });
   }
 
-  async bulkUpdate(ids: string[], updateData: UpdateUserDto): Promise<{ success: string[]; failed: string[] }> {
+  async bulkUpdate(
+    ids: string[],
+    updateData: UpdateUserDto,
+  ): Promise<{ success: string[]; failed: string[] }> {
     const results = { success: [], failed: [] };
 
     for (const id of ids) {
       try {
         await this.update(id, updateData);
         results.success.push(id);
-      } catch (error) {
+      } catch (_error) {
         results.failed.push(id);
       }
     }
@@ -221,7 +225,7 @@ export class UsersService {
       try {
         await this.remove(id);
         results.success.push(id);
-      } catch (error) {
+      } catch (_error) {
         results.failed.push(id);
       }
     }

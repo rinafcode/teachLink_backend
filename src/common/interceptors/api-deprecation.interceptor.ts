@@ -46,12 +46,15 @@ export class ApiDeprecationInterceptor implements NestInterceptor {
     // Check if version is deprecated
     if (DEPRECATION_CONFIG.deprecatedVersions.includes(requestedVersion)) {
       const deprecationMessage = this.buildDeprecationNotice(requestedVersion);
-      
+
       // Set deprecation headers
       response.setHeader('Deprecation', 'true');
       response.setHeader('Sunset', DEPRECATION_CONFIG.sunsetDate?.toISOString() || '');
       response.setHeader('Link', `<${DEPRECATION_CONFIG.migrationGuide}>; rel="deprecation"`);
-      response.setHeader('Warning', `299 - "API version ${requestedVersion} is deprecated. ${deprecationMessage}"`);
+      response.setHeader(
+        'Warning',
+        `299 - "API version ${requestedVersion} is deprecated. ${deprecationMessage}"`,
+      );
 
       this.logger.warn(`Deprecated API version ${requestedVersion} accessed from ${request.ip}`);
     }

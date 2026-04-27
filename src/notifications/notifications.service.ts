@@ -182,9 +182,12 @@ export class NotificationsService {
   /**
    * Mark multiple notifications as read
    */
-  async bulkMarkAsRead(ids: string[], userId: string): Promise<{ success: string[]; failed: string[] }> {
+  async bulkMarkAsRead(
+    ids: string[],
+    userId: string,
+  ): Promise<{ success: string[]; failed: string[] }> {
     const results = { success: [], failed: [] };
-    
+
     for (const id of ids) {
       try {
         await this.markAsRead(id, userId);
@@ -194,16 +197,19 @@ export class NotificationsService {
         results.failed.push(id);
       }
     }
-    
+
     return results;
   }
 
   /**
    * Delete multiple notifications
    */
-  async bulkRemove(ids: string[], userId: string): Promise<{ success: string[]; failed: string[] }> {
+  async bulkRemove(
+    ids: string[],
+    userId: string,
+  ): Promise<{ success: string[]; failed: string[] }> {
     const results = { success: [], failed: [] };
-    
+
     for (const id of ids) {
       try {
         await this.remove(id, userId);
@@ -213,7 +219,7 @@ export class NotificationsService {
         results.failed.push(id);
       }
     }
-    
+
     return results;
   }
 

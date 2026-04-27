@@ -1,6 +1,11 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SecretsManagerClient, GetSecretValueCommand, UpdateSecretCommand } from '@aws-sdk/client-secrets-manager';
+import * as crypto from 'crypto';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+  UpdateSecretCommand,
+} from '@aws-sdk/client-secrets-manager';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 export interface ISecretProvider {
@@ -22,7 +27,7 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
 
   async onModuleInit() {
     const region = this.configService.get<string>('AWS_REGION', 'us-east-1');
-    
+
     this.secretsManager = new SecretsManagerClient({
       region,
       credentials: {
@@ -50,14 +55,14 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
     try {
       const command = new GetSecretValueCommand({ SecretId: secretName });
       const response = await this.secretsManager.send(command);
-      
+
       if (response.SecretString) {
         // Cache the secret
         this.secretCache.set(secretName, {
           value: response.SecretString,
           expiry: Date.now() + this.cacheTTL,
         });
-        
+
         this.logger.debug(`Retrieved secret: ${secretName}`);
         return response.SecretString;
       }
@@ -75,12 +80,12 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
         SecretId: secretName,
         SecretString: secretValue,
       });
-      
+
       await this.secretsManager.send(command);
-      
+
       // Invalidate cache
       this.secretCache.delete(secretName);
-      
+
       this.logger.log(`Secret updated: ${secretName}`);
     } catch (error) {
       this.logger.error(`Failed to update secret: ${secretName}`, error);
@@ -90,13 +95,13 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
 
   async rotateSecret(secretName: string): Promise<void> {
     this.logger.log(`Initiating rotation for secret: ${secretName}`);
-    
+
     try {
       // Generate new secret value (implementation depends on secret type)
       const newSecret = this.generateSecretValue(secretName);
-      
+
       await this.updateSecret(secretName, newSecret);
-      
+
       this.logger.log(`Secret rotated successfully: ${secretName}`);
     } catch (error) {
       this.logger.error(`Failed to rotate secret: ${secretName}`, error);
@@ -106,8 +111,11 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
 
   @Cron(CronExpression.EVERY_WEEK)
   async rotateCriticalSecrets() {
-    const criticalSecrets = this.configService.get<string>('SECRETS_TO_ROTATE', '').split(',').filter(Boolean);
-    
+    const criticalSecrets = this.configService
+      .get<string>('SECRETS_TO_ROTATE', '')
+      .split(',')
+      .filter(Boolean);
+
     for (const secretName of criticalSecrets) {
       try {
         await this.rotateSecret(secretName.trim());
@@ -118,9 +126,11 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
   }
 
   private generateSecretValue(secretName: string): string {
-    // Generate a cryptographically secure random string
-    const crypto = require('crypto');
-    return crypto.randomBytes(32).toString('hex');
+    // Generate a cryptographically secure random string, keyed by secret name.
+    return crypto
+      .createHash('sha256')
+      .update(`${secretName}:${crypto.randomBytes(32).toString('hex')}`)
+      .digest('hex');
   }
 
   clearCache(): void {
