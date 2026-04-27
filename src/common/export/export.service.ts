@@ -15,7 +15,7 @@ import { User } from '../../users/entities/user.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
 import { TIME } from '../constants/time.constants';
 
-export type ExportFormat = 'json' | 'pdf';
+export type ExportFormat = 'json' | 'pdf' | 'csv';
 
 export enum UserExportStatus {
   PENDING = 'pending',
@@ -235,7 +235,9 @@ export class ExportService {
 
       const exportData = await this.prepareExportData(userId);
       const preparedFile =
-        format === 'pdf' ? this.generatePdfExport(exportData) : this.generateJsonExport(exportData);
+        format === 'pdf' ? this.generatePdfExport(exportData) : 
+        format === 'csv' ? this.generateCsvExport(exportData) : 
+        this.generateJsonExport(exportData);
 
       await this.exportHistoryRepository.update(exportId, {
         status: UserExportStatus.COMPLETED,
@@ -267,8 +269,8 @@ export class ExportService {
   }
 
   private ensureValidFormat(format: string): asserts format is ExportFormat {
-    if (format !== 'json' && format !== 'pdf') {
-      throw new BadRequestException('Unsupported export format. Supported formats: json, pdf');
+    if (format !== 'json' && format !== 'pdf' && format !== 'csv') {
+      throw new BadRequestException('Unsupported export format. Supported formats: json, pdf, csv');
     }
   }
 
@@ -330,6 +332,89 @@ export class ExportService {
       fileName: `user-data-export-${data.user.id}-${timestamp}.json`,
       mimeType: 'application/json',
       content: Buffer.from(JSON.stringify(data, null, 2), 'utf8'),
+    };
+  }
+
+  private generateCsvExport(data: IPreparedExportData): {
+    fileName: string;
+    mimeType: string;
+    content: Buffer;
+  } {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    
+    // CSV headers
+    const headers = [
+      'User ID',
+      'Email',
+      'First Name',
+      'Last Name',
+      'Role',
+      'Status',
+      'Email Verified',
+      'Created At',
+      'Course Title',
+      'Progress (%)',
+      'Enrollment Status',
+      'Enrolled At',
+    ];
+
+    // Build CSV rows
+    const rows: string[][] = [];
+    
+    if (data.courseProgress.length === 0) {
+      // User with no enrollments
+      rows.push([
+        data.user.id,
+        data.user.email,
+        data.user.firstName,
+        data.user.lastName,
+        data.user.role,
+        data.user.status,
+        String(data.user.isEmailVerified),
+        data.user.createdAt.toISOString(),
+        'No enrollments',
+        '0',
+        'N/A',
+        'N/A',
+      ]);
+    } else {
+      // One row per enrollment
+      data.courseProgress.forEach((enrollment) => {
+        rows.push([
+          data.user.id,
+          data.user.email,
+          data.user.firstName,
+          data.user.lastName,
+          data.user.role,
+          data.user.status,
+          String(data.user.isEmailVerified),
+          data.user.createdAt.toISOString(),
+          enrollment.courseTitle,
+          String(enrollment.progress),
+          enrollment.status,
+          enrollment.enrolledAt.toISOString(),
+        ]);
+      });
+    }
+
+    // Escape CSV fields
+    const escapeCsvField = (field: string): string => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+
+    // Build CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map(escapeCsvField).join(',')),
+    ].join('\n');
+
+    return {
+      fileName: `user-data-export-${data.user.id}-${timestamp}.csv`,
+      mimeType: 'text/csv',
+      content: Buffer.from(csvContent, 'utf8'),
     };
   }
 

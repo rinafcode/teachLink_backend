@@ -6,6 +6,7 @@ import { SearchService } from './search.service';
 import { IndexingService } from './indexing/indexing.service';
 import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
+import { SearchIndexOptimizerService } from './indexing/search-index-optimizer.service';
 import { createElasticsearchConfig } from '../config/elasticsearch.config';
 
 @Module({
@@ -18,7 +19,7 @@ import { createElasticsearchConfig } from '../config/elasticsearch.config';
     }),
   ],
   controllers: [SearchController],
-  providers: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService],
-  exports: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService],
+  providers: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService, SearchIndexOptimizerService],
+  exports: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService, SearchIndexOptimizerService],
 })
 export class SearchModule {}
