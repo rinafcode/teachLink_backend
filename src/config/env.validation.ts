@@ -8,6 +8,8 @@ export const envValidationSchema = Joi.object({
   // Database Configuration
   DATABASE_HOST: Joi.string().required(),
   DATABASE_PORT: Joi.number().required(),
+  DATABASE_REPLICA_HOSTS: Joi.string().required(),
+  DATABASE_REPLICA_PORT: Joi.number().required(),
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),

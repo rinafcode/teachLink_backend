@@ -13,13 +13,14 @@ import {
   UserDataExportProcessor,
   UserExportHistory,
 } from '../common/export/export.service';
+import { ExportController } from '../common/export/export.controller';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),
     BullModule.registerQueue({ name: QUEUE_NAMES.USER_DATA_EXPORT }),
   ],
-  controllers: [UsersController],
+  controllers: [UsersController, ExportController],
   providers: [UsersService, ExportService, UserDataExportProcessor, RolesGuard, JwtAuthGuard],
   exports: [UsersService],
 })
