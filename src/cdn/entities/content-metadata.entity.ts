@@ -120,7 +120,7 @@ export class ContentMetadata {
 
   @Column({ name: 'access_count', default: 0 })
   accessCount: number;
-  
+
   @Column({ name: 'expires_at', type: 'timestamp', nullable: true })
   @Index()
   expiresAt: Date;

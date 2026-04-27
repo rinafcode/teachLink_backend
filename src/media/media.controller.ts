@@ -193,7 +193,7 @@ export class MediaController {
     // For bulk delete, we'll let the service handle it but we should ideally validate ownership here too.
     // However, to keep it simple and efficient, the service will attempt deletion and we'll return results.
     // In a real app, we might want to filter the IDs first.
-    
+
     // Simple filter: only allow admins to bulk delete everything, or users to bulk delete their own (needs more complex query)
     return this.mediaService.bulkDeleteMedia(bulkDto.contentIds);
   }

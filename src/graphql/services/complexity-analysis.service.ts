@@ -45,9 +45,7 @@ export class ComplexityAnalysisService {
       variables,
       estimators,
       onComplete: (complexity: number) => {
-        this.logger.log(
-          `Query complexity: ${complexity} / ${this.config.maxComplexity}`,
-        );
+        this.logger.log(`Query complexity: ${complexity} / ${this.config.maxComplexity}`);
         if (complexity > this.config.maxComplexity * 0.8) {
           this.logger.warn(
             `High complexity query detected: ${complexity} (threshold: ${this.config.maxComplexity})`,

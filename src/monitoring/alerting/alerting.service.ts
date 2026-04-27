@@ -122,7 +122,10 @@ export class AlertingService {
     this.emailFrom = this.configService.get<string>('EMAIL_FROM', 'noreply@teachlink.io');
     const recipientRaw = this.configService.get<string>('ALERT_EMAIL_RECIPIENTS', '');
     this.alertEmailRecipients = recipientRaw
-      ? recipientRaw.split(',').map((s) => s.trim()).filter(Boolean)
+      ? recipientRaw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
     this.emailEnabled = this.alertEmailRecipients.length > 0;
 
@@ -274,7 +277,8 @@ export class AlertingService {
       return;
     }
 
-    const severityEmoji = event.severity === 'CRITICAL' ? '🔴' : event.severity === 'WARNING' ? '🟡' : '🟢';
+    const severityEmoji =
+      event.severity === 'CRITICAL' ? '🔴' : event.severity === 'WARNING' ? '🟡' : '🟢';
 
     await this.mailerTransport.sendMail({
       from: this.emailFrom,
@@ -299,7 +303,12 @@ export class AlertingService {
   }
 
   private buildEmailHtml(event: IAlertEvent, emoji: string): string {
-    const color = event.severity === 'CRITICAL' ? '#dc2626' : event.severity === 'WARNING' ? '#d97706' : '#16a34a';
+    const color =
+      event.severity === 'CRITICAL'
+        ? '#dc2626'
+        : event.severity === 'WARNING'
+          ? '#d97706'
+          : '#16a34a';
     const detailsRow = event.metadata
       ? `<tr><td><strong>Details</strong></td><td><pre style="background:#f3f4f6;padding:8px;border-radius:4px">${JSON.stringify(event.metadata, null, 2)}</pre></td></tr>`
       : '';
@@ -326,7 +335,12 @@ export class AlertingService {
       return;
     }
 
-    const color = event.severity === 'CRITICAL' ? '#dc2626' : event.severity === 'WARNING' ? '#d97706' : '#16a34a';
+    const color =
+      event.severity === 'CRITICAL'
+        ? '#dc2626'
+        : event.severity === 'WARNING'
+          ? '#d97706'
+          : '#16a34a';
     const body = {
       attachments: [
         {
@@ -337,7 +351,13 @@ export class AlertingService {
             { title: 'Alert ID', value: event.id, short: true },
             { title: 'Time', value: event.firedAt.toISOString(), short: true },
             ...(event.metadata
-              ? [{ title: 'Details', value: `\`\`\`${JSON.stringify(event.metadata, null, 2)}\`\`\``, short: false }]
+              ? [
+                  {
+                    title: 'Details',
+                    value: `\`\`\`${JSON.stringify(event.metadata, null, 2)}\`\`\``,
+                    short: false,
+                  },
+                ]
               : []),
           ],
           footer: 'TeachLink Monitoring',

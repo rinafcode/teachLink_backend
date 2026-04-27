@@ -147,9 +147,7 @@ describe('AuthService', () => {
       mockUsersService.updateEmailVerificationToken.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
       mockSessionService.createSession.mockResolvedValue('session-1');
-      mockJwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockJwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
       mockNotificationsService.sendVerificationEmail.mockResolvedValue(undefined);
       mockAuditLogService.logAuth.mockResolvedValue(undefined);
     });
@@ -225,9 +223,7 @@ describe('AuthService', () => {
       mockUsersService.updateLastLogin.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
       mockSessionService.createSession.mockResolvedValue('session-1');
-      mockJwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockJwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
       mockAuditLogService.logAuth.mockResolvedValue(undefined);
     });
 
@@ -373,9 +369,7 @@ describe('AuthService', () => {
         throw new Error('Invalid token');
       });
 
-      await expect(service.refreshToken('invalid-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.refreshToken('invalid-token')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
@@ -485,9 +479,7 @@ describe('AuthService', () => {
     const sessionId = 'session-1';
 
     beforeEach(() => {
-      mockJwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockJwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
     });
 
     it('should generate access and refresh tokens', async () => {

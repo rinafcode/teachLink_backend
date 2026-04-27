@@ -233,7 +233,9 @@ export class QueueMonitoringService {
 
   // ── Public API: stuck jobs
 
-  async getStuckJobs(thresholdMs: number = QUEUE_HEALTH_THRESHOLDS.STUCK_THRESHOLD_MS): Promise<Job[]> {
+  async getStuckJobs(
+    thresholdMs: number = QUEUE_HEALTH_THRESHOLDS.STUCK_THRESHOLD_MS,
+  ): Promise<Job[]> {
     const activeJobs = await this.defaultQueue.getActive();
     const now = Date.now();
     return activeJobs.filter((job) => {
@@ -250,7 +252,9 @@ export class QueueMonitoringService {
    * Examines the last N completed+failed jobs and produces per-job-type
    * breakdowns so engineers can tune `maxAttempts` per queue type.
    */
-  async getRetryAnalytics(windowMinutes: number = QUEUE_HEALTH_THRESHOLDS.ANALYTICS_WINDOW_MINUTES): Promise<IRetryAnalytics> {
+  async getRetryAnalytics(
+    windowMinutes: number = QUEUE_HEALTH_THRESHOLDS.ANALYTICS_WINDOW_MINUTES,
+  ): Promise<IRetryAnalytics> {
     const windowMs = windowMinutes * 60 * 1_000;
     const cutoff = Date.now() - windowMs;
 
