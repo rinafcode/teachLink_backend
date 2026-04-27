@@ -5,9 +5,10 @@ import { EncryptionService } from './encryption/encryption.service';
 import { ThreatDetectionService } from './threats/threat-detection.service';
 import { ComplianceService } from './compliance/compliance.service';
 import { AuditLoggingService } from './audit/audit-logging.service';
+import { SecretsModule } from './secrets/secrets.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
+  imports: [ScheduleModule.forRoot(), SecretsModule],
   providers: [
     SecurityService,
     EncryptionService,
@@ -15,6 +16,6 @@ import { AuditLoggingService } from './audit/audit-logging.service';
     ComplianceService,
     AuditLoggingService,
   ],
-  exports: [SecurityService, EncryptionService],
+  exports: [SecurityService, EncryptionService, SecretsModule],
 })
 export class SecurityModule {}

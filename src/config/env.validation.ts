@@ -136,4 +136,15 @@ export const envValidationSchema = Joi.object({
 
   // CORS Configuration
   CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:4000'),
+
+  // Secrets Management
+  SECRET_CACHE_TTL_MS: Joi.number().integer().min(1000).default(300000),
+  SECRETS_TO_ROTATE: Joi.string().optional(),
+  VAULT_ADDR: Joi.string().uri().optional(),
+  VAULT_TOKEN: Joi.string().optional(),
+  VAULT_SECRET_PATH: Joi.string().default('secret/data'),
+  SECRET_PROVIDER: Joi.string().valid('aws', 'vault', 'env').default('env'),
+
+  // Idempotency Configuration
+  IDEMPOTENCY_TTL_SECONDS: Joi.number().integer().min(60).default(86400),
 });
