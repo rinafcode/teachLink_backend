@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
 import { User } from '../../users/entities/user.entity';
@@ -30,6 +31,9 @@ interface InvoiceItem {
 export class Invoice {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'varchar', unique: true })
   @Index()

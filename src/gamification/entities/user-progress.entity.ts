@@ -1,10 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('user_progress')
 export class UserProgress {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @OneToOne(() => User)
   @JoinColumn()

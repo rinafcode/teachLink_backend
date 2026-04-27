@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
   Index,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
 import { BackupRecord } from './backup-record.entity';
@@ -18,6 +19,9 @@ import { BackupRecord } from './backup-record.entity';
 export class RecoveryTest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ name: 'backup_record_id' })
   backupRecordId: string;

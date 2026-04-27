@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
 import { IExperimentVariant } from './experiment-variant.entity';
 import { ExperimentMetric } from './experiment-metric.entity';
@@ -27,6 +28,9 @@ export enum ExperimentType {
 export class Experiment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ unique: true })
   name: string;

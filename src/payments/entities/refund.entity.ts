@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  VersionColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
 
@@ -21,6 +22,9 @@ export enum RefundStatus {
 export class Refund {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   amount: number;

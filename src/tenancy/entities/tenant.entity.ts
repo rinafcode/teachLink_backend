@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 
 export enum TenantStatus {
@@ -26,6 +27,9 @@ export enum TenantPlan {
 export class Tenant {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ unique: true })
   @Index()

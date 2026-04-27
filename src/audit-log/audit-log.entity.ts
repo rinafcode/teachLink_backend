@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
 
 @Entity('audit_logs')
@@ -12,6 +19,9 @@ import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ name: 'user_id', nullable: true })
   userId: string | null;

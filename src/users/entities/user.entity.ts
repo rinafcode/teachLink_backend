@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   Index,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
@@ -27,6 +28,9 @@ export enum UserStatus {
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ unique: true })
   @Index()

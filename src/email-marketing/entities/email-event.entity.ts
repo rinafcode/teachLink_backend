@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 import { EmailEventType } from '../enums/email-event-type.enum';
@@ -10,6 +17,9 @@ export class EmailEvent {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

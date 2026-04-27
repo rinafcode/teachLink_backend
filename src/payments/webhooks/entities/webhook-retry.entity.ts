@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 
 export enum WebhookStatus {
@@ -27,6 +28,9 @@ export enum WebhookProvider {
 export class WebhookRetry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'enum', enum: WebhookProvider })
   provider: WebhookProvider;

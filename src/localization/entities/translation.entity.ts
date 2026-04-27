@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   Index,
   Unique,
+  VersionColumn,
 } from 'typeorm';
 
 @Entity('translations')
@@ -15,6 +16,9 @@ import {
 export class Translation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   namespace: string;

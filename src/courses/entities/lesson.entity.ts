@@ -5,6 +5,7 @@ import {
   ManyToOne,
   Index,
   DeleteDateColumn,
+  VersionColumn,
 } from 'typeorm';
 import { CourseModule } from './course-module.entity';
 
@@ -12,6 +13,9 @@ import { CourseModule } from './course-module.entity';
 export class Lesson {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   title: string;

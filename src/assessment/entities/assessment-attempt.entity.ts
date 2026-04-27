@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  VersionColumn,
+} from 'typeorm';
 import { AssessmentStatus } from '../enums/assessment-status.enum';
 import { Answer } from './answer.entity';
 import { Assessment } from './assessment.entity';
@@ -7,6 +14,9 @@ import { Assessment } from './assessment.entity';
 export class AssessmentAttempt {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   studentId: string;

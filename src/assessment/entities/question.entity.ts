@@ -5,6 +5,7 @@ import {
   Index,
   ManyToOne,
   PrimaryGeneratedColumn,
+  VersionColumn,
 } from 'typeorm';
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
@@ -13,6 +14,9 @@ import { Assessment } from './assessment.entity';
 export class Question {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'enum', enum: QuestionType })
   @Index()

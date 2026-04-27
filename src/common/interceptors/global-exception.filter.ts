@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MulterError } from 'multer';
-import { QueryFailedError, EntityNotFoundError } from 'typeorm';
+import { QueryFailedError, EntityNotFoundError, OptimisticLockVersionMismatchError } from 'typeorm';
 import { IApiError, IValidationErrorDetail } from '../../interfaces/api-error.interface';
 import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
 
@@ -82,6 +82,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         statusCode: HttpStatus.NOT_FOUND,
         message: 'The requested resource was not found.',
         error: 'Not Found',
+        stack: (exception as Error).stack,
+      };
+    }
+
+    // 4b. TypeORM - Optimistic Locking Conflict
+    if (exception instanceof OptimisticLockVersionMismatchError) {
+      return {
+        statusCode: HttpStatus.CONFLICT,
+        message: 'The resource was modified by another request. Please refresh and try again.',
+        error: 'Conflict',
         stack: (exception as Error).stack,
       };
     }

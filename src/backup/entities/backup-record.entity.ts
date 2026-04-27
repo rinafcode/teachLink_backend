@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { BackupStatus } from '../enums/backup-status.enum';
 import { BackupType } from '../enums/backup-type.enum';
@@ -18,6 +19,9 @@ import { Region } from '../enums/region.enum';
 export class BackupRecord {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'enum', enum: BackupType, default: BackupType.FULL })
   backupType: BackupType;
