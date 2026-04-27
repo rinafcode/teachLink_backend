@@ -60,7 +60,10 @@ export class MigrationController {
 
   @Post('rollback/:count')
   @HttpCode(HttpStatus.OK)
-  async rollbackMigrationsWithCount(@Param('count') count: string, @Res() res: Response): Promise<Response> {
+  async rollbackMigrationsWithCount(
+    @Param('count') count: string,
+    @Res() res: Response,
+  ): Promise<Response> {
     const rollbackCount = count && !isNaN(parseInt(count, 10)) ? parseInt(count, 10) : 1;
 
     this.logger.log(`Rolling back ${rollbackCount} migrations`);

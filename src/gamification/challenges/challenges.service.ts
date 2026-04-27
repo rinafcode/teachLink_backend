@@ -14,7 +14,11 @@ export class ChallengesService {
     private userChallengeRepository: Repository<UserChallenge>,
   ) {}
 
-  async updateProgress(userId: string, challengeId: string, increment: number): Promise<UserChallenge> {
+  async updateProgress(
+    userId: string,
+    challengeId: string,
+    increment: number,
+  ): Promise<UserChallenge> {
     let userChallenge = await this.userChallengeRepository.findOne({
       where: { user: { id: userId }, challenge: { id: challengeId } },
       relations: ['challenge'],

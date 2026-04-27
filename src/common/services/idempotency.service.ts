@@ -48,12 +48,7 @@ export class IdempotencyService implements OnModuleInit {
   async saveRecord(key: string, record: IdempotencyRecord): Promise<void> {
     try {
       const ttl = record.ttl || this.defaultTTL;
-      await this.redisClient.set(
-        `idempotency:${key}`,
-        JSON.stringify(record),
-        'EX',
-        ttl,
-      );
+      await this.redisClient.set(`idempotency:${key}`, JSON.stringify(record), 'EX', ttl);
     } catch (error) {
       console.error('Error saving idempotency record:', error);
     }
@@ -69,13 +64,7 @@ export class IdempotencyService implements OnModuleInit {
 
   async acquireLock(key: string, ttlMs: number = 5000): Promise<boolean> {
     try {
-      const result = await this.redisClient.set(
-        `idempotency:lock:${key}`,
-        '1',
-        'PX',
-        ttlMs,
-        'NX',
-      );
+      const result = await this.redisClient.set(`idempotency:lock:${key}`, '1', 'PX', ttlMs, 'NX');
       return result === 'OK';
     } catch (error) {
       console.error('Error acquiring idempotency lock:', error);
@@ -103,14 +92,8 @@ export class IdempotencyService implements OnModuleInit {
   }
 
   generateKey(userId: string, endpoint: string, payload: any): string {
-    const payloadHash = crypto
-      .createHash('sha256')
-      .update(JSON.stringify(payload))
-      .digest('hex');
-    
-    return crypto
-      .createHash('sha256')
-      .update(`${userId}:${endpoint}:${payloadHash}`)
-      .digest('hex');
+    const payloadHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+
+    return crypto.createHash('sha256').update(`${userId}:${endpoint}:${payloadHash}`).digest('hex');
   }
 }

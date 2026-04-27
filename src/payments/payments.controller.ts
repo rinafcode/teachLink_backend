@@ -1,4 +1,15 @@
-import { Controller, Post, Body, Param, Get, Query, UseGuards, Request, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Get,
+  Query,
+  UseGuards,
+  Request,
+  UseInterceptors,
+  Headers,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, IApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
@@ -40,14 +51,19 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @Idempotent({ ttl: 86400 })
   @UseInterceptors(IdempotencyInterceptor)
-  @ApiHeader({ name: 'X-Idempotency-Key', description: 'Unique key for idempotent requests', required: true })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key for idempotent requests',
+    required: true,
+  })
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
   @IApiResponse({ status: 201, description: 'Payment intent created' })
   async createPaymentIntent(
     @Request() req: IAuthenticatedRequest,
     @Body() createPaymentDto: CreatePaymentDto,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
   ): Promise<ICreatePaymentIntentResult> {
-    return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto);
+    return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto, idempotencyKey);
   }
 
   @Post('subscriptions')
@@ -55,25 +71,41 @@ export class PaymentsController {
   @Roles(UserRole.STUDENT, UserRole.TEACHER)
   @Idempotent({ ttl: 86400 })
   @UseInterceptors(IdempotencyInterceptor)
-  @ApiHeader({ name: 'X-Idempotency-Key', description: 'Unique key for idempotent requests', required: true })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key for idempotent requests',
+    required: true,
+  })
   @ApiOperation({ summary: 'Create a subscription for premium course' })
   @IApiResponse({ status: 201, description: 'Subscription created' })
   async createSubscription(
     @Request() req: IAuthenticatedRequest,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
   ): Promise<ICreateSubscriptionResult> {
-    return this.paymentsService.createSubscription(req.user.id, createSubscriptionDto);
+    return this.paymentsService.createSubscription(
+      req.user.id,
+      createSubscriptionDto,
+      idempotencyKey,
+    );
   }
 
   @Post('refund')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @Idempotent({ ttl: 86400 })
   @UseInterceptors(IdempotencyInterceptor)
-  @ApiHeader({ name: 'X-Idempotency-Key', description: 'Unique key for idempotent requests', required: true })
+  @ApiHeader({
+    name: 'X-Idempotency-Key',
+    description: 'Unique key for idempotent requests',
+    required: true,
+  })
   @ApiOperation({ summary: 'Process a refund' })
   @IApiResponse({ status: 200, description: 'Refund processed' })
-  async processRefund(@Body() refundDto: RefundDto): Promise<IProcessRefundResult> {
-    return this.paymentsService.processRefund(refundDto);
+  async processRefund(
+    @Body() refundDto: RefundDto,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
+  ): Promise<IProcessRefundResult> {
+    return this.paymentsService.processRefund(refundDto, idempotencyKey);
   }
 
   @Get('invoices/:paymentId')

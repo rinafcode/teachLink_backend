@@ -8,10 +8,7 @@ import { Question } from './entities/question.entity';
 import { AssessmentStatus } from './enums/assessment-status.enum';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { FeedbackGenerationService } from './feedback/feedback-generation.service';
-import {
-  createMockRepository,
-  createMockQueryBuilder,
-} from 'test/utils/mock-factories';
+import { createMockRepository, createMockQueryBuilder } from 'test/utils/mock-factories';
 import { Repository } from 'typeorm';
 
 describe('AssessmentsService', () => {
@@ -266,15 +263,17 @@ describe('AssessmentsService', () => {
     beforeEach(() => {
       mockAssessmentRepo.findOne.mockResolvedValue(mockAssessment);
       mockAssessmentRepo.manager = {
-        transaction: jest.fn().mockImplementation(async (fn) => fn({
-          getRepository: jest.fn().mockReturnValue({
-            createQueryBuilder: jest.fn().mockReturnValue({
-              softDelete: jest.fn().mockReturnThis(),
-              where: jest.fn().mockReturnThis(),
-              execute: jest.fn().mockResolvedValue(undefined),
+        transaction: jest.fn().mockImplementation(async (fn) =>
+          fn({
+            getRepository: jest.fn().mockReturnValue({
+              createQueryBuilder: jest.fn().mockReturnValue({
+                softDelete: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                execute: jest.fn().mockResolvedValue(undefined),
+              }),
             }),
           }),
-        })),
+        ),
       } as any;
     });
 
@@ -320,7 +319,7 @@ describe('AssessmentsService', () => {
     beforeEach(() => {
       mockAttemptRepo.findOne.mockResolvedValue(mockAttempt as any);
       mockScoringService.calculate
-        .mockReturnValueOnce(8)  // Question 1: 8/10 points
+        .mockReturnValueOnce(8) // Question 1: 8/10 points
         .mockReturnValueOnce(12); // Question 2: 12/15 points
       mockAnswerRepo.save.mockResolvedValue({} as any);
       mockAttemptRepo.save.mockImplementation(async (attempt) => attempt);

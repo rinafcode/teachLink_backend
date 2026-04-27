@@ -42,22 +42,21 @@ export class FlakyTestDetector {
 
     existing.failureRate = existing.failureCount / existing.totalRuns;
     existing.isCurrentlyFlaky =
-      existing.totalRuns >= this.minRunsThreshold &&
-      existing.failureRate >= this.failureThreshold;
+      existing.totalRuns >= this.minRunsThreshold && existing.failureRate >= this.failureThreshold;
 
     this.testResults.set(testKey, existing);
   }
 
   getFlakyTests(): FlakyTestResult[] {
     return Array.from(this.testResults.values())
-      .filter(result => result.isCurrentlyFlaky)
+      .filter((result) => result.isCurrentlyFlaky)
       .sort((a, b) => b.failureRate - a.failureRate);
   }
 
   getTestSummary(): { totalTests: number; flakyTests: number; failureRate: number } {
     const allResults = Array.from(this.testResults.values());
     const totalTests = allResults.length;
-    const flakyTests = allResults.filter(r => r.isCurrentlyFlaky).length;
+    const flakyTests = allResults.filter((r) => r.isCurrentlyFlaky).length;
     const totalFailures = allResults.reduce((sum, r) => sum + r.failureCount, 0);
     const totalRuns = allResults.reduce((sum, r) => sum + r.totalRuns, 0);
     const failureRate = totalRuns > 0 ? totalFailures / totalRuns : 0;
@@ -70,7 +69,7 @@ export class FlakyTestDetector {
     const summary = this.getTestSummary();
 
     let report = '# E2E Test Flakiness Report\n\n';
-    report += `## Summary\n`;
+    report += '## Summary\n';
     report += `- Total Tests: ${summary.totalTests}\n`;
     report += `- Flaky Tests: ${summary.flakyTests}\n`;
     report += `- Overall Failure Rate: ${(summary.failureRate * 100).toFixed(2)}%\n\n`;
@@ -125,7 +124,7 @@ export class FlakinessReporter {
 
   onRunComplete(test, results) {
     const report = flakyTestDetector.generateReport();
-    console.log('\n' + '='.repeat(80));
+    console.log(`\n${'='.repeat(80)}`);
     console.log('E2E FLAKINESS REPORT');
     console.log('='.repeat(80));
     console.log(report);
