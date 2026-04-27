@@ -16,6 +16,7 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
+import { PasswordPolicyService } from './services/password-policy.service';
 
 interface IJwtTokenPayload {
   sub: string;
@@ -69,6 +70,7 @@ export class AuthService {
     private readonly transactionService: TransactionService,
     private readonly notificationsService: NotificationsService,
     private readonly auditLogService: AuditLogService,
+    private readonly passwordPolicyService: PasswordPolicyService,
   ) {}
 
   async register(
@@ -76,6 +78,8 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<IRegisterResponse> {
+    await this.passwordPolicyService.enforce(registerDto.password);
+
     return await this.transactionService.runInTransaction(async (_manager) => {
       // Create user
       const user = await this.usersService.create(registerDto);
@@ -306,6 +310,8 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    await this.passwordPolicyService.enforce(resetPasswordDto.newPassword);
+
     // Find user by reset token
     const userOrNull = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
     const user = ensureValidUserToken(
@@ -346,6 +352,8 @@ export class AuthService {
       );
       throw new BadRequestException('Current password is incorrect');
     }
+
+    await this.passwordPolicyService.enforce(changePasswordDto.newPassword);
 
     // Update password
     await this.usersService.update(userId, { password: changePasswordDto.newPassword });

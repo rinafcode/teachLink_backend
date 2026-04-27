@@ -8,6 +8,7 @@ import {
   UseGuards,
   Request,
   UseInterceptors,
+  Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, IApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -60,8 +61,9 @@ export class PaymentsController {
   async createPaymentIntent(
     @Request() req: IAuthenticatedRequest,
     @Body() createPaymentDto: CreatePaymentDto,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
   ): Promise<ICreatePaymentIntentResult> {
-    return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto);
+    return this.paymentsService.createPaymentIntent(req.user.id, createPaymentDto, idempotencyKey);
   }
 
   @Post('subscriptions')
@@ -79,8 +81,13 @@ export class PaymentsController {
   async createSubscription(
     @Request() req: IAuthenticatedRequest,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
   ): Promise<ICreateSubscriptionResult> {
-    return this.paymentsService.createSubscription(req.user.id, createSubscriptionDto);
+    return this.paymentsService.createSubscription(
+      req.user.id,
+      createSubscriptionDto,
+      idempotencyKey,
+    );
   }
 
   @Post('refund')
@@ -94,8 +101,11 @@ export class PaymentsController {
   })
   @ApiOperation({ summary: 'Process a refund' })
   @IApiResponse({ status: 200, description: 'Refund processed' })
-  async processRefund(@Body() refundDto: RefundDto): Promise<IProcessRefundResult> {
-    return this.paymentsService.processRefund(refundDto);
+  async processRefund(
+    @Body() refundDto: RefundDto,
+    @Headers('x-idempotency-key') idempotencyKey?: string,
+  ): Promise<IProcessRefundResult> {
+    return this.paymentsService.processRefund(refundDto, idempotencyKey);
   }
 
   @Get('invoices/:paymentId')

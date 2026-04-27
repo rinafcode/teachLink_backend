@@ -8,11 +8,11 @@ import {
 } from '@nestjs/websockets';
 import { UseGuards, Logger } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { WsJwtAuthGuard } from '../auth/guards/ws-jwt-auth.guard';
-import { WsThrottlerGuard } from '../common/guards/ws-throttler.guard';
-import { wsManager } from '../common/utils/websocket.utils';
+import { WsJwtAuthGuard } from '../../auth/guards/ws-jwt-auth.guard';
+import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
+import { wsManager } from '../../common/utils/websocket.utils';
 import { JwtService } from '@nestjs/jwt';
-import { MESSAGING_GATEWAY_EVENTS } from '../collaboration/constants/collaboration-events.constants';
+import { MESSAGING_GATEWAY_EVENTS } from '../../collaboration/constants/collaboration-events.constants';
 
 @WebSocketGateway({ namespace: '/messaging' })
 @UseGuards(WsThrottlerGuard)
