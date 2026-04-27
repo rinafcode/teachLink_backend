@@ -4,8 +4,10 @@ import { TargetingService } from './targeting/targeting.service';
 import { RolloutService } from './rollout/rollout.service';
 import { ExperimentationService } from './experimentation/experimentation.service';
 import { FlagAnalyticsService } from './analytics/flag-analytics.service';
+import { FeatureFlagsController } from './feature-flags.controller';
 
 @Module({
+  controllers: [FeatureFlagsController],
   providers: [
     FlagAnalyticsService,
     TargetingService,
