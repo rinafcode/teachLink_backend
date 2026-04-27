@@ -6,7 +6,7 @@ import { TemplateManagementService } from '../templates/template-management.serv
 import { EmailAnalyticsService } from '../analytics/email-analytics.service';
 import { EmailEventType } from '../enums/email-event-type.enum';
 
-export interface SendEmailOptions {
+export interface ISendEmailOptions {
   to: string;
   subject?: string;
   templateId?: string;
@@ -20,7 +20,7 @@ export interface SendEmailOptions {
   trackClicks?: boolean;
 }
 
-export interface SendEmailResult {
+export interface ISendEmailResult {
   success: boolean;
   messageId?: string;
   error?: string;
@@ -54,7 +54,7 @@ export class EmailSenderService {
   /**
    * Send a single email
    */
-  async sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
+  async sendEmail(options: ISendEmailOptions): Promise<ISendEmailResult> {
     try {
       let html = options.html;
       let text = options.text;
@@ -127,9 +127,9 @@ export class EmailSenderService {
    */
   async sendBulkEmails(
     recipients: Array<{ email: string; id: string; variables?: Record<string, any> }>,
-    options: Omit<SendEmailOptions, 'to' | 'recipientId'>,
-  ): Promise<{ sent: number; failed: number; results: SendEmailResult[] }> {
-    const results: SendEmailResult[] = [];
+    options: Omit<ISendEmailOptions, 'to' | 'recipientId'>,
+  ): Promise<{ sent: number; failed: number; results: ISendEmailResult[] }> {
+    const results: ISendEmailResult[] = [];
     let sent = 0;
     let failed = 0;
 

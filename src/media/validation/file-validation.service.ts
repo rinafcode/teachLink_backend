@@ -8,9 +8,9 @@ import {
   IMAGE_DIMENSION_LIMITS,
   MAGIC_NUMBERS,
 } from './file-validation.constants';
-import { UploadedFile } from '../../common/types/file.types';
+import { IUploadedFile } from '../../common/types/file.types';
 
-export interface FileValidationResult {
+export interface IFileValidationResult {
   valid: boolean;
   mimeType: string;
   fileType: 'image' | 'video' | 'document' | 'audio' | 'archive' | 'unknown';
@@ -54,7 +54,7 @@ export class FileValidationService {
   /**
    * Validate file comprehensively
    */
-  async validateFile(file: UploadedFile): Promise<FileValidationResult> {
+  async validateFile(file: IUploadedFile): Promise<IFileValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -166,7 +166,7 @@ export class FileValidationService {
    * Validate file signature (magic numbers)
    */
   private async validateFileSignature(
-    file: UploadedFile,
+    file: IUploadedFile,
   ): Promise<{ valid: boolean; detectedType?: string }> {
     const buffer = file.buffer;
 
@@ -351,7 +351,7 @@ export class FileValidationService {
    * Check for security patterns in file
    */
   private async checkSecurityPatterns(
-    file: UploadedFile,
+    file: IUploadedFile,
   ): Promise<{ valid: boolean; issues: string[] }> {
     const issues: string[] = [];
 
@@ -419,7 +419,7 @@ export class FileValidationService {
   /**
    * Quick validation for controller use
    */
-  async quickValidate(file: UploadedFile): Promise<void> {
+  async quickValidate(file: IUploadedFile): Promise<void> {
     const result = await this.validateFile(file);
     if (!result.valid) {
       throw new BadRequestException({

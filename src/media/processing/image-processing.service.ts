@@ -6,7 +6,7 @@ import {
   IMAGE_DIMENSION_LIMITS,
 } from '../validation/file-validation.constants';
 
-export interface ProcessedImage {
+export interface IProcessedImage {
   buffer: Buffer;
   format: string;
   width: number;
@@ -16,7 +16,7 @@ export interface ProcessedImage {
   compressionRatio: number;
 }
 
-export interface ThumbnailResult {
+export interface IThumbnailResult {
   name: string;
   buffer: Buffer;
   width: number;
@@ -71,7 +71,7 @@ export class ImageProcessingService {
       format?: 'jpeg' | 'png' | 'webp' | 'avif';
       preserveAspectRatio?: boolean;
     },
-  ): Promise<ProcessedImage> {
+  ): Promise<IProcessedImage> {
     const originalSize = buffer.length;
     const metadata = await sharp(buffer).metadata();
 
@@ -165,12 +165,12 @@ export class ImageProcessingService {
       format?: 'jpeg' | 'png' | 'webp';
       quality?: number;
     },
-  ): Promise<ThumbnailResult[]> {
+  ): Promise<IThumbnailResult[]> {
     const sizes = options?.sizes || THUMBNAIL_CONFIG.SIZES;
     const format = options?.format || THUMBNAIL_CONFIG.DEFAULT_FORMAT;
     const quality = options?.quality || THUMBNAIL_CONFIG.DEFAULT_QUALITY;
 
-    const thumbnails: ThumbnailResult[] = [];
+    const thumbnails: IThumbnailResult[] = [];
 
     for (const size of sizes) {
       try {

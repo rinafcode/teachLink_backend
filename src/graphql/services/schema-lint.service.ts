@@ -3,7 +3,7 @@ import { buildSchema, validateSchema } from 'graphql';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-export interface LintResult {
+export interface ILintResult {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -20,8 +20,8 @@ export class SchemaLintService implements OnModuleInit {
     }
   }
 
-  lintSchema(): LintResult {
-    const result: LintResult = { valid: true, errors: [], warnings: [] };
+  lintSchema(): ILintResult {
+    const result: ILintResult = { valid: true, errors: [], warnings: [] };
     const schemaPath = join(process.cwd(), 'src/graphql/schema/schema.graphql');
 
     if (!existsSync(schemaPath)) {
@@ -60,7 +60,7 @@ export class SchemaLintService implements OnModuleInit {
     return result;
   }
 
-  private checkNamingConventions(schemaString: string, result: LintResult): void {
+  private checkNamingConventions(schemaString: string, result: ILintResult): void {
     // Types must be PascalCase
     const lowercaseTypes = [...schemaString.matchAll(/^type\s+([a-z][a-zA-Z0-9]*)/gm)];
     for (const match of lowercaseTypes) {
@@ -74,7 +74,7 @@ export class SchemaLintService implements OnModuleInit {
     }
   }
 
-  private checkDeprecatedFields(schemaString: string, result: LintResult): void {
+  private checkDeprecatedFields(schemaString: string, result: ILintResult): void {
     const deprecated = [...schemaString.matchAll(/@deprecated/g)];
     if (deprecated.length > 0) {
       result.warnings.push(
@@ -83,7 +83,7 @@ export class SchemaLintService implements OnModuleInit {
     }
   }
 
-  private checkMissingDescriptions(schemaString: string, result: LintResult): void {
+  private checkMissingDescriptions(schemaString: string, result: ILintResult): void {
     // Types without a description comment above them
     const typesWithoutDesc = [...schemaString.matchAll(/^type\s+(\w+)/gm)];
     for (const match of typesWithoutDesc) {

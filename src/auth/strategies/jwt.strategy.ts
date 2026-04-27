@@ -6,7 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
 
-export interface JwtPayload {
+export interface IJwtPayload {
   sub: string;
   email: string;
   role?: string;
@@ -63,7 +63,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req: Request, payload: JwtPayload) {
+  async validate(req: Request, payload: IJwtPayload) {
     const roles = payload.roles || (payload.role ? [payload.role] : []);
 
     const { currentVersion, currentSecret } = this.getCurrentJwtAccessSecret();

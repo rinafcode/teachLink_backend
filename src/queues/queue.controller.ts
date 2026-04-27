@@ -12,7 +12,7 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
 
@@ -24,7 +24,7 @@ import { QueueService } from './queue.service';
 import { PrioritizationService } from './prioritization/prioritization.service';
 import { JobSchedulerService } from './scheduler/job-scheduler.service';
 import { QueueMonitoringService } from './monitoring/queue-monitoring.service';
-import { JobOptions } from './interfaces/queue.interfaces';
+import { IJobOptions } from './interfaces/queue.interfaces';
 
 import {
   AddJobDto,
@@ -56,7 +56,7 @@ export class QueueController {
    */
   @Get('metrics')
   @ApiOperation({ summary: 'Live queue metrics' })
-  @ApiResponse({ status: 200, description: 'Current queue metrics snapshot' })
+  @IApiResponse({ status: 200, description: 'Current queue metrics snapshot' })
   async getMetrics() {
     return this.monitoringService.getQueueMetrics();
   }
@@ -147,7 +147,7 @@ export class QueueController {
   @Post('jobs/failed/retry-all')
   @Roles('admin')
   @ApiOperation({ summary: 'Retry all failed jobs (admin)' })
-  @ApiResponse({ status: 200, description: 'Retry summary' })
+  @IApiResponse({ status: 200, description: 'Retry summary' })
   async retryAllFailedJobs() {
     return this.monitoringService.retryAllFailedJobs();
   }
@@ -236,7 +236,7 @@ export class QueueController {
   @Roles('admin')
   @ApiOperation({ summary: 'Add a job to the queue (admin)' })
   async addJob(@Body(ValidationPipe) body: AddJobDto) {
-    let options: JobOptions = body.options ?? {};
+    let options: IJobOptions = body.options ?? {};
 
     if (body.priorityFactors) {
       const priority = this.prioritizationService.calculatePriority(body.priorityFactors as any);

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface DocumentOperation {
+export interface IDocumentOperation {
   id: string;
   type: 'insert' | 'delete' | 'update';
   position: number;
@@ -11,10 +11,10 @@ export interface DocumentOperation {
   userId: string;
 }
 
-export interface CollaborativeDocument {
+export interface ICollaborativeDocument {
   id: string;
   content: string;
-  operations: DocumentOperation[];
+  operations: IDocumentOperation[];
   collaborators: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -23,13 +23,13 @@ export interface CollaborativeDocument {
 @Injectable()
 export class SharedDocumentService {
   private readonly logger = Logger;
-  private documents: Map<string, CollaborativeDocument> = new Map();
+  private documents: Map<string, ICollaborativeDocument> = new Map();
 
   /**
    * Initialize a new collaborative document
    */
-  async initializeDocument(documentId: string): Promise<CollaborativeDocument> {
-    const document: CollaborativeDocument = {
+  async initializeDocument(documentId: string): Promise<ICollaborativeDocument> {
+    const document: ICollaborativeDocument = {
       id: documentId,
       content: '',
       operations: [],
@@ -47,7 +47,7 @@ export class SharedDocumentService {
   /**
    * Get a collaborative document
    */
-  async getDocument(documentId: string): Promise<CollaborativeDocument | null> {
+  async getDocument(documentId: string): Promise<ICollaborativeDocument | null> {
     return this.documents.get(documentId) || null;
   }
 
@@ -57,15 +57,15 @@ export class SharedDocumentService {
   async applyOperation(
     documentId: string,
     userId: string,
-    operation: Omit<DocumentOperation, 'id' | 'timestamp'>,
-  ): Promise<CollaborativeDocument> {
+    operation: Omit<IDocumentOperation, 'id' | 'timestamp'>,
+  ): Promise<ICollaborativeDocument> {
     const document = this.documents.get(documentId);
     if (!document) {
       throw new Error(`Document ${documentId} not found`);
     }
 
     // Add metadata to the operation
-    const opWithMetadata: DocumentOperation = {
+    const opWithMetadata: IDocumentOperation = {
       ...operation,
       id: uuidv4(),
       timestamp: Date.now(),
@@ -96,9 +96,9 @@ export class SharedDocumentService {
    * Transform an operation against a list of concurrent operations
    */
   private transformOperation(
-    operation: DocumentOperation,
-    concurrentOperations: DocumentOperation[],
-  ): DocumentOperation {
+    operation: IDocumentOperation,
+    concurrentOperations: IDocumentOperation[],
+  ): IDocumentOperation {
     let transformedOp = { ...operation };
 
     for (const concurrentOp of concurrentOperations) {
@@ -114,7 +114,7 @@ export class SharedDocumentService {
   /**
    * Check if two operations overlap in their effect on document content
    */
-  private operationsOverlap(op1: DocumentOperation, op2: DocumentOperation): boolean {
+  private operationsOverlap(op1: IDocumentOperation, op2: IDocumentOperation): boolean {
     // Operations don't overlap if one happens before the other ends
     if (op1.type === 'insert' && op2.type === 'insert') {
       // Two inserts at the same position need transformation
@@ -147,9 +147,9 @@ export class SharedDocumentService {
    * Transform a single operation against a concurrent operation
    */
   private transformSingleOperation(
-    operation: DocumentOperation,
-    concurrentOp: DocumentOperation,
-  ): DocumentOperation {
+    operation: IDocumentOperation,
+    concurrentOp: IDocumentOperation,
+  ): IDocumentOperation {
     const transformedOp = { ...operation };
 
     // Adjust positions based on concurrent operations
@@ -175,7 +175,7 @@ export class SharedDocumentService {
   /**
    * Apply an operation to document content
    */
-  private applyOperationToContent(content: string, operation: DocumentOperation): string {
+  private applyOperationToContent(content: string, operation: IDocumentOperation): string {
     switch (operation.type) {
       case 'insert':
         if (operation.content !== undefined) {
@@ -216,8 +216,8 @@ export class SharedDocumentService {
    */
   async resolveConflicts(
     documentId: string,
-    operations: DocumentOperation[],
-  ): Promise<CollaborativeDocument> {
+    operations: IDocumentOperation[],
+  ): Promise<ICollaborativeDocument> {
     const document = this.documents.get(documentId);
     if (!document) {
       throw new Error(`Document ${documentId} not found`);
@@ -244,7 +244,7 @@ export class SharedDocumentService {
   /**
    * Get document history
    */
-  async getDocumentHistory(documentId: string): Promise<DocumentOperation[]> {
+  async getDocumentHistory(documentId: string): Promise<IDocumentOperation[]> {
     const document = this.documents.get(documentId);
     if (!document) {
       throw new Error(`Document ${documentId} not found`);

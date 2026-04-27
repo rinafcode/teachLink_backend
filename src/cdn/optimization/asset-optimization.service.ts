@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import sharp from 'sharp';
-import { ContentDeliveryOptions } from '../cdn.service';
+import { IContentDeliveryOptions } from '../cdn.service';
 
-export interface OptimizationResult {
+export interface IOptimizationResult {
   url: string;
   originalSize: number;
   optimizedSize: number;
@@ -64,8 +64,8 @@ export class AssetOptimizationService {
     return contentId;
   }
 
-  async generateResponsiveImages(contentId: string): Promise<OptimizationResult[]> {
-    const results: OptimizationResult[] = [];
+  async generateResponsiveImages(contentId: string): Promise<IOptimizationResult[]> {
+    const results: IOptimizationResult[] = [];
     const sizes = [
       { width: 320, suffix: 'sm' },
       { width: 640, suffix: 'md' },
@@ -106,7 +106,7 @@ export class AssetOptimizationService {
   private async uploadOptimizedImage(
     buffer: Buffer,
     originalUrl: string,
-    options: ContentDeliveryOptions,
+    options: IContentDeliveryOptions,
   ): Promise<string> {
     // In real implementation, upload to storage and return new URL
     // For now, return modified URL
@@ -114,7 +114,7 @@ export class AssetOptimizationService {
     return originalUrl.replace(/(\.[^.]+)$/, `_${suffix}$1`);
   }
 
-  private generateSuffix(options: ContentDeliveryOptions): string {
+  private generateSuffix(options: IContentDeliveryOptions): string {
     const parts = [];
     if (options.width) parts.push(`w${options.width}`);
     if (options.height) parts.push(`h${options.height}`);

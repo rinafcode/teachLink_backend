@@ -9,35 +9,35 @@ import { WebhookRetry, WebhookStatus, WebhookProvider } from './entities/webhook
 import { ProviderFactoryService } from '../providers/provider-factory.service';
 import { PaymentsService } from '../payments.service';
 import {
-  SubscriptionWebhookEvent,
-  RefundWebhookData,
+  ISubscriptionWebhookEvent,
+  IRefundWebhookData,
 } from '../interfaces/payment-provider.interface';
 import { PaymentStatus } from '../entities/payment.entity';
 
-interface StripePaymentIntent {
+interface IStripePaymentIntent {
   id: string;
   metadata: Record<string, unknown>;
 }
 
-interface StripeCharge {
+interface IStripeCharge {
   payment_intent: string;
   refunds: {
-    data: RefundWebhookData[];
+    data: IRefundWebhookData[];
   };
 }
 
-interface PayPalResource {
+interface IPayPalResource {
   id: string;
   parent_payment: string;
   amount: number;
 }
 
-interface PayPalWebhookPayload {
+interface IPayPalWebhookPayload {
   event_type: string;
-  resource: PayPalResource;
+  resource: IPayPalResource;
 }
 
-interface WebhookJobData {
+interface IWebhookJobData {
   webhookRetryId: string;
   provider: WebhookProvider;
   payload: Buffer | Record<string, unknown>;
@@ -64,7 +64,7 @@ export class WebhookRetryProcessor {
   ) {}
 
   @Process(JOB_NAMES.PROCESS_WEBHOOK)
-  async processWebhook(job: Job<WebhookJobData>) {
+  async processWebhook(job: Job<IWebhookJobData>) {
     const {
       webhookRetryId,
       provider,
@@ -112,7 +112,7 @@ export class WebhookRetryProcessor {
   private async handleWebhookError(
     webhookRetryId: string,
     error: Error,
-    job: Job<WebhookJobData>,
+    job: Job<IWebhookJobData>,
   ): Promise<void> {
     const webhookRetry = await this.webhookRetryRepository.findOne({
       where: { id: webhookRetryId },
@@ -190,25 +190,25 @@ export class WebhookRetryProcessor {
 
     switch (event.type) {
       case 'payment_intent.succeeded':
-        await this.handlePaymentIntentSucceeded(event.data.object as StripePaymentIntent);
+        await this.handlePaymentIntentSucceeded(event.data.object as IStripePaymentIntent);
         break;
       case 'payment_intent.payment_failed':
-        await this.handlePaymentIntentFailed(event.data.object as StripePaymentIntent);
+        await this.handlePaymentIntentFailed(event.data.object as IStripePaymentIntent);
         break;
       case 'charge.refunded':
-        await this.handleChargeRefunded(event.data.object as StripeCharge);
+        await this.handleChargeRefunded(event.data.object as IStripeCharge);
         break;
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
-        await this.handleSubscriptionEvent(event as unknown as SubscriptionWebhookEvent);
+        await this.handleSubscriptionEvent(event as unknown as ISubscriptionWebhookEvent);
         break;
       default:
         this.logger.log(`Unhandled Stripe event type: ${event.type}`);
     }
   }
 
-  private async handlePaymentIntentSucceeded(paymentIntent: StripePaymentIntent): Promise<void> {
+  private async handlePaymentIntentSucceeded(paymentIntent: IStripePaymentIntent): Promise<void> {
     await this.paymentsService.updatePaymentStatus(
       paymentIntent.id,
       PaymentStatus.COMPLETED,
@@ -216,7 +216,7 @@ export class WebhookRetryProcessor {
     );
   }
 
-  private async handlePaymentIntentFailed(paymentIntent: StripePaymentIntent): Promise<void> {
+  private async handlePaymentIntentFailed(paymentIntent: IStripePaymentIntent): Promise<void> {
     await this.paymentsService.updatePaymentStatus(
       paymentIntent.id,
       PaymentStatus.FAILED,
@@ -224,12 +224,12 @@ export class WebhookRetryProcessor {
     );
   }
 
-  private async handleChargeRefunded(charge: StripeCharge): Promise<void> {
+  private async handleChargeRefunded(charge: IStripeCharge): Promise<void> {
     const refund = charge.refunds.data[0];
     await this.paymentsService.processRefundFromWebhook(charge.payment_intent, refund);
   }
 
-  private async handleSubscriptionEvent(event: SubscriptionWebhookEvent): Promise<void> {
+  private async handleSubscriptionEvent(event: ISubscriptionWebhookEvent): Promise<void> {
     await this.paymentsService.handleSubscriptionEvent(event);
   }
 
@@ -238,7 +238,7 @@ export class WebhookRetryProcessor {
     _headers: Record<string, string>,
     _webhookRetryId: string,
   ): Promise<void> {
-    const paypalPayload = payload as unknown as PayPalWebhookPayload;
+    const paypalPayload = payload as unknown as IPayPalWebhookPayload;
     this.logger.log(`Processing PayPal webhook: ${paypalPayload.event_type}`);
 
     switch (paypalPayload.event_type) {
@@ -253,11 +253,11 @@ export class WebhookRetryProcessor {
     }
   }
 
-  private async handlePayPalPaymentCompleted(resource: PayPalResource): Promise<void> {
+  private async handlePayPalPaymentCompleted(resource: IPayPalResource): Promise<void> {
     await this.paymentsService.updatePaymentStatus(resource.id, PaymentStatus.COMPLETED);
   }
 
-  private async handlePayPalRefundCompleted(resource: PayPalResource): Promise<void> {
+  private async handlePayPalRefundCompleted(resource: IPayPalResource): Promise<void> {
     await this.paymentsService.processRefundFromWebhook(resource.parent_payment, {
       id: resource.id,
       amount: resource.amount,

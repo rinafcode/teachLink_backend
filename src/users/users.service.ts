@@ -6,7 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { ensureUserExists, ensureUserDoesNotExist } from '../common/utils/user.utils';
-import { paginate, PaginatedResponse } from '../common/utils/pagination.util';
+import { paginate, IPaginatedResponse } from '../common/utils/pagination.util';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/sanitization.utils';
 import { GetUsersDto } from './dto/get-users.dto';
@@ -47,7 +47,7 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
 
-  async findAll(filter?: GetUsersDto): Promise<PaginatedResponse<User>> {
+  async findAll(filter?: GetUsersDto): Promise<IPaginatedResponse<User>> {
     const cacheKey = `${CACHE_PREFIXES.USERS_LIST}:${JSON.stringify(filter || {})}`;
 
     return this.cachingService.getOrSet(

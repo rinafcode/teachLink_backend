@@ -3,7 +3,7 @@ import { AuditAction, AuditCategory, AuditSeverity } from '../enums/audit-action
 
 export const AUDIT_LOG_KEY = 'audit_log';
 
-export interface AuditLogOptions {
+export interface IAuditLogOptions {
   action: AuditAction;
   category?: AuditCategory;
   severity?: AuditSeverity;
@@ -19,12 +19,12 @@ export interface AuditLogOptions {
  * Decorator to mark a method for audit logging
  * @param options Audit log configuration options
  */
-export const AuditLog = (options: AuditLogOptions) => SetMetadata(AUDIT_LOG_KEY, options);
+export const AuditLog = (options: IAuditLogOptions) => SetMetadata(AUDIT_LOG_KEY, options);
 
 /**
  * Predefined audit log decorators for common operations
  */
-export const AuditCreate = (entityType: string, options?: Partial<AuditLogOptions>) =>
+export const AuditCreate = (entityType: string, options?: Partial<IAuditLogOptions>) =>
   AuditLog({
     action: AuditAction.DATA_CREATED,
     category: AuditCategory.DATA_MODIFICATION,
@@ -35,7 +35,7 @@ export const AuditCreate = (entityType: string, options?: Partial<AuditLogOption
 export const AuditUpdate = (
   entityType: string,
   entityIdParam: string,
-  options?: Partial<AuditLogOptions>,
+  options?: Partial<IAuditLogOptions>,
 ) =>
   AuditLog({
     action: AuditAction.DATA_UPDATED,
@@ -48,7 +48,7 @@ export const AuditUpdate = (
 export const AuditDelete = (
   entityType: string,
   entityIdParam: string,
-  options?: Partial<AuditLogOptions>,
+  options?: Partial<IAuditLogOptions>,
 ) =>
   AuditLog({
     action: AuditAction.DATA_DELETED,
@@ -62,7 +62,7 @@ export const AuditDelete = (
 export const AuditView = (
   entityType: string,
   entityIdParam?: string,
-  options?: Partial<AuditLogOptions>,
+  options?: Partial<IAuditLogOptions>,
 ) =>
   AuditLog({
     action: AuditAction.DATA_VIEWED,
@@ -72,7 +72,7 @@ export const AuditView = (
     ...options,
   });
 
-export const AuditExport = (entityType: string, options?: Partial<AuditLogOptions>) =>
+export const AuditExport = (entityType: string, options?: Partial<IAuditLogOptions>) =>
   AuditLog({
     action: AuditAction.DATA_EXPORTED,
     category: AuditCategory.DATA_ACCESS,
@@ -81,14 +81,14 @@ export const AuditExport = (entityType: string, options?: Partial<AuditLogOption
     ...options,
   });
 
-export const AuditLogin = (options?: Partial<AuditLogOptions>) =>
+export const AuditLogin = (options?: Partial<IAuditLogOptions>) =>
   AuditLog({
     action: AuditAction.LOGIN,
     category: AuditCategory.AUTHENTICATION,
     ...options,
   });
 
-export const AuditLogout = (options?: Partial<AuditLogOptions>) =>
+export const AuditLogout = (options?: Partial<IAuditLogOptions>) =>
   AuditLog({
     action: AuditAction.LOGOUT,
     category: AuditCategory.AUTHENTICATION,

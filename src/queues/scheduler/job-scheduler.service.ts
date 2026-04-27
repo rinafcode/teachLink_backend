@@ -4,7 +4,7 @@ import { Queue } from 'bull';
 import { QUEUE_NAMES } from '../../common/constants/queue.constants';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { JobOptions } from '../interfaces/queue.interfaces';
+import { IJobOptions } from '../interfaces/queue.interfaces';
 
 /**
  * Job Scheduler Service
@@ -26,7 +26,7 @@ export class JobSchedulerService {
     name: string,
     data: T,
     scheduledTime: Date,
-    options?: JobOptions,
+    options?: IJobOptions,
   ): Promise<string> {
     const delay = scheduledTime.getTime() - Date.now();
 
@@ -89,7 +89,7 @@ export class JobSchedulerService {
     name: string,
     data: T,
     delayMs: number,
-    options?: JobOptions,
+    options?: IJobOptions,
   ): Promise<string> {
     const job = await this.defaultQueue.add(name, data, {
       ...options,
@@ -109,7 +109,7 @@ export class JobSchedulerService {
       name: string;
       data: T;
       scheduledTime: Date;
-      options?: JobOptions;
+      options?: IJobOptions;
     }>,
   ): Promise<string[]> {
     const jobIds: string[] = [];
@@ -212,7 +212,7 @@ export class JobSchedulerService {
   async scheduleWithBusinessHours<T = any>(
     name: string,
     data: T,
-    options?: JobOptions,
+    options?: IJobOptions,
   ): Promise<string> {
     const now = new Date();
     const scheduledTime = new Date(now);

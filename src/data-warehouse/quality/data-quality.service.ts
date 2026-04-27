@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface DataQualityProfile {
+export interface IDataQualityProfile {
   id: string;
   name: string;
   description: string;
-  rules: DataQualityRule[];
+  rules: IDataQualityRule[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface DataQualityRule {
+export interface IDataQualityRule {
   id: string;
   name: string;
   description: string;
@@ -21,17 +21,17 @@ export interface DataQualityRule {
   severity: 'critical' | 'high' | 'medium' | 'low';
 }
 
-export interface DataQualityCheck {
+export interface IDataQualityCheck {
   id: string;
   profileId: string;
   startTime: Date;
   endTime?: Date;
   status: 'pending' | 'running' | 'completed' | 'failed';
-  results: DataQualityResult[];
-  summary: DataQualitySummary;
+  results: IDataQualityResult[];
+  summary: IDataQualitySummary;
 }
 
-export interface DataQualityResult {
+export interface IDataQualityResult {
   ruleId: string;
   ruleName: string;
   passed: boolean;
@@ -41,7 +41,7 @@ export interface DataQualityResult {
   sampleData?: any[];
 }
 
-export interface DataQualitySummary {
+export interface IDataQualitySummary {
   totalRules: number;
   passedRules: number;
   failedRules: number;
@@ -55,7 +55,7 @@ export interface DataQualitySummary {
   };
 }
 
-export interface DataQualityIssue {
+export interface IDataQualityIssue {
   id: string;
   profileId: string;
   ruleId: string;
@@ -72,18 +72,18 @@ export interface DataQualityIssue {
 @Injectable()
 export class DataQualityService {
   private readonly logger = new Logger(DataQualityService.name);
-  private profiles: Map<string, DataQualityProfile> = new Map();
-  private checks: Map<string, DataQualityCheck> = new Map();
-  private issues: Map<string, DataQualityIssue> = new Map();
+  private profiles: Map<string, IDataQualityProfile> = new Map();
+  private checks: Map<string, IDataQualityCheck> = new Map();
+  private issues: Map<string, IDataQualityIssue> = new Map();
 
   /**
    * Create a data quality profile
    */
   async createProfile(
-    profileConfig: Omit<DataQualityProfile, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<DataQualityProfile> {
+    profileConfig: Omit<IDataQualityProfile, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<IDataQualityProfile> {
     const profileId = uuidv4();
-    const profile: DataQualityProfile = {
+    const profile: IDataQualityProfile = {
       id: profileId,
       ...profileConfig,
       createdAt: new Date(),
@@ -99,14 +99,14 @@ export class DataQualityService {
   /**
    * Get a data quality profile
    */
-  async getProfile(profileId: string): Promise<DataQualityProfile | null> {
+  async getProfile(profileId: string): Promise<IDataQualityProfile | null> {
     return this.profiles.get(profileId) || null;
   }
 
   /**
    * Get all data quality profiles
    */
-  async getAllProfiles(): Promise<DataQualityProfile[]> {
+  async getAllProfiles(): Promise<IDataQualityProfile[]> {
     return Array.from(this.profiles.values());
   }
 
@@ -115,8 +115,8 @@ export class DataQualityService {
    */
   async updateProfile(
     profileId: string,
-    updates: Partial<DataQualityProfile>,
-  ): Promise<DataQualityProfile | null> {
+    updates: Partial<IDataQualityProfile>,
+  ): Promise<IDataQualityProfile | null> {
     const profile = this.profiles.get(profileId);
     if (!profile) {
       return null;
@@ -149,14 +149,14 @@ export class DataQualityService {
   /**
    * Run data quality checks
    */
-  async runQualityChecks(profileId: string, data: any[]): Promise<DataQualityCheck> {
+  async runQualityChecks(profileId: string, data: any[]): Promise<IDataQualityCheck> {
     const profile = this.profiles.get(profileId);
     if (!profile) {
       throw new Error(`Profile ${profileId} not found`);
     }
 
     const checkId = uuidv4();
-    const check: DataQualityCheck = {
+    const check: IDataQualityCheck = {
       id: checkId,
       profileId,
       startTime: new Date(),
@@ -181,7 +181,7 @@ export class DataQualityService {
 
     try {
       // Execute each rule
-      const results: DataQualityResult[] = [];
+      const results: IDataQualityResult[] = [];
       let passedRules = 0;
       let failedRules = 0;
       let criticalFailures = 0;
@@ -238,14 +238,14 @@ export class DataQualityService {
   /**
    * Get quality check results
    */
-  async getCheckResults(checkId: string): Promise<DataQualityCheck | null> {
+  async getCheckResults(checkId: string): Promise<IDataQualityCheck | null> {
     return this.checks.get(checkId) || null;
   }
 
   /**
    * Get all quality checks for a profile
    */
-  async getChecksForProfile(profileId: string): Promise<DataQualityCheck[]> {
+  async getChecksForProfile(profileId: string): Promise<IDataQualityCheck[]> {
     const checks = Array.from(this.checks.values());
     return checks.filter((check) => check.profileId === profileId);
   }
@@ -255,11 +255,11 @@ export class DataQualityService {
    */
   private async createQualityIssue(
     profileId: string,
-    rule: DataQualityRule,
-    result: DataQualityResult,
-  ): Promise<DataQualityIssue> {
+    rule: IDataQualityRule,
+    result: IDataQualityResult,
+  ): Promise<IDataQualityIssue> {
     const issueId = uuidv4();
-    const issue: DataQualityIssue = {
+    const issue: IDataQualityIssue = {
       id: issueId,
       profileId,
       ruleId: rule.id,
@@ -284,7 +284,7 @@ export class DataQualityService {
     profileId?: string,
     severity?: string,
     resolved?: boolean,
-  ): Promise<DataQualityIssue[]> {
+  ): Promise<IDataQualityIssue[]> {
     let issues = Array.from(this.issues.values());
 
     if (profileId) {
@@ -322,8 +322,8 @@ export class DataQualityService {
   /**
    * Create standard quality profiles
    */
-  async createStandardProfiles(): Promise<DataQualityProfile[]> {
-    const profiles: DataQualityProfile[] = [];
+  async createStandardProfiles(): Promise<IDataQualityProfile[]> {
+    const profiles: IDataQualityProfile[] = [];
 
     // Completeness profile
     profiles.push(
@@ -421,7 +421,7 @@ export class DataQualityService {
   /**
    * Execute a single quality rule
    */
-  private async executeRule(rule: DataQualityRule, data: any[]): Promise<DataQualityResult> {
+  private async executeRule(rule: IDataQualityRule, data: any[]): Promise<IDataQualityResult> {
     let passed = true;
     let actualValue = 0;
     let sampleData: any[] = [];

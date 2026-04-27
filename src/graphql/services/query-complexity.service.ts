@@ -5,7 +5,7 @@ import { GRAPHQL_CONSTANTS } from './query-complexity.constants';
 /**
  * Query complexity analysis configuration
  */
-export interface ComplexityConfig {
+export interface IComplexityConfig {
   /** Maximum query depth allowed (default: 10) */
   maxDepth: number;
   /** Maximum complexity score allowed (default: 1000) */
@@ -21,7 +21,7 @@ export interface ComplexityConfig {
 /**
  * Complexity analysis result
  */
-export interface ComplexityResult {
+export interface IComplexityResult {
   /** Total complexity score */
   complexity: number;
   /** Query depth */
@@ -44,7 +44,7 @@ export interface ComplexityResult {
 export class QueryComplexityService {
   private readonly logger = new Logger(QueryComplexityService.name);
 
-  private readonly defaultConfig: ComplexityConfig = {
+  private readonly defaultConfig: IComplexityConfig = {
     maxDepth: GRAPHQL_CONSTANTS.MAX_DEPTH,
     maxComplexity: GRAPHQL_CONSTANTS.MAX_COMPLEXITY,
     listScalarMultiplier: GRAPHQL_CONSTANTS.LIST_SCALAR_MULTIPLIER,
@@ -52,7 +52,7 @@ export class QueryComplexityService {
     fieldComplexityMap: GRAPHQL_CONSTANTS.FIELD_COMPLEXITY_MAP,
   };
 
-  private config: ComplexityConfig;
+  private config: IComplexityConfig;
   private schema: GraphQLSchema | null = null;
 
   constructor() {
@@ -75,14 +75,14 @@ export class QueryComplexityService {
   /**
    * Update complexity configuration
    */
-  setConfig(config: Partial<ComplexityConfig>): void {
+  setConfig(config: Partial<IComplexityConfig>): void {
     this.config = { ...this.defaultConfig, ...config };
   }
 
   /**
    * Analyze a query for complexity
    */
-  analyze(query: string, variables?: Record<string, any>): ComplexityResult {
+  analyze(query: string, variables?: Record<string, any>): IComplexityResult {
     try {
       // Parse the query to get AST
       const ast = parse(query);
@@ -250,7 +250,7 @@ export class QueryComplexityService {
   /**
    * Get current configuration
    */
-  getConfig(): ComplexityConfig {
+  getConfig(): IComplexityConfig {
     return { ...this.config };
   }
 

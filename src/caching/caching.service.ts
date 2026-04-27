@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { CACHE_REDIS_CLIENT, CACHE_TTL } from './caching.constants';
 
-export interface CacheOptions {
+export interface ICacheOptions {
   ttl?: number;
   prefix?: string;
 }

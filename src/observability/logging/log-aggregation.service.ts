@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  StructuredLog,
-  LogQuery,
-  LogSearchResult,
+  IStructuredLog,
+  ILogQuery,
+  ILogSearchResult,
   LogLevel,
 } from '../interfaces/observability.interfaces';
 
@@ -13,13 +13,13 @@ import {
 @Injectable()
 export class LogAggregationService {
   private readonly logger = new Logger(LogAggregationService.name);
-  private logs: StructuredLog[] = [];
+  private logs: IStructuredLog[] = [];
   private readonly MAX_LOGS = 10000; // In-memory limit
 
   /**
    * Store a log entry
    */
-  async storeLogs(log: StructuredLog): Promise<void> {
+  async storeLogs(log: IStructuredLog): Promise<void> {
     this.logs.push(log);
 
     // Maintain size limit (FIFO)
@@ -35,7 +35,7 @@ export class LogAggregationService {
   /**
    * Search logs with filters
    */
-  async searchLogs(query: LogQuery): Promise<LogSearchResult> {
+  async searchLogs(query: ILogQuery): Promise<ILogSearchResult> {
     let filteredLogs = [...this.logs];
 
     // Apply filters
@@ -95,21 +95,21 @@ export class LogAggregationService {
   /**
    * Get logs by correlation ID (trace all related logs)
    */
-  async getLogsByCorrelationId(correlationId: string): Promise<StructuredLog[]> {
+  async getLogsByCorrelationId(correlationId: string): Promise<IStructuredLog[]> {
     return this.logs.filter((log) => log.context.correlationId === correlationId);
   }
 
   /**
    * Get logs by trace ID
    */
-  async getLogsByTraceId(traceId: string): Promise<StructuredLog[]> {
+  async getLogsByTraceId(traceId: string): Promise<IStructuredLog[]> {
     return this.logs.filter((log) => log.context.traceId === traceId);
   }
 
   /**
    * Get error logs
    */
-  async getErrorLogs(limit: number = 100): Promise<StructuredLog[]> {
+  async getErrorLogs(limit: number = 100): Promise<IStructuredLog[]> {
     return this.logs
       .filter((log) => log.level === LogLevel.ERROR || log.level === LogLevel.FATAL)
       .slice(-limit)
@@ -119,7 +119,7 @@ export class LogAggregationService {
   /**
    * Get logs by user
    */
-  async getLogsByUser(userId: string, limit: number = 100): Promise<StructuredLog[]> {
+  async getLogsByUser(userId: string, limit: number = 100): Promise<IStructuredLog[]> {
     return this.logs
       .filter((log) => log.context.userId === userId)
       .slice(-limit)
@@ -194,7 +194,7 @@ export class LogAggregationService {
   /**
    * Export logs for analysis
    */
-  async exportLogs(query: LogQuery): Promise<string> {
+  async exportLogs(query: ILogQuery): Promise<string> {
     const result = await this.searchLogs(query);
     return JSON.stringify(result.logs, null, 2);
   }
@@ -202,7 +202,7 @@ export class LogAggregationService {
   /**
    * Send logs to external service (placeholder)
    */
-  private async sendToExternalService(_log: StructuredLog): Promise<void> {
+  private async sendToExternalService(_log: IStructuredLog): Promise<void> {
     // In production, implement integration with:
     // - Elasticsearch
     // - AWS CloudWatch
@@ -226,15 +226,15 @@ export class LogAggregationService {
   /**
    * Get recent logs
    */
-  async getRecentLogs(limit: number = 100): Promise<StructuredLog[]> {
+  async getRecentLogs(limit: number = 100): Promise<IStructuredLog[]> {
     return this.logs.slice(-limit).reverse();
   }
 
   /**
    * Count logs by criteria
    */
-  async countLogs(query: Partial<LogQuery>): Promise<number> {
-    const result = await this.searchLogs(query as LogQuery);
+  async countLogs(query: Partial<ILogQuery>): Promise<number> {
+    const result = await this.searchLogs(query as ILogQuery);
     return result.total;
   }
 

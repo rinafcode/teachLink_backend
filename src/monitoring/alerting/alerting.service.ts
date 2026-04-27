@@ -5,7 +5,7 @@ import axios from 'axios';
 
 export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
-export interface AlertRule {
+export interface IAlertRule {
   metricName: string;
   description: string;
   warningThreshold: number;
@@ -16,7 +16,7 @@ export interface AlertRule {
   cooldownMs: number;
 }
 
-export interface AlertEvent {
+export interface IAlertEvent {
   id: string;
   type: string;
   message: string;
@@ -25,7 +25,7 @@ export interface AlertEvent {
   metadata?: Record<string, unknown>;
 }
 
-export const ALERT_RULES: AlertRule[] = [
+export const ALERT_RULES: IAlertRule[] = [
   {
     metricName: 'cpu_load',
     description: 'CPU Load',
@@ -108,7 +108,7 @@ export class AlertingService {
   private readonly lastFiredAt = new Map<string, Date>();
 
   /** In-memory ring buffer of recent alerts (capped at 200) */
-  private readonly recentAlerts: AlertEvent[] = [];
+  private readonly recentAlerts: IAlertEvent[] = [];
   private readonly maxRecentAlerts = 200;
 
   private readonly emailEnabled: boolean;
@@ -196,11 +196,11 @@ export class AlertingService {
     }
   }
 
-  getRecentAlerts(limit = 50): AlertEvent[] {
+  getRecentAlerts(limit = 50): IAlertEvent[] {
     return this.recentAlerts.slice(-Math.min(limit, this.maxRecentAlerts));
   }
 
-  getAlertRules(): AlertRule[] {
+  getAlertRules(): IAlertRule[] {
     return ALERT_RULES;
   }
 
@@ -223,7 +223,7 @@ export class AlertingService {
     message: string,
     severity: AlertSeverity,
     metadata?: Record<string, unknown>,
-  ): AlertEvent {
+  ): IAlertEvent {
     return {
       id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       type,
@@ -234,7 +234,7 @@ export class AlertingService {
     };
   }
 
-  private recordAlert(event: AlertEvent): void {
+  private recordAlert(event: IAlertEvent): void {
     this.lastFiredAt.set(event.type, event.firedAt);
     this.recentAlerts.push(event);
     if (this.recentAlerts.length > this.maxRecentAlerts) {
@@ -242,7 +242,7 @@ export class AlertingService {
     }
   }
 
-  private dispatchToChannels(event: AlertEvent): void {
+  private dispatchToChannels(event: IAlertEvent): void {
     this.logAlert(event);
 
     if (this.emailEnabled) {
@@ -258,7 +258,7 @@ export class AlertingService {
     }
   }
 
-  private logAlert(event: AlertEvent): void {
+  private logAlert(event: IAlertEvent): void {
     const line = `[ALERT][${event.severity}] ${event.type}: ${event.message}`;
     if (event.severity === 'CRITICAL') {
       this.logger.error(line);
@@ -269,7 +269,7 @@ export class AlertingService {
     }
   }
 
-  private async sendEmailAlert(event: AlertEvent): Promise<void> {
+  private async sendEmailAlert(event: IAlertEvent): Promise<void> {
     if (!this.mailerTransport) {
       return;
     }
@@ -285,7 +285,7 @@ export class AlertingService {
     });
   }
 
-  private buildEmailText(event: AlertEvent): string {
+  private buildEmailText(event: IAlertEvent): string {
     return [
       `Alert ID: ${event.id}`,
       `Type: ${event.type}`,
@@ -298,7 +298,7 @@ export class AlertingService {
       .join('\n');
   }
 
-  private buildEmailHtml(event: AlertEvent, emoji: string): string {
+  private buildEmailHtml(event: IAlertEvent, emoji: string): string {
     const color = event.severity === 'CRITICAL' ? '#dc2626' : event.severity === 'WARNING' ? '#d97706' : '#16a34a';
     const detailsRow = event.metadata
       ? `<tr><td><strong>Details</strong></td><td><pre style="background:#f3f4f6;padding:8px;border-radius:4px">${JSON.stringify(event.metadata, null, 2)}</pre></td></tr>`
@@ -321,7 +321,7 @@ export class AlertingService {
       </div>`;
   }
 
-  private async sendSlackAlert(event: AlertEvent): Promise<void> {
+  private async sendSlackAlert(event: IAlertEvent): Promise<void> {
     if (!this.slackWebhookUrl) {
       return;
     }

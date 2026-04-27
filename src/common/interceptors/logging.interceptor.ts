@@ -19,7 +19,7 @@ export type LogLevel = 'info' | 'warn' | 'error';
  * consistent Elasticsearch mappings and Kibana dashboards without
  * per-environment special-casing.
  */
-export interface RequestLog {
+export interface IRequestLog {
   '@timestamp': string;
   service: string;
   environment: string;
@@ -35,7 +35,7 @@ export interface RequestLog {
   userRole?: string;
 }
 
-export interface ResponseLog extends RequestLog {
+export interface IResponseLog extends IRequestLog {
   statusCode: number;
   responseTimeMs: number;
   contentLength?: number;
@@ -81,7 +81,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const response = httpCtx.getResponse<Response>();
     response?.setHeader(CORRELATION_ID_HEADER, correlationId);
 
-    const baseLog: RequestLog = {
+    const baseLog: IRequestLog = {
       '@timestamp': new Date().toISOString(),
       service: this.service,
       environment: this.environment,
@@ -102,7 +102,7 @@ export class LoggingInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const res = httpCtx.getResponse<Response>();
-        const outgoing: ResponseLog = {
+        const outgoing: IResponseLog = {
           ...baseLog,
           event: 'request.completed',
           statusCode: res.statusCode,
@@ -121,7 +121,7 @@ export class LoggingInterceptor implements NestInterceptor {
             ? (error as { status: number }).status
             : 500;
 
-        const outgoing: ResponseLog = {
+        const outgoing: IResponseLog = {
           ...baseLog,
           event: 'request.completed',
           level: this.resolveLevel(status),
@@ -141,7 +141,7 @@ export class LoggingInterceptor implements NestInterceptor {
   // ─── Private helpers ───────────────────────────────────────────────────────
 
   /** Emit a structured JSON log entry and ship it to the external aggregator. */
-  private emit(nestLevel: 'log' | 'warn' | 'error', entry: RequestLog | ResponseLog): void {
+  private emit(nestLevel: 'log' | 'warn' | 'error', entry: IRequestLog | IResponseLog): void {
     this.logger[nestLevel](JSON.stringify(entry));
     this.logShipper.ship(entry);
   }

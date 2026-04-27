@@ -70,13 +70,13 @@ export class UserExportHistory {
   updatedAt: Date;
 }
 
-interface ExportJobData {
+interface IExportJobData {
   exportId: string;
   userId: string;
   format: ExportFormat;
 }
 
-interface PreparedExportData {
+interface IPreparedExportData {
   user: {
     id: string;
     email: string;
@@ -149,7 +149,7 @@ export class ExportService {
         exportId: savedRecord.id,
         userId,
         format,
-      } as ExportJobData,
+      } as IExportJobData,
       {
         attempts: 3,
         backoff: {
@@ -215,7 +215,7 @@ export class ExportService {
     };
   }
 
-  async processExportJob(jobData: ExportJobData): Promise<void> {
+  async processExportJob(jobData: IExportJobData): Promise<void> {
     const { exportId, userId, format } = jobData;
 
     const exportRecord = await this.exportHistoryRepository.findOne({ where: { id: exportId } });
@@ -272,7 +272,7 @@ export class ExportService {
     }
   }
 
-  private async prepareExportData(userId: string): Promise<PreparedExportData> {
+  private async prepareExportData(userId: string): Promise<IPreparedExportData> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -320,7 +320,7 @@ export class ExportService {
     };
   }
 
-  private generateJsonExport(data: PreparedExportData): {
+  private generateJsonExport(data: IPreparedExportData): {
     fileName: string;
     mimeType: string;
     content: Buffer;
@@ -333,7 +333,7 @@ export class ExportService {
     };
   }
 
-  private generatePdfExport(data: PreparedExportData): {
+  private generatePdfExport(data: IPreparedExportData): {
     fileName: string;
     mimeType: string;
     content: Buffer;
@@ -426,7 +426,7 @@ export class UserDataExportProcessor {
   constructor(private readonly exportService: ExportService) {}
 
   @Process('generate-user-data-export')
-  async handleGenerateUserDataExport(job: Job<ExportJobData>): Promise<void> {
+  async handleGenerateUserDataExport(job: Job<IExportJobData>): Promise<void> {
     this.logger.log(`Processing user export job: ${job.id}`);
     await job.progress(20);
 

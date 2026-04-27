@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Experiment, ExperimentStatus, ExperimentType } from '../entities/experiment.entity';
-import { ExperimentVariant } from '../entities/experiment-variant.entity';
+import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { StatisticalAnalysisService } from '../analysis/statistical-analysis.service';
 import { AutomatedDecisionService } from '../automation/automated-decision.service';
 
-export interface ReportFilters {
+export interface IReportFilters {
   status?: ExperimentStatus;
   type?: ExperimentType;
   startDate?: Date;
@@ -21,8 +21,8 @@ export class ABTestingReportsService {
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
-    @InjectRepository(ExperimentVariant)
-    private variantRepository: Repository<ExperimentVariant>,
+    @InjectRepository(IExperimentVariant)
+    private variantRepository: Repository<IExperimentVariant>,
     private statisticalAnalysisService: StatisticalAnalysisService,
     private automatedDecisionService: AutomatedDecisionService,
   ) {}
@@ -112,7 +112,7 @@ export class ABTestingReportsService {
   /**
    * Gets dashboard summary of all experiments
    */
-  async getDashboardSummary(filters?: ReportFilters): Promise<any> {
+  async getDashboardSummary(filters?: IReportFilters): Promise<any> {
     this.logger.log('Generating dashboard summary');
 
     const experiments = await this.getFilteredExperiments(filters);
@@ -136,7 +136,7 @@ export class ABTestingReportsService {
   /**
    * Gets filtered experiments based on criteria
    */
-  private async getFilteredExperiments(filters?: ReportFilters): Promise<Experiment[]> {
+  private async getFilteredExperiments(filters?: IReportFilters): Promise<Experiment[]> {
     const queryBuilder = this.experimentRepository.createQueryBuilder('experiment');
 
     if (filters?.status) {

@@ -7,7 +7,7 @@ export const API_VERSION_HEADER_KEY = API_VERSION_HEADER.toLowerCase();
 const VERSION_NEUTRAL_PATH_PREFIXES = ['/api', '/health', '/metrics', '/webhooks'];
 const VERSION_NEUTRAL_EXACT_PATHS = ['/', '/api-json', '/favicon.ico'];
 
-export interface VersionedRequest {
+export interface IVersionedRequest {
   apiVersion?: string;
   path?: string;
   url?: string;
@@ -71,7 +71,7 @@ export function isVersionNeutralPath(pathOrUrl: string): boolean {
 export class ApiVersionInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const http = context.switchToHttp();
-    const request = http.getRequest<VersionedRequest>();
+    const request = http.getRequest<IVersionedRequest>();
     const response = http.getResponse<{ setHeader: (name: string, value: string) => void }>();
 
     const path = request.path || request.url || '/';

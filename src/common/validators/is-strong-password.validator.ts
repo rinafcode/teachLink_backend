@@ -1,5 +1,5 @@
 export {
   IsStrongPassword,
   calculatePasswordStrength,
-  PasswordStrengthResult,
+  IPasswordStrengthResult,
 } from './password.validator';

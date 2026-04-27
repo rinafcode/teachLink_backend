@@ -3,11 +3,11 @@ import { Request, Response, NextFunction } from 'express';
 
 export const CORRELATION_ID_HEADER = 'x-request-id';
 
-export interface CorrelationContext {
+export interface ICorrelationContext {
   correlationId: string;
 }
 
-const correlationStorage = new AsyncLocalStorage<CorrelationContext>();
+const correlationStorage = new AsyncLocalStorage<ICorrelationContext>();
 
 export function generateCorrelationId(): string {
   return `cid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;

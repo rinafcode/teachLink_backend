@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface DrawingElement {
+export interface IDrawingElement {
   id: string;
   type: 'line' | 'rectangle' | 'circle' | 'text' | 'freehand';
   x: number;
@@ -16,19 +16,19 @@ export interface DrawingElement {
   timestamp: number;
 }
 
-export interface WhiteboardOperation {
+export interface IWhiteboardOperation {
   id: string;
   type: 'addElement' | 'removeElement' | 'updateElement' | 'clearBoard';
-  element?: DrawingElement;
+  element?: IDrawingElement;
   elementId?: string;
   userId: string;
   timestamp: number;
 }
 
-export interface CollaborativeWhiteboard {
+export interface ICollaborativeWhiteboard {
   id: string;
-  elements: DrawingElement[];
-  operations: WhiteboardOperation[];
+  elements: IDrawingElement[];
+  operations: IWhiteboardOperation[];
   collaborators: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -37,13 +37,13 @@ export interface CollaborativeWhiteboard {
 @Injectable()
 export class WhiteboardService {
   private readonly logger = Logger;
-  private whiteboards: Map<string, CollaborativeWhiteboard> = new Map();
+  private whiteboards: Map<string, ICollaborativeWhiteboard> = new Map();
 
   /**
    * Initialize a new collaborative whiteboard
    */
-  async initializeWhiteboard(whiteboardId: string): Promise<CollaborativeWhiteboard> {
-    const whiteboard: CollaborativeWhiteboard = {
+  async initializeWhiteboard(whiteboardId: string): Promise<ICollaborativeWhiteboard> {
+    const whiteboard: ICollaborativeWhiteboard = {
       id: whiteboardId,
       elements: [],
       operations: [],
@@ -61,7 +61,7 @@ export class WhiteboardService {
   /**
    * Get a collaborative whiteboard
    */
-  async getWhiteboard(whiteboardId: string): Promise<CollaborativeWhiteboard | null> {
+  async getWhiteboard(whiteboardId: string): Promise<ICollaborativeWhiteboard | null> {
     return this.whiteboards.get(whiteboardId) || null;
   }
 
@@ -71,15 +71,15 @@ export class WhiteboardService {
   async applyOperation(
     whiteboardId: string,
     userId: string,
-    operation: Omit<WhiteboardOperation, 'id' | 'timestamp'>,
-  ): Promise<CollaborativeWhiteboard> {
+    operation: Omit<IWhiteboardOperation, 'id' | 'timestamp'>,
+  ): Promise<ICollaborativeWhiteboard> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
     }
 
     // Add metadata to the operation
-    const opWithMetadata: WhiteboardOperation = {
+    const opWithMetadata: IWhiteboardOperation = {
       ...operation,
       id: uuidv4(),
       timestamp: Date.now(),
@@ -107,8 +107,8 @@ export class WhiteboardService {
    * Apply an operation to the whiteboard state
    */
   private applyOperationToWhiteboard(
-    whiteboard: CollaborativeWhiteboard,
-    operation: WhiteboardOperation,
+    whiteboard: ICollaborativeWhiteboard,
+    operation: IWhiteboardOperation,
   ): void {
     switch (operation.type) {
       case 'addElement':
@@ -142,9 +142,9 @@ export class WhiteboardService {
    * Transform an operation against concurrent operations
    */
   private transformOperation(
-    operation: WhiteboardOperation,
-    concurrentOperations: WhiteboardOperation[],
-  ): WhiteboardOperation {
+    operation: IWhiteboardOperation,
+    concurrentOperations: IWhiteboardOperation[],
+  ): IWhiteboardOperation {
     // For whiteboard operations, transformation is simpler than text operations
     // We mainly need to handle cases where elements are removed while others try to update them
     let transformedOp = { ...operation };
@@ -173,8 +173,8 @@ export class WhiteboardService {
    */
   async resolveConflicts(
     whiteboardId: string,
-    operations: WhiteboardOperation[],
-  ): Promise<CollaborativeWhiteboard> {
+    operations: IWhiteboardOperation[],
+  ): Promise<ICollaborativeWhiteboard> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
@@ -201,7 +201,7 @@ export class WhiteboardService {
   /**
    * Get whiteboard history
    */
-  async getWhiteboardHistory(whiteboardId: string): Promise<WhiteboardOperation[]> {
+  async getWhiteboardHistory(whiteboardId: string): Promise<IWhiteboardOperation[]> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
@@ -215,15 +215,15 @@ export class WhiteboardService {
    */
   async addElement(
     whiteboardId: string,
-    element: Omit<DrawingElement, 'id' | 'timestamp'>,
+    element: Omit<IDrawingElement, 'id' | 'timestamp'>,
     userId: string,
-  ): Promise<DrawingElement> {
+  ): Promise<IDrawingElement> {
     const whiteboard = this.whiteboards.get(whiteboardId);
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
     }
 
-    const newElement: DrawingElement = {
+    const newElement: IDrawingElement = {
       ...element,
       id: uuidv4(),
       timestamp: Date.now(),
@@ -234,7 +234,7 @@ export class WhiteboardService {
     whiteboard.updatedAt = new Date();
 
     // Record the operation
-    const operation: WhiteboardOperation = {
+    const operation: IWhiteboardOperation = {
       id: uuidv4(),
       type: 'addElement',
       element: newElement,
@@ -264,7 +264,7 @@ export class WhiteboardService {
     whiteboard.updatedAt = new Date();
 
     // Record the operation
-    const operation: WhiteboardOperation = {
+    const operation: IWhiteboardOperation = {
       id: uuidv4(),
       type: 'removeElement',
       elementId,

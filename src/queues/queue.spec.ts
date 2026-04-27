@@ -4,7 +4,7 @@
  */
 
 // ─── Inline type definitions (no NestJS imports needed)
-interface TimestampedMetrics {
+interface ITimestampedMetrics {
   queueName: string;
   waiting: number;
   active: number;
@@ -18,14 +18,14 @@ interface TimestampedMetrics {
   capturedAt: number;
 }
 
-interface QueueHealthStatus {
+interface IQueueHealthStatus {
   status: 'healthy' | 'warning' | 'critical';
   issues: string[];
   metrics: any;
   timestamp: Date;
 }
 
-interface BulkRetryResult {
+interface IBulkRetryResult {
   requeued: number;
   skipped: number;
   errors: Array<{ jobId: string | number; reason: string }>;
@@ -34,7 +34,7 @@ interface BulkRetryResult {
 // ─── Minimal monitoring service (extracted logic, no decorators)
 
 class QueueMonitoringService {
-  private readonly metricsHistory: TimestampedMetrics[] = [];
+  private readonly metricsHistory: ITimestampedMetrics[] = [];
   private readonly MAX_HISTORY_SIZE = 100;
   private readonly THRESHOLDS = {
     failureRateCritical: 0.2,
@@ -49,7 +49,7 @@ class QueueMonitoringService {
 
   constructor(private readonly queue: any) {}
 
-  async getQueueMetrics(): Promise<TimestampedMetrics> {
+  async getQueueMetrics(): Promise<ITimestampedMetrics> {
     const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
       this.queue.getWaitingCount(),
       this.queue.getActiveCount(),
@@ -64,7 +64,7 @@ class QueueMonitoringService {
     const throughput = this.calculateThroughput(completed, capturedAt);
     const avgProcessingTime = await this.calculateAvgProcessingTime();
 
-    const metrics: TimestampedMetrics = {
+    const metrics: ITimestampedMetrics = {
       queueName: 'default',
       waiting,
       active,
@@ -82,11 +82,11 @@ class QueueMonitoringService {
     return metrics;
   }
 
-  getMetricsHistory(): TimestampedMetrics[] {
+  getMetricsHistory(): ITimestampedMetrics[] {
     return [...this.metricsHistory];
   }
 
-  async checkQueueHealth(): Promise<QueueHealthStatus> {
+  async checkQueueHealth(): Promise<IQueueHealthStatus> {
     const metrics = await this.getQueueMetrics();
     const issues: string[] = [];
     let status: 'healthy' | 'warning' | 'critical' = 'healthy';
@@ -152,9 +152,9 @@ class QueueMonitoringService {
     return this.queue.getFailed(offset, offset + limit - 1);
   }
 
-  async retryAllFailedJobs(): Promise<BulkRetryResult> {
+  async retryAllFailedJobs(): Promise<IBulkRetryResult> {
     const failed = await this.queue.getFailed(0, 10_000);
-    const result: BulkRetryResult = { requeued: 0, skipped: 0, errors: [] };
+    const result: IBulkRetryResult = { requeued: 0, skipped: 0, errors: [] };
     for (const job of failed) {
       try {
         await job.retry();
@@ -244,7 +244,7 @@ class QueueMonitoringService {
     }
   }
 
-  private appendToHistory(metrics: TimestampedMetrics): void {
+  private appendToHistory(metrics: ITimestampedMetrics): void {
     this.metricsHistory.push(metrics);
     if (this.metricsHistory.length > this.MAX_HISTORY_SIZE) this.metricsHistory.shift();
   }

@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import {
-  ExperimentStats,
-  ExperimentVariantStats,
-  FlagAnalyticsEvent,
-  FlagEvaluationStats,
-  FlagSummary,
+  IExperimentStats,
+  IExperimentVariantStats,
+  IFlagAnalyticsEvent,
+  IFlagEvaluationStats,
+  IFlagSummary,
 } from '../interfaces';
 
-type TrackEvaluationInput = Omit<FlagAnalyticsEvent, 'eventId' | 'timestamp'>;
+type TrackEvaluationInput = Omit<IFlagAnalyticsEvent, 'eventId' | 'timestamp'>;
 
 @Injectable()
 export class FlagAnalyticsService {
   /** flagKey → events */
-  private readonly flagEvents = new Map<string, FlagAnalyticsEvent[]>();
+  private readonly flagEvents = new Map<string, IFlagAnalyticsEvent[]>();
   /** flagKey → Set of unique userIds */
   private readonly flagUsers = new Map<string, Set<string>>();
   /** experimentId → variantKey → impression count */
@@ -24,7 +24,7 @@ export class FlagAnalyticsService {
    * Records a flag evaluation event.
    */
   trackEvaluation(input: TrackEvaluationInput): void {
-    const event: FlagAnalyticsEvent = {
+    const event: IFlagAnalyticsEvent = {
       ...input,
       eventId: this.generateEventId(),
       timestamp: new Date(),
@@ -91,7 +91,7 @@ export class FlagAnalyticsService {
    * Returns evaluation statistics for a flag.
    * Optionally filters to events within the last `sinceHours` hours.
    */
-  getEvaluationStats(flagKey: string, sinceHours?: number): FlagEvaluationStats {
+  getEvaluationStats(flagKey: string, sinceHours?: number): IFlagEvaluationStats {
     const allEvents = this.flagEvents.get(flagKey) ?? [];
 
     const events = sinceHours
@@ -134,14 +134,14 @@ export class FlagAnalyticsService {
   /**
    * Returns impression and conversion stats for all variants in an experiment.
    */
-  getExperimentStats(experimentId: string, controlVariantKey?: string): ExperimentStats {
+  getExperimentStats(experimentId: string, controlVariantKey?: string): IExperimentStats {
     const impressions = this.experimentImpressions.get(experimentId) ?? new Map<string, number>();
     const conversions = this.experimentConversions.get(experimentId) ?? new Map<string, number>();
 
     const allVariantKeys = new Set([...impressions.keys(), ...conversions.keys()]);
 
     let totalImpressions = 0;
-    const variants: Record<string, ExperimentVariantStats> = {};
+    const variants: Record<string, IExperimentVariantStats> = {};
 
     for (const variantKey of allVariantKeys) {
       const imp = impressions.get(variantKey) ?? 0;
@@ -163,8 +163,8 @@ export class FlagAnalyticsService {
   /**
    * Returns the most evaluated flags, sorted by evaluation count descending.
    */
-  getTopFlags(limit: number = 10): FlagSummary[] {
-    const summaries: FlagSummary[] = [];
+  getTopFlags(limit: number = 10): IFlagSummary[] {
+    const summaries: IFlagSummary[] = [];
 
     for (const [flagKey, events] of this.flagEvents.entries()) {
       const evaluations = events.filter((e) => e.eventType === 'evaluation');
@@ -181,7 +181,7 @@ export class FlagAnalyticsService {
   /**
    * Returns the most recent evaluation events for a flag in reverse-chronological order.
    */
-  getFlagEvaluationHistory(flagKey: string, limit: number = 100): FlagAnalyticsEvent[] {
+  getFlagEvaluationHistory(flagKey: string, limit: number = 100): IFlagAnalyticsEvent[] {
     const events = this.flagEvents.get(flagKey) ?? [];
     return events
       .filter((e) => e.eventType === 'evaluation')

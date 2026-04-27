@@ -1,10 +1,10 @@
 import { Injectable, Logger, LoggerService, Scope } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  LogContext,
-  StructuredLog,
+  ILogContext,
+  IStructuredLog,
   LogLevel,
-  ErrorDetails,
+  IErrorDetails,
 } from '../interfaces/observability.interfaces';
 
 /**
@@ -14,7 +14,7 @@ import {
 @Injectable({ scope: Scope.TRANSIENT })
 export class StructuredLoggerService implements LoggerService {
   private readonly nestLogger = new Logger(StructuredLoggerService.name);
-  private context: Partial<LogContext> = {};
+  private context: Partial<ILogContext> = {};
   private serviceName: string = 'teachlink';
 
   constructor() {
@@ -27,7 +27,7 @@ export class StructuredLoggerService implements LoggerService {
   /**
    * Set context for all subsequent logs
    */
-  setContext(context: Partial<LogContext>): void {
+  setContext(context: Partial<ILogContext>): void {
     this.context = { ...this.context, ...context };
   }
 
@@ -107,7 +107,7 @@ export class StructuredLoggerService implements LoggerService {
   error(message: string, trace?: string, metadata?: Record<string, any>): void;
   error(message: string, error?: Error, metadata?: Record<string, any>): void;
   error(message: string, traceOrError?: string | Error, metadata?: Record<string, any>): void {
-    let errorDetails: ErrorDetails | undefined;
+    let errorDetails: IErrorDetails | undefined;
 
     if (traceOrError instanceof Error) {
       errorDetails = {
@@ -130,7 +130,7 @@ export class StructuredLoggerService implements LoggerService {
    * Log fatal error
    */
   fatal(message: string, error?: Error, metadata?: Record<string, any>): void {
-    const errorDetails: ErrorDetails | undefined = error
+    const errorDetails: IErrorDetails | undefined = error
       ? {
           name: error.name,
           message: error.message,
@@ -161,9 +161,9 @@ export class StructuredLoggerService implements LoggerService {
     level: LogLevel,
     message: string,
     metadata?: Record<string, any>,
-    error?: ErrorDetails,
+    error?: IErrorDetails,
   ): void {
-    const logContext: LogContext = {
+    const logContext: ILogContext = {
       correlationId: this.context.correlationId || uuidv4(),
       traceId: this.context.traceId,
       spanId: this.context.spanId,
@@ -175,7 +175,7 @@ export class StructuredLoggerService implements LoggerService {
       metadata,
     };
 
-    const structuredLog: StructuredLog = {
+    const structuredLog: IStructuredLog = {
       level,
       message,
       context: logContext,
@@ -208,7 +208,7 @@ export class StructuredLoggerService implements LoggerService {
   /**
    * Create child logger with additional context
    */
-  child(additionalContext: Partial<LogContext>): StructuredLoggerService {
+  child(additionalContext: Partial<ILogContext>): StructuredLoggerService {
     const childLogger = new StructuredLoggerService();
     childLogger.setContext({ ...this.context, ...additionalContext });
     return childLogger;

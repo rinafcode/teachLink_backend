@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ExperimentConfig, ExperimentResult, ExperimentVariant, UserContext } from '../interfaces';
+import { IExperimentConfig, IExperimentResult, IExperimentVariant, IUserContext } from '../interfaces';
 import { RolloutService } from '../rollout/rollout.service';
 
-interface ConversionRecord {
+interface IConversionRecord {
   eventName: string;
   metadata?: Record<string, unknown>;
   timestamp: Date;
@@ -10,8 +10,8 @@ interface ConversionRecord {
 
 @Injectable()
 export class ExperimentationService {
-  /** variantKey → userId → ConversionRecord[] */
-  private readonly conversions = new Map<string, Map<string, ConversionRecord[]>>();
+  /** variantKey → userId → IConversionRecord[] */
+  private readonly conversions = new Map<string, Map<string, IConversionRecord[]>>();
 
   constructor(private readonly rolloutService: RolloutService) {}
 
@@ -20,10 +20,10 @@ export class ExperimentationService {
    * Returns null if the experiment is inactive or the user is outside traffic allocation.
    */
   assignVariant(
-    config: ExperimentConfig,
+    config: IExperimentConfig,
     flagKey: string,
-    userContext: UserContext,
-  ): ExperimentResult | null {
+    userContext: IUserContext,
+  ): IExperimentResult | null {
     if (config.status !== 'running') return null;
 
     const now = new Date();
@@ -69,7 +69,7 @@ export class ExperimentationService {
   /**
    * Returns all recorded conversion records for an experiment.
    */
-  getConversions(experimentId: string): Map<string, ConversionRecord[]> {
+  getConversions(experimentId: string): Map<string, IConversionRecord[]> {
     return this.conversions.get(experimentId) ?? new Map();
   }
 
@@ -85,9 +85,9 @@ export class ExperimentationService {
    * Uses a separate hash seed from variant assignment to avoid correlation.
    */
   private isInExperimentTraffic(
-    config: ExperimentConfig,
+    config: IExperimentConfig,
     flagKey: string,
-    userContext: UserContext,
+    userContext: IUserContext,
   ): boolean {
     const bucketValue = this.resolveBucketAttributeValue(
       config.bucketByAttribute ?? 'userId',
@@ -103,10 +103,10 @@ export class ExperimentationService {
    * The same user always receives the same variant for the same experiment.
    */
   private selectVariant(
-    config: ExperimentConfig,
+    config: IExperimentConfig,
     flagKey: string,
-    userContext: UserContext,
-  ): ExperimentVariant | null {
+    userContext: IUserContext,
+  ): IExperimentVariant | null {
     if (!config.variants || config.variants.length === 0) return null;
 
     const bucketValue = this.resolveBucketAttributeValue(
@@ -132,7 +132,7 @@ export class ExperimentationService {
     return config.variants[config.variants.length - 1];
   }
 
-  private resolveBucketAttributeValue(attribute: string, userContext: UserContext): string {
+  private resolveBucketAttributeValue(attribute: string, userContext: IUserContext): string {
     switch (attribute) {
       case 'userId':
         return userContext.userId;

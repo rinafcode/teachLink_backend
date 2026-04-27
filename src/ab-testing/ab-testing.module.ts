@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Experiment } from './entities/experiment.entity';
-import { ExperimentVariant } from './entities/experiment-variant.entity';
+import { IExperimentVariant } from './entities/experiment-variant.entity';
 import { ExperimentMetric } from './entities/experiment-metric.entity';
 import { VariantMetric } from './entities/variant-metric.entity';
 import { ABTestingService } from './ab-testing.service';
@@ -13,7 +13,7 @@ import { ABTestingController } from './ab-testing.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Experiment, ExperimentVariant, ExperimentMetric, VariantMetric]),
+    TypeOrmModule.forFeature([Experiment, IExperimentVariant, ExperimentMetric, VariantMetric]),
   ],
   controllers: [ABTestingController],
   providers: [

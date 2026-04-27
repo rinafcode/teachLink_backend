@@ -18,7 +18,7 @@ import {
   isVersionNeutralPath,
   normalizeRequestedApiVersion,
   SUPPORTED_API_VERSIONS,
-  VersionedRequest,
+  IVersionedRequest,
 } from '../interceptors/api-version.interceptor';
 
 export const API_VERSIONING_DOCUMENTATION = [
@@ -31,7 +31,7 @@ export const API_VERSIONING_DOCUMENTATION = [
 @Injectable()
 export class ApiVersionValidationMiddleware implements NestMiddleware {
   use(
-    req: Request & VersionedRequest & { headers: Record<string, string | string[] | undefined> },
+    req: Request & IVersionedRequest & { headers: Record<string, string | string[] | undefined> },
     res: Response,
     next: NextFunction,
   ): void {

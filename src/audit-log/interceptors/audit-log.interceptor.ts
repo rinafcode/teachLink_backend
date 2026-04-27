@@ -5,7 +5,7 @@ import { AuditLogService } from '../audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../enums/audit-action.enum';
 import { Request } from 'express';
 
-interface RequestWithUser extends Request {
+interface IRequestWithUser extends Request {
   user?: {
     id: string;
     email: string;
@@ -21,7 +21,7 @@ export class AuditLogInterceptor implements NestInterceptor {
   constructor(private readonly auditLogService: AuditLogService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
+    const request = context.switchToHttp().getRequest<IRequestWithUser>();
     const response = context.switchToHttp().getResponse();
     const startTime = Date.now();
 

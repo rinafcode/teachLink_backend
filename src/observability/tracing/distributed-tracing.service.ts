@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { trace, Span, SpanStatusCode, context } from '@opentelemetry/api';
-import { TraceSpan, SpanStatus, SpanEvent } from '../interfaces/observability.interfaces';
+import { ITraceSpan, SpanStatus, ISpanEvent } from '../interfaces/observability.interfaces';
 
 /**
  * Distributed Tracing Service
@@ -10,7 +10,7 @@ import { TraceSpan, SpanStatus, SpanEvent } from '../interfaces/observability.in
 export class DistributedTracingService {
   private readonly logger = new Logger(DistributedTracingService.name);
   private readonly tracer = trace.getTracer('teachlink', '1.0.0');
-  private spans: Map<string, TraceSpan> = new Map();
+  private spans: Map<string, ITraceSpan> = new Map();
 
   /**
    * Start a new trace span
@@ -26,7 +26,7 @@ export class DistributedTracingService {
 
     // Store span info
     const spanContext = span.spanContext();
-    const traceSpan: TraceSpan = {
+    const traceSpan: ITraceSpan = {
       traceId: spanContext.traceId,
       spanId: spanContext.spanId,
       name,
@@ -113,7 +113,7 @@ export class DistributedTracingService {
     const spanContext = span.spanContext();
     const traceSpan = this.spans.get(spanContext.spanId);
     if (traceSpan) {
-      const event: SpanEvent = {
+      const event: ISpanEvent = {
         name,
         timestamp: new Date(),
         attributes,
@@ -201,21 +201,21 @@ export class DistributedTracingService {
   /**
    * Get trace by ID
    */
-  getTraceById(traceId: string): TraceSpan[] {
+  getTraceById(traceId: string): ITraceSpan[] {
     return Array.from(this.spans.values()).filter((span) => span.traceId === traceId);
   }
 
   /**
    * Get span by ID
    */
-  getSpanById(spanId: string): TraceSpan | undefined {
+  getSpanById(spanId: string): ITraceSpan | undefined {
     return this.spans.get(spanId);
   }
 
   /**
    * Get all spans
    */
-  getAllSpans(): TraceSpan[] {
+  getAllSpans(): ITraceSpan[] {
     return Array.from(this.spans.values());
   }
 

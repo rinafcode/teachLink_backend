@@ -1,7 +1,7 @@
 import { Controller, Get, Put, UseGuards, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { TimeoutConfigService, TimeoutConfig } from './timeout-config.service';
+import { TimeoutConfigService, ITimeoutConfig } from './timeout-config.service';
 
 @ApiTags('Timeout Configuration')
 @ApiBearerAuth()
@@ -12,15 +12,15 @@ export class TimeoutController {
 
   @Get('config')
   @ApiOperation({ summary: 'Get current timeout configuration' })
-  @ApiResponse({ status: 200, description: 'Timeout configuration retrieved successfully' })
-  getConfig(): TimeoutConfig {
+  @IApiResponse({ status: 200, description: 'Timeout configuration retrieved successfully' })
+  getConfig(): ITimeoutConfig {
     return this.timeoutConfig.getConfig();
   }
 
   @Put('default')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update default timeout' })
-  @ApiResponse({ status: 200, description: 'Default timeout updated successfully' })
+  @IApiResponse({ status: 200, description: 'Default timeout updated successfully' })
   updateDefaultTimeout(@Body() body: { timeout: number }): { message: string; timeout: number } {
     this.timeoutConfig.updateDefaultTimeout(body.timeout);
     return {
@@ -32,7 +32,7 @@ export class TimeoutController {
   @Put('endpoint')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update endpoint timeout' })
-  @ApiResponse({ status: 200, description: 'Endpoint timeout updated successfully' })
+  @IApiResponse({ status: 200, description: 'Endpoint timeout updated successfully' })
   updateEndpointTimeout(@Body() body: { path: string; timeout: number }): { message: string } {
     this.timeoutConfig.updateEndpointTimeout(body.path, body.timeout);
     return {
@@ -43,7 +43,7 @@ export class TimeoutController {
   @Put('method')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update HTTP method timeout' })
-  @ApiResponse({ status: 200, description: 'Method timeout updated successfully' })
+  @IApiResponse({ status: 200, description: 'Method timeout updated successfully' })
   updateMethodTimeout(@Body() body: { method: string; timeout: number }): { message: string } {
     this.timeoutConfig.updateMethodTimeout(body.method, body.timeout);
     return {
@@ -53,7 +53,7 @@ export class TimeoutController {
 
   @Get('check')
   @ApiOperation({ summary: 'Get timeout for a specific request' })
-  @ApiResponse({ status: 200, description: 'Timeout calculated successfully' })
+  @IApiResponse({ status: 200, description: 'Timeout calculated successfully' })
   checkTimeout(@Body() body: { method: string; path: string }): {
     timeout: number;
     source: string;

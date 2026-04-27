@@ -5,7 +5,7 @@ import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { TIME } from '../../common/constants/time.constants';
 
-export interface ReplicationEvent {
+export interface IReplicationEvent {
   entityId: string;
   sourceRegion: string;
   targetRegion: string;
@@ -34,7 +34,7 @@ export class ReplicationService {
 
     this.logger.log(`Replicating ${entityId} from ${this.currentRegion} to ${targetRegion}`);
 
-    const event: ReplicationEvent = {
+    const event: IReplicationEvent = {
       entityId,
       sourceRegion: this.currentRegion,
       targetRegion,
@@ -72,7 +72,7 @@ export class ReplicationService {
   /**
    * Handles incoming replication data from another region.
    */
-  async handleIncomingReplication(event: ReplicationEvent): Promise<void> {
+  async handleIncomingReplication(event: IReplicationEvent): Promise<void> {
     this.logger.log(`Received replication for ${event.entityId} from ${event.sourceRegion}`);
 
     // In a real app, logic to update the local database would go here.

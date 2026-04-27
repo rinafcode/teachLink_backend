@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnApplicationBootstrap } from '@nestjs/common';
 
-export interface StartupMetrics {
+export interface IStartupMetrics {
   bootstrapStartTime: number;
   bootstrapEndTime: number;
   totalStartupTimeMs: number;
@@ -10,7 +10,7 @@ export interface StartupMetrics {
   memoryUsage: NodeJS.MemoryUsage;
 }
 
-export interface ModuleLoadMetric {
+export interface IModuleLoadMetric {
   moduleName: string;
   startTime: number;
   endTime: number;
@@ -23,7 +23,7 @@ export class StartupLogger implements OnModuleInit, OnApplicationBootstrap {
   private readonly logger = new Logger(StartupLogger.name);
   private bootstrapStartTime: number = 0;
   private moduleInitStartTime: number = 0;
-  private moduleMetrics: Map<string, ModuleLoadMetric> = new Map();
+  private moduleMetrics: Map<string, IModuleLoadMetric> = new Map();
   private modulesLoaded: string[] = [];
   private modulesSkipped: string[] = [];
 
@@ -72,21 +72,21 @@ export class StartupLogger implements OnModuleInit, OnApplicationBootstrap {
   /**
    * Get all recorded metrics
    */
-  getMetrics(): StartupMetrics {
+  getMetrics(): IStartupMetrics {
     return this.generateMetrics();
   }
 
   /**
    * Get module load metrics
    */
-  getModuleMetrics(): ModuleLoadMetric[] {
+  getModuleMetrics(): IModuleLoadMetric[] {
     return Array.from(this.moduleMetrics.values());
   }
 
   /**
    * Get slowest loading modules
    */
-  getSlowestModules(limit: number = 5): ModuleLoadMetric[] {
+  getSlowestModules(limit: number = 5): IModuleLoadMetric[] {
     return this.getModuleMetrics()
       .sort((a, b) => b.durationMs - a.durationMs)
       .slice(0, limit);
@@ -102,7 +102,7 @@ export class StartupLogger implements OnModuleInit, OnApplicationBootstrap {
   /**
    * Generate a complete startup report
    */
-  private generateMetrics(): StartupMetrics {
+  private generateMetrics(): IStartupMetrics {
     const now = Date.now();
 
     return {
@@ -119,7 +119,7 @@ export class StartupLogger implements OnModuleInit, OnApplicationBootstrap {
   /**
    * Log startup report
    */
-  private logStartupReport(metrics: StartupMetrics): void {
+  private logStartupReport(metrics: IStartupMetrics): void {
     const totalModules = metrics.modulesLoaded.length + metrics.modulesSkipped.length;
     const loadedCount = metrics.modulesLoaded.length;
     const skippedCount = metrics.modulesSkipped.length;

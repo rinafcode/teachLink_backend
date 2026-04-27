@@ -22,7 +22,7 @@ import {
 } from '../permissions/collaboration-permissions.service';
 import { wsManager } from '../../common/utils/websocket.utils';
 
-export interface CollaborativeOperation {
+export interface ICollaborativeOperation {
   sessionId: string;
   userId: string;
   resourceType: 'document' | 'whiteboard';
@@ -160,7 +160,7 @@ export class CollaborationGateway
 
   @SubscribeMessage(COLLABORATION_EVENTS.COLLABORATIVE_OPERATION)
   async handleCollaborativeOperation(
-    @MessageBody() operation: CollaborativeOperation,
+    @MessageBody() operation: ICollaborativeOperation,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     const { sessionId, userId, resourceType, operation: opData } = operation;

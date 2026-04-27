@@ -11,11 +11,11 @@ import { BackupStatus } from './enums/backup-status.enum';
 import { BackupType } from './enums/backup-type.enum';
 import { Region } from './enums/region.enum';
 import { BackupResponseDto } from './dto/backup-response.dto';
-import { BackupJobData } from './interfaces/backup.interfaces';
+import { IBackupJobData } from './interfaces/backup.interfaces';
 import { AlertingService } from '../monitoring/alerting/alerting.service';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 import {
-  ScheduledTaskConfig,
+  IScheduledTaskConfig,
   ScheduledTaskMonitoringService,
 } from '../monitoring/scheduled-task-monitoring.service';
 import { TIME } from '../common/constants/time.constants';
@@ -111,7 +111,7 @@ export class BackupService {
             backupType: BackupType.FULL,
             region,
             databaseName,
-          } as BackupJobData,
+          } as IBackupJobData,
           {
             attempts: 3,
             backoff: {
@@ -173,7 +173,7 @@ export class BackupService {
 
   private async executeMonitoredScheduledTask(
     taskName: string,
-    config: ScheduledTaskConfig,
+    config: IScheduledTaskConfig,
     taskRunner: () => Promise<void>,
   ): Promise<void> {
     const executionId = this.scheduledTaskMonitoringService.startExecution(taskName, config, {

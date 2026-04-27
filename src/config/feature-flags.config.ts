@@ -40,7 +40,7 @@
  * 3. Update the active flags list above
  */
 
-export interface FeatureFlagsConfig {
+export interface IFeatureFlagsConfig {
   /** Gates the AuthModule — controls user authentication and authorization.
    *  `true`: AuthModule is loaded at startup.
    *  `false`: AuthModule is skipped; all auth-gated endpoints become unavailable. */
@@ -179,7 +179,7 @@ export interface FeatureFlagsConfig {
  * Default feature flags - all features enabled by default
  * except AB_TESTING, DATA_WAREHOUSE, and GRAPHQL which are not yet GA
  */
-export const defaultFeatureFlags: FeatureFlagsConfig = {
+export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_AUTH: true,
   ENABLE_PAYMENTS: true,
   ENABLE_AB_TESTING: false,
@@ -211,7 +211,7 @@ export const defaultFeatureFlags: FeatureFlagsConfig = {
 /**
  * Load feature flags from environment variables
  */
-export function loadFeatureFlags(): FeatureFlagsConfig {
+export function loadFeatureFlags(): IFeatureFlagsConfig {
   return {
     ENABLE_AUTH: getBooleanEnv('ENABLE_AUTH', defaultFeatureFlags.ENABLE_AUTH),
     ENABLE_PAYMENTS: getBooleanEnv('ENABLE_PAYMENTS', defaultFeatureFlags.ENABLE_PAYMENTS),
@@ -292,7 +292,7 @@ function getBooleanEnv(key: string, defaultValue: boolean): boolean {
 /**
  * Get list of enabled modules based on feature flags
  */
-export function getEnabledModules(flags: FeatureFlagsConfig): string[] {
+export function getEnabledModules(flags: IFeatureFlagsConfig): string[] {
   const modules: string[] = [];
 
   if (flags.ENABLE_AUTH) modules.push('AuthModule');
@@ -328,7 +328,7 @@ export function getEnabledModules(flags: FeatureFlagsConfig): string[] {
 /**
  * Get list of disabled modules based on feature flags
  */
-export function getDisabledModules(flags: FeatureFlagsConfig): string[] {
+export function getDisabledModules(flags: IFeatureFlagsConfig): string[] {
   const allModules = Object.keys(defaultFeatureFlags)
     .filter((key) => key.startsWith('ENABLE_'))
     .map((key) => `${key.replace('ENABLE_', '')}Module`);

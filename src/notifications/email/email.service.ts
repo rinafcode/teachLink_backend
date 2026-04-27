@@ -9,7 +9,7 @@ import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { TIME } from '../../common/constants/time.constants';
 
-export interface EmailOptions {
+export interface IEmailOptions {
   to: string;
   subject: string;
   template: string;
@@ -93,7 +93,7 @@ export class EmailService {
     this.logger.log(`Password reset email queued for ${email}`);
   }
 
-  async sendEmail(options: EmailOptions): Promise<void> {
+  async sendEmail(options: IEmailOptions): Promise<void> {
     try {
       const template = await this.getTemplate(options.template);
       const html = template(options.context);

@@ -17,11 +17,11 @@ import {
   CACHE_EVICT_METADATA,
   CACHE_PREFIX_METADATA,
   CACHE_CONDITION_METADATA,
-  CacheEvictOptions,
+  ICacheEvictOptions,
 } from '../decorators/cache.decorator';
 import { CACHE_TTL } from '../caching.constants';
 
-export interface CacheInterceptorOptions {
+export interface ICacheInterceptorOptions {
   /**
    * Default TTL in seconds
    */
@@ -53,7 +53,7 @@ export class CacheInterceptor implements NestInterceptor {
   constructor(
     private readonly cachingService: CachingService,
     private readonly reflector: Reflector,
-    @Optional() @Inject('CACHE_INTERCEPTOR_OPTIONS') options?: CacheInterceptorOptions,
+    @Optional() @Inject('CACHE_INTERCEPTOR_OPTIONS') options?: ICacheInterceptorOptions,
     @Optional() private readonly analyticsService?: CacheAnalyticsService,
   ) {
     this.defaultTtl = options?.defaultTtl ?? CACHE_TTL.COURSE_DETAILS;
@@ -78,7 +78,7 @@ export class CacheInterceptor implements NestInterceptor {
       CACHE_KEY_METADATA,
       handler,
     );
-    const evictOptions = this.reflector.get<CacheEvictOptions>(CACHE_EVICT_METADATA, handler);
+    const evictOptions = this.reflector.get<ICacheEvictOptions>(CACHE_EVICT_METADATA, handler);
     const condition = this.reflector.get<(...args: any[]) => boolean>(
       CACHE_CONDITION_METADATA,
       handler,
@@ -129,7 +129,7 @@ export class CacheInterceptor implements NestInterceptor {
    */
   private handleEviction(
     next: CallHandler,
-    evictOptions: CacheEvictOptions,
+    evictOptions: ICacheEvictOptions,
     _currentKey: string,
   ): Observable<any> {
     const patterns = Array.isArray(evictOptions.patterns)
@@ -206,7 +206,7 @@ export class CacheInterceptor implements NestInterceptor {
 export function createCacheInterceptor(
   cachingService: CachingService,
   reflector: Reflector,
-  options?: CacheInterceptorOptions,
+  options?: ICacheInterceptorOptions,
   analyticsService?: CacheAnalyticsService,
 ): CacheInterceptor {
   return new CacheInterceptor(cachingService, reflector, options, analyticsService);

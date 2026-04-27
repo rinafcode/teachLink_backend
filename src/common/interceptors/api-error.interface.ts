@@ -1,4 +1,4 @@
-export interface ApiError {
+export interface IApiError {
   statusCode: number;
   message: string | string[];
   error: string;
@@ -7,10 +7,10 @@ export interface ApiError {
   /** Only populated in non-production environments */
   stack?: string;
   /** Structured validation errors, if applicable */
-  details?: ValidationErrorDetail[];
+  details?: IValidationErrorDetail[];
 }
 
-export interface ValidationErrorDetail {
+export interface IValidationErrorDetail {
   field: string;
   constraints: Record<string, string>;
 }

@@ -9,7 +9,7 @@ export const CACHE_CONDITION_METADATA = 'cache:condition';
 /**
  * Options for cacheable decorator
  */
-export interface CacheableOptions {
+export interface ICacheableOptions {
   /**
    * Time to live in seconds
    */
@@ -36,7 +36,7 @@ export interface CacheableOptions {
 /**
  * Options for cache evict decorator
  */
-export interface CacheEvictOptions {
+export interface ICacheEvictOptions {
   /**
    * Pattern(s) to evict (supports wildcards)
    */
@@ -68,8 +68,8 @@ export interface CacheEvictOptions {
  * }
  * ```
  */
-export function Cacheable(ttlOrOptions?: number | CacheableOptions): MethodDecorator {
-  const options: CacheableOptions =
+export function Cacheable(ttlOrOptions?: number | ICacheableOptions): MethodDecorator {
+  const options: ICacheableOptions =
     typeof ttlOrOptions === 'number' ? { ttl: ttlOrOptions } : (ttlOrOptions ?? {});
 
   return (
@@ -116,9 +116,9 @@ export function Cacheable(ttlOrOptions?: number | CacheableOptions): MethodDecor
  * ```
  */
 export function CacheEvict(
-  patternsOrOptions: string | string[] | CacheEvictOptions,
+  patternsOrOptions: string | string[] | ICacheEvictOptions,
 ): MethodDecorator {
-  const options: CacheEvictOptions =
+  const options: ICacheEvictOptions =
     typeof patternsOrOptions === 'string'
       ? { patterns: [patternsOrOptions] }
       : Array.isArray(patternsOrOptions)

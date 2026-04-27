@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 import { EmailAnalyticsService } from './email-analytics.service';
 
@@ -11,8 +11,8 @@ export class EmailAnalyticsController {
 
   @Get('campaigns/:id')
   @ApiOperation({ summary: 'Get campaign performance metrics' })
-  @ApiResponse({ status: 200, description: 'Campaign metrics' })
-  @ApiResponse({ status: 404, description: 'Campaign not found' })
+  @IApiResponse({ status: 200, description: 'Campaign metrics' })
+  @IApiResponse({ status: 404, description: 'Campaign not found' })
   async getCampaignMetrics(@Param('id', ParseUUIDPipe) id: string) {
     return this.analyticsService.getCampaignMetrics(id);
   }

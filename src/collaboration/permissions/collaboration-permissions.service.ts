@@ -7,7 +7,7 @@ export enum PermissionLevel {
   OWNER = 'owner',
 }
 
-export interface ResourcePermission {
+export interface IResourcePermission {
   resourceId: string;
   userId: string;
   permission: PermissionLevel;
@@ -15,11 +15,11 @@ export interface ResourcePermission {
   grantedBy: string;
 }
 
-export interface CollaborativeResource {
+export interface ICollaborativeResource {
   id: string;
   type: 'document' | 'whiteboard' | 'project';
   ownerId: string;
-  permissions: ResourcePermission[];
+  permissions: IResourcePermission[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,7 +27,7 @@ export interface CollaborativeResource {
 @Injectable()
 export class CollaborationPermissionsService {
   private readonly logger = Logger;
-  private resources: Map<string, CollaborativeResource> = new Map();
+  private resources: Map<string, ICollaborativeResource> = new Map();
   private defaultPermission: PermissionLevel = PermissionLevel.READ;
 
   /**
@@ -38,7 +38,7 @@ export class CollaborationPermissionsService {
     userId: string,
     permission: PermissionLevel = PermissionLevel.WRITE,
     grantedBy: string = 'system',
-  ): Promise<ResourcePermission> {
+  ): Promise<IResourcePermission> {
     let resource = this.resources.get(resourceId);
 
     if (!resource) {
@@ -63,7 +63,7 @@ export class CollaborationPermissionsService {
       existingPermission.grantedBy = grantedBy;
     } else {
       // Add new permission
-      const newPermission: ResourcePermission = {
+      const newPermission: IResourcePermission = {
         resourceId,
         userId,
         permission,
@@ -123,7 +123,7 @@ export class CollaborationPermissionsService {
   /**
    * Get user's permission for a resource
    */
-  getUserPermission(resourceId: string, userId: string): ResourcePermission | undefined {
+  getUserPermission(resourceId: string, userId: string): IResourcePermission | undefined {
     const resource = this.resources.get(resourceId);
     if (!resource) {
       return undefined;
@@ -135,7 +135,7 @@ export class CollaborationPermissionsService {
   /**
    * Get all users with access to a resource
    */
-  async getUsersForResource(resourceId: string): Promise<ResourcePermission[]> {
+  async getUsersForResource(resourceId: string): Promise<IResourcePermission[]> {
     const resource = this.resources.get(resourceId);
     if (!resource) {
       return [];
@@ -150,8 +150,8 @@ export class CollaborationPermissionsService {
   async getResourcesForUser(
     userId: string,
     minPermission: PermissionLevel = PermissionLevel.READ,
-  ): Promise<CollaborativeResource[]> {
-    const userResources: CollaborativeResource[] = [];
+  ): Promise<ICollaborativeResource[]> {
+    const userResources: ICollaborativeResource[] = [];
 
     for (const resource of this.resources.values()) {
       const userPermission = resource.permissions.find((p) => p.userId === userId);
@@ -172,7 +172,7 @@ export class CollaborationPermissionsService {
     userId: string,
     newPermission: PermissionLevel,
     updatedBy: string,
-  ): Promise<ResourcePermission | null> {
+  ): Promise<IResourcePermission | null> {
     const resource = this.resources.get(resourceId);
     if (!resource) {
       return null;
@@ -204,7 +204,7 @@ export class CollaborationPermissionsService {
     inviterId: string,
     inviteeId: string,
     permission: PermissionLevel = PermissionLevel.WRITE,
-  ): Promise<ResourcePermission> {
+  ): Promise<IResourcePermission> {
     // Check if inviter has admin or owner permissions
     const inviterPermission = this.getUserPermission(resourceId, inviterId);
 

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MetricsAnalysisService } from '../metrics/metrics-analysis.service';
-import { AnomalyDetectionResult } from '../interfaces/observability.interfaces';
+import { IAnomalyDetectionResult } from '../interfaces/observability.interfaces';
 
 /**
  * Anomaly Detection Service
@@ -10,7 +10,7 @@ import { AnomalyDetectionResult } from '../interfaces/observability.interfaces';
 @Injectable()
 export class AnomalyDetectionService {
   private readonly logger = new Logger(AnomalyDetectionService.name);
-  private anomalies: AnomalyDetectionResult[] = [];
+  private anomalies: IAnomalyDetectionResult[] = [];
   private readonly MAX_ANOMALIES = 1000;
 
   // Thresholds for anomaly detection
@@ -28,7 +28,7 @@ export class AnomalyDetectionService {
   /**
    * Detect anomalies in a metric using statistical methods
    */
-  detectAnomalies(metricName: string, windowSize: number = 100): AnomalyDetectionResult[] {
+  detectAnomalies(metricName: string, windowSize: number = 100): IAnomalyDetectionResult[] {
     const metrics = this.metricsService.getMetrics(metricName, windowSize);
 
     if (metrics.length < 10) {
@@ -40,7 +40,7 @@ export class AnomalyDetectionService {
     const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
     const stdDev = Math.sqrt(variance);
 
-    const anomalies: AnomalyDetectionResult[] = [];
+    const anomalies: IAnomalyDetectionResult[] = [];
 
     // Z-score method: values beyond 3 standard deviations are anomalies
     const threshold = 3;
@@ -49,7 +49,7 @@ export class AnomalyDetectionService {
       const zScore = Math.abs((metric.value - mean) / stdDev);
 
       if (zScore > threshold) {
-        const anomaly: AnomalyDetectionResult = {
+        const anomaly: IAnomalyDetectionResult = {
           isAnomaly: true,
           score: zScore,
           threshold,
@@ -73,14 +73,14 @@ export class AnomalyDetectionService {
     metricName: string,
     windowSize: number = 20,
     threshold: number = 2,
-  ): AnomalyDetectionResult[] {
+  ): IAnomalyDetectionResult[] {
     const metrics = this.metricsService.getMetrics(metricName, windowSize * 2);
 
     if (metrics.length < windowSize) {
       return [];
     }
 
-    const anomalies: AnomalyDetectionResult[] = [];
+    const anomalies: IAnomalyDetectionResult[] = [];
 
     for (let i = windowSize; i < metrics.length; i++) {
       const window = metrics.slice(i - windowSize, i);
@@ -89,7 +89,7 @@ export class AnomalyDetectionService {
       const deviation = Math.abs(current - avg) / avg;
 
       if (deviation > threshold) {
-        const anomaly: AnomalyDetectionResult = {
+        const anomaly: IAnomalyDetectionResult = {
           isAnomaly: true,
           score: deviation,
           threshold,
@@ -109,7 +109,7 @@ export class AnomalyDetectionService {
   /**
    * Check for error rate anomalies
    */
-  checkErrorRateAnomaly(): AnomalyDetectionResult | null {
+  checkErrorRateAnomaly(): IAnomalyDetectionResult | null {
     const stats = this.metricsService.getMetricStatistics('api.response_time');
 
     if (!stats) return null;
@@ -119,7 +119,7 @@ export class AnomalyDetectionService {
     const errorRate = 0; // Placeholder
 
     if (errorRate > this.thresholds.errorRate) {
-      const anomaly: AnomalyDetectionResult = {
+      const anomaly: IAnomalyDetectionResult = {
         isAnomaly: true,
         score: errorRate,
         threshold: this.thresholds.errorRate,
@@ -138,13 +138,13 @@ export class AnomalyDetectionService {
   /**
    * Check for response time anomalies
    */
-  checkResponseTimeAnomaly(): AnomalyDetectionResult | null {
+  checkResponseTimeAnomaly(): IAnomalyDetectionResult | null {
     const stats = this.metricsService.getMetricStatistics('api.response_time');
 
     if (!stats) return null;
 
     if (stats.p95 > this.thresholds.responseTime) {
-      const anomaly: AnomalyDetectionResult = {
+      const anomaly: IAnomalyDetectionResult = {
         isAnomaly: true,
         score: stats.p95,
         threshold: this.thresholds.responseTime,
@@ -163,7 +163,7 @@ export class AnomalyDetectionService {
   /**
    * Check for memory usage anomalies
    */
-  checkMemoryAnomaly(): AnomalyDetectionResult | null {
+  checkMemoryAnomaly(): IAnomalyDetectionResult | null {
     const stats = this.metricsService.getMetricStatistics('system.memory.heap_used');
 
     if (!stats) return null;
@@ -171,7 +171,7 @@ export class AnomalyDetectionService {
     const memoryUsagePercent = (stats.avg / (1024 * 1024 * 1024)) * 100; // Convert to GB and percentage
 
     if (memoryUsagePercent > this.thresholds.memoryUsage) {
-      const anomaly: AnomalyDetectionResult = {
+      const anomaly: IAnomalyDetectionResult = {
         isAnomaly: true,
         score: memoryUsagePercent,
         threshold: this.thresholds.memoryUsage,
@@ -190,7 +190,7 @@ export class AnomalyDetectionService {
   /**
    * Check for sudden spikes in metrics
    */
-  detectSuddenSpike(metricName: string, spikeThreshold: number = 3): AnomalyDetectionResult | null {
+  detectSuddenSpike(metricName: string, spikeThreshold: number = 3): IAnomalyDetectionResult | null {
     const metrics = this.metricsService.getMetrics(metricName, 10);
 
     if (metrics.length < 2) return null;
@@ -203,7 +203,7 @@ export class AnomalyDetectionService {
     const change = (latest - previous) / previous;
 
     if (Math.abs(change) > spikeThreshold) {
-      const anomaly: AnomalyDetectionResult = {
+      const anomaly: IAnomalyDetectionResult = {
         isAnomaly: true,
         score: Math.abs(change),
         threshold: spikeThreshold,
@@ -222,7 +222,7 @@ export class AnomalyDetectionService {
   /**
    * Record an anomaly
    */
-  private recordAnomaly(anomaly: AnomalyDetectionResult): void {
+  private recordAnomaly(anomaly: IAnomalyDetectionResult): void {
     this.anomalies.push(anomaly);
 
     // Maintain size limit
@@ -239,21 +239,21 @@ export class AnomalyDetectionService {
   /**
    * Get all detected anomalies
    */
-  getAnomalies(limit?: number): AnomalyDetectionResult[] {
+  getAnomalies(limit?: number): IAnomalyDetectionResult[] {
     return limit ? this.anomalies.slice(-limit) : this.anomalies;
   }
 
   /**
    * Get anomalies by metric
    */
-  getAnomaliesByMetric(metricName: string): AnomalyDetectionResult[] {
+  getAnomaliesByMetric(metricName: string): IAnomalyDetectionResult[] {
     return this.anomalies.filter((a) => a.metric === metricName);
   }
 
   /**
    * Get recent anomalies
    */
-  getRecentAnomalies(minutes: number = 60): AnomalyDetectionResult[] {
+  getRecentAnomalies(minutes: number = 60): IAnomalyDetectionResult[] {
     const cutoff = new Date(Date.now() - minutes * 60 * 1000);
     return this.anomalies.filter((a) => a.timestamp > cutoff);
   }
@@ -307,7 +307,7 @@ export class AnomalyDetectionService {
   /**
    * Send alert for anomaly
    */
-  private async sendAlert(anomaly: AnomalyDetectionResult): Promise<void> {
+  private async sendAlert(anomaly: IAnomalyDetectionResult): Promise<void> {
     // In production, integrate with alerting systems:
     // - PagerDuty
     // - Slack

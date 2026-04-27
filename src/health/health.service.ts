@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import axios from 'axios';
 
-export interface HealthStatus {
+export interface IHealthStatus {
   status: 'ok' | 'degraded' | 'critical';
   timestamp: string;
   uptime: number;
@@ -82,8 +82,8 @@ export class HealthService {
   private readonly diskWarningThreshold = 85; // 85%
   private readonly diskCriticalThreshold = 95; // 95%
 
-  async checkHealth(dataSource: DataSource, redis: Redis): Promise<HealthStatus> {
-    const healthStatus: HealthStatus = {
+  async checkHealth(dataSource: DataSource, redis: Redis): Promise<IHealthStatus> {
+    const healthStatus: IHealthStatus = {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: Date.now() - this.startTime,
@@ -187,9 +187,9 @@ export class HealthService {
     return healthStatus;
   }
 
-  async checkReadiness(dataSource: DataSource, redis: Redis): Promise<HealthStatus> {
+  async checkReadiness(dataSource: DataSource, redis: Redis): Promise<IHealthStatus> {
     // For readiness, we check if core dependencies are available
-    const healthStatus: HealthStatus = {
+    const healthStatus: IHealthStatus = {
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: Date.now() - this.startTime,

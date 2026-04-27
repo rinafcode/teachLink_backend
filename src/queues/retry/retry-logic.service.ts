@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RetryStrategy } from '../interfaces/queue.interfaces';
+import { IRetryStrategy } from '../interfaces/queue.interfaces';
 import { RETRY_STRATEGIES } from '../queues.constants';
 
 /**
@@ -13,7 +13,7 @@ export class RetryLogicService {
   /**
    * Calculate backoff delay for retry attempts
    */
-  calculateBackoffDelay(attemptNumber: number, strategy: RetryStrategy): number {
+  calculateBackoffDelay(attemptNumber: number, strategy: IRetryStrategy): number {
     if (strategy.backoffType === 'fixed') {
       return strategy.initialDelay;
     }
@@ -81,12 +81,12 @@ export class RetryLogicService {
   /**
    * Get default retry strategy based on job type
    */
-  getDefaultStrategy(jobType: string): RetryStrategy {
+  getDefaultStrategy(jobType: string): IRetryStrategy {
     const strategy = RETRY_STRATEGIES[jobType.toLowerCase() as keyof typeof RETRY_STRATEGIES] || RETRY_STRATEGIES.DEFAULT;
     return this.mapRetryStrategy(strategy);
   }
 
-  private mapRetryStrategy(strategy: typeof RETRY_STRATEGIES[keyof typeof RETRY_STRATEGIES]): RetryStrategy {
+  private mapRetryStrategy(strategy: typeof RETRY_STRATEGIES[keyof typeof RETRY_STRATEGIES]): IRetryStrategy {
     return {
       maxAttempts: strategy.maxAttempts,
       backoffType: strategy.backoffType,
@@ -108,7 +108,7 @@ export class RetryLogicService {
   /**
    * Get retry options for Bull queue
    */
-  getRetryOptions(strategy: RetryStrategy, attemptNumber: number = 1) {
+  getRetryOptions(strategy: IRetryStrategy, attemptNumber: number = 1) {
     const baseDelay = this.calculateBackoffDelay(attemptNumber, strategy);
     const delayWithJitter = this.addJitter(baseDelay);
 

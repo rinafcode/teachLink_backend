@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-interface WorkflowStep {
+interface IWorkflowStep {
   name: string;
   execute: () => Promise<void>;
   compensate?: () => Promise<void>;
@@ -10,8 +10,8 @@ interface WorkflowStep {
 export class WorkflowEngineService {
   private readonly logger = new Logger(WorkflowEngineService.name);
 
-  async executeWorkflow(steps: WorkflowStep[]) {
-    const completedSteps: WorkflowStep[] = [];
+  async executeWorkflow(steps: IWorkflowStep[]) {
+    const completedSteps: IWorkflowStep[] = [];
 
     try {
       for (const step of steps) {

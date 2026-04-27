@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MigrationConfig } from '../migration.service';
+import { IMigrationConfig } from '../migration.service';
 
 /**
  * Migration 006 — Create migrations tracking table
@@ -13,7 +13,7 @@ import { MigrationConfig } from '../migration.service';
  * bootstrap mechanism before the migration runner starts.
  */
 @Injectable()
-export class CreateMigrationsTrackingTableMigration implements MigrationConfig {
+export class CreateMigrationsTrackingTableMigration implements IMigrationConfig {
   name = '006-create-migrations-tracking-table';
   version = '1.0.0';
   dependencies: string[] = [];

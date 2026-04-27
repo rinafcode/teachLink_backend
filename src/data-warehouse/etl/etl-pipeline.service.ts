@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface ETLJob {
+export interface IETLJob {
   id: string;
   name: string;
   source: string;
@@ -12,19 +12,19 @@ export interface ETLJob {
   duration?: number;
   recordsProcessed: number;
   recordsFailed: number;
-  config: ETLConfig;
+  config: IETLConfig;
 }
 
-export interface ETLConfig {
-  sourceConnection: DataSourceConfig;
-  targetConnection: DataSourceConfig;
-  transformations: TransformationRule[];
+export interface IETLConfig {
+  sourceConnection: IDataSourceConfig;
+  targetConnection: IDataSourceConfig;
+  transformations: ITransformationRule[];
   schedule?: string;
   incremental?: boolean;
   batchSize?: number;
 }
 
-export interface DataSourceConfig {
+export interface IDataSourceConfig {
   type: 'postgres' | 'mysql' | 'mongodb' | 'api' | 'file';
   host?: string;
   port?: number;
@@ -37,7 +37,7 @@ export interface DataSourceConfig {
   query?: string;
 }
 
-export interface TransformationRule {
+export interface ITransformationRule {
   id: string;
   sourceField: string;
   targetField: string;
@@ -45,7 +45,7 @@ export interface TransformationRule {
   config: any;
 }
 
-export interface ExtractedData {
+export interface IExtractedData {
   data: any[];
   metadata: {
     source: string;
@@ -54,7 +54,7 @@ export interface ExtractedData {
   };
 }
 
-export interface TransformedData {
+export interface ITransformedData {
   data: any[];
   metadata: {
     transformationsApplied: string[];
@@ -66,14 +66,14 @@ export interface TransformedData {
 @Injectable()
 export class ETLPipelineService {
   private readonly logger = new Logger(ETLPipelineService.name);
-  private jobs: Map<string, ETLJob> = new Map();
+  private jobs: Map<string, IETLJob> = new Map();
 
   /**
    * Create and execute an ETL pipeline
    */
-  async createPipeline(config: ETLConfig): Promise<ETLJob> {
+  async createPipeline(config: IETLConfig): Promise<IETLJob> {
     const jobId = uuidv4();
-    const job: ETLJob = {
+    const job: IETLJob = {
       id: jobId,
       name: `ETL_Pipeline_${new Date().toISOString()}`,
       source: config.sourceConnection.type,
@@ -138,7 +138,7 @@ export class ETLPipelineService {
   /**
    * Extract data from source
    */
-  private async extract(sourceConfig: DataSourceConfig): Promise<ExtractedData> {
+  private async extract(sourceConfig: IDataSourceConfig): Promise<IExtractedData> {
     // This is a simplified implementation
     // In a real system, this would connect to various data sources
 
@@ -183,9 +183,9 @@ export class ETLPipelineService {
    * Transform extracted data
    */
   private async transform(
-    extractedData: ExtractedData,
-    transformations: TransformationRule[],
-  ): Promise<TransformedData> {
+    extractedData: IExtractedData,
+    transformations: ITransformationRule[],
+  ): Promise<ITransformedData> {
     let transformedData = [...extractedData.data];
     const appliedTransformations: string[] = [];
 
@@ -238,8 +238,8 @@ export class ETLPipelineService {
    * Load transformed data to target
    */
   private async load(
-    transformedData: TransformedData,
-    targetConfig: DataSourceConfig,
+    transformedData: ITransformedData,
+    targetConfig: IDataSourceConfig,
   ): Promise<void> {
     // This is a simplified implementation
     // In a real system, this would connect to the target data warehouse
@@ -262,14 +262,14 @@ export class ETLPipelineService {
   /**
    * Get job status
    */
-  async getJobStatus(jobId: string): Promise<ETLJob | null> {
+  async getJobStatus(jobId: string): Promise<IETLJob | null> {
     return this.jobs.get(jobId) || null;
   }
 
   /**
    * Get all jobs
    */
-  async getAllJobs(): Promise<ETLJob[]> {
+  async getAllJobs(): Promise<IETLJob[]> {
     return Array.from(this.jobs.values());
   }
 
@@ -288,47 +288,47 @@ export class ETLPipelineService {
   }
 
   // Helper methods for data source operations
-  private async extractFromPostgres(config: DataSourceConfig): Promise<any[]> {
+  private async extractFromPostgres(config: IDataSourceConfig): Promise<any[]> {
     // Implementation would use a PostgreSQL client
     this.logger.log(`Extracting from PostgreSQL: ${config.database}`);
     return []; // Placeholder
   }
 
-  private async extractFromMysql(config: DataSourceConfig): Promise<any[]> {
+  private async extractFromMysql(config: IDataSourceConfig): Promise<any[]> {
     // Implementation would use a MySQL client
     this.logger.log(`Extracting from MySQL: ${config.database}`);
     return []; // Placeholder
   }
 
-  private async extractFromMongoDB(config: DataSourceConfig): Promise<any[]> {
+  private async extractFromMongoDB(config: IDataSourceConfig): Promise<any[]> {
     // Implementation would use MongoDB client
     this.logger.log(`Extracting from MongoDB: ${config.database}`);
     return []; // Placeholder
   }
 
-  private async extractFromAPI(config: DataSourceConfig): Promise<any[]> {
+  private async extractFromAPI(config: IDataSourceConfig): Promise<any[]> {
     // Implementation would make HTTP requests
     this.logger.log(`Extracting from API: ${config.endpoint}`);
     return []; // Placeholder
   }
 
-  private async extractFromFile(config: DataSourceConfig): Promise<any[]> {
+  private async extractFromFile(config: IDataSourceConfig): Promise<any[]> {
     // Implementation would read from file system
     this.logger.log(`Extracting from file: ${config.filePath}`);
     return []; // Placeholder
   }
 
-  private async loadToPostgres(data: TransformedData, config: DataSourceConfig): Promise<void> {
+  private async loadToPostgres(data: ITransformedData, config: IDataSourceConfig): Promise<void> {
     // Implementation would use a PostgreSQL client
     this.logger.log(`Loading to PostgreSQL: ${config.database}`);
   }
 
-  private async loadToMysql(data: TransformedData, config: DataSourceConfig): Promise<void> {
+  private async loadToMysql(data: ITransformedData, config: IDataSourceConfig): Promise<void> {
     // Implementation would use a MySQL client
     this.logger.log(`Loading to MySQL: ${config.database}`);
   }
 
-  private async loadToMongoDB(data: TransformedData, config: DataSourceConfig): Promise<void> {
+  private async loadToMongoDB(data: ITransformedData, config: IDataSourceConfig): Promise<void> {
     // Implementation would use MongoDB client
     this.logger.log(`Loading to MongoDB: ${config.database}`);
   }

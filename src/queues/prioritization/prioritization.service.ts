@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JobPriority } from '../enums/job-priority.enum';
-import { JobOptions } from '../interfaces/queue.interfaces';
+import { IJobOptions } from '../interfaces/queue.interfaces';
 import {
   PRIORITY_SCORES,
   PRIORITY_THRESHOLDS,
@@ -19,7 +19,7 @@ export class PrioritizationService {
   /**
    * Calculate job priority based on multiple factors
    */
-  calculatePriority(factors: PriorityFactors): JobPriority {
+  calculatePriority(factors: IPriorityFactors): JobPriority {
     let score = 0;
 
     // User tier weight (0-30 points)
@@ -86,8 +86,8 @@ export class PrioritizationService {
   /**
    * Get recommended job options based on priority
    */
-  getJobOptions(priority: JobPriority): Partial<JobOptions> {
-    const optionsMap: Record<JobPriority, Partial<JobOptions>> = {
+  getJobOptions(priority: JobPriority): Partial<IJobOptions> {
+    const optionsMap: Record<JobPriority, Partial<IJobOptions>> = {
       [JobPriority.CRITICAL]: {
         priority: JobPriority.CRITICAL,
         attempts: PRIORITY_JOB_CONFIG.CRITICAL.attempts,
@@ -173,7 +173,7 @@ export class PrioritizationService {
   }
 }
 
-export interface PriorityFactors {
+export interface IPriorityFactors {
   userTier?: 'premium' | 'pro' | 'basic' | 'free';
   urgency?: 'critical' | 'high' | 'medium' | 'low';
   businessImpact?: 'revenue' | 'customer' | 'operational' | 'internal';

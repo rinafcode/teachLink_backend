@@ -6,7 +6,7 @@ import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.
 import { ConfigService } from '@nestjs/config';
 import { sanitizePii } from '../common/utils/pii-sanitizer.utils';
 
-export interface AuditLogEntry {
+export interface IAuditLogEntry {
   userId?: string;
   userEmail?: string;
   action: AuditAction;
@@ -29,7 +29,7 @@ export interface AuditLogEntry {
   tenantId?: string;
 }
 
-export interface AuditLogSearchFilters {
+export interface IAuditLogSearchFilters {
   userId?: string;
   userEmail?: string;
   actions?: AuditAction[];
@@ -47,7 +47,7 @@ export interface AuditLogSearchFilters {
   statusCode?: number;
 }
 
-export interface AuditLogSearchResult {
+export interface IAuditLogSearchResult {
   logs: AuditLog[];
   total: number;
   page: number;
@@ -55,7 +55,7 @@ export interface AuditLogSearchResult {
   totalPages: number;
 }
 
-export interface AuditReport {
+export interface IAuditReport {
   period: { start: Date; end: Date };
   totalEvents: number;
   eventsByCategory: Record<string, number>;
@@ -82,7 +82,7 @@ export class AuditLogService {
   /**
    * Log an audit event
    */
-  async log(entry: AuditLogEntry): Promise<AuditLog> {
+  async log(entry: IAuditLogEntry): Promise<AuditLog> {
     const retentionUntil = new Date();
     retentionUntil.setDate(retentionUntil.getDate() + this.retentionDays);
 
@@ -224,10 +224,10 @@ export class AuditLogService {
    * Search audit logs with filters
    */
   async search(
-    filters: AuditLogSearchFilters,
+    filters: IAuditLogSearchFilters,
     page: number = 1,
     limit: number = 50,
-  ): Promise<AuditLogSearchResult> {
+  ): Promise<IAuditLogSearchResult> {
     const queryBuilder = this.auditRepo.createQueryBuilder('audit');
 
     // Apply filters
@@ -395,7 +395,7 @@ export class AuditLogService {
   /**
    * Generate audit report
    */
-  async generateReport(startDate: Date, endDate: Date): Promise<AuditReport> {
+  async generateReport(startDate: Date, endDate: Date): Promise<IAuditReport> {
     const queryBuilder = this.auditRepo.createQueryBuilder('audit');
     queryBuilder.where('audit.timestamp BETWEEN :startDate AND :endDate', {
       startDate,
@@ -528,7 +528,7 @@ export class AuditLogService {
   /**
    * Export logs to JSON
    */
-  async exportToJson(filters: AuditLogSearchFilters): Promise<string> {
+  async exportToJson(filters: IAuditLogSearchFilters): Promise<string> {
     const { logs } = await this.search(filters, 1, 10000);
     return JSON.stringify(logs, null, 2);
   }
@@ -536,7 +536,7 @@ export class AuditLogService {
   /**
    * Export logs to CSV
    */
-  async exportToCsv(filters: AuditLogSearchFilters): Promise<string> {
+  async exportToCsv(filters: IAuditLogSearchFilters): Promise<string> {
     const { logs } = await this.search(filters, 1, 10000);
 
     const headers = [

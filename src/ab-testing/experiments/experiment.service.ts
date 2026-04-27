@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
-import { ExperimentVariant } from '../entities/experiment-variant.entity';
+import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { ExperimentMetric } from '../entities/experiment-metric.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
 
@@ -13,8 +13,8 @@ export class ExperimentService {
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
-    @InjectRepository(ExperimentVariant)
-    private variantRepository: Repository<ExperimentVariant>,
+    @InjectRepository(IExperimentVariant)
+    private variantRepository: Repository<IExperimentVariant>,
     @InjectRepository(ExperimentMetric)
     private experimentMetricRepository: Repository<ExperimentMetric>,
     @InjectRepository(VariantMetric)
@@ -47,8 +47,8 @@ export class ExperimentService {
    */
   async addVariant(
     experimentId: string,
-    variantData: Partial<ExperimentVariant>,
-  ): Promise<ExperimentVariant> {
+    variantData: Partial<IExperimentVariant>,
+  ): Promise<IExperimentVariant> {
     this.logger.log(`Adding variant to experiment: ${experimentId}`);
 
     const experiment = await this.experimentRepository.findOne({
@@ -59,7 +59,7 @@ export class ExperimentService {
       throw new Error(`Experiment with ID ${experimentId} not found`);
     }
 
-    const variant = new ExperimentVariant();
+    const variant = new IExperimentVariant();
     Object.assign(variant, variantData);
     variant.experiment = experiment;
 

@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Response } from 'express';
 
-export interface ApiResponse<T = any> {
+export interface IApiResponse<T = any> {
   success: boolean;
   message?: string;
   data: T;
@@ -11,8 +11,8 @@ export interface ApiResponse<T = any> {
 }
 
 @Injectable()
-export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T, ApiResponse<T>> {
-  intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
+export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T, IApiResponse<T>> {
+  intercept(context: ExecutionContext, next: CallHandler<T>): Observable<IApiResponse<T>> {
     const ctx = context.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -27,8 +27,8 @@ export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T,
           contentType.toString().startsWith('audio/') ||
           contentType.toString().startsWith('video/')))
     ) {
-      // Return as Observable<ApiResponse<T>> by casting, since we skip transformation
-      return next.handle() as unknown as Observable<ApiResponse<T>>;
+      // Return as Observable<IApiResponse<T>> by casting, since we skip transformation
+      return next.handle() as unknown as Observable<IApiResponse<T>>;
     }
 
     return next.handle().pipe(

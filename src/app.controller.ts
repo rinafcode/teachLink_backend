@@ -1,5 +1,5 @@
 import { Controller, Get, HttpStatus } from '@nestjs/common';
-import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { IApiResponse, ApiTags } from '@nestjs/swagger';
 import { AppService } from './app.service';
 
 @ApiTags('app')
@@ -8,7 +8,7 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Root endpoint response' })
+  @IApiResponse({ status: HttpStatus.OK, description: 'Root endpoint response' })
   getHello(): string {
     return this.appService.getHello();
   }

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface ChangeRecord {
+export interface IChangeRecord {
   id: string;
   sessionId: string;
   userId: string;
@@ -13,9 +13,9 @@ export interface ChangeRecord {
   versionNumber: number;
 }
 
-export interface VersionHistory {
+export interface IVersionHistory {
   sessionId: string;
-  versions: ChangeRecord[];
+  versions: IChangeRecord[];
   currentVersion: number;
   createdAt: Date;
   updatedAt: Date;
@@ -24,12 +24,12 @@ export interface VersionHistory {
 @Injectable()
 export class VersionControlService {
   private readonly logger = Logger;
-  private histories: Map<string, VersionHistory> = new Map();
+  private histories: Map<string, IVersionHistory> = new Map();
 
   /**
    * Record a change in the version history
    */
-  async recordChange(sessionId: string, userId: string, change: any): Promise<ChangeRecord> {
+  async recordChange(sessionId: string, userId: string, change: any): Promise<IChangeRecord> {
     let history = this.histories.get(sessionId);
 
     if (!history) {
@@ -44,7 +44,7 @@ export class VersionControlService {
     }
 
     const versionNumber = history.currentVersion + 1;
-    const changeRecord: ChangeRecord = {
+    const changeRecord: IChangeRecord = {
       id: uuidv4(),
       sessionId,
       userId,
@@ -70,7 +70,7 @@ export class VersionControlService {
   /**
    * Get the version history for a session
    */
-  async getVersionHistory(sessionId: string): Promise<ChangeRecord[]> {
+  async getVersionHistory(sessionId: string): Promise<IChangeRecord[]> {
     const history = this.histories.get(sessionId);
     if (!history) {
       return [];
@@ -82,7 +82,7 @@ export class VersionControlService {
   /**
    * Get a specific version of a session
    */
-  async getVersion(sessionId: string, versionNumber: number): Promise<ChangeRecord | null> {
+  async getVersion(sessionId: string, versionNumber: number): Promise<IChangeRecord | null> {
     const history = this.histories.get(sessionId);
     if (!history) {
       return null;
@@ -95,7 +95,7 @@ export class VersionControlService {
   /**
    * Get the current version of a session
    */
-  async getCurrentVersion(sessionId: string): Promise<ChangeRecord | null> {
+  async getCurrentVersion(sessionId: string): Promise<IChangeRecord | null> {
     const history = this.histories.get(sessionId);
     if (!history) {
       return null;
@@ -111,7 +111,7 @@ export class VersionControlService {
   /**
    * Revert to a specific version
    */
-  async revertToVersion(sessionId: string, versionNumber: number): Promise<ChangeRecord[]> {
+  async revertToVersion(sessionId: string, versionNumber: number): Promise<IChangeRecord[]> {
     const history = this.histories.get(sessionId);
     if (!history) {
       throw new Error(`No history found for session ${sessionId}`);
@@ -141,8 +141,8 @@ export class VersionControlService {
     version2: number,
   ): Promise<{
     differences: any;
-    version1Data: ChangeRecord | null;
-    version2Data: ChangeRecord | null;
+    version1Data: IChangeRecord | null;
+    version2Data: IChangeRecord | null;
   }> {
     const v1 = await this.getVersion(sessionId, version1);
     const v2 = await this.getVersion(sessionId, version2);
@@ -220,7 +220,7 @@ export class VersionControlService {
   /**
    * Extract the previous value from history
    */
-  private getPreviousValue(history: VersionHistory, _change: any): any {
+  private getPreviousValue(history: IVersionHistory, _change: any): any {
     // In a real implementation, this would retrieve the previous state
     // For now, we'll return the last recorded value if available
     if (history.versions.length > 0) {

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MetricData, MetricType } from '../interfaces/observability.interfaces';
+import { IMetricData, MetricType } from '../interfaces/observability.interfaces';
 
 /**
  * Metrics Analysis Service
@@ -8,7 +8,7 @@ import { MetricData, MetricType } from '../interfaces/observability.interfaces';
 @Injectable()
 export class MetricsAnalysisService {
   private readonly logger = new Logger(MetricsAnalysisService.name);
-  private metrics: Map<string, MetricData[]> = new Map();
+  private metrics: Map<string, IMetricData[]> = new Map();
   private readonly MAX_METRICS_PER_NAME = 1000;
 
   /**
@@ -66,7 +66,7 @@ export class MetricsAnalysisService {
   /**
    * Record a metric
    */
-  private recordMetric(metric: MetricData): void {
+  private recordMetric(metric: IMetricData): void {
     if (!this.metrics.has(metric.name)) {
       this.metrics.set(metric.name, []);
     }
@@ -89,7 +89,7 @@ export class MetricsAnalysisService {
   /**
    * Get metrics by name
    */
-  getMetrics(name: string, limit?: number): MetricData[] {
+  getMetrics(name: string, limit?: number): IMetricData[] {
     const metrics = this.metrics.get(name) || [];
     return limit ? metrics.slice(-limit) : metrics;
   }

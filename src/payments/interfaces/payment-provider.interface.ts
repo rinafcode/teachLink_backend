@@ -1,34 +1,34 @@
-export interface PaymentIntentResult {
+export interface IPaymentIntentResult {
   paymentIntentId: string;
   clientSecret: string;
   requiresAction: boolean;
 }
 
-export interface RefundResult {
+export interface IRefundResult {
   refundId: string;
   status: string;
 }
 
-export interface PaymentMetadata {
+export interface IPaymentMetadata {
   userId: string;
   courseId: string;
   [key: string]: string | number | boolean;
 }
 
-export interface PaymentProvider {
+export interface IPaymentProvider {
   createPaymentIntent(
     amount: number,
     currency: string,
-    metadata: PaymentMetadata,
-  ): Promise<PaymentIntentResult>;
-  refundPayment(paymentId: string, amount?: number): Promise<RefundResult>;
+    metadata: IPaymentMetadata,
+  ): Promise<IPaymentIntentResult>;
+  refundPayment(paymentId: string, amount?: number): Promise<IRefundResult>;
   handleWebhook(
     payload: Record<string, unknown>,
     signature: string,
   ): Promise<Record<string, unknown>>;
 }
 
-export interface SubscriptionWebhookEvent {
+export interface ISubscriptionWebhookEvent {
   data: {
     object: {
       id: string;
@@ -37,24 +37,24 @@ export interface SubscriptionWebhookEvent {
   };
 }
 
-export interface RefundWebhookData {
+export interface IRefundWebhookData {
   id: string;
   amount: number;
 }
 
-export interface CreatePaymentIntentResult {
+export interface ICreatePaymentIntentResult {
   paymentId: string;
   clientSecret: string;
   requiresAction: boolean;
 }
 
-export interface CreateSubscriptionResult {
+export interface ICreateSubscriptionResult {
   subscriptionId: string;
   status: string;
   currentPeriodEnd: Date;
 }
 
-export interface ProcessRefundResult {
+export interface IProcessRefundResult {
   refundId: string;
   status: string;
   amount: number;

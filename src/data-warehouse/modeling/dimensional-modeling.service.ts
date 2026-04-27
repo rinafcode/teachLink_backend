@@ -1,36 +1,36 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface DimensionalModel {
+export interface IDimensionalModel {
   id: string;
   name: string;
   type: 'star' | 'snowflake' | 'galaxy';
-  factTables: FactTable[];
-  dimensionTables: DimensionTable[];
-  relationships: Relationship[];
+  factTables: IFactTable[];
+  dimensionTables: IDimensionTable[];
+  relationships: IRelationship[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface FactTable {
+export interface IFactTable {
   id: string;
   name: string;
   description: string;
-  measures: Measure[];
-  foreignKeys: ForeignKey[];
+  measures: IMeasure[];
+  foreignKeys: IForeignKey[];
   granularity: string;
 }
 
-export interface DimensionTable {
+export interface IDimensionTable {
   id: string;
   name: string;
   description: string;
-  attributes: DimensionAttribute[];
-  hierarchy?: DimensionHierarchy;
+  attributes: IDimensionAttribute[];
+  hierarchy?: IDimensionHierarchy;
   type: 'conformed' | 'degenerate' | 'junk' | 'role-playing';
 }
 
-export interface Measure {
+export interface IMeasure {
   id: string;
   name: string;
   description: string;
@@ -39,7 +39,7 @@ export interface Measure {
   formula?: string;
 }
 
-export interface DimensionAttribute {
+export interface IDimensionAttribute {
   id: string;
   name: string;
   description: string;
@@ -48,14 +48,14 @@ export interface DimensionAttribute {
   isNullable: boolean;
 }
 
-export interface ForeignKey {
+export interface IForeignKey {
   id: string;
   name: string;
   referencedTable: string;
   referencedColumn: string;
 }
 
-export interface Relationship {
+export interface IRelationship {
   id: string;
   fromTable: string;
   toTable: string;
@@ -63,38 +63,38 @@ export interface Relationship {
   joinCondition: string;
 }
 
-export interface DimensionHierarchy {
-  levels: HierarchyLevel[];
+export interface IDimensionHierarchy {
+  levels: IHierarchyLevel[];
   rollupPaths: string[][];
 }
 
-export interface HierarchyLevel {
+export interface IHierarchyLevel {
   id: string;
   name: string;
   level: number;
   attributes: string[];
 }
 
-export interface AnalyticsQuery {
+export interface IAnalyticsQuery {
   id: string;
   name: string;
   description: string;
   modelId: string;
   query: string;
-  parameters: QueryParameter[];
+  parameters: IQueryParameter[];
   metrics: string[];
   dimensions: string[];
-  filters: QueryFilter[];
+  filters: IQueryFilter[];
 }
 
-export interface QueryParameter {
+export interface IQueryParameter {
   name: string;
   type: string;
   defaultValue?: any;
   required: boolean;
 }
 
-export interface QueryFilter {
+export interface IQueryFilter {
   field: string;
   operator: string;
   value: any;
@@ -103,17 +103,17 @@ export interface QueryFilter {
 @Injectable()
 export class DimensionalModelingService {
   private readonly logger = new Logger(DimensionalModelingService.name);
-  private models: Map<string, DimensionalModel> = new Map();
-  private queries: Map<string, AnalyticsQuery> = new Map();
+  private models: Map<string, IDimensionalModel> = new Map();
+  private queries: Map<string, IAnalyticsQuery> = new Map();
 
   /**
    * Create a new dimensional model
    */
   async createModel(
-    modelConfig: Omit<DimensionalModel, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<DimensionalModel> {
+    modelConfig: Omit<IDimensionalModel, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<IDimensionalModel> {
     const modelId = uuidv4();
-    const model: DimensionalModel = {
+    const model: IDimensionalModel = {
       id: modelId,
       ...modelConfig,
       createdAt: new Date(),
@@ -129,14 +129,14 @@ export class DimensionalModelingService {
   /**
    * Get a dimensional model
    */
-  async getModel(modelId: string): Promise<DimensionalModel | null> {
+  async getModel(modelId: string): Promise<IDimensionalModel | null> {
     return this.models.get(modelId) || null;
   }
 
   /**
    * Get all dimensional models
    */
-  async getAllModels(): Promise<DimensionalModel[]> {
+  async getAllModels(): Promise<IDimensionalModel[]> {
     return Array.from(this.models.values());
   }
 
@@ -145,8 +145,8 @@ export class DimensionalModelingService {
    */
   async updateModel(
     modelId: string,
-    updates: Partial<DimensionalModel>,
-  ): Promise<DimensionalModel | null> {
+    updates: Partial<IDimensionalModel>,
+  ): Promise<IDimensionalModel | null> {
     const model = this.models.get(modelId);
     if (!model) {
       return null;
@@ -181,21 +181,21 @@ export class DimensionalModelingService {
    */
   async createStarSchema(
     name: string,
-    factTable: Omit<FactTable, 'id'>,
-    dimensionTables: Array<Omit<DimensionTable, 'id'>>,
-  ): Promise<DimensionalModel> {
-    const factTableWithId: FactTable = {
+    factTable: Omit<IFactTable, 'id'>,
+    dimensionTables: Array<Omit<IDimensionTable, 'id'>>,
+  ): Promise<IDimensionalModel> {
+    const factTableWithId: IFactTable = {
       ...factTable,
       id: uuidv4(),
     };
 
-    const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map((dim) => ({
+    const dimensionTablesWithIds: IDimensionTable[] = dimensionTables.map((dim) => ({
       ...dim,
       id: uuidv4(),
     }));
 
     // Create foreign keys for each dimension
-    const foreignKeys: ForeignKey[] = dimensionTablesWithIds.map((dim) => ({
+    const foreignKeys: IForeignKey[] = dimensionTablesWithIds.map((dim) => ({
       id: uuidv4(),
       name: `${dim.name}_id`,
       referencedTable: dim.name,
@@ -220,23 +220,23 @@ export class DimensionalModelingService {
    */
   async createSnowflakeSchema(
     name: string,
-    factTable: Omit<FactTable, 'id'>,
-    dimensionTables: Array<Omit<DimensionTable, 'id'>>,
-    subDimensions: { [key: string]: Array<Omit<DimensionTable, 'id'>> },
-  ): Promise<DimensionalModel> {
-    const factTableWithId: FactTable = {
+    factTable: Omit<IFactTable, 'id'>,
+    dimensionTables: Array<Omit<IDimensionTable, 'id'>>,
+    subDimensions: { [key: string]: Array<Omit<IDimensionTable, 'id'>> },
+  ): Promise<IDimensionalModel> {
+    const factTableWithId: IFactTable = {
       ...factTable,
       id: uuidv4(),
     };
 
-    const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map((dim) => ({
+    const dimensionTablesWithIds: IDimensionTable[] = dimensionTables.map((dim) => ({
       ...dim,
       id: uuidv4(),
     }));
 
     // Process sub-dimensions
-    const allDimensions: DimensionTable[] = [...dimensionTablesWithIds];
-    const relationships: Relationship[] = [];
+    const allDimensions: IDimensionTable[] = [...dimensionTablesWithIds];
+    const relationships: IRelationship[] = [];
 
     for (const [parentDimName, subDims] of Object.entries(subDimensions)) {
       const parentDim = dimensionTablesWithIds.find((d) => d.name === parentDimName);
@@ -262,7 +262,7 @@ export class DimensionalModelingService {
     }
 
     // Create foreign keys for fact table
-    const foreignKeys: ForeignKey[] = allDimensions.map((dim) => ({
+    const foreignKeys: IForeignKey[] = allDimensions.map((dim) => ({
       id: uuidv4(),
       name: `${dim.name}_id`,
       referencedTable: dim.name,
@@ -288,9 +288,9 @@ export class DimensionalModelingService {
   /**
    * Create an analytics query
    */
-  async createQuery(queryConfig: Omit<AnalyticsQuery, 'id'>): Promise<AnalyticsQuery> {
+  async createQuery(queryConfig: Omit<IAnalyticsQuery, 'id'>): Promise<IAnalyticsQuery> {
     const queryId = uuidv4();
-    const query: AnalyticsQuery = {
+    const query: IAnalyticsQuery = {
       id: queryId,
       ...queryConfig,
     };
@@ -350,7 +350,7 @@ export class DimensionalModelingService {
   /**
    * Get all queries for a model
    */
-  async getQueriesForModel(modelId: string): Promise<AnalyticsQuery[]> {
+  async getQueriesForModel(modelId: string): Promise<IAnalyticsQuery[]> {
     const queries = Array.from(this.queries.values());
     return queries.filter((query) => query.modelId === modelId);
   }
@@ -381,11 +381,11 @@ export class DimensionalModelingService {
       const toTable = this.findTableByName(model, relationship.toTable);
 
       if (!fromTable) {
-        errors.push(`Relationship references non-existent table: ${relationship.fromTable}`);
+        errors.push(`IRelationship references non-existent table: ${relationship.fromTable}`);
       }
 
       if (!toTable) {
-        errors.push(`Relationship references non-existent table: ${relationship.toTable}`);
+        errors.push(`IRelationship references non-existent table: ${relationship.toTable}`);
       }
     }
 
@@ -397,9 +397,9 @@ export class DimensionalModelingService {
 
   // Helper methods
   private createStarRelationships(
-    factTable: FactTable,
-    dimensionTables: DimensionTable[],
-  ): Relationship[] {
+    factTable: IFactTable,
+    dimensionTables: IDimensionTable[],
+  ): IRelationship[] {
     return dimensionTables.map((dim) => ({
       id: uuidv4(),
       fromTable: factTable.name,
@@ -410,16 +410,16 @@ export class DimensionalModelingService {
   }
 
   private findTableByName(
-    model: DimensionalModel,
+    model: IDimensionalModel,
     tableName: string,
-  ): FactTable | DimensionTable | undefined {
+  ): IFactTable | IDimensionTable | undefined {
     const factTable = model.factTables.find((ft) => ft.name === tableName);
     if (factTable) return factTable;
 
     return model.dimensionTables.find((dt) => dt.name === tableName);
   }
 
-  private generateMockResults(query: AnalyticsQuery, _parameters: { [key: string]: any }): any[] {
+  private generateMockResults(query: IAnalyticsQuery, _parameters: { [key: string]: any }): any[] {
     // Generate mock data based on query configuration
     const results: any[] = [];
     const rowCount = Math.floor(Math.random() * 100) + 10; // 10-110 rows

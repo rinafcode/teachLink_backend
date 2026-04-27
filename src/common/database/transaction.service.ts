@@ -4,7 +4,7 @@ import { DataSource, EntityManager, QueryRunner } from 'typeorm';
 /**
  * Transaction monitoring interface
  */
-export interface TransactionMetrics {
+export interface ITransactionMetrics {
   transactionId: string;
   startTime: Date;
   endTime?: Date;
@@ -21,7 +21,7 @@ export interface TransactionMetrics {
 @Injectable()
 export class TransactionService {
   private readonly logger = new Logger(TransactionService.name);
-  private readonly activeTransactions = new Map<string, TransactionMetrics>();
+  private readonly activeTransactions = new Map<string, ITransactionMetrics>();
 
   constructor(private readonly dataSource: DataSource) {}
 
@@ -36,7 +36,7 @@ export class TransactionService {
 
     const transactionId = this.generateTransactionId();
     const startTime = new Date();
-    const metrics: TransactionMetrics = {
+    const metrics: ITransactionMetrics = {
       transactionId,
       startTime,
       status: 'STARTED',
@@ -233,7 +233,7 @@ export class TransactionService {
   /**
    * Get transaction metrics
    */
-  getTransactionMetrics(): TransactionMetrics[] {
+  getTransactionMetrics(): ITransactionMetrics[] {
     return Array.from(this.activeTransactions.values());
   }
 

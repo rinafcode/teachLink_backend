@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
 import { SESSION_REDIS_CLIENT } from './session.constants';
 
-interface SessionRecord {
+interface ISessionRecord {
   sid: string;
   userId: string;
   metadata: Record<string, unknown>;
@@ -54,7 +54,7 @@ export class SessionService implements OnModuleDestroy {
   async createSession(userId: string, metadata: Record<string, unknown> = {}): Promise<string> {
     const sid = randomUUID();
     const now = Date.now();
-    const session: SessionRecord = {
+    const session: ISessionRecord = {
       sid,
       userId,
       metadata,
@@ -72,14 +72,14 @@ export class SessionService implements OnModuleDestroy {
     return sid;
   }
 
-  async getSession(sid: string): Promise<SessionRecord | null> {
+  async getSession(sid: string): Promise<ISessionRecord | null> {
     const data = await this.redis.get(this.sessionKey(sid));
     if (!data) {
       return this.migrateLegacySessionIfNeeded(sid);
     }
 
     try {
-      return JSON.parse(data) as SessionRecord;
+      return JSON.parse(data) as ISessionRecord;
     } catch {
       this.logger.warn(`Invalid session payload for sid=${sid}`);
       return null;
@@ -92,7 +92,7 @@ export class SessionService implements OnModuleDestroy {
       return;
     }
 
-    const nextSession: SessionRecord = {
+    const nextSession: ISessionRecord = {
       ...session,
       metadata: {
         ...session.metadata,
@@ -119,7 +119,7 @@ export class SessionService implements OnModuleDestroy {
       return newSid;
     }
 
-    const migrated: SessionRecord = {
+    const migrated: ISessionRecord = {
       ...existing,
       sid: newSid,
       updatedAt: Date.now(),
@@ -163,7 +163,7 @@ export class SessionService implements OnModuleDestroy {
     }
   }
 
-  private async migrateLegacySessionIfNeeded(sid: string): Promise<SessionRecord | null> {
+  private async migrateLegacySessionIfNeeded(sid: string): Promise<ISessionRecord | null> {
     const legacyKey = `${this.legacySessionPrefix}${sid}`;
     const currentKey = this.sessionKey(sid);
 
@@ -177,7 +177,7 @@ export class SessionService implements OnModuleDestroy {
     }
 
     const now = Date.now();
-    const migrated: SessionRecord = {
+    const migrated: ISessionRecord = {
       sid,
       userId: 'unknown',
       metadata: {

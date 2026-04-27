@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export interface TimeoutConfig {
+export interface ITimeoutConfig {
   default: number;
   endpoints: Record<string, number>;
   methods: Record<string, number>;
@@ -9,13 +9,13 @@ export interface TimeoutConfig {
 
 @Injectable()
 export class TimeoutConfigService {
-  private readonly config: TimeoutConfig;
+  private readonly config: ITimeoutConfig;
 
   constructor(private configService: ConfigService) {
     this.config = this.loadConfig();
   }
 
-  private loadConfig(): TimeoutConfig {
+  private loadConfig(): ITimeoutConfig {
     return {
       default: parseInt(process.env.REQUEST_TIMEOUT || '30000', 10), // 30 seconds
       endpoints: {
@@ -99,7 +99,7 @@ export class TimeoutConfigService {
     this.config.default = timeout;
   }
 
-  getConfig(): TimeoutConfig {
+  getConfig(): ITimeoutConfig {
     return { ...this.config };
   }
 }

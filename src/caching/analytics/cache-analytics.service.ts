@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { CachingService } from '../caching.service';
 
-export interface CacheMetric {
+export interface ICacheMetric {
   key: string;
   pattern: string;
   hits: number;
@@ -11,21 +11,21 @@ export interface CacheMetric {
   lastAccess: Date;
 }
 
-export interface CacheAnalyticsSummary {
+export interface ICacheAnalyticsSummary {
   totalHits: number;
   totalMisses: number;
   hitRate: number;
   missRate: number;
   totalKeys: number;
   memoryUsage: string;
-  topKeys: CacheMetric[];
+  topKeys: ICacheMetric[];
   patternStats: Map<string, { hits: number; misses: number }>;
 }
 
 @Injectable()
 export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheAnalyticsService.name);
-  private metrics: Map<string, CacheMetric> = new Map();
+  private metrics: Map<string, ICacheMetric> = new Map();
   private flushInterval?: NodeJS.Timeout;
   private readonly flushIntervalMs = 60000; // Flush every minute
 
@@ -79,28 +79,28 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get metrics for a specific key
    */
-  getMetric(key: string): CacheMetric | undefined {
+  getMetric(key: string): ICacheMetric | undefined {
     return this.metrics.get(key);
   }
 
   /**
    * Get all metrics
    */
-  getAllMetrics(): CacheMetric[] {
+  getAllMetrics(): ICacheMetric[] {
     return Array.from(this.metrics.values());
   }
 
   /**
    * Get metrics by pattern
    */
-  getMetricsByPattern(pattern: string): CacheMetric[] {
+  getMetricsByPattern(pattern: string): ICacheMetric[] {
     return this.getAllMetrics().filter((m) => m.pattern === pattern);
   }
 
   /**
    * Get analytics summary
    */
-  async getSummary(): Promise<CacheAnalyticsSummary> {
+  async getSummary(): Promise<ICacheAnalyticsSummary> {
     const allMetrics = this.getAllMetrics();
     const stats = await this.cachingService.getStats();
 
@@ -200,7 +200,7 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
   /**
    * Get or create a metric entry
    */
-  private getOrCreateMetric(key: string, pattern: string): CacheMetric {
+  private getOrCreateMetric(key: string, pattern: string): ICacheMetric {
     let metric = this.metrics.get(key);
 
     if (!metric) {
@@ -236,7 +236,7 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
   /**
    * Update average response time using exponential moving average
    */
-  private updateAvgResponseTime(metric: CacheMetric, responseTime: number): void {
+  private updateAvgResponseTime(metric: ICacheMetric, responseTime: number): void {
     const alpha = 0.2; // Smoothing factor
     metric.avgResponseTime = alpha * responseTime + (1 - alpha) * metric.avgResponseTime;
   }

@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Experiment, ExperimentStatus, ExperimentType } from './entities/experiment.entity';
-import { ExperimentVariant } from './entities/experiment-variant.entity';
+import { IExperimentVariant } from './entities/experiment-variant.entity';
 
-export interface CreateExperimentDto {
+export interface ICreateExperimentDto {
   name: string;
   description: string;
   type: ExperimentType;
@@ -17,18 +17,18 @@ export interface CreateExperimentDto {
   hypothesis: string;
   targetingCriteria?: any;
   exclusionCriteria?: any;
-  variants: CreateVariantDto[];
-  metrics: CreateMetricDto[];
+  variants: ICreateVariantDto[];
+  metrics: ICreateMetricDto[];
 }
 
-export interface CreateVariantDto {
+export interface ICreateVariantDto {
   name: string;
   description: string;
   configuration: any;
   isControl: boolean;
 }
 
-export interface CreateMetricDto {
+export interface ICreateMetricDto {
   name: string;
   description: string;
   type: string;
@@ -43,14 +43,14 @@ export class ABTestingService {
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
-    @InjectRepository(ExperimentVariant)
-    private variantRepository: Repository<ExperimentVariant>,
+    @InjectRepository(IExperimentVariant)
+    private variantRepository: Repository<IExperimentVariant>,
   ) {}
 
   /**
    * Creates a new experiment
    */
-  async createExperiment(createExperimentDto: CreateExperimentDto): Promise<Experiment> {
+  async createExperiment(createExperimentDto: ICreateExperimentDto): Promise<Experiment> {
     this.logger.log(`Creating new experiment: ${createExperimentDto.name}`);
 
     const experiment = new Experiment();
@@ -73,7 +73,7 @@ export class ABTestingService {
 
     // Create variants
     const variants = createExperimentDto.variants.map((variantDto) => {
-      const variant = new ExperimentVariant();
+      const variant = new IExperimentVariant();
       variant.name = variantDto.name;
       variant.description = variantDto.description;
       variant.configuration = variantDto.configuration;
@@ -175,7 +175,7 @@ export class ABTestingService {
   /**
    * Assigns a user to a variant
    */
-  async assignUserToVariant(experimentId: string, userId: string): Promise<ExperimentVariant> {
+  async assignUserToVariant(experimentId: string, userId: string): Promise<IExperimentVariant> {
     const experiment = await this.getExperimentById(experimentId);
 
     if (experiment.status !== ExperimentStatus.RUNNING) {

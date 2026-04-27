@@ -21,8 +21,8 @@ export interface IncrementalLoadJob {
 
 export interface IncrementalLoadConfig {
   loadType: 'timestamp' | 'sequence' | 'cdc' | 'watermark';
-  sourceConnection: DataSourceConfig;
-  targetConnection: DataSourceConfig;
+  sourceConnection: IDataSourceConfig;
+  targetConnection: IDataSourceConfig;
   batchSize: number;
   maxRetries: number;
   retryDelay: number;
@@ -33,7 +33,7 @@ export interface IncrementalLoadConfig {
   incrementalColumns: string[];
 }
 
-export interface DataSourceConfig {
+export interface IDataSourceConfig {
   type: 'postgres' | 'mysql' | 'mongodb' | 'snowflake';
   host?: string;
   port?: number;
@@ -44,7 +44,7 @@ export interface DataSourceConfig {
   warehouse?: string;
 }
 
-export interface Watermark {
+export interface IWatermark {
   id: string;
   tableName: string;
   columnName: string;
@@ -52,7 +52,7 @@ export interface Watermark {
   lastUpdated: Date;
 }
 
-export interface CDCEvent {
+export interface ICDCEvent {
   id: string;
   tableName: string;
   operation: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -67,16 +67,16 @@ export interface CDCEvent {
 export class IncrementalLoaderService {
   private readonly logger = new Logger(IncrementalLoaderService.name);
   private jobs: Map<string, IncrementalLoadJob> = new Map();
-  private watermarks: Map<string, Watermark> = new Map();
-  private cdcEvents: Map<string, CDCEvent[]> = new Map();
+  private watermarks: Map<string, IWatermark> = new Map();
+  private cdcEvents: Map<string, ICDCEvent[]> = new Map();
 
   /**
    * Create an incremental load job
    */
   async createLoadJob(
     config: Omit<IncrementalLoadConfig, 'sourceConnection' | 'targetConnection'>,
-    sourceConfig: DataSourceConfig,
-    targetConfig: DataSourceConfig,
+    sourceConfig: IDataSourceConfig,
+    targetConfig: IDataSourceConfig,
   ): Promise<IncrementalLoadJob> {
     const jobId = uuidv4();
     const jobName = `Incremental_Load_${config.loadType}_${new Date().toISOString()}`;
@@ -305,7 +305,7 @@ export class IncrementalLoaderService {
     // Update watermark
     if (incrementalData.length > 0) {
       const maxValue = Math.max(...incrementalData.map((row) => row[watermarkColumn]));
-      const newWatermark: Watermark = {
+      const newWatermark: IWatermark = {
         id: uuidv4(),
         tableName: job.sourceTable,
         columnName: watermarkColumn,
@@ -389,7 +389,7 @@ export class IncrementalLoaderService {
   /**
    * Get watermark for a table and column
    */
-  async getWatermark(tableName: string, columnName: string): Promise<Watermark | null> {
+  async getWatermark(tableName: string, columnName: string): Promise<IWatermark | null> {
     const key = `${tableName}_${columnName}`;
     return this.watermarks.get(key) || null;
   }
@@ -397,9 +397,9 @@ export class IncrementalLoaderService {
   /**
    * Set watermark manually
    */
-  async setWatermark(tableName: string, columnName: string, value: any): Promise<Watermark> {
+  async setWatermark(tableName: string, columnName: string, value: any): Promise<IWatermark> {
     const key = `${tableName}_${columnName}`;
-    const watermark: Watermark = {
+    const watermark: IWatermark = {
       id: uuidv4(),
       tableName,
       columnName,
@@ -416,8 +416,8 @@ export class IncrementalLoaderService {
   /**
    * Add CDC event
    */
-  async addCDCEvent(event: Omit<CDCEvent, 'id' | 'timestamp'>): Promise<CDCEvent> {
-    const cdcEvent: CDCEvent = {
+  async addCDCEvent(event: Omit<ICDCEvent, 'id' | 'timestamp'>): Promise<ICDCEvent> {
+    const cdcEvent: ICDCEvent = {
       id: uuidv4(),
       ...event,
       timestamp: new Date(),
@@ -436,14 +436,14 @@ export class IncrementalLoaderService {
   /**
    * Get CDC events for a table
    */
-  async getCDCEvents(tableName: string): Promise<CDCEvent[]> {
+  async getCDCEvents(tableName: string): Promise<ICDCEvent[]> {
     const key = `${tableName}_cdc`;
     return this.cdcEvents.get(key) || [];
   }
 
   // Helper methods for data operations
   private async getSourceDataSince(
-    _connection: DataSourceConfig,
+    _connection: IDataSourceConfig,
     table: string,
     column: string,
     timestamp: Date,
@@ -454,7 +454,7 @@ export class IncrementalLoaderService {
   }
 
   private async getSourceDataAfter(
-    _connection: DataSourceConfig,
+    _connection: IDataSourceConfig,
     table: string,
     column: string,
     value: any,
@@ -465,7 +465,7 @@ export class IncrementalLoaderService {
   }
 
   private async applyChangesToTarget(
-    _connection: DataSourceConfig,
+    _connection: IDataSourceConfig,
     table: string,
     data: any[],
     _primaryKey: string[],
@@ -482,7 +482,7 @@ export class IncrementalLoaderService {
   }
 
   private async insertRecord(
-    _connection: DataSourceConfig,
+    _connection: IDataSourceConfig,
     table: string,
     _values: { [key: string]: any },
   ): Promise<void> {
@@ -496,7 +496,7 @@ export class IncrementalLoaderService {
   }
 
   private async updateRecord(
-    _connection: DataSourceConfig,
+    _connection: IDataSourceConfig,
     table: string,
     primaryKey: { [key: string]: any },
     _values: { [key: string]: any },
@@ -506,7 +506,7 @@ export class IncrementalLoaderService {
   }
 
   private async deleteRecord(
-    _connection: DataSourceConfig,
+    _connection: IDataSourceConfig,
     table: string,
     primaryKey: { [key: string]: any },
   ): Promise<void> {

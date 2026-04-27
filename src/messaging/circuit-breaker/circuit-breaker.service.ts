@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TracingService } from '../tracing/tracing.service';
 
-export interface CircuitBreakerConfig {
+export interface ICircuitBreakerConfig {
   failureThreshold: number; // Number of failures to open circuit
   recoveryTimeout: number; // Time in ms to wait before attempting recovery
   monitoringPeriod: number; // Time in ms to monitor failures
@@ -18,7 +18,7 @@ export class CircuitBreakerService {
       state: CircuitState;
       failures: number;
       lastFailureTime: number;
-      config: CircuitBreakerConfig;
+      config: ICircuitBreakerConfig;
     }
   > = new Map();
 
@@ -27,7 +27,7 @@ export class CircuitBreakerService {
   async execute<T>(
     key: string,
     operation: () => Promise<T>,
-    config: CircuitBreakerConfig = {
+    config: ICircuitBreakerConfig = {
       failureThreshold: 5,
       recoveryTimeout: 60000,
       monitoringPeriod: 10000,
@@ -57,7 +57,7 @@ export class CircuitBreakerService {
     }
   }
 
-  private getOrCreateCircuit(key: string, config: CircuitBreakerConfig) {
+  private getOrCreateCircuit(key: string, config: ICircuitBreakerConfig) {
     if (!this.circuits.has(key)) {
       this.circuits.set(key, {
         state: 'CLOSED',
@@ -84,7 +84,7 @@ export class CircuitBreakerService {
     }
   }
 
-  private onFailure(key: string, config: CircuitBreakerConfig): void {
+  private onFailure(key: string, config: ICircuitBreakerConfig): void {
     const circuit = this.circuits.get(key);
     if (circuit) {
       circuit.failures++;
