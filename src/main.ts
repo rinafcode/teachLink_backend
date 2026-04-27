@@ -23,6 +23,8 @@ import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
 import { TIME, BYTES } from './common/constants/time.constants';
+import { AuditLogService } from './audit-log/audit-log.service';
+import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 
 type SessionRequest = Request & {
   session?: Session & Partial<SessionData> & { userAgent?: string };
@@ -105,6 +107,13 @@ async function bootstrapWorker(): Promise<void> {
   }
 
   app.use(correlationMiddleware);
+
+  try {
+    const auditLogService = app.get(AuditLogService, { strict: false });
+    app.use(createAuditLoggerMiddleware(auditLogService));
+  } catch {
+    logger.warn('AuditLogService not available. Global audit middleware was not registered.');
+  }
 
   app.use(
     session({
