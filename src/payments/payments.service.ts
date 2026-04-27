@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment, PaymentStatus, PaymentMethod } from './entities/payment.entity';
@@ -23,6 +29,8 @@ import {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
@@ -40,14 +48,48 @@ export class PaymentsService {
 
   /**
    * Create a payment intent with a provider and record the pending payment.
-   * Refactored to use @Transactional decorator for consistent transaction management.
+   *
+   * Supports idempotency via an optional key: if a non-failed payment already
+   * exists for the given key, the original result is replayed without hitting
+   * the payment provider again. This prevents duplicate charges on network
+   * retries or accidental double-submissions.
+   *
+   * Uses @Transactional for consistent transaction management with retry logic.
+   * The unique DB constraint on idempotencyKey acts as a last-resort guard
+   * against concurrent requests that bypass the Redis-layer lock.
    */
   @Transactional()
   async createPaymentIntent(
     userId: string,
     createPaymentDto: CreatePaymentDto,
+    idempotencyKey?: string,
   ): Promise<ICreatePaymentIntentResult> {
     const { courseId, amount, currency, provider, metadata } = createPaymentDto;
+
+    // Check for an existing payment with the same idempotency key before doing
+    // any provider I/O. Non-failed payments are replayed as-is.
+    if (idempotencyKey) {
+      const existing = await this.paymentRepository.findOne({
+        where: { idempotencyKey },
+      });
+
+      if (existing) {
+        if (existing.status !== PaymentStatus.FAILED) {
+          this.logger.log(
+            `Replaying idempotent payment response for key ${idempotencyKey} (payment ${existing.id})`,
+          );
+          return {
+            paymentId: existing.id,
+            clientSecret: (existing.metadata?._clientSecret as string) ?? '',
+            requiresAction: Boolean(existing.metadata?._requiresAction),
+          };
+        }
+        // Failed payments are allowed to retry — fall through to create a new one.
+        this.logger.warn(
+          `Previous payment ${existing.id} for key ${idempotencyKey} failed; allowing retry`,
+        );
+      }
+    }
 
     // Verify user exists
     const userOrNull = await this.userRepository.findOne({
@@ -58,12 +100,20 @@ export class PaymentsService {
     // Get payment provider
     const paymentProvider = this.providerFactory.getProvider(provider ?? 'stripe');
 
-    // Create payment intent
+    // Create payment intent with provider
     const paymentIntent = await paymentProvider.createPaymentIntent(amount, currency ?? 'USD', {
       ...metadata,
       userId,
       courseId,
     });
+
+    // Store the clientSecret in metadata so idempotent replays can return it
+    // without hitting the provider again.
+    const paymentMetadata: Record<string, unknown> = {
+      ...(metadata ?? {}),
+      _clientSecret: paymentIntent.clientSecret,
+      _requiresAction: paymentIntent.requiresAction ?? false,
+    };
 
     // Create payment record
     const payment = this.paymentRepository.create({
@@ -73,10 +123,11 @@ export class PaymentsService {
       provider,
       providerPaymentId: paymentIntent.paymentIntentId,
       status: PaymentStatus.PENDING,
-      metadata,
+      metadata: paymentMetadata,
       user,
       userId,
       courseId,
+      idempotencyKey: idempotencyKey ?? null,
     });
 
     await this.paymentRepository.save(payment);
@@ -91,6 +142,7 @@ export class PaymentsService {
   async createSubscription(
     userId: string,
     createSubscriptionDto: CreateSubscriptionDto,
+    _idempotencyKey?: string,
   ): Promise<ICreateSubscriptionResult> {
     const { interval } = createSubscriptionDto;
 
@@ -127,13 +179,41 @@ export class PaymentsService {
   }
 
   /**
-   * Process a refund for a payment
-   * Uses @Transactional to ensure both payment status update and refund record creation
-   * succeed or fail together, preventing orphaned refund records or inconsistent payment states.
+   * Process a refund for a completed payment.
+   *
+   * Supports idempotency via an optional key: if a refund already exists for
+   * the given key, its result is replayed immediately without hitting the
+   * payment provider again. This prevents duplicate refunds caused by client
+   * retries or webhook re-deliveries.
+   *
+   * Uses @Transactional to ensure the payment status update and refund record
+   * creation always succeed or fail together.
    */
   @Transactional()
-  async processRefund(refundDto: RefundDto): Promise<IProcessRefundResult> {
+  async processRefund(
+    refundDto: RefundDto,
+    idempotencyKey?: string,
+  ): Promise<IProcessRefundResult> {
     const { paymentId, amount, reason } = refundDto;
+
+    // Return an already-processed refund for the same idempotency key without
+    // any side-effects — safe to call any number of times.
+    if (idempotencyKey) {
+      const existingRefund = await this.refundRepository.findOne({
+        where: { idempotencyKey },
+      });
+
+      if (existingRefund) {
+        this.logger.log(
+          `Replaying idempotent refund response for key ${idempotencyKey} (refund ${existingRefund.id})`,
+        );
+        return {
+          refundId: existingRefund.id,
+          status: existingRefund.status,
+          amount: existingRefund.amount,
+        };
+      }
+    }
 
     // Find payment
     const payment = await this.paymentRepository.findOne({
@@ -146,6 +226,18 @@ export class PaymentsService {
 
     if (payment.status !== PaymentStatus.COMPLETED) {
       throw new BadRequestException('Only completed payments can be refunded');
+    }
+
+    // Guard against refunding a payment that was already refunded through a
+    // different code path (e.g. webhook), without an idempotency key.
+    const duplicate = await this.refundRepository.findOne({
+      where: { paymentId: payment.id, status: RefundStatus.PROCESSED },
+    });
+    if (duplicate && !idempotencyKey) {
+      throw new ConflictException(
+        `Payment ${paymentId} has already been refunded (refund ${duplicate.id}). ` +
+          'Provide an X-Idempotency-Key header to safely retry.',
+      );
     }
 
     // Get provider
@@ -166,6 +258,7 @@ export class PaymentsService {
       refundMethod: 'original_method',
       providerRefundId: refundResult.refundId,
       status: RefundStatus.PROCESSED,
+      idempotencyKey: idempotencyKey ?? null,
     });
 
     await this.refundRepository.save(refund);
