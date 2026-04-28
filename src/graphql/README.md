@@ -45,6 +45,23 @@ The GraphQL API is automatically available at:
 - **Endpoint**: `http://localhost:3000/graphql`
 - **Playground**: `http://localhost:3000/graphql` (in browser)
 - **Subscriptions**: `ws://localhost:3000/graphql`
+- **Subscription Protocol**: `graphql-ws`
+
+### Subscription Client Setup
+
+Use a WebSocket GraphQL client that speaks the `graphql-ws` protocol and send auth through
+`connectionParams` when a subscription needs the same bearer token as your HTTP requests.
+
+```ts
+import { createClient } from 'graphql-ws';
+
+const client = createClient({
+  url: 'ws://localhost:3000/graphql',
+  connectionParams: {
+    Authorization: 'Bearer YOUR_JWT_TOKEN',
+  },
+});
+```
 
 ### Example Queries
 

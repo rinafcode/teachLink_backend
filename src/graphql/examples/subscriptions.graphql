@@ -144,3 +144,8 @@ subscription OnAssessmentDeleted {
 
 # WebSocket connection is required for subscriptions
 # Default endpoint: ws://localhost:3000/graphql
+# Protocol: graphql-ws
+# Example connectionParams:
+# {
+#   "Authorization": "Bearer YOUR_JWT_TOKEN"
+# }
