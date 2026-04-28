@@ -48,7 +48,7 @@
     "@aws-sdk/client-kms": "^3.978.0",
     "@aws-sdk/client-s3": "^3.975.0",
     "@aws-sdk/client-secrets-manager": "^3.978.0",
-    "@elastic/elasticsearch": "^8.19.1",
+    "@elastic/elasticsearch": "^9.3.4",
     "@huggingface/inference": "^4.13.12",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/apollo": "^12.2.2",
