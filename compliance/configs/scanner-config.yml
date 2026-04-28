@@ -1,0 +1,29 @@
+scanner:
+  type: license-checker
+  output_format: json
+  include_dev_dependencies: true
+
+reporting:
+  output_directory: compliance/reports
+  formats:
+    - json
+    - summary
+  include_risks: true
+
+thresholds:
+  critical:
+    action: block
+    licenses:
+      - SSPL-1.0
+      - Proprietary
+  warning:
+    action: require_approval
+    licenses:
+      - GPL-3.0
+      - AGPL-3.0
+  info:
+    action: log
+    licenses:
+      - MIT
+      - Apache-2.0
+      - BSD-3-Clause
