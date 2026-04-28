@@ -1,20 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   IStructuredLog,
   ILogQuery,
   ILogSearchResult,
   LogLevel,
 } from '../interfaces/observability.interfaces';
+import { LogShipperService } from '../../common/services/log-shipper.service';
 
 /**
  * Log Aggregation Service
- * Centralized log storage and search functionality
+ * Centralized log storage and search functionality.
+ * In-memory store acts as a hot buffer; every entry is also forwarded
+ * to Elasticsearch via LogShipperService for persistent, searchable storage.
  */
 @Injectable()
 export class LogAggregationService {
   private readonly logger = new Logger(LogAggregationService.name);
   private logs: IStructuredLog[] = [];
   private readonly MAX_LOGS = 10000; // In-memory limit
+
+  constructor(@Optional() private readonly logShipper?: LogShipperService) {}
 
   /**
    * Store a log entry
@@ -200,27 +205,38 @@ export class LogAggregationService {
   }
 
   /**
-   * Send logs to external service (placeholder)
+   * Ship a log entry to Elasticsearch via LogShipperService.
+   * Fire-and-forget — never throws so in-memory storage is never blocked.
    */
-  private async sendToExternalService(_log: IStructuredLog): Promise<void> {
-    // In production, implement integration with:
-    // - Elasticsearch
-    // - AWS CloudWatch
-    // - Datadog
-    // - Splunk
-    // - Grafana Loki
-    // etc.
+  private async sendToExternalService(log: IStructuredLog): Promise<void> {
+    if (!this.logShipper) return;
 
-    // Example: Elasticsearch
-    // await this.elasticsearchClient.index({
-    //   index: 'logs',
-    //   body: _log,
-    // });
+    const document: Record<string, unknown> = {
+      '@timestamp': log.context.timestamp.toISOString(),
+      level: log.level,
+      message: log.message,
+      service: log.context.service,
+      environment: log.context.environment,
+      correlationId: log.context.correlationId,
+      traceId: log.context.traceId,
+      spanId: log.context.spanId,
+      userId: log.context.userId,
+      requestId: log.context.requestId,
+      duration: log.duration,
+      tags: log.tags,
+      ...(log.error && {
+        error: {
+          name: log.error.name,
+          message: log.error.message,
+          stack: log.error.stack,
+          code: log.error.code,
+          statusCode: log.error.statusCode,
+        },
+      }),
+      ...(log.context.metadata && { metadata: log.context.metadata }),
+    };
 
-    // For now, just log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      // Already logged by StructuredLoggerService
-    }
+    this.logShipper.ship(document);
   }
 
   /**

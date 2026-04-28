@@ -19,7 +19,19 @@ import { createElasticsearchConfig } from '../config/elasticsearch.config';
     }),
   ],
   controllers: [SearchController],
-  providers: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService, SearchIndexOptimizerService],
-  exports: [SearchService, IndexingService, AutoCompleteService, SearchFiltersService, SearchIndexOptimizerService],
+  providers: [
+    SearchService,
+    IndexingService,
+    AutoCompleteService,
+    SearchFiltersService,
+    SearchIndexOptimizerService,
+  ],
+  exports: [
+    SearchService,
+    IndexingService,
+    AutoCompleteService,
+    SearchFiltersService,
+    SearchIndexOptimizerService,
+  ],
 })
 export class SearchModule {}

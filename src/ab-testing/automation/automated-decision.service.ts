@@ -235,6 +235,8 @@ export class AutomatedDecisionService {
       }
     }
 
+    void minimumSampleSize;
+
     return true;
   }
 

@@ -75,4 +75,4 @@ terraform.tfvars
 terraform.rc
 
 # Terraform crash log
-crash.log
+crash.logtsconfig.build.tsbuildinfo

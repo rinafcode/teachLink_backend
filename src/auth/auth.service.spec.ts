@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
@@ -10,7 +11,6 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { UserRole } from '../users/entities/user.entity';
 import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
-import * as bcrypt from 'bcryptjs';
 import {
   createMockRepository,
   createMockConfigService,
