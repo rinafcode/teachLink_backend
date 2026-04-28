@@ -1,0 +1,91 @@
+# ─── Kibana – Log Search UI ───────────────────────────────────────────────────
+# Adds Kibana to the log aggregation stack so operators can search, filter,
+# and visualise structured application logs stored in Elasticsearch.
+#
+# Compose this file on top of the storage stack:
+#   docker compose \
+#     -f logging/storage/elasticsearch.yml \
+#     -f logging/search/kibana.yml \
+#     up -d
+#
+# Then open http://localhost:5601 and navigate to:
+#   Discover → select the teachlink-logs-* data view
+#
+# Environment variables (override via shell or .env):
+#   KIBANA_VERSION          – defaults to 8.13.4 (must match Elasticsearch)
+#   KIBANA_PORT             – host port, defaults to 5601
+#   KIBANA_ADMIN_USER       – defaults to kibana_system
+#   KIBANA_ADMIN_PASSWORD   – defaults to changeme (set a real password in prod)
+#   ELASTICSEARCH_NODE      – defaults to http://elasticsearch:9200
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: teachlink-logging-search
+
+networks:
+  logging:
+    external: true          # Attaches to the network created by elasticsearch.yml
+
+services:
+  kibana:
+    image: kibana:${KIBANA_VERSION:-8.13.4}
+    container_name: teachlink-kibana
+    restart: unless-stopped
+    ports:
+      - '${KIBANA_PORT:-5601}:5601'
+    environment:
+      ELASTICSEARCH_HOSTS: '${ELASTICSEARCH_NODE:-http://elasticsearch:9200}'
+      ELASTICSEARCH_USERNAME: '${KIBANA_ADMIN_USER:-kibana_system}'
+      ELASTICSEARCH_PASSWORD: '${KIBANA_ADMIN_PASSWORD:-changeme}'
+      # Disable telemetry in self-hosted environments
+      TELEMETRY_ENABLED: 'false'
+      SERVER_NAME: 'teachlink-kibana'
+    networks:
+      - logging
+    depends_on:
+      - kibana-data-view-init
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          curl -s http://localhost:5601/api/status
+          | grep -q '"overall":{"level":"available"'
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    labels:
+      com.teachlink.component: 'log-search'
+
+  # ─── Data view initialiser ─────────────────────────────────────────────────
+  # One-shot container that creates the teachlink-logs-* index pattern / data
+  # view so Discover works out of the box without manual Kibana setup.
+  kibana-data-view-init:
+    image: curlimages/curl:latest
+    container_name: teachlink-kibana-data-view-init
+    restart: on-failure
+    networks:
+      - logging
+    # Wait for Kibana to be ready before registering the data view
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Waiting for Kibana to become available ..."
+        until curl -s http://kibana:5601/api/status | grep -q '"overall":{"level":"available"'; do
+          sleep 5
+        done
+        echo "Kibana is up. Creating teachlink-logs-* data view ..."
+        curl -s -X POST "http://kibana:5601/api/data_views/data_view" \
+          -H "kbn-xsrf: true" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "data_view": {
+              "title": "teachlink-logs-*",
+              "name": "TeachLink Logs",
+              "timeFieldName": "@timestamp"
+            }
+          }'
+        echo ""
+        echo "Data view registered."
+    labels:
+      com.teachlink.component: 'log-search'

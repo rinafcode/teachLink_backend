@@ -1,0 +1,62 @@
+# ─── Filebeat Log Shipper ────────────────────────────────────────────────────
+# Collects structured JSON logs from the teachlink-api container's stdout and
+# ships them to Elasticsearch using the same daily rolling index pattern used
+# by LogShipperService: teachlink-logs-YYYY.MM.DD
+#
+# Run alongside the app with:
+#   docker compose -f logging/storage/elasticsearch.yml \
+#                  -f logging/search/kibana.yml \
+#                  -f logging/shipper/filebeat.yml up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+filebeat.inputs:
+  # Collect all container stdout/stderr via the Docker socket.
+  # Each line is a JSON object emitted by NestJS / LoggingInterceptor.
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    processors:
+      # Decode the JSON log message into structured fields
+      - decode_json_fields:
+          fields: ['message']
+          target: ''
+          overwrite_keys: true
+      # Keep only containers labelled for this service
+      - add_docker_metadata:
+          host: 'unix:///var/run/docker.sock'
+      - drop_event:
+          when:
+            not:
+              equals:
+                container.labels.com_docker_compose_service: 'app'
+
+# ─── Processors applied to every event ───────────────────────────────────────
+processors:
+  - add_host_metadata: {}
+  - add_cloud_metadata: {}
+  # Rename the raw Docker timestamp to @timestamp so ES auto-detects the type
+  - rename:
+      fields:
+        - from: 'time'
+          to: '@timestamp'
+      ignore_missing: true
+      fail_on_error: false
+
+# ─── Output ───────────────────────────────────────────────────────────────────
+output.elasticsearch:
+  hosts: ['${ELASTICSEARCH_NODE:http://elasticsearch:9200}']
+  # Username / password (leave blank when using API key)
+  username: '${ELASTICSEARCH_USERNAME:}'
+  password: '${ELASTICSEARCH_PASSWORD:}'
+  # Daily rolling index — matches the LogShipperService pattern
+  index: 'teachlink-logs-%{+yyyy.MM.dd}'
+  # Bulk settings for throughput vs. latency balance
+  bulk_max_size: 512
+  worker: 2
+
+setup.ilm.enabled: false         # ILM managed separately via elasticsearch.yml policy
+setup.template.enabled: false    # Template registered by LogShipperService on startup
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+logging.level: warning
+logging.to_files: false          # Send Filebeat's own logs to stdout only

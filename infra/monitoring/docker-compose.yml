@@ -9,6 +9,7 @@ volumes:
   prometheus-data:
   alertmanager-data:
   grafana-data:
+  kibana-data:
 
 services:
   app:
@@ -184,3 +185,52 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  # ─── Log Search UI ──────────────────────────────────────────────────────────
+  kibana:
+    image: kibana:${KIBANA_VERSION:-8.13.4}
+    container_name: teachlink-kibana
+    restart: unless-stopped
+    ports:
+      - '${KIBANA_PORT:-5601}:5601'
+    environment:
+      ELASTICSEARCH_HOSTS: 'http://elasticsearch:9200'
+      TELEMETRY_ENABLED: 'false'
+      SERVER_NAME: 'teachlink-kibana'
+    networks:
+      - teachlink
+    volumes:
+      - kibana-data:/usr/share/kibana/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -s http://localhost:5601/api/status | grep -q "\"overall\":{\"level\":\"available\""',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ─── Log Shipper (container stdout → Elasticsearch) ─────────────────────────
+  filebeat:
+    image: elastic/filebeat:${FILEBEAT_VERSION:-8.13.4}
+    container_name: teachlink-filebeat
+    restart: unless-stopped
+    user: root
+    networks:
+      - teachlink
+    volumes:
+      - ../../logging/shipper/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_NODE: 'http://elasticsearch:9200'
+      ELASTICSEARCH_USERNAME: '${ELASTICSEARCH_USERNAME:-}'
+      ELASTICSEARCH_PASSWORD: '${ELASTICSEARCH_PASSWORD:-}'
