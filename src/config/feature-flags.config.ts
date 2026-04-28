@@ -33,6 +33,7 @@
  * - ENABLE_TENANCY: Gates the TenancyModule for multi-tenant isolation
  * - ENABLE_CDN: Gates the CDNModule for CDN/CloudFront asset delivery
  * - ENABLE_LOCALIZATION: Gates the LocalizationModule for i18n/l10n support
+ * - ENABLE_ONBOARDING: Gates the OnboardingModule for user onboarding flow
  *
  * To add a new flag:
  * 1. Add the constant here with a JSDoc comment
@@ -173,6 +174,11 @@ export interface IFeatureFlagsConfig {
    *  `true`: LocalizationModule is loaded, locale negotiation active.
    *  `false`: LocalizationModule is skipped. */
   ENABLE_LOCALIZATION: boolean;
+
+  /** Gates the OnboardingModule — controls user onboarding flow.
+   *  `true`: OnboardingModule is loaded, onboarding endpoints available.
+   *  `false`: OnboardingModule is skipped. */
+  ENABLE_ONBOARDING: boolean;
 }
 
 /**
@@ -206,6 +212,7 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_TENANCY: true,
   ENABLE_CDN: true,
   ENABLE_LOCALIZATION: true,
+  ENABLE_ONBOARDING: true,
 };
 
 /**
@@ -275,6 +282,7 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
       'ENABLE_LOCALIZATION',
       defaultFeatureFlags.ENABLE_LOCALIZATION,
     ),
+    ENABLE_ONBOARDING: getBooleanEnv('ENABLE_ONBOARDING', defaultFeatureFlags.ENABLE_ONBOARDING),
   };
 }
 
@@ -321,6 +329,7 @@ export function getEnabledModules(flags: IFeatureFlagsConfig): string[] {
   if (flags.ENABLE_TENANCY) modules.push('TenancyModule');
   if (flags.ENABLE_CDN) modules.push('CDNModule');
   if (flags.ENABLE_LOCALIZATION) modules.push('LocalizationModule');
+  if (flags.ENABLE_ONBOARDING) modules.push('OnboardingModule');
 
   return modules;
 }
