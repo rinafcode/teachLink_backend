@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { AxiosResponse } from 'axios';
+import { AxiosResponse, Method } from 'axios';
 import { ServiceDiscoveryService } from '../discovery/service-discovery.service';
 import {
   injectCorrelationIdToHeaders,
@@ -21,9 +21,29 @@ export class ServiceMeshService {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     data?: any,
   ): Promise<T> {
-    const service = await this.discovery.getService(serviceName);
-    const url = `${service.baseUrl}${path}`;
+    const service = await this.discovery.resolveService(serviceName, path);
+    return this.dispatchRequest<T>(service.name, service.id, service.baseUrl, service.boundary.domain, path, method, data);
+  }
 
+  async requestByRoute<T = any>(
+    path: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    data?: any,
+  ): Promise<T> {
+    const service = await this.discovery.discoverByRoute(path);
+    return this.dispatchRequest<T>(service.name, service.id, service.baseUrl, service.boundary.domain, path, method, data);
+  }
+
+  private async dispatchRequest<T>(
+    serviceName: string,
+    serviceId: string,
+    baseUrl: string,
+    serviceDomain: string,
+    path: string,
+    method: Method,
+    data?: any,
+  ): Promise<T> {
+    const url = `${baseUrl}${path}`;
     const correlationId = getCorrelationId();
 
     try {
@@ -33,13 +53,17 @@ export class ServiceMeshService {
           method,
           data,
           timeout: 5000,
-          headers: injectCorrelationIdToHeaders(undefined, correlationId),
+          headers: {
+            ...injectCorrelationIdToHeaders(undefined, correlationId),
+            'x-service-name': serviceName,
+            'x-service-domain': serviceDomain,
+          },
         }),
       );
 
       return response.data;
     } catch (error) {
-      await this.discovery.markUnhealthy(serviceName);
+      await this.discovery.markUnhealthy(serviceName, serviceId);
       throw error;
     }
   }
