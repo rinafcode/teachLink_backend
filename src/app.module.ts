@@ -54,6 +54,7 @@ import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
@@ -403,6 +404,15 @@ export class AppModule {
       startupLogger.recordModuleLoaded('LocalizationModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('LocalizationModule', 'ENABLE_LOCALIZATION=false');
+    }
+
+    // Onboarding Module
+    if (flags.ENABLE_ONBOARDING) {
+      const startTime = Date.now();
+      featureModules.push(OnboardingModule);
+      startupLogger.recordModuleLoaded('OnboardingModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('OnboardingModule', 'ENABLE_ONBOARDING=false');
     }
 
     // Queue Module (always loaded for Bull)
