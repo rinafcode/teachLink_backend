@@ -20,9 +20,7 @@ import {
 } from './permissions/collaboration-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { CreateSessionDto } from './dto/create-session.dto';
 // import { IsString, IsNotEmpty } from 'class-validator';
-import { plainToInstance } from 'class-transformer';
 
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)
