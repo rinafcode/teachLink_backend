@@ -4,90 +4,38 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { RetryLogicService } from '../retry/retry-logic.service';
 import { sanitizeEmail, sanitizePii } from '../../common/utils/pii-sanitizer.utils';
+import { WorkerOrchestrationService } from '../../workers/orchestration/worker-orchestration.service';
 
 /**
  * Default Queue Processor
- * Processes jobs from the default queue
+ * Processes jobs from the default queue using Worker Orchestration
  */
 @Processor(QUEUE_NAMES.DEFAULT)
 export class DefaultQueueProcessor {
   private readonly logger = new Logger(DefaultQueueProcessor.name);
 
-  constructor(private readonly retryLogicService: RetryLogicService) {}
+  constructor(
+    private readonly retryLogicService: RetryLogicService,
+    private readonly workerOrchestration: WorkerOrchestrationService,
+  ) {}
 
   @Process('*')
   async handleJob(job: Job): Promise<any> {
     this.logger.log(`Processing job ${job.name} (ID: ${job.id}) - Attempt ${job.attemptsMade + 1}`);
 
     try {
-      // Update progress
-      await job.progress(10);
+      // Route job to appropriate worker
+      const workerResult = await this.workerOrchestration.routeJob(job);
 
-      // Simulate job processing based on job name
-      const result = await this.processJobByType(job);
+      this.logger.log(
+        `Job ${job.name} (${job.id}) processed by worker ${workerResult.workerId} in ${workerResult.executionTime}ms`,
+      );
 
-      await job.progress(100);
-      return result;
+      return workerResult;
     } catch (error) {
       this.logger.error(`Error processing job ${job.id}:`, error.message);
       throw error;
     }
-  }
-
-  /**
-   * Process job based on its type/name
-   */
-  private async processJobByType(job: Job): Promise<any> {
-    switch (job.name) {
-      case 'send-email':
-        return this.processSendEmail(job);
-      case 'generate-report':
-        return this.processGenerateReport(job);
-      case 'process-payment':
-        return this.processPayment(job);
-      case 'backup-data':
-        return this.processBackup(job);
-      default:
-        this.logger.warn(`Unknown job type: ${job.name}`);
-        return { status: 'completed', message: 'Job processed' };
-    }
-  }
-
-  private async processSendEmail(job: Job): Promise<any> {
-    await job.progress(30);
-    // Email sending logic here
-    this.logger.log(`Sending email to ${sanitizeEmail(job.data.to)}`);
-    await this.simulateWork(2000);
-    await job.progress(80);
-    return { status: 'sent', recipient: job.data.to };
-  }
-
-  private async processGenerateReport(job: Job): Promise<any> {
-    await job.progress(20);
-    this.logger.log(`Generating report: ${job.data.reportType}`);
-    await this.simulateWork(5000);
-    await job.progress(90);
-    return { status: 'generated', reportId: `report-${Date.now()}` };
-  }
-
-  private async processPayment(job: Job): Promise<any> {
-    await job.progress(40);
-    this.logger.log(`Processing payment: ${job.data.amount}`);
-    await this.simulateWork(3000);
-    await job.progress(95);
-    return { status: 'processed', transactionId: `txn-${Date.now()}` };
-  }
-
-  private async processBackup(job: Job): Promise<any> {
-    await job.progress(25);
-    this.logger.log(`Backing up data: ${job.data.dataType}`);
-    await this.simulateWork(10000);
-    await job.progress(90);
-    return { status: 'backed-up', backupId: `backup-${Date.now()}` };
-  }
-
-  private simulateWork(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   @OnQueueActive()

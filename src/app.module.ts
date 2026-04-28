@@ -32,6 +32,7 @@ import { BackupModule } from './backup/backup.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { DataWarehouseModule } from './data-warehouse/data-warehouse.module';
 import { QueueModule } from './queues/queue.module';
+import { WorkersModule } from './workers/workers.module';
 import { GraphQLModule } from './graphql/graphql.module';
 import { MigrationModule } from './migrations/migration.module';
 import { ABTestingModule } from './ab-testing/ab-testing.module';
