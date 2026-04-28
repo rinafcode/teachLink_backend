@@ -42,7 +42,9 @@
     "audit:fix": "npm audit fix",
     "deps:update": "npx npm-check-updates -u '/.*/' && npm install",
     "load:test:health": "k6 run tests/load/scenarios/health.scenario.ts",
-    "load:test:auth": "k6 run tests/load/scenarios/auth.scenario.ts"
+    "load:test:auth": "k6 run tests/load/scenarios/auth.scenario.ts",
+    "chaos:test:latency": "k6 run tests/chaos/experiments/latency.experiment.ts",
+    "chaos:test:error": "k6 run tests/chaos/experiments/error-rate.experiment.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
