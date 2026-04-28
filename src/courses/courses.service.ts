@@ -34,7 +34,9 @@ export class CoursesService {
       instructor: { id: createCourseDto.instructorId },
     });
     const saved = await this.coursesRepository.save(course);
-    return Array.isArray(saved) ? saved[0] : saved;
+    const result = Array.isArray(saved) ? saved[0] : saved;
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { course: result });
+    return result;
   }
 
   async findAll(filter?: CourseSearchDto): Promise<IPaginatedResponse<Course>> {

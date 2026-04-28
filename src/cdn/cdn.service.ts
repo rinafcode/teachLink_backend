@@ -64,7 +64,7 @@ export class CdnService {
 
     // Apply bandwidth optimization
     if (options.bandwidth) {
-      deliveryUrl = await this.optimizeForBandwidth(deliveryUrl, options.bandwidth);
+      deliveryUrl = await this.optimizeForBandwidth(deliveryUrl);
     }
 
     // Get edge-cached URL
@@ -187,10 +187,7 @@ export class CdnService {
       metadata.status = ContentStatus.PROCESSING;
       await this.contentMetadataRepository.save(metadata);
 
-      const _optimizedUrl = await this.assetOptimizationService.optimizeImage(
-        metadata.cdnUrl,
-        options,
-      );
+      await this.assetOptimizationService.optimizeImage(metadata.cdnUrl, options);
 
       // Generate responsive variants if requested
       let variants = [];
@@ -220,7 +217,7 @@ export class CdnService {
     }
   }
 
-  private async optimizeForBandwidth(url: string, _bandwidth: number): Promise<string> {
+  private async optimizeForBandwidth(url: string): Promise<string> {
     // Implementation would adjust quality/format based on bandwidth
     // For now, return original URL
     return url;

@@ -30,23 +30,6 @@ export interface ICollaborativeOperation {
   timestamp: number;
 }
 
-/**
- * Sanitize input to prevent injection attacks
- */
-function sanitizeInput(input: string): string {
-  if (typeof input !== 'string') return input;
-  // Remove potentially dangerous characters
-  return input.replace(/[<>'";&|`$]/g, '').trim();
-}
-
-/**
- * Validate UUID format
- */
-function isValidUUID(id: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
-}
-
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -251,7 +234,7 @@ export class CollaborationGateway
     data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { sessionId, userId, resourceType, operations } = data;
+    const { sessionId, userId, resourceType } = data;
 
     try {
       // Only admins/owners can resolve conflicts

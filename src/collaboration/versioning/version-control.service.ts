@@ -51,7 +51,7 @@ export class VersionControlService {
       change,
       operationType: this.getOperationType(change),
       timestamp: Date.now(),
-      previousValue: this.getPreviousValue(history, change),
+      previousValue: this.getPreviousValue(history),
       newValue: this.getNewValue(change),
       versionNumber,
     };
@@ -182,7 +182,6 @@ export class VersionControlService {
       changesByUser.set(version.userId, userCount + 1);
 
       // Group by day for time series
-      const _dateStr = new Date(version.timestamp).toDateString();
       const timeEntry = changesOverTime.find(
         (entry) => entry.date.toDateString() === new Date(version.timestamp).toDateString(),
       );
@@ -220,7 +219,7 @@ export class VersionControlService {
   /**
    * Extract the previous value from history
    */
-  private getPreviousValue(history: IVersionHistory, _change: any): any {
+  private getPreviousValue(history: IVersionHistory): any {
     // In a real implementation, this would retrieve the previous state
     // For now, we'll return the last recorded value if available
     if (history.versions.length > 0) {

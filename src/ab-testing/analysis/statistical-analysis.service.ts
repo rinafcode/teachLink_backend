@@ -200,9 +200,6 @@ export class StatisticalAnalysisService {
    * Gets z-score for a given confidence level
    */
   private getZScore(confidenceLevel: number): number {
-    const confidence = confidenceLevel / 100;
-    const _alpha = 1 - confidence;
-
     // Z-scores for common confidence levels
     const zScores: Record<number, number> = {
       90: 1.645,
