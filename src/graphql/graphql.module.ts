@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
-import { validate } from 'graphql';
-import { PubSub } from 'graphql-subscriptions';
+import { GraphQLError, validate } from 'graphql';
 import { UsersModule } from '../users/users.module';
 import { CoursesModule } from '../courses/courses.module';
 import { AssessmentsModule } from '../assessment/assessment.module';
@@ -19,69 +18,75 @@ import { QueryComplexityService } from './services/query-complexity.service';
 import { SchemaLintService } from './services/schema-lint.service';
 import { DirectiveValidationService } from './services/directive-validation.service';
 import { ComplexityAnalysisService } from './services/complexity-analysis.service';
+import {
+  applySubscriptionConnectionHeaders,
+  createGraphQLContext,
+} from './subscriptions/subscription-context';
+import { pubSubProvider } from './subscriptions/pub-sub.provider';
 
 @Module({
   imports: [
     NestGraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      useFactory: (complexityService: ComplexityAnalysisService) => ({
-        autoSchemaFile: join(process.cwd(), 'src/graphql/schema/schema.graphql'),
-        sortSchema: true,
-        playground: process.env.NODE_ENV !== 'production',
-        subscriptions: {
-          'graphql-ws': true,
-          'subscriptions-transport-ws': true,
-        },
-
-        // ── Schema Validation: complexity + depth rules per request ──
-        validationRules: [
-          // depth-limit rule applied globally
-          (context) => {
-            const maxDepth = complexityService.config.maxDepth;
-            return {
-              OperationDefinition(node) {
-                const depth = getDepth(node);
-                if (depth > maxDepth) {
-                  context.reportError(
-                    new Error(`Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`),
-                  );
-                }
+      useFactory: (complexityService: ComplexityAnalysisService) =>
+        ({
+          autoSchemaFile: join(process.cwd(), 'src/graphql/schema/schema.graphql'),
+          sortSchema: true,
+          playground: process.env.NODE_ENV !== 'production',
+          subscriptions: {
+            'graphql-ws': {
+              onConnect: async (context) => {
+                const request = (context.extra as { request?: { headers?: Record<string, unknown> } })
+                  ?.request;
+                applySubscriptionConnectionHeaders(request, context.connectionParams);
               },
-            };
+            },
           },
-        ],
 
-        plugins: [
-          // ── Per-request complexity analysis plugin ──
-          {
-            requestDidStart: () => ({
-              didResolveOperation({ request, document, schema }) {
-                const variables = request.variables ?? {};
-                const rule = complexityService.buildComplexityRule(schema, document, variables);
-                const errors = validate(schema, document, [rule]);
-                if (errors.length > 0) {
-                  throw errors[0];
-                }
-              },
-            }),
-          },
-        ],
+          // ── Schema Validation: complexity + depth rules per request ──
+          validationRules: [
+            // depth-limit rule applied globally
+            (context) => {
+              const maxDepth = complexityService.config.maxDepth;
+              return {
+                OperationDefinition(node) {
+                  const depth = getDepth(node);
+                  if (depth > maxDepth) {
+                    context.reportError(
+                      new GraphQLError(
+                        `Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`,
+                      ),
+                    );
+                  }
+                },
+              };
+            },
+          ],
 
-        context: ({ req, connection }, _, { injector }) => {
-          if (connection) {
-            return { req: connection.context };
-          }
-          const dataLoaderService = injector?.get(DataLoaderService);
-          const loaders = dataLoaderService?.createLoaders() || {};
-          return { req, loaders };
-        },
+          plugins: [
+            // ── Per-request complexity analysis plugin ──
+            {
+              requestDidStart: async () => ({
+                didResolveOperation({ request, document, schema }) {
+                  const variables = request.variables ?? {};
+                  const rule = complexityService.buildComplexityRule(schema, document, variables);
+                  const errors = validate(schema, document, [rule]);
+                  if (errors.length > 0) {
+                    throw errors[0];
+                  }
+                },
+              }),
+            },
+          ] as any,
 
-        formatError: (error) => ({
-          message: error.message,
-          code: error.extensions?.code,
-          path: error.path,
-        }),
-      }),
+          context: (context, _, { injector }) => createGraphQLContext(context, injector),
+
+          formatError: (error) => ({
+            message: error.message,
+            code: error.extensions?.code,
+            path: error.path,
+          }),
+        }) as Omit<ApolloDriverConfig, 'driver'>,
       inject: [ComplexityAnalysisService],
     }),
     UsersModule,
@@ -101,10 +106,7 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
     SchemaLintService,
     DirectiveValidationService,
     ComplexityAnalysisService,
-    {
-      provide: 'PUB_SUB',
-      useValue: new PubSub(),
-    },
+    pubSubProvider,
   ],
   exports: [
     DataLoaderService,
@@ -112,7 +114,7 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
     SchemaLintService,
     DirectiveValidationService,
     ComplexityAnalysisService,
-    'PUB_SUB',
+    pubSubProvider.provide,
   ],
 })
 export class GraphQLModule {}
