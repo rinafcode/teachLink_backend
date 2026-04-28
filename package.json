@@ -36,7 +36,14 @@
     "migrate:rollback": "curl -s -X POST http://localhost:3000/migrations/rollback | npx json",
     "migrate:rollback:count": "curl -s -X POST http://localhost:3000/migrations/rollback/${COUNT:-1} | npx json",
     "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
-    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json"
+    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json",
+    "release:dry-run": "bash scripts/bump-version.sh patch --dry-run",
+    "release:patch": "bash scripts/bump-version.sh patch",
+    "release:minor": "bash scripts/bump-version.sh minor",
+    "release:major": "bash scripts/bump-version.sh major",
+    "release:auto": "bash scripts/bump-version.sh auto",
+    "version:next": "node scripts/get-next-version.js auto",
+    "changelog:generate": "node scripts/generate-changelog.js $(node scripts/get-next-version.js auto | grep 'New version' | awk '{print $NF}')"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
