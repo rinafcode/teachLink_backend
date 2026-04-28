@@ -1,18 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: teachlink-backend
+  name: teachlink-backend-green
   labels:
     app: teachlink-backend
+    color: green
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: teachlink-backend
+      color: green
   template:
     metadata:
       labels:
         app: teachlink-backend
+        color: green
     spec:
       containers:
         - name: teachlink-backend
