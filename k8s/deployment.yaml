@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teachlink-backend
+  labels:
+    app: teachlink-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teachlink-backend
+  template:
+    metadata:
+      labels:
+        app: teachlink-backend
+    spec:
+      containers:
+        - name: teachlink-backend
+          image: your-dockerhub-username/teachlink-backend:latest
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+          ports:
+            - containerPort: 3000
