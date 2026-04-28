@@ -40,7 +40,9 @@
     "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json",
     "audit": "npm audit --audit-level=high",
     "audit:fix": "npm audit fix",
-    "deps:update": "npx npm-check-updates -u '/.*/' && npm install"
+    "deps:update": "npx npm-check-updates -u '/.*/' && npm install",
+    "load:test:health": "k6 run tests/load/scenarios/health.scenario.ts",
+    "load:test:auth": "k6 run tests/load/scenarios/auth.scenario.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
