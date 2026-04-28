@@ -91,6 +91,15 @@ export class User {
   @Column('text', { array: true, default: [] })
   passwordHistory: string[];
 
+  @Column({ default: false })
+  mfaEnabled: boolean;
+
+  @Column({ nullable: true })
+  mfaSecret?: string;
+
+  @Column('text', { array: true, default: [] })
+  mfaBackupCodes: string[];
+
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 

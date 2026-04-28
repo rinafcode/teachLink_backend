@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Delete } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
@@ -15,11 +15,16 @@ import {
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { MfaService } from './mfa/mfa.service';
+import { ConfirmMfaDto, DisableMfaDto, VerifyMfaDto } from './mfa/mfa.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly mfaService: MfaService,
+  ) {}
 
   @Post('register')
   @Throttle({ default: THROTTLE.STRICT })
@@ -89,5 +94,41 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify email using token' })
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto): Promise<any> {
     return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  // ── MFA endpoints ──────────────────────────────────────────────────────────
+
+  @Post('mfa/setup')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Initiate MFA setup — returns secret, QR code, and backup codes' })
+  async mfaSetup(@CurrentUser() user: any): Promise<any> {
+    return this.mfaService.setupMfa(user.userId);
+  }
+
+  @Post('mfa/confirm')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Confirm MFA setup with first TOTP token to enable 2FA' })
+  async mfaConfirm(@CurrentUser() user: any, @Body() dto: ConfirmMfaDto): Promise<any> {
+    return this.mfaService.confirmMfa(user.userId, dto.token);
+  }
+
+  @Post('mfa/verify')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: THROTTLE.STRICT })
+  @ApiOperation({ summary: 'Verify a TOTP token or backup code during login' })
+  async mfaVerify(@CurrentUser() user: any, @Body() dto: VerifyMfaDto): Promise<any> {
+    await this.mfaService.verifyMfaToken(user.userId, dto.token);
+    return { message: 'MFA verified' };
+  }
+
+  @Delete('mfa/disable')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disable MFA (requires current TOTP token)' })
+  async mfaDisable(@CurrentUser() user: any, @Body() dto: DisableMfaDto): Promise<any> {
+    return this.mfaService.disableMfa(user.userId, dto.token);
   }
 }
