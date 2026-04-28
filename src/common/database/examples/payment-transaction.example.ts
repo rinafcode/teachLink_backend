@@ -99,17 +99,17 @@ export class PaymentTransactionExample {
         throw new Error('Payment not found or already refunded');
       }
 
-      const { user_id, recipient_id, amount } = payment[0];
+      const { user_id: userId, recipient_id: recipientId, amount } = payment[0];
 
       // 2. Reverse the payment
       await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
         amount,
-        user_id,
+        userId,
       ]);
 
       await manager.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [
         amount,
-        recipient_id,
+        recipientId,
       ]);
 
       // 3. Update payment status

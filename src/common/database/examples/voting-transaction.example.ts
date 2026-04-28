@@ -74,9 +74,9 @@ export class VotingTransactionExample {
           proposalId,
         ]);
 
-        const { total_votes, quorum_required } = updatedProposal[0];
+        const { total_votes: totalVotes, quorum_required: quorumRequired } = updatedProposal[0];
 
-        if (total_votes >= quorum_required) {
+        if (totalVotes >= quorumRequired) {
           await manager.query('UPDATE proposals SET quorum_reached = true WHERE id = $1', [
             proposalId,
           ]);
@@ -116,7 +116,7 @@ export class VotingTransactionExample {
         throw new Error('No existing vote found');
       }
 
-      const { vote_type: oldVoteType, voting_power } = existingVote[0];
+      const { vote_type: oldVoteType, voting_power: votingPower } = existingVote[0];
 
       if (oldVoteType === newVoteType) {
         throw new Error('Vote type is the same');
@@ -140,7 +140,7 @@ export class VotingTransactionExample {
             ? 'votes_against'
             : 'votes_abstain';
       await manager.query(`UPDATE proposals SET ${oldField} = ${oldField} - $1 WHERE id = $2`, [
-        voting_power,
+        votingPower,
         proposalId,
       ]);
 
@@ -152,7 +152,7 @@ export class VotingTransactionExample {
             ? 'votes_against'
             : 'votes_abstain';
       await manager.query(`UPDATE proposals SET ${newField} = ${newField} + $1 WHERE id = $2`, [
-        voting_power,
+        votingPower,
         proposalId,
       ]);
 
@@ -197,8 +197,13 @@ export class VotingTransactionExample {
         throw new Error('Proposal not found or not active');
       }
 
-      const { votes_for, votes_against, total_votes, quorum_required, approval_threshold } =
-        proposal[0];
+      const {
+        votes_for: votesFor,
+        votes_against: votesAgainst,
+        total_votes: totalVotes,
+        quorum_required: quorumRequired,
+        approval_threshold: approvalThreshold,
+      } = proposal[0];
 
       // 2. Check if voting period ended
       const now = new Date();
@@ -209,7 +214,7 @@ export class VotingTransactionExample {
       }
 
       // 3. Check quorum
-      if (total_votes < quorum_required) {
+      if (totalVotes < quorumRequired) {
         await manager.query('UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2', [
           'failed_quorum',
           proposalId,
@@ -219,9 +224,9 @@ export class VotingTransactionExample {
       }
 
       // 4. Check approval threshold
-      const approvalRate = (votes_for / total_votes) * 100;
+      const approvalRate = (votesFor / totalVotes) * 100;
 
-      if (approvalRate < approval_threshold) {
+      if (approvalRate < approvalThreshold) {
         await manager.query('UPDATE proposals SET status = $1, executed_at = NOW() WHERE id = $2', [
           'rejected',
           proposalId,
@@ -254,7 +259,11 @@ export class VotingTransactionExample {
           'proposal_executed',
           'proposal',
           proposalId,
-          JSON.stringify({ votes_for, votes_against, total_votes }),
+          JSON.stringify({
+            votes_for: votesFor,
+            votes_against: votesAgainst,
+            total_votes: totalVotes,
+          }),
         ],
       );
 
@@ -268,9 +277,9 @@ export class VotingTransactionExample {
    * Helper to execute individual proposal actions
    */
   private async executeProposalAction(manager: any, action: any): Promise<void> {
-    const { action_type, parameters } = action;
+    const { action_type: actionType, parameters } = action;
 
-    switch (action_type) {
+    switch (actionType) {
       case 'transfer_funds':
         await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
           parameters.amount,
@@ -287,7 +296,7 @@ export class VotingTransactionExample {
 
       // Add more action types as needed
       default:
-        this.logger.warn(`Unknown action type: ${action_type}`);
+        this.logger.warn(`Unknown action type: ${actionType}`);
     }
   }
 }

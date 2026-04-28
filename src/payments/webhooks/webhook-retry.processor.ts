@@ -65,14 +65,7 @@ export class WebhookRetryProcessor {
 
   @Process(JOB_NAMES.PROCESS_WEBHOOK)
   async processWebhook(job: Job<IWebhookJobData>) {
-    const {
-      webhookRetryId,
-      provider,
-      payload,
-      signature,
-      externalEventId: _externalEventId,
-      headers,
-    } = job.data;
+    const { webhookRetryId, provider, payload, signature } = job.data;
 
     try {
       // Update status to processing
@@ -90,9 +83,9 @@ export class WebhookRetryProcessor {
 
       // Process the webhook based on provider
       if (provider === WebhookProvider.STRIPE) {
-        await this.handleStripeWebhook(payload as Buffer, signature, webhookRetryId);
+        await this.handleStripeWebhook(payload as Buffer, signature);
       } else if (provider === WebhookProvider.PAYPAL) {
-        await this.handlePayPalWebhook(payload as Record<string, unknown>, headers, webhookRetryId);
+        await this.handlePayPalWebhook(payload as Record<string, unknown>);
       }
 
       // Mark as succeeded
@@ -168,11 +161,7 @@ export class WebhookRetryProcessor {
     return totalDelay;
   }
 
-  private async handleStripeWebhook(
-    payload: Buffer,
-    signature: string,
-    _webhookRetryId: string,
-  ): Promise<void> {
+  private async handleStripeWebhook(payload: Buffer, signature: string): Promise<void> {
     if (!payload) {
       throw new Error('Missing payload for Stripe webhook');
     }
@@ -233,11 +222,7 @@ export class WebhookRetryProcessor {
     await this.paymentsService.handleSubscriptionEvent(event);
   }
 
-  private async handlePayPalWebhook(
-    payload: Record<string, unknown>,
-    _headers: Record<string, string>,
-    _webhookRetryId: string,
-  ): Promise<void> {
+  private async handlePayPalWebhook(payload: Record<string, unknown>): Promise<void> {
     const paypalPayload = payload as unknown as IPayPalWebhookPayload;
     this.logger.log(`Processing PayPal webhook: ${paypalPayload.event_type}`);
 

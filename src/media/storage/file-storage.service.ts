@@ -42,14 +42,9 @@ export class FileStorageService {
   }
 
   // Legacy method for backward compatibility
-  async getSignedUrl(keyOrUrl: string, _expiresSec = 300): Promise<string> {
+  async getSignedUrl(keyOrUrl: string): Promise<string> {
     // If a full URL is provided, return as-is
     if (keyOrUrl.startsWith('http')) return keyOrUrl;
-
-    const _command = new GetObjectCommand({
-      Bucket: this.bucketName,
-      Key: keyOrUrl,
-    });
 
     // For simplicity, return the key as URL (in production, generate proper signed URL)
     return `https://${this.bucketName}.s3.amazonaws.com/${keyOrUrl}`;
