@@ -1,3 +1,44 @@
+## 🚦 Local Validation: Analytics & Cost Tracking
+
+To quickly validate feature analytics and cost tracking end-to-end:
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start backend (in background)
+npm run start:dev &
+
+# 3. Start infra monitoring stack
+cd infra/monitoring
+cp -n .env.example .env || true
+docker compose up -d
+cd ../../
+
+# 4. Send test analytics event
+curl -X POST http://localhost:3000/analytics/event \
+    -H 'Content-Type: application/json' \
+    -d '{"category":"feature","action":"launch_button_clicked"}'
+
+# 5. Send test cost event
+curl -X POST http://localhost:3000/metrics/cost \
+    -H 'Content-Type: application/json' \
+    -d '{"amountUsd": 5}'
+
+# 6. Open Prometheus: http://localhost:9090 and search for feature_events_total and infrastructure_hourly_cost_usd
+# 7. Open Grafana:   http://localhost:3001 (admin/admin) and view the TeachLink Overview dashboard
+```
+
+Or run the helper script:
+
+```bash
+./setup-local.sh
+```
+
+To stop the backend:
+```bash
+kill $(lsof -ti:3000)
+```
 # 🧠 TeachLink Backend
 
 [![CI](https://github.com/teachlink/backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teachlink/backend/actions/workflows/ci.yml)

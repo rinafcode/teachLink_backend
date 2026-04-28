@@ -39,6 +39,7 @@ import { ObservabilityModule } from './observability/observability.module';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import { CachingModule } from './caching/caching.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { SearchModule } from './search/search.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
@@ -393,6 +394,15 @@ export class AppModule {
       startupLogger.recordModuleLoaded('CDNModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('CDNModule', 'ENABLE_CDN=false');
+    }
+
+    // Analytics Module
+    if (flags.ENABLE_ANALYTICS) {
+      const startTime = Date.now();
+      featureModules.push(AnalyticsModule);
+      startupLogger.recordModuleLoaded('AnalyticsModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('AnalyticsModule', 'ENABLE_ANALYTICS=false');
     }
 
     // Localization Module
