@@ -61,6 +61,7 @@ export const CACHE_PREFIXES = {
 } as const;
 
 export const CACHE_EVENTS = {
+  COURSE_CREATED: 'cache.course.created',
   COURSE_UPDATED: 'cache.course.updated',
   COURSE_DELETED: 'cache.course.deleted',
   USER_UPDATED: 'cache.user.updated',
