@@ -49,7 +49,9 @@ export class AWSCloudFrontService {
       secretAccessKey: this.configService.get<string>('AWS_SECRET_ACCESS_KEY', ''),
       region: this.configService.get<string>('AWS_REGION', 'us-east-1'),
       distributionId: this.configService.get<string>('AWS_CLOUDFRONT_DISTRIBUTION_ID', ''),
-      bucketName: this.configService.get<string>('AWS_S3_BUCKET_NAME'),
+      bucketName:
+        this.configService.get<string>('AWS_S3_BUCKET_NAME') ||
+        this.configService.get<string>('AWS_S3_BUCKET'),
     };
 
     this.cloudfrontClient = new CloudFrontClient({
@@ -75,6 +77,10 @@ export class AWSCloudFrontService {
 
       if (!this.config.bucketName) {
         throw new Error('S3 bucket name not configured');
+      }
+
+      if (!this.config.distributionId) {
+        throw new Error('CloudFront distribution ID not configured');
       }
 
       const key = `uploads/${Date.now()}_${file.originalname}`;
