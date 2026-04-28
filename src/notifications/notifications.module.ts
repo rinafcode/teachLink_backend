@@ -6,7 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
-import { NotificationsGateway } from './notifications.gateway';
+import { NotificationsGateway } from '../gateways/notifications/notifications.gateway';
 import { NotificationTemplatesService } from './notification-templates.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { EmailService } from './email/email.service';

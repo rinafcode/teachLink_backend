@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import { validate } from 'graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { UsersModule } from '../users/users.module';
 import { CoursesModule } from '../courses/courses.module';
@@ -42,9 +43,7 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
                 const depth = getDepth(node);
                 if (depth > maxDepth) {
                   context.reportError(
-                    new Error(
-                      `Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`,
-                    ),
+                    new Error(`Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`),
                   );
                 }
               },
@@ -58,12 +57,7 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
             requestDidStart: () => ({
               didResolveOperation({ request, document, schema }) {
                 const variables = request.variables ?? {};
-                const rule = complexityService.buildComplexityRule(
-                  schema,
-                  document,
-                  variables,
-                );
-                const { validate } = require('graphql');
+                const rule = complexityService.buildComplexityRule(schema, document, variables);
                 const errors = validate(schema, document, [rule]);
                 if (errors.length > 0) {
                   throw errors[0];
@@ -126,7 +120,5 @@ export class GraphQLModule {}
 // ── Helper: calculate selection depth from AST node ──
 function getDepth(node: any, depth = 0): number {
   if (!node?.selectionSet?.selections) return depth;
-  return Math.max(
-    ...node.selectionSet.selections.map((s: any) => getDepth(s, depth + 1)),
-  );
+  return Math.max(...node.selectionSet.selections.map((s: any) => getDepth(s, depth + 1)));
 }

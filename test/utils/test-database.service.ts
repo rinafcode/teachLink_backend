@@ -57,7 +57,9 @@ export class TestDatabaseService {
         return;
       } catch (error) {
         if (attempt === maxAttempts) {
-          throw new Error(`Database connection failed after ${maxAttempts} attempts: ${error.message}`);
+          throw new Error(
+            `Database connection failed after ${maxAttempts} attempts: ${error.message}`,
+          );
         }
         await this.delay(delayMs);
       }
@@ -65,6 +67,6 @@ export class TestDatabaseService {
   }
 
   private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

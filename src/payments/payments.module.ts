@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
@@ -22,9 +23,11 @@ import { UsersModule } from '../users/users.module';
 import { User } from '../users/entities/user.entity';
 import { TransactionService } from '../common/database/transaction.service';
 import { TransactionHelperService } from '../common/database/transaction-helper.service';
+import { IdempotencyService } from '../common/services/idempotency.service';
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User, WebhookRetry]),
     BullModule.registerQueue(
       {
@@ -48,7 +51,8 @@ import { TransactionHelperService } from '../common/database/transaction-helper.
     ProviderFactoryService,
     TransactionService,
     TransactionHelperService,
+    IdempotencyService,
   ],
-  exports: [PaymentsService, ProviderFactoryService, WebhookQueueService],
+  exports: [PaymentsService, ProviderFactoryService, WebhookQueueService, IdempotencyService],
 })
 export class PaymentsModule {}

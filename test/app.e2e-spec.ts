@@ -83,10 +83,7 @@ describe('App (e2e)', () => {
       const requests = Array(10)
         .fill(null)
         .map(() =>
-          retryHelper.withRetry(
-            () => httpClient.get('/'),
-            { maxAttempts: 3, delayMs: 200 },
-          ),
+          retryHelper.withRetry(() => httpClient.get('/'), { maxAttempts: 3, delayMs: 200 }),
         );
 
       const results = await Promise.all(requests);

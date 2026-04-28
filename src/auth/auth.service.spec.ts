@@ -10,6 +10,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { UserRole } from '../users/entities/user.entity';
 import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
+import * as bcrypt from 'bcryptjs';
 import {
   createMockRepository,
   createMockConfigService,
@@ -147,9 +148,7 @@ describe('AuthService', () => {
       mockUsersService.updateEmailVerificationToken.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
       mockSessionService.createSession.mockResolvedValue('session-1');
-      mockJwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockJwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
       mockNotificationsService.sendVerificationEmail.mockResolvedValue(undefined);
       mockAuditLogService.logAuth.mockResolvedValue(undefined);
     });
@@ -225,15 +224,12 @@ describe('AuthService', () => {
       mockUsersService.updateLastLogin.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
       mockSessionService.createSession.mockResolvedValue('session-1');
-      mockJwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockJwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
       mockAuditLogService.logAuth.mockResolvedValue(undefined);
     });
 
     it('should login user successfully with valid credentials', async () => {
       // Mock bcrypt.compare to return true
-      const bcrypt = require('bcryptjs');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       const result = await service.login(loginDto, '127.0.0.1', 'TestAgent');
@@ -279,7 +275,6 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when password is invalid', async () => {
-      const bcrypt = require('bcryptjs');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
 
       await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
@@ -295,7 +290,6 @@ describe('AuthService', () => {
     });
 
     it('should handle login without IP and user agent', async () => {
-      const bcrypt = require('bcryptjs');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       await service.login(loginDto);
@@ -336,7 +330,6 @@ describe('AuthService', () => {
     });
 
     it('should refresh tokens successfully', async () => {
-      const bcrypt = require('bcryptjs');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       const result = await service.refreshToken(refreshToken);
@@ -358,7 +351,6 @@ describe('AuthService', () => {
       mockSessionService.getSession.mockResolvedValue(null);
       mockSessionService.createSession.mockResolvedValue('new-session-1');
 
-      const bcrypt = require('bcryptjs');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       await service.refreshToken(refreshToken);
@@ -373,9 +365,7 @@ describe('AuthService', () => {
         throw new Error('Invalid token');
       });
 
-      await expect(service.refreshToken('invalid-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.refreshToken('invalid-token')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
@@ -385,7 +375,6 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when stored refresh token is invalid', async () => {
-      const bcrypt = require('bcryptjs');
       jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
 
       await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
@@ -485,9 +474,7 @@ describe('AuthService', () => {
     const sessionId = 'session-1';
 
     beforeEach(() => {
-      mockJwtService.sign
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockJwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
     });
 
     it('should generate access and refresh tokens', async () => {

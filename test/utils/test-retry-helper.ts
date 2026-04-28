@@ -11,10 +11,7 @@ export class TestRetryHelper {
   private defaultDelayMs = 1000;
   private defaultBackoffMultiplier = 1.5;
 
-  async withRetry<T>(
-    operation: () => Promise<T>,
-    options: RetryOptions = {},
-  ): Promise<T> {
+  async withRetry<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
     const {
       maxAttempts = this.defaultMaxAttempts,
       delayMs = this.defaultDelayMs,
@@ -28,9 +25,7 @@ export class TestRetryHelper {
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const result = timeout
-          ? await this.withTimeout(operation(), timeout)
-          : await operation();
+        const result = timeout ? await this.withTimeout(operation(), timeout) : await operation();
 
         return result;
       } catch (error) {
@@ -210,14 +205,11 @@ export class TestRetryHelper {
   }
 
   private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Utility methods for common test scenarios
-  async retryOnFailure<T>(
-    operation: () => Promise<T>,
-    options: RetryOptions = {},
-  ): Promise<T> {
+  async retryOnFailure<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
     return this.withRetry(operation, {
       ...options,
       retryCondition: () => true, // Always retry
@@ -235,15 +227,11 @@ export class TestRetryHelper {
     });
   }
 
-  async retryOnTimeout<T>(
-    operation: () => Promise<T>,
-    options: RetryOptions = {},
-  ): Promise<T> {
+  async retryOnTimeout<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
     return this.withRetry(operation, {
       ...options,
       retryCondition: (error) =>
-        error.message?.toLowerCase().includes('timeout') ||
-        error.code === 'ETIMEDOUT',
+        error.message?.toLowerCase().includes('timeout') || error.code === 'ETIMEDOUT',
     });
   }
 }

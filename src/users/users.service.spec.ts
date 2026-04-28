@@ -23,18 +23,12 @@ describe('UsersService', () => {
 
     // ─── Configure Default QueryBuilder ────────────────────────────────────
     const mockQueryBuilder = createMockQueryBuilder();
-    mockQueryBuilder.getMany.mockResolvedValue([
-      { id: 'user-1', email: 'test@example.com' },
-    ]);
+    mockQueryBuilder.getMany.mockResolvedValue([{ id: 'user-1', email: 'test@example.com' }]);
     mockQueryBuilder.getCount.mockResolvedValue(1);
     mockUserRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
     // ─── Service Instantiation ─────────────────────────────────────────────
-    service = new UsersService(
-      mockUserRepository,
-      mockCachingService,
-      mockEventEmitter,
-    );
+    service = new UsersService(mockUserRepository, mockCachingService, mockEventEmitter);
   });
 
   afterEach(() => {

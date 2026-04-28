@@ -76,6 +76,10 @@ export class Payment {
   @Index()
   courseId: string;
 
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Index()
+  idempotencyKey: string | null;
+
   @Column({ type: 'boolean', default: false })
   isSubscription: boolean;
 

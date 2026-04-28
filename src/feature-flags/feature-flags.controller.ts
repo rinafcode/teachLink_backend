@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { FlagEvaluationService } from '../evaluation/flag-evaluation.service';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -150,10 +140,7 @@ export class FeatureFlagsController {
 
   @Post('evaluate')
   @ApiOperation({ summary: 'Evaluate a feature flag for a user' })
-  evaluateFlag(
-    @Query('key') key: string,
-    @Body() dto: IEvaluateFlagDto,
-  ) {
+  evaluateFlag(@Query('key') key: string, @Body() dto: IEvaluateFlagDto) {
     const userContext: IUserContext = {
       userId: dto.userId,
       sessionId: dto.sessionId,
