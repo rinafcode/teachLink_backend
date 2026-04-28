@@ -37,7 +37,10 @@
     "migrate:rollback": "curl -s -X POST http://localhost:3000/migrations/rollback | npx json",
     "migrate:rollback:count": "curl -s -X POST http://localhost:3000/migrations/rollback/${COUNT:-1} | npx json",
     "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
-    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json"
+    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json",
+    "audit": "npm audit --audit-level=high",
+    "audit:fix": "npm audit fix",
+    "deps:update": "npx npm-check-updates -u '/.*/' && npm install"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
@@ -166,5 +169,9 @@
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
