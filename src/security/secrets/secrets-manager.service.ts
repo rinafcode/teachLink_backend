@@ -125,9 +125,11 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
   }
 
   private generateSecretValue(secretName: string): string {
-    // Generate a cryptographically secure random string
-    const crypto = require('crypto');
-    return crypto.randomBytes(32).toString('hex');
+    // Generate a cryptographically secure random string, keyed by secret name.
+    return crypto
+      .createHash('sha256')
+      .update(`${secretName}:${crypto.randomBytes(32).toString('hex')}`)
+      .digest('hex');
   }
 
   clearCache(): void {

@@ -1,4 +1,6 @@
 import { TestResult } from '@jest/types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface FlakyTestResult {
   testName: string;
@@ -132,8 +134,6 @@ export class FlakinessReporter {
     // Write report to file if there are flaky tests
     const flakyTests = flakyTestDetector.getFlakyTests();
     if (flakyTests.length > 0) {
-      const fs = require('fs');
-      const path = require('path');
       const reportPath = path.join(process.cwd(), 'test-flakiness-report.md');
       fs.writeFileSync(reportPath, report);
       console.log(`\n📊 Detailed report saved to: ${reportPath}`);

@@ -221,13 +221,16 @@ export class AutomatedDecisionService {
     }
 
     // Check if all variants have sufficient sample size
-    const _minimumSampleSize =
+    const minimumSampleSize =
       experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
 
-    for (const _variant of experiment.variants) {
+    for (const variant of experiment.variants) {
       // This would check actual sample sizes from metrics
       // For now, we'll assume variants are ready
+      void variant;
     }
+
+    void minimumSampleSize;
 
     return true;
   }

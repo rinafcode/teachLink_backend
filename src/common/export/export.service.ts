@@ -235,9 +235,11 @@ export class ExportService {
 
       const exportData = await this.prepareExportData(userId);
       const preparedFile =
-        format === 'pdf' ? this.generatePdfExport(exportData) : 
-        format === 'csv' ? this.generateCsvExport(exportData) : 
-        this.generateJsonExport(exportData);
+        format === 'pdf'
+          ? this.generatePdfExport(exportData)
+          : format === 'csv'
+            ? this.generateCsvExport(exportData)
+            : this.generateJsonExport(exportData);
 
       await this.exportHistoryRepository.update(exportId, {
         status: UserExportStatus.COMPLETED,
@@ -341,7 +343,7 @@ export class ExportService {
     content: Buffer;
   } {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    
+
     // CSV headers
     const headers = [
       'User ID',
@@ -360,7 +362,7 @@ export class ExportService {
 
     // Build CSV rows
     const rows: string[][] = [];
-    
+
     if (data.courseProgress.length === 0) {
       // User with no enrollments
       rows.push([

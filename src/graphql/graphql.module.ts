@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import { validate } from 'graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { UsersModule } from '../users/users.module';
 import { CoursesModule } from '../courses/courses.module';
@@ -57,7 +58,6 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
               didResolveOperation({ request, document, schema }) {
                 const variables = request.variables ?? {};
                 const rule = complexityService.buildComplexityRule(schema, document, variables);
-                const { validate } = require('graphql');
                 const errors = validate(schema, document, [rule]);
                 if (errors.length > 0) {
                   throw errors[0];

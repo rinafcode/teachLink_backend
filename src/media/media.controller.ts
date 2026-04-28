@@ -12,6 +12,7 @@ import {
   Logger,
   Body,
   UnsupportedMediaTypeException,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
@@ -33,7 +34,6 @@ import {
   MEDIA_UPLOAD_INTERCEPTOR_OPTIONS,
 } from './validation/upload-validation.util';
 import { BulkDeleteMediaDto } from './dto/media.dto';
-import { Delete } from '@nestjs/common';
 
 @ApiTags('Media')
 @ApiBearerAuth()
@@ -188,8 +188,7 @@ export class MediaController {
   @Post('bulk-delete')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete multiple media files' })
-  async bulkDelete(@Body() bulkDto: BulkDeleteMediaDto, @Req() req: any) {
-    const user = req.user;
+  async bulkDelete(@Body() bulkDto: BulkDeleteMediaDto) {
     // For bulk delete, we'll let the service handle it but we should ideally validate ownership here too.
     // However, to keep it simple and efficient, the service will attempt deletion and we'll return results.
     // In a real app, we might want to filter the IDs first.

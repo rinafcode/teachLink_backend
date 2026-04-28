@@ -98,7 +98,7 @@ export class AppModule {
           const poolLogger = new Logger('DatabasePool');
           poolLogger.log(
             `DB pool config — max: ${poolMax}, min: ${poolMin}, ` +
-            `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
+              `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
           );
 
           return {
