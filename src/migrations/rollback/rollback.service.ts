@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Raw } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, Raw, DataSource } from 'typeorm';
 import { Migration, MigrationStatus } from '../entities/migration.entity';
 import { IMigrationConfig } from '../migration.service';
 import { MIGRATION_REGISTRY } from '../migration.registry';
@@ -12,6 +12,8 @@ export class RollbackService {
   constructor(
     @InjectRepository(Migration)
     private migrationRepository: Repository<Migration>,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {}
 
   /**
@@ -21,11 +23,18 @@ export class RollbackService {
     this.logger.log(`Rolling back migration: ${migration.name}`);
 
     try {
-      // Get database connection
-      const connection = await this.getConnection();
-
-      // Execute the down migration
-      await migration.down(connection);
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      try {
+        await migration.down(queryRunner);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
 
       // Update migration record
       const existingMigration = await this.migrationRepository.findOne({
@@ -96,15 +105,6 @@ export class RollbackService {
         this.logger.warn(`Could not find migration config for: ${appliedMigration.name}`);
       }
     }
-  }
-
-  /**
-   * Gets database connection
-   */
-  private async getConnection(): Promise<any> {
-    // In a real implementation, this would return the actual database connection
-    // For now, returning a mock connection
-    return {};
   }
 
   /**

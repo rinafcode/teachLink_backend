@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { IExperimentConfig, IExperimentResult, IExperimentVariant, IUserContext } from '../interfaces';
+import {
+  IExperimentConfig,
+  IExperimentResult,
+  IExperimentVariant,
+  IUserContext,
+} from '../interfaces';
 import { RolloutService } from '../rollout/rollout.service';
 
 interface IConversionRecord {

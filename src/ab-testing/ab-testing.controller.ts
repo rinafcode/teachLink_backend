@@ -220,7 +220,10 @@ export class ABTestingController {
 
   @Get('experiments/:id/assign-user/:userId')
   @Roles(UserRole.ADMIN)
-  async assignUserToVariant(@Param('id') experimentId: string, @Param('userId') userId: string): Promise<any> {
+  async assignUserToVariant(
+    @Param('id') experimentId: string,
+    @Param('userId') userId: string,
+  ): Promise<any> {
     this.logger.log(`Assigning user ${userId} to variant for experiment: ${experimentId}`);
     return await this.abTestingService.assignUserToVariant(experimentId, userId);
   }

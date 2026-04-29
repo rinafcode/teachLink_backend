@@ -32,6 +32,7 @@ import { BackupModule } from './backup/backup.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { DataWarehouseModule } from './data-warehouse/data-warehouse.module';
 import { QueueModule } from './queues/queue.module';
+import { WorkersModule } from './workers/workers.module';
 import { GraphQLModule } from './graphql/graphql.module';
 import { MigrationModule } from './migrations/migration.module';
 import { ABTestingModule } from './ab-testing/ab-testing.module';
@@ -53,6 +54,7 @@ import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
@@ -98,7 +100,7 @@ export class AppModule {
           const poolLogger = new Logger('DatabasePool');
           poolLogger.log(
             `DB pool config — max: ${poolMax}, min: ${poolMin}, ` +
-            `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
+              `acquireTimeout: ${poolAcquireTimeoutMs}ms, idleTimeout: ${poolIdleTimeoutMs}ms`,
           );
 
           return {
@@ -402,6 +404,15 @@ export class AppModule {
       startupLogger.recordModuleLoaded('LocalizationModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('LocalizationModule', 'ENABLE_LOCALIZATION=false');
+    }
+
+    // Onboarding Module
+    if (flags.ENABLE_ONBOARDING) {
+      const startTime = Date.now();
+      featureModules.push(OnboardingModule);
+      startupLogger.recordModuleLoaded('OnboardingModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('OnboardingModule', 'ENABLE_ONBOARDING=false');
     }
 
     // Queue Module (always loaded for Bull)

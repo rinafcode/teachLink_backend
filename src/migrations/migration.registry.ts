@@ -5,6 +5,7 @@ import { CreateCourseModulesTableMigration } from './samples/003-create-course-m
 import { CreateLessonsTableMigration } from './samples/004-create-lessons-table.migration';
 import { CreateEnrollmentsTableMigration } from './samples/005-create-enrollments-table.migration';
 import { CreateMigrationsTrackingTableMigration } from './samples/006-create-migrations-tracking-table.migration';
+import { AddPaymentIdempotencyKeysMigration } from './samples/007-add-payment-idempotency-keys.migration';
 
 /**
  * Central registry of all migrations in execution order.
@@ -22,4 +23,5 @@ export const MIGRATION_REGISTRY: IMigrationConfig[] = [
   new CreateCourseModulesTableMigration(),
   new CreateLessonsTableMigration(),
   new CreateEnrollmentsTableMigration(),
+  new AddPaymentIdempotencyKeysMigration(),
 ];

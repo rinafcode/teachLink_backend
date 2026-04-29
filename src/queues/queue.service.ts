@@ -147,7 +147,10 @@ export class QueueService {
   /**
    * Clean old jobs from the queue
    */
-  async cleanQueue(grace: number = QUEUE_DEFAULTS.CLEAN_GRACE_MS, status?: 'completed' | 'failed'): Promise<void> {
+  async cleanQueue(
+    grace: number = QUEUE_DEFAULTS.CLEAN_GRACE_MS,
+    status?: 'completed' | 'failed',
+  ): Promise<void> {
     if (status) {
       await this.defaultQueue.clean(grace, status);
       this.logger.log(`Cleaned ${status} jobs older than ${grace}ms`);

@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
   VersionColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
@@ -40,6 +41,10 @@ export class Refund {
 
   @Column({ type: 'varchar', nullable: true })
   providerRefundId: string; // External refund ID from payment provider
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Index()
+  idempotencyKey: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;

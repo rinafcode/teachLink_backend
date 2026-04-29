@@ -54,10 +54,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     // Try to acquire lock
     const lockAcquired = await this.idempotencyService.acquireLock(idempotencyKey);
     if (!lockAcquired) {
-      throw new HttpException(
-        'Request is being processed, please wait',
-        HttpStatus.CONFLICT,
-      );
+      throw new HttpException('Request is being processed, please wait', HttpStatus.CONFLICT);
     }
 
     try {

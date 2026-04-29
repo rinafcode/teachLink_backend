@@ -39,7 +39,9 @@ export class DataWarehouseController {
 
   // Dimensional Modeling endpoints
   @Post('modeling/star-schema')
-  async createStarSchema(@Body() body: { name: string; factTable: any; dimensionTables: any[] }): Promise<any> {
+  async createStarSchema(
+    @Body() body: { name: string; factTable: any; dimensionTables: any[] },
+  ): Promise<any> {
     const model = await this.modelingService.createStarSchema(
       body.name,
       body.factTable,
@@ -99,7 +101,10 @@ export class DataWarehouseController {
   }
 
   @Post('quality/check/:profileId')
-  async runQualityCheck(@Param('profileId') profileId: string, @Body() body: { data: any[] }): Promise<any> {
+  async runQualityCheck(
+    @Param('profileId') profileId: string,
+    @Body() body: { data: any[] },
+  ): Promise<any> {
     const check = await this.qualityService.runQualityChecks(profileId, body.data);
     return { success: true, check };
   }
@@ -198,7 +203,9 @@ export class DataWarehouseController {
   }
 
   @Post('loading/watermark')
-  async setWatermark(@Body() body: { tableName: string; columnName: string; value: any }): Promise<any> {
+  async setWatermark(
+    @Body() body: { tableName: string; columnName: string; value: any },
+  ): Promise<any> {
     const watermark = await this.loaderService.setWatermark(
       body.tableName,
       body.columnName,

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Migration, MigrationStatus } from './entities/migration.entity';
 import { ConflictResolutionService } from './conflicts/conflict-resolution.service';
 import { SchemaValidationService } from './validation/schema-validation.service';
@@ -23,6 +23,8 @@ export class MigrationService {
   constructor(
     @InjectRepository(Migration)
     private migrationRepository: Repository<Migration>,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private conflictResolutionService: ConflictResolutionService,
     private schemaValidationService: SchemaValidationService,
     private rollbackService: RollbackService,
@@ -79,9 +81,22 @@ export class MigrationService {
       // Validate schema before applying migration
       await this.schemaValidationService.validateBeforeMigration(migration);
 
-      // Execute the migration
-      const connection = await this.getConnection();
-      await migration.up(connection);
+      // Execute the migration using the real DataSource query runner
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      try {
+        await migration.up(queryRunner);
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+
+      // Validate schema after applying migration
+      await this.schemaValidationService.validateAfterMigration(migration);
 
       // Record migration in the database
       const migrationRecord = new Migration();
@@ -127,15 +142,6 @@ export class MigrationService {
     return migration.dependencies.every((depName) => {
       return appliedMigrations.some((m) => m.name === depName);
     });
-  }
-
-  /**
-   * Gets database connection
-   */
-  private async getConnection(): Promise<any> {
-    // In a real implementation, this would return the actual database connection
-    // For now, returning a mock connection
-    return {};
   }
 
   /**

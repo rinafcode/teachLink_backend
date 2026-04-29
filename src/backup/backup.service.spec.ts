@@ -198,14 +198,11 @@ describe('BackupService', () => {
         },
       );
 
-      expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith(
-        'execution-1',
-        {
-          attempt: 1,
-          maxAttempts: 3,
-          retriesUsed: 0,
-        },
-      );
+      expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith('execution-1', {
+        attempt: 1,
+        maxAttempts: 3,
+        retriesUsed: 0,
+      });
     });
 
     it('should handle backup creation failure and retry', async () => {
@@ -220,14 +217,11 @@ describe('BackupService', () => {
         2,
         'Database error',
       );
-      expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith(
-        'execution-1',
-        {
-          attempt: 2,
-          maxAttempts: 3,
-          retriesUsed: 1,
-        },
-      );
+      expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith('execution-1', {
+        attempt: 2,
+        maxAttempts: 3,
+        retriesUsed: 1,
+      });
     });
 
     it('should handle complete failure after retries', async () => {
@@ -295,14 +289,11 @@ describe('BackupService', () => {
         },
       );
 
-      expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith(
-        'execution-1',
-        {
-          attempt: 1,
-          maxAttempts: 3,
-          retriesUsed: 0,
-        },
-      );
+      expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith('execution-1', {
+        attempt: 1,
+        maxAttempts: 3,
+        retriesUsed: 0,
+      });
     });
 
     it('should handle cleanup failure and retry', async () => {
@@ -455,21 +446,14 @@ describe('BackupService', () => {
       it('should execute task successfully on first attempt', async () => {
         const taskRunner = jest.fn().mockResolvedValue(undefined);
 
-        await (service as any).executeMonitoredScheduledTask(
-          'test-task',
-          taskConfig,
-          taskRunner,
-        );
+        await (service as any).executeMonitoredScheduledTask('test-task', taskConfig, taskRunner);
 
         expect(taskRunner).toHaveBeenCalledTimes(1);
-        expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith(
-          'execution-1',
-          {
-            attempt: 1,
-            maxAttempts: 3,
-            retriesUsed: 0,
-          },
-        );
+        expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith('execution-1', {
+          attempt: 1,
+          maxAttempts: 3,
+          retriesUsed: 0,
+        });
       });
 
       it('should retry on failure and succeed', async () => {
@@ -478,11 +462,7 @@ describe('BackupService', () => {
           .mockRejectedValueOnce(new Error('First attempt failed'))
           .mockResolvedValueOnce(undefined);
 
-        await (service as any).executeMonitoredScheduledTask(
-          'test-task',
-          taskConfig,
-          taskRunner,
-        );
+        await (service as any).executeMonitoredScheduledTask('test-task', taskConfig, taskRunner);
 
         expect(taskRunner).toHaveBeenCalledTimes(2);
         expect(mockScheduledTaskMonitoringService.recordRetry).toHaveBeenCalledWith(
@@ -491,25 +471,18 @@ describe('BackupService', () => {
           2,
           'First attempt failed',
         );
-        expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith(
-          'execution-1',
-          {
-            attempt: 2,
-            maxAttempts: 3,
-            retriesUsed: 1,
-          },
-        );
+        expect(mockScheduledTaskMonitoringService.markSuccess).toHaveBeenCalledWith('execution-1', {
+          attempt: 2,
+          maxAttempts: 3,
+          retriesUsed: 1,
+        });
       });
 
       it('should fail after all retries exhausted', async () => {
         const error = new Error('Persistent failure');
         const taskRunner = jest.fn().mockRejectedValue(error);
 
-        await (service as any).executeMonitoredScheduledTask(
-          'test-task',
-          taskConfig,
-          taskRunner,
-        );
+        await (service as any).executeMonitoredScheduledTask('test-task', taskConfig, taskRunner);
 
         expect(taskRunner).toHaveBeenCalledTimes(3);
         expect(mockScheduledTaskMonitoringService.markFailure).toHaveBeenCalledWith(

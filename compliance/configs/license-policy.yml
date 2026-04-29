@@ -41,6 +41,6 @@ review_required_for:
       - LGPL-2.1
     action: Legal review required
   - packages:
-      - name: @opentelemetry/*
+      - name: '@opentelemetry/*'
         reason: Verify export compliance
         action: Technical review required

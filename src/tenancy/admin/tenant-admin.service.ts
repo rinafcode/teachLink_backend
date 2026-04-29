@@ -176,7 +176,12 @@ export class TenantAdminService {
     }
 
     return {
-      status: score > TENANT_HEALTH_SCORE.HEALTHY_THRESHOLD ? 'healthy' : score > TENANT_HEALTH_SCORE.WARNING_THRESHOLD ? 'warning' : 'critical',
+      status:
+        score > TENANT_HEALTH_SCORE.HEALTHY_THRESHOLD
+          ? 'healthy'
+          : score > TENANT_HEALTH_SCORE.WARNING_THRESHOLD
+            ? 'warning'
+            : 'critical',
       issues,
       score,
     };

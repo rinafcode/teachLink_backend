@@ -55,7 +55,10 @@ export class SearchService {
   async performSearch(query: string, filters: any, sort?: string, options: SearchOptions = {}) {
     const sanitizedQuery = (query ?? '').trim().slice(0, SEARCH_CONSTANTS.MAX_QUERY_LENGTH);
     const page = Math.max(1, options.page ?? 1);
-    const limit = Math.min(SEARCH_CONSTANTS.MAX_PAGE_SIZE, Math.max(1, options.limit ?? SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE));
+    const limit = Math.min(
+      SEARCH_CONSTANTS.MAX_PAGE_SIZE,
+      Math.max(1, options.limit ?? SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE),
+    );
     const from = (page - 1) * limit;
     const normalizedFilters = this.normalizeFilters(filters);
     const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(
@@ -117,7 +120,10 @@ export class SearchService {
             ? {
                 fields: {
                   title: {},
-                  description: { fragment_size: SEARCH_CONSTANTS.HIGHLIGHT_FRAGMENT_SIZE, number_of_fragments: SEARCH_CONSTANTS.HIGHLIGHT_NUM_FRAGMENTS },
+                  description: {
+                    fragment_size: SEARCH_CONSTANTS.HIGHLIGHT_FRAGMENT_SIZE,
+                    number_of_fragments: SEARCH_CONSTANTS.HIGHLIGHT_NUM_FRAGMENTS,
+                  },
                 },
               }
             : undefined,
@@ -127,7 +133,18 @@ export class SearchService {
             price_ranges: {
               range: {
                 field: 'price',
-                ranges: [{ to: SEARCH_CONSTANTS.PRICE_RANGES.LOW }, { from: SEARCH_CONSTANTS.PRICE_RANGES.LOW, to: SEARCH_CONSTANTS.PRICE_RANGES.MID }, { from: SEARCH_CONSTANTS.PRICE_RANGES.MID, to: SEARCH_CONSTANTS.PRICE_RANGES.HIGH }, { from: SEARCH_CONSTANTS.PRICE_RANGES.HIGH }],
+                ranges: [
+                  { to: SEARCH_CONSTANTS.PRICE_RANGES.LOW },
+                  {
+                    from: SEARCH_CONSTANTS.PRICE_RANGES.LOW,
+                    to: SEARCH_CONSTANTS.PRICE_RANGES.MID,
+                  },
+                  {
+                    from: SEARCH_CONSTANTS.PRICE_RANGES.MID,
+                    to: SEARCH_CONSTANTS.PRICE_RANGES.HIGH,
+                  },
+                  { from: SEARCH_CONSTANTS.PRICE_RANGES.HIGH },
+                ],
               },
             },
           },

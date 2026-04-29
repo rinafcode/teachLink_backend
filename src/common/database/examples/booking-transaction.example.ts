@@ -97,24 +97,24 @@ export class BookingTransactionExample {
         throw new Error('Booking not found or already cancelled');
       }
 
-      const { user_id, consultant_id, slot_id, amount: _amount } = booking[0];
+      const { user_id: userId, consultant_id: consultantId, slot_id: slotId } = booking[0];
 
       // 2. Refund user
       await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
         refundAmount,
-        user_id,
+        userId,
       ]);
 
       // 3. Deduct from consultant
       await manager.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [
         refundAmount,
-        consultant_id,
+        consultantId,
       ]);
 
       // 4. Free up the slot
       await manager.query(
         'UPDATE consulting_slots SET status = $1, booked_by = NULL, booked_at = NULL WHERE id = $2',
-        ['available', slot_id],
+        ['available', slotId],
       );
 
       // 5. Update booking status
@@ -126,7 +126,7 @@ export class BookingTransactionExample {
       // 6. Create notifications
       await manager.query(
         'INSERT INTO notifications (user_id, type, message) VALUES ($1, $2, $3)',
-        [user_id, 'booking_cancelled', `Your booking has been cancelled. Refund: $${refundAmount}`],
+        [userId, 'booking_cancelled', `Your booking has been cancelled. Refund: $${refundAmount}`],
       );
 
       this.logger.log(`Booking cancelled: ${bookingId}`);
@@ -150,7 +150,7 @@ export class BookingTransactionExample {
         throw new Error('Booking not found');
       }
 
-      const { slot_id: oldSlotId, user_id } = booking[0];
+      const { slot_id: oldSlotId, user_id: userId } = booking[0];
 
       // 2. Check new slot availability
       const newSlot = await manager.query(
@@ -171,7 +171,7 @@ export class BookingTransactionExample {
       // 4. Book new slot
       await manager.query(
         'UPDATE consulting_slots SET status = $1, booked_by = $2, booked_at = NOW() WHERE id = $3',
-        ['booked', user_id, newSlotId],
+        ['booked', userId, newSlotId],
       );
 
       // 5. Update booking
@@ -183,7 +183,7 @@ export class BookingTransactionExample {
       // 6. Create notification
       await manager.query(
         'INSERT INTO notifications (user_id, type, message) VALUES ($1, $2, $3)',
-        [user_id, 'booking_rescheduled', 'Your booking has been rescheduled'],
+        [userId, 'booking_rescheduled', 'Your booking has been rescheduled'],
       );
 
       this.logger.log(`Booking rescheduled: ${bookingId}`);

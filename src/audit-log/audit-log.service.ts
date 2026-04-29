@@ -5,6 +5,11 @@ import { AuditLog } from './audit-log.entity';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
 import { ConfigService } from '@nestjs/config';
 import { sanitizePii } from '../common/utils/pii-sanitizer.utils';
+import {
+  buildRetentionCutoff,
+  buildRetentionUntil,
+  resolveRetentionDays,
+} from '../middleware/audit/log-retention.policy';
 
 export interface IAuditLogEntry {
   userId?: string;
@@ -76,15 +81,16 @@ export class AuditLogService {
     private readonly auditRepo: Repository<AuditLog>,
     private readonly configService: ConfigService,
   ) {
-    this.retentionDays = this.configService.get<number>('AUDIT_LOG_RETENTION_DAYS', 365);
+    this.retentionDays = resolveRetentionDays(
+      this.configService.get<number>('AUDIT_LOG_RETENTION_DAYS', 365),
+    );
   }
 
   /**
    * Log an audit event
    */
   async log(entry: IAuditLogEntry): Promise<AuditLog> {
-    const retentionUntil = new Date();
-    retentionUntil.setDate(retentionUntil.getDate() + this.retentionDays);
+    const retentionUntil = buildRetentionUntil(this.retentionDays);
 
     const log = this.auditRepo.create({
       ...entry,
@@ -510,8 +516,7 @@ export class AuditLogService {
    * Apply retention policy - delete old logs
    */
   async applyRetentionPolicy(): Promise<number> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
+    const cutoffDate = buildRetentionCutoff(this.retentionDays);
 
     const result = await this.auditRepo
       .createQueryBuilder()

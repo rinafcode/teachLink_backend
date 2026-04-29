@@ -190,7 +190,10 @@ export class AnomalyDetectionService {
   /**
    * Check for sudden spikes in metrics
    */
-  detectSuddenSpike(metricName: string, spikeThreshold: number = 3): IAnomalyDetectionResult | null {
+  detectSuddenSpike(
+    metricName: string,
+    spikeThreshold: number = 3,
+  ): IAnomalyDetectionResult | null {
     const metrics = this.metricsService.getMetrics(metricName, 10);
 
     if (metrics.length < 2) return null;

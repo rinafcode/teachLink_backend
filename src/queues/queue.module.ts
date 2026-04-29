@@ -9,10 +9,12 @@ import { RetryLogicService } from './retry/retry-logic.service';
 import { QueueMonitoringService } from './monitoring/queue-monitoring.service';
 import { JobSchedulerService } from './scheduler/job-scheduler.service';
 import { DefaultQueueProcessor } from './processors/default-queue.processor';
+import { WorkersModule } from '../workers/workers.module';
 
 /**
  * Queue Module
  * Comprehensive queue management with prioritization, retry logic, and monitoring
+ * Integrates with Workers Module for async task processing
  */
 @Module({
   imports: [
@@ -29,6 +31,7 @@ import { DefaultQueueProcessor } from './processors/default-queue.processor';
       },
     }),
     ScheduleModule.forRoot(),
+    WorkersModule,
   ],
   controllers: [QueueController],
   providers: [
