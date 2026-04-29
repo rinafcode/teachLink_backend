@@ -7,7 +7,9 @@ import {
   Notification,
   NotificationType,
   NotificationPriority,
+  NotificationStatus,
 } from './entities/notification.entity';
+import { NotificationsQueueService } from './notifications.queue';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
 import { CreateNotificationDto } from './dto/notification.dto';
 import { NotificationsGateway } from '../gateways/notifications/notifications.gateway';
@@ -27,6 +29,7 @@ export class NotificationsService {
     private readonly templatesService: NotificationTemplatesService,
     private readonly preferencesService: PreferencesService,
     private readonly emailService: EmailService,
+    private readonly queueService: NotificationsQueueService,
   ) {}
 
   async sendVerificationEmail(email: string, token: string): Promise<void> {
@@ -74,6 +77,7 @@ export class NotificationsService {
       content,
       type: type || NotificationType.IN_APP,
       priority: priority || NotificationPriority.MEDIUM,
+      status: NotificationStatus.PENDING,
       metadata,
     });
 
@@ -91,27 +95,41 @@ export class NotificationsService {
    */
   private async sendNotification(notification: Notification): Promise<void> {
     try {
+      // In-app notifications are delivered via WebSocket
       if (
         notification.type === NotificationType.IN_APP ||
         notification.type === NotificationType.PUSH
       ) {
         await this.gateway.sendToUser(notification.userId, notification);
+        
+        if (notification.type === NotificationType.IN_APP) {
+          await this.notificationRepository.update(notification.id, {
+            status: NotificationStatus.DELIVERED,
+          });
+        }
       }
 
-      if (notification.type === NotificationType.EMAIL) {
-        await this.sendEmailNotification(notification);
-      }
-
-      if (notification.type === NotificationType.PUSH) {
-        await this.sendExternalPushNotification(notification);
+      // External notifications are delivered via SNS/SQS queue
+      if (
+        notification.type === NotificationType.EMAIL ||
+        notification.type === NotificationType.PUSH ||
+        notification.type === NotificationType.SMS
+      ) {
+        await this.queueService.publishToTopic(notification);
       }
     } catch (error) {
       this.logger.error(
         `Failed to send notification ${notification.id}`,
         error instanceof Error ? error.stack : String(error),
       );
+      
+      await this.notificationRepository.update(notification.id, {
+        status: NotificationStatus.FAILED,
+        failureReason: error.message,
+      });
     }
   }
+
 
   private async sendEmailNotification(notification: Notification): Promise<void> {
     this.logger.log(
@@ -297,4 +315,41 @@ export class NotificationsService {
       priority: NotificationPriority.MEDIUM,
     });
   }
+
+  /**
+   * Get delivery statistics for the dashboard
+   */
+  async getDeliveryStats(): Promise<any> {
+    const total = await this.notificationRepository.count();
+    const delivered = await this.notificationRepository.count({
+      where: { status: NotificationStatus.DELIVERED },
+    });
+    const sent = await this.notificationRepository.count({
+      where: { status: NotificationStatus.SENT },
+    });
+    const failed = await this.notificationRepository.count({
+      where: { status: NotificationStatus.FAILED },
+    });
+    const retrying = await this.notificationRepository.count({
+      where: { status: NotificationStatus.RETRYING },
+    });
+
+    const failureRate = total > 0 ? (failed / total) * 100 : 0;
+
+    if (failureRate > 10) {
+      this.logger.warn(`HIGH FAILURE RATE DETECTED: ${failureRate.toFixed(2)}%`);
+      // In a real system, you would trigger an alert here (PagerDuty, Slack, etc.)
+    }
+
+    return {
+      total,
+      delivered,
+      sent,
+      failed,
+      retrying,
+      failureRate: `${failureRate.toFixed(2)}%`,
+      timestamp: new Date(),
+    };
+  }
 }
+

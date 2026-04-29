@@ -24,10 +24,7 @@ export class FileStorageService {
       this.configService.get<string>('AWS_S3_BUCKET', '') ||
       this.configService.get<string>('AWS_S3_BUCKET_NAME', '');
 
-    const distributionId = this.configService.get<string>(
-      'AWS_CLOUDFRONT_DISTRIBUTION_ID',
-      '',
-    );
+    const distributionId = this.configService.get<string>('AWS_CLOUDFRONT_DISTRIBUTION_ID', '');
 
     this.publicBaseUrl = distributionId
       ? `https://${distributionId}.cloudfront.net`
