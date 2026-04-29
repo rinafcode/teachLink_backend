@@ -25,6 +25,7 @@ import { AuditLogService, IAuditLogSearchFilters } from './audit-log.service';
 import { AuditLog } from './audit-log.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuditAction, AuditCategory, AuditSeverity } from './enums/audit-action.enum';
+import { SensitiveOperationsService } from './services/sensitive-operations.service';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -33,7 +34,10 @@ import { AuditAction, AuditCategory, AuditSeverity } from './enums/audit-action.
 export class AuditLogController {
   private readonly logger = new Logger(AuditLogController.name);
 
-  constructor(private readonly auditLogService: AuditLogService) {}
+  constructor(
+    private readonly auditLogService: AuditLogService,
+    private readonly sensitiveOpsService: SensitiveOperationsService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Search audit logs with filters' })
@@ -256,5 +260,131 @@ export class AuditLogController {
       message: 'Retention policy applied successfully',
       deletedCount,
     };
+  }
+
+  @Get('sensitive-operations')
+  @ApiOperation({ summary: 'Get sensitive operations audit logs' })
+  @ApiQuery({
+    name: 'severities',
+    required: false,
+    description: 'Filter by severities (comma-separated)',
+  })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number', type: Number })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: Number })
+  @IApiResponse({ status: 200, description: 'Sensitive operations' })
+  async getSensitiveOperations(
+    @Query('severities') severities?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
+  ) {
+    const filters: IAuditLogSearchFilters = {
+      severities: severities
+        ? (severities.split(',') as AuditSeverity[])
+        : [AuditSeverity.WARNING, AuditSeverity.CRITICAL],
+    };
+
+    if (startDate) filters.startDate = new Date(startDate);
+    if (endDate) filters.endDate = new Date(endDate);
+
+    return this.auditLogService.search(filters, page, limit);
+  }
+
+  @Get('sensitive-operations/by-action/:action')
+  @ApiOperation({ summary: 'Get sensitive operations by action type' })
+  @ApiParam({ name: 'action', description: 'Audit action' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: Number })
+  @IApiResponse({ status: 200, description: 'Sensitive operations by action' })
+  async getSensitiveOperationsByAction(
+    @Param('action') action: AuditAction,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
+  ): Promise<AuditLog[]> {
+    const filters: IAuditLogSearchFilters = {
+      actions: [action],
+    };
+
+    if (startDate) filters.startDate = new Date(startDate);
+    if (endDate) filters.endDate = new Date(endDate);
+
+    const result = await this.auditLogService.search(filters, 1, limit);
+    return result.logs;
+  }
+
+  @Get('sensitive-operations/critical')
+  @ApiOperation({ summary: 'Get critical operations' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: Number })
+  @IApiResponse({ status: 200, description: 'Critical operations' })
+  async getCriticalOperations(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
+  ): Promise<AuditLog[]> {
+    const filters: IAuditLogSearchFilters = {
+      severities: [AuditSeverity.CRITICAL],
+    };
+
+    if (startDate) filters.startDate = new Date(startDate);
+    if (endDate) filters.endDate = new Date(endDate);
+
+    const result = await this.auditLogService.search(filters, 1, limit);
+    return result.logs;
+  }
+
+  @Get('sensitive-operations/user-changes/:userId')
+  @ApiOperation({ summary: 'Get user-related sensitive operations' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: Number })
+  @IApiResponse({ status: 200, description: 'User-related sensitive operations' })
+  async getUserSensitiveOperations(
+    @Param('userId') userId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
+  ): Promise<AuditLog[]> {
+    const filters: IAuditLogSearchFilters = {
+      entityType: 'User',
+      entityId: userId,
+      severities: [AuditSeverity.WARNING, AuditSeverity.CRITICAL],
+    };
+
+    if (startDate) filters.startDate = new Date(startDate);
+    if (endDate) filters.endDate = new Date(endDate);
+
+    const result = await this.auditLogService.search(filters, 1, limit);
+    return result.logs;
+  }
+
+  @Post('sensitive-operations/export')
+  @ApiOperation({ summary: 'Export sensitive operations to CSV' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  async exportSensitiveOperations(
+    @Res() res: Response,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const filters: IAuditLogSearchFilters = {
+      severities: [AuditSeverity.WARNING, AuditSeverity.CRITICAL],
+    };
+
+    if (startDate) filters.startDate = new Date(startDate);
+    if (endDate) filters.endDate = new Date(endDate);
+
+    const csv = await this.auditLogService.exportToCsv(filters);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=sensitive-operations.csv');
+    res.send(csv);
   }
 }
