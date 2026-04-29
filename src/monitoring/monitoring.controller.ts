@@ -2,12 +2,17 @@ import { Controller, Get, Query, Res } from '@nestjs/common';
 import { MetricsCollectionService } from './metrics/metrics-collection.service';
 import { Response } from 'express';
 import { ScheduledTaskMonitoringService } from './scheduled-task-monitoring.service';
+import { Optional } from '@nestjs/common';
+import { CostTrackingService } from './cost-tracking.service';
+import { CreateCostDto } from './dto/create-cost.dto';
+import { Body, Post, UsePipes, ValidationPipe } from '@nestjs/common';
 
 @Controller('metrics')
 export class MonitoringController {
   constructor(
     private readonly metricsService: MetricsCollectionService,
     private readonly scheduledTaskMonitoringService: ScheduledTaskMonitoringService,
+    @Optional() private readonly costTrackingService?: CostTrackingService,
   ) {}
 
   @Get()
@@ -117,6 +122,36 @@ export class MonitoringController {
     }
 
     return customMetrics;
+  }
+
+  @Get('cost/summary')
+  async getCostSummary() {
+    try {
+      if ((this as any).costTrackingService) {
+        const svc = (this as any).costTrackingService;
+        return {
+          last24h: svc.getLast24hCost(),
+          avgHourly: svc.getAverageHourlyCost(),
+        };
+      }
+
+      return { message: 'Cost tracking not enabled' };
+    } catch (err) {
+      return { error: String(err) };
+    }
+  }
+
+  @Post('cost')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async postCost(@Body() body: CreateCostDto) {
+    try {
+      const svc = (this as any).costTrackingService;
+      if (!svc) return { message: 'Cost tracking not enabled' };
+      svc.recordHourlyCost(body.amountUsd);
+      return { ok: true };
+    } catch (err) {
+      return { error: String(err) };
+    }
   }
 
   @Get('scheduled-tasks/dashboard')
