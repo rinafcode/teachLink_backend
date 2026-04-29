@@ -12,7 +12,7 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
 
@@ -56,7 +56,7 @@ export class QueueController {
    */
   @Get('metrics')
   @ApiOperation({ summary: 'Live queue metrics' })
-  @IApiResponse({ status: 200, description: 'Current queue metrics snapshot' })
+  @ApiResponse({ status: 200, description: 'Current queue metrics snapshot' })
   async getMetrics() {
     return this.monitoringService.getQueueMetrics();
   }
@@ -147,7 +147,7 @@ export class QueueController {
   @Post('jobs/failed/retry-all')
   @Roles('admin')
   @ApiOperation({ summary: 'Retry all failed jobs (admin)' })
-  @IApiResponse({ status: 200, description: 'Retry summary' })
+  @ApiResponse({ status: 200, description: 'Retry summary' })
   async retryAllFailedJobs() {
     return this.monitoringService.retryAllFailedJobs();
   }
