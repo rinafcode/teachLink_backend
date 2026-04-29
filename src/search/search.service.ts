@@ -6,6 +6,7 @@ import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
 import { SEARCH_CONSTANTS } from './search.constants';
 
+
 export const COURSES_INDEX = 'courses';
 export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
 const SEARCH_SOURCE_FIELDS = [
