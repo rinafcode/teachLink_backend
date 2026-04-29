@@ -7,11 +7,13 @@ import {
   HttpStatus,
   Req,
   RawBodyRequest,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
+import { StripeWebhookGuard } from './stripe-webhook.guard';
 
 @SkipThrottle()
 @ApiTags('webhooks')
@@ -21,6 +23,7 @@ export class WebhookController {
 
   @Post('stripe')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(StripeWebhookGuard)
   @ApiOperation({ summary: 'Handle Stripe webhook events' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   async handleStripeWebhook(

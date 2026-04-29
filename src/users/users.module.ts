@@ -14,14 +14,26 @@ import {
   UserExportHistory,
 } from '../common/export/export.service';
 import { ExportController } from '../common/export/export.controller';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { MaskingAuditService } from '../utils/masking/masking-audit.service';
+import { MaskingInterceptor } from '../utils/masking/masking.interceptor';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),
     BullModule.registerQueue({ name: QUEUE_NAMES.USER_DATA_EXPORT }),
+    AuditLogModule,
   ],
   controllers: [UsersController, ExportController],
-  providers: [UsersService, ExportService, UserDataExportProcessor, RolesGuard, JwtAuthGuard],
+  providers: [
+    UsersService,
+    ExportService,
+    UserDataExportProcessor,
+    RolesGuard,
+    JwtAuthGuard,
+    MaskingAuditService,
+    MaskingInterceptor,
+  ],
   exports: [UsersService],
 })
 export class UsersModule {}

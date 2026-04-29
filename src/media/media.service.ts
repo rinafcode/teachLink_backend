@@ -203,7 +203,7 @@ export class MediaService {
               await this.storage.uploadProcessedFile(thumb.buffer, thumbKey, 'image/webp');
               result.thumbnails.push({
                 name: thumb.name,
-                url: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${thumbKey}`,
+                url: this.storage.getPublicUrl(thumbKey),
               });
             }
 
@@ -354,8 +354,29 @@ export class MediaService {
 
   private extractKeyFromUrl(url: string): string | null {
     try {
-      const parts = url.split('.s3.amazonaws.com/');
-      return parts.length > 1 ? parts[1] : null;
+      if (!url) return null;
+      if (!url.startsWith('http')) return url;
+
+      const parsed = new URL(url);
+      const host = parsed.hostname;
+      const path = parsed.pathname.replace(/^\/+/, '');
+
+      if (!path) return null;
+
+      if (host.endsWith('.cloudfront.net')) {
+        return path;
+      }
+
+      if (host.includes('.s3.') || host.endsWith('.s3.amazonaws.com')) {
+        return path;
+      }
+
+      if (host.startsWith('s3.') || host === 's3.amazonaws.com') {
+        const [, ...rest] = path.split('/');
+        return rest.length > 0 ? rest.join('/') : null;
+      }
+
+      return null;
     } catch {
       return null;
     }

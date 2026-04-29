@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { CdnService } from './cdn.service';
 import { CdnController } from './cdn.controller';
 import { AssetOptimizationService } from './optimization/asset-optimization.service';
@@ -21,7 +22,7 @@ import { ImageProcessingService } from '../media/processing/image-processing.ser
     CacheModule.register(),
     TypeOrmModule.forFeature([ContentMetadata]),
     MulterModule.register({
-      dest: './uploads',
+      storage: memoryStorage(),
       limits: {
         fileSize: 500 * 1024 * 1024, // 500MB limit (largest for videos)
       },

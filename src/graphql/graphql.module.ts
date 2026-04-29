@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
-import { validate } from 'graphql';
+import { validate, GraphQLError } from 'graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { UsersModule } from '../users/users.module';
 import { CoursesModule } from '../courses/courses.module';
@@ -43,7 +43,9 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
                 const depth = getDepth(node);
                 if (depth > maxDepth) {
                   context.reportError(
-                    new Error(`Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`),
+                    new GraphQLError(
+                      `Query depth ${depth} exceeds maximum allowed depth of ${maxDepth}`,
+                    ),
                   );
                 }
               },
@@ -54,8 +56,8 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
         plugins: [
           // ── Per-request complexity analysis plugin ──
           {
-            requestDidStart: () => ({
-              didResolveOperation({ request, document, schema }) {
+            requestDidStart: (_requestContext) => ({
+              didResolveOperation: ({ request, document, schema }) => {
                 const variables = request.variables ?? {};
                 const rule = complexityService.buildComplexityRule(schema, document, variables);
                 const errors = validate(schema, document, [rule]);
@@ -64,7 +66,7 @@ import { ComplexityAnalysisService } from './services/complexity-analysis.servic
                 }
               },
             }),
-          },
+          } as any,
         ],
 
         context: ({ req, connection }, _, { injector }) => {

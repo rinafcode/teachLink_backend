@@ -89,4 +89,11 @@ export class NotificationsController {
   ) {
     return this.notificationsService.updatePreferences(userId, preferencesDto);
   }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get notification delivery statistics (Admin)' })
+  async getStats() {
+    return this.notificationsService.getDeliveryStats();
+  }
 }
+

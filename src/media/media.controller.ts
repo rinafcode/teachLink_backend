@@ -19,7 +19,7 @@ import { THROTTLE } from '../common/constants/throttle.constants';
 import {
   ApiTags,
   ApiOperation,
-  IApiResponse,
+  ApiResponse,
   ApiConsumes,
   ApiBody,
   ApiParam,
@@ -70,12 +70,12 @@ export class MediaController {
       },
     },
   })
-  @IApiResponse({ status: 201, description: 'File uploaded successfully' })
-  @IApiResponse({ status: 400, description: 'Validation failed' })
-  @IApiResponse({ status: 403, description: 'Malware detected' })
-  @IApiResponse({ status: 413, description: 'File too large' })
-  @IApiResponse({ status: 415, description: 'Unsupported file type' })
-  @IApiResponse({ status: 503, description: 'Malware scanning unavailable' })
+  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 403, description: 'Malware detected' })
+  @ApiResponse({ status: 413, description: 'File too large' })
+  @ApiResponse({ status: 415, description: 'Unsupported file type' })
+  @ApiResponse({ status: 503, description: 'Malware scanning unavailable' })
   async upload(
     @Req() req: any,
     @Body() body?: { compress?: string; generateThumbnails?: string },
@@ -114,8 +114,8 @@ export class MediaController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get upload progress by ID' })
   @ApiParam({ name: 'uploadId', description: 'Upload tracking ID' })
-  @IApiResponse({ status: 200, description: 'Upload progress', type: Object })
-  @IApiResponse({ status: 404, description: 'Upload not found' })
+  @ApiResponse({ status: 200, description: 'Upload progress', type: Object })
+  @ApiResponse({ status: 404, description: 'Upload not found' })
   async getUploadProgress(@Param('uploadId') uploadId: string) {
     const progress = await this.mediaService.getUploadProgress(uploadId);
     if (!progress) {
@@ -127,7 +127,7 @@ export class MediaController {
   @Get('uploads/active')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'List active uploads' })
-  @IApiResponse({ status: 200, description: 'List of active uploads' })
+  @ApiResponse({ status: 200, description: 'List of active uploads' })
   async listActiveUploads() {
     return this.mediaService.listActiveUploads();
   }
@@ -135,7 +135,7 @@ export class MediaController {
   @Get('uploads/statistics')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get upload statistics' })
-  @IApiResponse({ status: 200, description: 'Upload statistics' })
+  @ApiResponse({ status: 200, description: 'Upload statistics' })
   async getUploadStatistics() {
     return this.mediaService.getUploadStatistics();
   }
@@ -144,9 +144,9 @@ export class MediaController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get media metadata by content ID' })
   @ApiParam({ name: 'contentId', description: 'Content identifier' })
-  @IApiResponse({ status: 200, description: 'Media metadata' })
-  @IApiResponse({ status: 404, description: 'Not found' })
-  @IApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 200, description: 'Media metadata' })
+  @ApiResponse({ status: 404, description: 'Not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
   async getMetadata(@Param('contentId') contentId: string, @Req() req: any) {
     const user = req.user;
     const meta = await this.mediaService.findByContentId(contentId);

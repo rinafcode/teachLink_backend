@@ -25,6 +25,14 @@ export enum NotificationPriority {
   URGENT = 'urgent',
 }
 
+export enum NotificationStatus {
+  PENDING = 'pending',
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  FAILED = 'failed',
+  RETRYING = 'retrying',
+}
+
 @Entity('notifications')
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
@@ -55,6 +63,13 @@ export class Notification {
 
   @Column({
     type: 'enum',
+    enum: NotificationStatus,
+    default: NotificationStatus.PENDING,
+  })
+  status: NotificationStatus;
+
+  @Column({
+    type: 'enum',
     enum: NotificationPriority,
     default: NotificationPriority.MEDIUM,
   })
@@ -65,6 +80,15 @@ export class Notification {
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
+
+  @Column({ default: 0 })
+  deliveryAttempts: number;
+
+  @Column({ nullable: true })
+  lastAttemptAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  failureReason: string;
 
   @Column({ nullable: true })
   readAt: Date;
@@ -79,3 +103,4 @@ export class Notification {
   @DeleteDateColumn()
   deletedAt?: Date;
 }
+

@@ -1,5 +1,10 @@
 global:
   resolve_timeout: 5m
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_from: '${SMTP_FROM}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
 
 route:
   receiver: slack-default
@@ -12,6 +17,10 @@ route:
         - severity = critical
       receiver: pagerduty
       continue: true
+    - matchers:
+        - severity = critical
+      receiver: email-oncall
+      continue: false
 
 receivers:
   - name: slack-default
@@ -32,6 +41,21 @@ receivers:
       - service_key: ${PAGERDUTY_SERVICE_KEY}
         send_resolved: true
         description: '{{ .CommonAnnotations.summary }}'
+
+  - name: email-oncall
+    email_configs:
+      - to: '${ALERT_EMAIL_TO}'
+        send_resolved: true
+        headers:
+          Subject: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} — TeachLink'
+        html: |
+          <h3>{{ .CommonLabels.alertname }}</h3>
+          <p><strong>Status:</strong> {{ .Status | toUpper }}</p>
+          {{ range .Alerts }}
+          <p><strong>Severity:</strong> {{ .Labels.severity }}<br>
+          <strong>Summary:</strong> {{ .Annotations.summary }}<br>
+          <strong>Description:</strong> {{ .Annotations.description }}</p>
+          {{ end }}
 
 inhibit_rules:
   - source_matchers: [severity = critical]

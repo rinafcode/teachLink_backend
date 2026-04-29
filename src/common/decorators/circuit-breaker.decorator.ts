@@ -1,5 +1,4 @@
 import { SetMetadata } from '@nestjs/common';
-import { ICircuitBreakerOptions } from '../services/circuit-breaker.service';
 
 export const CIRCUIT_BREAKER_METADATA = 'circuit-breaker:options';
 
