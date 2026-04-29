@@ -37,7 +37,11 @@
     "migrate:rollback": "curl -s -X POST http://localhost:3000/migrations/rollback | npx json",
     "migrate:rollback:count": "curl -s -X POST http://localhost:3000/migrations/rollback/${COUNT:-1} | npx json",
     "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
-    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json"
+    "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json",
+    "sdk:generate:spec": "ts-node scripts/generate-openapi-spec.ts",
+    "sdk:generate:ts": "openapi-generator-cli generate -i openapi-spec.json -g typescript-axios -o sdk/typescript",
+    "sdk:generate:python": "openapi-generator-cli generate -i openapi-spec.json -g python -o sdk/python",
+    "sdk:generate": "npm run sdk:generate:spec && npm run sdk:generate:ts && npm run sdk:generate:python"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
@@ -124,6 +128,7 @@
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",
+    "@openapitools/openapi-generator-cli": "^2.32.0",
     "@types/babel__core": "^7.20.5",
     "@types/babel__generator": "^7.27.0",
     "@types/babel__template": "^7.4.4",
