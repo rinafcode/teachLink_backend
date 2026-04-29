@@ -74,6 +74,7 @@ export class AppModule {
         isGlobal: true,
         validationSchema: envValidationSchema,
       }),
+      AuditLogModule,
       TypeOrmModule.forRootAsync({
         imports: [MonitoringModule],
         inject: [MetricsCollectionService],
@@ -438,6 +439,10 @@ export class AppModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: TimeoutInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: SensitiveOperationInterceptor,
         },
         {
           provide: APP_GUARD,
