@@ -1,0 +1,120 @@
+src/audit-log/audit-log.controller.ts(18,3): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/audit-log/audit-log.service.spec.ts(10,8): error TS2307: Cannot find module 'test/utils/mock-factories' or its corresponding type declarations.
+src/audit-log/audit-log.service.spec.ts(93,44): error TS2352: Conversion of type '{ timestamp: Date; retentionUntil: Date; userId: string; userEmail: string; action: AuditAction; category: AuditCategory; severity: AuditSeverity; ... 4 more ...; id: string; }' to type 'AuditLog' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ timestamp: Date; retentionUntil: Date; userId: string; userEmail: string; action: AuditAction; category: AuditCategory; severity: AuditSeverity; ... 4 more ...; id: string; }' is missing the following properties from type 'AuditLog': version, entityType, entityId, oldValues, and 8 more.
+src/audit-log/audit-log.service.spec.ts(94,44): error TS2352: Conversion of type '{ timestamp: Date; retentionUntil: Date; userId: string; userEmail: string; action: AuditAction; category: AuditCategory; severity: AuditSeverity; ... 4 more ...; id: string; }' to type 'AuditLog' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ timestamp: Date; retentionUntil: Date; userId: string; userEmail: string; action: AuditAction; category: AuditCategory; severity: AuditSeverity; ... 4 more ...; id: string; }' is missing the following properties from type 'AuditLog': version, entityType, entityId, oldValues, and 8 more.
+src/audit-log/audit-log.service.spec.ts(145,40): error TS2349: This expression is not callable.
+  Not all constituents of type 'DeepPartial<() => number>' are callable.
+    Type '{}' has no call signatures.
+src/audit-log/audit-log.service.spec.ts(222,27): error TS2339: Property 'UPDATE' does not exist on type 'typeof AuditAction'.
+src/audit-log/audit-log.service.spec.ts(381,27): error TS2339: Property 'SECURITY_ALERT' does not exist on type 'typeof AuditAction'.
+src/auth/auth.service.spec.ts(233,8): error TS2352: Conversion of type 'SpyInstance<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' to type 'SpyInstance<Promise<boolean>, [string, string], any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'mock' are incompatible.
+    Type 'MockContext<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' is not comparable to type 'MockContext<Promise<boolean>, [string, string], any>'.
+      Type 'void' is not comparable to type 'Promise<boolean>'.
+src/auth/auth.service.spec.ts(278,8): error TS2352: Conversion of type 'SpyInstance<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' to type 'SpyInstance<Promise<boolean>, [string, string], any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'mock' are incompatible.
+    Type 'MockContext<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' is not comparable to type 'MockContext<Promise<boolean>, [string, string], any>'.
+      Type 'void' is not comparable to type 'Promise<boolean>'.
+src/auth/auth.service.spec.ts(293,8): error TS2352: Conversion of type 'SpyInstance<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' to type 'SpyInstance<Promise<boolean>, [string, string], any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'mock' are incompatible.
+    Type 'MockContext<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' is not comparable to type 'MockContext<Promise<boolean>, [string, string], any>'.
+      Type 'void' is not comparable to type 'Promise<boolean>'.
+src/auth/auth.service.spec.ts(333,8): error TS2352: Conversion of type 'SpyInstance<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' to type 'SpyInstance<Promise<boolean>, [string, string], any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'mock' are incompatible.
+    Type 'MockContext<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' is not comparable to type 'MockContext<Promise<boolean>, [string, string], any>'.
+      Type 'void' is not comparable to type 'Promise<boolean>'.
+src/auth/auth.service.spec.ts(354,8): error TS2352: Conversion of type 'SpyInstance<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' to type 'SpyInstance<Promise<boolean>, [string, string], any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'mock' are incompatible.
+    Type 'MockContext<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' is not comparable to type 'MockContext<Promise<boolean>, [string, string], any>'.
+      Type 'void' is not comparable to type 'Promise<boolean>'.
+src/auth/auth.service.spec.ts(378,8): error TS2352: Conversion of type 'SpyInstance<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' to type 'SpyInstance<Promise<boolean>, [string, string], any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'mock' are incompatible.
+    Type 'MockContext<void, [password: string, hash: string, callback?: Callback<boolean>, progressCallback?: ProgressCallback], any>' is not comparable to type 'MockContext<Promise<boolean>, [string, string], any>'.
+      Type 'void' is not comparable to type 'Promise<boolean>'.
+src/auth/auth.service.ts(404,23): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(payload: string, options?: Omit<JwtSignOptions, keyof SignOptions>): Promise<string>', gave the following error.
+    Argument of type 'IJwtTokenPayload' is not assignable to parameter of type 'string'.
+  Overload 2 of 3, '(payload: Buffer<ArrayBufferLike>, options?: JwtSignOptions): Promise<string>', gave the following error.
+    Argument of type 'IJwtTokenPayload' is not assignable to parameter of type 'Buffer<ArrayBufferLike>'.
+      Type 'IJwtTokenPayload' is missing the following properties from type 'Buffer<ArrayBufferLike>': slice, subarray, write, toJSON, and 97 more.
+  Overload 3 of 3, '(payload: IJwtTokenPayload, options?: JwtSignOptions): Promise<string>', gave the following error.
+    Property 'alg' is missing in type '{ kid: string; }' but required in type 'JwtHeader'.
+src/auth/jwt.strategy.ts(79,52): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(payload: string, options?: Omit<JwtSignOptions, keyof SignOptions>): Promise<string>', gave the following error.
+    Argument of type '{ sub: string; email: string; role: UserRole; sid: string; }' is not assignable to parameter of type 'string'.
+  Overload 2 of 3, '(payload: Buffer<ArrayBufferLike>, options?: JwtSignOptions): Promise<string>', gave the following error.
+    Object literal may only specify known properties, and 'sub' does not exist in type 'Buffer<ArrayBufferLike>'.
+  Overload 3 of 3, '(payload: { sub: string; email: string; role: UserRole; sid: string; }, options?: JwtSignOptions): Promise<string>', gave the following error.
+    Property 'alg' is missing in type '{ kid: string; }' but required in type 'JwtHeader'.
+src/auth/strategies/jwt.strategy.ts(76,52): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(payload: string, options?: Omit<JwtSignOptions, keyof SignOptions>): Promise<string>', gave the following error.
+    Argument of type '{ sub: string; email: string; role: string; roles: string[]; sid: string; }' is not assignable to parameter of type 'string'.
+  Overload 2 of 3, '(payload: Buffer<ArrayBufferLike>, options?: JwtSignOptions): Promise<string>', gave the following error.
+    Object literal may only specify known properties, and 'sub' does not exist in type 'Buffer<ArrayBufferLike>'.
+  Overload 3 of 3, '(payload: { sub: string; email: string; role: string; roles: string[]; sid: string; }, options?: JwtSignOptions): Promise<string>', gave the following error.
+    Property 'alg' is missing in type '{ kid: string; }' but required in type 'JwtHeader'.
+src/backup/backup.controller.ts(12,48): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/backup/backup.service.spec.ts(6,24): error TS2305: Module '"./enums/backup-status.enum"' has no exported member 'BackupType'.
+src/backup/backup.service.spec.ts(6,36): error TS2305: Module '"./enums/backup-status.enum"' has no exported member 'Region'.
+src/backup/backup.service.spec.ts(12,8): error TS2307: Cannot find module 'test/utils/mock-factories' or its corresponding type declarations.
+src/backup/backup.service.spec.ts(420,44): error TS2352: Conversion of type '{ id: string; backupType: any; status: BackupStatus; region: any; databaseName: string; backupSizeBytes: number; integrityVerified: boolean; completedAt: Date; expiresAt: Date; createdAt: Date; metadata: { ...; }; storageKey: string; updatedAt: Date; }' to type 'BackupRecord' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; backupType: any; status: BackupStatus; region: any; databaseName: string; backupSizeBytes: number; integrityVerified: boolean; completedAt: Date; expiresAt: Date; createdAt: Date; metadata: { ...; }; storageKey: string; updatedAt: Date; }' is missing the following properties from type 'BackupRecord': version, encryptedStorageKey, replicatedStorageKey, kmsKeyId, and 5 more.
+src/caching/cache-management.controller.ts(12,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/caching/caching.service.spec.ts(5,64): error TS2307: Cannot find module 'test/utils/mock-factories' or its corresponding type declarations.
+src/cdn/cdn.controller.ts(9,3): error TS2724: '"@nestjs/common"' has no exported member named 'IUploadedFile'. Did you mean 'UploadedFile'?
+src/cdn/cdn.controller.ts(20,3): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/common/csrf/csrf.controller.ts(3,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/common/interceptors/logging.interceptor.ts(146,26): error TS2345: Argument of type 'IRequestLog | IResponseLog' is not assignable to parameter of type 'Record<string, unknown>'.
+  Type 'IRequestLog' is not assignable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type 'IRequestLog'.
+src/common/timeout/timeout.controller.ts(2,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/email-marketing/ab-testing/ab-testing.controller.ts(2,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/email-marketing/analytics/email-analytics.controller.ts(2,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/email-marketing/automation/automation.controller.ts(14,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/email-marketing/email-marketing.controller.ts(14,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/email-marketing/segmentation/segment.controller.ts(14,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/email-marketing/templates/template.controller.ts(14,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/feature-flags/feature-flags.controller.ts(3,39): error TS2307: Cannot find module '../evaluation/flag-evaluation.service' or its corresponding type declarations.
+src/feature-flags/feature-flags.controller.ts(4,23): error TS2307: Cannot find module '../../auth/decorators/roles.decorator' or its corresponding type declarations.
+src/feature-flags/feature-flags.controller.ts(5,30): error TS2307: Cannot find module '../../auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/feature-flags/feature-flags.controller.ts(6,28): error TS2307: Cannot find module '../../auth/guards/roles.guard' or its corresponding type declarations.
+src/feature-flags/feature-flags.controller.ts(7,26): error TS2307: Cannot find module '../../users/entities/user.entity' or its corresponding type declarations.
+src/feature-flags/feature-flags.controller.ts(8,44): error TS2307: Cannot find module '../interfaces' or its corresponding type declarations.
+src/graphql/graphql.module.ts(27,7): error TS2322: Type '(complexityService: ComplexityAnalysisService) => { autoSchemaFile: string; sortSchema: true; playground: boolean; subscriptions: { 'graphql-ws': true; 'subscriptions-transport-ws': true; }; validationRules: ((context: ValidationContext) => { ...; })[]; plugins: { ...; }[]; context: ({ req, connection }: { ...; }, _...' is not assignable to type '(...args: any[]) => Omit<ApolloDriverConfig, "driver"> | Promise<Omit<ApolloDriverConfig, "driver">>'.
+  Type '{ autoSchemaFile: string; sortSchema: true; playground: boolean; subscriptions: { 'graphql-ws': true; 'subscriptions-transport-ws': true; }; validationRules: ((context: ValidationContext) => { ...; })[]; plugins: { ...; }[]; context: ({ req, connection }: { ...; }, _: any, { injector }: { ...; }) => { ...; } | { ......' is not assignable to type 'Omit<ApolloDriverConfig, "driver"> | Promise<Omit<ApolloDriverConfig, "driver">>'.
+    Type '{ autoSchemaFile: string; sortSchema: true; playground: boolean; subscriptions: { 'graphql-ws': true; 'subscriptions-transport-ws': true; }; validationRules: ((context: ValidationContext) => { ...; })[]; plugins: { ...; }[]; context: ({ req, connection }: { ...; }, _: any, { injector }: { ...; }) => { ...; } | { ......' is not assignable to type 'Omit<ApolloDriverConfig, "driver">'.
+      Types of property 'plugins' are incompatible.
+        Type '{ requestDidStart: () => { didResolveOperation({ request, document, schema }: { request: any; document: any; schema: any; }): void; }; }[]' is not assignable to type 'ApolloServerPlugin<any>[]'.
+          Type '{ requestDidStart: () => { didResolveOperation({ request, document, schema }: { request: any; document: any; schema: any; }): void; }; }' is not assignable to type 'ApolloServerPlugin<any>'.
+            The types returned by 'requestDidStart(...)' are incompatible between these types.
+              Type '{ didResolveOperation({ request, document, schema }: { request: any; document: any; schema: any; }): void; }' is missing the following properties from type 'Promise<void | GraphQLRequestListener<any>>': then, catch, finally, [Symbol.toStringTag]
+src/graphql/graphql.module.ts(46,21): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'GraphQLError'.
+  Type 'Error' is missing the following properties from type 'GraphQLError': locations, path, nodes, source, and 5 more.
+src/graphql/services/complexity-analysis.service.ts(8,8): error TS2307: Cannot find module 'graphql-query-complexity' or its corresponding type declarations.
+src/health/health.controller.ts(10,25): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/media/media.controller.ts(5,3): error TS2724: '"@nestjs/common"' has no exported member named 'IUploadedFile'. Did you mean 'UploadedFile'?
+src/media/media.controller.ts(23,3): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/media/validation/file-upload-validation.service.ts(13,44): error TS2345: Argument of type 'string' is not assignable to parameter of type '"text/plain" | "image/jpeg" | "image/jpg" | "image/png" | "image/gif" | "image/webp" | "image/svg+xml" | "image/bmp" | "image/tiff" | "image/avif" | "video/mp4" | "video/webm" | ... 22 more ... | "application/x-zip-compressed"'.
+src/notifications/notifications.controller.ts(13,58): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/payments/payments.controller.ts(13,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/payments/webhooks/webhook-management.controller.ts(2,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/payments/webhooks/webhook.controller.ts(12,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/queues/queue.controller.ts(15,33): error TS2724: '"@nestjs/swagger"' has no exported member named 'IApiResponse'. Did you mean 'ApiResponse'?
+src/search/indexing/search-index-optimizer.service.ts(72,19): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(this: That, params: import("/workspaces/teachLink_backend/node_modules/@elastic/elasticsearch/lib/api/types").IndicesCreateRequest | import("/workspaces/teachLink_backend/node_modules/@elastic/elasticsearch/lib/api/typesWithBodyKey").IndicesCreateRequest, options?: TransportRequestOptionsWithOutMeta): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'doc_values' does not exist in type 'MappingSearchAsYouTypeProperty'.
+  Overload 2 of 3, '(this: That, params: import("/workspaces/teachLink_backend/node_modules/@elastic/elasticsearch/lib/api/types").IndicesCreateRequest | import("/workspaces/teachLink_backend/node_modules/@elastic/elasticsearch/lib/api/typesWithBodyKey").IndicesCreateRequest, options?: TransportRequestOptionsWithMeta): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'doc_values' does not exist in type 'MappingSearchAsYouTypeProperty'.
+  Overload 3 of 3, '(this: That, params: import("/workspaces/teachLink_backend/node_modules/@elastic/elasticsearch/lib/api/types").IndicesCreateRequest | import("/workspaces/teachLink_backend/node_modules/@elastic/elasticsearch/lib/api/typesWithBodyKey").IndicesCreateRequest, options?: TransportRequestOptions): Promise<...>', gave the following error.
+    Object literal may only specify known properties, and 'doc_values' does not exist in type 'MappingSearchAsYouTypeProperty'.
+src/search/indexing/search-index-optimizer.service.ts(157,32): error TS2551: Property '_indices' does not exist on type 'IndicesStatsResponse'. Did you mean 'indices'?
+src/tenancy/tenancy.guard.ts(35,42): error TS2339: Property 'getTenantFromRequest' does not exist on type 'TenancyService'.
+src/tenancy/tenancy.guard.ts(36,31): error TS2339: Property 'validateTenantExists' does not exist on type 'TenancyService'.
+src/users/users.service.spec.ts(9,8): error TS2307: Cannot find module 'test/utils/mock-factories' or its corresponding type declarations.
+src/users/users.service.spec.ts(31,15): error TS2554: Expected 4 arguments, but got 3.
+test/auth.e2e-spec.ts(3,27): error TS2307: Cannot find module '../../src/app.module' or its corresponding type declarations.
+test/auth.e2e-spec.ts(4,37): error TS2307: Cannot find module '../utils/test-database.service' or its corresponding type declarations.
+test/auth.e2e-spec.ts(5,32): error TS2307: Cannot find module '../utils/test-http-client' or its corresponding type declarations.
+test/auth.e2e-spec.ts(6,33): error TS2307: Cannot find module '../utils/test-retry-helper' or its corresponding type declarations.

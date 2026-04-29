@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cache } from 'cache-manager';
@@ -7,6 +8,7 @@ import { AssetOptimizationService } from './optimization/asset-optimization.serv
 import { EdgeCachingService } from './caching/edge-caching.service';
 import { GeoLocationService } from './geo/geo-location.service';
 import { CloudflareService } from './providers/cloudflare.service';
+import { AWSCloudFrontService } from './providers/aws-cloudfront.service';
 import { ContentMetadata, ContentType, ContentStatus } from './entities/content-metadata.entity';
 import { IUploadedFile } from '../common/types/file.types';
 
@@ -33,6 +35,8 @@ export class CdnService {
     private edgeCachingService: EdgeCachingService,
     private geoLocationService: GeoLocationService,
     private cloudflareService: CloudflareService,
+    private awsCloudFrontService: AWSCloudFrontService,
+    private configService: ConfigService,
   ) {}
 
   async deliverContent(contentId: string, options: IContentDeliveryOptions = {}): Promise<string> {
@@ -160,23 +164,41 @@ export class CdnService {
     etag?: string;
     provider: string;
   }> {
-    // Try primary provider (Cloudflare)
+    const preferAws = this.isAwsCdnConfigured();
+    const primary = preferAws ? 'aws' : 'cloudflare';
+
     try {
+      if (primary === 'aws') {
+        const result = await this.awsCloudFrontService.uploadFile(file);
+        return { ...result, provider: 'aws-cloudfront' };
+      }
+
       const result = await this.cloudflareService.uploadFile(file);
       return { ...result, provider: 'cloudflare' };
     } catch (error) {
       this.logger.warn('Primary provider failed, trying fallback:', error);
 
-      // Try fallback provider (AWS CloudFront)
       try {
-        // Note: AWS service would need to be injected
-        // For now, return mock fallback
-        throw new Error('AWS provider not implemented in this context');
+        if (primary === 'aws') {
+          const result = await this.cloudflareService.uploadFile(file);
+          return { ...result, provider: 'cloudflare' };
+        }
+
+        const result = await this.awsCloudFrontService.uploadFile(file);
+        return { ...result, provider: 'aws-cloudfront' };
       } catch (fallbackError) {
         this.logger.error('All providers failed:', fallbackError);
         throw new Error('All CDN providers failed to upload file');
       }
     }
+  }
+
+  private isAwsCdnConfigured(): boolean {
+    const bucket =
+      this.configService.get<string>('AWS_S3_BUCKET', '') ||
+      this.configService.get<string>('AWS_S3_BUCKET_NAME', '');
+    const distributionId = this.configService.get<string>('AWS_CLOUDFRONT_DISTRIBUTION_ID', '');
+    return Boolean(bucket && distributionId);
   }
 
   private async optimizeContentAsync(

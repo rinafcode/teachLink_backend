@@ -54,9 +54,9 @@ output.elasticsearch:
   bulk_max_size: 512
   worker: 2
 
-setup.ilm.enabled: false         # ILM managed separately via elasticsearch.yml policy
-setup.template.enabled: false    # Template registered by LogShipperService on startup
+setup.ilm.enabled: false # ILM managed separately via elasticsearch.yml policy
+setup.template.enabled: false # Template registered by LogShipperService on startup
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 logging.level: warning
-logging.to_files: false          # Send Filebeat's own logs to stdout only
+logging.to_files: false # Send Filebeat's own logs to stdout only

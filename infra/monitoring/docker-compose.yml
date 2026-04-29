@@ -186,6 +186,34 @@ services:
       retries: 3
       start_period: 15s
 
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: teachlink-redis-exporter
+    restart: unless-stopped
+    ports:
+      - '9121:9121'
+    environment:
+      REDIS_ADDR: 'redis://redis:6379'
+    networks:
+      - teachlink
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: teachlink-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - '9187:9187'
+    environment:
+      DATA_SOURCE_NAME: 'postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-postgres}@postgres:5432/${DATABASE_NAME:-teachlink}?sslmode=disable'
+    networks:
+      - teachlink
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # ─── Log Search UI ──────────────────────────────────────────────────────────
   kibana:
     image: kibana:${KIBANA_VERSION:-8.13.4}

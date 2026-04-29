@@ -205,7 +205,7 @@ export class AutomatedDecisionService {
   async isReadyForWinnerSelection(experimentId: string): Promise<boolean> {
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
-      relations: ['variants'],
+      relations: ['variants', 'variants.metrics'],
     });
 
     if (!experiment || experiment.status !== ExperimentStatus.RUNNING) {
@@ -225,9 +225,14 @@ export class AutomatedDecisionService {
       experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
 
     for (const variant of experiment.variants) {
-      // This would check actual sample sizes from metrics
-      // For now, we'll assume variants are ready
-      void variant;
+      const variantSampleSize = variant.metrics?.reduce(
+        (sum, metric) => sum + (metric.sampleSize || 0),
+        0,
+      );
+
+      if (variantSampleSize < minimumSampleSize) {
+        return false;
+      }
     }
 
     void minimumSampleSize;

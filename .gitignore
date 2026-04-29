@@ -63,5 +63,20 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Local PR / commit message drafts (not tracked)
 pr.md
 
+# Terraform files
+.tfstate
+.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+*.tfvars.json
+.terraformrc
+terraform.rc
+
+# Terraform crash log
+crash.log
+tsconfig.build.tsbuildinfo
+
 # Backups
 /backups
