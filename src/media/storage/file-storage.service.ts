@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
-import { IUploadedFile } from '../../common/types/file.types';
+import { UploadedFile } from '@nestjs/common';
 
 @Injectable()
 export class FileStorageService {
@@ -30,7 +30,7 @@ export class FileStorageService {
 
   // Legacy method for backward compatibility
   async uploadFile(
-    file: IUploadedFile,
+    file: UploadedFile,
     metadata: ContentMetadata,
   ): Promise<{ url: string; etag?: string }> {
     const key = `${metadata.contentId}/${Date.now()}_${file.originalname}`;
@@ -46,7 +46,7 @@ export class FileStorageService {
     // If a full URL is provided, return as-is
     if (keyOrUrl.startsWith('http')) return keyOrUrl;
 
-    const _command = new GetObjectCommand({
+    const command = new GetObjectCommand({
       Bucket: this.bucketName,
       Key: keyOrUrl,
     });

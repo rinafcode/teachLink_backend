@@ -14,7 +14,7 @@ import {
 } from '../cdn/entities/content-metadata.entity';
 import { FileStorageService } from './storage/file-storage.service';
 import { VideoProcessingService } from './processing/video-processing.service';
-import { IUploadedFile } from '../common/types/file.types';
+import { UploadedFile } from '@nestjs/common';
 import { FileValidationService } from './validation/file-validation.service';
 import { MalwareScanningService } from './validation/malware-scanning.service';
 import { ImageProcessingService } from './processing/image-processing.service';
@@ -54,7 +54,7 @@ export class MediaService {
   async createFromUpload(
     ownerId: string,
     tenantId: string | undefined,
-    file: IUploadedFile,
+    file: UploadedFile,
     options: IUploadOptions = {},
   ): Promise<IUploadResult> {
     const uploadId = uuidv4();

@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   UseInterceptors,
-  IUploadedFile,
   UseGuards,
   Get,
   Param,
@@ -28,7 +27,6 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
-import { IUploadedFile as IFileUpload } from '../common/types/file.types';
 import {
   buildUploadValidationDetails,
   MEDIA_UPLOAD_INTERCEPTOR_OPTIONS,
@@ -79,7 +77,6 @@ export class MediaController {
   @IApiResponse({ status: 415, description: 'Unsupported file type' })
   @IApiResponse({ status: 503, description: 'Malware scanning unavailable' })
   async upload(
-    @IUploadedFile() file: IFileUpload,
     @Req() req: any,
     @Body() body?: { compress?: string; generateThumbnails?: string },
   ) {

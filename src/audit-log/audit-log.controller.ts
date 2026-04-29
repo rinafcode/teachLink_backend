@@ -15,7 +15,7 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  IApiResponse,
+  ApiResponse,
   ApiQuery,
   ApiParam,
   ApiBearerAuth,
@@ -66,7 +66,7 @@ export class AuditLogController {
   @ApiQuery({ name: 'endDate', required: false, description: 'End date (ISO 8601)' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number', type: Number })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page', type: Number })
-  @IApiResponse({ status: 200, description: 'Search results' })
+  @ApiResponse({ status: 200, description: 'Search results' })
   async search(
     @Query('userId') userId?: string,
     @Query('userEmail') userEmail?: string,
@@ -115,7 +115,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @IApiResponse({ status: 200, description: 'Recent audit logs' })
+  @ApiResponse({ status: 200, description: 'Recent audit logs' })
   async getRecent(
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
   ): Promise<AuditLog[]> {
@@ -131,7 +131,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @IApiResponse({ status: 200, description: 'User audit logs' })
+  @ApiResponse({ status: 200, description: 'User audit logs' })
   async getByUser(
     @Param('userId') userId: string,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
@@ -149,7 +149,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @IApiResponse({ status: 200, description: 'Entity audit logs' })
+  @ApiResponse({ status: 200, description: 'Entity audit logs' })
   async getByEntity(
     @Param('entityType') entityType: string,
     @Param('entityId') entityId: string,
@@ -167,7 +167,7 @@ export class AuditLogController {
     description: 'Number of logs to return',
     type: Number,
   })
-  @IApiResponse({ status: 200, description: 'IP audit logs' })
+  @ApiResponse({ status: 200, description: 'IP audit logs' })
   async getByIpAddress(
     @Param('ipAddress') ipAddress: string,
     @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit?: number,
@@ -177,7 +177,7 @@ export class AuditLogController {
 
   @Get('statistics')
   @ApiOperation({ summary: 'Get audit log statistics' })
-  @IApiResponse({ status: 200, description: 'Statistics' })
+  @ApiResponse({ status: 200, description: 'Statistics' })
   async getStatistics() {
     return this.auditLogService.getStatistics();
   }
@@ -186,7 +186,7 @@ export class AuditLogController {
   @ApiOperation({ summary: 'Generate audit report' })
   @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
   @ApiQuery({ name: 'endDate', required: true, description: 'End date (ISO 8601)' })
-  @IApiResponse({ status: 200, description: 'Audit report' })
+  @ApiResponse({ status: 200, description: 'Audit report' })
   async generateReport(@Query('startDate') startDate: string, @Query('endDate') endDate: string) {
     if (!startDate || !endDate) {
       throw new HttpException('Start date and end date are required', HttpStatus.BAD_REQUEST);
@@ -249,7 +249,7 @@ export class AuditLogController {
 
   @Post('retention/apply')
   @ApiOperation({ summary: 'Apply retention policy (delete old logs)' })
-  @IApiResponse({ status: 200, description: 'Retention policy applied' })
+  @ApiResponse({ status: 200, description: 'Retention policy applied' })
   async applyRetentionPolicy() {
     const deletedCount = await this.auditLogService.applyRetentionPolicy();
     return {
