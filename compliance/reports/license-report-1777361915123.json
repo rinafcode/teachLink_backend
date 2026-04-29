@@ -1,0 +1,747 @@
+{
+  "timestamp": "2026-04-28T07:38:35.107Z",
+  "project": "teachLink_backend",
+  "version": "0.0.1",
+  "summary": {
+    "total": 121,
+    "allowed": 0,
+    "prohibited": 0,
+    "unknown": 121,
+    "reviewRequired": 0
+  },
+  "status": "WARNING",
+  "details": {
+    "total": 121,
+    "allowed": [],
+    "prohibited": [],
+    "unknown": [
+      {
+        "name": "@apollo/server",
+        "version": "^4.13.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@aws-sdk/client-cloudfront",
+        "version": "^3.975.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@aws-sdk/client-kms",
+        "version": "^3.978.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@aws-sdk/client-s3",
+        "version": "^3.975.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@aws-sdk/client-secrets-manager",
+        "version": "^3.978.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@elastic/elasticsearch",
+        "version": "^8.19.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@huggingface/inference",
+        "version": "^4.13.12",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs-modules/ioredis",
+        "version": "^2.0.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/apollo",
+        "version": "^12.2.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/axios",
+        "version": "^4.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/bull",
+        "version": "^11.0.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/cache-manager",
+        "version": "^3.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/common",
+        "version": "^10.4.22",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/config",
+        "version": "^4.0.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/core",
+        "version": "^10.4.22",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/elasticsearch",
+        "version": "^11.1.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/event-emitter",
+        "version": "^3.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/graphql",
+        "version": "^12.2.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/jwt",
+        "version": "^11.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/passport",
+        "version": "^11.0.5",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/platform-express",
+        "version": "^10.4.18",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/platform-socket.io",
+        "version": "^10.4.22",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/schedule",
+        "version": "^6.1.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/swagger",
+        "version": "^7.4.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/terminus",
+        "version": "^11.1.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/throttler",
+        "version": "^6.5.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/typeorm",
+        "version": "^11.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/websockets",
+        "version": "^10.2.6",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@opentelemetry/api",
+        "version": "^1.9.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@opentelemetry/exporter-prometheus",
+        "version": "^0.203.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@opentelemetry/instrumentation",
+        "version": "^0.203.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@opentelemetry/sdk-node",
+        "version": "^0.203.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/csurf",
+        "version": "^1.11.5",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/express-session",
+        "version": "^1.18.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/handlebars",
+        "version": "^4.0.40",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/multer",
+        "version": "^1.4.12",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/nodemailer",
+        "version": "^7.0.5",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/stripe",
+        "version": "^8.0.416",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@xenova/transformers",
+        "version": "^2.17.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "axios",
+        "version": "^1.13.5",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "bcrypt",
+        "version": "^6.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "bcryptjs",
+        "version": "^3.0.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "bull",
+        "version": "^4.16.5",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "cache-manager",
+        "version": "^7.2.8",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "cache-manager-ioredis-yet",
+        "version": "^2.1.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "cache-manager-redis-store",
+        "version": "^3.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "class-transformer",
+        "version": "^0.5.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "class-validator",
+        "version": "^0.14.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "connect-redis",
+        "version": "^9.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "csurf",
+        "version": "^1.11.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "dataloader",
+        "version": "^2.2.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "express",
+        "version": "^5.2.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "express-session",
+        "version": "^1.19.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "fast-xml-parser",
+        "version": "^5.2.5",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "fluent-ffmpeg",
+        "version": "^2.1.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "graphql",
+        "version": "^16.12.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "graphql-subscriptions",
+        "version": "^3.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "handlebars",
+        "version": "^4.7.8",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "helmet",
+        "version": "^8.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "ioredis",
+        "version": "^5.9.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "joi",
+        "version": "^17.13.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "multer",
+        "version": "^2.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "nodemailer",
+        "version": "^7.0.12",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "opossum",
+        "version": "^9.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "passport",
+        "version": "^0.7.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "passport-jwt",
+        "version": "^4.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "pdf-parse",
+        "version": "^1.1.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "pg",
+        "version": "^8.17.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "prom-client",
+        "version": "^15.1.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "reflect-metadata",
+        "version": "^0.2.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "rxjs",
+        "version": "^7.8.2",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "sharp",
+        "version": "^0.34.3",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "socket.io",
+        "version": "^4.8.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "stripe",
+        "version": "^18.3.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "swagger-ui-express",
+        "version": "^5.0.1",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "typeorm",
+        "version": "^0.3.28",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "uuid",
+        "version": "^14.0.0",
+        "type": "prod",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@commitlint/cli",
+        "version": "^19.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@commitlint/config-conventional",
+        "version": "^19.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/cli",
+        "version": "^10.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/schematics",
+        "version": "^10.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@nestjs/testing",
+        "version": "^10.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/babel__core",
+        "version": "^7.20.5",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/babel__generator",
+        "version": "^7.27.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/babel__template",
+        "version": "^7.4.4",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/babel__traverse",
+        "version": "^7.20.7",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/bcryptjs",
+        "version": "^2.4.6",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/bull",
+        "version": "^3.15.9",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/connect",
+        "version": "^3.4.38",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/express",
+        "version": "^5.0.6",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/fluent-ffmpeg",
+        "version": "^2.1.28",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/istanbul-lib-coverage",
+        "version": "^2.0.6",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/istanbul-lib-report",
+        "version": "^3.0.3",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/jest",
+        "version": "^29.5.2",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/jsonwebtoken",
+        "version": "^9.0.10",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/mime",
+        "version": "^3.0.4",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/node",
+        "version": "^20.19.4",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/passport-jwt",
+        "version": "^4.0.1",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/sharp",
+        "version": "^0.31.1",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/socket.io",
+        "version": "^3.0.1",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/stack-utils",
+        "version": "^2.0.3",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/supertest",
+        "version": "^6.0.3",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/uuid",
+        "version": "^10.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/yargs",
+        "version": "^17.0.33",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@types/yargs-parser",
+        "version": "^21.0.3",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@typescript-eslint/eslint-plugin",
+        "version": "^8.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "@typescript-eslint/parser",
+        "version": "^8.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "eslint",
+        "version": "^8.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "eslint-config-prettier",
+        "version": "^9.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "eslint-plugin-prettier",
+        "version": "^5.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "husky",
+        "version": "^9.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "jest",
+        "version": "^29.5.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "lint-staged",
+        "version": "^15.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "prettier",
+        "version": "^3.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "source-map-support",
+        "version": "^0.5.21",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "supertest",
+        "version": "^7.0.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "ts-jest",
+        "version": "^29.1.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "ts-loader",
+        "version": "^9.5.7",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "ts-node",
+        "version": "^10.9.1",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "tsconfig-paths",
+        "version": "^4.2.0",
+        "type": "dev",
+        "license": "UNKNOWN"
+      },
+      {
+        "name": "typescript",
+        "version": "^6.0.3",
+        "type": "dev",
+        "license": "UNKNOWN"
+      }
+    ],
+    "reviewRequired": []
+  }
+}

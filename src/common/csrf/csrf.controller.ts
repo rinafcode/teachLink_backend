@@ -1,6 +1,6 @@
 import { Controller, Get, Post, UseGuards, Req, Res, HttpStatus, HttpCode } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ApiTags, ApiOperation, IApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CsrfService } from './csrf.service';
 
@@ -12,7 +12,7 @@ export class CsrfController {
   @Get('token')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get CSRF token' })
-  @IApiResponse({ status: 200, description: 'CSRF token generated successfully' })
+  @ApiResponse({ status: 200, description: 'CSRF token generated successfully' })
   getCsrfToken(@Req() req: Request, @Res() res: Response): void {
     const sessionId = this.getSessionId(req);
     const token = this.csrfService.generateToken(sessionId);
@@ -25,8 +25,8 @@ export class CsrfController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Validate CSRF token' })
-  @IApiResponse({ status: 200, description: 'CSRF token is valid' })
-  @IApiResponse({ status: 400, description: 'Invalid CSRF token' })
+  @ApiResponse({ status: 200, description: 'CSRF token is valid' })
+  @ApiResponse({ status: 400, description: 'Invalid CSRF token' })
   validateCsrfToken(@Req() req: Request): { valid: boolean } {
     const sessionId = this.getSessionId(req);
     const token = req.body?.csrfToken || req.headers['x-csrf-token'];
@@ -39,7 +39,7 @@ export class CsrfController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Invalidate CSRF token' })
-  @IApiResponse({ status: 200, description: 'CSRF token invalidated successfully' })
+  @ApiResponse({ status: 200, description: 'CSRF token invalidated successfully' })
   invalidateCsrfToken(@Req() req: Request): { message: string } {
     const sessionId = this.getSessionId(req);
     this.csrfService.invalidateToken(sessionId);

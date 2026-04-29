@@ -1,5 +1,6 @@
 import { Controller, Get, HttpStatus } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service';
 import { AnalyticsService } from './analytics/analytics.service';
 

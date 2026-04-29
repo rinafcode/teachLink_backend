@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
@@ -14,7 +15,7 @@ import {
   createMockRepository,
   createMockConfigService,
   createMockEventEmitter,
-} from 'test/utils/mock-factories';
+} from '../../test/utils/mock-factories';
 import { Repository } from 'typeorm';
 
 describe('AuthService', () => {
@@ -45,12 +46,12 @@ describe('AuthService', () => {
       updateRefreshToken: jest.fn(),
       updateLastLogin: jest.fn(),
       updatePasswordResetToken: jest.fn(),
-    } as jest.Mocked<UsersService>;
+    } as unknown as jest.Mocked<UsersService>;
 
     mockJwtService = {
       sign: jest.fn(),
       verify: jest.fn(),
-    } as jest.Mocked<JwtService>;
+    } as unknown as jest.Mocked<JwtService>;
 
     mockConfigService = createMockConfigService({
       JWT_ACCESS_SECRET: 'access-secret',
@@ -65,7 +66,7 @@ describe('AuthService', () => {
       removeSession: jest.fn(),
       touchSession: jest.fn(),
       withLock: jest.fn(),
-    } as jest.Mocked<SessionService>;
+    } as unknown as jest.Mocked<SessionService>;
 
     mockTransactionService = {
       runInTransaction: jest.fn(),
@@ -73,11 +74,11 @@ describe('AuthService', () => {
 
     mockNotificationsService = {
       sendVerificationEmail: jest.fn(),
-    } as jest.Mocked<NotificationsService>;
+    } as unknown as jest.Mocked<NotificationsService>;
 
     mockAuditLogService = {
       logAuth: jest.fn(),
-    } as jest.Mocked<AuditLogService>;
+    } as unknown as jest.Mocked<AuditLogService>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -143,7 +144,7 @@ describe('AuthService', () => {
 
     beforeEach(() => {
       mockTransactionService.runInTransaction.mockImplementation(async (fn) => fn());
-      mockUsersService.create.mockResolvedValue(mockUser);
+      mockUsersService.create.mockResolvedValue(mockUser as any);
       mockUsersService.updateEmailVerificationToken.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
       mockSessionService.createSession.mockResolvedValue('session-1');
@@ -219,7 +220,7 @@ describe('AuthService', () => {
     };
 
     beforeEach(() => {
-      mockUsersService.findByEmail.mockResolvedValue(mockUser);
+      mockUsersService.findByEmail.mockResolvedValue(mockUser as any);
       mockUsersService.updateLastLogin.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
       mockSessionService.createSession.mockResolvedValue('session-1');
@@ -229,8 +230,12 @@ describe('AuthService', () => {
 
     it('should login user successfully with valid credentials', async () => {
       // Mock bcrypt.compare to return true
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      (
+        jest.spyOn(bcrypt, 'compare') as unknown as jest.SpyInstance<
+          Promise<boolean>,
+          [string, string]
+        >
+      ).mockResolvedValue(true);
 
       const result = await service.login(loginDto, '127.0.0.1', 'TestAgent');
 
@@ -275,8 +280,12 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when password is invalid', async () => {
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+      (
+        jest.spyOn(bcrypt, 'compare') as unknown as jest.SpyInstance<
+          Promise<boolean>,
+          [string, string]
+        >
+      ).mockResolvedValue(false);
 
       await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
       expect(mockAuditLogService.logAuth).toHaveBeenCalledWith(
@@ -291,8 +300,12 @@ describe('AuthService', () => {
     });
 
     it('should handle login without IP and user agent', async () => {
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      (
+        jest.spyOn(bcrypt, 'compare') as unknown as jest.SpyInstance<
+          Promise<boolean>,
+          [string, string]
+        >
+      ).mockResolvedValue(true);
 
       await service.login(loginDto);
 
@@ -322,8 +335,8 @@ describe('AuthService', () => {
         sid: 'session-1',
       });
       mockSessionService.withLock.mockImplementation(async (key, fn) => fn());
-      mockUsersService.findOne.mockResolvedValue(mockUser);
-      mockSessionService.getSession.mockResolvedValue({ id: 'session-1' });
+      mockUsersService.findOne.mockResolvedValue(mockUser as any);
+      mockSessionService.getSession.mockResolvedValue({ id: 'session-1' } as any);
       mockSessionService.touchSession.mockResolvedValue(undefined);
       mockJwtService.sign
         .mockReturnValueOnce('new-access-token')
@@ -332,8 +345,12 @@ describe('AuthService', () => {
     });
 
     it('should refresh tokens successfully', async () => {
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      (
+        jest.spyOn(bcrypt, 'compare') as unknown as jest.SpyInstance<
+          Promise<boolean>,
+          [string, string]
+        >
+      ).mockResolvedValue(true);
 
       const result = await service.refreshToken(refreshToken);
 
@@ -354,8 +371,12 @@ describe('AuthService', () => {
       mockSessionService.getSession.mockResolvedValue(null);
       mockSessionService.createSession.mockResolvedValue('new-session-1');
 
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      (
+        jest.spyOn(bcrypt, 'compare') as unknown as jest.SpyInstance<
+          Promise<boolean>,
+          [string, string]
+        >
+      ).mockResolvedValue(true);
 
       await service.refreshToken(refreshToken);
 
@@ -373,14 +394,18 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user not found', async () => {
-      mockUsersService.findOne.mockResolvedValue(null);
+      mockUsersService.findOne.mockResolvedValue(mockUser as any);
 
       await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when stored refresh token is invalid', async () => {
-      const bcrypt = require('bcryptjs');
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+      (
+        jest.spyOn(bcrypt, 'compare') as unknown as jest.SpyInstance<
+          Promise<boolean>,
+          [string, string]
+        >
+      ).mockResolvedValue(false);
 
       await expect(service.refreshToken(refreshToken)).rejects.toThrow(UnauthorizedException);
     });
@@ -395,7 +420,7 @@ describe('AuthService', () => {
     };
 
     beforeEach(() => {
-      mockUsersService.findOne.mockResolvedValue(mockUser);
+      mockUsersService.findOne.mockResolvedValue(mockUser as any);
       mockSessionService.withLock.mockImplementation(async (key, fn) => fn());
       mockSessionService.removeSession.mockResolvedValue(undefined);
       mockUsersService.updateRefreshToken.mockResolvedValue(undefined);
@@ -444,7 +469,7 @@ describe('AuthService', () => {
     const mockUser = { id: 'user-1', email };
 
     beforeEach(() => {
-      mockUsersService.findByEmail.mockResolvedValue(mockUser);
+      mockUsersService.findByEmail.mockResolvedValue(mockUser as any);
       mockUsersService.updatePasswordResetToken.mockResolvedValue(undefined);
     });
 

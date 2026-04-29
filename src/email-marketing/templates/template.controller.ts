@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 import { TemplateManagementService } from './template-management.service';
 import { CreateTemplateDto } from '../dto/create-template.dto';
@@ -26,7 +26,7 @@ export class TemplateController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new email template' })
-  @IApiResponse({ status: 201, description: 'Template created successfully' })
+  @ApiResponse({ status: 201, description: 'Template created successfully' })
   async create(@Body() createTemplateDto: CreateTemplateDto): Promise<EmailTemplate> {
     return this.templateService.create(createTemplateDto);
   }
@@ -41,7 +41,7 @@ export class TemplateController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a template by ID' })
-  @IApiResponse({ status: 404, description: 'Template not found' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<EmailTemplate> {
     return this.templateService.findOne(id);
   }

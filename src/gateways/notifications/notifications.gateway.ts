@@ -35,7 +35,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     try {
       const token =
         client.handshake.auth?.token || client.handshake.headers?.authorization?.split(' ')[1];
-      
+
       if (!token) {
         this.logger.warn(`Connection attempt without token: ${client.id}`);
         client.emit('error', { message: 'Unauthorized: No token provided' });
@@ -60,7 +60,7 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       // Join default channels
       client.join(`user:${userId}`);
       client.join('broadcast');
-      
+
       // Join role-based channels
       if (Array.isArray(roles)) {
         roles.forEach((role: string) => {

@@ -6,6 +6,7 @@ import {
   UpdateSecretCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { randomBytes } from 'crypto';
 
 export interface ISecretProvider {
   getSecret(secretName: string): Promise<string | null>;
@@ -97,7 +98,7 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
 
     try {
       // Generate new secret value (implementation depends on secret type)
-      const newSecret = this.generateSecretValue(secretName);
+      const newSecret = this.generateSecretValue();
 
       await this.updateSecret(secretName, newSecret);
 
@@ -124,10 +125,9 @@ export class SecretsManagerService implements ISecretProvider, OnModuleInit, OnM
     }
   }
 
-  private generateSecretValue(secretName: string): string {
+  private generateSecretValue(): string {
     // Generate a cryptographically secure random string
-    const crypto = require('crypto');
-    return crypto.randomBytes(32).toString('hex');
+    return randomBytes(32).toString('hex');
   }
 
   clearCache(): void {

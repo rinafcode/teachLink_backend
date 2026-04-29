@@ -4,12 +4,6 @@ import { ISecretProvider } from './secrets-manager.service';
 import * as https from 'https';
 import * as crypto from 'crypto';
 
-interface IVaultSecret {
-  data: {
-    data: Record<string, string>;
-  };
-}
-
 @Injectable()
 export class VaultSecretsService implements ISecretProvider, OnModuleInit {
   private readonly logger = new Logger(VaultSecretsService.name);

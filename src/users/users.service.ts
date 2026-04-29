@@ -210,7 +210,7 @@ export class UsersService {
       try {
         await this.update(id, updateData);
         results.success.push(id);
-      } catch (error) {
+      } catch (_error) {
         results.failed.push(id);
       }
     }
@@ -225,7 +225,7 @@ export class UsersService {
       try {
         await this.remove(id);
         results.success.push(id);
-      } catch (error) {
+      } catch (_error) {
         results.failed.push(id);
       }
     }

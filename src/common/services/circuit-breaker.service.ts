@@ -89,7 +89,7 @@ export class EnhancedCircuitBreakerService implements OnModuleInit {
         this.logger.log(`Circuit breaker ${key} HALF_OPEN - testing recovery`);
       });
 
-      breaker.on('fallback', (result) => {
+      breaker.on('fallback', (_result) => {
         this.logger.warn(`Circuit breaker ${key} FALLBACK triggered`);
       });
 

@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, IApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 import { SegmentationService } from './segmentation.service';
 import { CreateSegmentDto } from '../dto/create-segment.dto';
@@ -27,7 +27,7 @@ export class SegmentController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new audience segment' })
-  @IApiResponse({ status: 201, description: 'Segment created successfully' })
+  @ApiResponse({ status: 201, description: 'Segment created successfully' })
   async create(@Body() createSegmentDto: CreateSegmentDto): Promise<Segment> {
     return this.segmentationService.create(createSegmentDto);
   }
@@ -42,7 +42,7 @@ export class SegmentController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a segment by ID' })
-  @IApiResponse({ status: 404, description: 'Segment not found' })
+  @ApiResponse({ status: 404, description: 'Segment not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Segment> {
     return this.segmentationService.findOne(id);
   }
@@ -71,7 +71,7 @@ export class SegmentController {
 
   @Post(':id/members')
   @ApiOperation({ summary: 'Add users to a static segment' })
-  @IApiResponse({ status: 200, description: 'Users added successfully' })
+  @ApiResponse({ status: 200, description: 'Users added successfully' })
   async addMembers(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() addMembersDto: AddSegmentMembersDto,

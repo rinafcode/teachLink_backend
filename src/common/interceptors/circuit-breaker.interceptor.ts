@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, from, throwError } from 'rxjs';
-import { catchError, mergeMap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { EnhancedCircuitBreakerService } from '../services/circuit-breaker.service';
 import {
   CIRCUIT_BREAKER_METADATA,
