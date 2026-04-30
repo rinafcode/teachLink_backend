@@ -25,12 +25,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --prefer-offline
-          else
-            npm install --prefer-offline
-          fi
+        run: npm install
       - uses: actions/cache@v4
         with:
           path: node_modules
