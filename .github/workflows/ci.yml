@@ -24,7 +24,8 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      - run: npm ci --prefer-offline
+      - name: Install dependencies
+        run: npm install
       - uses: actions/cache@v4
         with:
           path: node_modules

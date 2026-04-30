@@ -35,7 +35,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --prefer-offline
+        run: npm install
 
       # ── npm audit (built-in, zero config) ──────────────────────────────────
       - name: npm audit
@@ -55,8 +55,8 @@ jobs:
             --sarif-file-output=snyk-sca.sarif
 
       - name: Upload Snyk SCA results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: hashFiles('snyk-sca.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('snyk-sca.sarif') != ''
         with:
           sarif_file: snyk-sca.sarif
           category: snyk-sca
@@ -87,7 +87,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --prefer-offline
+        run: npm install
 
       - name: Build (required for CodeQL to trace the compilation graph)
         run: npm run build
@@ -127,6 +127,8 @@ jobs:
           ignore-unfixed: true # skip vulnerabilities with no upstream fix yet
 
       - name: Upload Trivy image results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-image.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         if: hashFiles('trivy-image.sarif') != ''
         with:
@@ -146,6 +148,8 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy IaC results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-iac.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         if: hashFiles('trivy-iac.sarif') != ''
         with:

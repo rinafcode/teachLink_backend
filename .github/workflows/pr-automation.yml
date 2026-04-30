@@ -7,10 +7,12 @@ on:
 jobs:
   label-and-review:
     name: Label & Request Reviews
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
+      issues: write
       issues: read
     steps:
       - name: Detect changed paths

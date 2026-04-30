@@ -18,18 +18,21 @@ jobs:
 
       - name: Run license scan
         id: scan
+        shell: bash
         run: |
+          set +e
           node scripts/scan-licenses.js > compliance-output.txt 2>&1
           RESULT=$?
+          set -e
           cat compliance-output.txt
-          echo "exit_code=$RESULT" >> $GITHUB_OUTPUT
+          echo "exit_code=$RESULT" >> "$GITHUB_OUTPUT"
           
           if grep -q "Status: FAILED" compliance-output.txt; then
-            echo "status=FAILED" >> $GITHUB_OUTPUT
+            echo "status=FAILED" >> "$GITHUB_OUTPUT"
           elif grep -q "Status: WARNING" compliance-output.txt; then
-            echo "status=WARNING" >> $GITHUB_OUTPUT
+            echo "status=WARNING" >> "$GITHUB_OUTPUT"
           else
-            echo "status=PASSED" >> $GITHUB_OUTPUT
+            echo "status=PASSED" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload compliance report
