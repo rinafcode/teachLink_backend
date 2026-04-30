@@ -58,6 +58,15 @@ groups:
           summary: 'Node.js event loop lag above 200ms for 5m'
           description: 'Event loop lag is {{ $value }}s.'
 
+      - alert: InfrastructureCostHigh
+        expr: increase(infrastructure_hourly_cost_usd[24h]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Estimated infrastructure cost > $100 in last 24h'
+          description: 'Estimated spend over the last 24 hours is {{ $value }} USD. Adjust budgets or investigate spikes.'
   - name: teachlink-queue
     rules:
       - alert: QueueDepthHigh

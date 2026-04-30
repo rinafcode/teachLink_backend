@@ -109,6 +109,8 @@ export interface IFeatureFlagsConfig {
    *  `true`: CachingModule is loaded, cache decorators and interceptors active.
    *  `false`: CachingModule is skipped. */
   ENABLE_CACHING: boolean;
+  /** Gates the AnalyticsModule — controls feature analytics event collection and reporting. */
+  ENABLE_ANALYTICS: boolean;
 
   /** Gates the FeatureFlagsModule — controls runtime feature flag management UI/API.
    *  `true`: FeatureFlagsModule is loaded, flag CRUD endpoints available.
@@ -202,6 +204,7 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_FEATURE_FLAGS: true,
   ENABLE_SEARCH: true,
   ENABLE_NOTIFICATIONS: true,
+  ENABLE_ANALYTICS: true,
   ENABLE_EMAIL_MARKETING: true,
   ENABLE_GAMIFICATION: true,
   ENABLE_ASSESSMENT: true,
@@ -257,6 +260,7 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
       'ENABLE_NOTIFICATIONS',
       defaultFeatureFlags.ENABLE_NOTIFICATIONS,
     ),
+    ENABLE_ANALYTICS: getBooleanEnv('ENABLE_ANALYTICS', defaultFeatureFlags.ENABLE_ANALYTICS ?? true),
     ENABLE_EMAIL_MARKETING: getBooleanEnv(
       'ENABLE_EMAIL_MARKETING',
       defaultFeatureFlags.ENABLE_EMAIL_MARKETING,

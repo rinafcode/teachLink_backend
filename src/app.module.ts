@@ -40,6 +40,7 @@ import { ObservabilityModule } from './observability/observability.module';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import { CachingModule } from './caching/caching.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { SearchModule } from './search/search.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
@@ -74,6 +75,7 @@ export class AppModule {
         isGlobal: true,
         validationSchema: envValidationSchema,
       }),
+      AuditLogModule,
       TypeOrmModule.forRootAsync({
         imports: [MonitoringModule],
         inject: [MetricsCollectionService],
@@ -397,6 +399,15 @@ export class AppModule {
       startupLogger.recordModuleSkipped('CDNModule', 'ENABLE_CDN=false');
     }
 
+    // Analytics Module
+    if (flags.ENABLE_ANALYTICS) {
+      const startTime = Date.now();
+      featureModules.push(AnalyticsModule);
+      startupLogger.recordModuleLoaded('AnalyticsModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('AnalyticsModule', 'ENABLE_ANALYTICS=false');
+    }
+
     // Localization Module
     if (flags.ENABLE_LOCALIZATION) {
       const startTime = Date.now();
@@ -438,6 +449,10 @@ export class AppModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: TimeoutInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: SensitiveOperationInterceptor,
         },
         {
           provide: APP_GUARD,

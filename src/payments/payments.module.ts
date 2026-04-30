@@ -10,6 +10,7 @@ import { WebhookManagementController } from './webhooks/webhook-management.contr
 import { WebhookService } from './webhooks/webhook.service';
 import { WebhookQueueService } from './webhooks/webhook-queue.service';
 import { WebhookRetryProcessor } from './webhooks/webhook-retry.processor';
+import { WebhookSecurityService } from './webhooks/webhook-security.service';
 import { SubscriptionsService } from './subscriptions/subscriptions.service';
 import { SubscriptionJobProcessor } from './subscriptions/subscription-job.processor';
 import { StripeService } from './providers/stripe.service';
@@ -45,6 +46,7 @@ import { IdempotencyService } from '../common/services/idempotency.service';
     WebhookService,
     WebhookQueueService,
     WebhookRetryProcessor,
+    WebhookSecurityService,
     SubscriptionsService,
     SubscriptionJobProcessor,
     StripeService,
@@ -53,6 +55,12 @@ import { IdempotencyService } from '../common/services/idempotency.service';
     TransactionHelperService,
     IdempotencyService,
   ],
-  exports: [PaymentsService, ProviderFactoryService, WebhookQueueService, IdempotencyService],
+  exports: [
+    PaymentsService,
+    ProviderFactoryService,
+    WebhookQueueService,
+    WebhookSecurityService,
+    IdempotencyService,
+  ],
 })
 export class PaymentsModule {}

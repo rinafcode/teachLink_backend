@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
-import { IUploadedFile } from '../../common/types/file.types';
+import { UploadedFile } from '@nestjs/common';
 
 @Injectable()
 export class FileStorageService {
@@ -24,10 +24,7 @@ export class FileStorageService {
       this.configService.get<string>('AWS_S3_BUCKET', '') ||
       this.configService.get<string>('AWS_S3_BUCKET_NAME', '');
 
-    const distributionId = this.configService.get<string>(
-      'AWS_CLOUDFRONT_DISTRIBUTION_ID',
-      '',
-    );
+    const distributionId = this.configService.get<string>('AWS_CLOUDFRONT_DISTRIBUTION_ID', '');
 
     this.publicBaseUrl = distributionId
       ? `https://${distributionId}.cloudfront.net`
@@ -44,7 +41,7 @@ export class FileStorageService {
 
   // Legacy method for backward compatibility
   async uploadFile(
-    file: IUploadedFile,
+    file: UploadedFile,
     metadata: ContentMetadata,
   ): Promise<{ url: string; etag?: string }> {
     const key = `${metadata.contentId}/${Date.now()}_${file.originalname}`;
@@ -60,7 +57,13 @@ export class FileStorageService {
     // If a full URL is provided, return as-is
     if (keyOrUrl.startsWith('http')) return keyOrUrl;
 
-    return this.getPublicUrl(keyOrUrl);
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: keyOrUrl,
+    });
+
+    // For simplicity, return the key as URL (in production, generate proper signed URL)
+    return `https://${this.bucketName}.s3.amazonaws.com/${keyOrUrl}`;
   }
 
   async uploadProcessedFile(
