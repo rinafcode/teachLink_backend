@@ -34,7 +34,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
   lint:
     name: ESLint
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx eslint "{src,apps,libs,test}/**/*.ts" --max-warnings 0
 
   format:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
 
   typecheck:
@@ -75,7 +75,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx tsc --project tsconfig.build.json --noEmit
 
   build:
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with: { name: dist, path: dist/, retention-days: 1 }
@@ -105,7 +105,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm run test:ci
         env:
           NODE_ENV: test
@@ -167,7 +167,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json', 'pnpm-lock.yaml') }}
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - uses: actions/download-artifact@v4
         with: { name: dist, path: dist/ }
       - run: npx jest --config test/jest-e2e.json --forceExit --runInBand
