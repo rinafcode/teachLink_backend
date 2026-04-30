@@ -41,7 +41,7 @@
     "sdk:generate:spec": "ts-node scripts/generate-openapi-spec.ts",
     "sdk:generate:ts": "openapi-generator-cli generate -i openapi-spec.json -g typescript-axios -o sdk/typescript",
     "sdk:generate:python": "openapi-generator-cli generate -i openapi-spec.json -g python -o sdk/python",
-    "sdk:generate": "npm run sdk:generate:spec && npm run sdk:generate:ts && npm run sdk:generate:python"
+    "sdk:generate": "npm run sdk:generate:spec && npm run sdk:generate:ts && npm run sdk:generate:python",
     "audit": "npm audit --audit-level=high",
     "audit:fix": "npm audit fix",
     "deps:update": "npx npm-check-updates -u '/.*/' && npm install",
