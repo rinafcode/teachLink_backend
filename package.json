@@ -7,7 +7,6 @@
   "license": "UNLICENSED",
   "scripts": {
     "license:scan": "node scripts/scan-licenses.js",
-    "license:scan": "node scripts/scan-licenses.js",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -158,8 +157,6 @@
     "@types/istanbul-lib-report": "^3.0.3",
     "@types/jest": "^29.5.2",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/mime": "^3.0.4",
-    "@types/node": "^20.19.39",
     "@types/mime": "^4.0.0",
     "@types/node": "^20.19.4",
     "@types/passport-jwt": "^4.0.1",
