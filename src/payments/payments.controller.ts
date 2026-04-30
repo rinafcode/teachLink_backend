@@ -10,7 +10,7 @@ import {
   UseInterceptors,
   Headers,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, IApiResponse, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
 import { PaymentsService } from './payments.service';
@@ -57,7 +57,7 @@ export class PaymentsController {
     required: true,
   })
   @ApiOperation({ summary: 'Create a payment intent for course purchase' })
-  @IApiResponse({ status: 201, description: 'Payment intent created' })
+  @ApiResponse({ status: 201, description: 'Payment intent created' })
   async createPaymentIntent(
     @Request() req: IAuthenticatedRequest,
     @Body() createPaymentDto: CreatePaymentDto,
@@ -77,7 +77,7 @@ export class PaymentsController {
     required: true,
   })
   @ApiOperation({ summary: 'Create a subscription for premium course' })
-  @IApiResponse({ status: 201, description: 'Subscription created' })
+  @ApiResponse({ status: 201, description: 'Subscription created' })
   async createSubscription(
     @Request() req: IAuthenticatedRequest,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
@@ -100,7 +100,7 @@ export class PaymentsController {
     required: true,
   })
   @ApiOperation({ summary: 'Process a refund' })
-  @IApiResponse({ status: 200, description: 'Refund processed' })
+  @ApiResponse({ status: 200, description: 'Refund processed' })
   async processRefund(
     @Body() refundDto: RefundDto,
     @Headers('x-idempotency-key') idempotencyKey?: string,
@@ -111,7 +111,7 @@ export class PaymentsController {
   @Get('invoices/:paymentId')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get invoice for a payment' })
-  @IApiResponse({ status: 200, description: 'Invoice retrieved' })
+  @ApiResponse({ status: 200, description: 'Invoice retrieved' })
   async getInvoice(
     @Param('paymentId') paymentId: string,
     @Request() req: IAuthenticatedRequest,
@@ -122,7 +122,7 @@ export class PaymentsController {
   @Get('user/payments')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user payment history' })
-  @IApiResponse({ status: 200, description: 'Payment history retrieved' })
+  @ApiResponse({ status: 200, description: 'Payment history retrieved' })
   async getUserPayments(
     @Request() req: IAuthenticatedRequest,
     @Query('limit') limit: number = 10,
@@ -134,7 +134,7 @@ export class PaymentsController {
   @Get('user/subscriptions')
   @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user subscriptions' })
-  @IApiResponse({ status: 200, description: 'Subscriptions retrieved' })
+  @ApiResponse({ status: 200, description: 'Subscriptions retrieved' })
   async getUserSubscriptions(@Request() req: IAuthenticatedRequest): Promise<Subscription[]> {
     return this.paymentsService.getUserSubscriptions(req.user.id);
   }

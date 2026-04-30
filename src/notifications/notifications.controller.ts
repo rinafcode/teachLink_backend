@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, IApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,7 +26,7 @@ export class NotificationsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all notifications for current user' })
-  @IApiResponse({ status: 200, type: [NotificationResponseDto] })
+  @ApiResponse({ status: 200, type: [NotificationResponseDto] })
   async getMyNotifications(
     @CurrentUser('id') userId: string,
     @Query('isRead') isRead?: boolean,
@@ -89,4 +89,11 @@ export class NotificationsController {
   ) {
     return this.notificationsService.updatePreferences(userId, preferencesDto);
   }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get notification delivery statistics (Admin)' })
+  async getStats() {
+    return this.notificationsService.getDeliveryStats();
+  }
 }
+

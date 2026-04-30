@@ -8,6 +8,7 @@ import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
 import { SearchIndexOptimizerService } from './indexing/search-index-optimizer.service';
 import { createElasticsearchConfig } from '../config/elasticsearch.config';
+import { ElasticsearchService } from './elasticsearch/elasticsearch.service';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { createElasticsearchConfig } from '../config/elasticsearch.config';
     AutoCompleteService,
     SearchFiltersService,
     SearchIndexOptimizerService,
+    ElasticsearchService,
   ],
   exports: [
     SearchService,

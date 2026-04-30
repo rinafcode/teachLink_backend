@@ -17,7 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
-  IApiResponse,
+  ApiResponse,
   ApiConsumes,
   ApiBody,
   ApiParam,
@@ -58,16 +58,16 @@ export class CdnController {
     description: 'Content upload with validation and optimization options',
     type: UploadContentDto,
   })
-  @IApiResponse({
+  @ApiResponse({
     status: 201,
     description: 'Content uploaded successfully',
     type: ContentMetadata,
   })
-  @IApiResponse({ status: 400, description: 'Validation failed or bad request' })
-  @IApiResponse({ status: 403, description: 'Malware detected' })
-  @IApiResponse({ status: 413, description: 'File too large' })
-  @IApiResponse({ status: 415, description: 'Unsupported media type' })
-  @IApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiResponse({ status: 400, description: 'Validation failed or bad request' })
+  @ApiResponse({ status: 403, description: 'Malware detected' })
+  @ApiResponse({ status: 413, description: 'File too large' })
+  @ApiResponse({ status: 415, description: 'Unsupported media type' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
   async uploadContent(
     @IUploadedFile() file: IFileUpload,
     @Body() options: UploadContentDto,
@@ -133,7 +133,7 @@ export class CdnController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Validate file without uploading' })
   @ApiConsumes('multipart/form-data')
-  @IApiResponse({
+  @ApiResponse({
     status: 200,
     description: 'File validation result',
     schema: {
@@ -158,7 +158,7 @@ export class CdnController {
       },
     },
   })
-  @IApiResponse({ status: 400, description: 'No file provided' })
+  @ApiResponse({ status: 400, description: 'No file provided' })
   async validateFile(@IUploadedFile() file: IFileUpload): Promise<IFileValidationResult> {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -172,7 +172,7 @@ export class CdnController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Scan file for malware without uploading' })
   @ApiConsumes('multipart/form-data')
-  @IApiResponse({
+  @ApiResponse({
     status: 200,
     description: 'Malware scan result',
     schema: {
@@ -186,8 +186,8 @@ export class CdnController {
       },
     },
   })
-  @IApiResponse({ status: 400, description: 'No file provided' })
-  @IApiResponse({ status: 503, description: 'Scanning service not available' })
+  @ApiResponse({ status: 400, description: 'No file provided' })
+  @ApiResponse({ status: 503, description: 'Scanning service not available' })
   async scanFile(@IUploadedFile() file: IFileUpload) {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -206,7 +206,7 @@ export class CdnController {
 
   @Get('allowed-types')
   @ApiOperation({ summary: 'Get allowed file types and size limits' })
-  @IApiResponse({
+  @ApiResponse({
     status: 200,
     description: 'Allowed file types and limits',
     schema: {
@@ -243,7 +243,7 @@ export class CdnController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Preview image compression without saving' })
   @ApiConsumes('multipart/form-data')
-  @IApiResponse({
+  @ApiResponse({
     status: 200,
     description: 'Compression preview result',
     schema: {
@@ -258,7 +258,7 @@ export class CdnController {
       },
     },
   })
-  @IApiResponse({ status: 400, description: 'Invalid file or not an image' })
+  @ApiResponse({ status: 400, description: 'Invalid file or not an image' })
   async compressPreview(@IUploadedFile() file: IFileUpload) {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -294,8 +294,8 @@ export class CdnController {
   @ApiQuery({ name: 'format', required: false, enum: ['webp', 'jpeg', 'png'] })
   @ApiQuery({ name: 'userLocation', required: false, type: String })
   @ApiQuery({ name: 'bandwidth', required: false, type: Number })
-  @IApiResponse({ status: 200, description: 'Content URL retrieved successfully' })
-  @IApiResponse({ status: 404, description: 'Content not found' })
+  @ApiResponse({ status: 200, description: 'Content URL retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Content not found' })
   async getContentUrl(
     @Param('contentId') contentId: string,
     @Query('optimize') optimize?: string,
@@ -332,8 +332,8 @@ export class CdnController {
   @Delete('content/:contentId')
   @ApiOperation({ summary: 'Invalidate content cache' })
   @ApiParam({ name: 'contentId', description: 'Content identifier' })
-  @IApiResponse({ status: 200, description: 'Content cache invalidated successfully' })
-  @IApiResponse({ status: 404, description: 'Content not found' })
+  @ApiResponse({ status: 200, description: 'Content cache invalidated successfully' })
+  @ApiResponse({ status: 404, description: 'Content not found' })
   async invalidateContent(@Param('contentId') contentId: string): Promise<{ success: boolean }> {
     try {
       await this.cdnService.invalidateContent(contentId);
@@ -347,7 +347,7 @@ export class CdnController {
 
   @Get('health')
   @ApiOperation({ summary: 'Check CDN health status' })
-  @IApiResponse({ status: 200, description: 'CDN health status' })
+  @ApiResponse({ status: 200, description: 'CDN health status' })
   async getHealth(): Promise<{
     status: string;
     providers: Record<string, boolean>;
@@ -375,7 +375,7 @@ export class CdnController {
   @ApiOperation({ summary: 'Get CDN analytics' })
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
-  @IApiResponse({ status: 200, description: 'CDN analytics data' })
+  @ApiResponse({ status: 200, description: 'CDN analytics data' })
   async getAnalytics(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,

@@ -42,6 +42,10 @@ scrape target is `host.docker.internal:3000`, which works on Docker Desktop
 and on Linux thanks to the `host-gateway` mapping in `docker-compose.yml`.
 For staging / production, edit `prometheus.yml` to point at the real host.
 
+### Cost panels
+
+This stack includes basic cost tracking panels (Hourly Infrastructure Cost and Estimated Spend 24h) which rely on the backend recording `infrastructure_hourly_cost_usd` metric. This metric must be emitted by the application or an external exporter for alerts to work.
+
 ## After it's up
 
 1. Open Grafana → **Dashboards → TeachLink → TeachLink Overview**.

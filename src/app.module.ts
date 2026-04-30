@@ -32,6 +32,7 @@ import { BackupModule } from './backup/backup.module';
 import { CollaborationModule } from './collaboration/collaboration.module';
 import { DataWarehouseModule } from './data-warehouse/data-warehouse.module';
 import { QueueModule } from './queues/queue.module';
+import { WorkersModule } from './workers/workers.module';
 import { GraphQLModule } from './graphql/graphql.module';
 import { MigrationModule } from './migrations/migration.module';
 import { ABTestingModule } from './ab-testing/ab-testing.module';
@@ -39,6 +40,7 @@ import { ObservabilityModule } from './observability/observability.module';
 import { RateLimitingModule } from './rate-limiting/services/rate-limiting.module';
 import { CachingModule } from './caching/caching.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { SearchModule } from './search/search.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
@@ -53,6 +55,7 @@ import { CdnModule } from './cdn/cdn.module';
 import { AuthModule } from './auth/auth.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LocalizationModule } from './localization/localization.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 import { CsrfModule } from './common/csrf/csrf.module';
 import { TimeoutModule } from './common/timeout/timeout.module';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
@@ -72,6 +75,7 @@ export class AppModule {
         isGlobal: true,
         validationSchema: envValidationSchema,
       }),
+      AuditLogModule,
       TypeOrmModule.forRootAsync({
         imports: [MonitoringModule],
         inject: [MetricsCollectionService],
@@ -395,6 +399,15 @@ export class AppModule {
       startupLogger.recordModuleSkipped('CDNModule', 'ENABLE_CDN=false');
     }
 
+    // Analytics Module
+    if (flags.ENABLE_ANALYTICS) {
+      const startTime = Date.now();
+      featureModules.push(AnalyticsModule);
+      startupLogger.recordModuleLoaded('AnalyticsModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('AnalyticsModule', 'ENABLE_ANALYTICS=false');
+    }
+
     // Localization Module
     if (flags.ENABLE_LOCALIZATION) {
       const startTime = Date.now();
@@ -402,6 +415,15 @@ export class AppModule {
       startupLogger.recordModuleLoaded('LocalizationModule', startTime);
     } else {
       startupLogger.recordModuleSkipped('LocalizationModule', 'ENABLE_LOCALIZATION=false');
+    }
+
+    // Onboarding Module
+    if (flags.ENABLE_ONBOARDING) {
+      const startTime = Date.now();
+      featureModules.push(OnboardingModule);
+      startupLogger.recordModuleLoaded('OnboardingModule', startTime);
+    } else {
+      startupLogger.recordModuleSkipped('OnboardingModule', 'ENABLE_ONBOARDING=false');
     }
 
     // Queue Module (always loaded for Bull)
@@ -427,6 +449,10 @@ export class AppModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: TimeoutInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: SensitiveOperationInterceptor,
         },
         {
           provide: APP_GUARD,

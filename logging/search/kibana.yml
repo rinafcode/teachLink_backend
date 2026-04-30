@@ -23,7 +23,7 @@ name: teachlink-logging-search
 
 networks:
   logging:
-    external: true          # Attaches to the network created by elasticsearch.yml
+    external: true # Attaches to the network created by elasticsearch.yml
 
 services:
   kibana:

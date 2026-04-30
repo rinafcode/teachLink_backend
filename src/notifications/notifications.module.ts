@@ -11,6 +11,7 @@ import { NotificationTemplatesService } from './notification-templates.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { EmailService } from './email/email.service';
 import { EmailProcessor } from './email/email.processor';
+import { NotificationsQueueService } from './notifications.queue';
 import { Notification } from './entities/notification.entity';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
 
@@ -35,7 +36,9 @@ import { NotificationPreferences } from './entities/notification-preferences.ent
     PreferencesService,
     EmailService,
     EmailProcessor,
+    NotificationsQueueService,
   ],
   exports: [NotificationsService, PreferencesService],
 })
 export class NotificationsModule {}
+

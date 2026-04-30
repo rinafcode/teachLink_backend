@@ -37,6 +37,23 @@ services:
         condition: service_healthy
     networks:
       - teachlink
+    # ── Runtime security hardening ──────────────────────────────────────────
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /app/tmp:size=64m,mode=1777
+      - /tmp:size=32m,mode=1777
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/health']
       interval: 30s
@@ -59,6 +76,23 @@ services:
       - teachlink
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-teachlink}']
       interval: 10s
@@ -82,6 +116,18 @@ services:
       - teachlink
     volumes:
       - redis-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -104,6 +150,22 @@ services:
       - teachlink
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
     healthcheck:
       test:
         [
@@ -133,6 +195,18 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:9090/-/healthy']
       interval: 30s
@@ -154,6 +228,18 @@ services:
     volumes:
       - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:9093/-/healthy']
       interval: 30s
@@ -179,12 +265,70 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/api/health']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: teachlink-redis-exporter
+    restart: unless-stopped
+    ports:
+      - '9121:9121'
+    environment:
+      REDIS_ADDR: 'redis://redis:6379'
+    networks:
+      - teachlink
+    depends_on:
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64M
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: teachlink-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - '9187:9187'
+    environment:
+      DATA_SOURCE_NAME: 'postgresql://${DATABASE_USER:-postgres}:${DATABASE_PASSWORD:-postgres}@postgres:5432/${DATABASE_NAME:-teachlink}?sslmode=disable'
+    networks:
+      - teachlink
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64M
 
   # ─── Log Search UI ──────────────────────────────────────────────────────────
   kibana:
@@ -204,6 +348,22 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     healthcheck:
       test:
         [
@@ -234,3 +394,17 @@ services:
       ELASTICSEARCH_NODE: 'http://elasticsearch:9200'
       ELASTICSEARCH_USERNAME: '${ELASTICSEARCH_USERNAME:-}'
       ELASTICSEARCH_PASSWORD: '${ELASTICSEARCH_PASSWORD:-}'
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_READ_SEARCH
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
