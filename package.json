@@ -44,7 +44,14 @@
     "load:test:health": "k6 run tests/load/scenarios/health.scenario.ts",
     "load:test:auth": "k6 run tests/load/scenarios/auth.scenario.ts",
     "chaos:test:latency": "k6 run tests/chaos/experiments/latency.experiment.ts",
-    "chaos:test:error": "k6 run tests/chaos/experiments/error-rate.experiment.ts"
+    "chaos:test:error": "k6 run tests/chaos/experiments/error-rate.experiment.ts",
+    "release:dry-run": "bash scripts/bump-version.sh patch --dry-run",
+    "release:patch": "bash scripts/bump-version.sh patch",
+    "release:minor": "bash scripts/bump-version.sh minor",
+    "release:major": "bash scripts/bump-version.sh major",
+    "release:auto": "bash scripts/bump-version.sh auto",
+    "version:next": "node scripts/get-next-version.js auto",
+    "changelog:generate": "node scripts/generate-changelog.js $(node scripts/get-next-version.js auto | grep 'New version' | awk '{print $NF}')"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
@@ -150,8 +157,6 @@
     "@types/istanbul-lib-report": "^3.0.3",
     "@types/jest": "^29.5.2",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/mime": "^3.0.4",
-    "@types/node": "^20.19.39",
     "@types/mime": "^4.0.0",
     "@types/node": "^20.19.4",
     "@types/passport-jwt": "^4.0.1",

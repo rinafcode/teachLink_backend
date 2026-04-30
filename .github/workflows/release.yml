@@ -1,0 +1,282 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Perform a dry run without creating release'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  NODE_OPTIONS: '--max-old-space-size=4096'
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+      release_type: ${{ steps.determine_type.outputs.release_type }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Release Type
+        id: determine_type
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # Tag-based release
+            TAG=${{ github.ref }}
+            VERSION=${TAG#refs/tags/v}
+            echo "release_type=tag" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            # Manual workflow dispatch
+            echo "release_type=${{ github.event.inputs.release_type }}" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Calculate New Version
+        id: version
+        run: node scripts/get-next-version.js ${{ steps.determine_type.outputs.release_type }}
+
+      - name: Verify Git is clean
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Git working directory is not clean"
+            exit 1
+          fi
+
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint:ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test:ci
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Changelog
+        id: changelog
+        run: node scripts/generate-changelog.js ${{ needs.validate.outputs.new_version }}
+
+      - name: Display generated changelog
+        run: |
+          echo "Generated changelog for version ${{ needs.validate.outputs.new_version }}"
+          echo "---"
+          cat CHANGELOG.md | head -50
+
+  publish-release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: [validate, build, generate-changelog]
+    if: ${{ !github.event.inputs.dry_run || github.event.inputs.dry_run == 'false' }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build distribution
+        run: npm run build
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "release@teachlink.local"
+          git config --local user.name "Release Bot"
+
+      - name: Update Version in package.json
+        run: |
+          npm version ${{ needs.validate.outputs.new_version }} --no-git-tag-version
+
+      - name: Commit version bump
+        run: |
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "chore: bump version to ${{ needs.validate.outputs.new_version }}"
+
+      - name: Create Git Tag
+        run: |
+          git tag -a v${{ needs.validate.outputs.new_version }} -m "Release v${{ needs.validate.outputs.new_version }}"
+
+      - name: Push commits and tags
+        run: |
+          git push origin main --follow-tags
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.validate.outputs.new_version }}
+          release_name: Release v${{ needs.validate.outputs.new_version }}
+          body: ${{ needs.generate-changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ contains(needs.validate.outputs.new_version, '-') }}
+
+      - name: Publish to npm
+        if: ${{ !contains(needs.validate.outputs.new_version, '-') }}
+        run: npm publish --access public
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Slack notification
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "✅ Release v${{ needs.validate.outputs.new_version }} published successfully",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Release Published*\nVersion: v${{ needs.validate.outputs.new_version }}\nRef: <${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ needs.validate.outputs.new_version }}|View Release>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_RELEASES }}
+
+  dry-run:
+    name: Dry Run Release
+    runs-on: ubuntu-latest
+    needs: [validate, build, generate-changelog]
+    if: ${{ github.event.inputs.dry_run == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Show Release Summary
+        run: |
+          echo "=== DRY RUN RELEASE SUMMARY ==="
+          echo "New Version: v${{ needs.validate.outputs.new_version }}"
+          echo "Release Type: ${{ needs.validate.outputs.release_type }}"
+          echo ""
+          echo "=== Changelog Preview ==="
+          cat CHANGELOG.md | head -50
+          echo ""
+          echo "=== Files to be modified ==="
+          echo "- package.json"
+          echo "- package-lock.json"
+          echo "- CHANGELOG.md"
+          echo ""
+          echo "=== What will happen ==="
+          echo "1. Version bumped to v${{ needs.validate.outputs.new_version }}"
+          echo "2. Changes committed to main branch"
+          echo "3. Git tag created: v${{ needs.validate.outputs.new_version }}"
+          echo "4. GitHub release created"
+          echo "5. Package published to npm"
+
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [validate, build, generate-changelog, publish-release]
+    if: failure()
+    steps:
+      - name: Slack notification on failure
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ Release workflow failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Release Workflow Failed*\nRef: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_RELEASES }}

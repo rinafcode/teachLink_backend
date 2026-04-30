@@ -10,6 +10,9 @@ on:
 jobs:
   scan-licenses:
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.scan.outputs.status }}
+      exit_code: ${{ steps.scan.outputs.exit_code }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,14 +46,14 @@ jobs:
     steps:
       - name: Check license compliance status
         run: |
-          if [[ "${{ steps.scan.outputs.status }}" == "FAILED" ]]; then
+          if [[ "${{ needs.scan-licenses.outputs.status }}" == "FAILED" ]]; then
             echo "::error::Prohibited licenses found in dependencies!"
             echo "Please review the license report and address any prohibited licenses."
             exit 1
           fi
 
       - name: Approval needed for review-required packages
-        if: steps.scan.outputs.status == 'WARNING'
+        if: needs.scan-licenses.outputs.status == 'WARNING'
         run: |
           echo "::warning::License review required for some dependencies"
           echo ""
