@@ -13,6 +13,9 @@ import { Segment } from './segment.entity';
 import { SegmentRuleOperator } from '../enums/segment-rule-operator.enum';
 import { SegmentRuleField } from '../enums/segment-rule-field.enum';
 
+/**
+ * Represents the segment Rule entity.
+ */
 @Entity('segment_rules')
 export class SegmentRule {
   @ApiProperty()

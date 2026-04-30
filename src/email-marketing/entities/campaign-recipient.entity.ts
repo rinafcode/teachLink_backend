@@ -13,6 +13,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Campaign } from './campaign.entity';
 import { RecipientStatus } from '../enums/recipient-status.enum';
 
+/**
+ * Represents the campaign Recipient entity.
+ */
 @Entity('campaign_recipients')
 @Index(['campaignId', 'status'])
 export class CampaignRecipient {

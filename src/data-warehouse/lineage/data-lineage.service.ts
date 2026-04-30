@@ -57,6 +57,9 @@ export interface ImpactAnalysis {
   timestamp: Date;
 }
 
+/**
+ * Provides data Lineage operations.
+ */
 @Injectable()
 export class DataLineageService {
   private readonly logger = new Logger(DataLineageService.name);

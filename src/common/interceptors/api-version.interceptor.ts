@@ -1,5 +1,12 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import {
+  CallHandler,
+  createParamDecorator,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
+} from '@nestjs/common';
+import { Observable, tap } from 'rxjs';
 
 export const API_VERSION_HEADER = process.env.API_VERSION_HEADER_NAME?.trim() || 'X-API-Version';
 export const API_VERSION_HEADER_KEY = API_VERSION_HEADER.toLowerCase();
@@ -30,6 +37,11 @@ export function normalizeRequestedApiVersion(version?: string | string[]): strin
   return match[1];
 }
 
+/**
+ * Normalizes a configured API version string.
+ * @param version The configured version value.
+ * @returns The normalized major version.
+ */
 export function normalizeConfiguredVersion(version: string): string {
   const normalized = normalizeRequestedApiVersion(version);
   return normalized || '1';

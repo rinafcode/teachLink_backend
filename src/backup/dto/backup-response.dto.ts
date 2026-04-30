@@ -12,6 +12,9 @@ import {
   IsDate,
 } from 'class-validator';
 
+/**
+ * Defines the backup Response payload.
+ */
 export class BackupResponseDto {
   @ApiProperty()
   @IsNotEmpty()

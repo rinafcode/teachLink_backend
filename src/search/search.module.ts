@@ -10,6 +10,9 @@ import { SearchIndexOptimizerService } from './indexing/search-index-optimizer.s
 import { createElasticsearchConfig } from '../config/elasticsearch.config';
 import { ElasticsearchService } from './elasticsearch/elasticsearch.service';
 
+/**
+ * Registers the search module.
+ */
 @Module({
   imports: [
     ConfigModule,

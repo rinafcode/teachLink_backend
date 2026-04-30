@@ -12,6 +12,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { AutomationWorkflow } from './automation-workflow.entity';
 import { TriggerType } from '../enums/trigger-type.enum';
 
+/**
+ * Represents the automation Trigger entity.
+ */
 @Entity('automation_triggers')
 export class AutomationTrigger {
   @ApiProperty()

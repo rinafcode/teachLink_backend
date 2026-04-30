@@ -6,6 +6,9 @@ interface IWorkflowStep {
   compensate?: () => Promise<void>;
 }
 
+/**
+ * Provides workflow Engine operations.
+ */
 @Injectable()
 export class WorkflowEngineService {
   private readonly logger = new Logger(WorkflowEngineService.name);

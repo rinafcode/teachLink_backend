@@ -20,6 +20,9 @@ export interface ICollaborativeDocument {
   updatedAt: Date;
 }
 
+/**
+ * Provides shared Document operations.
+ */
 @Injectable()
 export class SharedDocumentService {
   private readonly logger = Logger;

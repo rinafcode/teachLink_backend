@@ -20,6 +20,10 @@ export class CreateMigrationsTrackingTableMigration implements IMigrationConfig 
 
   private readonly logger = new Logger(CreateMigrationsTrackingTableMigration.name);
 
+  /**
+   * Executes up.
+   * @param connection The connection.
+   */
   async up(connection: any): Promise<void> {
     this.logger.log('Applying migration: create migrations tracking table');
 
@@ -47,6 +51,10 @@ export class CreateMigrationsTrackingTableMigration implements IMigrationConfig 
     this.logger.log('Migration applied: create migrations tracking table');
   }
 
+  /**
+   * Executes down.
+   * @param connection The connection.
+   */
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create migrations tracking table');
 

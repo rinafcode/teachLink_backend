@@ -52,6 +52,10 @@ export class HealthController implements OnModuleDestroy {
     return healthStatus;
   }
 
+  /**
+   * Validates liveness.
+   * @returns The operation result.
+   */
   @Get('liveness')
   @ApiResponse({ status: HttpStatus.OK, description: 'Liveness check response' })
   @ApiResponse({
@@ -72,6 +76,10 @@ export class HealthController implements OnModuleDestroy {
     });
   }
 
+  /**
+   * Validates readiness.
+   * @returns The operation result.
+   */
   @Get('readiness')
   @ApiResponse({
     status: HttpStatus.OK,
@@ -93,6 +101,11 @@ export class HealthController implements OnModuleDestroy {
     return res.status(HttpStatus.OK).json(healthStatus);
   }
 
+  /**
+   * Validates dependencies.
+   * @param service The service.
+   * @returns The operation result.
+   */
   @Get('dependencies')
   async checkDependencies(@Query('service') service?: string) {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
@@ -114,6 +127,10 @@ export class HealthController implements OnModuleDestroy {
     };
   }
 
+  /**
+   * Validates database.
+   * @returns The operation result.
+   */
   @Get('database')
   async checkDatabase() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
@@ -125,6 +142,10 @@ export class HealthController implements OnModuleDestroy {
     };
   }
 
+  /**
+   * Validates redis.
+   * @returns The operation result.
+   */
   @Get('redis')
   async checkRedis() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
@@ -136,6 +157,10 @@ export class HealthController implements OnModuleDestroy {
     };
   }
 
+  /**
+   * Validates queue.
+   * @returns The operation result.
+   */
   @Get('queue')
   async checkQueue() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
@@ -147,6 +172,10 @@ export class HealthController implements OnModuleDestroy {
     };
   }
 
+  /**
+   * Validates cache.
+   * @returns The operation result.
+   */
   @Get('cache')
   async checkCache() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);
@@ -158,6 +187,10 @@ export class HealthController implements OnModuleDestroy {
     };
   }
 
+  /**
+   * Returns health Summary.
+   * @returns The operation result.
+   */
   @Get('summary')
   async getHealthSummary() {
     const healthStatus = await this.healthService.checkHealth(this.dataSource, this.redis);

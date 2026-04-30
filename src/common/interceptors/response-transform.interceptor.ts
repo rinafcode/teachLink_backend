@@ -10,8 +10,17 @@ export interface ApiResponse<T = any> {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Intercepts response Transform request handling.
+ */
 @Injectable()
 export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T, ApiResponse<T>> {
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<api response<t>>.
+   */
   intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
     const ctx = context.switchToHttp();
     const response = ctx.getResponse<Response>();

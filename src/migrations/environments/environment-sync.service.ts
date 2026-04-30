@@ -9,6 +9,9 @@ export enum EnvironmentType {
   TEST = 'test',
 }
 
+/**
+ * Provides environment Sync operations.
+ */
 @Injectable()
 export class EnvironmentSyncService {
   private readonly logger = new Logger(EnvironmentSyncService.name);

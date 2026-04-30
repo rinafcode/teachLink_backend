@@ -21,6 +21,9 @@ export interface IVariantStats {
   confidenceLevel: number;
 }
 
+/**
+ * Provides aBTesting operations.
+ */
 @Injectable()
 export class ABTestingService {
   constructor(

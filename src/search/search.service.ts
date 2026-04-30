@@ -42,6 +42,9 @@ type SearchFilters = {
   price?: { gte?: number; lte?: number; gt?: number; lt?: number };
 };
 
+/**
+ * Provides search operations.
+ */
 @Injectable()
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
@@ -53,6 +56,14 @@ export class SearchService {
     private readonly cachingService: CachingService,
   ) {}
 
+  /**
+   * Executes perform Search.
+   * @param query The query value.
+   * @param filters The filter criteria.
+   * @param sort The sort.
+   * @param options The options.
+   * @returns The operation result.
+   */
   async performSearch(query: string, filters: any, sort?: string, options: SearchOptions = {}) {
     const sanitizedQuery = (query ?? '').trim().slice(0, SEARCH_CONSTANTS.MAX_QUERY_LENGTH);
     const page = Math.max(1, options.page ?? 1);
@@ -178,6 +189,11 @@ export class SearchService {
     );
   }
 
+  /**
+   * Retrieves auto Complete.
+   * @param query The query value.
+   * @returns The operation result.
+   */
   async getAutoComplete(query: string) {
     const sanitizedQuery = (query ?? '').trim().slice(0, 100);
     const cacheKey = `${CACHE_PREFIXES.SEARCH}:autocomplete:${sanitizedQuery}`;
@@ -189,6 +205,10 @@ export class SearchService {
     );
   }
 
+  /**
+   * Retrieves available Filters.
+   * @returns The operation result.
+   */
   async getAvailableFilters() {
     const cacheKey = `${CACHE_PREFIXES.SEARCH}:filters`;
 
@@ -199,6 +219,11 @@ export class SearchService {
     );
   }
 
+  /**
+   * Retrieves search Analytics.
+   * @param days The days.
+   * @returns The operation result.
+   */
   async getSearchAnalytics(days = 7) {
     const from = new Date();
     from.setDate(from.getDate() - days);

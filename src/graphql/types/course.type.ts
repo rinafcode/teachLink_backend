@@ -1,6 +1,9 @@
 import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
 import { UserType } from './user.type';
 
+/**
+ * Provides course Type behavior.
+ */
 @ObjectType()
 export class CourseType {
   @Field(() => ID)

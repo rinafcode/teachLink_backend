@@ -13,6 +13,9 @@ interface IConversionRecord {
   timestamp: Date;
 }
 
+/**
+ * Provides experimentation operations.
+ */
 @Injectable()
 export class ExperimentationService {
   /** variantKey → userId → IConversionRecord[] */

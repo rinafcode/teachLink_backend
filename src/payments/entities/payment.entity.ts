@@ -29,6 +29,9 @@ export enum PaymentMethod {
   WALLET = 'wallet',
 }
 
+/**
+ * Represents the payment entity.
+ */
 @Entity('payments')
 @Index(['userId', 'status'])
 export class Payment {

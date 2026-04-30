@@ -43,6 +43,9 @@ export interface ICacheInterceptorOptions {
   trackAnalytics?: boolean;
 }
 
+/**
+ * Intercepts cache request handling.
+ */
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
   private readonly defaultTtl: number;
@@ -62,6 +65,12 @@ export class CacheInterceptor implements NestInterceptor {
     this.trackAnalytics = options?.trackAnalytics ?? true;
   }
 
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<any>.
+   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
 

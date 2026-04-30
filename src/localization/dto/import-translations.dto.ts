@@ -9,6 +9,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+/**
+ * Defines the translation Import Row payload.
+ */
 export class TranslationImportRowDto {
   @ApiProperty({ example: 'errors' })
   @IsString()

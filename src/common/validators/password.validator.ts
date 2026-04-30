@@ -56,13 +56,26 @@ export function calculatePasswordStrength(password: string): IPasswordStrengthRe
   };
 }
 
+/**
+ * Provides password Constraint behavior.
+ */
 @ValidatorConstraint({ name: 'password', async: false })
 export class PasswordConstraint implements ValidatorConstraintInterface {
+  /**
+   * Validates validate.
+   * @param password The password value.
+   * @returns Whether the operation succeeded.
+   */
   validate(password: string): boolean {
     const result = calculatePasswordStrength(password);
     return result.isValid;
   }
 
+  /**
+   * Executes default Message.
+   * @param args The args.
+   * @returns The resulting string value.
+   */
   defaultMessage(args: ValidationArguments): string {
     const password = args.value as string;
     const result = calculatePasswordStrength(password);
@@ -73,6 +86,11 @@ export class PasswordConstraint implements ValidatorConstraintInterface {
   }
 }
 
+/**
+ * Executes is Strong Password.
+ * @param validationOptions The operation options.
+ * @returns The operation result.
+ */
 export function IsStrongPassword(validationOptions?: ValidationOptions) {
   return function (object: object, propertyName: string) {
     registerDecorator({

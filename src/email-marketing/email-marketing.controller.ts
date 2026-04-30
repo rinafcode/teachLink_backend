@@ -19,12 +19,20 @@ import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { ScheduleCampaignDto } from './dto/schedule-campaign.dto';
 import { Campaign } from './entities/campaign.entity';
 
+/**
+ * Exposes email Marketing endpoints.
+ */
 @ApiTags('Email Marketing - Campaigns')
 @ApiBearerAuth()
 @Controller('email-marketing/campaigns')
 export class EmailMarketingController {
   constructor(private readonly emailMarketingService: EmailMarketingService) {}
 
+  /**
+   * Creates a new record.
+   * @param createCampaignDto The request payload.
+   * @returns The resulting campaign.
+   */
   @Post()
   @ApiOperation({ summary: 'Create a new email campaign' })
   @ApiResponse({ status: 201, description: 'Campaign created successfully', type: Campaign })
@@ -33,6 +41,12 @@ export class EmailMarketingController {
     return this.emailMarketingService.createCampaign(createCampaignDto);
   }
 
+  /**
+   * Returns all.
+   * @param page The page number.
+   * @param limit The maximum number of results.
+   * @returns The operation result.
+   */
   @Get()
   @ApiOperation({ summary: 'Get all campaigns with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -42,6 +56,11 @@ export class EmailMarketingController {
     return this.emailMarketingService.findAll(page, limit);
   }
 
+  /**
+   * Returns one.
+   * @param id The identifier.
+   * @returns The resulting campaign.
+   */
   @Get(':id')
   @ApiOperation({ summary: 'Get a campaign by ID' })
   @ApiResponse({ status: 200, description: 'Campaign details', type: Campaign })
@@ -50,6 +69,12 @@ export class EmailMarketingController {
     return this.emailMarketingService.findOne(id);
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateCampaignDto The request payload.
+   * @returns The resulting campaign.
+   */
   @Put(':id')
   @ApiOperation({ summary: 'Update a campaign' })
   @ApiResponse({ status: 200, description: 'Campaign updated successfully', type: Campaign })
@@ -62,6 +87,10 @@ export class EmailMarketingController {
     return this.emailMarketingService.update(id, updateCampaignDto);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a campaign' })
@@ -72,6 +101,12 @@ export class EmailMarketingController {
     return this.emailMarketingService.remove(id);
   }
 
+  /**
+   * Schedules schedule.
+   * @param id The identifier.
+   * @param scheduleDto The request payload.
+   * @returns The resulting campaign.
+   */
   @Post(':id/schedule')
   @ApiOperation({ summary: 'Schedule a campaign for future sending' })
   @ApiResponse({ status: 200, description: 'Campaign scheduled successfully', type: Campaign })
@@ -83,6 +118,11 @@ export class EmailMarketingController {
     return this.emailMarketingService.scheduleCampaign(id, scheduleDto);
   }
 
+  /**
+   * Sends send.
+   * @param id The identifier.
+   * @returns The resulting campaign.
+   */
   @Post(':id/send')
   @ApiOperation({ summary: 'Send a campaign immediately' })
   @ApiResponse({ status: 200, description: 'Campaign sending initiated', type: Campaign })
@@ -91,6 +131,11 @@ export class EmailMarketingController {
     return this.emailMarketingService.sendCampaign(id);
   }
 
+  /**
+   * Pauses pause.
+   * @param id The identifier.
+   * @returns The resulting campaign.
+   */
   @Post(':id/pause')
   @ApiOperation({ summary: 'Pause a scheduled or sending campaign' })
   @ApiResponse({ status: 200, description: 'Campaign paused successfully', type: Campaign })
@@ -99,6 +144,11 @@ export class EmailMarketingController {
     return this.emailMarketingService.pauseCampaign(id);
   }
 
+  /**
+   * Resumes resume.
+   * @param id The identifier.
+   * @returns The resulting campaign.
+   */
   @Post(':id/resume')
   @ApiOperation({ summary: 'Resume a paused campaign' })
   @ApiResponse({ status: 200, description: 'Campaign resumed successfully', type: Campaign })
@@ -107,6 +157,11 @@ export class EmailMarketingController {
     return this.emailMarketingService.resumeCampaign(id);
   }
 
+  /**
+   * Executes duplicate.
+   * @param id The identifier.
+   * @returns The resulting campaign.
+   */
   @Post(':id/duplicate')
   @ApiOperation({ summary: 'Duplicate a campaign' })
   @ApiResponse({ status: 201, description: 'Campaign duplicated successfully', type: Campaign })
@@ -115,6 +170,11 @@ export class EmailMarketingController {
     return this.emailMarketingService.duplicateCampaign(id);
   }
 
+  /**
+   * Returns stats.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get campaign statistics' })
   @ApiResponse({ status: 200, description: 'Campaign statistics' })

@@ -2,6 +2,9 @@ import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, VersionColumn } from
 import { User } from '../../users/entities/user.entity';
 import { Challenge } from './challenge.entity';
 
+/**
+ * Represents the user Challenge entity.
+ */
 @Entity('user_challenges')
 export class UserChallenge {
   @PrimaryGeneratedColumn('uuid')

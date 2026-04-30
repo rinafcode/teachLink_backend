@@ -2,6 +2,9 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { COURSES_INDEX, SEARCH_ANALYTICS_INDEX } from '../search.service';
 
+/**
+ * Provides indexing operations.
+ */
 @Injectable()
 export class IndexingService implements OnModuleInit {
   private readonly logger = new Logger(IndexingService.name);

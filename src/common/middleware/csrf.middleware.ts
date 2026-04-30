@@ -3,6 +3,9 @@ import { Request, Response, NextFunction } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { CsrfService } from '../csrf/csrf.service';
 
+/**
+ * Applies csrf middleware behavior.
+ */
 @Injectable()
 export class CsrfMiddleware implements NestMiddleware {
   constructor(
@@ -10,6 +13,12 @@ export class CsrfMiddleware implements NestMiddleware {
     private configService: ConfigService,
   ) {}
 
+  /**
+   * Executes use.
+   * @param req The req.
+   * @param res The res.
+   * @param next The next.
+   */
   use(req: Request, res: Response, next: NextFunction): void {
     // Skip CSRF for GET, HEAD, OPTIONS requests
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {

@@ -26,6 +26,9 @@ import { UserRole } from './entities/user.entity';
 import { ExportFormat, ExportService } from '../common/export/export.service';
 import { MaskingInterceptor } from '../utils/masking/masking.interceptor';
 
+/**
+ * Exposes users endpoints.
+ */
 @ApiTags('users')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -37,6 +40,11 @@ export class UsersController {
     private readonly exportService: ExportService,
   ) {}
 
+  /**
+   * Creates a new record.
+   * @param createUserDto The request payload.
+   * @returns The operation result.
+   */
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
@@ -44,6 +52,10 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  /**
+   * Returns all.
+   * @returns The operation result.
+   */
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all users (Admin only)' })
@@ -51,18 +63,34 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  /**
+   * Returns one.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateUserDto The request payload.
+   * @returns The operation result.
+   */
   @Patch(':id')
   @ApiOperation({ summary: 'Update user' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete user (Admin only)' })
@@ -94,12 +122,24 @@ export class UsersController {
     return this.exportService.requestUserDataExport(user.userId, body?.format ?? 'json');
   }
 
+  /**
+   * Returns export History.
+   * @param user The user.
+   * @returns The operation result.
+   */
   @Get('me/export/history')
   @ApiOperation({ summary: 'Get export request history for the current user' })
   getExportHistory(@CurrentUser() user: { userId: string }) {
     return this.exportService.getUserExportHistory(user.userId);
   }
 
+  /**
+   * Downloads export.
+   * @param user The user.
+   * @param exportId The export identifier.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Get('me/export/:exportId')
   @ApiOperation({ summary: 'Download a completed user export file' })
   async downloadExport(

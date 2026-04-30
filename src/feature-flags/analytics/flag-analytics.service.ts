@@ -9,6 +9,9 @@ import {
 
 type TrackEvaluationInput = Omit<IFlagAnalyticsEvent, 'eventId' | 'timestamp'>;
 
+/**
+ * Provides flag Analytics operations.
+ */
 @Injectable()
 export class FlagAnalyticsService {
   /** flagKey → events */

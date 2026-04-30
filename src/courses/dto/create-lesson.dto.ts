@@ -1,6 +1,9 @@
 import { IsString, IsNotEmpty, IsInt, IsOptional, IsUUID, IsUrl, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Defines the create Lesson payload.
+ */
 export class CreateLessonDto {
   @ApiProperty()
   @IsString()

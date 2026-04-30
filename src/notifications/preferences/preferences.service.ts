@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationPreferences } from '../entities/notification-preferences.entity';
 
+/**
+ * Provides preferences operations.
+ */
 @Injectable()
 export class PreferencesService {
   private readonly logger = new Logger(PreferencesService.name);

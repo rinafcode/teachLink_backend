@@ -9,6 +9,9 @@ import { AuditLogInterceptor } from './interceptors/audit-log.interceptor';
 import { AuditRetentionTask } from './tasks/audit-retention.task';
 import { SensitiveOperationsService } from './services/sensitive-operations.service';
 
+/**
+ * Registers the audit Log module.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([AuditLog]), ConfigModule, ScheduleModule.forRoot()],
   controllers: [AuditLogController],

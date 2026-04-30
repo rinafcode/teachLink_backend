@@ -8,6 +8,15 @@ import { SearchService } from './search.service';
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
+  /**
+   * Returns search.
+   * @param query The query value.
+   * @param filters The filter criteria.
+   * @param sort The sort.
+   * @param page The page number.
+   * @param limit The maximum number of results.
+   * @returns The operation result.
+   */
   @Get()
   async search(
     @Query('q') query: string,
@@ -42,16 +51,30 @@ export class SearchController {
     });
   }
 
+  /**
+   * Executes autocomplete.
+   * @param query The query value.
+   * @returns The operation result.
+   */
   @Get('autocomplete')
   async autocomplete(@Query('q') query: string): Promise<any> {
     return this.searchService.getAutoComplete(query);
   }
 
+  /**
+   * Returns filters.
+   * @returns The operation result.
+   */
   @Get('filters')
   async getFilters(): Promise<any> {
     return this.searchService.getAvailableFilters();
   }
 
+  /**
+   * Returns analytics.
+   * @param days The days.
+   * @returns The operation result.
+   */
   @Get('analytics')
   async getAnalytics(@Query('days') days?: string): Promise<any> {
     const parsedDays = days ? parseInt(days, 10) : 7;

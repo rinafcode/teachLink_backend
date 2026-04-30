@@ -12,6 +12,9 @@ registerEnumType(UserStatus, {
   description: 'User account status',
 });
 
+/**
+ * Provides user Type behavior.
+ */
 @ObjectType()
 export class UserType {
   @Field(() => ID)

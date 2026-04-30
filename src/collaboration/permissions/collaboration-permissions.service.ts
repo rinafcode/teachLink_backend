@@ -24,6 +24,9 @@ export interface ICollaborativeResource {
   updatedAt: Date;
 }
 
+/**
+ * Provides collaboration Permissions operations.
+ */
 @Injectable()
 export class CollaborationPermissionsService {
   private readonly logger = Logger;

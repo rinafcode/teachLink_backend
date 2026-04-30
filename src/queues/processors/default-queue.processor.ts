@@ -19,6 +19,11 @@ export class DefaultQueueProcessor {
     private readonly workerOrchestration: WorkerOrchestrationService,
   ) {}
 
+  /**
+   * Handles job.
+   * @param job The job.
+   * @returns The operation result.
+   */
   @Process('*')
   async handleJob(job: Job): Promise<any> {
     this.logger.log(`Processing job ${job.name} (ID: ${job.id}) - Attempt ${job.attemptsMade + 1}`);
@@ -45,6 +50,12 @@ export class DefaultQueueProcessor {
     );
   }
 
+  /**
+   * Executes on Completed.
+   * @param job The job.
+   * @param result The result.
+   * @returns The operation result.
+   */
   @OnQueueCompleted()
   onCompleted(job: Job, result: any) {
     const processingTime = (job.finishedOn ?? Date.now()) - (job.processedOn ?? Date.now());
@@ -55,6 +66,12 @@ export class DefaultQueueProcessor {
     );
   }
 
+  /**
+   * Executes on Failed.
+   * @param job The job.
+   * @param error The error.
+   * @returns The operation result.
+   */
   @OnQueueFailed()
   async onFailed(job: Job, error: Error) {
     const strategy = this.retryLogicService.getDefaultStrategy(job.name);

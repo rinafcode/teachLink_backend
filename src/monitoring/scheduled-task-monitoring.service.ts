@@ -25,6 +25,9 @@ export interface IScheduledTaskExecution {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Provides scheduled Task Monitoring operations.
+ */
 @Injectable()
 export class ScheduledTaskMonitoringService {
   private readonly logger = new Logger(ScheduledTaskMonitoringService.name);
@@ -51,6 +54,13 @@ export class ScheduledTaskMonitoringService {
     });
   }
 
+  /**
+   * Starts execution.
+   * @param taskName The task name.
+   * @param config The config.
+   * @param metadata The data to process.
+   * @returns The resulting string value.
+   */
   startExecution(
     taskName: string,
     config: IScheduledTaskConfig,
@@ -75,6 +85,11 @@ export class ScheduledTaskMonitoringService {
     return executionId;
   }
 
+  /**
+   * Marks success.
+   * @param executionId The execution identifier.
+   * @param metadata The data to process.
+   */
   markSuccess(executionId: string, metadata: Record<string, unknown> = {}): void {
     const execution = this.activeExecutions.get(executionId);
     if (!execution) {
@@ -98,6 +113,12 @@ export class ScheduledTaskMonitoringService {
     );
   }
 
+  /**
+   * Marks failure.
+   * @param executionId The execution identifier.
+   * @param error The error.
+   * @param metadata The data to process.
+   */
   markFailure(
     executionId: string,
     error: Error | string,
@@ -128,6 +149,13 @@ export class ScheduledTaskMonitoringService {
     );
   }
 
+  /**
+   * Records retry.
+   * @param taskName The task name.
+   * @param attempt The attempt.
+   * @param maxRetries The max retries.
+   * @param reason The reason.
+   */
   recordRetry(taskName: string, attempt: number, maxRetries: number, reason?: string): void {
     const current = this.retryStats.get(taskName) || { totalRetries: 0 };
     current.totalRetries += 1;
@@ -141,6 +169,9 @@ export class ScheduledTaskMonitoringService {
     );
   }
 
+  /**
+   * Executes monitor Scheduled Tasks.
+   */
   @Cron(CronExpression.EVERY_MINUTE)
   monitorScheduledTasks(): void {
     const now = new Date();
@@ -195,6 +226,10 @@ export class ScheduledTaskMonitoringService {
     }
   }
 
+  /**
+   * Retrieves dashboard.
+   * @returns The operation result.
+   */
   getDashboard() {
     const now = new Date();
 

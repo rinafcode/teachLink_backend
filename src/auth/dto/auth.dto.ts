@@ -3,6 +3,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../users/entities/user.entity';
 import { IsStrongPassword } from '../../common/validators/password.validator';
 
+/**
+ * Defines the register payload.
+ */
 export class RegisterDto {
   @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'Must be a valid email address' })
@@ -30,6 +33,9 @@ export class RegisterDto {
   role?: UserRole;
 }
 
+/**
+ * Defines the login payload.
+ */
 export class LoginDto {
   @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'Must be a valid email address' })
@@ -42,6 +48,9 @@ export class LoginDto {
   password: string;
 }
 
+/**
+ * Defines the refresh Token payload.
+ */
 export class RefreshTokenDto {
   @ApiProperty()
   @IsString()
@@ -49,6 +58,9 @@ export class RefreshTokenDto {
   refreshToken: string;
 }
 
+/**
+ * Defines the forgot Password payload.
+ */
 export class ForgotPasswordDto {
   @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail({}, { message: 'Must be a valid email address' })
@@ -56,6 +68,9 @@ export class ForgotPasswordDto {
   email: string;
 }
 
+/**
+ * Defines the reset Password payload.
+ */
 export class ResetPasswordDto {
   @ApiProperty()
   @IsString()
@@ -68,6 +83,9 @@ export class ResetPasswordDto {
   newPassword: string;
 }
 
+/**
+ * Defines the change Password payload.
+ */
 export class ChangePasswordDto {
   @ApiProperty({ example: 'OldPass123!' })
   @IsString()
@@ -80,6 +98,9 @@ export class ChangePasswordDto {
   newPassword: string;
 }
 
+/**
+ * Defines the verify Email payload.
+ */
 export class VerifyEmailDto {
   @ApiProperty()
   @IsString()

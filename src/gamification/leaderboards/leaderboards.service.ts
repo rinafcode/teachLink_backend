@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserProgress } from '../entities/user-progress.entity';
 
+/**
+ * Provides leaderboard operations.
+ */
 @Injectable()
 export class LeaderboardService {
   constructor(

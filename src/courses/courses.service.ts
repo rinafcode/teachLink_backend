@@ -18,6 +18,9 @@ import { sanitizeSqlLike, enforceWhitelistedValue } from '../common/utils/saniti
 import { CourseModule } from './entities/course-module.entity';
 import { Lesson } from './entities/lesson.entity';
 
+/**
+ * Provides course operations.
+ */
 @Injectable()
 export class CoursesService {
   constructor(
@@ -28,6 +31,11 @@ export class CoursesService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  /**
+   * Creates a new record.
+   * @param createCourseDto The request payload.
+   * @returns The resulting course.
+   */
   async create(createCourseDto: any): Promise<Course> {
     const course = this.coursesRepository.create({
       ...createCourseDto,
@@ -77,6 +85,11 @@ export class CoursesService {
     );
   }
 
+  /**
+   * Retrieves all With Cursor.
+   * @param filter The filter criteria.
+   * @returns The resulting cursor paginated response<course>.
+   */
   async findAllWithCursor(
     filter?: CursorCourseSearchDto,
   ): Promise<ICursorPaginatedResponse<Course>> {
@@ -119,11 +132,21 @@ export class CoursesService {
     );
   }
 
+  /**
+   * Retrieves records by their identifiers.
+   * @param ids The identifiers.
+   * @returns The matching results.
+   */
   async findByIds(ids: string[]): Promise<Course[]> {
     if (ids.length === 0) return [];
     return await this.coursesRepository.findByIds(ids);
   }
 
+  /**
+   * Retrieves by Instructor.
+   * @param instructorId The instructor identifier.
+   * @returns The matching results.
+   */
   async findByInstructor(instructorId: string): Promise<Course[]> {
     return await this.coursesRepository.find({
       where: { instructor: { id: instructorId } },
@@ -131,6 +154,11 @@ export class CoursesService {
     });
   }
 
+  /**
+   * Retrieves by Instructor Ids.
+   * @param instructorIds The instructor identifiers.
+   * @returns The matching results.
+   */
   async findByInstructorIds(instructorIds: string[]): Promise<Course[]> {
     if (instructorIds.length === 0) return [];
     return await this.coursesRepository
@@ -140,6 +168,11 @@ export class CoursesService {
       .getMany();
   }
 
+  /**
+   * Retrieves the requested record.
+   * @param id The identifier.
+   * @returns The resulting course.
+   */
   async findOne(id: string): Promise<Course> {
     const cacheKey = `${CACHE_PREFIXES.COURSE}:${id}`;
 
@@ -167,6 +200,12 @@ export class CoursesService {
     );
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateCourseDto The request payload.
+   * @returns The resulting course.
+   */
   async update(id: string, updateCourseDto: UpdateCourseDto): Promise<Course> {
     const course = await this.coursesRepository.findOne({
       where: { id },
@@ -184,6 +223,10 @@ export class CoursesService {
     return saved;
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   async remove(id: string): Promise<void> {
     const course = await this.coursesRepository.findOne({
       where: { id },
@@ -208,6 +251,10 @@ export class CoursesService {
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_DELETED, { courseId: id });
   }
 
+  /**
+   * Retrieves analytics.
+   * @returns The operation result.
+   */
   async getAnalytics(): Promise<any> {
     const totalCourses = await this.coursesRepository.count();
     const publishedCourses = await this.coursesRepository.count({

@@ -18,6 +18,9 @@ import { PreferencesService } from './preferences/preferences.service';
 import { EmailService } from './email/email.service';
 import { sanitizeEmail } from '../common/utils/pii-sanitizer.utils';
 
+/**
+ * Provides notification operations.
+ */
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -32,6 +35,11 @@ export class NotificationsService {
     private readonly queueService: NotificationsQueueService,
   ) {}
 
+  /**
+   * Sends verification Email.
+   * @param email The email address.
+   * @param token The token value.
+   */
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     try {
       await this.emailService.sendVerificationEmail(email, token);
@@ -45,6 +53,11 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * Sends password Reset Email.
+   * @param email The email address.
+   * @param token The token value.
+   */
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
     try {
       await this.emailService.sendPasswordResetEmail(email, token);

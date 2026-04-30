@@ -1,12 +1,19 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { MigrationService } from './migration.service';
 
+/**
+ * Provides migration Runner operations.
+ */
 @Injectable()
 export class MigrationRunnerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(MigrationRunnerService.name);
 
   constructor(private migrationService: MigrationService) {}
 
+  /**
+   * Executes on Application Bootstrap.
+   * @returns The operation result.
+   */
   async onApplicationBootstrap() {
     // Optionally run migrations automatically when the application starts
     // This can be controlled via configuration

@@ -24,6 +24,9 @@ export enum ExperimentType {
   MULTI_ARMED_BANDIT = 'multi_armed_bandit',
 }
 
+/**
+ * Represents the experiment entity.
+ */
 @Entity({ name: 'experiments' })
 export class Experiment {
   @PrimaryGeneratedColumn('uuid')

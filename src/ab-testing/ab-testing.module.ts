@@ -11,6 +11,9 @@ import { AutomatedDecisionService } from './automation/automated-decision.servic
 import { ABTestingReportsService } from './reporting/ab-testing-reports.service';
 import { ABTestingController } from './ab-testing.controller';
 
+/**
+ * Registers the aBTesting module.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Experiment, IExperimentVariant, ExperimentMetric, VariantMetric]),

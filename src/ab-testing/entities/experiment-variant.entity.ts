@@ -12,6 +12,9 @@ import {
 import { Experiment } from './experiment.entity';
 import { VariantMetric } from './variant-metric.entity';
 
+/**
+ * Represents the experiment Variant entity.
+ */
 @Entity({ name: 'experiment_variants' })
 export class IExperimentVariant {
   @PrimaryGeneratedColumn('uuid')

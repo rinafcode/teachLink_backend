@@ -3,10 +3,18 @@ import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { COURSES_INDEX } from '../search.service';
 import { SEARCH_CONSTANTS } from '../search.constants';
 
+/**
+ * Provides auto Complete operations.
+ */
 @Injectable()
 export class AutoCompleteService {
   constructor(private readonly elasticsearchService: ElasticsearchService) {}
 
+  /**
+   * Retrieves suggestions.
+   * @param query The query value.
+   * @returns The matching results.
+   */
   async getSuggestions(query: string): Promise<string[]> {
     const sanitizedQuery = (query ?? '').trim().slice(0, 100);
     if (!sanitizedQuery) {

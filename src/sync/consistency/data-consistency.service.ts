@@ -12,6 +12,9 @@ export interface IntegrityCheckResult {
   timestamp: Date;
 }
 
+/**
+ * Provides data Consistency operations.
+ */
 @Injectable()
 export class DataConsistencyService {
   private readonly logger = new Logger(DataConsistencyService.name);

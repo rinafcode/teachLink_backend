@@ -1,3 +1,8 @@
+/**
+ * Sanitizes sql Like.
+ * @param input The input.
+ * @returns The resulting string value.
+ */
 export function sanitizeSqlLike(input: string): string {
   if (typeof input !== 'string') {
     throw new TypeError('Expected a string for SQL LIKE sanitization');
@@ -13,6 +18,13 @@ export function sanitizeSqlLike(input: string): string {
   return normalized.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
+/**
+ * Executes enforce Whitelisted Value.
+ * @param value The value.
+ * @param allowlist The allowlist.
+ * @param fieldName The field name.
+ * @returns The operation result.
+ */
 export function enforceWhitelistedValue<T extends string>(
   value: T | undefined,
   allowlist: readonly T[],

@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IMigrationConfig } from '../migration.service';
 
+/**
+ * Provides sample User Table Migration behavior.
+ */
 @Injectable()
 export class SampleUserTableMigration implements IMigrationConfig {
   name = 'sample-user-table';
@@ -9,6 +12,10 @@ export class SampleUserTableMigration implements IMigrationConfig {
 
   private readonly logger = new Logger(SampleUserTableMigration.name);
 
+  /**
+   * Executes up.
+   * @param _connection The connection.
+   */
   async up(_connection: any): Promise<void> {
     this.logger.log('Applying sample user table migration');
 
@@ -31,6 +38,10 @@ export class SampleUserTableMigration implements IMigrationConfig {
     console.log('Creating users table...');
   }
 
+  /**
+   * Executes down.
+   * @param _connection The connection.
+   */
   async down(_connection: any): Promise<void> {
     this.logger.log('Rolling back sample user table migration');
 

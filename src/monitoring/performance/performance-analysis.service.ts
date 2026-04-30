@@ -2,12 +2,19 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MetricsCollectionService } from '../metrics/metrics-collection.service';
 import * as os from 'os';
 
+/**
+ * Provides performance Analysis operations.
+ */
 @Injectable()
 export class PerformanceAnalysisService {
   private readonly logger = new Logger(PerformanceAnalysisService.name);
 
   constructor(private readonly metricsService: MetricsCollectionService) {}
 
+  /**
+   * Analyzes analyze.
+   * @returns The operation result.
+   */
   async analyze(): Promise<any> {
     const metrics = await this.metricsService.getRegistry().getMetricsAsJSON();
 

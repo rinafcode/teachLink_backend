@@ -14,6 +14,10 @@ export class SubscriptionResolver {
   constructor(@Inject('PUB_SUB') private readonly pubSub: PubSub) {}
 
   // User Subscriptions
+  /**
+   * Executes user Created.
+   * @returns The operation result.
+   */
   @Subscription(() => UserType, {
     name: 'userCreated',
     description: 'Subscribe to new user creation events',
@@ -22,6 +26,10 @@ export class SubscriptionResolver {
     return this.pubSub.asyncIterableIterator('userCreated');
   }
 
+  /**
+   * Executes user Updated.
+   * @returns The operation result.
+   */
   @Subscription(() => UserType, {
     name: 'userUpdated',
     description: 'Subscribe to user update events',
@@ -30,6 +38,10 @@ export class SubscriptionResolver {
     return this.pubSub.asyncIterableIterator('userUpdated');
   }
 
+  /**
+   * Executes user Deleted.
+   * @returns The operation result.
+   */
   @Subscription(() => UserType, {
     name: 'userDeleted',
     description: 'Subscribe to user deletion events',
@@ -39,6 +51,10 @@ export class SubscriptionResolver {
   }
 
   // Course Subscriptions
+  /**
+   * Executes course Created.
+   * @returns The operation result.
+   */
   @Subscription(() => CourseType, {
     name: 'courseCreated',
     description: 'Subscribe to new course creation events',
@@ -47,6 +63,10 @@ export class SubscriptionResolver {
     return this.pubSub.asyncIterableIterator('courseCreated');
   }
 
+  /**
+   * Executes course Updated.
+   * @returns The operation result.
+   */
   @Subscription(() => CourseType, {
     name: 'courseUpdated',
     description: 'Subscribe to course update events',
@@ -55,6 +75,10 @@ export class SubscriptionResolver {
     return this.pubSub.asyncIterableIterator('courseUpdated');
   }
 
+  /**
+   * Executes course Deleted.
+   * @returns The operation result.
+   */
   @Subscription(() => CourseType, {
     name: 'courseDeleted',
     description: 'Subscribe to course deletion events',
@@ -64,6 +88,10 @@ export class SubscriptionResolver {
   }
 
   // Assessment Subscriptions
+  /**
+   * Executes assessment Created.
+   * @returns The operation result.
+   */
   @Subscription(() => AssessmentType, {
     name: 'assessmentCreated',
     description: 'Subscribe to new assessment creation events',
@@ -72,6 +100,10 @@ export class SubscriptionResolver {
     return this.pubSub.asyncIterableIterator('assessmentCreated');
   }
 
+  /**
+   * Executes assessment Updated.
+   * @returns The operation result.
+   */
   @Subscription(() => AssessmentType, {
     name: 'assessmentUpdated',
     description: 'Subscribe to assessment update events',
@@ -80,6 +112,10 @@ export class SubscriptionResolver {
     return this.pubSub.asyncIterableIterator('assessmentUpdated');
   }
 
+  /**
+   * Executes assessment Deleted.
+   * @returns The operation result.
+   */
   @Subscription(() => AssessmentType, {
     name: 'assessmentDeleted',
     description: 'Subscribe to assessment deletion events',

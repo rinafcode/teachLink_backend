@@ -16,6 +16,9 @@ import { FileValidationService } from '../media/validation/file-validation.servi
 import { MalwareScanningService } from '../media/validation/malware-scanning.service';
 import { ImageProcessingService } from '../media/processing/image-processing.service';
 
+/**
+ * Registers the cdn module.
+ */
 @Module({
   imports: [
     ConfigModule,

@@ -32,6 +32,12 @@ export interface ICursorPaginatedResponse<T> {
   };
 }
 
+/**
+ * Paginates query results.
+ * @param queryBuilder The query value.
+ * @param options The options.
+ * @returns The resulting paginated response<t>.
+ */
 export async function paginate<T>(
   queryBuilder: SelectQueryBuilder<T>,
   options: PaginationQueryDto,

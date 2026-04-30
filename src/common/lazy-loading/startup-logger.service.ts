@@ -18,6 +18,9 @@ export interface IModuleLoadMetric {
   dependencies: string[];
 }
 
+/**
+ * Provides startup Logger operations.
+ */
 @Injectable()
 export class StartupLogger implements OnModuleInit, OnApplicationBootstrap {
   private readonly logger = new Logger(StartupLogger.name);
@@ -32,11 +35,19 @@ export class StartupLogger implements OnModuleInit, OnApplicationBootstrap {
     this.moduleInitStartTime = this.bootstrapStartTime;
   }
 
+  /**
+   * Executes on Module Init.
+   * @returns The operation result.
+   */
   onModuleInit() {
     this.moduleInitStartTime = Date.now();
     this.logger.log('Module initialization started');
   }
 
+  /**
+   * Executes on Application Bootstrap.
+   * @returns The operation result.
+   */
   onApplicationBootstrap() {
     const metrics = this.generateMetrics();
     this.logStartupReport(metrics);

@@ -10,6 +10,9 @@ import {
 } from 'class-validator';
 import { PaymentMethod } from '../entities/payment.entity';
 
+/**
+ * Defines the create Payment payload.
+ */
 export class CreatePaymentDto {
   @IsUUID('4', { message: 'courseId must be a valid UUID v4' })
   courseId: string;

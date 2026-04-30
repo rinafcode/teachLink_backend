@@ -25,6 +25,9 @@ export interface ITimeSeriesData {
   bounces: number;
 }
 
+/**
+ * Provides email Analytics operations.
+ */
 @Injectable()
 export class EmailAnalyticsService {
   constructor(

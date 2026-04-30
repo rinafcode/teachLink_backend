@@ -27,6 +27,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuditAction, AuditCategory, AuditSeverity } from './enums/audit-action.enum';
 import { SensitiveOperationsService } from './services/sensitive-operations.service';
 
+/**
+ * Exposes audit Log endpoints.
+ */
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -39,6 +42,27 @@ export class AuditLogController {
     private readonly sensitiveOpsService: SensitiveOperationsService,
   ) {}
 
+  /**
+   * Returns search.
+   * @param userId The user identifier.
+   * @param userEmail The email address.
+   * @param actions The actions.
+   * @param categories The categories.
+   * @param severities The severities.
+   * @param entityType The entity type.
+   * @param entityId The entity identifier.
+   * @param ipAddress The ip address.
+   * @param sessionId The session identifier.
+   * @param tenantId The tenant identifier.
+   * @param apiEndpoint The api endpoint.
+   * @param httpMethod The http method.
+   * @param statusCode The status value.
+   * @param startDate The start date.
+   * @param endDate The end date.
+   * @param page The page number.
+   * @param limit The maximum number of results.
+   * @returns The operation result.
+   */
   @Get()
   @ApiOperation({ summary: 'Search audit logs with filters' })
   @ApiQuery({ name: 'userId', required: false, description: 'Filter by user ID' })
@@ -111,6 +135,11 @@ export class AuditLogController {
     return this.auditLogService.search(filters, page, limit);
   }
 
+  /**
+   * Returns recent.
+   * @param limit The maximum number of results.
+   * @returns The matching results.
+   */
   @Get('recent')
   @ApiOperation({ summary: 'Get recent audit logs' })
   @ApiQuery({
@@ -126,6 +155,12 @@ export class AuditLogController {
     return this.auditLogService.findAll(limit);
   }
 
+  /**
+   * Returns by User.
+   * @param userId The user identifier.
+   * @param limit The maximum number of results.
+   * @returns The matching results.
+   */
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get audit logs for a specific user' })
   @ApiParam({ name: 'userId', description: 'User ID' })
@@ -143,6 +178,13 @@ export class AuditLogController {
     return this.auditLogService.findByUser(userId, limit);
   }
 
+  /**
+   * Returns by Entity.
+   * @param entityType The entity type.
+   * @param entityId The entity identifier.
+   * @param limit The maximum number of results.
+   * @returns The matching results.
+   */
   @Get('entity/:entityType/:entityId')
   @ApiOperation({ summary: 'Get audit logs for a specific entity' })
   @ApiParam({ name: 'entityType', description: 'Entity type (e.g., user, course)' })
@@ -162,6 +204,12 @@ export class AuditLogController {
     return this.auditLogService.findByEntity(entityType, entityId, limit);
   }
 
+  /**
+   * Returns by Ip Address.
+   * @param ipAddress The ip address.
+   * @param limit The maximum number of results.
+   * @returns The matching results.
+   */
   @Get('ip/:ipAddress')
   @ApiOperation({ summary: 'Get audit logs by IP address' })
   @ApiParam({ name: 'ipAddress', description: 'IP address' })
@@ -179,6 +227,10 @@ export class AuditLogController {
     return this.auditLogService.findByIpAddress(ipAddress, limit);
   }
 
+  /**
+   * Returns statistics.
+   * @returns The operation result.
+   */
   @Get('statistics')
   @ApiOperation({ summary: 'Get audit log statistics' })
   @ApiResponse({ status: 200, description: 'Statistics' })
@@ -186,6 +238,12 @@ export class AuditLogController {
     return this.auditLogService.getStatistics();
   }
 
+  /**
+   * Generates report.
+   * @param startDate The start date.
+   * @param endDate The end date.
+   * @returns The operation result.
+   */
   @Get('report')
   @ApiOperation({ summary: 'Generate audit report' })
   @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
@@ -199,6 +257,15 @@ export class AuditLogController {
     return this.auditLogService.generateReport(new Date(startDate), new Date(endDate));
   }
 
+  /**
+   * Exports to Json.
+   * @param res The res.
+   * @param userId The user identifier.
+   * @param actions The actions.
+   * @param startDate The start date.
+   * @param endDate The end date.
+   * @returns The operation result.
+   */
   @Post('export/json')
   @ApiOperation({ summary: 'Export audit logs to JSON' })
   @ApiQuery({ name: 'userId', required: false })
@@ -225,6 +292,15 @@ export class AuditLogController {
     res.send(json);
   }
 
+  /**
+   * Exports to Csv.
+   * @param res The res.
+   * @param userId The user identifier.
+   * @param actions The actions.
+   * @param startDate The start date.
+   * @param endDate The end date.
+   * @returns The operation result.
+   */
   @Post('export/csv')
   @ApiOperation({ summary: 'Export audit logs to CSV' })
   @ApiQuery({ name: 'userId', required: false })
@@ -251,6 +327,10 @@ export class AuditLogController {
     res.send(csv);
   }
 
+  /**
+   * Applies retention Policy.
+   * @returns The operation result.
+   */
   @Post('retention/apply')
   @ApiOperation({ summary: 'Apply retention policy (delete old logs)' })
   @ApiResponse({ status: 200, description: 'Retention policy applied' })

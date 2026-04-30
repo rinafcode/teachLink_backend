@@ -9,20 +9,40 @@ export interface ICorrelationContext {
 
 const correlationStorage = new AsyncLocalStorage<ICorrelationContext>();
 
+/**
+ * Generates correlation Id.
+ * @returns The resulting string value.
+ */
 export function generateCorrelationId(): string {
   return `cid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Retrieves correlation Id.
+ * @returns The operation result.
+ */
 export function getCorrelationId(): string | undefined {
   const store = correlationStorage.getStore();
   return store?.correlationId;
 }
 
+/**
+ * Sets correlation Id.
+ * @param req The req.
+ * @param res The res.
+ * @param correlationId The correlation identifier.
+ */
 export function setCorrelationId(req: Request, res: Response, correlationId: string): void {
   (req as Request & { correlationId?: string }).correlationId = correlationId;
   res.setHeader(CORRELATION_ID_HEADER, correlationId);
 }
 
+/**
+ * Executes correlation Middleware.
+ * @param req The req.
+ * @param res The res.
+ * @param next The next.
+ */
 export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
   const incoming =
     (req.headers[CORRELATION_ID_HEADER] as string) || (req.headers['x-correlation-id'] as string);
@@ -34,11 +54,23 @@ export function correlationMiddleware(req: Request, res: Response, next: NextFun
   });
 }
 
+/**
+ * Executes run With Correlation Id.
+ * @param callback The callback.
+ * @param correlationId The correlation identifier.
+ * @returns The resulting t.
+ */
 export function runWithCorrelationId<T>(callback: () => T, correlationId?: string): T {
   const id = correlationId || generateCorrelationId();
   return correlationStorage.run({ correlationId: id }, callback);
 }
 
+/**
+ * Executes inject Correlation Id To Headers.
+ * @param headers The headers.
+ * @param correlationId The correlation identifier.
+ * @returns The resulting record<string, any>.
+ */
 export function injectCorrelationIdToHeaders(
   headers: Record<string, any> = {},
   correlationId?: string,

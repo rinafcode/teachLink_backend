@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { TenantCustomization } from '../entities/tenant-customization.entity';
 import { UpdateTenantCustomizationDto } from '../dto/tenant.dto';
 
+/**
+ * Provides customization operations.
+ */
 @Injectable()
 export class CustomizationService {
   constructor(

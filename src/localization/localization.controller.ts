@@ -28,6 +28,9 @@ import { UpdateTranslationDto } from './dto/update-translation.dto';
 import { LanguageDetectionService } from './language-detection.service';
 import { LocalizationService } from './localization.service';
 
+/**
+ * Exposes localization endpoints.
+ */
 @ApiTags('localization')
 @Controller('localization')
 export class LocalizationController {
@@ -36,6 +39,12 @@ export class LocalizationController {
     private readonly languageDetection: LanguageDetectionService,
   ) {}
 
+  /**
+   * Returns bundle.
+   * @param query The query value.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Get('bundle')
   @ApiOperation({ summary: 'Get merged translation bundle for a namespace' })
   async getBundle(@Query() query: BundleQueryDto, @Req() req: RequestWithLocale) {
@@ -44,6 +53,12 @@ export class LocalizationController {
     return this.localizationService.getBundleForApi(query.namespace, locale);
   }
 
+  /**
+   * Executes detect.
+   * @param req The req.
+   * @param lang The lang.
+   * @returns The operation result.
+   */
   @Get('detect')
   @ApiOperation({ summary: 'Show how the request locale was resolved' })
   @ApiQuery({ name: 'lang', required: false })
@@ -51,6 +66,11 @@ export class LocalizationController {
     return this.languageDetection.resolveWithSource(req, lang);
   }
 
+  /**
+   * Returns admin.
+   * @param query The query value.
+   * @returns The operation result.
+   */
   @Get('admin/translations')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -60,6 +80,11 @@ export class LocalizationController {
     return this.localizationService.findAll(query);
   }
 
+  /**
+   * Returns one.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get('admin/translations/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -69,6 +94,11 @@ export class LocalizationController {
     return this.localizationService.findOne(id);
   }
 
+  /**
+   * Creates a new record.
+   * @param dto The dto.
+   * @returns The operation result.
+   */
   @Post('admin/translations')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -78,6 +108,12 @@ export class LocalizationController {
     return this.localizationService.create(dto);
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param dto The dto.
+   * @returns The operation result.
+   */
   @Patch('admin/translations/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -87,6 +123,11 @@ export class LocalizationController {
     return this.localizationService.update(id, dto);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Delete('admin/translations/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -97,6 +138,11 @@ export class LocalizationController {
     return { deleted: true };
   }
 
+  /**
+   * Imports import.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('admin/import')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -110,6 +156,12 @@ export class LocalizationController {
     return this.localizationService.importRows(rows);
   }
 
+  /**
+   * Exports export.
+   * @param query The query value.
+   * @param res The res.
+   * @returns The operation result.
+   */
   @Get('admin/export')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

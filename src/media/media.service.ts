@@ -36,6 +36,9 @@ export interface IUploadResult {
   scanResult?: { clean: boolean; threats: string[] };
 }
 
+/**
+ * Provides media operations.
+ */
 @Injectable()
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
@@ -51,6 +54,14 @@ export class MediaService {
     private readonly uploadProgress: UploadProgressService,
   ) {}
 
+  /**
+   * Creates from Upload.
+   * @param ownerId The owner identifier.
+   * @param tenantId The tenant identifier.
+   * @param file The file to process.
+   * @param options The options.
+   * @returns The resulting upload result.
+   */
   async createFromUpload(
     ownerId: string,
     tenantId: string | undefined,

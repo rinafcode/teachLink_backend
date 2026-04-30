@@ -15,6 +15,9 @@ export interface IModuleLoadResult {
   error?: Error;
 }
 
+/**
+ * Provides lazy Module Loader operations.
+ */
 @Injectable()
 export class LazyModuleLoader {
   private readonly logger = new Logger(LazyModuleLoader.name);

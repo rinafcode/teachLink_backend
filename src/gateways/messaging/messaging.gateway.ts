@@ -14,6 +14,9 @@ import { wsManager } from '../../common/utils/websocket.utils';
 import { JwtService } from '@nestjs/jwt';
 import { MESSAGING_GATEWAY_EVENTS } from '../../collaboration/constants/collaboration-events.constants';
 
+/**
+ * Handles messaging gateway events.
+ */
 @WebSocketGateway({ namespace: '/messaging' })
 @UseGuards(WsThrottlerGuard)
 export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -21,6 +24,11 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   constructor(private readonly jwtService: JwtService) {}
 
+  /**
+   * Handles connection.
+   * @param client The client.
+   * @returns The operation result.
+   */
   async handleConnection(client: Socket) {
     try {
       const token =
@@ -43,11 +51,22 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
   }
 
+  /**
+   * Handles disconnect.
+   * @param client The client.
+   * @returns The operation result.
+   */
   handleDisconnect(client: Socket) {
     wsManager.cleanupSocket(client);
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  /**
+   * Handles message.
+   * @param data The data to process.
+   * @param client The client.
+   * @returns The operation result.
+   */
   @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage(MESSAGING_GATEWAY_EVENTS.SEND_MESSAGE)
   async handleMessage(@MessageBody() data: any, @ConnectedSocket() client: Socket) {

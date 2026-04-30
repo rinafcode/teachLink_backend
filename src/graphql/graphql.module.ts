@@ -20,6 +20,9 @@ import { SchemaLintService } from './services/schema-lint.service';
 import { DirectiveValidationService } from './services/directive-validation.service';
 import { ComplexityAnalysisService } from './services/complexity-analysis.service';
 
+/**
+ * Registers the graph QL module.
+ */
 @Module({
   imports: [
     NestGraphQLModule.forRootAsync<ApolloDriverConfig>({

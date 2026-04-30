@@ -69,6 +69,9 @@ export interface IDataQualityIssue {
   resolvedBy?: string;
 }
 
+/**
+ * Provides data Quality operations.
+ */
 @Injectable()
 export class DataQualityService {
   private readonly logger = new Logger(DataQualityService.name);

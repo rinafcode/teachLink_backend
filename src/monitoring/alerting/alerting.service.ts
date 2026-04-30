@@ -100,6 +100,9 @@ export const ALERT_RULES: IAlertRule[] = [
   },
 ];
 
+/**
+ * Provides alerting operations.
+ */
 @Injectable()
 export class AlertingService {
   private readonly logger = new Logger(AlertingService.name);

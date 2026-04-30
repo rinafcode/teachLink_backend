@@ -21,6 +21,9 @@ export interface IUserProfile {
   preferences?: Record<string, any>;
 }
 
+/**
+ * Provides segmentation operations.
+ */
 @Injectable()
 export class SegmentationService {
   constructor(

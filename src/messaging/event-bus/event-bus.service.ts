@@ -9,6 +9,9 @@ export interface IEventData {
   timestamp: Date;
 }
 
+/**
+ * Provides event Bus operations.
+ */
 @Injectable()
 export class EventBusService {
   private readonly logger = new Logger(EventBusService.name);
@@ -18,6 +21,12 @@ export class EventBusService {
     private readonly tracingService: TracingService,
   ) {}
 
+  /**
+   * Executes publish.
+   * @param eventType The event type.
+   * @param payload The payload to process.
+   * @param source The source.
+   */
   async publish(eventType: string, payload: any, source: string = 'unknown'): Promise<void> {
     const span = this.tracingService.startSpan(`publish-event-${eventType}`);
     try {
@@ -53,10 +62,21 @@ export class EventBusService {
     this.logger.log(`Unsubscribed from event: ${eventType}`);
   }
 
+  /**
+   * Retrieves listeners.
+   * @param eventType The event type.
+   * @returns The matching results.
+   */
   async getListeners(eventType: string): Promise<any[]> {
     return this.eventEmitter.listeners(eventType);
   }
 
+  /**
+   * Executes emit Async.
+   * @param eventType The event type.
+   * @param payload The payload to process.
+   * @param source The source.
+   */
   async emitAsync(eventType: string, payload: any, source: string = 'unknown'): Promise<void> {
     const span = this.tracingService.startSpan(`emit-async-event-${eventType}`);
     try {

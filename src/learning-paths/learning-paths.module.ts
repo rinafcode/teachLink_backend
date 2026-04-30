@@ -5,6 +5,9 @@ import { SkillAssessmentService } from './services/skill-assessment.service';
 import { PathGenerationService } from './services/path-generation.service';
 import { MilestoneTrackingService } from './services/milestone-tracking.service';
 
+/**
+ * Registers the learning Paths module.
+ */
 @Module({
   controllers: [LearningPathsController],
   providers: [

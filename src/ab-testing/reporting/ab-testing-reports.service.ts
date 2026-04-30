@@ -14,6 +14,9 @@ export interface IReportFilters {
   includeArchived?: boolean;
 }
 
+/**
+ * Provides aBTesting Reports operations.
+ */
 @Injectable()
 export class ABTestingReportsService {
   private readonly logger = new Logger(ABTestingReportsService.name);

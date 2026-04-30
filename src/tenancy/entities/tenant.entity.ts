@@ -23,6 +23,9 @@ export enum TenantPlan {
   ENTERPRISE = 'enterprise',
 }
 
+/**
+ * Represents the tenant entity.
+ */
 @Entity('tenants')
 export class Tenant {
   @PrimaryGeneratedColumn('uuid')

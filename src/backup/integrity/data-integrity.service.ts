@@ -6,6 +6,9 @@ import { FileStorageService } from '../../media/storage/file-storage.service';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 
+/**
+ * Provides data Integrity operations.
+ */
 @Injectable()
 export class DataIntegrityService {
   private readonly logger = new Logger(DataIntegrityService.name);
@@ -16,6 +19,11 @@ export class DataIntegrityService {
     private readonly fileStorageService: FileStorageService,
   ) {}
 
+  /**
+   * Validates backup Integrity.
+   * @param backupId The backup identifier.
+   * @returns Whether the operation succeeded.
+   */
   async verifyBackupIntegrity(backupId: string): Promise<boolean> {
     this.logger.log(`Verifying backup integrity for: ${backupId}`);
 
@@ -65,6 +73,11 @@ export class DataIntegrityService {
     }
   }
 
+  /**
+   * Calculates checksums.
+   * @param filePath The file to process.
+   * @returns The operation result.
+   */
   async calculateChecksums(filePath: string): Promise<{ md5: string; sha256: string }> {
     const fileBuffer = await fs.promises.readFile(filePath);
 

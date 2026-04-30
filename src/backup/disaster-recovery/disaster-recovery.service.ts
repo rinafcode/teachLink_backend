@@ -11,6 +11,9 @@ import * as fs from 'fs';
 const execAsync = promisify(exec);
 const RTO_THRESHOLD_SECONDS = 900; // 15 minutes
 
+/**
+ * Provides disaster Recovery operations.
+ */
 @Injectable()
 export class DisasterRecoveryService {
   private readonly logger = new Logger(DisasterRecoveryService.name);
@@ -26,6 +29,10 @@ export class DisasterRecoveryService {
     this.kmsClient = new KMSClient({ region: awsRegion });
   }
 
+  /**
+   * Executes execute Restore.
+   * @param backupId The backup identifier.
+   */
   async executeRestore(backupId: string): Promise<void> {
     this.logger.log(`Starting disaster recovery restore for backup: ${backupId}`);
 

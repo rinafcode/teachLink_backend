@@ -13,6 +13,9 @@ import { ChallengesService } from './challenges/challenges.service';
 import { GamificationService } from './gamification.service';
 import { GamificationController } from './gamification.controller';
 
+/**
+ * Registers the gamification module.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([

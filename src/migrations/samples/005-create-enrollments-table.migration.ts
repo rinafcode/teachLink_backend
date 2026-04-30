@@ -17,6 +17,10 @@ export class CreateEnrollmentsTableMigration implements IMigrationConfig {
 
   private readonly logger = new Logger(CreateEnrollmentsTableMigration.name);
 
+  /**
+   * Executes up.
+   * @param connection The connection.
+   */
   async up(connection: any): Promise<void> {
     this.logger.log('Applying migration: create enrollment table');
 
@@ -51,6 +55,10 @@ export class CreateEnrollmentsTableMigration implements IMigrationConfig {
     this.logger.log('Migration applied: create enrollment table');
   }
 
+  /**
+   * Executes down.
+   * @param connection The connection.
+   */
   async down(connection: any): Promise<void> {
     this.logger.log('Rolling back migration: create enrollment table');
 

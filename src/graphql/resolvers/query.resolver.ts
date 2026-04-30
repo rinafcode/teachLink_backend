@@ -24,6 +24,12 @@ export class QueryResolver {
   ) {}
 
   // User Queries
+  /**
+   * Executes user.
+   * @param id The identifier.
+   * @param context The context.
+   * @returns The resulting user type.
+   */
   @Query(() => UserType, { nullable: true })
   @UseGuards(JwtAuthGuard)
   async user(
@@ -37,6 +43,11 @@ export class QueryResolver {
     return this.usersService.findOne(id);
   }
 
+  /**
+   * Executes users.
+   * @param filter The filter criteria.
+   * @returns The resulting paginated response<user type>.
+   */
   @Query(() => [UserType])
   @UseGuards(JwtAuthGuard)
   async users(
@@ -46,6 +57,11 @@ export class QueryResolver {
     return this.usersService.findAll(filter);
   }
 
+  /**
+   * Executes me.
+   * @param context The context.
+   * @returns The resulting user type.
+   */
   @Query(() => UserType)
   @UseGuards(JwtAuthGuard)
   async me(@Context() context: any): Promise<UserType> {
@@ -57,6 +73,12 @@ export class QueryResolver {
   }
 
   // Course Queries
+  /**
+   * Executes course.
+   * @param id The identifier.
+   * @param context The context.
+   * @returns The resulting course type.
+   */
   @Query(() => CourseType, { nullable: true })
   async course(
     @Args('id', { type: () => ID }) id: string,
@@ -69,6 +91,11 @@ export class QueryResolver {
     return this.coursesService.findOne(id);
   }
 
+  /**
+   * Executes courses.
+   * @param filter The filter criteria.
+   * @returns The resulting paginated response<course type>.
+   */
   @Query(() => [CourseType])
   async courses(
     @Args('filter', { type: () => CourseFilterInput, nullable: true })
@@ -77,6 +104,11 @@ export class QueryResolver {
     return this.coursesService.findAll(filter);
   }
 
+  /**
+   * Executes my Courses.
+   * @param context The context.
+   * @returns The matching results.
+   */
   @Query(() => [CourseType])
   @UseGuards(JwtAuthGuard)
   async myCourses(@Context() context: any): Promise<CourseType[]> {
@@ -88,6 +120,12 @@ export class QueryResolver {
   }
 
   // Assessment Queries
+  /**
+   * Executes assessment.
+   * @param id The identifier.
+   * @param context The context.
+   * @returns The resulting assessment type.
+   */
   @Query(() => AssessmentType, { nullable: true })
   @UseGuards(JwtAuthGuard)
   async assessment(
@@ -101,6 +139,10 @@ export class QueryResolver {
     return this.assessmentsService.findOne(id);
   }
 
+  /**
+   * Executes assessments.
+   * @returns The matching results.
+   */
   @Query(() => [AssessmentType])
   @UseGuards(JwtAuthGuard)
   async assessments(): Promise<AssessmentType[]> {

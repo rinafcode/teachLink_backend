@@ -15,6 +15,9 @@ export interface ICacheStrategyConfig {
   relatedPatterns: string[];
 }
 
+/**
+ * Provides cache Strategies operations.
+ */
 @Injectable()
 export class CacheStrategiesService {
   private readonly strategies: Map<string, ICacheStrategyConfig> = new Map();

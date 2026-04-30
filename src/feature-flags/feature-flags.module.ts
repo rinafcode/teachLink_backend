@@ -6,6 +6,9 @@ import { ExperimentationService } from './experimentation/experimentation.servic
 import { FlagAnalyticsService } from './analytics/flag-analytics.service';
 import { FeatureFlagsController } from './feature-flags.controller';
 
+/**
+ * Registers the feature Flags module.
+ */
 @Module({
   controllers: [FeatureFlagsController],
   providers: [

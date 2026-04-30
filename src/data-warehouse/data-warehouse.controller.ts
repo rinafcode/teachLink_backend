@@ -7,6 +7,9 @@ import { IncrementalLoaderService } from './loading/incremental-loader.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
+/**
+ * Exposes data Warehouse endpoints.
+ */
 @Controller('data-warehouse')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DataWarehouseController {
@@ -19,18 +22,33 @@ export class DataWarehouseController {
   ) {}
 
   // ETL Pipeline endpoints
+  /**
+   * Creates eTLPipeline.
+   * @param config The config.
+   * @param _req The req.
+   * @returns The operation result.
+   */
   @Post('etl/pipeline')
   async createETLPipeline(@Body() config: any, @Request() _req): Promise<any> {
     const pipeline = await this.etlService.createPipeline(config);
     return { success: true, pipeline };
   }
 
+  /**
+   * Returns eTLPipeline.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get('etl/pipeline/:id')
   async getETLPipeline(@Param('id') id: string): Promise<any> {
     const pipeline = await this.etlService.getJobStatus(id);
     return { success: true, pipeline };
   }
 
+  /**
+   * Returns all ETLPipelines.
+   * @returns The operation result.
+   */
   @Get('etl/pipelines')
   async getAllETLPipelines(): Promise<any> {
     const pipelines = await this.etlService.getAllJobs();
@@ -38,6 +56,11 @@ export class DataWarehouseController {
   }
 
   // Dimensional Modeling endpoints
+  /**
+   * Creates star Schema.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('modeling/star-schema')
   async createStarSchema(
     @Body() body: { name: string; factTable: any; dimensionTables: any[] },
@@ -50,6 +73,11 @@ export class DataWarehouseController {
     return { success: true, model };
   }
 
+  /**
+   * Creates snowflake Schema.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('modeling/snowflake-schema')
   async createSnowflakeSchema(
     @Body() body: { name: string; factTable: any; dimensionTables: any[]; subDimensions: any },
@@ -63,24 +91,44 @@ export class DataWarehouseController {
     return { success: true, model };
   }
 
+  /**
+   * Returns all Models.
+   * @returns The operation result.
+   */
   @Get('modeling/models')
   async getAllModels(): Promise<any> {
     const models = await this.modelingService.getAllModels();
     return { success: true, models };
   }
 
+  /**
+   * Returns model.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get('modeling/model/:id')
   async getModel(@Param('id') id: string): Promise<any> {
     const model = await this.modelingService.getModel(id);
     return { success: true, model };
   }
 
+  /**
+   * Creates query.
+   * @param queryConfig The configuration values.
+   * @returns The operation result.
+   */
   @Post('modeling/query')
   async createQuery(@Body() queryConfig: any): Promise<any> {
     const query = await this.modelingService.createQuery(queryConfig);
     return { success: true, query };
   }
 
+  /**
+   * Executes execute Query.
+   * @param id The identifier.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('modeling/query/:id/execute')
   async executeQuery(@Param('id') id: string, @Body() body: { parameters?: any }): Promise<any> {
     const results = await this.modelingService.executeQuery(id, body.parameters);
@@ -88,18 +136,33 @@ export class DataWarehouseController {
   }
 
   // Data Quality endpoints
+  /**
+   * Creates quality Profile.
+   * @param profileConfig The configuration values.
+   * @returns The operation result.
+   */
   @Post('quality/profile')
   async createQualityProfile(@Body() profileConfig: any): Promise<any> {
     const profile = await this.qualityService.createProfile(profileConfig);
     return { success: true, profile };
   }
 
+  /**
+   * Creates standard Profiles.
+   * @returns The operation result.
+   */
   @Post('quality/profiles/standard')
   async createStandardProfiles(): Promise<any> {
     const profiles = await this.qualityService.createStandardProfiles();
     return { success: true, profiles };
   }
 
+  /**
+   * Executes run Quality Check.
+   * @param profileId The profile identifier.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('quality/check/:profileId')
   async runQualityCheck(
     @Param('profileId') profileId: string,
@@ -109,12 +172,24 @@ export class DataWarehouseController {
     return { success: true, check };
   }
 
+  /**
+   * Returns quality Checks.
+   * @param profileId The profile identifier.
+   * @returns The operation result.
+   */
   @Get('quality/checks/:profileId')
   async getQualityChecks(@Param('profileId') profileId: string): Promise<any> {
     const checks = await this.qualityService.getChecksForProfile(profileId);
     return { success: true, checks };
   }
 
+  /**
+   * Returns quality Issues.
+   * @param profileId The profile identifier.
+   * @param severity The severity.
+   * @param resolved The resolved.
+   * @returns The operation result.
+   */
   @Get('quality/issues')
   async getQualityIssues(
     @Query('profileId') profileId?: string,
@@ -127,36 +202,68 @@ export class DataWarehouseController {
   }
 
   // Data Lineage endpoints
+  /**
+   * Creates lineage Graph.
+   * @param graphConfig The configuration values.
+   * @returns The operation result.
+   */
   @Post('lineage/graph')
   async createLineageGraph(@Body() graphConfig: any): Promise<any> {
     const graph = await this.lineageService.createGraph(graphConfig);
     return { success: true, graph };
   }
 
+  /**
+   * Creates standard Lineage.
+   * @returns The operation result.
+   */
   @Post('lineage/graphs/standard')
   async createStandardLineage(): Promise<any> {
     const graph = await this.lineageService.createStandardLineage();
     return { success: true, graph };
   }
 
+  /**
+   * Returns all Lineage Graphs.
+   * @returns The operation result.
+   */
   @Get('lineage/graphs')
   async getAllLineageGraphs(): Promise<any> {
     const graphs = await this.lineageService.getAllGraphs();
     return { success: true, graphs };
   }
 
+  /**
+   * Executes add Lineage Node.
+   * @param graphId The graph identifier.
+   * @param nodeConfig The configuration values.
+   * @returns The operation result.
+   */
   @Post('lineage/graph/:id/node')
   async addLineageNode(@Param('id') graphId: string, @Body() nodeConfig: any): Promise<any> {
     const node = await this.lineageService.addNode(graphId, nodeConfig);
     return { success: true, node };
   }
 
+  /**
+   * Executes add Lineage Edge.
+   * @param graphId The graph identifier.
+   * @param edgeConfig The configuration values.
+   * @returns The operation result.
+   */
   @Post('lineage/graph/:id/edge')
   async addLineageEdge(@Param('id') graphId: string, @Body() edgeConfig: any): Promise<any> {
     const edge = await this.lineageService.addEdge(graphId, edgeConfig);
     return { success: true, edge };
   }
 
+  /**
+   * Executes trace Lineage.
+   * @param graphId The graph identifier.
+   * @param nodeId The node identifier.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('lineage/graph/:id/trace/:nodeId')
   async traceLineage(
     @Param('id') graphId: string,
@@ -168,6 +275,12 @@ export class DataWarehouseController {
     return { success: true, trace };
   }
 
+  /**
+   * Analyzes impact.
+   * @param graphId The graph identifier.
+   * @param nodeId The node identifier.
+   * @returns The operation result.
+   */
   @Post('lineage/graph/:id/impact/:nodeId')
   async analyzeImpact(@Param('id') graphId: string, @Param('nodeId') nodeId: string): Promise<any> {
     const analysis = await this.lineageService.analyzeImpact(graphId, nodeId);
@@ -175,12 +288,23 @@ export class DataWarehouseController {
   }
 
   // Incremental Loading endpoints
+  /**
+   * Creates load Job.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('loading/job')
   async createLoadJob(@Body() body: { config: any; source: any; target: any }): Promise<any> {
     const job = await this.loaderService.createLoadJob(body.config, body.source, body.target);
     return { success: true, job };
   }
 
+  /**
+   * Executes execute Load Job.
+   * @param jobId The job identifier.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('loading/job/:id/execute')
   async executeLoadJob(
     @Param('id') jobId: string,
@@ -190,18 +314,32 @@ export class DataWarehouseController {
     return { success: true, job };
   }
 
+  /**
+   * Returns all Load Jobs.
+   * @returns The operation result.
+   */
   @Get('loading/jobs')
   async getAllLoadJobs(): Promise<any> {
     const jobs = await this.loaderService.getAllJobs();
     return { success: true, jobs };
   }
 
+  /**
+   * Returns load Job.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get('loading/job/:id')
   async getLoadJob(@Param('id') id: string): Promise<any> {
     const job = await this.loaderService.getJobStatus(id);
     return { success: true, job };
   }
 
+  /**
+   * Sets watermark.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('loading/watermark')
   async setWatermark(
     @Body() body: { tableName: string; columnName: string; value: any },
@@ -214,6 +352,12 @@ export class DataWarehouseController {
     return { success: true, watermark };
   }
 
+  /**
+   * Returns watermark.
+   * @param tableName The table name.
+   * @param columnName The column name.
+   * @returns The operation result.
+   */
   @Get('loading/watermark/:tableName/:columnName')
   async getWatermark(
     @Param('tableName') tableName: string,

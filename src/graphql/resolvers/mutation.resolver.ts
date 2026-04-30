@@ -26,6 +26,11 @@ export class MutationResolver {
   ) {}
 
   // User Mutations
+  /**
+   * Creates user.
+   * @param input The input.
+   * @returns The resulting user type.
+   */
   @Mutation(() => UserType)
   async createUser(@Args('input') input: CreateUserInput): Promise<UserType> {
     const user = await this.usersService.create(input);
@@ -33,6 +38,12 @@ export class MutationResolver {
     return user;
   }
 
+  /**
+   * Updates user.
+   * @param id The identifier.
+   * @param input The input.
+   * @returns The resulting user type.
+   */
   @Mutation(() => UserType)
   @UseGuards(JwtAuthGuard)
   async updateUser(
@@ -44,6 +55,11 @@ export class MutationResolver {
     return user;
   }
 
+  /**
+   * Removes user.
+   * @param id The identifier.
+   * @returns Whether the operation succeeded.
+   */
   @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
   async deleteUser(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
@@ -53,6 +69,11 @@ export class MutationResolver {
   }
 
   // Course Mutations
+  /**
+   * Creates course.
+   * @param input The input.
+   * @returns The resulting course type.
+   */
   @Mutation(() => CourseType)
   @UseGuards(JwtAuthGuard)
   async createCourse(@Args('input') input: CreateCourseInput): Promise<CourseType> {
@@ -61,6 +82,12 @@ export class MutationResolver {
     return course;
   }
 
+  /**
+   * Updates course.
+   * @param id The identifier.
+   * @param input The input.
+   * @returns The resulting course type.
+   */
   @Mutation(() => CourseType)
   @UseGuards(JwtAuthGuard)
   async updateCourse(
@@ -72,6 +99,11 @@ export class MutationResolver {
     return course;
   }
 
+  /**
+   * Removes course.
+   * @param id The identifier.
+   * @returns Whether the operation succeeded.
+   */
   @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
   async deleteCourse(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
@@ -81,6 +113,11 @@ export class MutationResolver {
   }
 
   // Assessment Mutations
+  /**
+   * Creates assessment.
+   * @param input The input.
+   * @returns The resulting assessment type.
+   */
   @Mutation(() => AssessmentType)
   @UseGuards(JwtAuthGuard)
   async createAssessment(@Args('input') input: CreateAssessmentInput): Promise<AssessmentType> {
@@ -91,6 +128,12 @@ export class MutationResolver {
     return assessment;
   }
 
+  /**
+   * Updates assessment.
+   * @param id The identifier.
+   * @param input The input.
+   * @returns The resulting assessment type.
+   */
   @Mutation(() => AssessmentType)
   @UseGuards(JwtAuthGuard)
   async updateAssessment(
@@ -104,6 +147,11 @@ export class MutationResolver {
     return assessment;
   }
 
+  /**
+   * Removes assessment.
+   * @param id The identifier.
+   * @returns Whether the operation succeeded.
+   */
   @Mutation(() => Boolean)
   @UseGuards(JwtAuthGuard)
   async deleteAssessment(@Args('id', { type: () => ID }) id: string): Promise<boolean> {

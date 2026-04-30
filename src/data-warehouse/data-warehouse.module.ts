@@ -6,6 +6,9 @@ import { DataLineageService } from './lineage/data-lineage.service';
 import { IncrementalLoaderService } from './loading/incremental-loader.service';
 import { DataWarehouseController } from './data-warehouse.controller';
 
+/**
+ * Registers the data Warehouse module.
+ */
 @Module({
   imports: [],
   controllers: [DataWarehouseController],

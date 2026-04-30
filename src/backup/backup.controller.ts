@@ -18,6 +18,9 @@ import { RestoreBackupDto } from './dto/restore-backup.dto';
 import { TriggerRecoveryTestDto } from './dto/trigger-recovery-test.dto';
 import { RecoveryTestResponseDto } from './dto/recovery-test-response.dto';
 
+/**
+ * Exposes backup endpoints.
+ */
 @ApiTags('backup')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -29,6 +32,11 @@ export class BackupController {
     private readonly backupMonitoringService: BackupMonitoringService,
   ) {}
 
+  /**
+   * Executes restore Backup.
+   * @param dto The dto.
+   * @returns The operation result.
+   */
   @Post('restore')
   @ApiOperation({ summary: 'Restore from backup' })
   @ApiResponse({ status: HttpStatus.ACCEPTED, description: 'Restore initiated' })
@@ -38,6 +46,11 @@ export class BackupController {
     return { message: 'Restore initiated' };
   }
 
+  /**
+   * Executes trigger Recovery Test.
+   * @param dto The dto.
+   * @returns The resulting recovery test response dto.
+   */
   @Post('test')
   @ApiOperation({ summary: 'Trigger recovery test' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Recovery test triggered' })
@@ -45,6 +58,11 @@ export class BackupController {
     return this.recoveryTestingService.createRecoveryTest(dto.backupRecordId);
   }
 
+  /**
+   * Returns recovery Test.
+   * @param testId The test identifier.
+   * @returns The resulting recovery test response dto.
+   */
   @Get('test/:testId')
   @ApiOperation({ summary: 'Get recovery test results' })
   @ApiResponse({
@@ -58,6 +76,10 @@ export class BackupController {
     return this.recoveryTestingService.getTestResults(testId);
   }
 
+  /**
+   * Returns backup Health.
+   * @returns The operation result.
+   */
   @Get('health')
   @ApiOperation({ summary: 'Get backup system health' })
   @ApiResponse({ status: HttpStatus.OK, description: 'Backup health status' })

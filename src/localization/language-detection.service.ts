@@ -9,14 +9,25 @@ export interface IResolvedLocale {
   source: LocaleResolutionSource;
 }
 
+/**
+ * Provides language Detection operations.
+ */
 @Injectable()
 export class LanguageDetectionService {
   constructor(private readonly configService: ConfigService) {}
 
+  /**
+   * Retrieves default Locale.
+   * @returns The resulting string value.
+   */
   getDefaultLocale(): string {
     return this.configService.get<string>('I18N_DEFAULT_LOCALE')?.trim().toLowerCase() || 'en';
   }
 
+  /**
+   * Retrieves supported Locales.
+   * @returns The matching results.
+   */
   getSupportedLocales(): string[] {
     const raw =
       this.configService.get<string>('I18N_SUPPORTED_LOCALES') ||
@@ -28,6 +39,11 @@ export class LanguageDetectionService {
       .filter(Boolean);
   }
 
+  /**
+   * Executes normalize Locale Tag.
+   * @param tag The tag.
+   * @returns The resulting string value.
+   */
   normalizeLocaleTag(tag: string): string {
     if (!tag) return '';
     return tag.trim().toLowerCase().replace(/_/g, '-');
@@ -70,6 +86,12 @@ export class LanguageDetectionService {
     return { locale: defaultLocale, source: 'default' };
   }
 
+  /**
+   * Resolves locale.
+   * @param req The req.
+   * @param queryLang The query value.
+   * @returns The resulting string value.
+   */
   resolveLocale(req: Request, queryLang?: string): string {
     return this.resolveWithSource(req, queryLang).locale;
   }

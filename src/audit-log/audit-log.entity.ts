@@ -8,6 +8,9 @@ import {
 } from 'typeorm';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
 
+/**
+ * Represents the audit Log entity.
+ */
 @Entity('audit_logs')
 @Index(['userId', 'timestamp'])
 @Index(['action', 'timestamp'])

@@ -5,6 +5,9 @@ import { Repository } from 'typeorm';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
 import { FileStorageService } from '../storage/file-storage.service';
 
+/**
+ * Provides document Processing operations.
+ */
 @Injectable()
 export class DocumentProcessingService {
   private readonly logger = new Logger(DocumentProcessingService.name);
@@ -15,6 +18,11 @@ export class DocumentProcessingService {
     private readonly contentRepo: Repository<ContentMetadata>,
   ) {}
 
+  /**
+   * Executes parse Pdf From Content.
+   * @param contentId The content identifier.
+   * @returns The operation result.
+   */
   async parsePdfFromContent(contentId: string) {
     const meta = await this.contentRepo.findOne({ where: { contentId } });
     if (!meta) return null;

@@ -19,6 +19,9 @@ export enum RefundStatus {
   FAILED = 'failed',
 }
 
+/**
+ * Represents the refund entity.
+ */
 @Entity('refunds')
 export class Refund {
   @PrimaryGeneratedColumn('uuid')

@@ -105,11 +105,23 @@ export class VideoProcessor {
     return { uploaded };
   }
 
+  /**
+   * Executes on Failed.
+   * @param job The job.
+   * @param err The err.
+   * @returns The operation result.
+   */
   @OnQueueFailed()
   async onFailed(job: Job, err: Error) {
     this.logger.error(`Job ${job.id} failed: ${err.message}`);
   }
 
+  /**
+   * Executes on Complete.
+   * @param job The job.
+   * @param _result The result.
+   * @returns The operation result.
+   */
   @OnQueueCompleted()
   async onComplete(job: Job, _result: any) {
     this.logger.log(`Job ${job.id} completed`);

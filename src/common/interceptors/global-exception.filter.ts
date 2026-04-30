@@ -12,11 +12,19 @@ import { QueryFailedError, EntityNotFoundError, OptimisticLockVersionMismatchErr
 import { IApiError, IValidationErrorDetail } from '../../interfaces/api-error.interface';
 import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
 
+/**
+ * Provides global Exception Filter behavior.
+ */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
   private readonly isProduction = process.env.NODE_ENV === 'production';
 
+  /**
+   * Executes catch.
+   * @param exception The exception.
+   * @param host The host.
+   */
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

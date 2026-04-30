@@ -33,6 +33,9 @@ import {
 } from './validation/upload-validation.util';
 import { BulkDeleteMediaDto } from './dto/media.dto';
 
+/**
+ * Exposes media endpoints.
+ */
 @ApiTags('Media')
 @ApiBearerAuth()
 @Controller('media')
@@ -41,6 +44,13 @@ export class MediaController {
 
   constructor(private readonly mediaService: MediaService) {}
 
+  /**
+   * Uploads upload.
+   * @param file The file to process.
+   * @param req The req.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Post('upload')
   @Throttle({ default: THROTTLE.MODERATE })
   @UseGuards(JwtAuthGuard)
@@ -110,6 +120,11 @@ export class MediaController {
     return result;
   }
 
+  /**
+   * Returns upload Progress.
+   * @param uploadId The upload identifier.
+   * @returns The operation result.
+   */
   @Get('uploads/progress/:uploadId')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get upload progress by ID' })
@@ -124,6 +139,10 @@ export class MediaController {
     return progress;
   }
 
+  /**
+   * Returns active Uploads.
+   * @returns The operation result.
+   */
   @Get('uploads/active')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'List active uploads' })
@@ -132,6 +151,10 @@ export class MediaController {
     return this.mediaService.listActiveUploads();
   }
 
+  /**
+   * Returns upload Statistics.
+   * @returns The operation result.
+   */
   @Get('uploads/statistics')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get upload statistics' })
@@ -140,6 +163,12 @@ export class MediaController {
     return this.mediaService.getUploadStatistics();
   }
 
+  /**
+   * Returns metadata.
+   * @param contentId The content identifier.
+   * @param req The req.
+   * @returns The operation result.
+   */
   @Get(':contentId')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get media metadata by content ID' })

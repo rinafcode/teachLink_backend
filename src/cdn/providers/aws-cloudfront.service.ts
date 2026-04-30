@@ -36,6 +36,9 @@ export interface IPurgeResult {
   invalidationId?: string;
 }
 
+/**
+ * Provides aWSCloud Front operations.
+ */
 @Injectable()
 export class AWSCloudFrontService {
   private readonly logger = new Logger(AWSCloudFrontService.name);
@@ -191,6 +194,12 @@ export class AWSCloudFrontService {
     }
   }
 
+  /**
+   * Retrieves usage Statistics.
+   * @param _startDate The start date.
+   * @param _endDate The end date.
+   * @returns The operation result.
+   */
   async getUsageStatistics(_startDate: Date, _endDate: Date): Promise<any> {
     // AWS CloudFront doesn't have direct metrics API in SDK
     // Would need to use CloudWatch or external monitoring
@@ -206,6 +215,10 @@ export class AWSCloudFrontService {
     };
   }
 
+  /**
+   * Updates distribution Settings.
+   * @param _settings The settings.
+   */
   async updateDistributionSettings(_settings: any): Promise<void> {
     try {
       // Get current distribution config
@@ -217,6 +230,10 @@ export class AWSCloudFrontService {
     }
   }
 
+  /**
+   * Creates origin Access Identity.
+   * @returns The resulting string value.
+   */
   async createOriginAccessIdentity(): Promise<string> {
     // Implementation would create CloudFront Origin Access Identity
     // for secure S3 access
@@ -254,6 +271,11 @@ export class AWSCloudFrontService {
     throw new Error(`Invalidation ${invalidationId} did not complete within timeout`);
   }
 
+  /**
+   * Removes file.
+   * @param key The key.
+   * @returns Whether the operation succeeded.
+   */
   async deleteFile(key: string): Promise<boolean> {
     try {
       if (!this.config.bucketName) {
@@ -277,6 +299,11 @@ export class AWSCloudFrontService {
     }
   }
 
+  /**
+   * Retrieves file Metadata.
+   * @param _key The key.
+   * @returns The operation result.
+   */
   async getFileMetadata(_key: string): Promise<any> {
     // Implementation would get object metadata from S3
     return {

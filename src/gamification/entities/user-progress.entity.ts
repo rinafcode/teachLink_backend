@@ -9,6 +9,9 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
+/**
+ * Represents the user Progress entity.
+ */
 @Entity('user_progress')
 export class UserProgress {
   @PrimaryGeneratedColumn('uuid')

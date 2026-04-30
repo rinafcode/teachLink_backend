@@ -7,8 +7,16 @@ export enum UserTier {
   PREMIUM = 'PREMIUM',
 }
 
+/**
+ * Provides quota Management operations.
+ */
 @Injectable()
 export class QuotaManagementService {
+  /**
+   * Retrieves quota For Tier.
+   * @param tier The tier.
+   * @returns The operation result.
+   */
   getQuotaForTier(tier: UserTier) {
     return QUOTA_LIMITS[tier] || QUOTA_LIMITS.DEFAULT;
   }

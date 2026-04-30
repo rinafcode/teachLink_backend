@@ -27,6 +27,9 @@ interface InvoiceItem {
   taxRate?: number;
 }
 
+/**
+ * Represents the invoice entity.
+ */
 @Entity('invoices')
 export class Invoice {
   @PrimaryGeneratedColumn('uuid')

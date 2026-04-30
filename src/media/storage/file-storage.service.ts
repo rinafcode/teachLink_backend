@@ -10,6 +10,9 @@ import { Readable } from 'stream';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
 import { UploadedFile } from '@nestjs/common';
 
+/**
+ * Provides file Storage operations.
+ */
 @Injectable()
 export class FileStorageService {
   private readonly logger = new Logger(FileStorageService.name);
@@ -40,6 +43,12 @@ export class FileStorageService {
   }
 
   // Legacy method for backward compatibility
+  /**
+   * Uploads file.
+   * @param file The file to process.
+   * @param metadata The data to process.
+   * @returns The operation result.
+   */
   async uploadFile(
     file: UploadedFile,
     metadata: ContentMetadata,
@@ -83,6 +92,11 @@ export class FileStorageService {
     return result.ETag;
   }
 
+  /**
+   * Downloads file.
+   * @param storageKey The storage key.
+   * @returns The resulting buffer.
+   */
   async downloadFile(storageKey: string): Promise<Buffer> {
     const command = new GetObjectCommand({
       Bucket: this.bucketName,
@@ -100,6 +114,10 @@ export class FileStorageService {
     return Buffer.concat(chunks);
   }
 
+  /**
+   * Removes file.
+   * @param storageKey The storage key.
+   */
   async deleteFile(storageKey: string): Promise<void> {
     const command = new DeleteObjectCommand({
       Bucket: this.bucketName,

@@ -9,6 +9,9 @@ import { MetricsCollectionService } from '../../monitoring/metrics/metrics-colle
 import { AlertingService } from '../../monitoring/alerting/alerting.service';
 import { Histogram, Counter } from 'prom-client';
 
+/**
+ * Provides backup Monitoring operations.
+ */
 @Injectable()
 export class BackupMonitoringService {
   private readonly logger = new Logger(BackupMonitoringService.name);
@@ -45,6 +48,10 @@ export class BackupMonitoringService {
     });
   }
 
+  /**
+   * Validates backup Health.
+   * @returns The operation result.
+   */
   async checkBackupHealth(): Promise<{ healthy: boolean; issues: string[] }> {
     const issues: string[] = [];
 
@@ -91,6 +98,11 @@ export class BackupMonitoringService {
     };
   }
 
+  /**
+   * Records backup Metrics.
+   * @param backupId The backup identifier.
+   * @param duration The duration.
+   */
   async recordBackupMetrics(backupId: string, duration: number): Promise<void> {
     const backup = await this.backupRepository.findOne({
       where: { id: backupId },

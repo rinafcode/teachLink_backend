@@ -9,6 +9,9 @@ import { Answer } from './entities/answer.entity';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { Question } from './entities/question.entity';
 
+/**
+ * Provides assessment operations.
+ */
 @Injectable()
 export class AssessmentsService {
   constructor(
@@ -22,6 +25,12 @@ export class AssessmentsService {
     private readonly feedbackService: FeedbackGenerationService,
   ) {}
 
+  /**
+   * Starts assessment.
+   * @param studentId The student identifier.
+   * @param assessmentId The assessment identifier.
+   * @returns The operation result.
+   */
   async startAssessment(studentId: string, assessmentId: string) {
     const assessment = await this.assessmentRepo.findOne({
       where: { id: assessmentId },
@@ -36,12 +45,21 @@ export class AssessmentsService {
     });
   }
 
+  /**
+   * Retrieves all matching results.
+   * @returns The matching results.
+   */
   async findAll(): Promise<Assessment[]> {
     return await this.assessmentRepo.find({
       relations: ['questions'],
     });
   }
 
+  /**
+   * Retrieves the requested record.
+   * @param id The identifier.
+   * @returns The resulting assessment.
+   */
   async findOne(id: string): Promise<Assessment> {
     return await this.assessmentRepo.findOne({
       where: { id },
@@ -49,22 +67,42 @@ export class AssessmentsService {
     });
   }
 
+  /**
+   * Retrieves records by their identifiers.
+   * @param ids The identifiers.
+   * @returns The matching results.
+   */
   async findByIds(ids: string[]): Promise<Assessment[]> {
     if (ids.length === 0) return [];
     return await this.assessmentRepo.findByIds(ids);
   }
 
+  /**
+   * Creates a new record.
+   * @param data The data to process.
+   * @returns The resulting assessment.
+   */
   async create(data: any): Promise<Assessment> {
     const assessment = this.assessmentRepo.create(data);
     const saved = await this.assessmentRepo.save(assessment);
     return Array.isArray(saved) ? saved[0] : saved;
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param data The data to process.
+   * @returns The resulting assessment.
+   */
   async update(id: string, data: any): Promise<Assessment> {
     await this.assessmentRepo.update(id, data);
     return this.findOne(id);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   async remove(id: string): Promise<void> {
     const assessment = await this.findOne(id);
     if (!assessment) {
@@ -82,6 +120,12 @@ export class AssessmentsService {
     });
   }
 
+  /**
+   * Submits assessment.
+   * @param attemptId The attempt identifier.
+   * @param answers The answers.
+   * @returns The operation result.
+   */
   async submitAssessment(attemptId: string, answers: any[]) {
     const attempt = await this.attemptRepo.findOne({
       where: { id: attemptId },
@@ -126,6 +170,11 @@ export class AssessmentsService {
     };
   }
 
+  /**
+   * Retrieves results.
+   * @param attemptId The attempt identifier.
+   * @returns The operation result.
+   */
   getResults(attemptId: string) {
     return this.attemptRepo.findOne({
       where: { id: attemptId },

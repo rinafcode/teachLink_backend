@@ -22,6 +22,9 @@ export interface IEdgeLocation {
   priority: number;
 }
 
+/**
+ * Provides geo Location operations.
+ */
 @Injectable()
 export class GeoLocationService {
   private readonly logger = new Logger(GeoLocationService.name);
@@ -95,6 +98,11 @@ export class GeoLocationService {
     }
   }
 
+  /**
+   * Retrieves optimal Location.
+   * @param userLocation The user location.
+   * @returns The resulting string value.
+   */
   async getOptimalLocation(userLocation?: string): Promise<string> {
     if (!userLocation) {
       // Default to primary edge location
@@ -152,6 +160,12 @@ export class GeoLocationService {
     return sortedLocations.slice(0, limit);
   }
 
+  /**
+   * Optimizes route For Connection.
+   * @param userLocation The user location.
+   * @param connectionType The connection type.
+   * @returns The resulting string value.
+   */
   async optimizeRouteForConnection(userLocation: string, connectionType: string): Promise<string> {
     const locations = await this.getNearestEdgeLocations(userLocation, 5);
 
@@ -170,6 +184,11 @@ export class GeoLocationService {
     }
   }
 
+  /**
+   * Retrieves latency Estimates.
+   * @param userLocation The user location.
+   * @returns The resulting record<string, number>.
+   */
   async getLatencyEstimates(userLocation: string): Promise<Record<string, number>> {
     const userCoords = await this.getCoordinates(userLocation);
     const estimates: Record<string, number> = {};
@@ -239,6 +258,14 @@ export class GeoLocationService {
     };
   }
 
+  /**
+   * Retrieves geo Stats.
+   * @returns The resulting promise<{
+    total requests: number;
+    top countries: array<{ country: string; count: number }>;
+    average latency: number;
+  }>.
+   */
   async getGeoStats(): Promise<{
     totalRequests: number;
     topCountries: Array<{ country: string; count: number }>;

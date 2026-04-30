@@ -8,6 +8,9 @@ import {
   getCorrelationId,
 } from '../../common/utils/correlation.utils';
 
+/**
+ * Provides service Mesh operations.
+ */
 @Injectable()
 export class ServiceMeshService {
   constructor(
@@ -15,6 +18,14 @@ export class ServiceMeshService {
     private readonly httpService: HttpService,
   ) {}
 
+  /**
+   * Executes request.
+   * @param serviceName The service name.
+   * @param path The path.
+   * @param method The method.
+   * @param data The data to process.
+   * @returns The resulting t.
+   */
   async request<T = any>(
     serviceName: string,
     path: string,

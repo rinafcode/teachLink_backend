@@ -3,6 +3,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { TimeoutConfigService, ITimeoutConfig } from './timeout-config.service';
 
+/**
+ * Exposes timeout endpoints.
+ */
 @ApiTags('Timeout Configuration')
 @ApiBearerAuth()
 @Controller('timeout')
@@ -10,6 +13,10 @@ import { TimeoutConfigService, ITimeoutConfig } from './timeout-config.service';
 export class TimeoutController {
   constructor(private readonly timeoutConfig: TimeoutConfigService) {}
 
+  /**
+   * Returns config.
+   * @returns The resulting timeout config.
+   */
   @Get('config')
   @ApiOperation({ summary: 'Get current timeout configuration' })
   @ApiResponse({ status: 200, description: 'Timeout configuration retrieved successfully' })
@@ -17,6 +24,11 @@ export class TimeoutController {
     return this.timeoutConfig.getConfig();
   }
 
+  /**
+   * Updates default Timeout.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Put('default')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update default timeout' })
@@ -29,6 +41,11 @@ export class TimeoutController {
     };
   }
 
+  /**
+   * Updates endpoint Timeout.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Put('endpoint')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update endpoint timeout' })
@@ -40,6 +57,11 @@ export class TimeoutController {
     };
   }
 
+  /**
+   * Updates method Timeout.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Put('method')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update HTTP method timeout' })
@@ -51,6 +73,11 @@ export class TimeoutController {
     };
   }
 
+  /**
+   * Validates timeout.
+   * @param body The body.
+   * @returns The operation result.
+   */
   @Get('check')
   @ApiOperation({ summary: 'Get timeout for a specific request' })
   @ApiResponse({ status: 200, description: 'Timeout calculated successfully' })

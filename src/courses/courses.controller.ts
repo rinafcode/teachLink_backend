@@ -21,6 +21,9 @@ import { CreateLessonDto } from './dto/create-lesson.dto';
 import { EnrollmentsService } from './enrollments/enrollments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+/**
+ * Exposes courses endpoints.
+ */
 @Controller('courses')
 export class CoursesController {
   constructor(
@@ -30,6 +33,12 @@ export class CoursesController {
     private readonly enrollmentsService: EnrollmentsService,
   ) {}
 
+  /**
+   * Creates a new record.
+   * @param req The req.
+   * @param createCourseDto The request payload.
+   * @returns The operation result.
+   */
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Request() req, @Body() createCourseDto: CreateCourseDto) {
@@ -44,33 +53,64 @@ export class CoursesController {
     });
   }
 
+  /**
+   * Returns all.
+   * @param searchDto The request payload.
+   * @returns The operation result.
+   */
   @Get()
   findAll(@Query() searchDto: CourseSearchDto) {
     return this.coursesService.findAll(searchDto);
   }
 
+  /**
+   * Returns all With Cursor.
+   * @param searchDto The request payload.
+   * @returns The operation result.
+   */
   @Get('cursor')
   findAllWithCursor(@Query() searchDto: CursorCourseSearchDto) {
     return this.coursesService.findAllWithCursor(searchDto);
   }
 
+  /**
+   * Returns analytics.
+   * @param _req The req.
+   * @returns The operation result.
+   */
   @Get('analytics')
   @UseGuards(JwtAuthGuard)
   getAnalytics(@Request() _req) {
     return this.coursesService.getAnalytics();
   }
 
+  /**
+   * Returns one.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.coursesService.findOne(id);
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateCourseDto The request payload.
+   * @returns The operation result.
+   */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
     return this.coursesService.update(id, updateCourseDto);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   * @returns The operation result.
+   */
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
@@ -78,6 +118,13 @@ export class CoursesController {
   }
 
   // Modules
+  /**
+   * Creates module.
+   * @param req The req.
+   * @param courseId The course identifier.
+   * @param createModuleDto The request payload.
+   * @returns The operation result.
+   */
   @Post(':id/modules')
   @UseGuards(JwtAuthGuard)
   createModule(
@@ -90,6 +137,13 @@ export class CoursesController {
   }
 
   // Lessons
+  /**
+   * Creates lesson.
+   * @param req The req.
+   * @param moduleId The module identifier.
+   * @param createLessonDto The request payload.
+   * @returns The operation result.
+   */
   @Post('modules/:moduleId/lessons')
   @UseGuards(JwtAuthGuard)
   createLesson(
@@ -102,6 +156,12 @@ export class CoursesController {
   }
 
   // Enrollments
+  /**
+   * Executes enroll.
+   * @param req The req.
+   * @param courseId The course identifier.
+   * @returns The operation result.
+   */
   @Post(':id/enroll')
   @UseGuards(JwtAuthGuard)
   enroll(@Request() req, @Param('id') courseId: string) {

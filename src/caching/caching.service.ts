@@ -8,6 +8,9 @@ export interface ICacheOptions {
   prefix?: string;
 }
 
+/**
+ * Provides caching operations.
+ */
 @Injectable()
 export class CachingService implements OnModuleDestroy {
   private readonly logger = new Logger(CachingService.name);
@@ -20,6 +23,9 @@ export class CachingService implements OnModuleDestroy {
     this.defaultTtl = parseInt(this.configService.get<string>('REDIS_TTL') || '300', 10);
   }
 
+  /**
+   * Executes on Module Destroy.
+   */
   async onModuleDestroy(): Promise<void> {
     if (this.redis.status !== 'end') {
       await this.redis.quit();

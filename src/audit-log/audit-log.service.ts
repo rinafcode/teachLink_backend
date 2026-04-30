@@ -71,6 +71,9 @@ export interface IAuditReport {
   failedActions: Array<{ action: string; count: number }>;
 }
 
+/**
+ * Provides audit Log operations.
+ */
 @Injectable()
 export class AuditLogService {
   private readonly logger = new Logger(AuditLogService.name);

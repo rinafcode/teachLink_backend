@@ -66,6 +66,9 @@ export interface IHealthStatus {
   };
 }
 
+/**
+ * Provides health operations.
+ */
 @Injectable()
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);

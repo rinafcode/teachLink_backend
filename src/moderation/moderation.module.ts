@@ -8,6 +8,9 @@ import { ModerationAnalyticsService } from './analytics/moderation-analytics.ser
 import { ReviewItem } from './manual/review-item.entity';
 import { ModerationEvent } from './analytics/moderation-event.entity';
 
+/**
+ * Registers the moderation module.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([ReviewItem, ModerationEvent])],
   providers: [

@@ -9,6 +9,9 @@ export interface ICircuitBreakerConfig {
 
 export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
+/**
+ * Provides circuit Breaker operations.
+ */
 @Injectable()
 export class CircuitBreakerService {
   private readonly logger = new Logger(CircuitBreakerService.name);
@@ -24,6 +27,13 @@ export class CircuitBreakerService {
 
   constructor(private readonly tracingService: TracingService) {}
 
+  /**
+   * Executes execute.
+   * @param key The key.
+   * @param operation The operation.
+   * @param config The config.
+   * @returns The resulting t.
+   */
   async execute<T>(
     key: string,
     operation: () => Promise<T>,
@@ -97,11 +107,21 @@ export class CircuitBreakerService {
     }
   }
 
+  /**
+   * Retrieves circuit State.
+   * @param key The key.
+   * @returns The operation result.
+   */
   async getCircuitState(key: string): Promise<CircuitState | null> {
     const circuit = this.circuits.get(key);
     return circuit ? circuit.state : null;
   }
 
+  /**
+   * Retrieves circuit Stats.
+   * @param key The key.
+   * @returns The operation result.
+   */
   async getCircuitStats(key: string): Promise<{
     state: CircuitState;
     failures: number;
@@ -117,6 +137,10 @@ export class CircuitBreakerService {
     };
   }
 
+  /**
+   * Resets circuit.
+   * @param key The key.
+   */
   async resetCircuit(key: string): Promise<void> {
     const circuit = this.circuits.get(key);
     if (circuit) {
@@ -127,6 +151,19 @@ export class CircuitBreakerService {
     }
   }
 
+  /**
+   * Retrieves all Circuits.
+   * @returns The resulting promise<
+    record<
+      string,
+      {
+        state: circuit state;
+        failures: number;
+        last failure time: number;
+      }
+    >
+  >.
+   */
   async getAllCircuits(): Promise<
     Record<
       string,

@@ -9,6 +9,9 @@ import {
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Defines the create Course payload.
+ */
 export class CreateCourseDto {
   @ApiProperty()
   @IsString({ message: 'Title must be a string' })

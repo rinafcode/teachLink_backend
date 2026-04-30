@@ -63,6 +63,9 @@ export interface ITransformedData {
   };
 }
 
+/**
+ * Provides eTLPipeline operations.
+ */
 @Injectable()
 export class ETLPipelineService {
   private readonly logger = new Logger(ETLPipelineService.name);

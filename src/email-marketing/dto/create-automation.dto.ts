@@ -4,6 +4,9 @@ import { Type } from 'class-transformer';
 import { TriggerType } from '../enums/trigger-type.enum';
 import { ActionType } from '../enums/action-type.enum';
 
+/**
+ * Defines the create Trigger payload.
+ */
 export class CreateTriggerDto {
   @ApiProperty({ enum: TriggerType })
   @IsEnum(TriggerType)
@@ -21,6 +24,9 @@ export class CreateTriggerDto {
   description?: string;
 }
 
+/**
+ * Defines the create Action payload.
+ */
 export class CreateActionDto {
   @ApiProperty({ enum: ActionType })
   @IsEnum(ActionType)
@@ -38,6 +44,9 @@ export class CreateActionDto {
   description?: string;
 }
 
+/**
+ * Defines the create Automation payload.
+ */
 export class CreateAutomationDto {
   @ApiProperty({ description: 'Workflow name', example: 'Welcome Series' })
   @IsString()

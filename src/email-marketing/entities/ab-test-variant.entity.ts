@@ -10,6 +10,9 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { ABTest } from './ab-test.entity';
 
+/**
+ * Represents the aBTest Variant entity.
+ */
 @Entity('ab_test_variants')
 export class ABTestVariant {
   @ApiProperty()

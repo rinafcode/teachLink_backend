@@ -20,6 +20,9 @@ import * as fs from 'fs';
 
 const execAsync = promisify(exec);
 
+/**
+ * Provides recovery Testing operations.
+ */
 @Injectable()
 export class RecoveryTestingService {
   private readonly logger = new Logger(RecoveryTestingService.name);
@@ -39,6 +42,11 @@ export class RecoveryTestingService {
     this.kmsClient = new KMSClient({ region: awsRegion });
   }
 
+  /**
+   * Creates recovery Test.
+   * @param backupId The backup identifier.
+   * @returns The resulting recovery test response dto.
+   */
   async createRecoveryTest(backupId: string): Promise<RecoveryTestResponseDto> {
     const backup = await this.backupService.getLatestBackup();
     if (!backup) {
@@ -75,6 +83,10 @@ export class RecoveryTestingService {
     return this.toResponseDto(recoveryTest);
   }
 
+  /**
+   * Executes execute Recovery Test.
+   * @param testId The test identifier.
+   */
   async executeRecoveryTest(testId: string): Promise<void> {
     const test = await this.recoveryTestRepository.findOne({
       where: { id: testId },
@@ -164,6 +176,11 @@ export class RecoveryTestingService {
     }
   }
 
+  /**
+   * Retrieves test Results.
+   * @param testId The test identifier.
+   * @returns The resulting recovery test response dto.
+   */
   async getTestResults(testId: string): Promise<RecoveryTestResponseDto> {
     const test = await this.recoveryTestRepository.findOne({
       where: { id: testId },

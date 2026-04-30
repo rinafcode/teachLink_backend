@@ -1,6 +1,9 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import Redis from 'ioredis';
 
+/**
+ * Provides distributed Limiter operations.
+ */
 @Injectable()
 export class DistributedLimiterService {
   private redis: Redis;
@@ -12,6 +15,12 @@ export class DistributedLimiterService {
     });
   }
 
+  /**
+   * Executes sliding Window Check.
+   * @param key The key.
+   * @param limit The maximum number of results.
+   * @param windowInSeconds The window in seconds.
+   */
   async slidingWindowCheck(key: string, limit: number, windowInSeconds: number): Promise<void> {
     const now = Date.now();
     const windowStart = now - windowInSeconds * 1000;

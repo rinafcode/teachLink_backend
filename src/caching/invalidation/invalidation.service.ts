@@ -9,6 +9,9 @@ export interface InvalidationResult {
   keysDeleted: number;
 }
 
+/**
+ * Provides cache Invalidation operations.
+ */
 @Injectable()
 export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheInvalidationService.name);
@@ -20,10 +23,18 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  /**
+   * Executes on Module Init.
+   * @returns The operation result.
+   */
   onModuleInit() {
     this.logger.log('Cache invalidation service initialized');
   }
 
+  /**
+   * Executes on Module Destroy.
+   * @returns The operation result.
+   */
   onModuleDestroy() {
     this.tagIndex.clear();
   }
@@ -170,6 +181,10 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
 
   // Event handlers for automatic invalidation
 
+  /**
+   * Handles course Updated Event.
+   * @param payload The payload to process.
+   */
   @OnEvent(CACHE_EVENTS.COURSE_UPDATED)
   async handleCourseUpdatedEvent(payload: { courseId: string }): Promise<void> {
     this.logger.debug(`Handling course updated event for: ${payload.courseId}`);
@@ -177,6 +192,10 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  /**
+   * Handles course Deleted Event.
+   * @param payload The payload to process.
+   */
   @OnEvent(CACHE_EVENTS.COURSE_DELETED)
   async handleCourseDeletedEvent(payload: { courseId: string }): Promise<void> {
     this.logger.debug(`Handling course deleted event for: ${payload.courseId}`);
@@ -184,6 +203,10 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  /**
+   * Handles user Updated Event.
+   * @param payload The payload to process.
+   */
   @OnEvent(CACHE_EVENTS.USER_UPDATED)
   async handleUserUpdatedEvent(payload: { userId: string }): Promise<void> {
     this.logger.debug(`Handling user updated event for: ${payload.userId}`);
@@ -191,6 +214,10 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  /**
+   * Handles user Deleted Event.
+   * @param payload The payload to process.
+   */
   @OnEvent(CACHE_EVENTS.USER_DELETED)
   async handleUserDeletedEvent(payload: { userId: string }): Promise<void> {
     this.logger.debug(`Handling user deleted event for: ${payload.userId}`);
@@ -198,6 +225,10 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  /**
+   * Handles enrollment Created Event.
+   * @param payload The payload to process.
+   */
   @OnEvent(CACHE_EVENTS.ENROLLMENT_CREATED)
   async handleEnrollmentCreatedEvent(payload: {
     enrollmentId: string;
@@ -208,6 +239,10 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  /**
+   * Handles enrollment Updated Event.
+   * @param payload The payload to process.
+   */
   @OnEvent(CACHE_EVENTS.ENROLLMENT_UPDATED)
   async handleEnrollmentUpdatedEvent(payload: {
     enrollmentId: string;
@@ -218,6 +253,9 @@ export class CacheInvalidationService implements OnModuleInit, OnModuleDestroy {
     await this.invalidateByPatterns(patterns);
   }
 
+  /**
+   * Handles search Index Updated Event.
+   */
   @OnEvent(CACHE_EVENTS.SEARCH_INDEX_UPDATED)
   async handleSearchIndexUpdatedEvent(): Promise<void> {
     this.logger.debug('Handling search index updated event');

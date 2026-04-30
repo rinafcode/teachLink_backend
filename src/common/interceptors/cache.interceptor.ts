@@ -3,10 +3,19 @@ import { Cache } from 'cache-manager';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+/**
+ * Intercepts cache request handling.
+ */
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
   constructor(private cacheManager: Cache) {}
 
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<any>.
+   */
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const req = context.switchToHttp().getRequest();
     const res = context.switchToHttp().getResponse();

@@ -19,6 +19,9 @@ export interface IMigrationConflict {
   resolvedBy?: string;
 }
 
+/**
+ * Provides conflict Resolution operations.
+ */
 @Injectable()
 export class ConflictResolutionService {
   private readonly logger = new Logger(ConflictResolutionService.name);

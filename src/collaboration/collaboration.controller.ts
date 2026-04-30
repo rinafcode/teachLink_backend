@@ -22,6 +22,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 // import { IsString, IsNotEmpty } from 'class-validator';
 
+/**
+ * Exposes collaboration endpoints.
+ */
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CollaborationController {
