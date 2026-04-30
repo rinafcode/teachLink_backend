@@ -13,11 +13,13 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      issues: read
     steps:
       - name: Detect changed paths
         id: changed-files
         uses: dorny/paths-filter@v3
         with:
+          list-files: 'shell'
           filters: |
             auth:
               - src/auth/**/*
@@ -73,39 +75,57 @@ jobs:
 
       - name: Request code owner reviews
         uses: actions/github-script@v7
+        if: hashFiles('.github/CODEOWNERS') != ''
         with:
           script: |
             const fs = require('fs');
-            const content = fs.readFileSync('.github/CODEOWNERS', 'utf8');
-            const lines = content.split('\n');
-            const ownerTeams = new Set();
+            try {
+              const content = fs.readFileSync('.github/CODEOWNERS', 'utf8');
+              const lines = content.split('\n');
+              const ownerTeams = new Set();
 
-            const changedFiles = '${{ steps.changed-files.outputs.all }}'.split('\n').filter(f => f);
-
-            lines.forEach(line => {
-              if (line.startsWith('#') || line.trim() === '') return;
-              const match = line.match(/^(\S+)\s+(.+)$/);
-              if (!match) return;
-
-              const [pattern, owners] = match;
-              const ownerList = owners.split(' ').filter(o => o.startsWith('@teachlink/'));
-
-              for (const file of changedFiles) {
-                const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\//g, '\\/'));
-                if (regex.test(file)) {
-                  ownerList.forEach(o => ownerTeams.add(o.replace('@teachlink/', '')));
-                }
-              }
-            });
-
-            if (ownerTeams.size > 0) {
-              await github.rest.pulls.requestReviewers({
+              // Get list of changed files from PR
+              const files = await github.rest.pulls.listFiles({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.issue.number,
-                team_reviewers: Array.from(ownerTeams)
+                per_page: 300
               });
-              console.log(`Requested reviews from: ${Array.from(ownerTeams).join(', ')}`);
+
+              const changedFiles = files.data.map(f => f.filename);
+              console.log(`Processing ${changedFiles.length} changed files`);
+
+              lines.forEach(line => {
+                if (line.startsWith('#') || line.trim() === '') return;
+                const match = line.match(/^(\S+)\s+(.+)$/);
+                if (!match) return;
+
+                const [pattern, owners] = match;
+                const ownerList = owners.split(' ').filter(o => o.startsWith('@'));
+
+                for (const file of changedFiles) {
+                  const glob = pattern.replace(/\*/g, '.*').replace(/\//g, '\\/');
+                  const regex = new RegExp('^' + glob);
+                  if (regex.test(file)) {
+                    ownerList.forEach(o => ownerTeams.add(o));
+                  }
+                }
+              });
+
+              if (ownerTeams.size > 0) {
+                const reviewers = Array.from(ownerTeams);
+                console.log(`Requesting reviews from: ${reviewers.join(', ')}`);
+                
+                await github.rest.pulls.requestReviewers({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  reviewers: reviewers.filter(r => !r.startsWith('@')),
+                  team_reviewers: reviewers.filter(r => r.startsWith('@')).map(r => r.substring(1))
+                });
+              }
+            } catch (error) {
+              console.log(`Warning: Could not request code owner reviews: ${error.message}`);
             }
 
       - name: Add size label

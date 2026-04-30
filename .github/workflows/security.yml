@@ -62,6 +62,8 @@ jobs:
       - name: Upload Snyk SCA results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always() && hashFiles('snyk-sca.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        if: hashFiles('snyk-sca.sarif') != ''
         with:
           sarif_file: snyk-sca.sarif
           category: snyk-sca
@@ -79,7 +81,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           # Built-in security-and-quality query suite — covers OWASP Top 10,
@@ -103,7 +105,7 @@ jobs:
         run: npm run build
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: codeql-typescript
 
@@ -139,6 +141,8 @@ jobs:
       - name: Upload Trivy image results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always() && hashFiles('trivy-image.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        if: hashFiles('trivy-image.sarif') != ''
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image
@@ -158,6 +162,8 @@ jobs:
       - name: Upload Trivy IaC results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always() && hashFiles('trivy-iac.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        if: hashFiles('trivy-iac.sarif') != ''
         with:
           sarif_file: trivy-iac.sarif
           category: trivy-iac
