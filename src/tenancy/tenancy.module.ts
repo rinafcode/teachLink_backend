@@ -44,4 +44,5 @@ import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-
     TenantAccessValidationGuard,
   ],
 })
-export class TenancyModule {}
+export class TenancyModule {
+}

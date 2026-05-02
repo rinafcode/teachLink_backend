@@ -1,15 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Logger,
-  HttpCode,
-  HttpStatus,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Logger, HttpCode, HttpStatus, Res, } from '@nestjs/common';
 import { Response } from 'express';
 import { MigrationService } from './migration.service';
 import { RollbackService } from './rollback/rollback.service';
@@ -228,5 +217,4 @@ export class MigrationController {
         error: error.message,
       });
     }
-  }
 }

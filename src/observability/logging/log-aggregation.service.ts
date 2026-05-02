@@ -47,38 +47,90 @@ export class LogAggregationService {
     if (query.level) {
       filteredLogs = filteredLogs.filter((log) => log.level === query.level);
     }
-
-    if (query.service) {
-      filteredLogs = filteredLogs.filter((log) => log.context.service === query.service);
+    /**
+     * Get logs by correlation ID (trace all related logs)
+     */
+    async getLogsByCorrelationId(correlationId: string): Promise<StructuredLog[]> {
+        return this.logs.filter((log) => log.context.correlationId === correlationId);
     }
-
-    if (query.correlationId) {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.context.correlationId === query.correlationId,
-      );
+    /**
+     * Get logs by trace ID
+     */
+    async getLogsByTraceId(traceId: string): Promise<StructuredLog[]> {
+        return this.logs.filter((log) => log.context.traceId === traceId);
     }
-
-    if (query.userId) {
-      filteredLogs = filteredLogs.filter((log) => log.context.userId === query.userId);
+    /**
+     * Get error logs
+     */
+    async getErrorLogs(limit: number = 100): Promise<StructuredLog[]> {
+        return this.logs
+            .filter((log) => log.level === LogLevel.ERROR || log.level === LogLevel.FATAL)
+            .slice(-limit)
+            .reverse();
     }
-
-    if (query.startTime) {
-      const startTime = query.startTime;
-      filteredLogs = filteredLogs.filter((log) => log.context.timestamp >= startTime);
+    /**
+     * Get logs by user
+     */
+    async getLogsByUser(userId: string, limit: number = 100): Promise<StructuredLog[]> {
+        return this.logs
+            .filter((log) => log.context.userId === userId)
+            .slice(-limit)
+            .reverse();
     }
-
-    if (query.endTime) {
-      const endTime = query.endTime;
-      filteredLogs = filteredLogs.filter((log) => log.context.timestamp <= endTime);
+    /**
+     * Get log statistics
+     */
+    async getLogStatistics(timeRange?: {
+        start: Date;
+        end: Date;
+    }) {
+        let logsToAnalyze = this.logs;
+        if (timeRange) {
+            logsToAnalyze = this.logs.filter((log) => log.context.timestamp >= timeRange.start && log.context.timestamp <= timeRange.end);
+        }
+        const stats = {
+            total: logsToAnalyze.length,
+            byLevel: {
+                debug: 0,
+                info: 0,
+                warn: 0,
+                error: 0,
+                fatal: 0,
+            },
+            byService: {} as Record<string, number>,
+            errorRate: 0,
+            avgDuration: 0,
+        };
+        let totalDuration = 0;
+        let durationCount = 0;
+        logsToAnalyze.forEach((log) => {
+            // Count by level
+            stats.byLevel[log.level]++;
+            // Count by service
+            const service = log.context.service;
+            stats.byService[service] = (stats.byService[service] || 0) + 1;
+            // Calculate duration stats
+            if (log.duration) {
+                totalDuration += log.duration;
+                durationCount++;
+            }
+        });
+        // Calculate error rate
+        const errorCount = stats.byLevel.error + stats.byLevel.fatal;
+        stats.errorRate = stats.total > 0 ? (errorCount / stats.total) * 100 : 0;
+        // Calculate average duration
+        stats.avgDuration = durationCount > 0 ? totalDuration / durationCount : 0;
+        return stats;
     }
-
-    if (query.search) {
-      const searchLower = query.search.toLowerCase();
-      filteredLogs = filteredLogs.filter(
-        (log) =>
-          log.message.toLowerCase().includes(searchLower) ||
-          JSON.stringify(log.context.metadata).toLowerCase().includes(searchLower),
-      );
+    /**
+     * Clear old logs
+     */
+    async clearOldLogs(olderThan: Date): Promise<number> {
+        const initialCount = this.logs.length;
+        this.logs = this.logs.filter((log) => log.context.timestamp > olderThan);
+        const removed = initialCount - this.logs.length;
+        this.logger.log(`Cleared ${removed} old logs`);
+        return removed;
     }
 
     // Sort by timestamp (newest first)

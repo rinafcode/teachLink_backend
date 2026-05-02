@@ -25,12 +25,4 @@ export class ThrottlingService {
     if (tier === UserTier.PREMIUM) {
       return; // bypass
     }
-
-    const { limit, window } = this.quotaService.getQuotaForTier(tier);
-    const adjustedLimit = this.adaptiveService.adjustLimit(limit);
-
-    const key = `rate:${userId}:${endpoint}`;
-
-    await this.distributedLimiter.slidingWindowCheck(key, adjustedLimit, window);
-  }
 }

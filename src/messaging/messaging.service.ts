@@ -9,9 +9,8 @@ import { TracingService } from './tracing/tracing.service';
  */
 @Injectable()
 export class MessagingService {
-  private readonly logger = new Logger(MessagingService.name);
-
-  constructor(
+    private readonly logger = new Logger(MessagingService.name);
+    constructor(
     @InjectQueue(QUEUE_NAMES.MESSAGE_QUEUE)
     private readonly messageQueue: Queue,
     private readonly tracingService: TracingService,

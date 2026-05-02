@@ -2,12 +2,11 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Response } from 'express';
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  data: T;
-  metadata?: Record<string, any>;
+export interface ApiResponse<T = unknown> {
+    success: boolean;
+    message?: string;
+    data: T;
+    metadata?: Record<string, unknown>;
 }
 
 /**
@@ -53,13 +52,24 @@ export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T,
             metadata = data.metadata;
           }
         }
-        return {
-          success: true,
-          message,
-          data: responseData,
-          metadata,
-        };
-      }),
-    );
-  }
+        return next.handle().pipe(map((data: unknown) => {
+            // Allow controllers to return { data, message, metadata } for custom messages/metadata
+            let message: string | undefined;
+            let metadata: Record<string, unknown> | undefined;
+            let responseData = data;
+            if (data && typeof data === 'object' && !Array.isArray(data)) {
+                if ('data' in data && typeof data.data !== 'undefined') {
+                    responseData = data.data;
+                    message = data.message;
+                    metadata = data.metadata;
+                }
+            }
+            return {
+                success: true,
+                message,
+                data: responseData,
+                metadata,
+            };
+        }));
+    }
 }

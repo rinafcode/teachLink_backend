@@ -8,25 +8,21 @@ import { UserProgress } from '../entities/user-progress.entity';
  */
 @Injectable()
 export class LeaderboardService {
-  constructor(
+    constructor(
     @InjectRepository(UserProgress)
-    private userProgressRepository: Repository<UserProgress>,
-  ) {}
-
-  async getTopPlayers(limit: number = 10): Promise<UserProgress[]> {
-    return await this.userProgressRepository.find({
-      order: { totalPoints: 'DESC' },
-      take: limit,
-      relations: ['user'],
-    });
-  }
-
-  async getUserRank(userId: string): Promise<number | null> {
-    const allProgress = await this.userProgressRepository.find({
-      order: { totalPoints: 'DESC' },
-    });
-
-    const rank = allProgress.findIndex((p) => p.user?.id === userId) + 1;
-    return rank > 0 ? rank : null;
-  }
+    private userProgressRepository: Repository<UserProgress>) { }
+    async getTopPlayers(limit: number = 10): Promise<UserProgress[]> {
+        return await this.userProgressRepository.find({
+            order: { totalPoints: 'DESC' },
+            take: limit,
+            relations: ['user'],
+        });
+    }
+    async getUserRank(userId: string): Promise<number | null> {
+        const allProgress = await this.userProgressRepository.find({
+            order: { totalPoints: 'DESC' },
+        });
+        const rank = allProgress.findIndex((p) => p.user?.id === userId) + 1;
+        return rank > 0 ? rank : null;
+    }
 }

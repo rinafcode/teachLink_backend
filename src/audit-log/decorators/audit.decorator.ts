@@ -1,6 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
 import { AuditAction, AuditCategory, AuditSeverity } from '../enums/audit-action.enum';
-
 export const AUDIT_LOG_KEY = 'audit_log';
 
 export interface IAuditLogOptions {
@@ -14,7 +13,6 @@ export interface IAuditLogOptions {
   logResponseBody?: boolean;
   sensitiveFields?: string[];
 }
-
 /**
  * Decorator to mark a method for audit logging
  * @param options Audit log configuration options
@@ -93,4 +91,4 @@ export const AuditLogout = (options?: Partial<IAuditLogOptions>) =>
     action: AuditAction.LOGOUT,
     category: AuditCategory.AUTHENTICATION,
     ...options,
-  });
+});

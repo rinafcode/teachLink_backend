@@ -10,11 +10,11 @@ import { User } from '../../users/entities/user.entity';
  */
 @Injectable()
 export class EnrollmentsService {
-  constructor(
+    constructor(
     @InjectRepository(Enrollment)
-    private enrollmentsRepository: Repository<Enrollment>,
+    private enrollmentsRepository: Repository<Enrollment>, 
     @InjectRepository(Course)
-    private coursesRepository: Repository<Course>,
+    private coursesRepository: Repository<Course>, 
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
@@ -74,6 +74,4 @@ export class EnrollmentsService {
     if (progress >= 100) {
       enrollment.status = 'completed';
     }
-    return this.enrollmentsRepository.save(enrollment);
-  }
 }

@@ -20,26 +20,24 @@ export class MigrationRunnerService implements OnApplicationBootstrap {
     if (process.env.AUTO_RUN_MIGRATIONS === 'true') {
       await this.runMigrations();
     }
-  }
-
-  /**
-   * Runs all pending migrations
-   */
-  async runMigrations(): Promise<void> {
-    this.logger.log('Starting migration process...');
-    try {
-      await this.migrationService.runPendingMigrations();
-      this.logger.log('Migration process completed successfully');
-    } catch (error) {
-      this.logger.error('Migration process failed', error.stack);
-      throw error;
+    /**
+     * Runs all pending migrations
+     */
+    async runMigrations(): Promise<void> {
+        this.logger.log('Starting migration process...');
+        try {
+            await this.migrationService.runPendingMigrations();
+            this.logger.log('Migration process completed successfully');
+        }
+        catch (error) {
+            this.logger.error('Migration process failed', error.stack);
+            throw error;
+        }
     }
-  }
-
-  /**
-   * Gets the status of all migrations
-   */
-  async getMigrationStatus(): Promise<any> {
-    return await this.migrationService.listMigrations();
-  }
+    /**
+     * Gets the status of all migrations
+     */
+    async getMigrationStatus(): Promise<unknown> {
+        return await this.migrationService.listMigrations();
+    }
 }

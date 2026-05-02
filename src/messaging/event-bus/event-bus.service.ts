@@ -95,5 +95,4 @@ export class EventBusService {
     } finally {
       this.tracingService.endSpan(span);
     }
-  }
 }

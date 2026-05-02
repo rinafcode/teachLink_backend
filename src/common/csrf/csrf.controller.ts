@@ -69,6 +69,4 @@ export class CsrfController {
     if ((req as any).session?.id) {
       return (req as any).session.id;
     }
-    return req.ip || req.connection.remoteAddress || 'unknown';
-  }
 }

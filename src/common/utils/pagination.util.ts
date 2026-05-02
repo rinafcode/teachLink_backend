@@ -1,13 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { SelectQueryBuilder } from 'typeorm';
-import {
-  PaginationQueryDto,
-  SortOrder,
-  CursorPaginationQueryDto,
-  CursorDirection,
-} from '../dto/pagination.dto';
+import { PaginationQueryDto, SortOrder, CursorPaginationQueryDto, CursorDirection, } from '../dto/pagination.dto';
 import { APP_CONSTANTS } from '../constants/app.constants';
-
 const { DEFAULT_PAGE_SIZE } = APP_CONSTANTS;
 
 export interface IPaginatedResponse<T> {
@@ -63,54 +57,90 @@ export async function paginate<T>(
   return {
     data,
     meta: {
-      totalItems,
-      itemCount: data.length,
-      itemsPerPage: limit,
-      totalPages,
-      currentPage: page,
-    },
-  };
+        totalItems: number;
+        itemCount: number;
+        itemsPerPage: number;
+        totalPages: number;
+        currentPage: number;
+    };
 }
-
+export interface CursorPaginatedResponse<T> {
+    data: T[];
+    meta: {
+        nextCursor: string | null;
+        prevCursor: string | null;
+        hasNextPage: boolean;
+        hasPrevPage: boolean;
+        limit: number;
+    };
+}
+export async function paginate<T>(queryBuilder: SelectQueryBuilder<T>, options: PaginationQueryDto): Promise<PaginatedResponse<T>> {
+    const page = options.page || 1;
+    const limit = options.limit || DEFAULT_PAGE_SIZE;
+    const skip = (page - 1) * limit;
+    // Apply sorting
+    if (options.sortBy) {
+        const alias = queryBuilder.alias;
+        queryBuilder.orderBy(`${alias}.${options.sortBy}`, options.order);
+    }
+    // Clone query to get count without pagination limits
+    const totalItems = await queryBuilder.getCount();
+    // Apply pagination
+    const data = await queryBuilder.skip(skip).take(limit).getMany();
+    const totalPages = Math.ceil(totalItems / limit);
+    return {
+        data,
+        meta: {
+            totalItems,
+            itemCount: data.length,
+            itemsPerPage: limit,
+            totalPages,
+            currentPage: page,
+        },
+    };
+}
 /**
  * Encodes entity fields into a base64 opaque cursor string.
  * The cursor captures the sort field value and the entity id for stable pagination.
  */
-export function generateCursor(entity: Record<string, any>, sortBy: string): string {
-  const cursorData = { id: entity.id, sortValue: entity[sortBy] };
-  return Buffer.from(JSON.stringify(cursorData)).toString('base64');
+export function generateCursor(entity: Record<string, unknown>, sortBy: string): string {
+    const cursorData = { id: entity.id, sortValue: entity[sortBy] };
+    return Buffer.from(JSON.stringify(cursorData)).toString('base64');
 }
-
 /**
  * Decodes a cursor string back to its constituent fields.
  * Throws BadRequestException if the cursor is malformed or missing required fields.
  */
-export function decodeCursor(cursor: string): { id: string; sortValue: any } {
-  try {
-    const json = Buffer.from(cursor, 'base64').toString('utf8');
-    const data = JSON.parse(json);
-    if (typeof data.id !== 'string' || data.sortValue === undefined) {
-      throw new BadRequestException('Invalid cursor structure');
+export function decodeCursor(cursor: string): {
+    id: string;
+    sortValue: unknown;
+} {
+    try {
+        const json = Buffer.from(cursor, 'base64').toString('utf8');
+        const data = JSON.parse(json);
+        if (typeof data.id !== 'string' || data.sortValue === undefined) {
+            throw new BadRequestException('Invalid cursor structure');
+        }
+        return data;
     }
-    return data;
-  } catch (error) {
-    if (error instanceof BadRequestException) throw error;
-    throw new BadRequestException('Invalid cursor value');
-  }
+    catch (error) {
+        if (error instanceof BadRequestException)
+            throw error;
+        throw new BadRequestException('Invalid cursor value');
+    }
 }
-
 /**
  * Returns true if the cursor can be decoded without errors, false otherwise.
  */
 export function validateCursor(cursor: string): boolean {
-  try {
-    decodeCursor(cursor);
-    return true;
-  } catch {
-    return false;
-  }
+    try {
+        decodeCursor(cursor);
+        return true;
+    }
+    catch {
+        return false;
+    }
 }
-
 /**
  * Cursor-based pagination for TypeORM query builders.
  *

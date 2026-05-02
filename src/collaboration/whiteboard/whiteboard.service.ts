@@ -165,7 +165,9 @@ export class WhiteboardService {
           type: 'addElement',
           elementId: undefined,
         };
-      }
+        this.whiteboards.set(whiteboardId, whiteboard);
+        this.logger.log(`Initialized whiteboard ${whiteboardId}`);
+        return whiteboard;
     }
 
     return transformedOp;
@@ -182,18 +184,32 @@ export class WhiteboardService {
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
     }
-
-    // Sort operations by timestamp to process in chronological order
-    const sortedOps = [...operations].sort((a, b) => a.timestamp - b.timestamp);
-
-    // Clear existing operations and reapply in order to resolve conflicts
-    whiteboard.operations = [];
-    whiteboard.elements = [];
-
-    // Rebuild whiteboard state from the sorted operations
-    for (const operation of sortedOps) {
-      this.applyOperationToWhiteboard(whiteboard, operation);
-      whiteboard.operations.push(operation);
+    /**
+     * Apply an operation to a whiteboard
+     */
+    async applyOperation(whiteboardId: string, userId: string, operation: Omit<WhiteboardOperation, 'id' | 'timestamp'>): Promise<CollaborativeWhiteboard> {
+        const whiteboard = this.whiteboards.get(whiteboardId);
+        if (!whiteboard) {
+            throw new Error(`Whiteboard ${whiteboardId} not found`);
+        }
+        // Add metadata to the operation
+        const opWithMetadata: WhiteboardOperation = {
+            ...operation,
+            id: uuidv4(),
+            timestamp: Date.now(),
+            userId,
+        };
+        // Apply the operation to the whiteboard
+        this.applyOperationToWhiteboard(whiteboard, opWithMetadata);
+        // Add the operation to the whiteboard's operation history
+        whiteboard.operations.push(opWithMetadata);
+        whiteboard.updatedAt = new Date();
+        // Add user to collaborators if not already present
+        if (!whiteboard.collaborators.includes(userId)) {
+            whiteboard.collaborators.push(userId);
+        }
+        this.logger.log(`Applied operation ${opWithMetadata.id} to whiteboard ${whiteboardId}`);
+        return whiteboard;
     }
 
     whiteboard.updatedAt = new Date();
@@ -257,10 +273,67 @@ export class WhiteboardService {
     if (!whiteboard) {
       throw new Error(`Whiteboard ${whiteboardId} not found`);
     }
-
-    const elementIndex = whiteboard.elements.findIndex((el) => el.id === elementId);
-    if (elementIndex === -1) {
-      return false;
+    /**
+     * Get whiteboard history
+     */
+    async getWhiteboardHistory(whiteboardId: string): Promise<WhiteboardOperation[]> {
+        const whiteboard = this.whiteboards.get(whiteboardId);
+        if (!whiteboard) {
+            throw new Error(`Whiteboard ${whiteboardId} not found`);
+        }
+        return [...whiteboard.operations];
+    }
+    /**
+     * Add a drawing element to the whiteboard
+     */
+    async addElement(whiteboardId: string, element: Omit<DrawingElement, 'id' | 'timestamp'>, userId: string): Promise<DrawingElement> {
+        const whiteboard = this.whiteboards.get(whiteboardId);
+        if (!whiteboard) {
+            throw new Error(`Whiteboard ${whiteboardId} not found`);
+        }
+        const newElement: DrawingElement = {
+            ...element,
+            id: uuidv4(),
+            timestamp: Date.now(),
+            userId,
+        };
+        whiteboard.elements.push(newElement);
+        whiteboard.updatedAt = new Date();
+        // Record the operation
+        const operation: WhiteboardOperation = {
+            id: uuidv4(),
+            type: 'addElement',
+            element: newElement,
+            userId,
+            timestamp: Date.now(),
+        };
+        whiteboard.operations.push(operation);
+        return newElement;
+    }
+    /**
+     * Remove a drawing element from the whiteboard
+     */
+    async removeElement(whiteboardId: string, elementId: string, userId: string): Promise<boolean> {
+        const whiteboard = this.whiteboards.get(whiteboardId);
+        if (!whiteboard) {
+            throw new Error(`Whiteboard ${whiteboardId} not found`);
+        }
+        const elementIndex = whiteboard.elements.findIndex((el) => el.id === elementId);
+        if (elementIndex === -1) {
+            return false;
+        }
+        whiteboard.elements.splice(elementIndex, 1);
+        whiteboard.updatedAt = new Date();
+        // Record the operation
+        const operation: WhiteboardOperation = {
+            id: uuidv4(),
+            type: 'removeElement',
+            elementId,
+            userId,
+            timestamp: Date.now(),
+        };
+        whiteboard.operations.push(operation);
+        return true;
     }
 
     whiteboard.elements.splice(elementIndex, 1);

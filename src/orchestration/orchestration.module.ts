@@ -11,20 +11,21 @@ import { HealthCheckerService } from './health/health-checker.service';
  */
 @Global()
 @Module({
-  imports: [HttpModule],
-  providers: [
-    ServiceMeshService,
-    WorkflowEngineService,
-    DistributedLockService,
-    ServiceDiscoveryService,
-    HealthCheckerService,
-  ],
-  exports: [
-    ServiceMeshService,
-    WorkflowEngineService,
-    DistributedLockService,
-    ServiceDiscoveryService,
-    HealthCheckerService,
-  ],
+    imports: [HttpModule],
+    providers: [
+        ServiceMeshService,
+        WorkflowEngineService,
+        DistributedLockService,
+        ServiceDiscoveryService,
+        HealthCheckerService,
+    ],
+    exports: [
+        ServiceMeshService,
+        WorkflowEngineService,
+        DistributedLockService,
+        ServiceDiscoveryService,
+        HealthCheckerService,
+    ],
 })
-export class OrchestrationModule {}
+export class OrchestrationModule {
+}

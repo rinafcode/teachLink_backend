@@ -77,5 +77,4 @@ export class ServiceMeshService {
       await this.discovery.markUnhealthy(serviceName, serviceId);
       throw error;
     }
-  }
 }

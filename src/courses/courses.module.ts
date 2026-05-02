@@ -25,4 +25,5 @@ import { CourseSearchSyncService } from './search-sync/course-search-sync.servic
   providers: [CoursesService, ModulesService, LessonsService, EnrollmentsService, CourseSearchSyncService],
   exports: [CoursesService],
 })
-export class CoursesModule {}
+export class CoursesModule {
+}

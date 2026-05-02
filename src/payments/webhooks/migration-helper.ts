@@ -10,7 +10,6 @@
  * - TypeORM migration runner
  * - Your custom migration system
  */
-
 // SQL Migration for PostgreSQL
 export const createWebhookRetriesTableSQL = `
 -- Create ENUM types if they don't exist
@@ -60,7 +59,6 @@ CREATE INDEX IF NOT EXISTS idx_webhook_dead_letter
   ON webhook_retries("createdAt") 
   WHERE status = 'dead_letter';
 `;
-
 // TypeORM Migration Template
 export const typeOrmMigrationTemplate = `
 import { MigrationInterface, QueryRunner } from 'typeorm';
@@ -132,8 +130,8 @@ export class CreateWebhookRetriesTable1681234567890 implements MigrationInterfac
 `;
 // Database cleanup and maintenance queries
 export const maintenanceQueries = {
-  // Get dead letter queue stats
-  getDeadLetterStats: `
+    // Get dead letter queue stats
+    getDeadLetterStats: `
     SELECT 
       COUNT(*) as total_dead_letters,
       COUNT(DISTINCT provider) as providers,
@@ -142,9 +140,8 @@ export const maintenanceQueries = {
     FROM webhook_retries
     WHERE status = 'dead_letter';
   `,
-
-  // Get retry statistics
-  getRetryStats: `
+    // Get retry statistics
+    getRetryStats: `
     SELECT 
       status,
       COUNT(*) as count,
@@ -154,9 +151,8 @@ export const maintenanceQueries = {
     FROM webhook_retries
     GROUP BY status;
   `,
-
-  // Get webhooks pending processing
-  getPending: `
+    // Get webhooks pending processing
+    getPending: `
     SELECT id, provider, "externalEventId", "nextRetryTime", "retryCount"
     FROM webhook_retries
     WHERE status = 'pending'
@@ -164,16 +160,14 @@ export const maintenanceQueries = {
     ORDER BY "nextRetryTime" ASC
     LIMIT 100;
   `,
-
-  // Archive old succeeded webhooks (cleanup)
-  archiveSuccessful: `
+    // Archive old succeeded webhooks (cleanup)
+    archiveSuccessful: `
     DELETE FROM webhook_retries
     WHERE status = 'succeeded'
     AND "processedAt" < NOW() - INTERVAL '30 days';
   `,
-
-  // Archive old dead letter webhooks (after review period)
-  archiveDeadLetter: `
+    // Archive old dead letter webhooks (after review period)
+    archiveDeadLetter: `
     DELETE FROM webhook_retries
     WHERE status = 'dead_letter'
     AND "createdAt" < NOW() - INTERVAL '90 days';

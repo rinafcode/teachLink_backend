@@ -35,28 +35,37 @@ export class LazyModuleLoader {
       this.logger.warn(`Module ${moduleName} is already registered`);
       return;
     }
-    this.moduleRegistry.set(moduleName, factory);
-    this.logger.debug(`Registered lazy module: ${moduleName}`);
-  }
-
-  /**
-   * Load a module on-demand
-   */
-  async load(moduleName: string): Promise<DynamicModule | null> {
-    // Check if already loaded
-    if (this.loadedModules.has(moduleName)) {
-      this.logger.debug(`Module ${moduleName} is already loaded`);
-      const loadedModule = this.loadedModules.get(moduleName);
-      if (loadedModule) {
-        return loadedModule;
-      }
+    /**
+     * Load a module on-demand
+     */
+    async load(moduleName: string): Promise<DynamicModule | null> {
+        // Check if already loaded
+        if (this.loadedModules.has(moduleName)) {
+            this.logger.debug(`Module ${moduleName} is already loaded`);
+            const loadedModule = this.loadedModules.get(moduleName);
+            if (loadedModule) {
+                return loadedModule;
+            }
+        }
+        // Check if registered
+        const factory = this.moduleRegistry.get(moduleName);
+        if (!factory) {
+            this.logger.error(`Module ${moduleName} is not registered for lazy loading`);
+            return null;
+        }
+        // Load the module
+        const startTime = Date.now();
+        this.logger.log(`Loading module: ${moduleName}...`);
+        const loadPromise = this.loadModuleInternal(moduleName, factory, startTime);
+        this.loadedModules.set(moduleName, loadPromise);
+        return loadPromise;
     }
-
-    // Check if registered
-    const factory = this.moduleRegistry.get(moduleName);
-    if (!factory) {
-      this.logger.error(`Module ${moduleName} is not registered for lazy loading`);
-      return null;
+    /**
+     * Load multiple modules
+     */
+    async loadMany(moduleNames: string[]): Promise<DynamicModule[]> {
+        const results = await Promise.all(moduleNames.map((name) => this.load(name)));
+        return results.filter((m): m is DynamicModule => m !== null);
     }
 
     // Load the module
@@ -129,15 +138,11 @@ export class LazyModuleLoader {
         total += result.loadTimeMs;
       }
     }
-    return total;
-  }
-
-  /**
-   * Unload a module (for testing/memory management)
-   */
-  async unload(moduleName: string): Promise<boolean> {
-    if (!this.loadedModules.has(moduleName)) {
-      return false;
+    /**
+     * Check if a module is registered
+     */
+    isRegistered(moduleName: string): boolean {
+        return this.moduleRegistry.has(moduleName);
     }
 
     this.loadedModules.delete(moduleName);
@@ -221,5 +226,4 @@ export class LazyModuleLoader {
 
       throw error;
     }
-  }
 }

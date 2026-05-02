@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { TransactionService } from '../database/transaction.service';
 import { TransactionHelperService } from '../database/transaction-helper.service';
-
 // Mock entities for example
 interface IUser {
   id: string;
@@ -27,19 +26,17 @@ interface IPayment {
   createdAt: Date;
   completedAt?: Date;
 }
-
 interface Invoice {
-  id: string;
-  userId: string;
-  paymentId: string;
-  amount: number;
-  status: string;
-  description: string;
-  createdAt: Date;
-  dueDate: Date;
-  paidAt?: Date;
+    id: string;
+    userId: string;
+    paymentId: string;
+    amount: number;
+    status: string;
+    description: string;
+    createdAt: Date;
+    dueDate: Date;
+    paidAt?: Date;
 }
-
 /**
  * Example service demonstrating transaction management
  * Shows atomic operations for complex business logic

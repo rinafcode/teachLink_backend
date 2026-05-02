@@ -30,8 +30,4 @@ export class ModerationService {
       this.analytics.logModerationEvent(content, safetyScore, 'flagged');
       return { status: 'flagged', safetyScore };
     }
-
-    this.analytics.logModerationEvent(content, safetyScore, 'approved');
-    return { status: 'approved', safetyScore };
-  }
 }

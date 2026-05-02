@@ -28,15 +28,13 @@ export class CreateUsersTableMigration implements IMigrationConfig {
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$;
     `);
-
-    await connection.query(`
+        await connection.query(`
       DO $$ BEGIN
         CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended');
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$;
     `);
-
-    await connection.query(`
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS users (
         id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email                      VARCHAR(255) NOT NULL UNIQUE,

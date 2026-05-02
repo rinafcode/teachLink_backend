@@ -5,39 +5,34 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * Defines the create Campaign payload.
  */
 export class CreateCampaignDto {
-  @ApiProperty({ description: 'Campaign name', example: 'Welcome Campaign' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  name: string;
-
-  @ApiProperty({ description: 'Email subject line', example: 'Welcome to TeachLink!' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  subject: string;
-
-  @ApiPropertyOptional({ description: 'Preview text shown in inbox' })
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  previewText?: string;
-
-  @ApiPropertyOptional({ description: 'Raw HTML content (if not using template)' })
-  @IsString()
-  @IsOptional()
-  content?: string;
-
-  @ApiPropertyOptional({ description: 'Template ID to use' })
-  @IsUUID()
-  @IsOptional()
-  @IsString()
-  templateId?: string;
-
-  @ApiPropertyOptional({ description: 'Segment IDs to target', type: [String] })
-  @IsArray()
-  @IsUUID('4', { each: true })
-  @IsOptional()
-  @IsString()
-  segmentIds?: string[];
+    @ApiProperty({ description: 'Campaign name', example: 'Welcome Campaign' })
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(255)
+    name: string;
+    @ApiProperty({ description: 'Email subject line', example: 'Welcome to TeachLink!' })
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(255)
+    subject: string;
+    @ApiPropertyOptional({ description: 'Preview text shown in inbox' })
+    @IsString()
+    @IsOptional()
+    @MaxLength(255)
+    previewText?: string;
+    @ApiPropertyOptional({ description: 'Raw HTML content (if not using template)' })
+    @IsString()
+    @IsOptional()
+    content?: string;
+    @ApiPropertyOptional({ description: 'Template ID to use' })
+    @IsUUID()
+    @IsOptional()
+    @IsString()
+    templateId?: string;
+    @ApiPropertyOptional({ description: 'Segment IDs to target', type: [String] })
+    @IsArray()
+    @IsUUID('4', { each: true })
+    @IsOptional()
+    @IsString()
+    segmentIds?: string[];
 }

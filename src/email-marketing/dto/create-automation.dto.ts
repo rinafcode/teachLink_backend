@@ -8,67 +8,60 @@ import { ActionType } from '../enums/action-type.enum';
  * Defines the create Trigger payload.
  */
 export class CreateTriggerDto {
-  @ApiProperty({ enum: TriggerType })
-  @IsEnum(TriggerType)
-  @IsNotEmpty()
-  type: TriggerType;
-
-  @ApiPropertyOptional({ description: 'Trigger conditions' })
-  @IsOptional()
-  @IsString()
-  conditions?: Record<string, any>;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  description?: string;
+    @ApiProperty({ enum: TriggerType })
+    @IsEnum(TriggerType)
+    @IsNotEmpty()
+    type: TriggerType;
+    @ApiPropertyOptional({ description: 'Trigger conditions' })
+    @IsOptional()
+    @IsString()
+    conditions?: Record<string, unknown>;
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    description?: string;
 }
 
 /**
  * Defines the create Action payload.
  */
 export class CreateActionDto {
-  @ApiProperty({ enum: ActionType })
-  @IsEnum(ActionType)
-  @IsNotEmpty()
-  type: ActionType;
-
-  @ApiProperty({ description: 'Action configuration' })
-  @IsNotEmpty()
-  @IsString()
-  config: Record<string, any>;
-
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  description?: string;
+    @ApiProperty({ enum: ActionType })
+    @IsEnum(ActionType)
+    @IsNotEmpty()
+    type: ActionType;
+    @ApiProperty({ description: 'Action configuration' })
+    @IsNotEmpty()
+    @IsString()
+    config: Record<string, unknown>;
+    @ApiPropertyOptional()
+    @IsString()
+    @IsOptional()
+    description?: string;
 }
 
 /**
  * Defines the create Automation payload.
  */
 export class CreateAutomationDto {
-  @ApiProperty({ description: 'Workflow name', example: 'Welcome Series' })
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @ApiPropertyOptional({ description: 'Workflow description' })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiPropertyOptional({ type: [CreateTriggerDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateTriggerDto)
-  @IsOptional()
-  triggers?: CreateTriggerDto[];
-
-  @ApiPropertyOptional({ type: [CreateActionDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateActionDto)
-  @IsOptional()
-  actions?: CreateActionDto[];
+    @ApiProperty({ description: 'Workflow name', example: 'Welcome Series' })
+    @IsString()
+    @IsNotEmpty()
+    name: string;
+    @ApiPropertyOptional({ description: 'Workflow description' })
+    @IsString()
+    @IsOptional()
+    description?: string;
+    @ApiPropertyOptional({ type: [CreateTriggerDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateTriggerDto)
+    @IsOptional()
+    triggers?: CreateTriggerDto[];
+    @ApiPropertyOptional({ type: [CreateActionDto] })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateActionDto)
+    @IsOptional()
+    actions?: CreateActionDto[];
 }

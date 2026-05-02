@@ -1,7 +1,6 @@
 import { LoggingInterceptor } from './logging.interceptor';
 import { LogShipperService } from '../services/log-shipper.service';
 import { of, firstValueFrom } from 'rxjs';
-
 describe('LoggingInterceptor', () => {
   it('attaches and propagates correlation ID header', async () => {
     const mockShipper = { ship: jest.fn() } as unknown as LogShipperService;

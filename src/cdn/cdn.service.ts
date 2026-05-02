@@ -28,10 +28,10 @@ export interface IContentDeliveryOptions {
  */
 @Injectable()
 export class CdnService {
-  private readonly logger = new Logger(CdnService.name);
-
-  constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly logger = new Logger(CdnService.name);
+    constructor(
+    @Inject(CACHE_MANAGER)
+    private cacheManager: Cache, 
     @InjectRepository(ContentMetadata)
     private contentMetadataRepository: Repository<ContentMetadata>,
     private assetOptimizationService: AssetOptimizationService,
@@ -50,11 +50,13 @@ export class CdnService {
     if (cachedUrl) {
       return cachedUrl;
     }
-
-    // Get content metadata
-    const metadata = await this.getContentMetadata(contentId);
-    if (!metadata) {
-      throw new Error(`Content not found: ${contentId}`);
+    async invalidateContent(contentId: string): Promise<void> {
+        // Purge from edge caches
+        await this.edgeCachingService.purgeContent(contentId);
+        // Clear local cache - simplified approach
+        // In a real implementation, you might need to track cache keys separately
+        // or use a cache store that supports key pattern deletion
+        this.logger.warn(`Cache invalidation for ${contentId} - manual cleanup may be required`);
     }
 
     // Update access statistics
@@ -132,27 +134,17 @@ export class CdnService {
               format: options.format,
               responsive: options.responsive,
             }
-          : undefined,
-      });
-
-      // Store metadata
-      await this.contentMetadataRepository.save(metadata);
-
-      // Optimize asynchronously if needed
-      if (options.optimize && this.isImageFile(file)) {
-        setImmediate(async () => {
-          try {
-            await this.optimizeContentAsync(metadata, options);
-          } catch (error) {
-            this.logger.error(`Async optimization failed for ${contentId}:`, error);
-          }
+            return metadata;
+        }
+        catch (error) {
+            this.logger.error('Upload failed:', error);
+            throw error;
+        }
+    }
+    private async getContentMetadata(contentId: string): Promise<ContentMetadata | null> {
+        return this.contentMetadataRepository.findOne({
+            where: { contentId },
         });
-      }
-
-      return metadata;
-    } catch (error) {
-      this.logger.error('Upload failed:', error);
-      throw error;
     }
   }
 

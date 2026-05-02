@@ -24,5 +24,4 @@ export class HealthCheckerService {
       await this.discovery.markUnhealthy(serviceName);
       return false;
     }
-  }
 }

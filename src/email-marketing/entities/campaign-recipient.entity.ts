@@ -9,7 +9,6 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { Campaign } from './campaign.entity';
 import { RecipientStatus } from '../enums/recipient-status.enum';
 

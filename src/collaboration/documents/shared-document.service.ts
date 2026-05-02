@@ -188,29 +188,39 @@ export class SharedDocumentService {
             content.slice(operation.position)
           );
         }
-        return content;
-
-      case 'delete':
-        if (operation.length !== undefined) {
-          return (
-            content.slice(0, operation.position) +
-            content.slice(operation.position + operation.length)
-          );
+        // Add metadata to the operation
+        const opWithMetadata: DocumentOperation = {
+            ...operation,
+            id: uuidv4(),
+            timestamp: Date.now(),
+            userId,
+        };
+        // Transform the operation against concurrent operations
+        const transformedOp = this.transformOperation(opWithMetadata, document.operations);
+        // Apply the transformed operation to the document content
+        document.content = this.applyOperationToContent(document.content, transformedOp);
+        // Add the operation to the document's operation history
+        document.operations.push(transformedOp);
+        document.updatedAt = new Date();
+        // Add user to collaborators if not already present
+        if (!document.collaborators.includes(userId)) {
+            document.collaborators.push(userId);
         }
-        return content;
-
-      case 'update':
-        if (operation.content !== undefined && operation.length !== undefined) {
-          return (
-            content.slice(0, operation.position) +
-            operation.content +
-            content.slice(operation.position + operation.length)
-          );
+        this.logger.log(`Applied operation ${transformedOp.id} to document ${documentId}`);
+        return document;
+    }
+    /**
+     * Transform an operation against a list of concurrent operations
+     */
+    private transformOperation(operation: DocumentOperation, concurrentOperations: DocumentOperation[]): DocumentOperation {
+        let transformedOp = { ...operation };
+        for (const concurrentOp of concurrentOperations) {
+            // Only transform if operations affect overlapping positions
+            if (this.operationsOverlap(transformedOp, concurrentOp)) {
+                transformedOp = this.transformSingleOperation(transformedOp, concurrentOp);
+            }
         }
-        return content;
-
-      default:
-        return content;
+        return transformedOp;
     }
   }
 
@@ -225,18 +235,29 @@ export class SharedDocumentService {
     if (!document) {
       throw new Error(`Document ${documentId} not found`);
     }
-
-    // Sort operations by timestamp to process in chronological order
-    const sortedOps = [...operations].sort((a, b) => a.timestamp - b.timestamp);
-
-    // Clear existing operations and reapply in order to resolve conflicts
-    document.operations = [];
-    document.content = '';
-
-    // Rebuild document content from the sorted operations
-    for (const operation of sortedOps) {
-      document.content = this.applyOperationToContent(document.content, operation);
-      document.operations.push(operation);
+    /**
+     * Transform a single operation against a concurrent operation
+     */
+    private transformSingleOperation(operation: DocumentOperation, concurrentOp: DocumentOperation): DocumentOperation {
+        const transformedOp = { ...operation };
+        // Adjust positions based on concurrent operations
+        if (concurrentOp.type === 'insert' && operation.position >= concurrentOp.position) {
+            // If concurrent operation inserted text before our operation, adjust position
+            transformedOp.position += concurrentOp.content ? concurrentOp.content.length : 0;
+        }
+        else if (concurrentOp.type === 'delete') {
+            const concurrentEnd = concurrentOp.position + concurrentOp.length;
+            if (operation.position >= concurrentEnd) {
+                // Operation is after the deleted range, adjust position
+                transformedOp.position -= concurrentOp.length;
+            }
+            else if (operation.position > concurrentOp.position) {
+                // Operation starts within the deleted range, clamp to start of deletion
+                transformedOp.position = concurrentOp.position;
+            }
+            // If operation starts before the deletion, position stays the same
+        }
+        return transformedOp;
     }
 
     document.updatedAt = new Date();
@@ -252,7 +273,4 @@ export class SharedDocumentService {
     if (!document) {
       throw new Error(`Document ${documentId} not found`);
     }
-
-    return [...document.operations];
-  }
 }

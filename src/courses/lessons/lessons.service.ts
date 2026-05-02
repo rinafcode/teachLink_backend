@@ -10,9 +10,9 @@ import { CourseModule } from '../entities/course-module.entity';
  */
 @Injectable()
 export class LessonsService {
-  constructor(
+    constructor(
     @InjectRepository(Lesson)
-    private lessonsRepository: Repository<Lesson>,
+    private lessonsRepository: Repository<Lesson>, 
     @InjectRepository(CourseModule)
     private modulesRepository: Repository<CourseModule>,
   ) {}

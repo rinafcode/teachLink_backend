@@ -3,69 +3,55 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuditLogService } from './audit-log.service';
 import { AuditLog } from './audit-log.entity';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
-import {
-  createMockRepository,
-  createMockConfigService,
-  createMockQueryBuilder,
-} from 'test/utils/mock-factories';
+import { createMockRepository, createMockConfigService, createMockQueryBuilder, } from 'test/utils/mock-factories';
 import { Repository } from 'typeorm';
-
 describe('AuditLogService', () => {
-  // ─────────────────────────────────────────────────────────────────────────
-  // DECLARATIONS
-  // ─────────────────────────────────────────────────────────────────────────
-
-  let service: AuditLogService;
-  let mockAuditRepo: jest.Mocked<Repository<AuditLog>>;
-  let mockConfigService: jest.Mocked<any>;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // SETUP & TEARDOWN
-  // ─────────────────────────────────────────────────────────────────────────
-
-  beforeEach(async () => {
-    // Initialize dependency mocks
-    mockAuditRepo = createMockRepository<AuditLog>();
-    mockConfigService = createMockConfigService({
-      AUDIT_LOG_RETENTION_DAYS: 365,
+    // ─────────────────────────────────────────────────────────────────────────
+    // DECLARATIONS
+    // ─────────────────────────────────────────────────────────────────────────
+    let service: AuditLogService;
+    let mockAuditRepo: jest.Mocked<Repository<AuditLog>>;
+    let mockConfigService: jest.Mocked<unknown>;
+    // ─────────────────────────────────────────────────────────────────────────
+    // SETUP & TEARDOWN
+    // ─────────────────────────────────────────────────────────────────────────
+    beforeEach(async () => {
+        // Initialize dependency mocks
+        mockAuditRepo = createMockRepository<AuditLog>();
+        mockConfigService = createMockConfigService({
+            AUDIT_LOG_RETENTION_DAYS: 365,
+        });
+        const module: TestingModule = await Test.createTestingModule({
+            providers: [
+                AuditLogService,
+                {
+                    provide: getRepositoryToken(AuditLog),
+                    useValue: mockAuditRepo,
+                },
+                {
+                    provide: 'ConfigService',
+                    useValue: mockConfigService,
+                },
+            ],
+        }).compile();
+        service = module.get<AuditLogService>(AuditLogService);
     });
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuditLogService,
-        {
-          provide: getRepositoryToken(AuditLog),
-          useValue: mockAuditRepo,
-        },
-        {
-          provide: 'ConfigService',
-          useValue: mockConfigService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<AuditLogService>(AuditLogService);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // TEST SUITES
-  // ─────────────────────────────────────────────────────────────────────────
-
-  describe('constructor', () => {
-    it('should initialize with default retention days', () => {
-      const defaultService = new AuditLogService(mockAuditRepo, {
-        get: jest.fn().mockReturnValue(undefined),
-      } as any);
-
-      expect((defaultService as any).retentionDays).toBe(365);
+    afterEach(() => {
+        jest.clearAllMocks();
     });
-
-    it('should use configured retention days', () => {
-      expect((service as any).retentionDays).toBe(365);
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST SUITES
+    // ─────────────────────────────────────────────────────────────────────────
+    describe('constructor', () => {
+        it('should initialize with default retention days', () => {
+            const defaultService = new AuditLogService(mockAuditRepo, {
+                get: jest.fn().mockReturnValue(undefined),
+            } as unknown);
+            expect((defaultService as unknown).retentionDays).toBe(365);
+        });
+        it('should use configured retention days', () => {
+            expect((service as unknown).retentionDays).toBe(365);
+        });
     });
   });
 
@@ -732,22 +718,60 @@ describe('AuditLogService', () => {
           {
             userId: 'user-1',
             userEmail: 'test@example.com',
-            count: 5,
-          },
-        ],
-        topEndpoints: [
-          {
-            endpoint: '/api/users',
-            count: 10,
-          },
-        ],
-        failedActions: [
-          {
-            action: AuditAction.API_CALLED,
-            count: 2,
-          },
-        ],
-      });
+            action: AuditAction.LOGIN,
+            category: AuditCategory.AUTHENTICATION,
+            severity: AuditSeverity.INFO,
+            description: 'User logged in',
+            ipAddress: '127.0.0.1',
+            userAgent: 'TestAgent',
+            metadata: { sessionId: 'session-1' },
+        };
+        const mockSavedLog = {
+            id: 'log-1',
+            ...auditEntry,
+            timestamp: new Date(),
+            retentionUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        };
+        beforeEach(() => {
+            mockAuditRepo.create.mockReturnValue(mockSavedLog as AuditLog);
+            mockAuditRepo.save.mockResolvedValue(mockSavedLog as AuditLog);
+        });
+        it('should create and save audit log entry', async () => {
+            const result = await service.log(auditEntry);
+            expect(result).toEqual(mockSavedLog);
+            expect(mockAuditRepo.create).toHaveBeenCalledWith({
+                ...auditEntry,
+                severity: AuditSeverity.INFO,
+                retentionUntil: expect.any(Date),
+            });
+            expect(mockAuditRepo.save).toHaveBeenCalledWith(mockSavedLog);
+        });
+        it('should use default severity when not provided', async () => {
+            const entryWithoutSeverity = { ...auditEntry };
+            delete entryWithoutSeverity.severity;
+            await service.log(entryWithoutSeverity);
+            expect(mockAuditRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+                severity: AuditSeverity.INFO,
+            }));
+        });
+        it('should handle save errors gracefully', async () => {
+            const error = new Error('Database error');
+            mockAuditRepo.save.mockRejectedValue(error);
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+            const result = await service.log(auditEntry);
+            expect(result).toEqual(mockSavedLog); // Returns created log even on error
+            expect(consoleSpy).toHaveBeenCalledWith('Failed to create audit log:', error);
+            consoleSpy.mockRestore();
+        });
+        it('should set retention date correctly', async () => {
+            const retentionDays = 365;
+            const expectedRetentionDate = new Date();
+            expectedRetentionDate.setDate(expectedRetentionDate.getDate() + retentionDays);
+            await service.log(auditEntry);
+            const createCall = mockAuditRepo.create.mock.calls[0][0];
+            expect(createCall.retentionUntil).toBeInstanceOf(Date);
+            expect(createCall.retentionUntil.getDate()).toBe(expectedRetentionDate.getDate());
+        });
     });
   });
 });

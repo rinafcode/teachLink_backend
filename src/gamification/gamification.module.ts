@@ -17,24 +17,25 @@ import { GamificationController } from './gamification.controller';
  * Registers the gamification module.
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      PointTransaction,
-      UserProgress,
-      Badge,
-      UserBadge,
-      Challenge,
-      UserChallenge,
-    ]),
-  ],
-  providers: [
-    PointsService,
-    BadgesService,
-    LeaderboardService,
-    ChallengesService,
-    GamificationService,
-  ],
-  controllers: [GamificationController],
-  exports: [GamificationService, PointsService, BadgesService, ChallengesService],
+    imports: [
+        TypeOrmModule.forFeature([
+            PointTransaction,
+            UserProgress,
+            Badge,
+            UserBadge,
+            Challenge,
+            UserChallenge,
+        ]),
+    ],
+    providers: [
+        PointsService,
+        BadgesService,
+        LeaderboardService,
+        ChallengesService,
+        GamificationService,
+    ],
+    controllers: [GamificationController],
+    exports: [GamificationService, PointsService, BadgesService, ChallengesService],
 })
-export class GamificationModule {}
+export class GamificationModule {
+}

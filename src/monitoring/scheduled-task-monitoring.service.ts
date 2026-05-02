@@ -190,39 +190,24 @@ export class ScheduledTaskMonitoringService {
         execution.errorMessage = `Execution exceeded timeout of ${config.timeoutMs}ms`;
 
         this.activeExecutions.delete(executionId);
-
-        this.alertingService.sendAlert(
-          'SCHEDULED_TASK_TIMEOUT',
-          `Task ${execution.taskName} exceeded timeout (${elapsedMs}ms)`,
-          'CRITICAL',
-        );
-      }
+        this.alertingService.sendAlert('SCHEDULED_TASK_SUCCESS', `Task ${execution.taskName} completed successfully in ${execution.durationMs}ms`, 'INFO');
     }
-
-    for (const [taskName, config] of this.taskConfigs.entries()) {
-      const history = this.executionHistory.get(taskName) || [];
-      const latest = history[history.length - 1];
-
-      const baseline = latest?.startedAt || this.taskRegisteredAt.get(taskName);
-      if (!baseline) {
-        continue;
-      }
-
-      const elapsedSinceStart = now.getTime() - baseline.getTime();
-      const threshold = config.expectedIntervalMs + (config.missedExecutionGraceMs || 0);
-      const isOverdue = elapsedSinceStart > threshold;
-      const alreadyAlertedAt = this.lastMissedAlertAt.get(taskName);
-      const shouldAlertAgain =
-        !alreadyAlertedAt || now.getTime() - alreadyAlertedAt.getTime() > config.expectedIntervalMs;
-
-      if (isOverdue && shouldAlertAgain) {
-        this.lastMissedAlertAt.set(taskName, now);
-        this.alertingService.sendAlert(
-          'SCHEDULED_TASK_MISSED',
-          `Task ${taskName} appears delayed/missed. Last start was ${baseline.toISOString()}`,
-          'CRITICAL',
-        );
-      }
+    markFailure(executionId: string, error: Error | string, metadata: Record<string, unknown> = {}): void {
+        const execution = this.activeExecutions.get(executionId);
+        if (!execution) {
+            return;
+        }
+        const errorMessage = typeof error === 'string' ? error : error.message;
+        execution.endedAt = new Date();
+        execution.durationMs = execution.endedAt.getTime() - execution.startedAt.getTime();
+        execution.status = 'FAILED';
+        execution.errorMessage = errorMessage;
+        execution.metadata = {
+            ...(execution.metadata || {}),
+            ...metadata,
+        };
+        this.activeExecutions.delete(executionId);
+        this.alertingService.sendAlert('SCHEDULED_TASK_FAILURE', `Task ${execution.taskName} failed: ${errorMessage}`, 'CRITICAL');
     }
   }
 
@@ -289,7 +274,4 @@ export class ScheduledTaskMonitoringService {
     if (existing.length > this.historyLimitPerTask) {
       existing.splice(0, existing.length - this.historyLimitPerTask);
     }
-
-    this.executionHistory.set(taskName, existing);
-  }
 }

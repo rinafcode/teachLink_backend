@@ -1,15 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  Repository,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Repository, UpdateDateColumn, } from 'typeorm';
 import { Job, Queue } from 'bull';
 import { User } from '../../users/entities/user.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
@@ -18,10 +10,10 @@ import { TIME } from '../constants/time.constants';
 export type ExportFormat = 'json' | 'pdf' | 'csv';
 
 export enum UserExportStatus {
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+    PENDING = 'pending',
+    IN_PROGRESS = 'in_progress',
+    COMPLETED = 'completed',
+    FAILED = 'failed'
 }
 
 /**
@@ -82,32 +74,34 @@ interface IExportJobData {
 interface IPreparedExportData {
   user: {
     id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    status: string;
-    tenantId?: string;
-    isEmailVerified: boolean;
+    @Column({ name: 'user_id' })
+    @Index()
+    userId: string;
+    @Column({ type: 'varchar' })
+    format: ExportFormat;
+    @Column({
+        type: 'enum',
+        enum: UserExportStatus,
+        default: UserExportStatus.PENDING,
+    })
+    @Index()
+    status: UserExportStatus;
+    @Column({ name: 'file_name', nullable: true })
+    fileName?: string;
+    @Column({ name: 'mime_type', nullable: true })
+    mimeType?: string;
+    @Column({ name: 'file_content', type: 'text', nullable: true })
+    fileContent?: string;
+    @Column({ name: 'error_message', type: 'text', nullable: true })
+    errorMessage?: string;
+    @Column({ type: 'jsonb', nullable: true })
+    metadata?: Record<string, unknown>;
+    @Column({ name: 'completed_at', type: 'timestamp', nullable: true })
+    completedAt?: Date;
+    @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
+    @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
-    lastLoginAt?: Date;
-  };
-  courseProgress: Array<{
-    enrollmentId: string;
-    courseId: string;
-    courseTitle: string;
-    progress: number;
-    status: string;
-    enrolledAt: Date;
-    lastAccessedAt: Date;
-  }>;
-  exportMeta: {
-    generatedAt: string;
-    totalEnrollments: number;
-    completedCourses: number;
-    averageProgress: number;
-  };
 }
 
 /**
@@ -115,17 +109,16 @@ interface IPreparedExportData {
  */
 @Injectable()
 export class ExportService {
-  private readonly logger = new Logger(ExportService.name);
-  private static readonly QUEUE_NAME = 'user-data-export';
-  private static readonly JOB_NAME = 'generate-user-data-export';
-
-  constructor(
+    private readonly logger = new Logger(ExportService.name);
+    private static readonly QUEUE_NAME = 'user-data-export';
+    private static readonly JOB_NAME = 'generate-user-data-export';
+    constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>, 
     @InjectRepository(Enrollment)
-    private readonly enrollmentRepository: Repository<Enrollment>,
+    private readonly enrollmentRepository: Repository<Enrollment>, 
     @InjectRepository(UserExportHistory)
-    private readonly exportHistoryRepository: Repository<UserExportHistory>,
+    private readonly exportHistoryRepository: Repository<UserExportHistory>, 
     @InjectQueue(ExportService.QUEUE_NAME)
     private readonly exportQueue: Queue,
   ) {}
@@ -230,9 +223,25 @@ export class ExportService {
     if (!record) {
       throw new NotFoundException('Export record not found');
     }
-
-    if (record.status !== UserExportStatus.COMPLETED || !record.fileContent) {
-      throw new BadRequestException('Export is not ready yet');
+    async getCompletedExportFile(userId: string, exportId: string): Promise<{
+        fileName: string;
+        mimeType: string;
+        content: Buffer;
+    }> {
+        const record = await this.exportHistoryRepository.findOne({
+            where: { id: exportId, userId },
+        });
+        if (!record) {
+            throw new NotFoundException('Export record not found');
+        }
+        if (record.status !== UserExportStatus.COMPLETED || !record.fileContent) {
+            throw new BadRequestException('Export is not ready yet');
+        }
+        return {
+            fileName: record.fileName || `user-export-${record.id}.${record.format}`,
+            mimeType: record.mimeType || 'application/octet-stream',
+            content: Buffer.from(record.fileContent, 'base64'),
+        };
     }
 
     return {

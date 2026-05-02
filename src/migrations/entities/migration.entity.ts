@@ -8,10 +8,10 @@ import {
 } from 'typeorm';
 
 export enum MigrationStatus {
-  PENDING = 'pending',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  ROLLED_BACK = 'rolled_back',
+    PENDING = 'pending',
+    COMPLETED = 'completed',
+    FAILED = 'failed',
+    ROLLED_BACK = 'rolled_back'
 }
 
 /**

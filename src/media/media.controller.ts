@@ -96,9 +96,20 @@ export class MediaController {
         ...buildUploadValidationDetails(),
       });
     }
-
-    if (!file) {
-      throw new HttpException('No file provided', HttpStatus.BAD_REQUEST);
+    @Get('uploads/progress/:uploadId')
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({ summary: 'Get upload progress by ID' })
+    @ApiParam({ name: 'uploadId', description: 'Upload tracking ID' })
+    @ApiResponse({ status: 200, description: 'Upload progress', type: Object })
+    @ApiResponse({ status: 404, description: 'Upload not found' })
+    async getUploadProgress(
+    @Param('uploadId')
+    uploadId: string) {
+        const progress = await this.mediaService.getUploadProgress(uploadId);
+        if (!progress) {
+            throw new HttpException('Upload not found', HttpStatus.NOT_FOUND);
+        }
+        return progress;
     }
 
     const user = req.user;

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-
 export type LocaleResolutionSource = 'query' | 'header' | 'default';
 
 export interface IResolvedLocale {
@@ -74,13 +73,10 @@ export class LanguageDetectionService {
         return { locale: picked, source: 'query' };
       }
     }
-
-    const header = req.headers['accept-language'];
-    if (header && typeof header === 'string') {
-      const fromHeader = this.parseAcceptLanguage(header);
-      if (fromHeader) {
-        return { locale: fromHeader, source: 'header' };
-      }
+    normalizeLocaleTag(tag: string): string {
+        if (!tag)
+            return '';
+        return tag.trim().toLowerCase().replace(/_/g, '-');
     }
 
     return { locale: defaultLocale, source: 'default' };
@@ -113,14 +109,59 @@ export class LanguageDetectionService {
           const n = parseFloat(v);
           if (!Number.isNaN(n)) q = n;
         }
-      }
-      candidates.push({ tag, q });
+        return null;
     }
-    candidates.sort((a, b) => b.q - a.q);
-    for (const { tag } of candidates) {
-      const picked = this.pickSupported(tag);
-      if (picked) return picked;
+    resolveWithSource(req: Request, queryLang?: string): ResolvedLocale {
+        const defaultLocale = this.getDefaultLocale();
+        if (queryLang) {
+            const picked = this.pickSupported(queryLang);
+            if (picked) {
+                return { locale: picked, source: 'query' };
+            }
+        }
+        const header = req.headers['accept-language'];
+        if (header && typeof header === 'string') {
+            const fromHeader = this.parseAcceptLanguage(header);
+            if (fromHeader) {
+                return { locale: fromHeader, source: 'header' };
+            }
+        }
+        return { locale: defaultLocale, source: 'default' };
     }
-    return null;
-  }
+    resolveLocale(req: Request, queryLang?: string): string {
+        return this.resolveWithSource(req, queryLang).locale;
+    }
+    /**
+     * RFC 7231-style Accept-Language: pick highest-q language that we support.
+     */
+    private parseAcceptLanguage(header: string): string | null {
+        const parts = header.split(',');
+        const candidates: Array<{
+            tag: string;
+            q: number;
+        }> = [];
+        for (const part of parts) {
+            const [langPart, ...params] = part.trim().split(';');
+            const tag = this.normalizeLocaleTag(langPart);
+            if (!tag || tag === '*')
+                continue;
+            let q = 1;
+            for (const p of params) {
+                const [k, v] = p.trim().split('=');
+                if (k?.toLowerCase() === 'q' && v) {
+                    const n = parseFloat(v);
+                    if (!Number.isNaN(n))
+                        q = n;
+                }
+            }
+            candidates.push({ tag, q });
+        }
+        candidates.sort((a, b) => b.q - a.q);
+        for (const { tag } of candidates) {
+            const picked = this.pickSupported(tag);
+            if (picked)
+                return picked;
+        }
+        return null;
+    }
 }

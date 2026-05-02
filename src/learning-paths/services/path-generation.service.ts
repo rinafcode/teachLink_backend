@@ -16,15 +16,4 @@ export class PathGenerationService {
     if (assessment.level === 'beginner') {
       milestones.push('Fundamentals');
     }
-
-    if (assessment.goal === 'frontend') {
-      milestones.push('HTML', 'CSS', 'JavaScript', 'React');
-    }
-
-    return {
-      goal: assessment.goal,
-      level: assessment.level,
-      milestones,
-    };
-  }
 }

@@ -6,46 +6,40 @@ import { PaginationQueryDto, CursorPaginationQueryDto } from '../../common/dto/p
  * Defines the course Search payload.
  */
 export class CourseSearchDto extends PaginationQueryDto {
-  @ApiPropertyOptional()
-  @IsNumber()
-  @IsOptional()
-  minPrice?: number;
-
-  @ApiPropertyOptional()
-  @IsNumber()
-  @IsOptional()
-  maxPrice?: number;
-
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUUID()
-  instructorId?: string;
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    minPrice?: number;
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    maxPrice?: number;
+    @IsOptional()
+    @IsString()
+    status?: string;
+    @IsOptional()
+    @IsString()
+    @IsUUID()
+    instructorId?: string;
 }
 
 /**
  * Defines the cursor Course Search payload.
  */
 export class CursorCourseSearchDto extends CursorPaginationQueryDto {
-  @ApiPropertyOptional()
-  @IsNumber()
-  @IsOptional()
-  minPrice?: number;
-
-  @ApiPropertyOptional()
-  @IsNumber()
-  @IsOptional()
-  maxPrice?: number;
-
-  @IsOptional()
-  @IsString()
-  status?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsUUID()
-  instructorId?: string;
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    minPrice?: number;
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    maxPrice?: number;
+    @IsOptional()
+    @IsString()
+    status?: string;
+    @IsOptional()
+    @IsString()
+    @IsUUID()
+    instructorId?: string;
 }

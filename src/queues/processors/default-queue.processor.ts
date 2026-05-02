@@ -102,5 +102,4 @@ export class DefaultQueueProcessor {
         job.attemptsMade,
       );
     }
-  }
 }

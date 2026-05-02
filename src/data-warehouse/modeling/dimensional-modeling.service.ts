@@ -154,27 +154,11 @@ export class DimensionalModelingService {
     if (!model) {
       return null;
     }
-
-    const updatedModel = {
-      ...model,
-      ...updates,
-      updatedAt: new Date(),
-    };
-
-    this.models.set(modelId, updatedModel);
-    this.logger.log(`Updated dimensional model ${modelId}`);
-
-    return updatedModel;
-  }
-
-  /**
-   * Delete a dimensional model
-   */
-  async deleteModel(modelId: string): Promise<boolean> {
-    const exists = this.models.has(modelId);
-    if (exists) {
-      this.models.delete(modelId);
-      this.logger.log(`Deleted dimensional model ${modelId}`);
+    /**
+     * Get a dimensional model
+     */
+    async getModel(modelId: string): Promise<DimensionalModel | null> {
+        return this.models.get(modelId) || null;
     }
     return exists;
   }
@@ -255,13 +239,27 @@ export class DimensionalModelingService {
         subDimWithIds.forEach((subDim) => {
           relationships.push({
             id: uuidv4(),
-            fromTable: parentDim.name,
-            toTable: subDim.name,
-            relationshipType: 'one-to-many',
-            joinCondition: `${parentDim.name}.id = ${subDim.name}.${parentDim.name}_id`,
-          });
+        };
+        const dimensionTablesWithIds: DimensionTable[] = dimensionTables.map((dim) => ({
+            ...dim,
+            id: uuidv4(),
+        }));
+        // Create foreign keys for each dimension
+        const foreignKeys: ForeignKey[] = dimensionTablesWithIds.map((dim) => ({
+            id: uuidv4(),
+            name: `${dim.name}_id`,
+            referencedTable: dim.name,
+            referencedColumn: 'id',
+        }));
+        factTableWithId.foreignKeys = foreignKeys;
+        const model = await this.createModel({
+            name,
+            type: 'star',
+            factTables: [factTableWithId],
+            dimensionTables: dimensionTablesWithIds,
+            relationships: this.createStarRelationships(factTableWithId, dimensionTablesWithIds),
         });
-      }
+        return model;
     }
 
     // Create foreign keys for fact table
@@ -312,12 +310,18 @@ export class DimensionalModelingService {
     if (!query) {
       throw new Error(`Query ${queryId} not found`);
     }
-
-    // Validate required parameters
-    for (const param of query.parameters) {
-      if (param.required && parameters[param.name] === undefined) {
-        throw new Error(`Required parameter ${param.name} is missing`);
-      }
+    /**
+     * Create an analytics query
+     */
+    async createQuery(queryConfig: Omit<AnalyticsQuery, 'id'>): Promise<AnalyticsQuery> {
+        const queryId = uuidv4();
+        const query: AnalyticsQuery = {
+            id: queryId,
+            ...queryConfig,
+        };
+        this.queries.set(queryId, query);
+        this.logger.log(`Created analytics query ${queryId}: ${query.name}`);
+        return query;
     }
 
     // In a real implementation, this would execute against the data warehouse
@@ -366,16 +370,35 @@ export class DimensionalModelingService {
     if (!model) {
       return { valid: false, errors: [`Model ${modelId} not found`] };
     }
-
-    const errors: string[] = [];
-
-    // Check for required components
-    if (!model.factTables || model.factTables.length === 0) {
-      errors.push('Model must have at least one fact table');
+    /**
+     * Get query results with pagination
+     */
+    async getQueryResults(queryId: string, parameters: {
+        [key: string]: unknown;
+    } = {}, page: number = 1, limit: number = 100): Promise<{
+        data: unknown[];
+        total: number;
+        page: number;
+        limit: number;
+    }> {
+        const results = await this.executeQuery(queryId, parameters);
+        const total = results.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = results.slice(startIndex, endIndex);
+        return {
+            data: paginatedData,
+            total,
+            page,
+            limit,
+        };
     }
-
-    if (!model.dimensionTables || model.dimensionTables.length === 0) {
-      errors.push('Model must have at least one dimension table');
+    /**
+     * Get all queries for a model
+     */
+    async getQueriesForModel(modelId: string): Promise<AnalyticsQuery[]> {
+        const queries = Array.from(this.queries.values());
+        return queries.filter((query) => query.modelId === modelId);
     }
 
     // Validate relationships
@@ -442,7 +465,4 @@ export class DimensionalModelingService {
 
       results.push(row);
     }
-
-    return results;
-  }
 }

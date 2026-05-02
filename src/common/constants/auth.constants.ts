@@ -1,3 +1,3 @@
 export const AUTH_STRATEGY = {
-  JWT: 'jwt',
+    JWT: 'jwt',
 } as const;

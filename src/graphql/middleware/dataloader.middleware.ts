@@ -1,7 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { DataLoaderService } from '../services/dataloader.service';
-
 /**
  * Middleware to inject DataLoaders into request context
  * Creates fresh loaders for each request to ensure proper caching scope

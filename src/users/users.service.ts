@@ -21,7 +21,7 @@ import { USER_CONSTANTS } from './user.constants';
  */
 @Injectable()
 export class UsersService {
-  constructor(
+    constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly cachingService: CachingService,

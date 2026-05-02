@@ -33,8 +33,7 @@ export class CreateMigrationsTrackingTableMigration implements IMigrationConfig 
       EXCEPTION WHEN duplicate_object THEN NULL;
       END $$;
     `);
-
-    await connection.query(`
+        await connection.query(`
       CREATE TABLE IF NOT EXISTS migrations (
         id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name            VARCHAR(255) NOT NULL UNIQUE,

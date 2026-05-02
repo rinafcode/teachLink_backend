@@ -14,14 +14,15 @@ import { Module } from '@nestjs/common';
  * Registers the assessments module.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Assessment, Question, AssessmentAttempt, Answer])],
-  controllers: [AssessmentsController],
-  providers: [
-    AssessmentsService,
-    QuestionBankService,
-    ScoreCalculationService,
-    FeedbackGenerationService,
-  ],
-  exports: [AssessmentsService],
+    imports: [TypeOrmModule.forFeature([Assessment, Question, AssessmentAttempt, Answer])],
+    controllers: [AssessmentsController],
+    providers: [
+        AssessmentsService,
+        QuestionBankService,
+        ScoreCalculationService,
+        FeedbackGenerationService,
+    ],
+    exports: [AssessmentsService],
 })
-export class AssessmentsModule {}
+export class AssessmentsModule {
+}

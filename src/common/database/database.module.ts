@@ -14,4 +14,5 @@ import { ShardingModule } from './sharding/sharding.module';
   providers: [TransactionService, TransactionalInterceptor],
   exports: [TransactionService, TransactionalInterceptor, DatabasePoolModule, ShardingModule],
 })
-export class DatabaseModule {}
+export class DatabaseModule {
+}

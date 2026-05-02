@@ -52,7 +52,6 @@ export interface IBulkRetryResult {
   skipped: number;
   errors: Array<{ jobId: string | number; reason: string }>;
 }
-
 /**
  * Queue Monitoring Servic
  * Responsibilities:
@@ -146,31 +145,81 @@ export class QueueMonitoringService {
       this.escalate(status, 'warning');
       status = 'warning';
     }
-
-    if (metrics.waiting > this.THRESHOLDS.backlogCritical) {
-      issues.push(`Critical backlog: ${metrics.waiting} waiting jobs`);
-      status = 'critical';
-    } else if (metrics.waiting > this.THRESHOLDS.backlogWarning) {
-      issues.push(`Elevated backlog: ${metrics.waiting} waiting jobs`);
-      if (status === 'healthy') status = 'warning';
+    /**
+     * Return the in-memory metrics history.
+     * Each entry includes a `capturedAt` timestamp so callers can draw charts.
+     */
+    getMetricsHistory(): TimestampedMetrics[] {
+        return [...this.metricsHistory];
     }
-
-    if (metrics.active > this.THRESHOLDS.activeJobsCritical) {
-      issues.push(`Critical active-job count: ${metrics.active}`);
-      status = 'critical';
-    } else if (metrics.active > this.THRESHOLDS.activeJobsWarning) {
-      issues.push(`High active-job count: ${metrics.active}`);
-      if (status === 'healthy') status = 'warning';
+    async checkQueueHealth(): Promise<QueueHealthStatus> {
+        const metrics = await this.getQueueMetrics();
+        const issues: string[] = [];
+        let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+        const failureRate = metrics.total > 0 ? metrics.failed / metrics.total : 0;
+        if (failureRate > this.THRESHOLDS.failureRateCritical) {
+            issues.push(`Critical failure rate: ${(failureRate * 100).toFixed(1)}%`);
+            status = 'critical';
+        }
+        else if (failureRate > this.THRESHOLDS.failureRateWarning) {
+            issues.push(`Elevated failure rate: ${(failureRate * 100).toFixed(1)}%`);
+            this.escalate(status, 'warning');
+            status = 'warning';
+        }
+        if (metrics.waiting > this.THRESHOLDS.backlogCritical) {
+            issues.push(`Critical backlog: ${metrics.waiting} waiting jobs`);
+            status = 'critical';
+        }
+        else if (metrics.waiting > this.THRESHOLDS.backlogWarning) {
+            issues.push(`Elevated backlog: ${metrics.waiting} waiting jobs`);
+            if (status === 'healthy')
+                status = 'warning';
+        }
+        if (metrics.active > this.THRESHOLDS.activeJobsCritical) {
+            issues.push(`Critical active-job count: ${metrics.active}`);
+            status = 'critical';
+        }
+        else if (metrics.active > this.THRESHOLDS.activeJobsWarning) {
+            issues.push(`High active-job count: ${metrics.active}`);
+            if (status === 'healthy')
+                status = 'warning';
+        }
+        if (metrics.delayed > this.THRESHOLDS.delayedJobsWarning) {
+            issues.push(`Many delayed jobs: ${metrics.delayed}`);
+            if (status === 'healthy')
+                status = 'warning';
+        }
+        if (metrics.throughput === 0 && metrics.waiting > 0 && metrics.active === 0) {
+            issues.push('Queue appears stalled: jobs waiting but none active and throughput is zero');
+            if (status === 'healthy')
+                status = 'warning';
+        }
+        return { status, issues, metrics, timestamp: new Date() };
     }
-
-    if (metrics.delayed > this.THRESHOLDS.delayedJobsWarning) {
-      issues.push(`Many delayed jobs: ${metrics.delayed}`);
-      if (status === 'healthy') status = 'warning';
+    async getQueueStatistics(): Promise<QueueStatistics> {
+        const metrics = await this.getQueueMetrics();
+        const history = this.metricsHistory;
+        return {
+            current: metrics,
+            trends: {
+                completed: this.calculateTrend(history.map((m) => m.completed)),
+                failed: this.calculateTrend(history.map((m) => m.failed)),
+                throughput: this.calculateTrend(history.map((m) => m.throughput)),
+            },
+            health: await this.checkQueueHealth(),
+        };
     }
-
-    if (metrics.throughput === 0 && metrics.waiting > 0 && metrics.active === 0) {
-      issues.push('Queue appears stalled: jobs waiting but none active and throughput is zero');
-      if (status === 'healthy') status = 'warning';
+    // ── Public API: failed jobs
+    /**
+     * Paginated failed-job list with optional name filter.
+     */
+    async getFailedJobs(limit: number = 50, offset: number = 0, jobName?: string): Promise<Job[]> {
+        if (jobName) {
+            const all = await this.defaultQueue.getFailed(0, 5000);
+            const filtered = all.filter((j) => j.name === jobName);
+            return filtered.slice(offset, offset + limit);
+        }
+        return this.defaultQueue.getFailed(offset, offset + limit - 1);
     }
 
     return { status, issues, metrics, timestamp: new Date() };
@@ -223,8 +272,6 @@ export class QueueMonitoringService {
           jobId: job.id,
           reason: (err as Error).message,
         });
-        result.skipped++;
-      }
     }
 
     this.logger.log(`Bulk retry complete: ${result.requeued} requeued, ${result.skipped} skipped`);
@@ -287,84 +334,50 @@ export class QueueMonitoringService {
         Math.max(bucket.failed + bucket.retried, 1);
       byJobType[job.name] = bucket;
     }
-
-    const totalFailed = recentFailed.length;
-
-    return {
-      windowMinutes,
-      totalFailed,
-      totalRetried: retried.length,
-      successAfterRetry: successAfterRetry.length,
-      permanentlyFailed: permanentlyFailed.length,
-      retryRate: totalFailed > 0 ? retried.length / totalFailed : 0,
-      successAfterRetryRate: retried.length > 0 ? successAfterRetry.length / retried.length : 0,
-      byJobType,
-    };
-  }
-
-  // ── Scheduled tasks
-
-  /**
-   * Periodic health check — every minute.
-   * Logs warnings/criticals and attempts to recover stuck jobs automatically.
-   */
-  @Cron(CronExpression.EVERY_MINUTE)
-  async periodicHealthCheck(): Promise<void> {
-    try {
-      const health = await this.checkQueueHealth();
-
-      if (health.status === 'critical') {
-        this.logger.error(`Queue health CRITICAL: ${health.issues.join(' | ')}`);
-        await this.sendAlert(health);
-      } else if (health.status === 'warning') {
-        this.logger.warn(`Queue health WARNING: ${health.issues.join(' | ')}`);
-      } else {
-        this.logger.debug('Queue health: OK');
-      }
-
-      const stuckJobs = await this.getStuckJobs(this.THRESHOLDS.stuckThresholdMs);
-      if (stuckJobs.length > 0) {
-        this.logger.warn(`Found ${stuckJobs.length} stuck job(s), moving to failed for retry`);
-        await this.recoverStuckJobs(stuckJobs);
-      }
-    } catch (err) {
-      this.logger.error('Error during periodic health check:', (err as Error).message);
+    // ── Scheduled tasks
+    /**
+     * Periodic health check — every minute.
+     * Logs warnings/criticals and attempts to recover stuck jobs automatically.
+     */
+    @Cron(CronExpression.EVERY_MINUTE)
+    async periodicHealthCheck(): Promise<void> {
+        try {
+            const health = await this.checkQueueHealth();
+            if (health.status === 'critical') {
+                this.logger.error(`Queue health CRITICAL: ${health.issues.join(' | ')}`);
+                await this.sendAlert(health);
+            }
+            else if (health.status === 'warning') {
+                this.logger.warn(`Queue health WARNING: ${health.issues.join(' | ')}`);
+            }
+            else {
+                this.logger.debug('Queue health: OK');
+            }
+            const stuckJobs = await this.getStuckJobs(this.THRESHOLDS.stuckThresholdMs);
+            if (stuckJobs.length > 0) {
+                this.logger.warn(`Found ${stuckJobs.length} stuck job(s), moving to failed for retry`);
+                await this.recoverStuckJobs(stuckJobs);
+            }
+        }
+        catch (err) {
+            this.logger.error('Error during periodic health check:', (err as Error).message);
+        }
     }
-  }
-
-  // ── Private helpers
-
-  /**
-   * Calculate jobs completed per minute using the last two timestamped
-   * snapshots.  Falls back to 0 if there is insufficient history.
-   */
-  private calculateThroughput(currentCompleted: number, capturedAt: number): number {
-    if (this.metricsHistory.length === 0) return 0;
-
-    const previous = this.metricsHistory[this.metricsHistory.length - 1];
-    const deltaCompleted = Math.max(0, currentCompleted - previous.completed);
-    const deltaMs = capturedAt - previous.capturedAt;
-
-    if (deltaMs <= 0) return 0;
-
-    // Jobs per minute
-    return Math.round((deltaCompleted / deltaMs) * 60_000);
-  }
-
-  private async calculateAvgProcessingTime(): Promise<number> {
-    try {
-      const completed = await this.defaultQueue.getCompleted(0, 100);
-      if (completed.length === 0) return 0;
-
-      const times = completed
-        .filter((j) => j.finishedOn != null && j.processedOn != null)
-        .map((j) => (j.finishedOn ?? 0) - (j.processedOn ?? 0));
-
-      if (times.length === 0) return 0;
-      return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    } catch (err) {
-      this.logger.error('Error calculating avg processing time:', (err as Error).message);
-      return 0;
+    // ── Private helpers
+    /**
+     * Calculate jobs completed per minute using the last two timestamped
+     * snapshots.  Falls back to 0 if there is insufficient history.
+     */
+    private calculateThroughput(currentCompleted: number, capturedAt: number): number {
+        if (this.metricsHistory.length === 0)
+            return 0;
+        const previous = this.metricsHistory[this.metricsHistory.length - 1];
+        const deltaCompleted = Math.max(0, currentCompleted - previous.completed);
+        const deltaMs = capturedAt - previous.capturedAt;
+        if (deltaMs <= 0)
+            return 0;
+        // Jobs per minute
+        return Math.round((deltaCompleted / deltaMs) * 60000);
     }
   }
 
@@ -373,31 +386,11 @@ export class QueueMonitoringService {
     if (this.metricsHistory.length > this.MAX_HISTORY_SIZE) {
       this.metricsHistory.shift();
     }
-  }
-
-  private calculateTrend(values: number[]): 'up' | 'down' | 'stable' {
-    if (values.length < 2) return 'stable';
-    const recent = values.slice(-10);
-    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-    const latest = recent[recent.length - 1];
-    if (avg === 0) return 'stable';
-    const changePct = ((latest - avg) / avg) * 100;
-    if (changePct > 10) return 'up';
-    if (changePct < -10) return 'down';
-    return 'stable';
-  }
-
-  private async recoverStuckJobs(jobs: Job[]): Promise<void> {
-    for (const job of jobs) {
-      try {
-        this.logger.log(`Moving stuck job ${job.id} (${job.name}) to failed for retry`);
-        await job.moveToFailed(
-          { message: 'Automatically moved: job exceeded stuck threshold' },
-          true,
-        );
-      } catch (err) {
-        this.logger.error(`Failed to recover job ${job.id}:`, (err as Error).message);
-      }
+    private appendToHistory(metrics: TimestampedMetrics): void {
+        this.metricsHistory.push(metrics);
+        if (this.metricsHistory.length > this.MAX_HISTORY_SIZE) {
+            this.metricsHistory.shift();
+        }
     }
   }
 

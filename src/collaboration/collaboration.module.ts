@@ -11,22 +11,23 @@ import { CollaborationController } from './collaboration.controller';
  * Registers the collaboration module.
  */
 @Module({
-  imports: [],
-  controllers: [CollaborationController],
-  providers: [
-    CollaborationService,
-    SharedDocumentService,
-    WhiteboardService,
-    VersionControlService,
-    CollaborationPermissionsService,
-    CollaborationGateway,
-  ],
-  exports: [
-    CollaborationService,
-    SharedDocumentService,
-    WhiteboardService,
-    VersionControlService,
-    CollaborationPermissionsService,
-  ],
+    imports: [],
+    controllers: [CollaborationController],
+    providers: [
+        CollaborationService,
+        SharedDocumentService,
+        WhiteboardService,
+        VersionControlService,
+        CollaborationPermissionsService,
+        CollaborationGateway,
+    ],
+    exports: [
+        CollaborationService,
+        SharedDocumentService,
+        WhiteboardService,
+        VersionControlService,
+        CollaborationPermissionsService,
+    ],
 })
-export class CollaborationModule {}
+export class CollaborationModule {
+}

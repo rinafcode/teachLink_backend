@@ -10,9 +10,9 @@ import { User } from '../../users/entities/user.entity';
  */
 @Injectable()
 export class ChallengesService {
-  constructor(
+    constructor(
     @InjectRepository(Challenge)
-    private challengeRepository: Repository<Challenge>,
+    private challengeRepository: Repository<Challenge>, 
     @InjectRepository(UserChallenge)
     private userChallengeRepository: Repository<UserChallenge>,
   ) {}
@@ -38,24 +38,10 @@ export class ChallengesService {
         isCompleted: false,
       });
     }
-
-    if (userChallenge.isCompleted) return userChallenge;
-
-    userChallenge.progressValue += increment;
-
-    if (userChallenge.progressValue >= userChallenge.challenge.goalValue) {
-      userChallenge.isCompleted = true;
-      userChallenge.completedAt = new Date();
-      // TODO: Reward user points via PointsService
+    async getUserChallenges(userId: string): Promise<UserChallenge[]> {
+        return await this.userChallengeRepository.find({
+            where: { user: { id: userId } },
+            relations: ['challenge'],
+        });
     }
-
-    return await this.userChallengeRepository.save(userChallenge);
-  }
-
-  async getUserChallenges(userId: string): Promise<UserChallenge[]> {
-    return await this.userChallengeRepository.find({
-      where: { user: { id: userId } },
-      relations: ['challenge'],
-    });
-  }
 }

@@ -39,4 +39,5 @@ import { MaskingInterceptor } from '../utils/masking/masking.interceptor';
   ],
   exports: [UsersService],
 })
-export class UsersModule {}
+export class UsersModule {
+}

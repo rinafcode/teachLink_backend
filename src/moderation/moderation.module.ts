@@ -12,14 +12,15 @@ import { ModerationEvent } from './analytics/moderation-event.entity';
  * Registers the moderation module.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([ReviewItem, ModerationEvent])],
-  providers: [
-    ModerationService,
-    AutoModerationService,
-    ManualReviewService,
-    ContentSafetyService,
-    ModerationAnalyticsService,
-  ],
-  exports: [ModerationService],
+    imports: [TypeOrmModule.forFeature([ReviewItem, ModerationEvent])],
+    providers: [
+        ModerationService,
+        AutoModerationService,
+        ManualReviewService,
+        ContentSafetyService,
+        ModerationAnalyticsService,
+    ],
+    exports: [ModerationService],
 })
-export class ModerationModule {}
+export class ModerationModule {
+}

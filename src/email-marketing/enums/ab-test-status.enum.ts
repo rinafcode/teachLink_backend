@@ -1,6 +1,6 @@
 export enum ABTestStatus {
-  DRAFT = 'draft',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
+    DRAFT = 'draft',
+    RUNNING = 'running',
+    COMPLETED = 'completed',
+    CANCELLED = 'cancelled'
 }

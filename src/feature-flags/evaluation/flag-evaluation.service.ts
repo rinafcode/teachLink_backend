@@ -60,20 +60,14 @@ export class FlagEvaluationService {
             const result = this.buildResult(flag, flag.offVariationKey, 'PREREQUISITE_FAILED');
             this.recordEvaluation(result, userContext);
             return result;
-          }
         }
-      }
-
-      // Targeting rules
-      if (flag.targeting) {
-        const matchedVariationKey = this.targetingService.evaluateTargeting(
-          flag.targeting,
-          userContext,
-        );
-        if (matchedVariationKey !== null) {
-          const result = this.buildResult(flag, matchedVariationKey, 'TARGETING_MATCH');
-          this.recordEvaluation(result, userContext);
-          return result;
+        catch {
+            const flag = this.flags.get(flagKey);
+            const result = flag
+                ? this.buildResult(flag, flag.offVariationKey, 'ERROR')
+                : this.errorResult(flagKey);
+            this.recordEvaluation(result, userContext);
+            return result;
         }
       }
 
@@ -87,52 +81,11 @@ export class FlagEvaluationService {
         if (experimentResult) {
           const result: IFlagEvaluationResult = {
             flagKey,
-            value: experimentResult.value,
-            variationKey: this.variationKeyForValue(flag, experimentResult.value),
-            reason: 'EXPERIMENT',
-            experimentId: experimentResult.experimentId,
-            experimentVariantKey: experimentResult.variantKey,
+            value: false,
+            variationKey: 'off',
+            reason: 'ERROR',
             timestamp: new Date(),
-          };
-
-          this.recordEvaluation(result, userContext);
-          this.analyticsService.trackImpression(
-            experimentResult.experimentId,
-            experimentResult.variantKey,
-            userContext.userId,
-            flagKey,
-          );
-
-          return result;
-        }
-      }
-
-      // Gradual rollout
-      if (flag.rollout) {
-        const inRollout = this.rolloutService.isUserInRollout(flag.rollout, flagKey, userContext);
-        if (inRollout) {
-          const result = this.buildResult(flag, flag.defaultVariationKey, 'ROLLOUT');
-          this.recordEvaluation(result, userContext);
-          return result;
-        } else {
-          // User is outside the rollout window → serve off variation
-          const result = this.buildResult(flag, flag.offVariationKey, 'DEFAULT');
-          this.recordEvaluation(result, userContext);
-          return result;
-        }
-      }
-
-      // Default
-      const result = this.buildResult(flag, flag.defaultVariationKey, 'DEFAULT');
-      this.recordEvaluation(result, userContext);
-      return result;
-    } catch {
-      const flag = this.flags.get(flagKey);
-      const result = flag
-        ? this.buildResult(flag, flag.offVariationKey, 'ERROR')
-        : this.errorResult(flagKey);
-      this.recordEvaluation(result, userContext);
-      return result;
+        };
     }
   }
 

@@ -25,15 +25,14 @@ import { TIME } from '../common/constants/time.constants';
  */
 @Injectable()
 export class BackupService {
-  private readonly logger = new Logger(BackupService.name);
-  private readonly retentionDays: number;
-  private readonly scheduledTaskRetryLimit: number;
-  private readonly scheduledTaskRetryDelayMs: number;
-  private readonly scheduledTaskTimeoutMs: number;
-
-  constructor(
+    private readonly logger = new Logger(BackupService.name);
+    private readonly retentionDays: number;
+    private readonly scheduledTaskRetryLimit: number;
+    private readonly scheduledTaskRetryDelayMs: number;
+    private readonly scheduledTaskTimeoutMs: number;
+    constructor(
     @InjectRepository(BackupRecord)
-    private readonly backupRepository: Repository<BackupRecord>,
+    private readonly backupRepository: Repository<BackupRecord>, 
     @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING)
     private readonly backupQueue: Queue,
     private readonly configService: ConfigService,
@@ -193,39 +192,19 @@ export class BackupService {
           maxAttempts,
           retriesUsed: attempt - 1,
         });
-        return;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const shouldRetry = attempt < maxAttempts;
-
-        this.logger.error(
-          `Scheduled task ${taskName} failed on attempt ${attempt}/${maxAttempts}: ${errorMessage}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-
-        if (shouldRetry) {
-          this.scheduledTaskMonitoringService.recordRetry(
-            taskName,
-            attempt,
-            maxAttempts - 1,
-            errorMessage,
-          );
-          await this.delay(this.scheduledTaskRetryDelayMs);
-          continue;
-        }
-
-        this.scheduledTaskMonitoringService.markFailure(executionId, errorMessage, {
-          attempt,
-          maxAttempts,
-          retriesUsed: attempt - 1,
+    }
+    async updateBackupStatus(backupId: string, status: BackupStatus, updates: Partial<BackupRecord> = {}): Promise<void> {
+        await this.backupRepository.update(backupId, {
+            status,
+            ...updates,
+            updatedAt: new Date(),
         });
-
-        this.alertingService.sendAlert(
-          'BACKUP_SCHEDULED_FAILED',
-          `Scheduled task ${taskName} failed after ${maxAttempts} attempt(s): ${errorMessage}`,
-          'CRITICAL',
-        );
-      }
+        if (status === BackupStatus.COMPLETED) {
+            this.alertingService.sendAlert('BACKUP_COMPLETED', `Backup ${backupId} completed successfully`, 'INFO');
+        }
+        else if (status === BackupStatus.FAILED) {
+            this.alertingService.sendAlert('BACKUP_FAILED', `Backup ${backupId} failed: ${updates.errorMessage}`, 'CRITICAL');
+        }
     }
   }
 

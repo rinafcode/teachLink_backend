@@ -42,15 +42,4 @@ export class PerformanceAnalysisService {
       // This is a simplified check
       // We can also check specific tracked slow queries if we stored them separately.
     }
-
-    // Mock detection of slow queries for demonstration if metrics are empty
-    // In production, this would parse the histogram buckets
-
-    return {
-      timestamp: new Date(),
-      cpuLoad: cpuLoadPercent,
-      memoryUsage: memoryUsagePercent,
-      slowQueries,
-    };
-  }
 }

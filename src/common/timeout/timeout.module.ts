@@ -7,8 +7,9 @@ import { TimeoutExampleController } from '../examples/timeout-example.controller
  * Registers the timeout module.
  */
 @Module({
-  providers: [TimeoutConfigService],
-  controllers: [TimeoutController, TimeoutExampleController],
-  exports: [TimeoutConfigService],
+    providers: [TimeoutConfigService],
+    controllers: [TimeoutController, TimeoutExampleController],
+    exports: [TimeoutConfigService],
 })
-export class TimeoutModule {}
+export class TimeoutModule {
+}

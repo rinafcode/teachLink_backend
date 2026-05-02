@@ -79,35 +79,47 @@ export class TenantCustomization {
       subtitle?: string;
       backgroundImage?: string;
     };
-    features?: Array<{
-      title: string;
-      description: string;
-      icon?: string;
-    }>;
-    [key: string]: any;
-  };
-
-  @Column({ nullable: true })
-  customDomain?: string;
-
-  @Column({ default: false })
-  customDomainVerified: boolean;
-
-  @Column({ type: 'jsonb', nullable: true })
-  socialLinks?: {
-    facebook?: string;
-    twitter?: string;
-    linkedin?: string;
-    instagram?: string;
-    [key: string]: string;
-  };
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @DeleteDateColumn()
-  deletedAt?: Date;
+    @Column({ type: 'text', nullable: true })
+    customCss?: string;
+    @Column({ type: 'text', nullable: true })
+    customJs?: string;
+    @Column({ type: 'jsonb', nullable: true })
+    emailTemplates?: {
+        welcome?: string;
+        passwordReset?: string;
+        notification?: string;
+        [key: string]: unknown;
+    };
+    @Column({ type: 'jsonb', nullable: true })
+    landingPageConfig?: {
+        hero?: {
+            title?: string;
+            subtitle?: string;
+            backgroundImage?: string;
+        };
+        features?: Array<{
+            title: string;
+            description: string;
+            icon?: string;
+        }>;
+        [key: string]: unknown;
+    };
+    @Column({ nullable: true })
+    customDomain?: string;
+    @Column({ default: false })
+    customDomainVerified: boolean;
+    @Column({ type: 'jsonb', nullable: true })
+    socialLinks?: {
+        facebook?: string;
+        twitter?: string;
+        linkedin?: string;
+        instagram?: string;
+        [key: string]: string;
+    };
+    @CreateDateColumn()
+    createdAt: Date;
+    @UpdateDateColumn()
+    updatedAt: Date;
+    @DeleteDateColumn()
+    deletedAt?: Date;
 }

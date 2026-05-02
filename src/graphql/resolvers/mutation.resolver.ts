@@ -11,7 +11,6 @@ import { CreateUserInput, UpdateUserInput } from '../inputs/user.input';
 import { CreateCourseInput, UpdateCourseInput } from '../inputs/course.input';
 import { CreateAssessmentInput, UpdateAssessmentInput } from '../inputs/assessment.input';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-
 /**
  * Main Mutation Resolver for GraphQL API
  * Handles all write operations with real-time notifications

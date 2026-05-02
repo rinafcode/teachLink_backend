@@ -10,36 +10,39 @@ import { SEARCH_CONSTANTS } from './search.constants';
 export const COURSES_INDEX = 'courses';
 export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
 const SEARCH_SOURCE_FIELDS = [
-  'id',
-  'title',
-  'description',
-  'tags',
-  'category',
-  'level',
-  'language',
-  'price',
-  'rating',
-  'views',
-  'enrollments',
-  'duration',
-  'instructorId',
-  'instructorName',
-  'status',
-  'createdAt',
-  'updatedAt',
+    'id',
+    'title',
+    'description',
+    'tags',
+    'category',
+    'level',
+    'language',
+    'price',
+    'rating',
+    'views',
+    'enrollments',
+    'duration',
+    'instructorId',
+    'instructorName',
+    'status',
+    'createdAt',
+    'updatedAt',
 ];
-
 type SearchOptions = {
-  page?: number;
-  limit?: number;
+    page?: number;
+    limit?: number;
 };
-
 type SearchFilters = {
-  category?: string | string[];
-  level?: string | string[];
-  language?: string | string[];
-  instructorId?: string;
-  price?: { gte?: number; lte?: number; gt?: number; lt?: number };
+    category?: string | string[];
+    level?: string | string[];
+    language?: string | string[];
+    instructorId?: string;
+    price?: {
+        gte?: number;
+        lte?: number;
+        gt?: number;
+        lt?: number;
+    };
 };
 
 /**
@@ -120,7 +123,6 @@ export class SearchService {
                       offset: '7d',
                       decay: SEARCH_CONSTANTS.TIME_DECAY_FACTOR,
                     },
-                  },
                 },
               ],
               score_mode: 'sum' as const,
@@ -159,30 +161,13 @@ export class SearchService {
                 ],
               },
             },
-          },
         });
-
-        const total =
-          typeof result.hits.total === 'object'
-            ? result.hits.total.value
-            : (result.hits.total ?? 0);
-
-        const hits = result.hits.hits;
-        const aggs = result.aggregations as any;
-
-        const rankedResults = this.rankResults(hits);
-        this.logSearch(sanitizedQuery, rankedResults.length, normalizedFilters, sort);
-
+        const aggs = result.aggregations as unknown;
         return {
-          results: rankedResults,
-          total,
-          page,
-          limit,
-          facets: {
-            categories: aggs?.categories?.buckets ?? [],
-            levels: aggs?.levels?.buckets ?? [],
-            priceRanges: aggs?.price_ranges?.buckets ?? [],
-          },
+            totalSearches: aggs?.total_searches?.value ?? 0,
+            topQueries: aggs?.top_queries?.buckets ?? [],
+            zeroResultQueries: aggs?.zero_result_queries?.queries?.buckets ?? [],
+            searchesOverTime: aggs?.searches_over_time?.buckets ?? [],
         };
       },
       CACHE_TTL.SEARCH_RESULTS,
@@ -278,84 +263,126 @@ export class SearchService {
         esFilters.push({ term: { category } });
       }
     }
-    if (filters.level) {
-      const level = this.normalizeKeywordValue(filters.level);
-      if (Array.isArray(level)) {
-        esFilters.push({ terms: { level } });
-      } else if (level) {
-        esFilters.push({ term: { level } });
-      }
+    private buildFilters(filters: unknown) {
+        const esFilters: unknown[] = [];
+        if (filters.category) {
+            const category = this.normalizeKeywordValue(filters.category);
+            if (Array.isArray(category)) {
+                esFilters.push({ terms: { category } });
+            }
+            else if (category) {
+                esFilters.push({ term: { category } });
+            }
+        }
+        if (filters.level) {
+            const level = this.normalizeKeywordValue(filters.level);
+            if (Array.isArray(level)) {
+                esFilters.push({ terms: { level } });
+            }
+            else if (level) {
+                esFilters.push({ term: { level } });
+            }
+        }
+        if (filters.price) {
+            esFilters.push({ range: { price: filters.price } });
+        }
+        if (filters.language) {
+            const language = this.normalizeKeywordValue(filters.language);
+            if (Array.isArray(language)) {
+                esFilters.push({ terms: { language } });
+            }
+            else if (language) {
+                esFilters.push({ term: { language } });
+            }
+        }
+        if (filters.instructorId) {
+            const instructorId = this.normalizeString(filters.instructorId, false);
+            if (instructorId) {
+                esFilters.push({ term: { instructorId } });
+            }
+        }
+        return esFilters;
     }
-    if (filters.price) {
-      esFilters.push({ range: { price: filters.price } });
-    }
-    if (filters.language) {
-      const language = this.normalizeKeywordValue(filters.language);
-      if (Array.isArray(language)) {
-        esFilters.push({ terms: { language } });
-      } else if (language) {
-        esFilters.push({ term: { language } });
-      }
-    }
-    if (filters.instructorId) {
-      const instructorId = this.normalizeString(filters.instructorId, false);
-      if (instructorId) {
-        esFilters.push({ term: { instructorId } });
-      }
-    }
-    return esFilters;
-  }
-
-  private buildSearchQuery(query: string, filters: any, hasQuery: boolean): Record<string, any> {
-    if (!hasQuery) {
-      return {
-        bool: {
-          filter: this.buildFilters(filters),
-        },
-      };
-    }
-
-    return {
-      bool: {
-        filter: this.buildFilters(filters),
-        should: [
-          {
-            multi_match: {
-              query,
-              fields: ['title^3', 'description^2', 'content', 'tags^2'],
-              type: 'best_fields' as const,
-              operator: 'and' as const,
-              fuzziness: 'AUTO:4,7',
-              prefix_length: 1,
+    private buildSearchQuery(query: string, filters: unknown, hasQuery: boolean): Record<string, unknown> {
+        if (!hasQuery) {
+            return {
+                bool: {
+                    filter: this.buildFilters(filters),
+                },
+            };
+        }
+        return {
+            bool: {
+                filter: this.buildFilters(filters),
+                should: [
+                    {
+                        multi_match: {
+                            query,
+                            fields: ['title^3', 'description^2', 'content', 'tags^2'],
+                            type: 'best_fields' as const,
+                            operator: 'and' as const,
+                            fuzziness: 'AUTO:4,7',
+                            prefix_length: 1,
+                        },
+                    },
+                    {
+                        multi_match: {
+                            query,
+                            type: 'bool_prefix' as const,
+                            fields: ['title.search', 'title.search._2gram', 'title.search._3gram'],
+                            boost: 2,
+                        },
+                    },
+                ],
+                minimum_should_match: 1,
             },
-          },
-          {
-            multi_match: {
-              query,
-              type: 'bool_prefix' as const,
-              fields: ['title.search', 'title.search._2gram', 'title.search._3gram'],
-              boost: 2,
+        };
+    }
+    private buildSort(sort?: string) {
+        if (sort === 'relevance') {
+            return ['_score'];
+        }
+        else if (sort === 'popularity') {
+            return [{ views: { order: 'desc' as const } }];
+        }
+        else if (sort === 'rating') {
+            return [{ rating: { order: 'desc' as const } }];
+        }
+        else if (sort === 'newest') {
+            return [{ createdAt: { order: 'desc' as const } }];
+        }
+        else if (sort === 'price_asc') {
+            return [{ price: { order: 'asc' as const } }];
+        }
+        else if (sort === 'price_desc') {
+            return [{ price: { order: 'desc' as const } }];
+        }
+        return ['_score'];
+    }
+    private rankResults(hits: unknown[]) {
+        return hits.map((hit) => ({
+            ...hit._source,
+            id: hit._id,
+            score: hit._score,
+            highlights: hit.highlight ?? {},
+        }));
+    }
+    private logSearch(query: string, resultsCount: number, filters?: unknown, sort?: string): void {
+        // Fire-and-forget: analytics must not slow down or fail search responses
+        this.elasticsearchService
+            .index({
+            index: SEARCH_ANALYTICS_INDEX,
+            document: {
+                query,
+                resultsCount,
+                filters: filters ?? {},
+                sort: sort ?? 'relevance',
+                timestamp: new Date().toISOString(),
             },
-          },
-        ],
-        minimum_should_match: 1,
-      },
-    };
-  }
-
-  private buildSort(sort?: string) {
-    if (sort === 'relevance') {
-      return ['_score'];
-    } else if (sort === 'popularity') {
-      return [{ views: { order: 'desc' as const } }];
-    } else if (sort === 'rating') {
-      return [{ rating: { order: 'desc' as const } }];
-    } else if (sort === 'newest') {
-      return [{ createdAt: { order: 'desc' as const } }];
-    } else if (sort === 'price_asc') {
-      return [{ price: { order: 'asc' as const } }];
-    } else if (sort === 'price_desc') {
-      return [{ price: { order: 'desc' as const } }];
+        })
+            .catch((err) => {
+            this.logger.warn(`Search analytics logging failed: ${err.message}`);
+        });
     }
     return ['_score'];
   }
@@ -401,84 +428,75 @@ export class SearchService {
       hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
-    return Math.abs(hash).toString(36);
-  }
-
-  private normalizeFilters(filters: any): SearchFilters {
-    const safeFilters = filters && typeof filters === 'object' ? filters : {};
-    const normalized: SearchFilters = {};
-
-    const category = this.normalizeKeywordValue(safeFilters.category);
-    if (category) {
-      normalized.category = category;
+    private normalizeFilters(filters: unknown): SearchFilters {
+        const safeFilters = filters && typeof filters === 'object' ? filters : {};
+        const normalized: SearchFilters = {};
+        const category = this.normalizeKeywordValue(safeFilters.category);
+        if (category) {
+            normalized.category = category;
+        }
+        const level = this.normalizeKeywordValue(safeFilters.level);
+        if (level) {
+            normalized.level = level;
+        }
+        const language = this.normalizeKeywordValue(safeFilters.language);
+        if (language) {
+            normalized.language = language;
+        }
+        const instructorId = this.normalizeString(safeFilters.instructorId, false);
+        if (instructorId) {
+            normalized.instructorId = instructorId;
+        }
+        const price = this.normalizePriceRange(safeFilters.price);
+        if (price) {
+            normalized.price = price;
+        }
+        return normalized;
     }
-
-    const level = this.normalizeKeywordValue(safeFilters.level);
-    if (level) {
-      normalized.level = level;
+    private normalizeKeywordValue(value: unknown): string | string[] | null {
+        if (Array.isArray(value)) {
+            const normalized = value
+                .map((item) => this.normalizeString(item, true))
+                .filter((item): item is string => !!item);
+            if (normalized.length === 0) {
+                return null;
+            }
+            return Array.from(new Set(normalized)).sort();
+        }
+        return this.normalizeString(value, true);
     }
-
-    const language = this.normalizeKeywordValue(safeFilters.language);
-    if (language) {
-      normalized.language = language;
+    private normalizeString(value: unknown, lowerCase: boolean): string | null {
+        if (typeof value !== 'string') {
+            return null;
+        }
+        const normalized = value.trim();
+        if (!normalized) {
+            return null;
+        }
+        return lowerCase ? normalized.toLowerCase() : normalized;
     }
-
-    const instructorId = this.normalizeString(safeFilters.instructorId, false);
-    if (instructorId) {
-      normalized.instructorId = instructorId;
+    private normalizePriceRange(value: unknown): {
+        gte?: number;
+        lte?: number;
+        gt?: number;
+        lt?: number;
+    } | null {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null;
+        }
+        const range = value as Record<string, unknown>;
+        const normalized: {
+            gte?: number;
+            lte?: number;
+            gt?: number;
+            lt?: number;
+        } = {};
+        for (const key of ['gte', 'lte', 'gt', 'lt'] as const) {
+            const currentValue = range[key];
+            if (typeof currentValue === 'number' && Number.isFinite(currentValue)) {
+                normalized[key] = currentValue;
+            }
+        }
+        return Object.keys(normalized).length > 0 ? normalized : null;
     }
-
-    const price = this.normalizePriceRange(safeFilters.price);
-    if (price) {
-      normalized.price = price;
-    }
-
-    return normalized;
-  }
-
-  private normalizeKeywordValue(value: unknown): string | string[] | null {
-    if (Array.isArray(value)) {
-      const normalized = value
-        .map((item) => this.normalizeString(item, true))
-        .filter((item): item is string => !!item);
-      if (normalized.length === 0) {
-        return null;
-      }
-      return Array.from(new Set(normalized)).sort();
-    }
-
-    return this.normalizeString(value, true);
-  }
-
-  private normalizeString(value: unknown, lowerCase: boolean): string | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const normalized = value.trim();
-    if (!normalized) {
-      return null;
-    }
-
-    return lowerCase ? normalized.toLowerCase() : normalized;
-  }
-
-  private normalizePriceRange(
-    value: unknown,
-  ): { gte?: number; lte?: number; gt?: number; lt?: number } | null {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return null;
-    }
-
-    const range = value as Record<string, unknown>;
-    const normalized: { gte?: number; lte?: number; gt?: number; lt?: number } = {};
-    for (const key of ['gte', 'lte', 'gt', 'lt'] as const) {
-      const currentValue = range[key];
-      if (typeof currentValue === 'number' && Number.isFinite(currentValue)) {
-        normalized[key] = currentValue;
-      }
-    }
-
-    return Object.keys(normalized).length > 0 ? normalized : null;
-  }
 }

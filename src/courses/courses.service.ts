@@ -23,7 +23,7 @@ import { Lesson } from './entities/lesson.entity';
  */
 @Injectable()
 export class CoursesService {
-  constructor(
+    constructor(
     @InjectRepository(Course)
     private coursesRepository: Repository<Course>,
     private readonly cachingService: CachingService,
@@ -180,19 +180,11 @@ export class CoursesService {
       cacheKey,
       async () => {
         const course = await this.coursesRepository.findOne({
-          where: { id },
-          relations: ['instructor', 'modules', 'modules.lessons'],
-          order: {
-            modules: {
-              order: 'ASC',
-              lessons: {
-                order: 'ASC',
-              },
-            },
-          } as any,
+            where: { id },
+            relations: ['instructor', 'modules', 'modules.lessons'],
         });
         if (!course) {
-          throw new NotFoundException(`Course with ID ${id} not found`);
+            throw new NotFoundException(`Course with ID ${id} not found`);
         }
         return course;
       },

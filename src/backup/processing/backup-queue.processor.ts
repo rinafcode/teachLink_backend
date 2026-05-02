@@ -28,11 +28,10 @@ const BACKUP_MAX_RETRIES = 3;
 
 @Processor(QUEUE_NAMES.BACKUP_PROCESSING)
 export class BackupQueueProcessor {
-  private readonly logger = new Logger(BackupQueueProcessor.name);
-  private readonly kmsClient: KMSClient;
-  private readonly s3Client: S3Client;
-
-  constructor(
+    private readonly logger = new Logger(BackupQueueProcessor.name);
+    private readonly kmsClient: KMSClient;
+    private readonly s3Client: S3Client;
+    constructor(
     @InjectRepository(BackupRecord)
     private readonly backupRepository: Repository<BackupRecord>,
     private readonly backupService: BackupService,
@@ -221,22 +220,6 @@ export class BackupQueueProcessor {
         const secondaryS3Client = new S3Client({
           region: this.configService.get<string>('BACKUP_SECONDARY_REGION', 'us-west-2'),
         });
-
-        await secondaryS3Client.send(
-          new DeleteObjectCommand({
-            Bucket: secondaryBucket,
-            Key: backup.replicatedStorageKey,
-          }),
-        );
-      }
-
-      // Delete from database
-      await this.backupRepository.softRemove(backup);
-
-      this.logger.log(`Backup ${backupRecordId} deleted successfully`);
-    } catch (error) {
-      this.logger.error(`Failed to delete backup ${backupRecordId}:`, error);
-      throw error;
     }
   }
 
@@ -304,7 +287,4 @@ export class BackupQueueProcessor {
       backup.status = BackupStatus.FAILED;
       this.logger.error(`Max retries exceeded for backup ${backup.id}`);
     }
-
-    await this.backupRepository.save(backup);
-  }
 }

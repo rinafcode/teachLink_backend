@@ -10,7 +10,6 @@ import { AssessmentType } from '../types/assessment.type';
 import { UserFilterInput } from '../inputs/user.input';
 import { CourseFilterInput } from '../inputs/course.input';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-
 /**
  * Main Query Resolver for GraphQL API
  * Handles all read operations with optimized data fetching

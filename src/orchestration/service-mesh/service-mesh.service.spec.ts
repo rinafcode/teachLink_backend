@@ -1,6 +1,5 @@
 import { ServiceMeshService } from './service-mesh.service';
 import { of } from 'rxjs';
-
 describe('ServiceMeshService', () => {
   it('propagates correlation ID to external API call headers', async () => {
     const serviceDiscovery: any = {

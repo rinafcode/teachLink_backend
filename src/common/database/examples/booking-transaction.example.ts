@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionService } from '../transaction.service';
-
 /**
  * Example: Booking Transaction
  * Demonstrates atomic booking operations (consulting sessions, courses, etc.)

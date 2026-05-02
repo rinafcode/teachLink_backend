@@ -4,7 +4,6 @@ import { PubSub } from 'graphql-subscriptions';
 import { UserType } from '../types/user.type';
 import { CourseType } from '../types/course.type';
 import { AssessmentType } from '../types/assessment.type';
-
 /**
  * Subscription Resolver for real-time GraphQL updates
  * Provides live data streams for entity changes

@@ -8,7 +8,7 @@ import { ModerationEvent } from './moderation-event.entity';
  */
 @Injectable()
 export class ModerationAnalyticsService {
-  constructor(
+    constructor(
     @InjectRepository(ModerationEvent)
     private readonly eventRepo: Repository<ModerationEvent>,
   ) {}

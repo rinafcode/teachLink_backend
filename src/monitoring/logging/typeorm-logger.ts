@@ -85,11 +85,4 @@ export class TypeOrmMonitoringLogger implements Logger {
         // console.warn(`[TypeORM]: ${message}`);
         break;
     }
-  }
-
-  private extractTable(query: string): string {
-    // Simple regex to extract table name. Not perfect but useful for metrics.
-    const match = query.match(/(?:FROM|UPDATE|INSERT INTO|DELETE FROM)\s+"?([a-zA-Z0-9_]+)"?/i);
-    return match ? match[1] : 'unknown';
-  }
 }

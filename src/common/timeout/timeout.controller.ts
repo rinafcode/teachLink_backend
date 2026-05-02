@@ -95,10 +95,4 @@ export class TimeoutController {
     } else if (methodTimeout) {
       source = 'method';
     }
-
-    return {
-      timeout,
-      source,
-    };
-  }
 }

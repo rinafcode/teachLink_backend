@@ -8,11 +8,7 @@ import { randomBytes } from 'crypto';
 import { SessionService } from '../session/session.service';
 import { TransactionService } from '../common/database/transaction.service';
 import { UserRole } from '../users/entities/user.entity';
-import {
-  ensureValidCredentials,
-  ensureUserIsActive,
-  ensureValidUserToken,
-} from '../common/utils/user.utils';
+import { ensureValidCredentials, ensureUserIsActive, ensureValidUserToken, } from '../common/utils/user.utils';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
@@ -233,42 +229,48 @@ export class AuthService {
       });
       return this.sessionService.withLock(`refresh:${payload.sub}`, async () => {
         // Find user
-        const user = await this.usersService.findOne(payload.sub);
-        if (!user || !user.refreshToken) {
-          throw new UnauthorizedException('Invalid refresh token');
+        const userOrNull = await this.usersService.findByEmail(loginDto.email);
+        // Log failed login attempt if user not found
+        if (!userOrNull) {
+            await this.auditLogService.logAuth(AuditAction.LOGIN_FAILED, null, loginDto.email, ipAddress || 'unknown', userAgent || 'unknown', { reason: 'User not found' }, AuditSeverity.WARNING);
+            throw new UnauthorizedException('Invalid credentials');
         }
-
-        // Verify stored refresh token
-        const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
-        if (!isRefreshTokenValid) {
-          throw new UnauthorizedException('Invalid refresh token');
+        const user = ensureValidCredentials(userOrNull);
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+        if (!isPasswordValid) {
+            await this.auditLogService.logAuth(AuditAction.LOGIN_FAILED, user.id, user.email, ipAddress || 'unknown', userAgent || 'unknown', { reason: 'Invalid password' }, AuditSeverity.WARNING);
+            throw new UnauthorizedException('Invalid credentials');
         }
-
-        let sessionId = payload.sid as string | undefined;
-        if (sessionId) {
-          const session = await this.sessionService.getSession(sessionId);
-          if (!session) {
-            sessionId = await this.sessionService.createSession(user.id, { type: 'auth-refresh' });
-          } else {
-            await this.sessionService.touchSession(sessionId, {
-              lastRefreshAt: Date.now(),
-            });
-          }
-        } else {
-          sessionId = await this.sessionService.createSession(user.id, { type: 'auth-refresh' });
+        // Check if user is active
+        try {
+            ensureUserIsActive(user);
         }
-
-        // Generate new tokens
-        const tokens = await this.generateTokens(user, sessionId);
-
-        // Update refresh token
-        const hashedRefreshToken = await bcrypt.hash(tokens.refreshToken, 10);
+        catch (error) {
+            await this.auditLogService.logAuth(AuditAction.LOGIN_FAILED, user.id, user.email, ipAddress || 'unknown', userAgent || 'unknown', { reason: 'User account inactive' }, AuditSeverity.WARNING);
+            throw error;
+        }
+        // Update last login
+        await this.usersService.updateLastLogin(user.id);
+        const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-login' });
+        const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
+        // Save refresh token
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
         await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
-
-        return tokens;
-      });
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+        // Log successful login
+        await this.auditLogService.logAuth(AuditAction.LOGIN, user.id, user.email, ipAddress || 'unknown', userAgent || 'unknown', { sessionId });
+        return {
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: user.role,
+                isEmailVerified: user.isEmailVerified,
+            },
+            accessToken,
+            refreshToken,
+        };
     }
   }
 
@@ -469,39 +471,110 @@ export class AuthService {
         currentSecret: this.configService.get<string>('JWT_SECRET') || 'your-secret-key',
       };
     }
-
-    const secrets = this.parseJwtSecrets(jwtSecretsRaw);
-    const currentSecret =
-      (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
-    return { currentVersion, currentSecret: currentSecret || 'your-secret-key' };
-  }
-
-  private parseJwtSecrets(raw: string): Record<string, string> {
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (parsed && typeof parsed === 'object') {
-        return parsed as Record<string, string>;
-      }
-    } catch {
-      // ignore
+    async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{
+        message: string;
+    }> {
+        // Find user by reset token
+        const userOrNull = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
+        const user = ensureValidUserToken(userOrNull, 'passwordResetToken', 'passwordResetExpires', 'Invalid or expired reset token');
+        // Update password
+        await this.usersService.update(user.id, { password: resetPasswordDto.newPassword });
+        // Clear reset token
+        await this.usersService.updatePasswordResetToken(user.id, null, null);
+        return { message: 'Password has been reset successfully' };
     }
-
-    return raw
-      .split(',')
-      .map((pair) => pair.trim())
-      .filter(Boolean)
-      .reduce<Record<string, string>>((acc, pair) => {
-        const idx = pair.indexOf(':');
-        if (idx <= 0) return acc;
-        const version = pair.slice(0, idx).trim();
-        const secret = pair.slice(idx + 1).trim();
-        if (!version || !secret) return acc;
-        acc[version] = secret;
-        return acc;
-      }, {});
-  }
-
-  private generateRandomToken(): string {
-    return randomBytes(32).toString('hex');
-  }
+    async changePassword(userId: string, changePasswordDto: ChangePasswordDto, ipAddress?: string, userAgent?: string): Promise<{
+        message: string;
+    }> {
+        const user = await this.usersService.findOne(userId);
+        // Verify current password
+        const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
+        if (!isPasswordValid) {
+            await this.auditLogService.logAuth(AuditAction.PASSWORD_CHANGE, userId, user.email, ipAddress || 'unknown', userAgent || 'unknown', { success: false, reason: 'Current password incorrect' }, AuditSeverity.WARNING);
+            throw new BadRequestException('Current password is incorrect');
+        }
+        // Update password
+        await this.usersService.update(userId, { password: changePasswordDto.newPassword });
+        // Log password change
+        await this.auditLogService.logAuth(AuditAction.PASSWORD_CHANGE, userId, user.email, ipAddress || 'unknown', userAgent || 'unknown', { success: true });
+        return { message: 'Password changed successfully' };
+    }
+    async verifyEmail(token: string): Promise<{
+        message: string;
+    }> {
+        // Find user by verification token
+        const userOrNull = await this.usersService.findByEmailVerificationToken(token);
+        const user = ensureValidUserToken(userOrNull, 'emailVerificationToken', 'emailVerificationExpires', 'Invalid or expired verification token');
+        // Update user as verified
+        await this.usersService.update(user.id, { isEmailVerified: true });
+        // Clear verification token
+        await this.usersService.updateEmailVerificationToken(user.id, null, null);
+        return { message: 'Email verified successfully' };
+    }
+    private async generateTokens(user: TokenUser, sessionId: string): Promise<AuthTokens> {
+        const payload: JwtTokenPayload = {
+            sub: user.id,
+            email: user.email,
+            role: user.role,
+            sid: sessionId,
+        };
+        const { currentVersion, currentSecret } = this.getCurrentJwtAccessSecret();
+        const [accessToken, refreshToken] = await Promise.all([
+            this.jwtService.signAsync(payload, {
+                secret: currentSecret,
+                expiresIn: parseInt(this.configService.get<string>('JWT_EXPIRES_IN') || '900', 10), // 900s = 15m
+                header: currentVersion ? { kid: currentVersion } : undefined,
+            }),
+            this.jwtService.signAsync(payload, {
+                secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
+                expiresIn: parseInt(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '604800', 10), // 604800s = 7d
+            }),
+        ]);
+        return { accessToken, refreshToken };
+    }
+    private getCurrentJwtAccessSecret(): {
+        currentVersion: string | null;
+        currentSecret: string;
+    } {
+        const jwtSecretsRaw = this.configService.get<string>('JWT_SECRETS');
+        const currentVersion = this.configService.get<string>('JWT_SECRET_CURRENT_VERSION') || null;
+        if (!jwtSecretsRaw) {
+            return {
+                currentVersion,
+                currentSecret: this.configService.get<string>('JWT_SECRET') || 'your-secret-key',
+            };
+        }
+        const secrets = this.parseJwtSecrets(jwtSecretsRaw);
+        const currentSecret = (currentVersion && secrets[currentVersion]) || this.configService.get<string>('JWT_SECRET');
+        return { currentVersion, currentSecret: currentSecret || 'your-secret-key' };
+    }
+    private parseJwtSecrets(raw: string): Record<string, string> {
+        try {
+            const parsed = JSON.parse(raw) as unknown;
+            if (parsed && typeof parsed === 'object') {
+                return parsed as Record<string, string>;
+            }
+        }
+        catch {
+            // ignore
+        }
+        return raw
+            .split(',')
+            .map((pair) => pair.trim())
+            .filter(Boolean)
+            .reduce<Record<string, string>>((acc, pair) => {
+            const idx = pair.indexOf(':');
+            if (idx <= 0)
+                return acc;
+            const version = pair.slice(0, idx).trim();
+            const secret = pair.slice(idx + 1).trim();
+            if (!version || !secret)
+                return acc;
+            acc[version] = secret;
+            return acc;
+        }, {});
+    }
+    private generateRandomToken(): string {
+        return randomBytes(32).toString('hex');
+    }
 }

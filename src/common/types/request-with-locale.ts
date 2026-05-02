@@ -1,3 +1,4 @@
 import { Request } from 'express';
-
-export type RequestWithLocale = Request & { resolvedLocale?: string };
+export type RequestWithLocale = Request & {
+    resolvedLocale?: string;
+};

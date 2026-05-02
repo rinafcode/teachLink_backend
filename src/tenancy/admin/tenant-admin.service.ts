@@ -27,13 +27,13 @@ export interface ITenantHealth {
  */
 @Injectable()
 export class TenantAdminService {
-  constructor(
+    constructor(
     @InjectRepository(Tenant)
-    private readonly tenantRepository: Repository<Tenant>,
+    private readonly tenantRepository: Repository<Tenant>, 
     @InjectRepository(TenantConfig)
-    private readonly configRepository: Repository<TenantConfig>,
+    private readonly configRepository: Repository<TenantConfig>, 
     @InjectRepository(TenantBilling)
-    private readonly billingRepository: Repository<TenantBilling>,
+    private readonly billingRepository: Repository<TenantBilling>, 
     @InjectRepository(TenantCustomization)
     private readonly customizationRepository: Repository<TenantCustomization>,
   ) {}
@@ -46,64 +46,65 @@ export class TenantAdminService {
     if (!tenant) {
       throw new NotFoundException(`Tenant ${tenantId} not found`);
     }
-
-    const billing = await this.billingRepository.findOne({ where: { tenantId } });
-
-    return {
-      totalUsers: tenant.currentUserCount,
-      activeUsers: billing?.usageMetrics?.activeUsers || 0,
-      storageUsed: tenant.currentStorageUsage,
-      apiCalls: billing?.usageMetrics?.apiCalls || 0,
-      lastActivityAt: tenant.updatedAt,
-    };
-  }
-
-  /**
-   * Suspend tenant
-   */
-  async suspendTenant(tenantId: string, reason?: string): Promise<Tenant> {
-    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
-    if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+    /**
+     * Suspend tenant
+     */
+    async suspendTenant(tenantId: string, reason?: string): Promise<Tenant> {
+        const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+        if (!tenant) {
+            throw new NotFoundException(`Tenant ${tenantId} not found`);
+        }
+        tenant.status = TenantStatus.SUSPENDED;
+        tenant.metadata = {
+            ...tenant.metadata,
+            suspensionReason: reason,
+            suspendedAt: new Date(),
+        };
+        return await this.tenantRepository.save(tenant);
     }
-
-    tenant.status = TenantStatus.SUSPENDED;
-    tenant.metadata = {
-      ...tenant.metadata,
-      suspensionReason: reason,
-      suspendedAt: new Date(),
-    };
-
-    return await this.tenantRepository.save(tenant);
-  }
-
-  /**
-   * Activate tenant
-   */
-  async activateTenant(tenantId: string): Promise<Tenant> {
-    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
-    if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+    /**
+     * Activate tenant
+     */
+    async activateTenant(tenantId: string): Promise<Tenant> {
+        const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+        if (!tenant) {
+            throw new NotFoundException(`Tenant ${tenantId} not found`);
+        }
+        tenant.status = TenantStatus.ACTIVE;
+        tenant.metadata = {
+            ...tenant.metadata,
+            suspensionReason: undefined,
+            suspendedAt: undefined,
+            activatedAt: new Date(),
+        };
+        return await this.tenantRepository.save(tenant);
     }
-
-    tenant.status = TenantStatus.ACTIVE;
-    tenant.metadata = {
-      ...tenant.metadata,
-      suspensionReason: undefined,
-      suspendedAt: undefined,
-      activatedAt: new Date(),
-    };
-
-    return await this.tenantRepository.save(tenant);
-  }
-
-  /**
-   * Upgrade tenant plan
-   */
-  async upgradePlan(tenantId: string, newPlan: TenantPlan): Promise<Tenant> {
-    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
-    if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+    /**
+     * Upgrade tenant plan
+     */
+    async upgradePlan(tenantId: string, newPlan: TenantPlan): Promise<Tenant> {
+        const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+        if (!tenant) {
+            throw new NotFoundException(`Tenant ${tenantId} not found`);
+        }
+        const oldPlan = tenant.plan;
+        tenant.plan = newPlan;
+        // Update limits based on plan
+        const limits = this.getPlanLimits(newPlan);
+        tenant.userLimit = limits.userLimit;
+        tenant.storageLimit = limits.storageLimit;
+        tenant.metadata = {
+            ...tenant.metadata,
+            planUpgradeHistory: [
+                ...(tenant.metadata?.planUpgradeHistory || []),
+                {
+                    from: oldPlan,
+                    to: newPlan,
+                    upgradedAt: new Date(),
+                },
+            ],
+        };
+        return await this.tenantRepository.save(tenant);
     }
 
     const oldPlan = tenant.plan;

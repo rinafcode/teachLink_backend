@@ -11,4 +11,5 @@ import { LogShipperService } from './services/log-shipper.service';
   providers: [TransactionHelperService, LogShipperService],
   exports: [TransactionHelperService, LogShipperService],
 })
-export class CommonModule {}
+export class CommonModule {
+}

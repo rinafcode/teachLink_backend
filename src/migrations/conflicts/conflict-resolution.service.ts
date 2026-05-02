@@ -3,11 +3,11 @@ import { IMigrationConfig } from '../migration.service';
 import { TIME } from '../../common/constants/time.constants';
 
 export enum ConflictResolutionStrategy {
-  SKIP = 'skip',
-  RETRY = 'retry',
-  ABORT = 'abort',
-  MERGE = 'merge',
-  REORDER = 'reorder',
+    SKIP = 'skip',
+    RETRY = 'retry',
+    ABORT = 'abort',
+    MERGE = 'merge',
+    REORDER = 'reorder'
 }
 
 export interface IMigrationConflict {

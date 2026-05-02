@@ -34,7 +34,6 @@ export interface ISubscriptionWebhookEvent {
       id: string;
       status: string;
     };
-  };
 }
 
 export interface IRefundWebhookData {

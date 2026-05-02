@@ -54,4 +54,5 @@ import { ImageProcessingService } from '../media/processing/image-processing.ser
     ImageProcessingService,
   ],
 })
-export class CdnModule {}
+export class CdnModule {
+}

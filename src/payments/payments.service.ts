@@ -36,13 +36,13 @@ export class PaymentsService {
 
   constructor(
     @InjectRepository(Payment)
-    private readonly paymentRepository: Repository<Payment>,
+    private readonly paymentRepository: Repository<Payment>, 
     @InjectRepository(Subscription)
-    private readonly subscriptionRepository: Repository<Subscription>,
+    private readonly subscriptionRepository: Repository<Subscription>, 
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>, 
     @InjectRepository(Refund)
-    private readonly refundRepository: Repository<Refund>,
+    private readonly refundRepository: Repository<Refund>, 
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly transactionService: TransactionService,
@@ -232,9 +232,33 @@ export class PaymentsService {
     if (!payment) {
       throw new NotFoundException('Payment not found');
     }
-
-    if (payment.status !== PaymentStatus.COMPLETED) {
-      throw new BadRequestException('Only completed payments can be refunded');
+    async createSubscription(userId: string, createSubscriptionDto: CreateSubscriptionDto): Promise<CreateSubscriptionResult> {
+        const { interval } = createSubscriptionDto;
+        // Verify user exists
+        const userOrNull = await this.userRepository.findOne({
+            where: { id: userId },
+        });
+        ensureUserExists(userOrNull);
+        // Get payment provider
+        // const paymentProvider = this.providerFactory.getProvider(provider);
+        // Create subscription record
+        const subscription = this.subscriptionRepository.create({
+            providerSubscriptionId: `sub_${Math.random().toString(36).substr(2, 9)}`,
+            status: SubscriptionStatus.ACTIVE,
+            interval,
+            amount: 0, // Would come from priceId
+            currency: 'USD',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            user: { id: userId } as User,
+            userId,
+        });
+        await this.subscriptionRepository.save(subscription);
+        return {
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+        };
     }
 
     // Guard against refunding a payment that was already refunded through a
@@ -323,33 +347,14 @@ export class PaymentsService {
     if (!payment) {
       throw new NotFoundException('Payment not found');
     }
-
-    // Check if invoice already exists
-    let invoice = await this.invoiceRepository.findOne({
-      where: { paymentId: payment.id },
-    });
-
-    if (!invoice) {
-      // Generate new invoice
-      invoice = this.invoiceRepository.create({
-        paymentId: payment.id,
-        userId: payment.userId,
-        amount: payment.amount,
-        currency: payment.currency,
-        invoiceNumber: `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        items: [
-          {
-            description: 'Payment for course',
-            amount: payment.amount,
-            quantity: 1,
-          },
-        ],
-        taxAmount: 0,
-        totalAmount: payment.amount,
-        status: InvoiceStatus.PAID,
-      });
-
-      await this.invoiceRepository.save(invoice);
+    async getUserPayments(userId: string, limit: number, page: number): Promise<Payment[]> {
+        const skip = (page - 1) * limit;
+        return await this.paymentRepository.find({
+            where: { userId },
+            order: { createdAt: 'DESC' },
+            skip,
+            take: limit,
+        });
     }
 
     return invoice;
@@ -401,21 +406,4 @@ export class PaymentsService {
     if (!payment) {
       throw new NotFoundException('Payment not found');
     }
-
-    // Create refund record
-    const refund = this.refundRepository.create({
-      paymentId: payment.id,
-      amount: refundData.amount,
-      reason: 'webhook_refund',
-      refundMethod: 'original_method',
-      providerRefundId: refundData.id,
-      status: RefundStatus.PROCESSED,
-    });
-
-    await this.refundRepository.save(refund);
-
-    // Update payment status
-    payment.status = PaymentStatus.REFUNDED;
-    await this.paymentRepository.save(payment);
-  }
 }

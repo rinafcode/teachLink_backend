@@ -33,16 +33,22 @@ export class SearchController {
         throw new BadRequestException('filters must be valid JSON');
       }
     }
-
-    const parsedPage = page ? Number.parseInt(page, 10) : 1;
-    const parsedLimit = limit ? Number.parseInt(limit, 10) : 20;
-
-    if (!Number.isInteger(parsedPage) || parsedPage < 1) {
-      throw new BadRequestException('page must be a positive integer');
+    @Get('autocomplete')
+    async autocomplete(
+    @Query('q')
+    query: string): Promise<unknown> {
+        return this.searchService.getAutoComplete(query);
     }
-
-    if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 50) {
-      throw new BadRequestException('limit must be an integer between 1 and 50');
+    @Get('filters')
+    async getFilters(): Promise<unknown> {
+        return this.searchService.getAvailableFilters();
+    }
+    @Get('analytics')
+    async getAnalytics(
+    @Query('days')
+    days?: string): Promise<unknown> {
+        const parsedDays = days ? parseInt(days, 10) : 7;
+        return this.searchService.getSearchAnalytics(parsedDays);
     }
 
     return this.searchService.performSearch(query, parsedFilters, sort, {

@@ -34,30 +34,37 @@ export class RolloutService {
     if (!config.rampSchedule || config.rampSchedule.length === 0) {
       return config.percentage;
     }
-
-    const now = new Date();
-    const sortedSteps = [...config.rampSchedule].sort((a, b) => a.at.getTime() - b.at.getTime());
-
-    let effective = 0;
-    for (const step of sortedSteps) {
-      if (now >= step.at) {
-        effective = step.percentage;
-      } else {
-        break;
-      }
+    /**
+     * Returns the effective rollout percentage at the current time,
+     * accounting for any ramp schedule defined on the config.
+     */
+    getCurrentPercentage(config: RolloutConfig): number {
+        if (!config.rampSchedule || config.rampSchedule.length === 0) {
+            return config.percentage;
+        }
+        const now = new Date();
+        const sortedSteps = [...config.rampSchedule].sort((a, b) => a.at.getTime() - b.at.getTime());
+        let effective = 0;
+        for (const step of sortedSteps) {
+            if (now >= step.at) {
+                effective = step.percentage;
+            }
+            else {
+                break;
+            }
+        }
+        return Math.min(effective, config.percentage);
     }
-
-    return Math.min(effective, config.percentage);
-  }
-
-  /**
-   * DJB2 hash — fast, deterministic, and well-distributed.
-   * Returns a value in the range [0, 99].
-   */
-  computeBucketValue(key: string): number {
-    let hash = 5381;
-    for (let i = 0; i < key.length; i++) {
-      hash = ((hash << 5) + hash + key.charCodeAt(i)) >>> 0;
+    /**
+     * DJB2 hash — fast, deterministic, and well-distributed.
+     * Returns a value in the range [0, 99].
+     */
+    computeBucketValue(key: string): number {
+        let hash = 5381;
+        for (let i = 0; i < key.length; i++) {
+            hash = ((hash << 5) + hash + key.charCodeAt(i)) >>> 0;
+        }
+        return hash % 100;
     }
     return hash % 100;
   }
@@ -73,5 +80,4 @@ export class RolloutService {
       default:
         return userContext.attributes?.[attribute]?.toString() ?? userContext.userId;
     }
-  }
 }
