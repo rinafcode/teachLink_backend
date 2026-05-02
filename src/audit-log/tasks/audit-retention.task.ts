@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AuditLogService } from '../audit-log.service';
+
+/**
+ * Provides audit Retention Task behavior.
+ */
 @Injectable()
 export class AuditRetentionTask {
     private readonly logger = new Logger(AuditRetentionTask.name);

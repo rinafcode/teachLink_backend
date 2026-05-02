@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, IsBoolean, IsObject, } from 'class-validator';
 import { NotificationType, NotificationPriority } from '../entities/notification.entity';
+
+/**
+ * Defines the create Notification payload.
+ */
 export class CreateNotificationDto {
     @ApiProperty({ description: 'The ID of the user the notification is for' })
     @IsUUID()
@@ -27,12 +31,20 @@ export class CreateNotificationDto {
     @IsOptional()
     metadata?: Record<string, unknown>;
 }
+
+/**
+ * Defines the update Notification payload.
+ */
 export class UpdateNotificationDto {
     @ApiPropertyOptional({ description: 'Mark as read or unread' })
     @IsBoolean()
     @IsOptional()
     isRead?: boolean;
 }
+
+/**
+ * Defines the notification Response payload.
+ */
 export class NotificationResponseDto {
     @ApiProperty()
     id: string;
@@ -52,4 +64,11 @@ export class NotificationResponseDto {
     readAt?: Date;
     @ApiProperty()
     createdAt: Date;
+}
+
+export class BulkOperationDto {
+  @ApiProperty({ type: [String], description: 'List of notification IDs' })
+  @IsUUID('all', { each: true })
+  @IsNotEmpty({ each: true })
+  ids: string[];
 }

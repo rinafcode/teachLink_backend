@@ -4,48 +4,110 @@ import { Observable, of, from } from 'rxjs';
 import { mergeMap, tap } from 'rxjs/operators';
 import { CachingService } from '../caching.service';
 import { CacheAnalyticsService } from '../analytics/cache-analytics.service';
-import { CACHE_KEY_METADATA, CACHE_TTL_METADATA, CACHE_EVICT_METADATA, CACHE_PREFIX_METADATA, CACHE_CONDITION_METADATA, CacheEvictOptions, } from '../decorators/cache.decorator';
+import {
+  CACHE_KEY_METADATA,
+  CACHE_TTL_METADATA,
+  CACHE_EVICT_METADATA,
+  CACHE_PREFIX_METADATA,
+  CACHE_CONDITION_METADATA,
+  ICacheEvictOptions,
+} from '../decorators/cache.decorator';
 import { CACHE_TTL } from '../caching.constants';
-export interface CacheInterceptorOptions {
-    /**
-     * Default TTL in seconds
-     */
-    defaultTtl?: number;
-    /**
-     * Default key prefix
-     */
-    defaultPrefix?: string;
-    /**
-     * Methods to cache (default: GET)
-     */
-    methods?: string[];
-    /**
-     * Whether to track analytics
-     */
-    trackAnalytics?: boolean;
+
+export interface ICacheInterceptorOptions {
+  /**
+   * Default TTL in seconds
+   */
+  defaultTtl?: number;
+
+  /**
+   * Default key prefix
+   */
+  defaultPrefix?: string;
+
+  /**
+   * Methods to cache (default: GET)
+   */
+  methods?: string[];
+
+  /**
+   * Whether to track analytics
+   */
+  trackAnalytics?: boolean;
 }
+
+/**
+ * Intercepts cache request handling.
+ */
 @Injectable()
 export class CacheInterceptor implements NestInterceptor {
-    private readonly defaultTtl: number;
-    private readonly defaultPrefix: string;
-    private readonly cachedMethods: string[];
-    private readonly trackAnalytics: boolean;
-    constructor(private readonly cachingService: CachingService, private readonly reflector: Reflector, 
-    @Optional()
-    @Inject('CACHE_INTERCEPTOR_OPTIONS')
-    options?: CacheInterceptorOptions, 
-    @Optional()
-    private readonly analyticsService?: CacheAnalyticsService) {
-        this.defaultTtl = options?.defaultTtl ?? CACHE_TTL.COURSE_DETAILS;
-        this.defaultPrefix = options?.defaultPrefix ?? 'cache:http';
-        this.cachedMethods = options?.methods ?? ['GET'];
-        this.trackAnalytics = options?.trackAnalytics ?? true;
+  private readonly defaultTtl: number;
+  private readonly defaultPrefix: string;
+  private readonly cachedMethods: string[];
+  private readonly trackAnalytics: boolean;
+
+  constructor(
+    private readonly cachingService: CachingService,
+    private readonly reflector: Reflector,
+    @Optional() @Inject('CACHE_INTERCEPTOR_OPTIONS') options?: ICacheInterceptorOptions,
+    @Optional() private readonly analyticsService?: CacheAnalyticsService,
+  ) {
+    this.defaultTtl = options?.defaultTtl ?? CACHE_TTL.COURSE_DETAILS;
+    this.defaultPrefix = options?.defaultPrefix ?? 'cache:http';
+    this.cachedMethods = options?.methods ?? ['GET'];
+    this.trackAnalytics = options?.trackAnalytics ?? true;
+  }
+
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<any>.
+   */
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const request = context.switchToHttp().getRequest();
+
+    // Only cache specified HTTP methods
+    if (!request || !this.cachedMethods.includes(request.method)) {
+      return next.handle();
     }
-    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-        const request = context.switchToHttp().getRequest();
-        // Only cache specified HTTP methods
-        if (!request || !this.cachedMethods.includes(request.method)) {
-            return next.handle();
+
+    // Get metadata from decorator
+    const handler = context.getHandler();
+    const ttl = this.reflector.get<number>(CACHE_TTL_METADATA, handler) ?? this.defaultTtl;
+    const prefix = this.reflector.get<string>(CACHE_PREFIX_METADATA, handler) ?? this.defaultPrefix;
+    const customKey = this.reflector.get<string | ((...args: any[]) => string)>(
+      CACHE_KEY_METADATA,
+      handler,
+    );
+    const evictOptions = this.reflector.get<ICacheEvictOptions>(CACHE_EVICT_METADATA, handler);
+    const condition = this.reflector.get<(...args: any[]) => boolean>(
+      CACHE_CONDITION_METADATA,
+      handler,
+    );
+
+    // Generate cache key
+    const cacheKey = this.generateCacheKey(request, prefix, customKey);
+
+    // Handle cache eviction
+    if (evictOptions) {
+      return this.handleEviction(next, evictOptions, cacheKey);
+    }
+
+    // Check condition
+    if (condition && !condition(request.params, request.query, request.body)) {
+      return next.handle();
+    }
+
+    // Try to get from cache
+    return from(this.cachingService.get(cacheKey)).pipe(
+      mergeMap((cachedResponse) => {
+        if (cachedResponse !== null) {
+          // Cache hit
+          if (this.trackAnalytics && this.analyticsService) {
+            this.analyticsService.recordHit(cacheKey);
+          }
+          return of(cachedResponse);
         }
         // Get metadata from decorator
         const handler = context.getHandler();
@@ -101,7 +163,27 @@ export class CacheInterceptor implements NestInterceptor {
             next: () => {
                 from(this.evictPatterns(patterns)).subscribe();
             },
-        }));
+          }),
+        );
+      }),
+    );
+  }
+
+  /**
+   * Handle cache eviction before or after method execution
+   */
+  private handleEviction(
+    next: CallHandler,
+    evictOptions: ICacheEvictOptions,
+    _currentKey: string,
+  ): Observable<any> {
+    const patterns = Array.isArray(evictOptions.patterns)
+      ? evictOptions.patterns
+      : [evictOptions.patterns];
+
+    if (evictOptions.beforeInvocation) {
+      // Evict before method execution
+      return from(this.evictPatterns(patterns)).pipe(mergeMap(() => next.handle()));
     }
     /**
      * Evict cache entries matching patterns
@@ -145,6 +227,11 @@ export class CacheInterceptor implements NestInterceptor {
 /**
  * Factory function to create a configured cache interceptor
  */
-export function createCacheInterceptor(cachingService: CachingService, reflector: Reflector, options?: CacheInterceptorOptions, analyticsService?: CacheAnalyticsService): CacheInterceptor {
-    return new CacheInterceptor(cachingService, reflector, options, analyticsService);
+export function createCacheInterceptor(
+  cachingService: CachingService,
+  reflector: Reflector,
+  options?: ICacheInterceptorOptions,
+  analyticsService?: CacheAnalyticsService,
+): CacheInterceptor {
+  return new CacheInterceptor(cachingService, reflector, options, analyticsService);
 }

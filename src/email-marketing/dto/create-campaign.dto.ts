@@ -1,5 +1,9 @@
 import { IsString, IsOptional, IsArray, IsUUID, IsNotEmpty, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+/**
+ * Defines the create Campaign payload.
+ */
 export class CreateCampaignDto {
     @ApiProperty({ description: 'Campaign name', example: 'Welcome Campaign' })
     @IsString()

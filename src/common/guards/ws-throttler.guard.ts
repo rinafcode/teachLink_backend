@@ -1,6 +1,10 @@
 import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerLimitDetail } from '@nestjs/throttler';
 import { WsException } from '@nestjs/websockets';
+
+/**
+ * Protects ws Throttler execution paths.
+ */
 @Injectable()
 export class WsThrottlerGuard extends ThrottlerGuard {
     private readonly wsLogger = new Logger(WsThrottlerGuard.name);

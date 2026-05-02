@@ -2,18 +2,33 @@ import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { CACHE_REDIS_CLIENT, CACHE_TTL } from './caching.constants';
-export interface CacheOptions {
-    ttl?: number;
-    prefix?: string;
+
+export interface ICacheOptions {
+  ttl?: number;
+  prefix?: string;
 }
+
+/**
+ * Provides caching operations.
+ */
 @Injectable()
 export class CachingService implements OnModuleDestroy {
-    private readonly logger = new Logger(CachingService.name);
-    private readonly defaultTtl: number;
-    constructor(
-    @Inject(CACHE_REDIS_CLIENT)
-    private readonly redis: Redis, private readonly configService: ConfigService) {
-        this.defaultTtl = parseInt(this.configService.get<string>('REDIS_TTL') || '300', 10);
+  private readonly logger = new Logger(CachingService.name);
+  private readonly defaultTtl: number;
+
+  constructor(
+    @Inject(CACHE_REDIS_CLIENT) private readonly redis: Redis,
+    private readonly configService: ConfigService,
+  ) {
+    this.defaultTtl = parseInt(this.configService.get<string>('REDIS_TTL') || '300', 10);
+  }
+
+  /**
+   * Executes on Module Destroy.
+   */
+  async onModuleDestroy(): Promise<void> {
+    if (this.redis.status !== 'end') {
+      await this.redis.quit();
     }
     async onModuleDestroy(): Promise<void> {
         if (this.redis.status !== 'end') {

@@ -1,25 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { RolloutConfig, UserContext } from '../interfaces';
+import { IRolloutConfig, IUserContext } from '../interfaces';
+
+/**
+ * Provides rollout operations.
+ */
 @Injectable()
 export class RolloutService {
-    /**
-     * Determines whether a user falls within the configured rollout percentage.
-     * Uses consistent hashing so the same user always gets the same result.
-     */
-    isUserInRollout(config: RolloutConfig, flagKey: string, userContext: UserContext): boolean {
-        const now = new Date();
-        if (config.startDate && now < config.startDate)
-            return false;
-        if (config.endDate && now > config.endDate)
-            return false;
-        const currentPercentage = this.getCurrentPercentage(config);
-        if (currentPercentage <= 0)
-            return false;
-        if (currentPercentage >= 100)
-            return true;
-        const bucketKey = this.resolveBucketKey(config.bucketByAttribute ?? 'userId', userContext);
-        const bucketValue = this.computeBucketValue(`${flagKey}:${bucketKey}`);
-        return bucketValue < currentPercentage;
+  /**
+   * Determines whether a user falls within the configured rollout percentage.
+   * Uses consistent hashing so the same user always gets the same result.
+   */
+  isUserInRollout(config: IRolloutConfig, flagKey: string, userContext: IUserContext): boolean {
+    const now = new Date();
+
+    if (config.startDate && now < config.startDate) return false;
+    if (config.endDate && now > config.endDate) return false;
+
+    const currentPercentage = this.getCurrentPercentage(config);
+    if (currentPercentage <= 0) return false;
+    if (currentPercentage >= 100) return true;
+
+    const bucketKey = this.resolveBucketKey(config.bucketByAttribute ?? 'userId', userContext);
+    const bucketValue = this.computeBucketValue(`${flagKey}:${bucketKey}`);
+
+    return bucketValue < currentPercentage;
+  }
+
+  /**
+   * Returns the effective rollout percentage at the current time,
+   * accounting for any ramp schedule defined on the config.
+   */
+  getCurrentPercentage(config: IRolloutConfig): number {
+    if (!config.rampSchedule || config.rampSchedule.length === 0) {
+      return config.percentage;
     }
     /**
      * Returns the effective rollout percentage at the current time,
@@ -53,16 +66,18 @@ export class RolloutService {
         }
         return hash % 100;
     }
-    private resolveBucketKey(attribute: string, userContext: UserContext): string {
-        switch (attribute) {
-            case 'userId':
-                return userContext.userId;
-            case 'sessionId':
-                return userContext.sessionId ?? userContext.userId;
-            case 'email':
-                return userContext.email ?? userContext.userId;
-            default:
-                return userContext.attributes?.[attribute]?.toString() ?? userContext.userId;
-        }
+    return hash % 100;
+  }
+
+  private resolveBucketKey(attribute: string, userContext: IUserContext): string {
+    switch (attribute) {
+      case 'userId':
+        return userContext.userId;
+      case 'sessionId':
+        return userContext.sessionId ?? userContext.userId;
+      case 'email':
+        return userContext.email ?? userContext.userId;
+      default:
+        return userContext.attributes?.[attribute]?.toString() ?? userContext.userId;
     }
 }

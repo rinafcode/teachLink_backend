@@ -1,87 +1,128 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-export interface DataQualityProfile {
-    id: string;
-    name: string;
-    description: string;
-    rules: DataQualityRule[];
-    createdAt: Date;
-    updatedAt: Date;
+
+export interface IDataQualityProfile {
+  id: string;
+  name: string;
+  description: string;
+  rules: IDataQualityRule[];
+  createdAt: Date;
+  updatedAt: Date;
 }
-export interface DataQualityRule {
-    id: string;
-    name: string;
-    description: string;
-    type: 'completeness' | 'accuracy' | 'consistency' | 'uniqueness' | 'validity' | 'timeliness';
-    field: string;
-    condition: string;
-    threshold: number;
-    severity: 'critical' | 'high' | 'medium' | 'low';
+
+export interface IDataQualityRule {
+  id: string;
+  name: string;
+  description: string;
+  type: 'completeness' | 'accuracy' | 'consistency' | 'uniqueness' | 'validity' | 'timeliness';
+  field: string;
+  condition: string;
+  threshold: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
 }
-export interface DataQualityCheck {
-    id: string;
-    profileId: string;
-    startTime: Date;
-    endTime?: Date;
-    status: 'pending' | 'running' | 'completed' | 'failed';
-    results: DataQualityResult[];
-    summary: DataQualitySummary;
+
+export interface IDataQualityCheck {
+  id: string;
+  profileId: string;
+  startTime: Date;
+  endTime?: Date;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  results: IDataQualityResult[];
+  summary: IDataQualitySummary;
 }
-export interface DataQualityResult {
-    ruleId: string;
-    ruleName: string;
-    passed: boolean;
-    actualValue: number;
-    expectedValue: number;
-    message: string;
-    sampleData?: unknown[];
+
+export interface IDataQualityResult {
+  ruleId: string;
+  ruleName: string;
+  passed: boolean;
+  actualValue: number;
+  expectedValue: number;
+  message: string;
+  sampleData?: any[];
 }
-export interface DataQualitySummary {
-    totalRules: number;
-    passedRules: number;
-    failedRules: number;
-    overallScore: number;
-    criticalFailures: number;
-    issuesBySeverity: {
-        critical: number;
-        high: number;
-        medium: number;
-        low: number;
-    };
+
+export interface IDataQualitySummary {
+  totalRules: number;
+  passedRules: number;
+  failedRules: number;
+  overallScore: number;
+  criticalFailures: number;
+  issuesBySeverity: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
 }
-export interface DataQualityIssue {
-    id: string;
-    profileId: string;
-    ruleId: string;
-    severity: string;
-    description: string;
-    affectedRecords: number;
-    sampleRecords: unknown[];
-    createdAt: Date;
-    resolved: boolean;
-    resolvedAt?: Date;
-    resolvedBy?: string;
+
+export interface IDataQualityIssue {
+  id: string;
+  profileId: string;
+  ruleId: string;
+  severity: string;
+  description: string;
+  affectedRecords: number;
+  sampleRecords: any[];
+  createdAt: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+  resolvedBy?: string;
 }
+
+/**
+ * Provides data Quality operations.
+ */
 @Injectable()
 export class DataQualityService {
-    private readonly logger = new Logger(DataQualityService.name);
-    private profiles: Map<string, DataQualityProfile> = new Map();
-    private checks: Map<string, DataQualityCheck> = new Map();
-    private issues: Map<string, DataQualityIssue> = new Map();
-    /**
-     * Create a data quality profile
-     */
-    async createProfile(profileConfig: Omit<DataQualityProfile, 'id' | 'createdAt' | 'updatedAt'>): Promise<DataQualityProfile> {
-        const profileId = uuidv4();
-        const profile: DataQualityProfile = {
-            id: profileId,
-            ...profileConfig,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        this.profiles.set(profileId, profile);
-        this.logger.log(`Created data quality profile ${profileId}: ${profile.name}`);
-        return profile;
+  private readonly logger = new Logger(DataQualityService.name);
+  private profiles: Map<string, IDataQualityProfile> = new Map();
+  private checks: Map<string, IDataQualityCheck> = new Map();
+  private issues: Map<string, IDataQualityIssue> = new Map();
+
+  /**
+   * Create a data quality profile
+   */
+  async createProfile(
+    profileConfig: Omit<IDataQualityProfile, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<IDataQualityProfile> {
+    const profileId = uuidv4();
+    const profile: IDataQualityProfile = {
+      id: profileId,
+      ...profileConfig,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.profiles.set(profileId, profile);
+    this.logger.log(`Created data quality profile ${profileId}: ${profile.name}`);
+
+    return profile;
+  }
+
+  /**
+   * Get a data quality profile
+   */
+  async getProfile(profileId: string): Promise<IDataQualityProfile | null> {
+    return this.profiles.get(profileId) || null;
+  }
+
+  /**
+   * Get all data quality profiles
+   */
+  async getAllProfiles(): Promise<IDataQualityProfile[]> {
+    return Array.from(this.profiles.values());
+  }
+
+  /**
+   * Update a data quality profile
+   */
+  async updateProfile(
+    profileId: string,
+    updates: Partial<IDataQualityProfile>,
+  ): Promise<IDataQualityProfile | null> {
+    const profile = this.profiles.get(profileId);
+    if (!profile) {
+      return null;
     }
     /**
      * Get a data quality profile
@@ -89,19 +130,68 @@ export class DataQualityService {
     async getProfile(profileId: string): Promise<DataQualityProfile | null> {
         return this.profiles.get(profileId) || null;
     }
-    /**
-     * Get all data quality profiles
-     */
-    async getAllProfiles(): Promise<DataQualityProfile[]> {
-        return Array.from(this.profiles.values());
+    return exists;
+  }
+
+  /**
+   * Run data quality checks
+   */
+  async runQualityChecks(profileId: string, data: any[]): Promise<IDataQualityCheck> {
+    const profile = this.profiles.get(profileId);
+    if (!profile) {
+      throw new Error(`Profile ${profileId} not found`);
     }
-    /**
-     * Update a data quality profile
-     */
-    async updateProfile(profileId: string, updates: Partial<DataQualityProfile>): Promise<DataQualityProfile | null> {
-        const profile = this.profiles.get(profileId);
-        if (!profile) {
-            return null;
+
+    const checkId = uuidv4();
+    const check: IDataQualityCheck = {
+      id: checkId,
+      profileId,
+      startTime: new Date(),
+      status: 'running',
+      results: [],
+      summary: {
+        totalRules: 0,
+        passedRules: 0,
+        failedRules: 0,
+        overallScore: 0,
+        criticalFailures: 0,
+        issuesBySeverity: {
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0,
+        },
+      },
+    };
+
+    this.checks.set(checkId, check);
+
+    try {
+      // Execute each rule
+      const results: IDataQualityResult[] = [];
+      let passedRules = 0;
+      let failedRules = 0;
+      let criticalFailures = 0;
+      const issuesBySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
+
+      for (const rule of profile.rules) {
+        const result = await this.executeRule(rule, data);
+        results.push(result);
+
+        if (result.passed) {
+          passedRules++;
+        } else {
+          failedRules++;
+
+          // Count severity issues
+          issuesBySeverity[rule.severity]++;
+
+          if (rule.severity === 'critical') {
+            criticalFailures++;
+          }
+
+          // Create quality issue record
+          await this.createQualityIssue(profileId, rule, result);
         }
         const updatedProfile = {
             ...profile,
@@ -112,14 +202,209 @@ export class DataQualityService {
         this.logger.log(`Updated data quality profile ${profileId}`);
         return updatedProfile;
     }
-    /**
-     * Delete a data quality profile
-     */
-    async deleteProfile(profileId: string): Promise<boolean> {
-        const exists = this.profiles.has(profileId);
-        if (exists) {
-            this.profiles.delete(profileId);
-            this.logger.log(`Deleted data quality profile ${profileId}`);
+
+    return check;
+  }
+
+  /**
+   * Get quality check results
+   */
+  async getCheckResults(checkId: string): Promise<IDataQualityCheck | null> {
+    return this.checks.get(checkId) || null;
+  }
+
+  /**
+   * Get all quality checks for a profile
+   */
+  async getChecksForProfile(profileId: string): Promise<IDataQualityCheck[]> {
+    const checks = Array.from(this.checks.values());
+    return checks.filter((check) => check.profileId === profileId);
+  }
+
+  /**
+   * Create a quality issue
+   */
+  private async createQualityIssue(
+    profileId: string,
+    rule: IDataQualityRule,
+    result: IDataQualityResult,
+  ): Promise<IDataQualityIssue> {
+    const issueId = uuidv4();
+    const issue: IDataQualityIssue = {
+      id: issueId,
+      profileId,
+      ruleId: rule.id,
+      severity: rule.severity,
+      description: result.message,
+      affectedRecords: result.sampleData?.length || 0,
+      sampleRecords: result.sampleData || [],
+      createdAt: new Date(),
+      resolved: false,
+    };
+
+    this.issues.set(issueId, issue);
+    this.logger.log(`Created quality issue ${issueId} for rule ${rule.name}`);
+
+    return issue;
+  }
+
+  /**
+   * Get quality issues
+   */
+  async getQualityIssues(
+    profileId?: string,
+    severity?: string,
+    resolved?: boolean,
+  ): Promise<IDataQualityIssue[]> {
+    let issues = Array.from(this.issues.values());
+
+    if (profileId) {
+      issues = issues.filter((issue) => issue.profileId === profileId);
+    }
+
+    if (severity) {
+      issues = issues.filter((issue) => issue.severity === severity);
+    }
+
+    if (resolved !== undefined) {
+      issues = issues.filter((issue) => issue.resolved === resolved);
+    }
+
+    return issues;
+  }
+
+  /**
+   * Resolve a quality issue
+   */
+  async resolveIssue(issueId: string, resolvedBy: string): Promise<boolean> {
+    const issue = this.issues.get(issueId);
+    if (!issue || issue.resolved) {
+      return false;
+    }
+
+    issue.resolved = true;
+    issue.resolvedAt = new Date();
+    issue.resolvedBy = resolvedBy;
+
+    this.logger.log(`Resolved quality issue ${issueId} by ${resolvedBy}`);
+    return true;
+  }
+
+  /**
+   * Create standard quality profiles
+   */
+  async createStandardProfiles(): Promise<IDataQualityProfile[]> {
+    const profiles: IDataQualityProfile[] = [];
+
+    // Completeness profile
+    profiles.push(
+      await this.createProfile({
+        name: 'Completeness Check',
+        description: 'Check for missing or null values in critical fields',
+        rules: [
+          {
+            id: uuidv4(),
+            name: 'User Email Completeness',
+            description: 'Ensure user email addresses are not null or empty',
+            type: 'completeness',
+            field: 'email',
+            condition: 'not null',
+            threshold: 99.5,
+            severity: 'high',
+          },
+          {
+            id: uuidv4(),
+            name: 'Post Content Completeness',
+            description: 'Ensure post content is not empty',
+            type: 'completeness',
+            field: 'content',
+            condition: 'not empty',
+            threshold: 98,
+            severity: 'medium',
+          },
+        ],
+      }),
+    );
+
+    // Uniqueness profile
+    profiles.push(
+      await this.createProfile({
+        name: 'Uniqueness Check',
+        description: 'Check for duplicate or duplicate-like values',
+        rules: [
+          {
+            id: uuidv4(),
+            name: 'User ID Uniqueness',
+            description: 'Ensure user IDs are unique',
+            type: 'uniqueness',
+            field: 'id',
+            condition: 'unique',
+            threshold: 100,
+            severity: 'critical',
+          },
+          {
+            id: uuidv4(),
+            name: 'Email Uniqueness',
+            description: 'Ensure email addresses are unique',
+            type: 'uniqueness',
+            field: 'email',
+            condition: 'unique',
+            threshold: 99.9,
+            severity: 'high',
+          },
+        ],
+      }),
+    );
+
+    // Validity profile
+    profiles.push(
+      await this.createProfile({
+        name: 'Validity Check',
+        description: 'Check data against business rules and constraints',
+        rules: [
+          {
+            id: uuidv4(),
+            name: 'Email Format Validation',
+            description: 'Validate email format',
+            type: 'validity',
+            field: 'email',
+            condition: 'valid email format',
+            threshold: 99,
+            severity: 'high',
+          },
+          {
+            id: uuidv4(),
+            name: 'Date Range Validation',
+            description: 'Validate dates are within reasonable ranges',
+            type: 'validity',
+            field: 'created_at',
+            condition: 'within last 5 years',
+            threshold: 99.5,
+            severity: 'medium',
+          },
+        ],
+      }),
+    );
+
+    return profiles;
+  }
+
+  /**
+   * Execute a single quality rule
+   */
+  private async executeRule(rule: IDataQualityRule, data: any[]): Promise<IDataQualityResult> {
+    let passed = true;
+    let actualValue = 0;
+    let sampleData: any[] = [];
+    let message = '';
+
+    switch (rule.type) {
+      case 'completeness':
+        actualValue = this.calculateCompleteness(data, rule.field);
+        passed = actualValue >= rule.threshold;
+        message = `Completeness of ${rule.field}: ${actualValue.toFixed(2)}% (threshold: ${rule.threshold}%)`;
+        if (!passed) {
+          sampleData = data.filter((item) => !item[rule.field] || item[rule.field] === '');
         }
         return exists;
     }

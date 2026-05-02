@@ -4,24 +4,57 @@ import { Queue } from 'bull';
 import { QUEUE_NAMES } from '../../common/constants/queue.constants';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { JobOptions } from '../interfaces/queue.interfaces';
+import { IJobOptions } from '../interfaces/queue.interfaces';
+
 /**
  * Job Scheduler Service
  * Handles scheduled and recurring jobs with cron support
  */
 @Injectable()
 export class JobSchedulerService {
-    private readonly logger = new Logger(JobSchedulerService.name);
-    constructor(
-    @InjectQueue(QUEUE_NAMES.DEFAULT)
-    private readonly defaultQueue: Queue, private readonly schedulerRegistry: SchedulerRegistry) { }
-    /**
-     * Schedule a job to run at a specific time
-     */
-    async scheduleJob<T = unknown>(name: string, data: T, scheduledTime: Date, options?: JobOptions): Promise<string> {
-        const delay = scheduledTime.getTime() - Date.now();
-        if (delay < 0) {
-            throw new Error('Scheduled time must be in the future');
+  private readonly logger = new Logger(JobSchedulerService.name);
+
+  constructor(
+    @InjectQueue(QUEUE_NAMES.DEFAULT) private readonly defaultQueue: Queue,
+    private readonly schedulerRegistry: SchedulerRegistry,
+  ) {}
+
+  /**
+   * Schedule a job to run at a specific time
+   */
+  async scheduleJob<T = any>(
+    name: string,
+    data: T,
+    scheduledTime: Date,
+    options?: IJobOptions,
+  ): Promise<string> {
+    const delay = scheduledTime.getTime() - Date.now();
+
+    if (delay < 0) {
+      throw new Error('Scheduled time must be in the future');
+    }
+
+    const job = await this.defaultQueue.add(name, data, {
+      ...options,
+      delay,
+    });
+
+    this.logger.log(`Job ${name} scheduled for ${scheduledTime.toISOString()} (ID: ${job.id})`);
+
+    return job.id.toString();
+  }
+
+  /**
+   * Schedule a recurring job with cron expression
+   */
+  scheduleRecurringJob(name: string, cronExpression: string, callback: () => Promise<void>): void {
+    try {
+      const job = new CronJob(cronExpression, async () => {
+        this.logger.log(`Executing recurring job: ${name}`);
+        try {
+          await callback();
+        } catch (error) {
+          this.logger.error(`Error in recurring job ${name}:`, error);
         }
         const job = await this.defaultQueue.add(name, data, {
             ...options,
@@ -53,19 +86,43 @@ export class JobSchedulerService {
             throw error;
         }
     }
-    /**
-     * Remove a scheduled recurring job
-     */
-    removeRecurringJob(name: string): void {
-        try {
-            const job = this.schedulerRegistry.getCronJob(name);
-            job.stop();
-            this.schedulerRegistry.deleteCronJob(name);
-            this.logger.log(`Recurring job ${name} removed`);
-        }
-        catch (error) {
-            this.logger.error(`Failed to remove recurring job ${name}:`, error);
-        }
+  }
+
+  /**
+   * Schedule a job to run after a delay
+   */
+  async scheduleDelayedJob<T = any>(
+    name: string,
+    data: T,
+    delayMs: number,
+    options?: IJobOptions,
+  ): Promise<string> {
+    const job = await this.defaultQueue.add(name, data, {
+      ...options,
+      delay: delayMs,
+    });
+
+    this.logger.log(`Job ${name} scheduled with ${delayMs}ms delay (ID: ${job.id})`);
+
+    return job.id.toString();
+  }
+
+  /**
+   * Schedule a batch of jobs
+   */
+  async scheduleBatchJobs<T = any>(
+    jobs: Array<{
+      name: string;
+      data: T;
+      scheduledTime: Date;
+      options?: IJobOptions;
+    }>,
+  ): Promise<string[]> {
+    const jobIds: string[] = [];
+
+    for (const job of jobs) {
+      const id = await this.scheduleJob(job.name, job.data, job.scheduledTime, job.options);
+      jobIds.push(id);
     }
     /**
      * Schedule a job to run after a delay
@@ -118,20 +175,24 @@ export class JobSchedulerService {
             this.logger.log(`Scheduled job ${jobId} cancelled`);
         }
     }
-    /**
-     * Reschedule a job
-     */
-    async rescheduleJob(jobId: string, newScheduledTime: Date): Promise<string> {
-        const job = await this.defaultQueue.getJob(jobId);
-        if (!job) {
-            throw new Error(`Job ${jobId} not found`);
-        }
-        // Remove old job
-        await job.remove();
-        // Create new job with same data
-        const newJobId = await this.scheduleJob(job.name, job.data, newScheduledTime, job.opts as unknown);
-        this.logger.log(`Job ${jobId} rescheduled to ${newScheduledTime.toISOString()} (new ID: ${newJobId})`);
-        return newJobId;
+  }
+
+  /**
+   * Schedule job with retry on specific days/times
+   */
+  async scheduleWithBusinessHours<T = any>(
+    name: string,
+    data: T,
+    options?: IJobOptions,
+  ): Promise<string> {
+    const now = new Date();
+    const scheduledTime = new Date(now);
+
+    // If outside business hours (9 AM - 5 PM), schedule for next business day at 9 AM
+    const hour = now.getHours();
+    if (hour < 9 || hour >= 17) {
+      scheduledTime.setDate(scheduledTime.getDate() + 1);
+      scheduledTime.setHours(9, 0, 0, 0);
     }
     /**
      * Example: Daily cleanup job

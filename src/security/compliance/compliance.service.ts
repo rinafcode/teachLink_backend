@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Provides compliance operations.
+ */
 @Injectable()
 export class ComplianceService {
     async exportUserData(userId: string): Promise<unknown> {

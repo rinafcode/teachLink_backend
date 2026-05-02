@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Provides feedback Generation operations.
+ */
 @Injectable()
 export class FeedbackGenerationService {
     generate(score: number, maxScore: number): string {

@@ -1,0 +1,63 @@
+# ── Version control ────────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── Secrets & credentials ──────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+credentials/
+
+# ── Dev / local config ─────────────────────────────────────────────────────────
+.editorconfig
+.eslintrc*
+.eslintignore
+.prettierrc*
+.prettierignore
+.stylelintrc*
+jest.config*
+tsconfig*.json
+!tsconfig.build.json
+
+# ── Dependencies (rebuilt inside image) ───────────────────────────────────────
+node_modules/
+
+# ── Build artefacts ────────────────────────────────────────────────────────────
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# ── Docs & non-runtime files ───────────────────────────────────────────────────
+README.md
+CONTRIBUTING.md
+CHANGELOG.md
+LICENSE
+docs/
+*.md
+
+# ── CI / tooling ──────────────────────────────────────────────────────────────
+.github/
+.husky/
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+
+# ── OS artefacts ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Test files ────────────────────────────────────────────────────────────────
+**/*.spec.ts
+**/*.test.ts
+**/*.e2e-spec.ts
+test/

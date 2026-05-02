@@ -1,10 +1,19 @@
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Provides skill Assessment operations.
+ */
 @Injectable()
 export class SkillAssessmentService {
-    assess(input: unknown) {
-        return {
-            level: input?.level ?? 'beginner',
-            goal: input?.goal ?? 'general',
-        };
-    }
+  /**
+   * Executes assess.
+   * @param input The input.
+   * @returns The operation result.
+   */
+  assess(input: any) {
+    return {
+      level: input?.level ?? 'beginner',
+      goal: input?.goal ?? 'general',
+    };
+  }
 }

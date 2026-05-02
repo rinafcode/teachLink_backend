@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateNested, } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
+
+/**
+ * Defines the translation Import Row payload.
+ */
 export class TranslationImportRowDto {
     @ApiProperty({ example: 'errors' })
     @IsString()

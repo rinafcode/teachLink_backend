@@ -2,6 +2,10 @@ import { IsEmail, IsString, IsEnum, IsOptional, IsNotEmpty } from 'class-validat
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../../users/entities/user.entity';
 import { IsStrongPassword } from '../../common/validators/password.validator';
+
+/**
+ * Defines the register payload.
+ */
 export class RegisterDto {
     @ApiProperty({ example: 'john.doe@example.com' })
     @IsEmail({}, { message: 'Must be a valid email address' })
@@ -24,6 +28,10 @@ export class RegisterDto {
     @IsEnum(UserRole, { message: 'Role must be a valid enum value' })
     role?: UserRole;
 }
+
+/**
+ * Defines the login payload.
+ */
 export class LoginDto {
     @ApiProperty({ example: 'john.doe@example.com' })
     @IsEmail({}, { message: 'Must be a valid email address' })
@@ -34,18 +42,30 @@ export class LoginDto {
     @IsNotEmpty({ message: 'Password is required' })
     password: string;
 }
+
+/**
+ * Defines the refresh Token payload.
+ */
 export class RefreshTokenDto {
     @ApiProperty()
     @IsString()
     @IsNotEmpty({ message: 'Refresh token is required' })
     refreshToken: string;
 }
+
+/**
+ * Defines the forgot Password payload.
+ */
 export class ForgotPasswordDto {
     @ApiProperty({ example: 'john.doe@example.com' })
     @IsEmail({}, { message: 'Must be a valid email address' })
     @IsNotEmpty({ message: 'Email is required' })
     email: string;
 }
+
+/**
+ * Defines the reset Password payload.
+ */
 export class ResetPasswordDto {
     @ApiProperty()
     @IsString()
@@ -56,6 +76,10 @@ export class ResetPasswordDto {
     @IsStrongPassword()
     newPassword: string;
 }
+
+/**
+ * Defines the change Password payload.
+ */
 export class ChangePasswordDto {
     @ApiProperty({ example: 'OldPass123!' })
     @IsString()
@@ -66,6 +90,10 @@ export class ChangePasswordDto {
     @IsStrongPassword()
     newPassword: string;
 }
+
+/**
+ * Defines the verify Email payload.
+ */
 export class VerifyEmailDto {
     @ApiProperty()
     @IsString()

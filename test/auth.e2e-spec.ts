@@ -116,10 +116,10 @@ describe('Authentication (e2e)', () => {
 
     beforeEach(async () => {
       // Register user for login tests
-      await retryHelper.withRetry(
-        () => httpClient.post('/api/auth/register', testUser),
-        { maxAttempts: 3, delayMs: 1000 },
-      );
+      await retryHelper.withRetry(() => httpClient.post('/api/auth/register', testUser), {
+        maxAttempts: 3,
+        delayMs: 1000,
+      });
     });
 
     it('should login successfully with retries', async () => {
@@ -178,12 +178,12 @@ describe('Authentication (e2e)', () => {
       const results = await Promise.all(loginRequests);
 
       // At least one should succeed, others might be rate limited
-      const successCount = results.filter(r => r.status === 200).length;
-      const rateLimitCount = results.filter(r => r.status === 429).length;
+      const successCount = results.filter((r) => r.status === 200).length;
+      const rateLimitCount = results.filter((r) => r.status === 429).length;
 
       expect(successCount + rateLimitCount).toBe(results.length);
       if (successCount > 0) {
-        const successResponse = results.find(r => r.status === 200);
+        const successResponse = results.find((r) => r.status === 200);
         expect(successResponse?.body).toHaveProperty('accessToken');
       }
     }, 45000);

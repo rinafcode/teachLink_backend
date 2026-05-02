@@ -8,6 +8,10 @@ import { ServiceDiscoveryService } from './discovery/service-discovery.service';
 import { CircuitBreakerService } from './circuit-breaker/circuit-breaker.service';
 import { TracingService } from './tracing/tracing.service';
 import { createBullRedisClient } from '../common/utils/bull-redis.util';
+
+/**
+ * Registers the messaging module.
+ */
 @Module({
     imports: [
         BullModule.forRoot({

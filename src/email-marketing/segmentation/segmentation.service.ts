@@ -8,16 +8,20 @@ import { UpdateSegmentDto } from '../dto/update-segment.dto';
 import { SegmentRuleOperator } from '../enums/segment-rule-operator.enum';
 import { SegmentRuleField } from '../enums/segment-rule-field.enum';
 // Note: Import User entity from users module when integrating
-export interface UserProfile {
-    id: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    createdAt: Date;
-    lastLoginAt?: Date;
-    tags?: string[];
-    preferences?: Record<string, unknown>;
+export interface IUserProfile {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  createdAt: Date;
+  lastLoginAt?: Date;
+  tags?: string[];
+  preferences?: Record<string, any>;
 }
+
+/**
+ * Provides segmentation operations.
+ */
 @Injectable()
 export class SegmentationService {
     constructor(
@@ -97,59 +101,65 @@ export class SegmentationService {
             relations: ['rules'],
         });
     }
-    /**
-     * Update a segment
-     */
-    async update(id: string, updateSegmentDto: UpdateSegmentDto): Promise<Segment> {
-        const segment = await this.findOne(id);
-        Object.assign(segment, {
-            name: updateSegmentDto.name ?? segment.name,
-            description: updateSegmentDto.description ?? segment.description,
-            isDynamic: updateSegmentDto.isDynamic ?? segment.isDynamic,
-        });
-        await this.segmentRepository.save(segment);
-        // Update rules if provided
-        if (updateSegmentDto.rules) {
-            await this.ruleRepository.softDelete({ segmentId: id });
-            const rules = updateSegmentDto.rules.map((rule, index) => this.ruleRepository.create({
-                ...rule,
-                segmentId: id,
-                order: index,
-            }));
-            await this.ruleRepository.save(rules);
-        }
-        return this.findOne(id);
+
+    return this.findOne(id);
+  }
+
+  /**
+   * Delete a segment
+   */
+  async remove(id: string): Promise<void> {
+    await this.findOne(id);
+    await this.segmentRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(SegmentRule).softDelete({ segmentId: id });
+      await manager.getRepository(Segment).softDelete(id);
+    });
+  }
+
+  /**
+   * Get users from multiple segments
+   */
+  async getUsersFromSegments(segmentIds: string[]): Promise<IUserProfile[]> {
+    if (!segmentIds.length) {
+      return [];
     }
-    /**
-     * Delete a segment
-     */
-    async remove(id: string): Promise<void> {
-        await this.findOne(id);
-        await this.segmentRepository.manager.transaction(async (manager) => {
-            await manager.getRepository(SegmentRule).softDelete({ segmentId: id });
-            await manager.getRepository(Segment).softDelete(id);
-        });
+
+    const segments = await this.segmentRepository.find({
+      where: { id: In(segmentIds) },
+      relations: ['rules'],
+    });
+
+    const userSets = await Promise.all(segments.map((segment) => this.getSegmentMembers(segment)));
+
+    // Combine all users (union)
+    const userMap = new Map<string, IUserProfile>();
+    for (const users of userSets) {
+      for (const user of users) {
+        userMap.set(user.id, user);
+      }
     }
-    /**
-     * Get users from multiple segments
-     */
-    async getUsersFromSegments(segmentIds: string[]): Promise<UserProfile[]> {
-        if (!segmentIds.length) {
-            return [];
-        }
-        const segments = await this.segmentRepository.find({
-            where: { id: In(segmentIds) },
-            relations: ['rules'],
-        });
-        const userSets = await Promise.all(segments.map((segment) => this.getSegmentMembers(segment)));
-        // Combine all users (union)
-        const userMap = new Map<string, UserProfile>();
-        for (const users of userSets) {
-            for (const user of users) {
-                userMap.set(user.id, user);
-            }
-        }
-        return Array.from(userMap.values());
+
+    return Array.from(userMap.values());
+  }
+
+  /**
+   * Get members of a specific segment
+   */
+  async getSegmentMembers(segmentOrId: Segment | string): Promise<IUserProfile[]> {
+    let segment: Segment;
+
+    if (typeof segmentOrId === 'string') {
+      // Direct query to avoid infinite recursion
+      const found = await this.segmentRepository.findOne({
+        where: { id: segmentOrId },
+        relations: ['rules'],
+      });
+      if (!found) {
+        throw new NotFoundException(`Segment with ID ${segmentOrId} not found`);
+      }
+      segment = found;
+    } else {
+      segment = segmentOrId;
     }
     /**
      * Get members of a specific segment
@@ -177,19 +187,38 @@ export class SegmentationService {
         // Dynamic segment - evaluate rules
         return this.evaluateSegmentRules(segment.rules);
     }
-    /**
-     * Preview segment members without saving
-     */
-    async previewSegment(rules: CreateSegmentDto['rules']): Promise<{
-        count: number;
-        sample: UserProfile[];
-    }> {
-        const ruleEntities = rules.map((rule, index) => this.ruleRepository.create({ ...rule, order: index }));
-        const members = await this.evaluateSegmentRules(ruleEntities);
-        return {
-            count: members.length,
-            sample: members.slice(0, 10),
-        };
+
+    // Dynamic segment - evaluate rules
+    return this.evaluateSegmentRules(segment.rules);
+  }
+
+  /**
+   * Preview segment members without saving
+   */
+  async previewSegment(rules: CreateSegmentDto['rules']): Promise<{
+    count: number;
+    sample: IUserProfile[];
+  }> {
+    const ruleEntities = rules.map((rule, index) =>
+      this.ruleRepository.create({ ...rule, order: index }),
+    );
+
+    const members = await this.evaluateSegmentRules(ruleEntities);
+
+    return {
+      count: members.length,
+      sample: members.slice(0, 10),
+    };
+  }
+
+  /**
+   * Add users manually to a static segment
+   */
+  async addUsersToSegment(segmentId: string, userIds: string[]): Promise<void> {
+    const segment = await this.findOne(segmentId);
+
+    if (segment.isDynamic) {
+      throw new BadRequestException('Cannot manually add users to a dynamic segment');
     }
     /**
      * Add users manually to a static segment
@@ -227,28 +256,37 @@ export class SegmentationService {
         const members = await this.getSegmentMembers(segmentOrId);
         return members.some((member) => member.id === userId);
     }
-    /**
-     * Get all segments a user belongs to
-     */
-    async getUserSegments(userId: string): Promise<Segment[]> {
-        const allSegments = await this.segmentRepository.find({
-            relations: ['rules'],
-        });
-        const userSegments: Segment[] = [];
-        for (const segment of allSegments) {
-            if (await this.isUserInSegment(userId, segment)) {
-                userSegments.push(segment);
-            }
-        }
-        return userSegments;
+    const members = await this.evaluateSegmentRules(segment.rules);
+    return members.length;
+  }
+
+  /**
+   * Get members of a static segment
+   */
+  private async getStaticSegmentMembers(segmentId: string): Promise<IUserProfile[]> {
+    const segment = await this.segmentRepository.findOne({
+      where: { id: segmentId },
+    });
+
+    if (!segment?.staticMemberIds?.length) {
+      return [];
     }
-    // ==================== Private Helper Methods ====================
-    /**
-     * Calculate member count for a segment (by ID - may cause recursion, use carefully)
-     */
-    private async calculateMemberCount(segmentId: string): Promise<number> {
-        const members = await this.getSegmentMembers(segmentId);
-        return members.length;
+
+    // TODO: Fetch actual user data from Users module
+    // For now, return mock data
+    return segment.staticMemberIds.map((id) => ({
+      id,
+      email: `user-${id}@example.com`,
+      createdAt: new Date(),
+    }));
+  }
+
+  /**
+   * Evaluate segment rules and return matching users
+   */
+  private async evaluateSegmentRules(rules: SegmentRule[]): Promise<IUserProfile[]> {
+    if (!rules.length) {
+      return [];
     }
     /**
      * Calculate member count for a segment (accepts segment object to avoid recursion)

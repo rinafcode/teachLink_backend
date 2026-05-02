@@ -8,22 +8,49 @@ export interface ApiResponse<T = unknown> {
     data: T;
     metadata?: Record<string, unknown>;
 }
+
+/**
+ * Intercepts response Transform request handling.
+ */
 @Injectable()
-export class ResponseTransformInterceptor<T = unknown> implements NestInterceptor<T, ApiResponse<T>> {
-    intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
-        const ctx = context.switchToHttp();
-        const response = ctx.getResponse<Response>();
-        // Exclude file/stream responses (Content-Type or underlying stream)
-        const contentType = response.getHeader('Content-Type');
-        if (response.headersSent ||
-            (contentType &&
-                (contentType.toString().includes('octet-stream') ||
-                    contentType.toString().includes('application/pdf') ||
-                    contentType.toString().startsWith('image/') ||
-                    contentType.toString().startsWith('audio/') ||
-                    contentType.toString().startsWith('video/')))) {
-            // Return as Observable<ApiResponse<T>> by casting, since we skip transformation
-            return next.handle() as unknown as Observable<ApiResponse<T>>;
+export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T, ApiResponse<T>> {
+  /**
+   * Executes intercept.
+   * @param context The context.
+   * @param next The next.
+   * @returns The resulting observable<api response<t>>.
+   */
+  intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
+    const ctx = context.switchToHttp();
+    const response = ctx.getResponse<Response>();
+
+    // Exclude file/stream responses (Content-Type or underlying stream)
+    const contentType = response.getHeader('Content-Type');
+    if (
+      response.headersSent ||
+      (contentType &&
+        (contentType.toString().includes('octet-stream') ||
+          contentType.toString().includes('application/pdf') ||
+          contentType.toString().startsWith('image/') ||
+          contentType.toString().startsWith('audio/') ||
+          contentType.toString().startsWith('video/')))
+    ) {
+      // Return as Observable<IApiResponse<T>> by casting, since we skip transformation
+      return next.handle() as unknown as Observable<ApiResponse<T>>;
+    }
+
+    return next.handle().pipe(
+      map((data: any) => {
+        // Allow controllers to return { data, message, metadata } for custom messages/metadata
+        let message: string | undefined;
+        let metadata: Record<string, any> | undefined;
+        let responseData = data;
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+          if ('data' in data && typeof data.data !== 'undefined') {
+            responseData = data.data;
+            message = data.message;
+            metadata = data.metadata;
+          }
         }
         return next.handle().pipe(map((data: unknown) => {
             // Allow controllers to return { data, message, metadata } for custom messages/metadata

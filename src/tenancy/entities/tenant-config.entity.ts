@@ -1,29 +1,71 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn, Index, } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { Tenant } from './tenant.entity';
+
+/**
+ * Represents the tenant Config entity.
+ */
 @Entity('tenant_configs')
 export class TenantConfig {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
-    @Column()
-    @Index()
-    tenantId: string;
-    @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'tenantId' })
-    tenant: Tenant;
-    @Column({ default: 'en' })
-    defaultLanguage: string;
-    @Column({ default: 'UTC' })
-    timezone: string;
-    @Column({ default: 'USD' })
-    currency: string;
-    @Column({ type: 'jsonb', nullable: true })
-    features?: {
-        analytics?: boolean;
-        messaging?: boolean;
-        courses?: boolean;
-        assessments?: boolean;
-        recommendations?: boolean;
-        [key: string]: unknown;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @VersionColumn()
+  version: number;
+
+  @Column()
+  @Index()
+  tenantId: string;
+
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'tenantId' })
+  tenant: Tenant;
+
+  @Column({ default: 'en' })
+  defaultLanguage: string;
+
+  @Column({ default: 'UTC' })
+  timezone: string;
+
+  @Column({ default: 'USD' })
+  currency: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  features?: {
+    analytics?: boolean;
+    messaging?: boolean;
+    courses?: boolean;
+    assessments?: boolean;
+    recommendations?: boolean;
+    [key: string]: any;
+  };
+
+  @Column({ type: 'jsonb', nullable: true })
+  notifications?: {
+    email?: boolean;
+    push?: boolean;
+    sms?: boolean;
+    [key: string]: any;
+  };
+
+  @Column({ type: 'jsonb', nullable: true })
+  security?: {
+    mfaRequired?: boolean;
+    passwordPolicy?: {
+      minLength?: number;
+      requireNumbers?: boolean;
+      requireSpecialChars?: boolean;
+      requireUppercase?: boolean;
     };
     @Column({ type: 'jsonb', nullable: true })
     notifications?: {

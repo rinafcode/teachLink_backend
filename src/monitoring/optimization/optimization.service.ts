@@ -1,21 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
+
+/**
+ * Provides optimization operations.
+ */
 @Injectable()
 export class OptimizationService {
-    private readonly logger = new Logger(OptimizationService.name);
-    getOptimizationRecommendations(analysisResult: unknown): string[] {
-        const recommendations: string[] = [];
-        if (analysisResult.cpuLoad && analysisResult.cpuLoad > 80) {
-            recommendations.push('High CPU usage detected. Consider horizontal scaling or optimizing CPU-intensive tasks.');
-        }
-        if (analysisResult.memoryUsage && analysisResult.memoryUsage > 85) {
-            recommendations.push('High Memory usage detected. Check for memory leaks or increase heap size.');
-        }
-        if (analysisResult.slowQueries && analysisResult.slowQueries.length > 0) {
-            recommendations.push(`Detected ${analysisResult.slowQueries.length} slow database queries. Consider adding indexes or optimizing query structure.`);
-            analysisResult.slowQueries.forEach((query: unknown) => {
-                recommendations.push(`- Optimize query on table '${query.table}' (Avg duration: ${query.duration}s)`);
-            });
-        }
-        return recommendations;
+  private readonly logger = new Logger(OptimizationService.name);
+
+  /**
+   * Retrieves optimization Recommendations.
+   * @param analysisResult The analysis result.
+   * @returns The matching results.
+   */
+  getOptimizationRecommendations(analysisResult: any): string[] {
+    const recommendations: string[] = [];
+
+    if (analysisResult.cpuLoad && analysisResult.cpuLoad > 80) {
+      recommendations.push(
+        'High CPU usage detected. Consider horizontal scaling or optimizing CPU-intensive tasks.',
+      );
     }
 }

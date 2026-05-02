@@ -8,17 +8,19 @@ import { CoursesService } from '../../courses/courses.service';
  */
 @Resolver(() => UserType)
 export class UserResolver {
-    constructor(private readonly coursesService: CoursesService) { }
-    @ResolveField(() => [CourseType])
-    async courses(
-    @Parent()
-    user: UserType, 
-    @Context()
-    context: unknown): Promise<CourseType[]> {
-        const { coursesByInstructorLoader } = context.loaders || {};
-        if (coursesByInstructorLoader) {
-            return coursesByInstructorLoader.load(user.id);
-        }
-        return this.coursesService.findByInstructor(user.id);
+  constructor(private readonly coursesService: CoursesService) {}
+
+  /**
+   * Executes courses.
+   * @param user The user.
+   * @param context The context.
+   * @returns The matching results.
+   */
+  @ResolveField(() => [CourseType])
+  async courses(@Parent() user: UserType, @Context() context: any): Promise<CourseType[]> {
+    const { coursesByInstructorLoader } = context.loaders || {};
+
+    if (coursesByInstructorLoader) {
+      return coursesByInstructorLoader.load(user.id);
     }
 }

@@ -7,10 +7,18 @@ import { DataLoaderService } from '../services/dataloader.service';
  */
 @Injectable()
 export class DataLoaderMiddleware implements NestMiddleware {
-    constructor(private readonly dataLoaderService: DataLoaderService) { }
-    use(req: Request, res: Response, next: NextFunction) {
-        // Attach loaders to request object for GraphQL context
-        (req as unknown).loaders = this.dataLoaderService.createLoaders();
-        next();
-    }
+  constructor(private readonly dataLoaderService: DataLoaderService) {}
+
+  /**
+   * Executes use.
+   * @param req The req.
+   * @param res The res.
+   * @param next The next.
+   * @returns The operation result.
+   */
+  use(req: Request, res: Response, next: NextFunction) {
+    // Attach loaders to request object for GraphQL context
+    (req as any).loaders = this.dataLoaderService.createLoaders();
+    next();
+  }
 }

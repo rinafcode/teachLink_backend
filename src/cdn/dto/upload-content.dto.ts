@@ -1,5 +1,9 @@
 import { IsOptional, IsString, IsNumber, IsBoolean, Min, Max } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+/**
+ * Defines the upload Content payload.
+ */
 export class UploadContentDto {
     @ApiPropertyOptional({
         description: 'Whether to optimize the content automatically',

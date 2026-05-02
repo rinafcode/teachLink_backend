@@ -34,6 +34,10 @@ import { CampaignRecipient } from './entities/campaign-recipient.entity';
 import { EmailSubscription } from './entities/email-subscription.entity';
 // Processors (Bull Queue)
 import { EmailQueueProcessor } from './processors/email-queue.processor';
+
+/**
+ * Registers the email Marketing module.
+ */
 @Module({
     imports: [
         ConfigModule,

@@ -1,5 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
+
+/**
+ * Defines the update Translation payload.
+ */
 export class UpdateTranslationDto {
     @ApiPropertyOptional({ example: 'errors' })
     @IsOptional()

@@ -4,21 +4,29 @@ import { Redis } from 'ioredis';
 import * as fs from 'fs';
 import * as _path from 'path';
 import axios from 'axios';
-export interface HealthStatus {
-    status: 'ok' | 'degraded' | 'critical';
-    timestamp: string;
-    uptime: number;
-    version?: string;
-    environment?: string;
-    services: {
-        database: string;
-        redis: string;
-        externalApis: Record<string, string>;
-        disk: string;
-        queue?: string;
-        cache?: string;
-        featureFlags?: string;
-        bull?: string;
+
+export interface IHealthStatus {
+  status: 'ok' | 'degraded' | 'critical';
+  timestamp: string;
+  uptime: number;
+  version?: string;
+  environment?: string;
+  services: {
+    database: string;
+    redis: string;
+    externalApis: Record<string, string>;
+    disk: string;
+    queue?: string;
+    cache?: string;
+    featureFlags?: string;
+    bull?: string;
+  };
+  details?: {
+    database?: {
+      responseTime: number;
+      connectionStatus: string;
+      connectionCount?: number;
+      maxConnections?: number;
     };
     details?: {
         database?: {
@@ -68,113 +76,55 @@ export interface HealthStatus {
         };
     };
 }
+
+/**
+ * Provides health operations.
+ */
 @Injectable()
 export class HealthService {
-    private readonly logger = new Logger(HealthService.name);
-    private readonly startTime = Date.now();
-    // External API endpoints to check
-    private readonly externalApiEndpoints = [
-        { name: 'stripe', url: process.env.STRIPE_HEALTH_URL, key: 'STRIPE_SECRET_KEY' },
-        { name: 'sendgrid', url: process.env.SENDGRID_HEALTH_URL, key: 'SENDGRID_API_KEY' },
-        { name: 'aws', url: process.env.AWS_HEALTH_URL, key: 'AWS_ACCESS_KEY_ID' },
-    ];
-    // Disk space thresholds
-    private readonly diskWarningThreshold = 85; // 85%
-    private readonly diskCriticalThreshold = 95; // 95%
-    async checkHealth(dataSource: DataSource, redis: Redis): Promise<HealthStatus> {
-        const healthStatus: HealthStatus = {
-            status: 'ok',
-            timestamp: new Date().toISOString(),
-            uptime: Date.now() - this.startTime,
-            version: process.env.npm_package_version || 'unknown',
-            environment: process.env.NODE_ENV || 'development',
-            services: {
-                database: 'unknown',
-                redis: 'unknown',
-                externalApis: {},
-                disk: 'unknown',
-                queue: 'unknown',
-                cache: 'unknown',
-                featureFlags: 'unknown',
-                bull: 'unknown',
-            },
-            details: {},
-        };
-        // Check database
-        const dbCheck = await this.checkDatabase(dataSource);
-        healthStatus.services.database = dbCheck.status;
-        healthStatus.details.database = {
-            responseTime: dbCheck.responseTime,
-            connectionStatus: dbCheck.status,
-        };
-        if (dbCheck.status === 'down') {
-            healthStatus.status = 'degraded';
-        }
-        // Check Redis
-        const redisCheck = await this.checkRedis(redis);
-        healthStatus.services.redis = redisCheck.status;
-        healthStatus.details.redis = {
-            responseTime: redisCheck.responseTime,
-            connectionStatus: redisCheck.status,
-        };
-        if (redisCheck.status === 'down') {
-            healthStatus.status = 'degraded';
-        }
-        // Check external APIs
-        const apiChecks = await this.checkExternalApis();
-        healthStatus.services.externalApis = {};
-        for (const [apiName, check] of Object.entries(apiChecks)) {
-            healthStatus.services.externalApis[apiName] = check.status;
-        }
-        healthStatus.details.externalApis = apiChecks;
-        // Check if any external API is down
-        const anyApiDown = Object.values(apiChecks).some((check) => check.status === 'down');
-        if (anyApiDown && healthStatus.status === 'ok') {
-            healthStatus.status = 'degraded';
-        }
-        // Check disk space
-        const diskCheck = await this.checkDiskSpace();
-        healthStatus.services.disk = diskCheck.status;
-        healthStatus.details.disk = {
-            used: diskCheck.used,
-            total: diskCheck.total,
-            percentage: diskCheck.percentage,
-        };
-        if (diskCheck.status === 'critical') {
-            healthStatus.status = 'critical';
-        }
-        else if (diskCheck.status === 'warning' && healthStatus.status === 'ok') {
-            healthStatus.status = 'degraded';
-        }
-        // Check queue service
-        const queueCheck = await this.checkQueueService();
-        healthStatus.services.queue = queueCheck.status;
-        healthStatus.details.queue = queueCheck;
-        if (queueCheck.status === 'down' && healthStatus.status === 'ok') {
-            healthStatus.status = 'degraded';
-        }
-        // Check cache service
-        const cacheCheck = await this.checkCacheService(redis);
-        healthStatus.services.cache = cacheCheck.status;
-        healthStatus.details.cache = cacheCheck;
-        if (cacheCheck.status === 'down' && healthStatus.status === 'ok') {
-            healthStatus.status = 'degraded';
-        }
-        // Check feature flags service
-        const featureFlagsCheck = await this.checkFeatureFlagsService();
-        healthStatus.services.featureFlags = featureFlagsCheck.status;
-        healthStatus.details.featureFlags = featureFlagsCheck;
-        if (featureFlagsCheck.status === 'down' && healthStatus.status === 'ok') {
-            healthStatus.status = 'degraded';
-        }
-        // Check Bull queue service
-        const bullCheck = await this.checkBullService();
-        healthStatus.services.bull = bullCheck.status;
-        healthStatus.details.bull = bullCheck;
-        if (bullCheck.status === 'down' && healthStatus.status === 'ok') {
-            healthStatus.status = 'degraded';
-        }
-        return healthStatus;
+  private readonly logger = new Logger(HealthService.name);
+  private readonly startTime = Date.now();
+
+  // External API endpoints to check
+  private readonly externalApiEndpoints = [
+    { name: 'stripe', url: process.env.STRIPE_HEALTH_URL, key: 'STRIPE_SECRET_KEY' },
+    { name: 'sendgrid', url: process.env.SENDGRID_HEALTH_URL, key: 'SENDGRID_API_KEY' },
+    { name: 'aws', url: process.env.AWS_HEALTH_URL, key: 'AWS_ACCESS_KEY_ID' },
+  ];
+
+  // Disk space thresholds
+  private readonly diskWarningThreshold = 85; // 85%
+  private readonly diskCriticalThreshold = 95; // 95%
+
+  async checkHealth(dataSource: DataSource, redis: Redis): Promise<IHealthStatus> {
+    const healthStatus: IHealthStatus = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Date.now() - this.startTime,
+      version: process.env.npm_package_version || 'unknown',
+      environment: process.env.NODE_ENV || 'development',
+      services: {
+        database: 'unknown',
+        redis: 'unknown',
+        externalApis: {},
+        disk: 'unknown',
+        queue: 'unknown',
+        cache: 'unknown',
+        featureFlags: 'unknown',
+        bull: 'unknown',
+      },
+      details: {},
+    };
+
+    // Check database
+    const dbCheck = await this.checkDatabase(dataSource);
+    healthStatus.services.database = dbCheck.status;
+    healthStatus.details.database = {
+      responseTime: dbCheck.responseTime,
+      connectionStatus: dbCheck.status,
+    };
+    if (dbCheck.status === 'down') {
+      healthStatus.status = 'degraded';
     }
     async checkReadiness(dataSource: DataSource, redis: Redis): Promise<HealthStatus> {
         // For readiness, we check if core dependencies are available
@@ -213,21 +163,125 @@ export class HealthService {
         }
         return healthStatus;
     }
-    private async checkDatabase(dataSource: DataSource): Promise<{
-        status: string;
-        responseTime: number;
-        connectionCount?: number;
-        maxConnections?: number;
-    }> {
-        const startTime = Date.now();
-        try {
-            await dataSource.query('SELECT 1');
-            const responseTime = Date.now() - startTime;
-            // Get connection pool stats
-            let connectionCount = 0;
-            let maxConnections = 0;
-            try {
-                const poolStats = await dataSource.query(`
+
+    // Check external APIs
+    const apiChecks = await this.checkExternalApis();
+    healthStatus.services.externalApis = {};
+    for (const [apiName, check] of Object.entries(apiChecks)) {
+      healthStatus.services.externalApis[apiName] = check.status;
+    }
+    healthStatus.details.externalApis = apiChecks;
+
+    // Check if any external API is down
+    const anyApiDown = Object.values(apiChecks).some((check) => check.status === 'down');
+    if (anyApiDown && healthStatus.status === 'ok') {
+      healthStatus.status = 'degraded';
+    }
+
+    // Check disk space
+    const diskCheck = await this.checkDiskSpace();
+    healthStatus.services.disk = diskCheck.status;
+    healthStatus.details.disk = {
+      used: diskCheck.used,
+      total: diskCheck.total,
+      percentage: diskCheck.percentage,
+    };
+    if (diskCheck.status === 'critical') {
+      healthStatus.status = 'critical';
+    } else if (diskCheck.status === 'warning' && healthStatus.status === 'ok') {
+      healthStatus.status = 'degraded';
+    }
+
+    // Check queue service
+    const queueCheck = await this.checkQueueService();
+    healthStatus.services.queue = queueCheck.status;
+    healthStatus.details.queue = queueCheck;
+    if (queueCheck.status === 'down' && healthStatus.status === 'ok') {
+      healthStatus.status = 'degraded';
+    }
+
+    // Check cache service
+    const cacheCheck = await this.checkCacheService(redis);
+    healthStatus.services.cache = cacheCheck.status;
+    healthStatus.details.cache = cacheCheck;
+    if (cacheCheck.status === 'down' && healthStatus.status === 'ok') {
+      healthStatus.status = 'degraded';
+    }
+
+    // Check feature flags service
+    const featureFlagsCheck = await this.checkFeatureFlagsService();
+    healthStatus.services.featureFlags = featureFlagsCheck.status;
+    healthStatus.details.featureFlags = featureFlagsCheck;
+    if (featureFlagsCheck.status === 'down' && healthStatus.status === 'ok') {
+      healthStatus.status = 'degraded';
+    }
+
+    // Check Bull queue service
+    const bullCheck = await this.checkBullService();
+    healthStatus.services.bull = bullCheck.status;
+    healthStatus.details.bull = bullCheck;
+    if (bullCheck.status === 'down' && healthStatus.status === 'ok') {
+      healthStatus.status = 'degraded';
+    }
+
+    return healthStatus;
+  }
+
+  async checkReadiness(dataSource: DataSource, redis: Redis): Promise<IHealthStatus> {
+    // For readiness, we check if core dependencies are available
+    const healthStatus: IHealthStatus = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: Date.now() - this.startTime,
+      services: {
+        database: 'unknown',
+        redis: 'unknown',
+        externalApis: {},
+        disk: 'unknown',
+      },
+    };
+
+    try {
+      const dbCheck = await this.checkDatabase(dataSource);
+      healthStatus.services.database = dbCheck.status;
+      if (dbCheck.status === 'down') {
+        healthStatus.status = 'critical';
+      }
+    } catch {
+      healthStatus.services.database = 'down';
+      healthStatus.status = 'critical';
+    }
+
+    try {
+      const redisCheck = await this.checkRedis(redis);
+      healthStatus.services.redis = redisCheck.status;
+      if (redisCheck.status === 'down') {
+        healthStatus.status = 'critical';
+      }
+    } catch {
+      healthStatus.services.redis = 'down';
+      healthStatus.status = 'critical';
+    }
+
+    return healthStatus;
+  }
+
+  private async checkDatabase(dataSource: DataSource): Promise<{
+    status: string;
+    responseTime: number;
+    connectionCount?: number;
+    maxConnections?: number;
+  }> {
+    const startTime = Date.now();
+    try {
+      await dataSource.query('SELECT 1');
+      const responseTime = Date.now() - startTime;
+
+      // Get connection pool stats
+      let connectionCount = 0;
+      let maxConnections = 0;
+      try {
+        const poolStats = await dataSource.query(`
           SELECT count(*) as active_connections 
           FROM pg_stat_activity 
           WHERE state = 'active'

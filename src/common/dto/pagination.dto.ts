@@ -10,6 +10,10 @@ export enum CursorDirection {
     FORWARD = 'forward',
     BACKWARD = 'backward'
 }
+
+/**
+ * Defines the pagination Query payload.
+ */
 export class PaginationQueryDto {
     @IsOptional()
     @Type(() => Number)
@@ -34,6 +38,10 @@ export class PaginationQueryDto {
     @IsString()
     search?: string;
 }
+
+/**
+ * Defines the cursor Pagination Query payload.
+ */
 export class CursorPaginationQueryDto {
     @IsOptional()
     @IsString()

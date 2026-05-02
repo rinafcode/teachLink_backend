@@ -1,14 +1,23 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import {
+  CallHandler,
+  createParamDecorator,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
+} from '@nestjs/common';
+import { Observable, tap } from 'rxjs';
+
 export const API_VERSION_HEADER = process.env.API_VERSION_HEADER_NAME?.trim() || 'X-API-Version';
 export const API_VERSION_HEADER_KEY = API_VERSION_HEADER.toLowerCase();
 const VERSION_NEUTRAL_PATH_PREFIXES = ['/api', '/health', '/metrics', '/webhooks'];
 const VERSION_NEUTRAL_EXACT_PATHS = ['/', '/api-json', '/favicon.ico'];
-export interface VersionedRequest {
-    apiVersion?: string;
-    path?: string;
-    url?: string;
-    headers?: Record<string, string | string[] | undefined>;
+
+export interface IVersionedRequest {
+  apiVersion?: string;
+  path?: string;
+  url?: string;
+  headers?: Record<string, string | string[] | undefined>;
 }
 export function normalizeRequestedApiVersion(version?: string | string[]): string | null {
     if (!version) {
@@ -22,6 +31,12 @@ export function normalizeRequestedApiVersion(version?: string | string[]): strin
     }
     return match[1];
 }
+
+/**
+ * Normalizes a configured API version string.
+ * @param version The configured version value.
+ * @returns The normalized major version.
+ */
 export function normalizeConfiguredVersion(version: string): string {
     const normalized = normalizeRequestedApiVersion(version);
     return normalized || '1';
@@ -48,21 +63,22 @@ export function isVersionNeutralPath(pathOrUrl: string): boolean {
 }
 @Injectable()
 export class ApiVersionInterceptor implements NestInterceptor {
-    intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-        const http = context.switchToHttp();
-        const request = http.getRequest<VersionedRequest>();
-        const response = http.getResponse<{
-            setHeader: (name: string, value: string) => void;
-        }>();
-        const path = request.path || request.url || '/';
-        const resolvedVersion = request.apiVersion ||
-            normalizeRequestedApiVersion(request.headers?.[API_VERSION_HEADER_KEY]) ||
-            DEFAULT_API_VERSION;
-        request.apiVersion = resolvedVersion;
-        if (!isVersionNeutralPath(path)) {
-            response.setHeader(API_VERSION_HEADER, resolvedVersion);
-        }
-        return next.handle();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const http = context.switchToHttp();
+    const request = http.getRequest<IVersionedRequest>();
+    const response = http.getResponse<{ setHeader: (name: string, value: string) => void }>();
+
+    const path = request.path || request.url || '/';
+
+    const resolvedVersion =
+      request.apiVersion ||
+      normalizeRequestedApiVersion(request.headers?.[API_VERSION_HEADER_KEY]) ||
+      DEFAULT_API_VERSION;
+
+    request.apiVersion = resolvedVersion;
+
+    if (!isVersionNeutralPath(path)) {
+      response.setHeader(API_VERSION_HEADER, resolvedVersion);
     }
 }
 export function GetApiVersion(): ParameterDecorator {

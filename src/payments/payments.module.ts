@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
@@ -9,6 +10,7 @@ import { WebhookManagementController } from './webhooks/webhook-management.contr
 import { WebhookService } from './webhooks/webhook.service';
 import { WebhookQueueService } from './webhooks/webhook-queue.service';
 import { WebhookRetryProcessor } from './webhooks/webhook-retry.processor';
+import { WebhookSecurityService } from './webhooks/webhook-security.service';
 import { SubscriptionsService } from './subscriptions/subscriptions.service';
 import { SubscriptionJobProcessor } from './subscriptions/subscription-job.processor';
 import { StripeService } from './providers/stripe.service';
@@ -22,30 +24,47 @@ import { UsersModule } from '../users/users.module';
 import { User } from '../users/entities/user.entity';
 import { TransactionService } from '../common/database/transaction.service';
 import { TransactionHelperService } from '../common/database/transaction-helper.service';
+import { IdempotencyService } from '../common/services/idempotency.service';
+
+/**
+ * Registers the payments module.
+ */
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User, WebhookRetry]),
-        BullModule.registerQueue({
-            name: QUEUE_NAMES.SUBSCRIPTIONS,
-        }, {
-            name: QUEUE_NAMES.WEBHOOKS,
-        }),
-        UsersModule,
-    ],
-    controllers: [PaymentsController, WebhookController, WebhookManagementController],
-    providers: [
-        PaymentsService,
-        WebhookService,
-        WebhookQueueService,
-        WebhookRetryProcessor,
-        SubscriptionsService,
-        SubscriptionJobProcessor,
-        StripeService,
-        ProviderFactoryService,
-        TransactionService,
-        TransactionHelperService,
-    ],
-    exports: [PaymentsService, ProviderFactoryService, WebhookQueueService],
+  imports: [
+    ConfigModule,
+    TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund, User, WebhookRetry]),
+    BullModule.registerQueue(
+      {
+        name: QUEUE_NAMES.SUBSCRIPTIONS,
+      },
+      {
+        name: QUEUE_NAMES.WEBHOOKS,
+      },
+    ),
+    UsersModule,
+  ],
+  controllers: [PaymentsController, WebhookController, WebhookManagementController],
+  providers: [
+    PaymentsService,
+    WebhookService,
+    WebhookQueueService,
+    WebhookRetryProcessor,
+    WebhookSecurityService,
+    SubscriptionsService,
+    SubscriptionJobProcessor,
+    StripeService,
+    ProviderFactoryService,
+    TransactionService,
+    TransactionHelperService,
+    IdempotencyService,
+  ],
+  exports: [
+    PaymentsService,
+    ProviderFactoryService,
+    WebhookQueueService,
+    WebhookSecurityService,
+    IdempotencyService,
+  ],
 })
 export class PaymentsModule {
 }

@@ -1,4 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+
+/**
+ * Provides audit Logging operations.
+ */
 @Injectable()
 export class AuditLoggingService {
     private readonly logger = new Logger(AuditLoggingService.name);

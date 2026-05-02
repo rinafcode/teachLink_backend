@@ -1,15 +1,172 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TracingService } from '../tracing/tracing.service';
-export interface CircuitBreakerConfig {
-    failureThreshold: number; // Number of failures to open circuit
-    recoveryTimeout: number; // Time in ms to wait before attempting recovery
-    monitoringPeriod: number; // Time in ms to monitor failures
+
+export interface ICircuitBreakerConfig {
+  failureThreshold: number; // Number of failures to open circuit
+  recoveryTimeout: number; // Time in ms to wait before attempting recovery
+  monitoringPeriod: number; // Time in ms to monitor failures
 }
 export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+/**
+ * Provides circuit Breaker operations.
+ */
 @Injectable()
 export class CircuitBreakerService {
-    private readonly logger = new Logger(CircuitBreakerService.name);
-    private circuits: Map<string, {
+  private readonly logger = new Logger(CircuitBreakerService.name);
+  private circuits: Map<
+    string,
+    {
+      state: CircuitState;
+      failures: number;
+      lastFailureTime: number;
+      config: ICircuitBreakerConfig;
+    }
+  > = new Map();
+
+  constructor(private readonly tracingService: TracingService) {}
+
+  /**
+   * Executes execute.
+   * @param key The key.
+   * @param operation The operation.
+   * @param config The config.
+   * @returns The resulting t.
+   */
+  async execute<T>(
+    key: string,
+    operation: () => Promise<T>,
+    config: ICircuitBreakerConfig = {
+      failureThreshold: 5,
+      recoveryTimeout: 60000,
+      monitoringPeriod: 10000,
+    },
+  ): Promise<T> {
+    const span = this.tracingService.startSpan(`circuit-breaker-${key}`);
+    try {
+      const circuit = this.getOrCreateCircuit(key, config);
+
+      if (circuit.state === 'OPEN') {
+        if (Date.now() - circuit.lastFailureTime > config.recoveryTimeout) {
+          circuit.state = 'HALF_OPEN';
+          this.logger.log(`Circuit ${key} moved to HALF_OPEN`);
+        } else {
+          throw new Error(`Circuit ${key} is OPEN`);
+        }
+      }
+
+      const result = await operation();
+      this.onSuccess(key);
+      return result;
+    } catch (error) {
+      this.onFailure(key, config);
+      throw error;
+    } finally {
+      this.tracingService.endSpan(span);
+    }
+  }
+
+  private getOrCreateCircuit(key: string, config: ICircuitBreakerConfig) {
+    if (!this.circuits.has(key)) {
+      this.circuits.set(key, {
+        state: 'CLOSED',
+        failures: 0,
+        lastFailureTime: 0,
+        config,
+      });
+    }
+    const circuit = this.circuits.get(key);
+    if (!circuit) {
+      throw new Error(`Failed to create or retrieve circuit for key: ${key}`);
+    }
+    return circuit;
+  }
+
+  private onSuccess(key: string): void {
+    const circuit = this.circuits.get(key);
+    if (circuit) {
+      circuit.failures = 0;
+      if (circuit.state === 'HALF_OPEN') {
+        circuit.state = 'CLOSED';
+        this.logger.log(`Circuit ${key} closed after successful operation`);
+      }
+    }
+  }
+
+  private onFailure(key: string, config: ICircuitBreakerConfig): void {
+    const circuit = this.circuits.get(key);
+    if (circuit) {
+      circuit.failures++;
+      circuit.lastFailureTime = Date.now();
+
+      if (circuit.failures >= config.failureThreshold) {
+        circuit.state = 'OPEN';
+        this.logger.warn(`Circuit ${key} opened due to ${circuit.failures} failures`);
+      }
+    }
+  }
+
+  /**
+   * Retrieves circuit State.
+   * @param key The key.
+   * @returns The operation result.
+   */
+  async getCircuitState(key: string): Promise<CircuitState | null> {
+    const circuit = this.circuits.get(key);
+    return circuit ? circuit.state : null;
+  }
+
+  /**
+   * Retrieves circuit Stats.
+   * @param key The key.
+   * @returns The operation result.
+   */
+  async getCircuitStats(key: string): Promise<{
+    state: CircuitState;
+    failures: number;
+    lastFailureTime: number;
+  } | null> {
+    const circuit = this.circuits.get(key);
+    if (!circuit) return null;
+
+    return {
+      state: circuit.state,
+      failures: circuit.failures,
+      lastFailureTime: circuit.lastFailureTime,
+    };
+  }
+
+  /**
+   * Resets circuit.
+   * @param key The key.
+   */
+  async resetCircuit(key: string): Promise<void> {
+    const circuit = this.circuits.get(key);
+    if (circuit) {
+      circuit.state = 'CLOSED';
+      circuit.failures = 0;
+      circuit.lastFailureTime = 0;
+      this.logger.log(`Circuit ${key} manually reset`);
+    }
+  }
+
+  /**
+   * Retrieves all Circuits.
+   * @returns The resulting promise<
+    record<
+      string,
+      {
+        state: circuit state;
+        failures: number;
+        last failure time: number;
+      }
+    >
+  >.
+   */
+  async getAllCircuits(): Promise<
+    Record<
+      string,
+      {
         state: CircuitState;
         failures: number;
         lastFailureTime: number;

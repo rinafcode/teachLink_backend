@@ -1,6 +1,10 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+
+/**
+ * Provides stripe operations.
+ */
 @Injectable()
 export class StripeService {
     private readonly stripe: Stripe;

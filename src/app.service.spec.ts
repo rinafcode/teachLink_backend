@@ -25,4 +25,5 @@ describe('AppService', () => {
             expect(result).toMatch(/^Hello/);
         });
     });
+  });
 });

@@ -2,6 +2,10 @@ import { Question } from '../entities/question.entity';
 import { Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+
+/**
+ * Provides question Bank operations.
+ */
 @Injectable()
 export class QuestionBankService {
     constructor(

@@ -1,27 +1,48 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, DeleteDateColumn, } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  DeleteDateColumn,
+  VersionColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { AutomationWorkflow } from './automation-workflow.entity';
 import { TriggerType } from '../enums/trigger-type.enum';
+
+/**
+ * Represents the automation Trigger entity.
+ */
 @Entity('automation_triggers')
 export class AutomationTrigger {
-    @ApiProperty()
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
-    @ApiProperty()
-    @Column()
-    workflowId: string;
-    @ManyToOne(() => AutomationWorkflow, (workflow) => workflow.triggers, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'workflowId' })
-    workflow: AutomationWorkflow;
-    @ApiProperty({ enum: TriggerType })
-    @Column({ type: 'enum', enum: TriggerType })
-    type: TriggerType;
-    @ApiProperty({ required: false })
-    @Column({ type: 'jsonb', nullable: true })
-    conditions?: Record<string, unknown>;
-    @ApiProperty({ required: false })
-    @Column({ type: 'text', nullable: true })
-    description?: string;
-    @DeleteDateColumn()
-    deletedAt?: Date;
+  @ApiProperty()
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @VersionColumn()
+  version: number;
+
+  @ApiProperty()
+  @Column()
+  workflowId: string;
+
+  @ManyToOne(() => AutomationWorkflow, (workflow) => workflow.triggers, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'workflowId' })
+  workflow: AutomationWorkflow;
+
+  @ApiProperty({ enum: TriggerType })
+  @Column({ type: 'enum', enum: TriggerType })
+  type: TriggerType;
+
+  @ApiProperty({ required: false })
+  @Column({ type: 'jsonb', nullable: true })
+  conditions?: Record<string, any>;
+
+  @ApiProperty({ required: false })
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

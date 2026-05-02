@@ -1,4 +1,8 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
+
+/**
+ * Provides threat Detection operations.
+ */
 @Injectable()
 export class ThreatDetectionService {
     private failedAttempts = new Map<string, number>();

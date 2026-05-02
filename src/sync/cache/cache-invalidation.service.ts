@@ -3,6 +3,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { APP_EVENTS } from '../../common/constants/event.constants';
+
+/**
+ * Provides cache Invalidation operations.
+ */
 @Injectable()
 export class CacheInvalidationService {
     private readonly logger = new Logger(CacheInvalidationService.name);

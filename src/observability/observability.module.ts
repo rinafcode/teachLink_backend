@@ -7,30 +7,34 @@ import { LogAggregationService } from './logging/log-aggregation.service';
 import { DistributedTracingService } from './tracing/distributed-tracing.service';
 import { MetricsAnalysisService } from './metrics/metrics-analysis.service';
 import { AnomalyDetectionService } from './anomaly/anomaly-detection.service';
+import { CommonModule } from '../common/common.module';
+
 /**
  * Observability Module
- * Comprehensive logging, tracing, metrics, and anomaly detection
+ * Comprehensive logging, tracing, metrics, and anomaly detection.
+ * Imports CommonModule so LogAggregationService can forward entries to
+ * LogShipperService for persistent Elasticsearch storage.
  */
 @Global()
 @Module({
-    imports: [ScheduleModule.forRoot()],
-    controllers: [ObservabilityController],
-    providers: [
-        ObservabilityService,
-        StructuredLoggerService,
-        LogAggregationService,
-        DistributedTracingService,
-        MetricsAnalysisService,
-        AnomalyDetectionService,
-    ],
-    exports: [
-        ObservabilityService,
-        StructuredLoggerService,
-        LogAggregationService,
-        DistributedTracingService,
-        MetricsAnalysisService,
-        AnomalyDetectionService,
-    ],
+  imports: [ScheduleModule.forRoot(), CommonModule],
+  controllers: [ObservabilityController],
+  providers: [
+    ObservabilityService,
+    StructuredLoggerService,
+    LogAggregationService,
+    DistributedTracingService,
+    MetricsAnalysisService,
+    AnomalyDetectionService,
+  ],
+  exports: [
+    ObservabilityService,
+    StructuredLoggerService,
+    LogAggregationService,
+    DistributedTracingService,
+    MetricsAnalysisService,
+    AnomalyDetectionService,
+  ],
 })
 export class ObservabilityModule {
 }

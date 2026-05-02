@@ -1,4 +1,7 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateTemplateDto } from './create-template.dto';
-export class UpdateTemplateDto extends PartialType(CreateTemplateDto) {
-}
+
+/**
+ * Defines the update Template payload.
+ */
+export class UpdateTemplateDto extends PartialType(CreateTemplateDto) {}

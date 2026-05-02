@@ -9,7 +9,7 @@ import { RecoveryTest } from '../entities/recovery-test.entity';
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
 import { BackupService } from '../backup.service';
 import { RecoveryTestResponseDto } from '../dto/recovery-test-response.dto';
-import { RecoveryTestJobData } from '../interfaces/backup.interfaces';
+import { IRecoveryTestJobData } from '../interfaces/backup.interfaces';
 import { FileStorageService } from '../../media/storage/file-storage.service';
 import { KMSClient, DecryptCommand } from '@aws-sdk/client-kms';
 import { AlertingService } from '../../monitoring/alerting/alerting.service';
@@ -18,6 +18,10 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 const execAsync = promisify(exec);
+
+/**
+ * Provides recovery Testing operations.
+ */
 @Injectable()
 export class RecoveryTestingService {
     private readonly logger = new Logger(RecoveryTestingService.name);
@@ -26,32 +30,69 @@ export class RecoveryTestingService {
     @InjectRepository(RecoveryTest)
     private readonly recoveryTestRepository: Repository<RecoveryTest>, 
     @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING)
-    private readonly backupQueue: Queue, private readonly backupService: BackupService, private readonly fileStorageService: FileStorageService, private readonly configService: ConfigService, private readonly alertingService: AlertingService) {
-        const awsRegion = this.configService.get<string>('AWS_REGION', 'us-east-1');
-        this.kmsClient = new KMSClient({ region: awsRegion });
+    private readonly backupQueue: Queue,
+    private readonly backupService: BackupService,
+    private readonly fileStorageService: FileStorageService,
+    private readonly configService: ConfigService,
+    private readonly alertingService: AlertingService,
+  ) {
+    const awsRegion = this.configService.get<string>('AWS_REGION', 'us-east-1');
+    this.kmsClient = new KMSClient({ region: awsRegion });
+  }
+
+  /**
+   * Creates recovery Test.
+   * @param backupId The backup identifier.
+   * @returns The resulting recovery test response dto.
+   */
+  async createRecoveryTest(backupId: string): Promise<RecoveryTestResponseDto> {
+    const backup = await this.backupService.getLatestBackup();
+    if (!backup) {
+      throw new NotFoundException('No verified backup found');
     }
-    async createRecoveryTest(backupId: string): Promise<RecoveryTestResponseDto> {
-        const backup = await this.backupService.getLatestBackup();
-        if (!backup) {
-            throw new NotFoundException('No verified backup found');
-        }
-        const testDatabaseName = this.configService.get<string>('BACKUP_TEST_DATABASE', 'teachlink_backup_test');
-        const recoveryTest = this.recoveryTestRepository.create({
-            backupRecordId: backupId,
-            status: RecoveryTestStatus.PENDING,
-            testDatabaseName,
-        });
-        await this.recoveryTestRepository.save(recoveryTest);
-        // Queue recovery test job
-        await this.backupQueue.add(JOB_NAMES.RECOVERY_TEST, {
-            recoveryTestId: recoveryTest.id,
-            backupRecordId: backupId,
-            testDatabaseName,
-        } as RecoveryTestJobData, {
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 10000 },
-        });
-        return this.toResponseDto(recoveryTest);
+
+    const testDatabaseName = this.configService.get<string>(
+      'BACKUP_TEST_DATABASE',
+      'teachlink_backup_test',
+    );
+
+    const recoveryTest = this.recoveryTestRepository.create({
+      backupRecordId: backupId,
+      status: RecoveryTestStatus.PENDING,
+      testDatabaseName,
+    });
+
+    await this.recoveryTestRepository.save(recoveryTest);
+
+    // Queue recovery test job
+    await this.backupQueue.add(
+      JOB_NAMES.RECOVERY_TEST,
+      {
+        recoveryTestId: recoveryTest.id,
+        backupRecordId: backupId,
+        testDatabaseName,
+      } as IRecoveryTestJobData,
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10000 },
+      },
+    );
+
+    return this.toResponseDto(recoveryTest);
+  }
+
+  /**
+   * Executes execute Recovery Test.
+   * @param testId The test identifier.
+   */
+  async executeRecoveryTest(testId: string): Promise<void> {
+    const test = await this.recoveryTestRepository.findOne({
+      where: { id: testId },
+      relations: ['backupRecord'],
+    });
+
+    if (!test) {
+      throw new NotFoundException(`Recovery test ${testId} not found`);
     }
     async executeRecoveryTest(testId: string): Promise<void> {
         const test = await this.recoveryTestRepository.findOne({
@@ -118,15 +159,21 @@ export class RecoveryTestingService {
             this.alertingService.sendAlert('RECOVERY_TEST_FAILED', `Recovery test ${testId} failed: ${error.message}`, 'CRITICAL');
         }
     }
-    async getTestResults(testId: string): Promise<RecoveryTestResponseDto> {
-        const test = await this.recoveryTestRepository.findOne({
-            where: { id: testId },
-            relations: ['backupRecord'],
-        });
-        if (!test) {
-            throw new NotFoundException(`Recovery test ${testId} not found`);
-        }
-        return this.toResponseDto(test);
+  }
+
+  /**
+   * Retrieves test Results.
+   * @param testId The test identifier.
+   * @returns The resulting recovery test response dto.
+   */
+  async getTestResults(testId: string): Promise<RecoveryTestResponseDto> {
+    const test = await this.recoveryTestRepository.findOne({
+      where: { id: testId },
+      relations: ['backupRecord'],
+    });
+
+    if (!test) {
+      throw new NotFoundException(`Recovery test ${testId} not found`);
     }
     private async createTestDatabase(dbName: string): Promise<void> {
         const client = new Client({

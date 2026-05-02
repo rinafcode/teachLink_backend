@@ -1,6 +1,10 @@
 import { IsString, IsArray, IsUUID, IsNotEmpty, IsNumber, IsOptional, ValidateNested, Min, Max, } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+
+/**
+ * Defines the create ABTest Variant payload.
+ */
 export class CreateABTestVariantDto {
     @ApiPropertyOptional({ description: 'Variant name' })
     @IsString()
@@ -26,6 +30,10 @@ export class CreateABTestVariantDto {
     @IsNotEmpty()
     weight: number;
 }
+
+/**
+ * Defines the create ABTest payload.
+ */
 export class CreateABTestDto {
     @ApiProperty({ description: 'Test name', example: 'Subject Line Test' })
     @IsString()

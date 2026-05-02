@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { CollaborationService } from './collaboration.service';
 import { SharedDocumentService } from './documents/shared-document.service';
 import { WhiteboardService } from './whiteboard/whiteboard.service';
@@ -6,6 +17,11 @@ import { VersionControlService } from './versioning/version-control.service';
 import { CollaborationPermissionsService, PermissionLevel, } from './permissions/collaboration-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+// import { IsString, IsNotEmpty } from 'class-validator';
+
+/**
+ * Exposes collaboration endpoints.
+ */
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CollaborationController {
@@ -52,50 +68,63 @@ export class CollaborationController {
             document,
         };
     }
-    /**
-     * Get collaborative whiteboard
-     */
-    @Get('whiteboard/:id')
-    async getWhiteboard(
-    @Param('id')
-    whiteboardId: string, 
-    @Request()
-    req): Promise<unknown> {
-        const userId = req.user.id;
-        const hasPermission = await this.permissionsService.hasAccess(whiteboardId, userId, PermissionLevel.READ);
-        if (!hasPermission) {
-            return { success: false, message: 'Insufficient permissions to access whiteboard' };
-        }
-        const whiteboard = await this.whiteboardService.getWhiteboard(whiteboardId);
-        return {
-            success: true,
-            whiteboard,
-        };
+
+    const whiteboard = await this.whiteboardService.getWhiteboard(whiteboardId);
+
+    return {
+      success: true,
+      whiteboard,
+    };
+  }
+
+  /**
+   * Update collaborative document
+   */
+  @Put('document/:id')
+  async updateDocument(
+    @Param('id', ParseUUIDPipe) documentId: string,
+    @Request() req,
+    @Body() body: { operation: any },
+  ): Promise<any> {
+    const { operation } = body;
+    const userId = req.user.id;
+    const hasPermission = await this.permissionsService.hasAccess(
+      documentId,
+      userId,
+      PermissionLevel.WRITE,
+    );
+
+    if (!hasPermission) {
+      return { success: false, message: 'Insufficient permissions to modify document' };
     }
-    /**
-     * Update collaborative document
-     */
-    @Put('document/:id')
-    async updateDocument(
-    @Param('id')
-    documentId: string, 
-    @Request()
-    req, 
-    @Body()
-    body: {
-        operation: unknown;
-    }): Promise<unknown> {
-        const { operation } = body;
-        const userId = req.user.id;
-        const hasPermission = await this.permissionsService.hasAccess(documentId, userId, PermissionLevel.WRITE);
-        if (!hasPermission) {
-            return { success: false, message: 'Insufficient permissions to modify document' };
-        }
-        const document = await this.sharedDocumentService.applyOperation(documentId, userId, operation);
-        return {
-            success: true,
-            document,
-        };
+
+    const document = await this.sharedDocumentService.applyOperation(documentId, userId, operation);
+
+    return {
+      success: true,
+      document,
+    };
+  }
+
+  /**
+   * Update collaborative whiteboard
+   */
+  @Put('whiteboard/:id')
+  async updateWhiteboard(
+    @Param('id', ParseUUIDPipe) whiteboardId: string,
+    @Request() req,
+    @Body() body: { operation: any },
+  ): Promise<any> {
+    const { operation } = body;
+    const userId = req.user.id;
+    const hasPermission = await this.permissionsService.hasAccess(
+      whiteboardId,
+      userId,
+      PermissionLevel.WRITE,
+    );
+
+    if (!hasPermission) {
+      return { success: false, message: 'Insufficient permissions to modify whiteboard' };
     }
     /**
      * Update collaborative whiteboard

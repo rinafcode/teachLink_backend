@@ -1,5 +1,9 @@
 import { InputType, Field, Int } from '@nestjs/graphql';
 import { IsString, IsNumber, IsOptional, IsArray, Min } from 'class-validator';
+
+/**
+ * Provides question Input behavior.
+ */
 @InputType()
 export class QuestionInput {
     @Field()
@@ -21,6 +25,10 @@ export class QuestionInput {
     @Min(1)
     points: number;
 }
+
+/**
+ * Provides create Assessment Input behavior.
+ */
 @InputType()
 export class CreateAssessmentInput {
     @Field()
@@ -38,6 +46,10 @@ export class CreateAssessmentInput {
     @IsArray()
     questions: QuestionInput[];
 }
+
+/**
+ * Provides update Assessment Input behavior.
+ */
 @InputType()
 export class UpdateAssessmentInput {
     @Field({ nullable: true })

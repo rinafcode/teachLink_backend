@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { StripeService } from './stripe.service';
+
+/**
+ * Provides provider Factory operations.
+ */
 @Injectable()
 export class ProviderFactoryService {
     constructor(private readonly stripeService: StripeService) { }

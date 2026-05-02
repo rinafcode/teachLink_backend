@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+
+/**
+ * Defines the create Translation payload.
+ */
 export class CreateTranslationDto {
     @ApiProperty({ example: 'errors' })
     @IsString()

@@ -1,22 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp';
-import { COMPRESSION_CONFIG, THUMBNAIL_CONFIG, IMAGE_DIMENSION_LIMITS, } from '../validation/file-validation.constants';
-export interface ProcessedImage {
-    buffer: Buffer;
-    format: string;
-    width: number;
-    height: number;
-    size: number;
-    originalSize: number;
-    compressionRatio: number;
+import {
+  COMPRESSION_CONFIG,
+  THUMBNAIL_CONFIG,
+  IMAGE_DIMENSION_LIMITS,
+} from '../validation/file-validation.constants';
+
+export interface IProcessedImage {
+  buffer: Buffer;
+  format: string;
+  width: number;
+  height: number;
+  size: number;
+  originalSize: number;
+  compressionRatio: number;
 }
-export interface ThumbnailResult {
-    name: string;
-    buffer: Buffer;
-    width: number;
-    height: number;
-    size: number;
-    url?: string;
+
+export interface IThumbnailResult {
+  name: string;
+  buffer: Buffer;
+  width: number;
+  height: number;
+  size: number;
+  url?: string;
 }
 export interface ImageMetadata {
     width: number;
@@ -28,38 +34,148 @@ export interface ImageMetadata {
     space?: string;
     channels?: number;
 }
+
+/**
+ * Provides image Processing operations.
+ */
 @Injectable()
 export class ImageProcessingService {
-    private readonly logger = new Logger(ImageProcessingService.name);
-    /**
-     * Get image metadata
-     */
-    async getMetadata(buffer: Buffer): Promise<ImageMetadata> {
-        const metadata = await sharp(buffer).metadata();
-        const stats = await sharp(buffer).stats();
-        return {
-            width: metadata.width || 0,
-            height: metadata.height || 0,
-            format: metadata.format || 'unknown',
-            hasAlpha: metadata.hasAlpha || false,
-            size: buffer.length,
-            density: metadata.density,
-            space: metadata.space,
-            channels: stats.channels.length,
-        };
+  private readonly logger = new Logger(ImageProcessingService.name);
+
+  /**
+   * Get image metadata
+   */
+  async getMetadata(buffer: Buffer): Promise<ImageMetadata> {
+    const metadata = await sharp(buffer).metadata();
+    const stats = await sharp(buffer).stats();
+
+    return {
+      width: metadata.width || 0,
+      height: metadata.height || 0,
+      format: metadata.format || 'unknown',
+      hasAlpha: metadata.hasAlpha || false,
+      size: buffer.length,
+      density: metadata.density,
+      space: metadata.space,
+      channels: stats.channels.length,
+    };
+  }
+
+  /**
+   * Compress and optimize image
+   */
+  async compressImage(
+    buffer: Buffer,
+    options?: {
+      maxWidth?: number;
+      maxHeight?: number;
+      quality?: number;
+      format?: 'jpeg' | 'png' | 'webp' | 'avif';
+      preserveAspectRatio?: boolean;
+    },
+  ): Promise<IProcessedImage> {
+    const originalSize = buffer.length;
+    const metadata = await sharp(buffer).metadata();
+
+    let pipeline = sharp(buffer);
+
+    // Determine output format
+    const outputFormat = options?.format || this.getOptimalFormat(metadata.format);
+
+    // Resize if dimensions exceed limits
+    const maxWidth = options?.maxWidth || COMPRESSION_CONFIG.MAX_DIMENSION;
+    const maxHeight = options?.maxHeight || COMPRESSION_CONFIG.MAX_DIMENSION;
+
+    if (metadata.width && metadata.height) {
+      if (metadata.width > maxWidth || metadata.height > maxHeight) {
+        pipeline = pipeline.resize(maxWidth, maxHeight, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        });
+      }
     }
-    /**
-     * Compress and optimize image
-     */
-    async compressImage(buffer: Buffer, options?: {
-        maxWidth?: number;
-        maxHeight?: number;
-        quality?: number;
-        format?: 'jpeg' | 'png' | 'webp' | 'avif';
-        preserveAspectRatio?: boolean;
-    }): Promise<ProcessedImage> {
-        const originalSize = buffer.length;
-        const metadata = await sharp(buffer).metadata();
+
+    // Apply format-specific compression
+    const quality = options?.quality || this.getDefaultQuality(outputFormat);
+
+    switch (outputFormat) {
+      case 'jpeg':
+      case 'jpg':
+        pipeline = pipeline.jpeg({
+          quality,
+          progressive: true,
+          mozjpeg: true,
+        });
+        break;
+
+      case 'png':
+        pipeline = pipeline.png({
+          compressionLevel: COMPRESSION_CONFIG.PNG_COMPRESSION_LEVEL,
+          progressive: true,
+          adaptiveFiltering: true,
+        });
+        break;
+
+      case 'webp':
+        pipeline = pipeline.webp({
+          quality,
+          effort: 6,
+        });
+        break;
+
+      case 'avif':
+        pipeline = pipeline.avif({
+          quality,
+          effort: 4,
+        });
+        break;
+
+      default:
+        // Keep original format with default compression
+        pipeline = pipeline.jpeg({ quality: COMPRESSION_CONFIG.JPEG_QUALITY });
+    }
+
+    // Process image
+    const processedBuffer = await pipeline.toBuffer();
+    const processedMetadata = await sharp(processedBuffer).metadata();
+
+    const compressionRatio =
+      originalSize > 0 ? ((originalSize - processedBuffer.length) / originalSize) * 100 : 0;
+
+    this.logger.log(
+      `Image compressed: ${originalSize} -> ${processedBuffer.length} bytes (${compressionRatio.toFixed(1)}% reduction)`,
+    );
+
+    return {
+      buffer: processedBuffer,
+      format: outputFormat,
+      width: processedMetadata.width || 0,
+      height: processedMetadata.height || 0,
+      size: processedBuffer.length,
+      originalSize,
+      compressionRatio,
+    };
+  }
+
+  /**
+   * Generate thumbnails in multiple sizes
+   */
+  async generateThumbnails(
+    buffer: Buffer,
+    options?: {
+      sizes?: Array<{ name: string; width: number; height: number }>;
+      format?: 'jpeg' | 'png' | 'webp';
+      quality?: number;
+    },
+  ): Promise<IThumbnailResult[]> {
+    const sizes = options?.sizes || THUMBNAIL_CONFIG.SIZES;
+    const format = options?.format || THUMBNAIL_CONFIG.DEFAULT_FORMAT;
+    const quality = options?.quality || THUMBNAIL_CONFIG.DEFAULT_QUALITY;
+
+    const thumbnails: IThumbnailResult[] = [];
+
+    for (const size of sizes) {
+      try {
         let pipeline = sharp(buffer);
         // Determine output format
         const outputFormat = options?.format || this.getOptimalFormat(metadata.format);

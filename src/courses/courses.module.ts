@@ -10,11 +10,20 @@ import { CourseModule as CourseModuleEntity } from './entities/course-module.ent
 import { Lesson } from './entities/lesson.entity';
 import { Enrollment } from './entities/enrollment.entity';
 import { User } from '../users/entities/user.entity';
+import { SearchModule } from '../search/search.module';
+import { CourseSearchSyncService } from './search-sync/course-search-sync.service';
+
+/**
+ * Registers the courses module.
+ */
 @Module({
-    imports: [TypeOrmModule.forFeature([Course, CourseModuleEntity, Lesson, Enrollment, User])],
-    controllers: [CoursesController],
-    providers: [CoursesService, ModulesService, LessonsService, EnrollmentsService],
-    exports: [CoursesService],
+  imports: [
+    TypeOrmModule.forFeature([Course, CourseModuleEntity, Lesson, Enrollment, User]),
+    SearchModule,
+  ],
+  controllers: [CoursesController],
+  providers: [CoursesService, ModulesService, LessonsService, EnrollmentsService, CourseSearchSyncService],
+  exports: [CoursesService],
 })
 export class CoursesModule {
 }

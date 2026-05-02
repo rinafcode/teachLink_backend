@@ -1,46 +1,60 @@
-export interface PaymentIntentResult {
-    paymentIntentId: string;
-    clientSecret: string;
-    requiresAction: boolean;
+export interface IPaymentIntentResult {
+  paymentIntentId: string;
+  clientSecret: string;
+  requiresAction: boolean;
 }
-export interface RefundResult {
-    refundId: string;
-    status: string;
+
+export interface IRefundResult {
+  refundId: string;
+  status: string;
 }
-export interface PaymentMetadata {
-    userId: string;
-    courseId: string;
-    [key: string]: string | number | boolean;
+
+export interface IPaymentMetadata {
+  userId: string;
+  courseId: string;
+  [key: string]: string | number | boolean;
 }
-export interface PaymentProvider {
-    createPaymentIntent(amount: number, currency: string, metadata: PaymentMetadata): Promise<PaymentIntentResult>;
-    refundPayment(paymentId: string, amount?: number): Promise<RefundResult>;
-    handleWebhook(payload: Record<string, unknown>, signature: string): Promise<Record<string, unknown>>;
+
+export interface IPaymentProvider {
+  createPaymentIntent(
+    amount: number,
+    currency: string,
+    metadata: IPaymentMetadata,
+  ): Promise<IPaymentIntentResult>;
+  refundPayment(paymentId: string, amount?: number): Promise<IRefundResult>;
+  handleWebhook(
+    payload: Record<string, unknown>,
+    signature: string,
+  ): Promise<Record<string, unknown>>;
 }
-export interface SubscriptionWebhookEvent {
-    data: {
-        object: {
-            id: string;
-            status: string;
-        };
+
+export interface ISubscriptionWebhookEvent {
+  data: {
+    object: {
+      id: string;
+      status: string;
     };
 }
-export interface RefundWebhookData {
-    id: string;
-    amount: number;
+
+export interface IRefundWebhookData {
+  id: string;
+  amount: number;
 }
-export interface CreatePaymentIntentResult {
-    paymentId: string;
-    clientSecret: string;
-    requiresAction: boolean;
+
+export interface ICreatePaymentIntentResult {
+  paymentId: string;
+  clientSecret: string;
+  requiresAction: boolean;
 }
-export interface CreateSubscriptionResult {
-    subscriptionId: string;
-    status: string;
-    currentPeriodEnd: Date;
+
+export interface ICreateSubscriptionResult {
+  subscriptionId: string;
+  status: string;
+  currentPeriodEnd: Date;
 }
-export interface ProcessRefundResult {
-    refundId: string;
-    status: string;
-    amount: number;
+
+export interface IProcessRefundResult {
+  refundId: string;
+  status: string;
+  amount: number;
 }

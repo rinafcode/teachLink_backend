@@ -1,38 +1,54 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { CachingService } from '../caching.service';
-export interface CacheMetric {
-    key: string;
-    pattern: string;
-    hits: number;
-    misses: number;
-    avgResponseTime: number;
-    totalRequests: number;
-    lastAccess: Date;
+
+export interface ICacheMetric {
+  key: string;
+  pattern: string;
+  hits: number;
+  misses: number;
+  avgResponseTime: number;
+  totalRequests: number;
+  lastAccess: Date;
 }
-export interface CacheAnalyticsSummary {
-    totalHits: number;
-    totalMisses: number;
-    hitRate: number;
-    missRate: number;
-    totalKeys: number;
-    memoryUsage: string;
-    topKeys: CacheMetric[];
-    patternStats: Map<string, {
-        hits: number;
-        misses: number;
-    }>;
+
+export interface ICacheAnalyticsSummary {
+  totalHits: number;
+  totalMisses: number;
+  hitRate: number;
+  missRate: number;
+  totalKeys: number;
+  memoryUsage: string;
+  topKeys: ICacheMetric[];
+  patternStats: Map<string, { hits: number; misses: number }>;
 }
+
+/**
+ * Provides cache Analytics operations.
+ */
 @Injectable()
 export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
-    private readonly logger = new Logger(CacheAnalyticsService.name);
-    private metrics: Map<string, CacheMetric> = new Map();
-    private flushInterval?: NodeJS.Timeout;
-    private readonly flushIntervalMs = 60000; // Flush every minute
-    constructor(private readonly cachingService: CachingService) { }
-    onModuleInit(): void {
-        // Start periodic metrics aggregation
-        this.startMetricsFlush();
-        this.logger.log('Cache analytics service initialized');
+  private readonly logger = new Logger(CacheAnalyticsService.name);
+  private metrics: Map<string, ICacheMetric> = new Map();
+  private flushInterval?: NodeJS.Timeout;
+  private readonly flushIntervalMs = 60000; // Flush every minute
+
+  constructor(private readonly cachingService: CachingService) {}
+
+  /**
+   * Executes on Module Init.
+   */
+  onModuleInit(): void {
+    // Start periodic metrics aggregation
+    this.startMetricsFlush();
+    this.logger.log('Cache analytics service initialized');
+  }
+
+  /**
+   * Executes on Module Destroy.
+   */
+  onModuleDestroy(): void {
+    if (this.flushInterval) {
+      clearInterval(this.flushInterval);
     }
     onModuleDestroy(): void {
         if (this.flushInterval) {
@@ -53,18 +69,48 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
             this.updateAvgResponseTime(metric, responseTime);
         }
     }
-    /**
-     * Record a cache miss
-     */
-    recordMiss(key: string, responseTime?: number): void {
-        const pattern = this.extractPattern(key);
-        const metric = this.getOrCreateMetric(key, pattern);
-        metric.misses++;
-        metric.totalRequests++;
-        metric.lastAccess = new Date();
-        if (responseTime !== undefined) {
-            this.updateAvgResponseTime(metric, responseTime);
-        }
+  }
+
+  /**
+   * Get metrics for a specific key
+   */
+  getMetric(key: string): ICacheMetric | undefined {
+    return this.metrics.get(key);
+  }
+
+  /**
+   * Get all metrics
+   */
+  getAllMetrics(): ICacheMetric[] {
+    return Array.from(this.metrics.values());
+  }
+
+  /**
+   * Get metrics by pattern
+   */
+  getMetricsByPattern(pattern: string): ICacheMetric[] {
+    return this.getAllMetrics().filter((m) => m.pattern === pattern);
+  }
+
+  /**
+   * Get analytics summary
+   */
+  async getSummary(): Promise<ICacheAnalyticsSummary> {
+    const allMetrics = this.getAllMetrics();
+    const stats = await this.cachingService.getStats();
+
+    let totalHits = 0;
+    let totalMisses = 0;
+    const patternStats = new Map<string, { hits: number; misses: number }>();
+
+    for (const metric of allMetrics) {
+      totalHits += metric.hits;
+      totalMisses += metric.misses;
+
+      const patternStat = patternStats.get(metric.pattern) || { hits: 0, misses: 0 };
+      patternStat.hits += metric.hits;
+      patternStat.misses += metric.misses;
+      patternStats.set(metric.pattern, patternStat);
     }
     /**
      * Get metrics for a specific key
@@ -84,41 +130,27 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
     getMetricsByPattern(pattern: string): CacheMetric[] {
         return this.getAllMetrics().filter((m) => m.pattern === pattern);
     }
-    /**
-     * Get analytics summary
-     */
-    async getSummary(): Promise<CacheAnalyticsSummary> {
-        const allMetrics = this.getAllMetrics();
-        const stats = await this.cachingService.getStats();
-        let totalHits = 0;
-        let totalMisses = 0;
-        const patternStats = new Map<string, {
-            hits: number;
-            misses: number;
-        }>();
-        for (const metric of allMetrics) {
-            totalHits += metric.hits;
-            totalMisses += metric.misses;
-            const patternStat = patternStats.get(metric.pattern) || { hits: 0, misses: 0 };
-            patternStat.hits += metric.hits;
-            patternStat.misses += metric.misses;
-            patternStats.set(metric.pattern, patternStat);
-        }
-        const totalRequests = totalHits + totalMisses;
-        const hitRate = totalRequests > 0 ? (totalHits / totalRequests) * 100 : 0;
-        const missRate = totalRequests > 0 ? (totalMisses / totalRequests) * 100 : 0;
-        // Get top 10 keys by total requests
-        const topKeys = allMetrics.sort((a, b) => b.totalRequests - a.totalRequests).slice(0, 10);
-        return {
-            totalHits,
-            totalMisses,
-            hitRate: Math.round(hitRate * 100) / 100,
-            missRate: Math.round(missRate * 100) / 100,
-            totalKeys: stats.keys,
-            memoryUsage: stats.memory,
-            topKeys,
-            patternStats,
-        };
+
+    return summary;
+  }
+
+  /**
+   * Get or create a metric entry
+   */
+  private getOrCreateMetric(key: string, pattern: string): ICacheMetric {
+    let metric = this.metrics.get(key);
+
+    if (!metric) {
+      metric = {
+        key,
+        pattern,
+        hits: 0,
+        misses: 0,
+        avgResponseTime: 0,
+        totalRequests: 0,
+        lastAccess: new Date(),
+      };
+      this.metrics.set(key, metric);
     }
     /**
      * Get hit rate for a specific pattern
@@ -135,12 +167,42 @@ export class CacheAnalyticsService implements OnModuleInit, OnModuleDestroy {
         }
         return total > 0 ? (hits / total) * 100 : 0;
     }
-    /**
-     * Reset all metrics
-     */
-    resetMetrics(): void {
-        this.metrics.clear();
-        this.logger.log('Cache metrics reset');
+
+    // Keep prefix and first segment, replace rest with *
+    return `${parts[0]}:${parts[1]}:*`;
+  }
+
+  /**
+   * Update average response time using exponential moving average
+   */
+  private updateAvgResponseTime(metric: ICacheMetric, responseTime: number): void {
+    const alpha = 0.2; // Smoothing factor
+    metric.avgResponseTime = alpha * responseTime + (1 - alpha) * metric.avgResponseTime;
+  }
+
+  /**
+   * Start periodic metrics flush to prevent memory bloat
+   */
+  private startMetricsFlush(): void {
+    this.flushInterval = setInterval(() => {
+      this.flushOldMetrics();
+    }, this.flushIntervalMs);
+  }
+
+  /**
+   * Remove old metrics that haven't been accessed recently
+   */
+  private flushOldMetrics(): void {
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    const now = Date.now();
+    let flushed = 0;
+
+    for (const [key, metric] of this.metrics.entries()) {
+      const age = now - metric.lastAccess.getTime();
+      if (age > maxAge) {
+        this.metrics.delete(key);
+        flushed++;
+      }
     }
     /**
      * Reset metrics for a specific pattern

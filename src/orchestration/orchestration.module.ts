@@ -5,6 +5,10 @@ import { WorkflowEngineService } from './workflow/workflow-engine.service';
 import { DistributedLockService } from './locks/distributed-lock.service';
 import { ServiceDiscoveryService } from './discovery/service-discovery.service';
 import { HealthCheckerService } from './health/health-checker.service';
+
+/**
+ * Registers the orchestration module.
+ */
 @Global()
 @Module({
     imports: [HttpModule],

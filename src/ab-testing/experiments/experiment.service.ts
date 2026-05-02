@@ -2,17 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
-import { ExperimentVariant } from '../entities/experiment-variant.entity';
+import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { ExperimentMetric } from '../entities/experiment-metric.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
+
+/**
+ * Provides experiment operations.
+ */
 @Injectable()
 export class ExperimentService {
     private readonly logger = new Logger(ExperimentService.name);
     constructor(
     @InjectRepository(Experiment)
-    private experimentRepository: Repository<Experiment>, 
-    @InjectRepository(ExperimentVariant)
-    private variantRepository: Repository<ExperimentVariant>, 
+    private experimentRepository: Repository<Experiment>,
+    @InjectRepository(IExperimentVariant)
+    private variantRepository: Repository<IExperimentVariant>,
     @InjectRepository(ExperimentMetric)
     private experimentMetricRepository: Repository<ExperimentMetric>, 
     @InjectRepository(VariantMetric)
@@ -33,31 +37,65 @@ export class ExperimentService {
         this.logger.log(`Experiment updated: ${updatedExperiment.name}`);
         return updatedExperiment;
     }
-    /**
-     * Adds a variant to an experiment
-     */
-    async addVariant(experimentId: string, variantData: Partial<ExperimentVariant>): Promise<ExperimentVariant> {
-        this.logger.log(`Adding variant to experiment: ${experimentId}`);
-        const experiment = await this.experimentRepository.findOne({
-            where: { id: experimentId },
-        });
-        if (!experiment) {
-            throw new Error(`Experiment with ID ${experimentId} not found`);
-        }
-        const variant = new ExperimentVariant();
-        Object.assign(variant, variantData);
-        variant.experiment = experiment;
-        const savedVariant = await this.variantRepository.save(variant);
-        this.logger.log(`Variant added: ${savedVariant.name}`);
-        return savedVariant;
+
+    Object.assign(experiment, updateData);
+    const updatedExperiment = await this.experimentRepository.save(experiment);
+
+    this.logger.log(`Experiment updated: ${updatedExperiment.name}`);
+    return updatedExperiment;
+  }
+
+  /**
+   * Adds a variant to an experiment
+   */
+  async addVariant(
+    experimentId: string,
+    variantData: Partial<IExperimentVariant>,
+  ): Promise<IExperimentVariant> {
+    this.logger.log(`Adding variant to experiment: ${experimentId}`);
+
+    const experiment = await this.experimentRepository.findOne({
+      where: { id: experimentId },
+    });
+
+    if (!experiment) {
+      throw new Error(`Experiment with ID ${experimentId} not found`);
     }
-    /**
-     * Removes a variant from an experiment
-     */
-    async removeVariant(variantId: string): Promise<void> {
-        this.logger.log(`Removing variant: ${variantId}`);
-        await this.variantRepository.softDelete(variantId);
-        this.logger.log(`Variant removed: ${variantId}`);
+
+    const variant = new IExperimentVariant();
+    Object.assign(variant, variantData);
+    variant.experiment = experiment;
+
+    const savedVariant = await this.variantRepository.save(variant);
+    this.logger.log(`Variant added: ${savedVariant.name}`);
+    return savedVariant;
+  }
+
+  /**
+   * Removes a variant from an experiment
+   */
+  async removeVariant(variantId: string): Promise<void> {
+    this.logger.log(`Removing variant: ${variantId}`);
+    await this.variantRepository.softDelete(variantId);
+    this.logger.log(`Variant removed: ${variantId}`);
+  }
+
+  /**
+   * Updates traffic allocation for variants
+   */
+  async updateTrafficAllocation(
+    experimentId: string,
+    allocations: Record<string, number>,
+  ): Promise<void> {
+    this.logger.log(`Updating traffic allocation for experiment: ${experimentId}`);
+
+    const experiment = await this.experimentRepository.findOne({
+      where: { id: experimentId },
+      relations: ['variants'],
+    });
+
+    if (!experiment) {
+      throw new Error(`Experiment with ID ${experimentId} not found`);
     }
     /**
      * Updates traffic allocation for variants

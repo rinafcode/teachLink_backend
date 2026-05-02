@@ -1,6 +1,10 @@
 import { IsUUID, IsEnum, IsInt, IsDateString, IsOptional, IsObject } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WebhookStatus, WebhookProvider } from '../entities/webhook-retry.entity';
+
+/**
+ * Defines the webhook Retry payload.
+ */
 export class WebhookRetryDto {
     @ApiProperty({ description: 'Webhook retry ID' })
     @IsUUID()
@@ -41,6 +45,10 @@ export class WebhookRetryDto {
     @IsDateString()
     processedAt?: Date;
 }
+
+/**
+ * Defines the webhook Retry Response payload.
+ */
 export class WebhookRetryResponseDto {
     @ApiProperty({ description: 'Success status' })
     success: boolean;
@@ -49,6 +57,10 @@ export class WebhookRetryResponseDto {
     @ApiPropertyOptional({ description: 'Error message if failed' })
     error?: string;
 }
+
+/**
+ * Defines the dead Letter Webhook payload.
+ */
 export class DeadLetterWebhookDto extends WebhookRetryDto {
     @ApiProperty({ description: 'Indicates this is a dead letter webhook' })
     isDead: boolean = true;

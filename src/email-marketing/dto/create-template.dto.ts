@@ -1,5 +1,9 @@
 import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+/**
+ * Defines the create Template payload.
+ */
 export class CreateTemplateDto {
     @ApiProperty({ description: 'Template name', example: 'Welcome Email' })
     @IsString()

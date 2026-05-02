@@ -20,6 +20,10 @@ import { BackupQueueProcessor } from './processing/backup-queue.processor';
 // External modules
 import { MediaModule } from '../media/media.module';
 import { MonitoringModule } from '../monitoring/monitoring.module';
+
+/**
+ * Registers the backup module.
+ */
 @Module({
     imports: [
         ConfigModule,

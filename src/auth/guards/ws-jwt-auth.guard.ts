@@ -3,25 +3,30 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
+
+/**
+ * Protects ws Jwt Auth execution paths.
+ */
 @Injectable()
 export class WsJwtAuthGuard implements CanActivate {
-    constructor(private readonly jwtService: JwtService, private readonly configService: ConfigService) { }
-    async canActivate(context: ExecutionContext): Promise<boolean> {
-        const client: Socket = context.switchToWs().getClient<Socket>();
-        const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.split(' ')[1];
-        if (!token) {
-            client.disconnect(true);
-            return false;
-        }
-        try {
-            const payload = await this.verifyAccessToken(token);
-            (client as unknown).user = payload; // attach user context
-            return true;
-        }
-        catch {
-            client.disconnect(true);
-            return false;
-        }
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  /**
+   * Executes can Activate.
+   * @param context The context.
+   * @returns Whether the operation succeeded.
+   */
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const client: Socket = context.switchToWs().getClient<Socket>();
+    const token =
+      client.handshake.auth?.token || client.handshake.headers?.authorization?.split(' ')[1];
+
+    if (!token) {
+      client.disconnect(true);
+      return false;
     }
     private async verifyAccessToken(token: string): Promise<unknown> {
         const { secrets } = this.getJwtAccessSecrets();

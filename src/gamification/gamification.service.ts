@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PointsService } from './points/points.service';
 import { BadgesService } from './badges/badges.service';
 import { ChallengesService } from './challenges/challenges.service';
+
+/**
+ * Provides gamification operations.
+ */
 @Injectable()
 export class GamificationService {
     constructor(private pointsService: PointsService, private badgesService: BadgesService, private challengesService: ChallengesService) { }

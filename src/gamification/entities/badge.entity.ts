@@ -1,16 +1,28 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
+
+/**
+ * Represents the badge entity.
+ */
 @Entity('badges')
 export class Badge {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
-    @Column()
-    name: string;
-    @Column()
-    description: string;
-    @Column()
-    iconUrl: string;
-    @Column()
-    criteriaType: string; // e.g., 'POINTS_REACHED', 'CHALLENGE_COMPLETED'
-    @Column('jsonb', { nullable: true })
-    criteriaValue: unknown;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @VersionColumn()
+  version: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  description: string;
+
+  @Column()
+  iconUrl: string;
+
+  @Column()
+  criteriaType: string; // e.g., 'POINTS_REACHED', 'CHALLENGE_COMPLETED'
+
+  @Column('jsonb', { nullable: true })
+  criteriaValue: any;
 }

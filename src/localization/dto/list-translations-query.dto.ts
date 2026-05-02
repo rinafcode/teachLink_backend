@@ -1,6 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+
+/**
+ * Defines the list Translations Query payload.
+ */
 export class ListTranslationsQueryDto {
     @ApiPropertyOptional({ example: 'errors' })
     @IsOptional()

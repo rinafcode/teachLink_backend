@@ -1,8 +1,53 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-export interface ETLJob {
-    id: string;
-    name: string;
+
+export interface IETLJob {
+  id: string;
+  name: string;
+  source: string;
+  target: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  startTime: Date;
+  endTime?: Date;
+  duration?: number;
+  recordsProcessed: number;
+  recordsFailed: number;
+  config: IETLConfig;
+}
+
+export interface IETLConfig {
+  sourceConnection: IDataSourceConfig;
+  targetConnection: IDataSourceConfig;
+  transformations: ITransformationRule[];
+  schedule?: string;
+  incremental?: boolean;
+  batchSize?: number;
+}
+
+export interface IDataSourceConfig {
+  type: 'postgres' | 'mysql' | 'mongodb' | 'api' | 'file';
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  collection?: string;
+  endpoint?: string;
+  filePath?: string;
+  query?: string;
+}
+
+export interface ITransformationRule {
+  id: string;
+  sourceField: string;
+  targetField: string;
+  transformationType: 'map' | 'filter' | 'aggregate' | 'calculate' | 'format';
+  config: any;
+}
+
+export interface IExtractedData {
+  data: any[];
+  metadata: {
     source: string;
     target: string;
     status: 'pending' | 'running' | 'completed' | 'failed';
@@ -48,39 +93,57 @@ export interface ExtractedData {
         recordCount: number;
     };
 }
-export interface TransformedData {
-    data: unknown[];
-    metadata: {
-        transformationsApplied: string[];
-        timestamp: Date;
-        recordCount: number;
-    };
+
+export interface ITransformedData {
+  data: any[];
+  metadata: {
+    transformationsApplied: string[];
+    timestamp: Date;
+    recordCount: number;
+  };
 }
+
+/**
+ * Provides eTLPipeline operations.
+ */
 @Injectable()
 export class ETLPipelineService {
-    private readonly logger = new Logger(ETLPipelineService.name);
-    private jobs: Map<string, ETLJob> = new Map();
-    /**
-     * Create and execute an ETL pipeline
-     */
-    async createPipeline(config: ETLConfig): Promise<ETLJob> {
-        const jobId = uuidv4();
-        const job: ETLJob = {
-            id: jobId,
-            name: `ETL_Pipeline_${new Date().toISOString()}`,
-            source: config.sourceConnection.type,
-            target: config.targetConnection.type,
-            status: 'pending',
-            startTime: new Date(),
-            recordsProcessed: 0,
-            recordsFailed: 0,
-            config,
-        };
-        this.jobs.set(jobId, job);
-        this.logger.log(`Created ETL pipeline job ${jobId}`);
-        // Start the pipeline execution
-        this.executePipeline(jobId);
-        return job;
+  private readonly logger = new Logger(ETLPipelineService.name);
+  private jobs: Map<string, IETLJob> = new Map();
+
+  /**
+   * Create and execute an ETL pipeline
+   */
+  async createPipeline(config: IETLConfig): Promise<IETLJob> {
+    const jobId = uuidv4();
+    const job: IETLJob = {
+      id: jobId,
+      name: `ETL_Pipeline_${new Date().toISOString()}`,
+      source: config.sourceConnection.type,
+      target: config.targetConnection.type,
+      status: 'pending',
+      startTime: new Date(),
+      recordsProcessed: 0,
+      recordsFailed: 0,
+      config,
+    };
+
+    this.jobs.set(jobId, job);
+    this.logger.log(`Created ETL pipeline job ${jobId}`);
+
+    // Start the pipeline execution
+    this.executePipeline(jobId);
+
+    return job;
+  }
+
+  /**
+   * Execute the ETL pipeline
+   */
+  private async executePipeline(jobId: string): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
     }
     /**
      * Execute the ETL pipeline
@@ -117,118 +180,210 @@ export class ETLPipelineService {
             job.recordsFailed = 1;
         }
     }
-    /**
-     * Extract data from source
-     */
-    private async extract(sourceConfig: DataSourceConfig): Promise<ExtractedData> {
-        // This is a simplified implementation
-        // In a real system, this would connect to various data sources
-        let data: unknown[] = [];
-        switch (sourceConfig.type) {
-            case 'postgres':
-                // Connect to PostgreSQL and execute query
-                data = await this.extractFromPostgres(sourceConfig);
-                break;
-            case 'mysql':
-                // Connect to MySQL and execute query
-                data = await this.extractFromMysql(sourceConfig);
-                break;
-            case 'mongodb':
-                // Connect to MongoDB and fetch documents
-                data = await this.extractFromMongoDB(sourceConfig);
-                break;
-            case 'api':
-                // Call external API
-                data = await this.extractFromAPI(sourceConfig);
-                break;
-            case 'file':
-                // Read from file
-                data = await this.extractFromFile(sourceConfig);
-                break;
-            default:
-                throw new Error(`Unsupported source type: ${sourceConfig.type}`);
-        }
-        return {
-            data,
-            metadata: {
-                source: sourceConfig.type,
-                timestamp: new Date(),
-                recordCount: data.length,
-            },
-        };
+  }
+
+  /**
+   * Extract data from source
+   */
+  private async extract(sourceConfig: IDataSourceConfig): Promise<IExtractedData> {
+    // This is a simplified implementation
+    // In a real system, this would connect to various data sources
+
+    let data: any[] = [];
+
+    switch (sourceConfig.type) {
+      case 'postgres':
+        // Connect to PostgreSQL and execute query
+        data = await this.extractFromPostgres(sourceConfig);
+        break;
+      case 'mysql':
+        // Connect to MySQL and execute query
+        data = await this.extractFromMysql(sourceConfig);
+        break;
+      case 'mongodb':
+        // Connect to MongoDB and fetch documents
+        data = await this.extractFromMongoDB(sourceConfig);
+        break;
+      case 'api':
+        // Call external API
+        data = await this.extractFromAPI(sourceConfig);
+        break;
+      case 'file':
+        // Read from file
+        data = await this.extractFromFile(sourceConfig);
+        break;
+      default:
+        throw new Error(`Unsupported source type: ${sourceConfig.type}`);
     }
-    /**
-     * Transform extracted data
-     */
-    private async transform(extractedData: ExtractedData, transformations: TransformationRule[]): Promise<TransformedData> {
-        let transformedData = [...extractedData.data];
-        const appliedTransformations: string[] = [];
-        for (const rule of transformations) {
-            switch (rule.transformationType) {
-                case 'map':
-                    transformedData = transformedData.map((item) => ({
-                        ...item,
-                        [rule.targetField]: this.applyMapping(item[rule.sourceField], rule.config),
-                    }));
-                    break;
-                case 'filter':
-                    transformedData = transformedData.filter((item) => this.applyFilter(item[rule.sourceField], rule.config));
-                    break;
-                case 'calculate':
-                    transformedData = transformedData.map((item) => ({
-                        ...item,
-                        [rule.targetField]: this.applyCalculation(item, rule.config),
-                    }));
-                    break;
-                case 'format':
-                    transformedData = transformedData.map((item) => ({
-                        ...item,
-                        [rule.targetField]: this.applyFormatting(item[rule.sourceField], rule.config),
-                    }));
-                    break;
-            }
-            appliedTransformations.push(`${rule.transformationType}:${rule.sourceField}->${rule.targetField}`);
-        }
-        return {
-            data: transformedData,
-            metadata: {
-                transformationsApplied: appliedTransformations,
-                timestamp: new Date(),
-                recordCount: transformedData.length,
-            },
-        };
+
+    return {
+      data,
+      metadata: {
+        source: sourceConfig.type,
+        timestamp: new Date(),
+        recordCount: data.length,
+      },
+    };
+  }
+
+  /**
+   * Transform extracted data
+   */
+  private async transform(
+    extractedData: IExtractedData,
+    transformations: ITransformationRule[],
+  ): Promise<ITransformedData> {
+    let transformedData = [...extractedData.data];
+    const appliedTransformations: string[] = [];
+
+    for (const rule of transformations) {
+      switch (rule.transformationType) {
+        case 'map':
+          transformedData = transformedData.map((item) => ({
+            ...item,
+            [rule.targetField]: this.applyMapping(item[rule.sourceField], rule.config),
+          }));
+          break;
+
+        case 'filter':
+          transformedData = transformedData.filter((item) =>
+            this.applyFilter(item[rule.sourceField], rule.config),
+          );
+          break;
+
+        case 'calculate':
+          transformedData = transformedData.map((item) => ({
+            ...item,
+            [rule.targetField]: this.applyCalculation(item, rule.config),
+          }));
+          break;
+
+        case 'format':
+          transformedData = transformedData.map((item) => ({
+            ...item,
+            [rule.targetField]: this.applyFormatting(item[rule.sourceField], rule.config),
+          }));
+          break;
+      }
+
+      appliedTransformations.push(
+        `${rule.transformationType}:${rule.sourceField}->${rule.targetField}`,
+      );
     }
-    /**
-     * Load transformed data to target
-     */
-    private async load(transformedData: TransformedData, targetConfig: DataSourceConfig): Promise<void> {
-        // This is a simplified implementation
-        // In a real system, this would connect to the target data warehouse
-        switch (targetConfig.type) {
-            case 'postgres':
-                await this.loadToPostgres(transformedData, targetConfig);
-                break;
-            case 'mysql':
-                await this.loadToMysql(transformedData, targetConfig);
-                break;
-            case 'mongodb':
-                await this.loadToMongoDB(transformedData, targetConfig);
-                break;
-            default:
-                throw new Error(`Unsupported target type: ${targetConfig.type}`);
-        }
+
+    return {
+      data: transformedData,
+      metadata: {
+        transformationsApplied: appliedTransformations,
+        timestamp: new Date(),
+        recordCount: transformedData.length,
+      },
+    };
+  }
+
+  /**
+   * Load transformed data to target
+   */
+  private async load(
+    transformedData: ITransformedData,
+    targetConfig: IDataSourceConfig,
+  ): Promise<void> {
+    // This is a simplified implementation
+    // In a real system, this would connect to the target data warehouse
+
+    switch (targetConfig.type) {
+      case 'postgres':
+        await this.loadToPostgres(transformedData, targetConfig);
+        break;
+      case 'mysql':
+        await this.loadToMysql(transformedData, targetConfig);
+        break;
+      case 'mongodb':
+        await this.loadToMongoDB(transformedData, targetConfig);
+        break;
+      default:
+        throw new Error(`Unsupported target type: ${targetConfig.type}`);
     }
-    /**
-     * Get job status
-     */
-    async getJobStatus(jobId: string): Promise<ETLJob | null> {
-        return this.jobs.get(jobId) || null;
+  }
+
+  /**
+   * Get job status
+   */
+  async getJobStatus(jobId: string): Promise<IETLJob | null> {
+    return this.jobs.get(jobId) || null;
+  }
+
+  /**
+   * Get all jobs
+   */
+  async getAllJobs(): Promise<IETLJob[]> {
+    return Array.from(this.jobs.values());
+  }
+
+  /**
+   * Cancel a running job
+   */
+  async cancelJob(jobId: string): Promise<boolean> {
+    const job = this.jobs.get(jobId);
+    if (!job || job.status !== 'running') {
+      return false;
     }
-    /**
-     * Get all jobs
-     */
-    async getAllJobs(): Promise<ETLJob[]> {
-        return Array.from(this.jobs.values());
+
+    job.status = 'failed';
+    job.endTime = new Date();
+    return true;
+  }
+
+  // Helper methods for data source operations
+  private async extractFromPostgres(config: IDataSourceConfig): Promise<any[]> {
+    // Implementation would use a PostgreSQL client
+    this.logger.log(`Extracting from PostgreSQL: ${config.database}`);
+    return []; // Placeholder
+  }
+
+  private async extractFromMysql(config: IDataSourceConfig): Promise<any[]> {
+    // Implementation would use a MySQL client
+    this.logger.log(`Extracting from MySQL: ${config.database}`);
+    return []; // Placeholder
+  }
+
+  private async extractFromMongoDB(config: IDataSourceConfig): Promise<any[]> {
+    // Implementation would use MongoDB client
+    this.logger.log(`Extracting from MongoDB: ${config.database}`);
+    return []; // Placeholder
+  }
+
+  private async extractFromAPI(config: IDataSourceConfig): Promise<any[]> {
+    // Implementation would make HTTP requests
+    this.logger.log(`Extracting from API: ${config.endpoint}`);
+    return []; // Placeholder
+  }
+
+  private async extractFromFile(config: IDataSourceConfig): Promise<any[]> {
+    // Implementation would read from file system
+    this.logger.log(`Extracting from file: ${config.filePath}`);
+    return []; // Placeholder
+  }
+
+  private async loadToPostgres(data: ITransformedData, config: IDataSourceConfig): Promise<void> {
+    // Implementation would use a PostgreSQL client
+    this.logger.log(`Loading to PostgreSQL: ${config.database}`);
+  }
+
+  private async loadToMysql(data: ITransformedData, config: IDataSourceConfig): Promise<void> {
+    // Implementation would use a MySQL client
+    this.logger.log(`Loading to MySQL: ${config.database}`);
+  }
+
+  private async loadToMongoDB(data: ITransformedData, config: IDataSourceConfig): Promise<void> {
+    // Implementation would use MongoDB client
+    this.logger.log(`Loading to MongoDB: ${config.database}`);
+  }
+
+  // Transformation helper methods
+  private applyMapping(value: any, config: any): any {
+    if (config.mapping && config.mapping[value] !== undefined) {
+      return config.mapping[value];
     }
     /**
      * Cancel a running job

@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, Post, Query, UseGuards, ValidationPipe, } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -8,12 +10,23 @@ import { QueueService } from './queue.service';
 import { PrioritizationService } from './prioritization/prioritization.service';
 import { JobSchedulerService } from './scheduler/job-scheduler.service';
 import { QueueMonitoringService } from './monitoring/queue-monitoring.service';
-import { JobOptions } from './interfaces/queue.interfaces';
-import { AddJobDto, AddBulkJobsDto, ScheduleJobDto, ScheduleDelayedJobDto, CleanQueueDto, FailedJobsQueryDto, StuckJobsQueryDto, AnalyticsQueryDto, } from './dto/queue.dto';
+import { IJobOptions } from './interfaces/queue.interfaces';
+
+import {
+  AddJobDto,
+  AddBulkJobsDto,
+  ScheduleJobDto,
+  ScheduleDelayedJobDto,
+  CleanQueueDto,
+  FailedJobsQueryDto,
+  StuckJobsQueryDto,
+  AnalyticsQueryDto,
+} from './dto/queue.dto';
+
 @ApiTags('queues')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Throttle({ default: { limit: 60, ttl: 60000 } })
+@Throttle({ default: THROTTLE.QUEUE_ADMIN })
 @Controller('queues')
 export class QueueController {
     constructor(private readonly queueService: QueueService, private readonly prioritizationService: PrioritizationService, private readonly schedulerService: JobSchedulerService, private readonly monitoringService: QueueMonitoringService) { }
@@ -27,13 +40,50 @@ export class QueueController {
     async getMetrics() {
         return this.monitoringService.getQueueMetrics();
     }
-    /**
-     * Aggregated statistics with historical trends.
-     */
-    @Get('statistics')
-    @ApiOperation({ summary: 'Queue statistics with trends' })
-    async getStatistics() {
-        return this.monitoringService.getQueueStatistics();
+    return metrics;
+  }
+
+  /**
+   * Retry a specific failed job.
+   */
+  @Post('jobs/:id/retry')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Retry a failed job (admin)' })
+  async retryJob(@Param('id') id: string) {
+    const job = await this.queueService.getJob(id);
+    if (!job) throw new NotFoundException(`Job ${id} not found`);
+
+    await this.queueService.retryJob(id);
+    return { message: 'Job retry initiated', jobId: id };
+  }
+
+  /**
+   * Remove a specific job (any state).
+   */
+  @Delete('jobs/:id')
+  @Roles('admin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a job (admin)' })
+  async removeJob(@Param('id') id: string) {
+    const job = await this.queueService.getJob(id);
+    if (!job) throw new NotFoundException(`Job ${id} not found`);
+    await this.queueService.removeJob(id);
+  }
+
+  // ── Job submission
+
+  /**
+   * Enqueue a single job, optionally with priority factor calculation.
+   */
+  @Post('jobs')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Add a job to the queue (admin)' })
+  async addJob(@Body(ValidationPipe) body: AddJobDto) {
+    let options: IJobOptions = body.options ?? {};
+
+    if (body.priorityFactors) {
+      const priority = this.prioritizationService.calculatePriority(body.priorityFactors as any);
+      options = { ...options, ...this.prioritizationService.getJobOptions(priority) };
     }
     /**
      * Health status: healthy | warning | critical + issue list.

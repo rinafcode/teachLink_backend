@@ -1,4 +1,8 @@
 import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+
+/**
+ * Provides question Type behavior.
+ */
 @ObjectType()
 export class QuestionType {
     @Field(() => ID)
@@ -14,6 +18,10 @@ export class QuestionType {
     @Field(() => Int)
     points: number;
 }
+
+/**
+ * Provides assessment Type behavior.
+ */
 @ObjectType()
 export class AssessmentType {
     @Field(() => ID)

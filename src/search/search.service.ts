@@ -4,6 +4,9 @@ import { AutoCompleteService } from './autocomplete/autocomplete.service';
 import { SearchFiltersService } from './filters/search-filters.service';
 import { CachingService } from '../caching/caching.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
+import { SEARCH_CONSTANTS } from './search.constants';
+
+
 export const COURSES_INDEX = 'courses';
 export const SEARCH_ANALYTICS_INDEX = 'search_analytics';
 const SEARCH_SOURCE_FIELDS = [
@@ -41,141 +44,122 @@ type SearchFilters = {
         lt?: number;
     };
 };
+
+/**
+ * Provides search operations.
+ */
 @Injectable()
 export class SearchService {
-    private readonly logger = new Logger(SearchService.name);
-    constructor(private readonly elasticsearchService: ElasticsearchService, private readonly autoCompleteService: AutoCompleteService, private readonly searchFiltersService: SearchFiltersService, private readonly cachingService: CachingService) { }
-    async performSearch(query: string, filters: unknown, sort?: string, options: SearchOptions = {}) {
-        const sanitizedQuery = (query ?? '').trim().slice(0, 200);
-        const page = Math.max(1, options.page ?? 1);
-        const limit = Math.min(50, Math.max(1, options.limit ?? 20));
-        const from = (page - 1) * limit;
-        const normalizedFilters = this.normalizeFilters(filters);
-        const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(sanitizedQuery, normalizedFilters, sort, page, limit)}`;
-        const hasQuery = sanitizedQuery.length > 0;
-        return this.cachingService.getOrSet(cacheKey, async () => {
-            const result = await this.elasticsearchService.search({
-                index: COURSES_INDEX,
-                from,
-                size: limit,
-                timeout: '1500ms',
-                track_total_hits: 10000,
-                _source: SEARCH_SOURCE_FIELDS,
-                query: {
-                    function_score: {
-                        query: this.buildSearchQuery(sanitizedQuery, normalizedFilters, hasQuery),
-                        functions: [
-                            {
-                                field_value_factor: {
-                                    field: 'views',
-                                    factor: 0.1,
-                                    modifier: 'log1p' as const,
-                                    missing: 1,
-                                },
-                            },
-                            {
-                                field_value_factor: {
-                                    field: 'rating',
-                                    factor: 0.5,
-                                    modifier: 'none' as const,
-                                    missing: 0,
-                                },
-                            },
-                            {
-                                gauss: {
-                                    createdAt: {
-                                        origin: 'now',
-                                        scale: '90d',
-                                        offset: '7d',
-                                        decay: 0.5,
-                                    },
-                                },
-                            },
-                        ],
-                        score_mode: 'sum' as const,
-                        boost_mode: 'multiply' as const,
-                    },
-                },
-                sort: this.buildSort(sort),
-                highlight: hasQuery
-                    ? {
-                        fields: {
-                            title: {},
-                            description: { fragment_size: 150, number_of_fragments: 1 },
-                        },
-                    }
-                    : undefined,
-                aggs: {
-                    categories: { terms: { field: 'category' } },
-                    levels: { terms: { field: 'level' } },
-                    price_ranges: {
-                        range: {
-                            field: 'price',
-                            ranges: [{ to: 50 }, { from: 50, to: 100 }, { from: 100, to: 200 }, { from: 200 }],
-                        },
-                    },
-                },
-            });
-            const total = typeof result.hits.total === 'object'
-                ? result.hits.total.value
-                : (result.hits.total ?? 0);
-            const hits = result.hits.hits;
-            const aggs = result.aggregations as unknown;
-            const rankedResults = this.rankResults(hits);
-            this.logSearch(sanitizedQuery, rankedResults.length, normalizedFilters, sort);
-            return {
-                results: rankedResults,
-                total,
-                page,
-                limit,
-                facets: {
-                    categories: aggs?.categories?.buckets ?? [],
-                    levels: aggs?.levels?.buckets ?? [],
-                    priceRanges: aggs?.price_ranges?.buckets ?? [],
-                },
-            };
-        }, CACHE_TTL.SEARCH_RESULTS);
-    }
-    async getAutoComplete(query: string) {
-        const sanitizedQuery = (query ?? '').trim().slice(0, 100);
-        const cacheKey = `${CACHE_PREFIXES.SEARCH}:autocomplete:${sanitizedQuery}`;
-        return this.cachingService.getOrSet(cacheKey, () => this.autoCompleteService.getSuggestions(sanitizedQuery), CACHE_TTL.SEARCH_RESULTS);
-    }
-    async getAvailableFilters() {
-        const cacheKey = `${CACHE_PREFIXES.SEARCH}:filters`;
-        return this.cachingService.getOrSet(cacheKey, () => this.searchFiltersService.getFilters(), CACHE_TTL.STATIC_CONTENT);
-    }
-    async getSearchAnalytics(days = 7) {
-        const from = new Date();
-        from.setDate(from.getDate() - days);
+  private readonly logger = new Logger(SearchService.name);
+
+  constructor(
+    private readonly elasticsearchService: ElasticsearchService,
+    private readonly autoCompleteService: AutoCompleteService,
+    private readonly searchFiltersService: SearchFiltersService,
+    private readonly cachingService: CachingService,
+  ) {}
+
+  /**
+   * Executes perform Search.
+   * @param query The query value.
+   * @param filters The filter criteria.
+   * @param sort The sort.
+   * @param options The options.
+   * @returns The operation result.
+   */
+  async performSearch(query: string, filters: any, sort?: string, options: SearchOptions = {}) {
+    const sanitizedQuery = (query ?? '').trim().slice(0, SEARCH_CONSTANTS.MAX_QUERY_LENGTH);
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.min(
+      SEARCH_CONSTANTS.MAX_PAGE_SIZE,
+      Math.max(1, options.limit ?? SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE),
+    );
+    const from = (page - 1) * limit;
+    const normalizedFilters = this.normalizeFilters(filters);
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:${this.hashSearchParams(
+      sanitizedQuery,
+      normalizedFilters,
+      sort,
+      page,
+      limit,
+    )}`;
+    const hasQuery = sanitizedQuery.length > 0;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      async () => {
         const result = await this.elasticsearchService.search({
-            index: SEARCH_ANALYTICS_INDEX,
-            size: 0,
-            query: {
-                range: {
-                    timestamp: { gte: from.toISOString() },
+          index: COURSES_INDEX,
+          from,
+          size: limit,
+          timeout: SEARCH_CONSTANTS.ELASTICSEARCH_TIMEOUT,
+          track_total_hits: SEARCH_CONSTANTS.TRACK_TOTAL_HITS,
+          _source: SEARCH_SOURCE_FIELDS,
+          query: {
+            function_score: {
+              query: this.buildSearchQuery(sanitizedQuery, normalizedFilters, hasQuery),
+              functions: [
+                {
+                  field_value_factor: {
+                    field: 'views',
+                    factor: SEARCH_CONSTANTS.VIEWS_BOOST_FACTOR,
+                    modifier: 'log1p' as const,
+                    missing: 1,
+                  },
                 },
+                {
+                  field_value_factor: {
+                    field: 'rating',
+                    factor: SEARCH_CONSTANTS.RATING_BOOST_FACTOR,
+                    modifier: 'none' as const,
+                    missing: 0,
+                  },
+                },
+                {
+                  gauss: {
+                    createdAt: {
+                      origin: 'now',
+                      scale: '90d',
+                      offset: '7d',
+                      decay: SEARCH_CONSTANTS.TIME_DECAY_FACTOR,
+                    },
+                },
+              ],
+              score_mode: 'sum' as const,
+              boost_mode: 'multiply' as const,
             },
-            aggs: {
-                total_searches: { value_count: { field: 'query.keyword' } },
-                top_queries: {
-                    terms: { field: 'query.keyword', size: 10 },
-                    aggs: {
-                        avg_results: { avg: { field: 'resultsCount' } },
-                    },
+          },
+          sort: this.buildSort(sort),
+          highlight: hasQuery
+            ? {
+                fields: {
+                  title: {},
+                  description: {
+                    fragment_size: SEARCH_CONSTANTS.HIGHLIGHT_FRAGMENT_SIZE,
+                    number_of_fragments: SEARCH_CONSTANTS.HIGHLIGHT_NUM_FRAGMENTS,
+                  },
                 },
-                zero_result_queries: {
-                    filter: { term: { resultsCount: 0 } },
-                    aggs: {
-                        queries: { terms: { field: 'query.keyword', size: 10 } },
-                    },
-                },
-                searches_over_time: {
-                    date_histogram: {
-                        field: 'timestamp',
-                        calendar_interval: 'day' as const,
-                    },
-                },
+              }
+            : undefined,
+          aggs: {
+            categories: { terms: { field: 'category' } },
+            levels: { terms: { field: 'level' } },
+            price_ranges: {
+              range: {
+                field: 'price',
+                ranges: [
+                  { to: SEARCH_CONSTANTS.PRICE_RANGES.LOW },
+                  {
+                    from: SEARCH_CONSTANTS.PRICE_RANGES.LOW,
+                    to: SEARCH_CONSTANTS.PRICE_RANGES.MID,
+                  },
+                  {
+                    from: SEARCH_CONSTANTS.PRICE_RANGES.MID,
+                    to: SEARCH_CONSTANTS.PRICE_RANGES.HIGH,
+                  },
+                  { from: SEARCH_CONSTANTS.PRICE_RANGES.HIGH },
+                ],
+              },
             },
         });
         const aggs = result.aggregations as unknown;
@@ -185,6 +169,99 @@ export class SearchService {
             zeroResultQueries: aggs?.zero_result_queries?.queries?.buckets ?? [],
             searchesOverTime: aggs?.searches_over_time?.buckets ?? [],
         };
+      },
+      CACHE_TTL.SEARCH_RESULTS,
+    );
+  }
+
+  /**
+   * Retrieves auto Complete.
+   * @param query The query value.
+   * @returns The operation result.
+   */
+  async getAutoComplete(query: string) {
+    const sanitizedQuery = (query ?? '').trim().slice(0, 100);
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:autocomplete:${sanitizedQuery}`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      () => this.autoCompleteService.getSuggestions(sanitizedQuery),
+      CACHE_TTL.SEARCH_RESULTS,
+    );
+  }
+
+  /**
+   * Retrieves available Filters.
+   * @returns The operation result.
+   */
+  async getAvailableFilters() {
+    const cacheKey = `${CACHE_PREFIXES.SEARCH}:filters`;
+
+    return this.cachingService.getOrSet(
+      cacheKey,
+      () => this.searchFiltersService.getFilters(),
+      CACHE_TTL.STATIC_CONTENT,
+    );
+  }
+
+  /**
+   * Retrieves search Analytics.
+   * @param days The days.
+   * @returns The operation result.
+   */
+  async getSearchAnalytics(days = 7) {
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+
+    const result = await this.elasticsearchService.search({
+      index: SEARCH_ANALYTICS_INDEX,
+      size: 0,
+      query: {
+        range: {
+          timestamp: { gte: from.toISOString() },
+        },
+      },
+      aggs: {
+        total_searches: { value_count: { field: 'query.keyword' } },
+        top_queries: {
+          terms: { field: 'query.keyword', size: SEARCH_CONSTANTS.TOP_QUERIES_SIZE },
+          aggs: {
+            avg_results: { avg: { field: 'resultsCount' } },
+          },
+        },
+        zero_result_queries: {
+          filter: { term: { resultsCount: 0 } },
+          aggs: {
+            queries: { terms: { field: 'query.keyword', size: SEARCH_CONSTANTS.TOP_QUERIES_SIZE } },
+          },
+        },
+        searches_over_time: {
+          date_histogram: {
+            field: 'timestamp',
+            calendar_interval: 'day' as const,
+          },
+        },
+      },
+    });
+
+    const aggs = result.aggregations as any;
+    return {
+      totalSearches: aggs?.total_searches?.value ?? 0,
+      topQueries: aggs?.top_queries?.buckets ?? [],
+      zeroResultQueries: aggs?.zero_result_queries?.queries?.buckets ?? [],
+      searchesOverTime: aggs?.searches_over_time?.buckets ?? [],
+    };
+  }
+
+  private buildFilters(filters: any) {
+    const esFilters: any[] = [];
+    if (filters.category) {
+      const category = this.normalizeKeywordValue(filters.category);
+      if (Array.isArray(category)) {
+        esFilters.push({ terms: { category } });
+      } else if (category) {
+        esFilters.push({ term: { category } });
+      }
     }
     private buildFilters(filters: unknown) {
         const esFilters: unknown[] = [];
@@ -307,15 +384,49 @@ export class SearchService {
             this.logger.warn(`Search analytics logging failed: ${err.message}`);
         });
     }
-    private hashSearchParams(query: string, filters: unknown, sort?: string, page = 1, limit = 20): string {
-        const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}:${page}:${limit}`;
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = (hash << 5) - hash + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash).toString(36);
+    return ['_score'];
+  }
+
+  private rankResults(hits: any[]) {
+    return hits.map((hit) => ({
+      ...hit._source,
+      id: hit._id,
+      score: hit._score,
+      highlights: hit.highlight ?? {},
+    }));
+  }
+
+  private logSearch(query: string, resultsCount: number, filters?: any, sort?: string): void {
+    // Fire-and-forget: analytics must not slow down or fail search responses
+    this.elasticsearchService
+      .index({
+        index: SEARCH_ANALYTICS_INDEX,
+        document: {
+          query,
+          resultsCount,
+          filters: filters ?? {},
+          sort: sort ?? 'relevance',
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`Search analytics logging failed: ${err.message}`);
+      });
+  }
+
+  private hashSearchParams(
+    query: string,
+    filters: any,
+    sort?: string,
+    page = 1,
+    limit: number = SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE,
+  ): string {
+    const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}:${page}:${limit}`;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
     }
     private normalizeFilters(filters: unknown): SearchFilters {
         const safeFilters = filters && typeof filters === 'object' ? filters : {};

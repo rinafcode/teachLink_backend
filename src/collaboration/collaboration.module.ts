@@ -6,6 +6,10 @@ import { CollaborationPermissionsService } from './permissions/collaboration-per
 import { CollaborationService } from './collaboration.service';
 import { CollaborationGateway } from './gateway/collaboration.gateway';
 import { CollaborationController } from './collaboration.controller';
+
+/**
+ * Registers the collaboration module.
+ */
 @Module({
     imports: [],
     controllers: [CollaborationController],

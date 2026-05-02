@@ -9,12 +9,13 @@ import { WhiteboardService } from '../whiteboard/whiteboard.service';
 import { VersionControlService } from '../versioning/version-control.service';
 import { CollaborationPermissionsService, PermissionLevel, } from '../permissions/collaboration-permissions.service';
 import { wsManager } from '../../common/utils/websocket.utils';
-export interface CollaborativeOperation {
-    sessionId: string;
-    userId: string;
-    resourceType: 'document' | 'whiteboard';
-    operation: unknown;
-    timestamp: number;
+
+export interface ICollaborativeOperation {
+  sessionId: string;
+  userId: string;
+  resourceType: 'document' | 'whiteboard';
+  operation: any;
+  timestamp: number;
 }
 @WebSocketGateway({
     cors: {
@@ -45,182 +46,101 @@ export class CollaborationGateway implements OnGatewayInit, OnGatewayConnection,
         // const token = client.handshake.auth.token;
         // const user = await this.authService.validateToken(token);
     }
-    async handleDisconnect(
-    @ConnectedSocket()
-    client: Socket): Promise<void> {
-        wsManager.cleanupSocket(client);
-        this.logger.log(`Client disconnected: ${client.id}`);
-        // Clean up any session associations for this client
-        // Remove client from any active sessions
+  }
+
+  @SubscribeMessage(COLLABORATION_EVENTS.COLLABORATIVE_OPERATION)
+  async handleCollaborativeOperation(
+    @MessageBody() operation: ICollaborativeOperation,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { sessionId, userId, resourceType, operation: opData } = operation;
+
+    try {
+      // Validate permissions
+      const hasPermission = await this.permissionsService.hasAccess(
+        sessionId,
+        userId,
+        resourceType === 'document' ? PermissionLevel.WRITE : PermissionLevel.WRITE,
+      );
+
+      if (!hasPermission) {
+        client.emit('error', { message: 'Insufficient permissions to perform operation' });
+        return;
+      }
+
+      // Process the operation based on resource type
+      let result: any;
+      if (resourceType === 'document') {
+        result = await this.sharedDocumentService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
+      } else if (resourceType === 'whiteboard') {
+        result = await this.whiteboardService.applyOperation(
+          sessionId,
+          userId,
+          operation.operation,
+        );
+      }
+
+      // Record the change for version control
+      await this.collaborationService.trackChange(sessionId, userId, {
+        operation: operation.operation,
+        resourceType,
+        result,
+      });
+
+      // Broadcast the operation to all other clients in the session
+      client.to(sessionId).emit(COLLABORATION_EVENTS.OPERATION_APPLIED, {
+        operation: opData,
+        userId,
+        timestamp: Date.now(),
+        result,
+      });
+
+      this.logger.log(`Operation applied in session ${sessionId} by user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Error applying operation: ${error.message}`);
+      client.emit('error', { message: error.message });
     }
     @SubscribeMessage(COLLABORATION_EVENTS.JOIN_SESSION)
     async handleJoinSession(
     @MessageBody()
-    data: {
-        sessionId: string;
-        userId: string;
-        resourceType: string;
-    }, 
-    @ConnectedSocket()
-    client: Socket): Promise<void> {
-        const { sessionId, userId, resourceType } = data;
-        try {
-            // Check permissions
-            const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
-            if (!hasPermission) {
-                client.emit('error', { message: 'Insufficient permissions to join session' });
-                return;
-            }
-            const registered = wsManager.registerConnection(userId, client);
-            if (!registered) {
-                client.emit('error', { message: 'Connection limit reached' });
-                return;
-            }
-            // Join the room
-            client.join(sessionId);
-            // Initialize or get the resource
-            let resource: unknown;
-            if (resourceType === 'document') {
-                resource = await this.sharedDocumentService.getDocument(sessionId);
-                if (!resource) {
-                    resource = await this.collaborationService.initializeSession(sessionId, userId, 'document' as unknown);
-                }
-            }
-            else if (resourceType === 'whiteboard') {
-                resource = await this.whiteboardService.getWhiteboard(sessionId);
-                if (!resource) {
-                    resource = await this.collaborationService.initializeSession(sessionId, userId, 'whiteboard' as unknown);
-                }
-            }
-            // Notify other users in the session
-            client.to(sessionId).emit(COLLABORATION_EVENTS.USER_JOINED, { userId, sessionId });
-            // Send current resource state to the joining user
-            client.emit(COLLABORATION_EVENTS.SESSION_STATE, {
-                sessionId,
-                resourceType,
-                resource,
-                collaborators: await this.permissionsService.getUsersForResource(sessionId),
-            });
-            this.logger.log(`User ${userId} joined session ${sessionId}`);
-        }
-        catch (error) {
-            this.logger.error(`Error joining session: ${error.message}`);
-            client.emit('error', { message: error.message });
-        }
-    }
-    @SubscribeMessage(COLLABORATION_EVENTS.COLLABORATIVE_OPERATION)
-    async handleCollaborativeOperation(
-    @MessageBody()
-    operation: CollaborativeOperation, 
-    @ConnectedSocket()
-    client: Socket): Promise<void> {
-        const { sessionId, userId, resourceType, operation: opData } = operation;
-        try {
-            // Validate permissions
-            const hasPermission = await this.permissionsService.hasAccess(sessionId, userId, resourceType === 'document' ? PermissionLevel.WRITE : PermissionLevel.WRITE);
-            if (!hasPermission) {
-                client.emit('error', { message: 'Insufficient permissions to perform operation' });
-                return;
-            }
-            // Process the operation based on resource type
-            let result: unknown;
-            if (resourceType === 'document') {
-                result = await this.sharedDocumentService.applyOperation(sessionId, userId, opData);
-            }
-            else if (resourceType === 'whiteboard') {
-                result = await this.whiteboardService.applyOperation(sessionId, userId, opData);
-            }
-            // Record the change for version control
-            await this.collaborationService.trackChange(sessionId, userId, {
-                operation: opData,
-                resourceType,
-                result,
-            });
-            // Broadcast the operation to all other clients in the session
-            client.to(sessionId).emit(COLLABORATION_EVENTS.OPERATION_APPLIED, {
-                operation: opData,
-                userId,
-                timestamp: Date.now(),
-                result,
-            });
-            this.logger.log(`Operation applied in session ${sessionId} by user ${userId}`);
-        }
-        catch (error) {
-            this.logger.error(`Error applying operation: ${error.message}`);
-            client.emit('error', { message: error.message });
-        }
-    }
-    @SubscribeMessage(COLLABORATION_EVENTS.REQUEST_SYNC)
-    async handleSyncRequest(
-    @MessageBody()
-    data: {
-        sessionId: string;
-        userId: string;
-    }, 
-    @ConnectedSocket()
-    client: Socket): Promise<void> {
-        const { sessionId, userId } = data;
-        try {
-            const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
-            if (!hasPermission) {
-                client.emit('error', { message: 'Insufficient permissions to sync' });
-                return;
-            }
-            // Send current state to requesting client
-            const document = await this.sharedDocumentService.getDocument(sessionId);
-            const whiteboard = await this.whiteboardService.getWhiteboard(sessionId);
-            client.emit(COLLABORATION_EVENTS.FULL_SYNC, {
-                sessionId,
-                document: document || null,
-                whiteboard: whiteboard || null,
-            });
-        }
-        catch (error) {
-            this.logger.error(`Error syncing state: ${error.message}`);
-            client.emit('error', { message: error.message });
-        }
-    }
-    @SubscribeMessage(COLLABORATION_EVENTS.RESOLVE_CONFLICT)
-    async handleConflictResolution(
-    @MessageBody()
-    data: {
-        sessionId: string;
-        userId: string;
-        resourceType: string;
-        operations: unknown[];
-    }, 
-    @ConnectedSocket()
-    client: Socket): Promise<void> {
-        const { sessionId, userId, resourceType, operations } = data;
-        try {
-            // Only admins/owners can resolve conflicts
-            const hasPermission = await this.permissionsService.hasAccess(sessionId, userId, PermissionLevel.ADMIN);
-            if (!hasPermission) {
-                client.emit('error', { message: 'Insufficient permissions to resolve conflicts' });
-                return;
-            }
-            let result: unknown;
-            if (resourceType === 'document') {
-                result = await this.sharedDocumentService.resolveConflicts(sessionId, operations);
-            }
-            else if (resourceType === 'whiteboard') {
-                result = await this.whiteboardService.resolveConflicts(sessionId, operations);
-            }
-            // Broadcast resolved state to all clients
-            this.server.to(sessionId).emit(COLLABORATION_EVENTS.CONFLICT_RESOLVED, {
-                sessionId,
-                resourceType,
-                resolvedState: result,
-            });
-            this.logger.log(`Conflict resolved in session ${sessionId}`);
-        }
-        catch (error) {
-            this.logger.error(`Error resolving conflict: ${error.message}`);
-            client.emit('error', { message: error.message });
-        }
-    }
-    // Method to broadcast to a specific session
-    broadcastToSession(sessionId: string, event: string, data: unknown): void {
-        this.server.to(sessionId).emit(event, data);
+    data: { sessionId: string; userId: string; resourceType: string; operations: any[] },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { sessionId, userId, resourceType } = data;
+
+    try {
+      // Only admins/owners can resolve conflicts
+      const hasPermission = await this.permissionsService.hasAccess(
+        sessionId,
+        userId,
+        PermissionLevel.ADMIN,
+      );
+      if (!hasPermission) {
+        client.emit('error', { message: 'Insufficient permissions to resolve conflicts' });
+        return;
+      }
+
+      let result: any;
+      if (resourceType === 'document') {
+        result = await this.sharedDocumentService.resolveConflicts(sessionId, data.operations);
+      } else if (resourceType === 'whiteboard') {
+        result = await this.whiteboardService.resolveConflicts(sessionId, data.operations);
+      }
+
+      // Broadcast resolved state to all clients
+      this.server.to(sessionId).emit(COLLABORATION_EVENTS.CONFLICT_RESOLVED, {
+        sessionId,
+        resourceType,
+        resolvedState: result,
+      });
+
+      this.logger.log(`Conflict resolved in session ${sessionId}`);
+    } catch (error) {
+      this.logger.error(`Error resolving conflict: ${error.message}`);
+      client.emit('error', { message: error.message });
     }
 }

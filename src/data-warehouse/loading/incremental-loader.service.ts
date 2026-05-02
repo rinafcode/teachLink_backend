@@ -18,83 +18,105 @@ export interface IncrementalLoadJob {
     config: IncrementalLoadConfig;
 }
 export interface IncrementalLoadConfig {
-    loadType: 'timestamp' | 'sequence' | 'cdc' | 'watermark';
-    sourceConnection: DataSourceConfig;
-    targetConnection: DataSourceConfig;
-    batchSize: number;
-    maxRetries: number;
-    retryDelay: number;
-    watermarkColumn?: string;
-    timestampColumn?: string;
-    sequenceColumn?: string;
-    primaryKey: string[];
-    incrementalColumns: string[];
+  loadType: 'timestamp' | 'sequence' | 'cdc' | 'watermark';
+  sourceConnection: IDataSourceConfig;
+  targetConnection: IDataSourceConfig;
+  batchSize: number;
+  maxRetries: number;
+  retryDelay: number;
+  watermarkColumn?: string;
+  timestampColumn?: string;
+  sequenceColumn?: string;
+  primaryKey: string[];
+  incrementalColumns: string[];
 }
-export interface DataSourceConfig {
-    type: 'postgres' | 'mysql' | 'mongodb' | 'snowflake';
-    host?: string;
-    port?: number;
-    database?: string;
-    username?: string;
-    password?: string;
-    schema?: string;
-    warehouse?: string;
+
+export interface IDataSourceConfig {
+  type: 'postgres' | 'mysql' | 'mongodb' | 'snowflake';
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  schema?: string;
+  warehouse?: string;
 }
-export interface Watermark {
-    id: string;
-    tableName: string;
-    columnName: string;
-    lastValue: unknown;
-    lastUpdated: Date;
+
+export interface IWatermark {
+  id: string;
+  tableName: string;
+  columnName: string;
+  lastValue: any;
+  lastUpdated: Date;
 }
-export interface CDCEvent {
-    id: string;
-    tableName: string;
-    operation: 'INSERT' | 'UPDATE' | 'DELETE';
-    primaryKey: {
-        [key: string]: unknown;
-    };
-    oldValues?: {
-        [key: string]: unknown;
-    };
-    newValues?: {
-        [key: string]: unknown;
-    };
-    timestamp: Date;
-    transactionId?: string;
+
+export interface ICDCEvent {
+  id: string;
+  tableName: string;
+  operation: 'INSERT' | 'UPDATE' | 'DELETE';
+  primaryKey: { [key: string]: any };
+  oldValues?: { [key: string]: any };
+  newValues?: { [key: string]: any };
+  timestamp: Date;
+  transactionId?: string;
 }
+
+/**
+ * Provides incremental Loader operations.
+ */
 @Injectable()
 export class IncrementalLoaderService {
-    private readonly logger = new Logger(IncrementalLoaderService.name);
-    private jobs: Map<string, IncrementalLoadJob> = new Map();
-    private watermarks: Map<string, Watermark> = new Map();
-    private cdcEvents: Map<string, CDCEvent[]> = new Map();
-    /**
-     * Create an incremental load job
-     */
-    async createLoadJob(config: Omit<IncrementalLoadConfig, 'sourceConnection' | 'targetConnection'>, sourceConfig: DataSourceConfig, targetConfig: DataSourceConfig): Promise<IncrementalLoadJob> {
-        const jobId = uuidv4();
-        const jobName = `Incremental_Load_${config.loadType}_${new Date().toISOString()}`;
-        const job: IncrementalLoadJob = {
-            id: jobId,
-            name: jobName,
-            sourceTable: '',
-            targetTable: '',
-            status: 'pending',
-            startTime: new Date(),
-            recordsProcessed: 0,
-            recordsInserted: 0,
-            recordsUpdated: 0,
-            recordsDeleted: 0,
-            config: {
-                ...config,
-                sourceConnection: sourceConfig,
-                targetConnection: targetConfig,
-            },
-        };
-        this.jobs.set(jobId, job);
-        this.logger.log(`Created incremental load job ${jobId}: ${jobName}`);
-        return job;
+  private readonly logger = new Logger(IncrementalLoaderService.name);
+  private jobs: Map<string, IncrementalLoadJob> = new Map();
+  private watermarks: Map<string, IWatermark> = new Map();
+  private cdcEvents: Map<string, ICDCEvent[]> = new Map();
+
+  /**
+   * Create an incremental load job
+   */
+  async createLoadJob(
+    config: Omit<IncrementalLoadConfig, 'sourceConnection' | 'targetConnection'>,
+    sourceConfig: IDataSourceConfig,
+    targetConfig: IDataSourceConfig,
+  ): Promise<IncrementalLoadJob> {
+    const jobId = uuidv4();
+    const jobName = `Incremental_Load_${config.loadType}_${new Date().toISOString()}`;
+
+    const job: IncrementalLoadJob = {
+      id: jobId,
+      name: jobName,
+      sourceTable: '',
+      targetTable: '',
+      status: 'pending',
+      startTime: new Date(),
+      recordsProcessed: 0,
+      recordsInserted: 0,
+      recordsUpdated: 0,
+      recordsDeleted: 0,
+      config: {
+        ...config,
+        sourceConnection: sourceConfig,
+        targetConnection: targetConfig,
+      },
+    };
+
+    this.jobs.set(jobId, job);
+    this.logger.log(`Created incremental load job ${jobId}: ${jobName}`);
+
+    return job;
+  }
+
+  /**
+   * Execute incremental load
+   */
+  async executeLoad(
+    jobId: string,
+    sourceTable: string,
+    targetTable: string,
+  ): Promise<IncrementalLoadJob> {
+    const job = this.jobs.get(jobId);
+    if (!job) {
+      throw new Error(`Job ${jobId} not found`);
     }
     /**
      * Execute incremental load
@@ -238,46 +260,53 @@ export class IncrementalLoaderService {
         }
         return result;
     }
-    /**
-     * Load data using CDC (Change Data Capture)
-     */
-    private async loadByCDC(job: IncrementalLoadJob): Promise<{
-        processed: number;
-        inserted: number;
-        updated: number;
-        deleted: number;
-    }> {
-        const cdcKey = `${job.sourceTable}_cdc`;
-        const events = this.cdcEvents.get(cdcKey) || [];
-        this.logger.log(`Processing ${events.length} CDC events`);
-        let inserted = 0;
-        let updated = 0;
-        let deleted = 0;
-        // Process each CDC event
-        for (const event of events) {
-            switch (event.operation) {
-                case 'INSERT':
-                    await this.insertRecord(job.config.targetConnection, job.targetTable, event.newValues);
-                    inserted++;
-                    break;
-                case 'UPDATE':
-                    await this.updateRecord(job.config.targetConnection, job.targetTable, event.primaryKey, event.newValues);
-                    updated++;
-                    break;
-                case 'DELETE':
-                    await this.deleteRecord(job.config.targetConnection, job.targetTable, event.primaryKey);
-                    deleted++;
-                    break;
-            }
-        }
-        // Clear processed events
-        this.cdcEvents.delete(cdcKey);
-        return {
-            processed: events.length,
-            inserted,
-            updated,
-            deleted,
-        };
+
+    return result;
+  }
+
+  /**
+   * Load data using watermark approach
+   */
+  private async loadByWatermark(job: IncrementalLoadJob): Promise<{
+    processed: number;
+    inserted: number;
+    updated: number;
+  }> {
+    const watermarkColumn = job.config.watermarkColumn || 'updated_at';
+    const watermarkKey = `${job.sourceTable}_${watermarkColumn}`;
+    const watermark = this.watermarks.get(watermarkKey);
+    const lastValue = watermark?.lastValue || 0;
+
+    this.logger.log(`Loading data with ${watermarkColumn} > ${lastValue}`);
+
+    // Get incremental data from source
+    const incrementalData = await this.getSourceDataAfter(
+      job.config.sourceConnection,
+      job.sourceTable,
+      watermarkColumn,
+      lastValue,
+    );
+
+    // Apply changes to target
+    const result = await this.applyChangesToTarget(
+      job.config.targetConnection,
+      job.targetTable,
+      incrementalData,
+      job.config.primaryKey,
+      'watermark',
+    );
+
+    // Update watermark
+    if (incrementalData.length > 0) {
+      const maxValue = Math.max(...incrementalData.map((row) => row[watermarkColumn]));
+      const newWatermark: IWatermark = {
+        id: uuidv4(),
+        tableName: job.sourceTable,
+        columnName: watermarkColumn,
+        lastValue: maxValue,
+        lastUpdated: new Date(),
+      };
+      this.watermarks.set(watermarkKey, newWatermark);
     }
     /**
      * Get job status
@@ -385,4 +414,157 @@ export class IncrementalLoaderService {
         // Implementation would delete record from target
         this.logger.log(`Deleting record from ${table} where ${JSON.stringify(primaryKey)}`);
     }
+
+    // Clear processed events
+    this.cdcEvents.delete(cdcKey);
+
+    return {
+      processed: events.length,
+      inserted,
+      updated,
+      deleted,
+    };
+  }
+
+  /**
+   * Get job status
+   */
+  async getJobStatus(jobId: string): Promise<IncrementalLoadJob | null> {
+    return this.jobs.get(jobId) || null;
+  }
+
+  /**
+   * Get all jobs
+   */
+  async getAllJobs(): Promise<IncrementalLoadJob[]> {
+    return Array.from(this.jobs.values());
+  }
+
+  /**
+   * Get watermark for a table and column
+   */
+  async getWatermark(tableName: string, columnName: string): Promise<IWatermark | null> {
+    const key = `${tableName}_${columnName}`;
+    return this.watermarks.get(key) || null;
+  }
+
+  /**
+   * Set watermark manually
+   */
+  async setWatermark(tableName: string, columnName: string, value: any): Promise<IWatermark> {
+    const key = `${tableName}_${columnName}`;
+    const watermark: IWatermark = {
+      id: uuidv4(),
+      tableName,
+      columnName,
+      lastValue: value,
+      lastUpdated: new Date(),
+    };
+
+    this.watermarks.set(key, watermark);
+    this.logger.log(`Set watermark for ${tableName}.${columnName} = ${value}`);
+
+    return watermark;
+  }
+
+  /**
+   * Add CDC event
+   */
+  async addCDCEvent(event: Omit<ICDCEvent, 'id' | 'timestamp'>): Promise<ICDCEvent> {
+    const cdcEvent: ICDCEvent = {
+      id: uuidv4(),
+      ...event,
+      timestamp: new Date(),
+    };
+
+    const key = `${event.tableName}_cdc`;
+    const events = this.cdcEvents.get(key) || [];
+    events.push(cdcEvent);
+    this.cdcEvents.set(key, events);
+
+    this.logger.log(`Added CDC event for ${event.tableName}: ${event.operation}`);
+
+    return cdcEvent;
+  }
+
+  /**
+   * Get CDC events for a table
+   */
+  async getCDCEvents(tableName: string): Promise<ICDCEvent[]> {
+    const key = `${tableName}_cdc`;
+    return this.cdcEvents.get(key) || [];
+  }
+
+  // Helper methods for data operations
+  private async getSourceDataSince(
+    _connection: IDataSourceConfig,
+    table: string,
+    column: string,
+    timestamp: Date,
+  ): Promise<any[]> {
+    // Implementation would connect to source database and query
+    this.logger.log(`Querying ${table} where ${column} > ${timestamp.toISOString()}`);
+    return []; // Placeholder
+  }
+
+  private async getSourceDataAfter(
+    _connection: IDataSourceConfig,
+    table: string,
+    column: string,
+    value: any,
+  ): Promise<any[]> {
+    // Implementation would connect to source database and query
+    this.logger.log(`Querying ${table} where ${column} > ${value}`);
+    return []; // Placeholder
+  }
+
+  private async applyChangesToTarget(
+    _connection: IDataSourceConfig,
+    table: string,
+    data: any[],
+    _primaryKey: string[],
+    loadType: string,
+  ): Promise<{ processed: number; inserted: number; updated: number }> {
+    // Implementation would apply changes to target database
+    this.logger.log(`Applying ${data.length} records to ${table} using ${loadType} strategy`);
+
+    return {
+      processed: data.length,
+      inserted: data.length, // Simplified logic
+      updated: 0,
+    };
+  }
+
+  private async insertRecord(
+    _connection: IDataSourceConfig,
+    table: string,
+    _values: { [key: string]: any },
+  ): Promise<void> {
+    // Implementation would insert record into target
+    this.logger.log(`Inserting record into ${table}`);
+  }
+
+  private async validateRecord(_values: any): Promise<boolean> {
+    // Implementation would validate record
+    return true;
+  }
+
+  private async updateRecord(
+    _connection: IDataSourceConfig,
+    table: string,
+    primaryKey: { [key: string]: any },
+    _values: { [key: string]: any },
+  ): Promise<void> {
+    // Implementation would update record in target
+    this.logger.log(`Updating record in ${table} where ${JSON.stringify(primaryKey)}`);
+  }
+
+  private async deleteRecord(
+    _connection: IDataSourceConfig,
+    table: string,
+    primaryKey: { [key: string]: any },
+  ): Promise<void> {
+    // Implementation would delete record from target
+    this.logger.log(`Deleting record from ${table} where ${JSON.stringify(primaryKey)}`);
+  }
 }

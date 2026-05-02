@@ -1,25 +1,74 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MetricData, MetricType } from '../interfaces/observability.interfaces';
+import { IMetricData, MetricType } from '../interfaces/observability.interfaces';
+
 /**
  * Metrics Analysis Service
  * Collects and analyzes custom metrics for business and performance insights
  */
 @Injectable()
 export class MetricsAnalysisService {
-    private readonly logger = new Logger(MetricsAnalysisService.name);
-    private metrics: Map<string, MetricData[]> = new Map();
-    private readonly MAX_METRICS_PER_NAME = 1000;
-    /**
-     * Record a counter metric
-     */
-    incrementCounter(name: string, value: number = 1, tags?: Record<string, string>): void {
-        this.recordMetric({
-            name,
-            value,
-            type: MetricType.COUNTER,
-            tags,
-            timestamp: new Date(),
-        });
+  private readonly logger = new Logger(MetricsAnalysisService.name);
+  private metrics: Map<string, IMetricData[]> = new Map();
+  private readonly MAX_METRICS_PER_NAME = 1000;
+
+  /**
+   * Record a counter metric
+   */
+  incrementCounter(name: string, value: number = 1, tags?: Record<string, string>): void {
+    this.recordMetric({
+      name,
+      value,
+      type: MetricType.COUNTER,
+      tags,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Record a gauge metric
+   */
+  recordGauge(name: string, value: number, tags?: Record<string, string>): void {
+    this.recordMetric({
+      name,
+      value,
+      type: MetricType.GAUGE,
+      tags,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Record a histogram metric
+   */
+  recordHistogram(name: string, value: number, tags?: Record<string, string>): void {
+    this.recordMetric({
+      name,
+      value,
+      type: MetricType.HISTOGRAM,
+      tags,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Record a summary metric
+   */
+  recordSummary(name: string, value: number, tags?: Record<string, string>): void {
+    this.recordMetric({
+      name,
+      value,
+      type: MetricType.SUMMARY,
+      tags,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Record a metric
+   */
+  private recordMetric(metric: IMetricData): void {
+    if (!this.metrics.has(metric.name)) {
+      this.metrics.set(metric.name, []);
     }
     /**
      * Record a gauge metric
@@ -33,17 +82,38 @@ export class MetricsAnalysisService {
             timestamp: new Date(),
         });
     }
-    /**
-     * Record a histogram metric
-     */
-    recordHistogram(name: string, value: number, tags?: Record<string, string>): void {
-        this.recordMetric({
-            name,
-            value,
-            type: MetricType.HISTOGRAM,
-            tags,
-            timestamp: new Date(),
-        });
+
+    // Ensure the (possibly new) array is always stored back in the map
+    this.metrics.set(metric.name, metricList);
+
+    this.logger.debug(`Recorded metric: ${metric.name} = ${metric.value}`);
+  }
+
+  /**
+   * Get metrics by name
+   */
+  getMetrics(name: string, limit?: number): IMetricData[] {
+    const metrics = this.metrics.get(name) || [];
+    return limit ? metrics.slice(-limit) : metrics;
+  }
+
+  /**
+   * Get all metric names
+   */
+  getMetricNames(): string[] {
+    return Array.from(this.metrics.keys());
+  }
+
+  /**
+   * Calculate metric statistics
+   */
+  getMetricStatistics(name: string, timeRange?: { start: Date; end: Date }) {
+    let metrics = this.metrics.get(name) || [];
+
+    if (timeRange) {
+      metrics = metrics.filter(
+        (m) => m.timestamp >= timeRange.start && m.timestamp <= timeRange.end,
+      );
     }
     /**
      * Record a summary metric

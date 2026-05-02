@@ -1,6 +1,10 @@
 import { IsString, IsEnum, IsOptional, IsNotEmpty, IsUUID } from 'class-validator';
 import { PaymentMethod } from '../entities/payment.entity';
 import { SubscriptionInterval } from '../entities/subscription.entity';
+
+/**
+ * Defines the create Subscription payload.
+ */
 export class CreateSubscriptionDto {
     @IsString()
     @IsNotEmpty()

@@ -11,6 +11,10 @@ export enum AssessmentStatus {
     PUBLISHED = 'published',
     ARCHIVED = 'archived'
 }
+
+/**
+ * Defines the create Assessment payload.
+ */
 export class CreateAssessmentDto {
     @ApiProperty({
         description: 'Assessment title',

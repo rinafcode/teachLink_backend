@@ -3,76 +3,98 @@
  * All Bull queue methods are mocked inline.
  */
 // ─── Inline type definitions (no NestJS imports needed)
-interface TimestampedMetrics {
-    queueName: string;
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-    delayed: number;
-    paused: number;
-    total: number;
-    throughput: number;
-    avgProcessingTime: number;
-    capturedAt: number;
+interface ITimestampedMetrics {
+  queueName: string;
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+  paused: number;
+  total: number;
+  throughput: number;
+  avgProcessingTime: number;
+  capturedAt: number;
 }
-interface QueueHealthStatus {
-    status: 'healthy' | 'warning' | 'critical';
-    issues: string[];
-    metrics: unknown;
-    timestamp: Date;
+
+interface IQueueHealthStatus {
+  status: 'healthy' | 'warning' | 'critical';
+  issues: string[];
+  metrics: any;
+  timestamp: Date;
 }
-interface BulkRetryResult {
-    requeued: number;
-    skipped: number;
-    errors: Array<{
-        jobId: string | number;
-        reason: string;
-    }>;
+
+interface IBulkRetryResult {
+  requeued: number;
+  skipped: number;
+  errors: Array<{ jobId: string | number; reason: string }>;
 }
 // ─── Minimal monitoring service (extracted logic, no decorators)
 class QueueMonitoringService {
-    private readonly metricsHistory: TimestampedMetrics[] = [];
-    private readonly MAX_HISTORY_SIZE = 100;
-    private readonly THRESHOLDS = {
-        failureRateCritical: 0.2,
-        failureRateWarning: 0.1,
-        backlogCritical: 5000,
-        backlogWarning: 1000,
-        activeJobsCritical: 500,
-        activeJobsWarning: 100,
-        delayedJobsWarning: 500,
-        stuckThresholdMs: 300000,
+  private readonly metricsHistory: ITimestampedMetrics[] = [];
+  private readonly MAX_HISTORY_SIZE = 100;
+  private readonly THRESHOLDS = {
+    failureRateCritical: 0.2,
+    failureRateWarning: 0.1,
+    backlogCritical: 5_000,
+    backlogWarning: 1_000,
+    activeJobsCritical: 500,
+    activeJobsWarning: 100,
+    delayedJobsWarning: 500,
+    stuckThresholdMs: 300_000,
+  };
+
+  constructor(private readonly queue: any) {}
+
+  async getQueueMetrics(): Promise<ITimestampedMetrics> {
+    const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
+      this.queue.getWaitingCount(),
+      this.queue.getActiveCount(),
+      this.queue.getCompletedCount(),
+      this.queue.getFailedCount(),
+      this.queue.getDelayedCount(),
+      this.queue.getPausedCount(),
+    ]);
+
+    const total = waiting + active + completed + failed + delayed + paused;
+    const capturedAt = Date.now();
+    const throughput = this.calculateThroughput(completed, capturedAt);
+    const avgProcessingTime = await this.calculateAvgProcessingTime();
+
+    const metrics: ITimestampedMetrics = {
+      queueName: 'default',
+      waiting,
+      active,
+      completed,
+      failed,
+      delayed,
+      paused,
+      total,
+      throughput,
+      avgProcessingTime,
+      capturedAt,
     };
-    constructor(private readonly queue: unknown) { }
-    async getQueueMetrics(): Promise<TimestampedMetrics> {
-        const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
-            this.queue.getWaitingCount(),
-            this.queue.getActiveCount(),
-            this.queue.getCompletedCount(),
-            this.queue.getFailedCount(),
-            this.queue.getDelayedCount(),
-            this.queue.getPausedCount(),
-        ]);
-        const total = waiting + active + completed + failed + delayed + paused;
-        const capturedAt = Date.now();
-        const throughput = this.calculateThroughput(completed, capturedAt);
-        const avgProcessingTime = await this.calculateAvgProcessingTime();
-        const metrics: TimestampedMetrics = {
-            queueName: 'default',
-            waiting,
-            active,
-            completed,
-            failed,
-            delayed,
-            paused,
-            total,
-            throughput,
-            avgProcessingTime,
-            capturedAt,
-        };
-        this.appendToHistory(metrics);
-        return metrics;
+
+    this.appendToHistory(metrics);
+    return metrics;
+  }
+
+  getMetricsHistory(): ITimestampedMetrics[] {
+    return [...this.metricsHistory];
+  }
+
+  async checkQueueHealth(): Promise<IQueueHealthStatus> {
+    const metrics = await this.getQueueMetrics();
+    const issues: string[] = [];
+    let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+
+    const failureRate = metrics.total > 0 ? metrics.failed / metrics.total : 0;
+    if (failureRate > this.THRESHOLDS.failureRateCritical) {
+      issues.push(`Critical failure rate: ${(failureRate * 100).toFixed(1)}%`);
+      status = 'critical';
+    } else if (failureRate > this.THRESHOLDS.failureRateWarning) {
+      issues.push(`Elevated failure rate: ${(failureRate * 100).toFixed(1)}%`);
+      if (status === 'healthy') status = 'warning';
     }
     getMetricsHistory(): TimestampedMetrics[] {
         return [...this.metricsHistory];
@@ -157,13 +179,20 @@ class QueueMonitoringService {
         }
         return result;
     }
-    async getStuckJobs(thresholdMs = 300000) {
-        const active = await this.queue.getActive();
-        const now = Date.now();
-        return active.filter((job: unknown) => {
-            const startedAt = job.processedOn ?? job.timestamp;
-            return now - startedAt > thresholdMs;
-        });
+    return this.queue.getFailed(offset, offset + limit - 1);
+  }
+
+  async retryAllFailedJobs(): Promise<IBulkRetryResult> {
+    const failed = await this.queue.getFailed(0, 10_000);
+    const result: IBulkRetryResult = { requeued: 0, skipped: 0, errors: [] };
+    for (const job of failed) {
+      try {
+        await job.retry();
+        result.requeued++;
+      } catch (err) {
+        result.errors.push({ jobId: job.id, reason: (err as Error).message });
+        result.skipped++;
+      }
     }
     async getRetryAnalytics(windowMinutes = 60) {
         const windowMs = windowMinutes * 60 * 1000;
@@ -252,6 +281,24 @@ class QueueMonitoringService {
             return 'down';
         return 'stable';
     }
+  }
+
+  private appendToHistory(metrics: ITimestampedMetrics): void {
+    this.metricsHistory.push(metrics);
+    if (this.metricsHistory.length > this.MAX_HISTORY_SIZE) this.metricsHistory.shift();
+  }
+
+  private calculateTrend(values: number[]): 'up' | 'down' | 'stable' {
+    if (values.length < 2) return 'stable';
+    const recent = values.slice(-10);
+    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const latest = recent[recent.length - 1];
+    if (avg === 0) return 'stable';
+    const changePct = ((latest - avg) / avg) * 100;
+    if (changePct > 10) return 'up';
+    if (changePct < -10) return 'down';
+    return 'stable';
+  }
 }
 // ─── Controller logic (extracted, no NestJS decorators)
 class QueueController {

@@ -1,0 +1,227 @@
+groups:
+  - name: teachlink-backend
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(api_requests_total{status=~"5.."}[5m]))
+            / sum(rate(api_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: '5xx error rate above 5% for 5m'
+          description: 'Error rate is {{ $value | humanizePercentage }} on {{ $labels.service }}.'
+          runbook: 'https://github.com/teachlink/backend/blob/main/docs/monitoring-dashboard.md#runbook'
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(api_response_time_bucket[5m]))
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'p95 API latency above 1s for 10m'
+          description: 'p95 latency is {{ $value }}s.'
+
+      - alert: BackendDown
+        expr: up{job="teachlink-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: 'Prometheus cannot scrape teachlink-backend'
+          description: 'Target {{ $labels.instance }} has been unreachable for 2m.'
+
+      - alert: AnomalySpike
+        expr: increase(anomalies_detected_total[15m]) > 10
+        for: 15m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Anomaly detector reported >10 anomalies in 15m'
+          description: '{{ $value }} anomalies detected in the last 15 minutes.'
+
+      - alert: EventLoopLagHigh
+        expr: nodejs_eventloop_lag_seconds > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Node.js event loop lag above 200ms for 5m'
+          description: 'Event loop lag is {{ $value }}s.'
+
+      - alert: InfrastructureCostHigh
+        expr: increase(infrastructure_hourly_cost_usd[24h]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Estimated infrastructure cost > $100 in last 24h'
+          description: 'Estimated spend over the last 24 hours is {{ $value }} USD. Adjust budgets or investigate spikes.'
+  - name: teachlink-queue
+    rules:
+      - alert: QueueDepthHigh
+        expr: |
+          sum by (queue_name) (
+            bullmq_queue_waiting_count or
+            queue_jobs_waiting{job="teachlink-backend"}
+          ) > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Queue {{ $labels.queue_name }} depth above 500 for 5m'
+          description: '{{ $value }} jobs waiting in queue {{ $labels.queue_name }}.'
+
+      - alert: QueueProcessingStalled
+        expr: |
+          increase(queue_processing_duration_seconds_count[10m]) == 0
+            and on() (time() - process_start_time_seconds) > 600
+        for: 10m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: 'No queue jobs processed in 10m'
+          description: 'Queue worker appears stalled — no jobs completed in the last 10 minutes.'
+
+      - alert: QueueJobFailureRateHigh
+        expr: |
+          sum(rate(queue_processing_duration_seconds_count{status="failed"}[5m]))
+            / sum(rate(queue_processing_duration_seconds_count[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Queue job failure rate above 10% for 5m'
+          description: 'Queue failure rate is {{ $value | humanizePercentage }}.'
+
+  - name: teachlink-memory
+    rules:
+      - alert: NodeHeapUsageHigh
+        expr: |
+          nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Node.js heap usage above 85% for 5m'
+          description: 'Heap usage is {{ $value | humanizePercentage }} ({{ $value | humanize1024 }}B used).'
+
+      - alert: NodeHeapUsageCritical
+        expr: |
+          nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: 'Node.js heap usage above 95% — OOM risk'
+          description: 'Heap usage is {{ $value | humanizePercentage }}. Restart may be imminent.'
+
+      - alert: ProcessMemoryHigh
+        expr: process_resident_memory_bytes > 1.5e9
+        for: 10m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Process RSS above 1.5 GB for 10m'
+          description: 'RSS is {{ $value | humanize1024 }}B.'
+
+  - name: teachlink-database
+    rules:
+      - alert: DBPoolExhausted
+        expr: |
+          db_pool_connections_acquired_total - db_pool_connections_released_total
+            >= db_pool_size * 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: 'DB connection pool >90% utilised for 5m'
+          description: 'Pool utilisation is {{ $value | humanizePercentage }}. New requests may queue or fail.'
+
+      - alert: DBQueryLatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(db_query_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'p95 DB query latency above 500ms for 5m'
+          description: 'p95 DB latency is {{ $value }}s.'
+
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: 'Prometheus cannot scrape postgres_exporter'
+          description: 'PostgreSQL exporter at {{ $labels.instance }} has been unreachable for 2m.'
+
+  - name: teachlink-cache
+    rules:
+      - alert: CacheHitRateLow
+        expr: cache_hit_rate_percentage{cache_type="redis"} < 60
+        for: 10m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'Redis cache hit rate below 60% for 10m'
+          description: 'Cache hit rate is {{ $value }}%. High miss rate increases DB load.'
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: 'Prometheus cannot scrape redis_exporter'
+          description: 'Redis exporter at {{ $labels.instance }} has been unreachable for 2m.'
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: 'Redis memory usage above 85% for 5m'
+          description: 'Redis memory is {{ $value | humanizePercentage }} of maxmemory limit.'
+
+  - name: teachlink-payments
+    rules:
+      - alert: PaymentFailureRateHigh
+        expr: |
+          sum(rate(backup_operations_total{operation_type="payment",status="failed"}[5m]))
+            / sum(rate(backup_operations_total{operation_type="payment"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: teachlink-backend
+        annotations:
+          summary: 'Payment failure rate above 5% for 5m'
+          description: 'Payment failure rate is {{ $value | humanizePercentage }}. Revenue impact likely.'
+          runbook: 'https://github.com/teachlink/backend/blob/main/docs/monitoring-dashboard.md#payments-runbook'

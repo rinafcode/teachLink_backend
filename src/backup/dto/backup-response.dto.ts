@@ -2,7 +2,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { BackupStatus } from '../enums/backup-status.enum';
 import { BackupType } from '../enums/backup-type.enum';
 import { Region } from '../enums/region.enum';
-import { IsNotEmpty, IsUUID, IsString, IsOptional, IsNumber, IsBoolean, IsDate, } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsDate,
+} from 'class-validator';
+
+/**
+ * Defines the backup Response payload.
+ */
 export class BackupResponseDto {
     @ApiProperty()
     @IsNotEmpty()

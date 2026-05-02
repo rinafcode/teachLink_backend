@@ -3,6 +3,10 @@ import { SharedDocumentService } from './documents/shared-document.service';
 import { WhiteboardService } from './whiteboard/whiteboard.service';
 import { VersionControlService } from './versioning/version-control.service';
 import { CollaborationPermissionsService } from './permissions/collaboration-permissions.service';
+
+/**
+ * Provides collaboration operations.
+ */
 @Injectable()
 export class CollaborationService {
     constructor(private readonly sharedDocumentService: SharedDocumentService, private readonly whiteboardService: WhiteboardService, private readonly versionControlService: VersionControlService, private readonly permissionsService: CollaborationPermissionsService) { }

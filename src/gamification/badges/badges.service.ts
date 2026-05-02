@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { Badge } from '../entities/badge.entity';
 import { UserBadge } from '../entities/user-badge.entity';
 import { User } from '../../users/entities/user.entity';
+
+/**
+ * Provides badges operations.
+ */
 @Injectable()
 export class BadgesService {
     constructor(

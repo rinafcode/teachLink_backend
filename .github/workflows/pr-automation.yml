@@ -1,0 +1,161 @@
+name: PR Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label-and-review:
+    name: Label & Request Reviews
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      issues: read
+    steps:
+      - name: Detect changed paths
+        id: changed-files
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: 'shell'
+          filters: |
+            auth:
+              - src/auth/**/*
+              - src/security/**/*
+            payments:
+              - src/payments/**/*
+              - src/tenancy/billing/**/*
+            notifications:
+              - src/notifications/**/*
+              - src/messaging/**/*
+              - src/collaboration/**/*
+            analytics:
+              - src/analytics/**/*
+              - src/data-warehouse/**/*
+              - src/ab-testing/**/*
+            ci:
+              - .github/workflows/**/*
+              - .github/CODEOWNERS
+            config:
+              - tsconfig*.json
+              - package.json
+              - package-lock.json
+              - nest-cli.json
+
+      - name: Apply area labels
+        uses: actions/github-script@v7
+        if: >-
+          steps.changed-files.outputs.auth == 'true' ||
+          steps.changed-files.outputs.payments == 'true' ||
+          steps.changed-files.outputs.notifications == 'true' ||
+          steps.changed-files.outputs.analytics == 'true' ||
+          steps.changed-files.outputs.ci == 'true' ||
+          steps.changed-files.outputs.config == 'true'
+        with:
+          script: |
+            const labels = [];
+            if ('${{ steps.changed-files.outputs.auth }}' === 'true') labels.push('area:auth');
+            if ('${{ steps.changed-files.outputs.payments }}' === 'true') labels.push('area:payments');
+            if ('${{ steps.changed-files.outputs.notifications }}' === 'true') labels.push('area:notifications');
+            if ('${{ steps.changed-files.outputs.analytics }}' === 'true') labels.push('area:analytics');
+            if ('${{ steps.changed-files.outputs.ci }}' === 'true') labels.push('area:ci');
+            if ('${{ steps.changed-files.outputs.config }}' === 'true') labels.push('area:config');
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels
+              });
+              console.log(`Added labels: ${labels.join(', ')}`);
+            }
+
+      - name: Request code owner reviews
+        uses: actions/github-script@v7
+        if: hashFiles('.github/CODEOWNERS') != ''
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const content = fs.readFileSync('.github/CODEOWNERS', 'utf8');
+              const lines = content.split('\n');
+              const ownerTeams = new Set();
+
+              // Get list of changed files from PR
+              const files = await github.rest.pulls.listFiles({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                per_page: 300
+              });
+
+              const changedFiles = files.data.map(f => f.filename);
+              console.log(`Processing ${changedFiles.length} changed files`);
+
+              lines.forEach(line => {
+                if (line.startsWith('#') || line.trim() === '') return;
+                const match = line.match(/^(\S+)\s+(.+)$/);
+                if (!match) return;
+
+                const [pattern, owners] = match;
+                const ownerList = owners.split(' ').filter(o => o.startsWith('@'));
+
+                for (const file of changedFiles) {
+                  const glob = pattern.replace(/\*/g, '.*').replace(/\//g, '\\/');
+                  const regex = new RegExp('^' + glob);
+                  if (regex.test(file)) {
+                    ownerList.forEach(o => ownerTeams.add(o));
+                  }
+                }
+              });
+
+              if (ownerTeams.size > 0) {
+                const reviewers = Array.from(ownerTeams);
+                console.log(`Requesting reviews from: ${reviewers.join(', ')}`);
+                
+                await github.rest.pulls.requestReviewers({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  reviewers: reviewers.filter(r => !r.startsWith('@')),
+                  team_reviewers: reviewers.filter(r => r.startsWith('@')).map(r => r.substring(1))
+                });
+              }
+            } catch (error) {
+              console.log(`Warning: Could not request code owner reviews: ${error.message}`);
+            }
+
+      - name: Add size label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const files = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const total = files.data.reduce((sum, f) => sum + f.additions + f.deletions, 0);
+
+            let sizeLabel;
+            if (total < 100) sizeLabel = 'size:small';
+            else if (total < 400) sizeLabel = 'size:medium';
+            else if (total < 1000) sizeLabel = 'size:large';
+            else sizeLabel = 'size:xlarge';
+
+            await github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: [sizeLabel]
+            });
+            console.log(`Added size label: ${sizeLabel}`);

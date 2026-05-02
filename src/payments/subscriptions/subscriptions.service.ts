@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Provides subscriptions operations.
+ */
 @Injectable()
 export class SubscriptionsService {
     // Placeholder implementation

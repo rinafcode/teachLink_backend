@@ -1,15 +1,64 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-export interface TimeoutConfig {
-    default: number;
-    endpoints: Record<string, number>;
-    methods: Record<string, number>;
+
+export interface ITimeoutConfig {
+  default: number;
+  endpoints: Record<string, number>;
+  methods: Record<string, number>;
 }
+
+/**
+ * Provides timeout Config operations.
+ */
 @Injectable()
 export class TimeoutConfigService {
-    private readonly config: TimeoutConfig;
-    constructor(private configService: ConfigService) {
-        this.config = this.loadConfig();
+  private readonly config: ITimeoutConfig;
+
+  constructor(private configService: ConfigService) {
+    this.config = this.loadConfig();
+  }
+
+  private loadConfig(): ITimeoutConfig {
+    return {
+      default: parseInt(process.env.REQUEST_TIMEOUT || '30000', 10), // 30 seconds
+      endpoints: {
+        // API endpoints with custom timeouts
+        '/auth/login': 10000, // 10 seconds for login
+        '/auth/register': 15000, // 15 seconds for registration
+        '/payments/create-payment-intent': 20000, // 20 seconds for payment processing
+        '/media/upload': 120000, // 2 minutes for file upload
+        '/backup/create': 300000, // 5 minutes for backup creation
+        '/search': 15000, // 15 seconds for search
+        '/email-marketing/campaigns/send': 60000, // 1 minute for campaign sending
+      },
+      methods: {
+        // HTTP method-specific timeouts
+        GET: 30000, // 30 seconds for GET requests
+        POST: 60000, // 1 minute for POST requests
+        PUT: 45000, // 45 seconds for PUT requests
+        DELETE: 30000, // 30 seconds for DELETE requests
+        PATCH: 45000, // 45 seconds for PATCH requests
+      },
+    };
+  }
+
+  /**
+   * Retrieves default Timeout.
+   * @returns The calculated numeric value.
+   */
+  getDefaultTimeout(): number {
+    return this.config.default;
+  }
+
+  /**
+   * Retrieves endpoint Timeout.
+   * @param path The path.
+   * @returns The operation result.
+   */
+  getEndpointTimeout(path: string): number | null {
+    // Check for exact path match
+    if (this.config.endpoints[path]) {
+      return this.config.endpoints[path];
     }
     private loadConfig(): TimeoutConfig {
         return {
@@ -34,8 +83,30 @@ export class TimeoutConfigService {
             },
         };
     }
-    getDefaultTimeout(): number {
-        return this.config.default;
+
+    return null;
+  }
+
+  /**
+   * Retrieves method Timeout.
+   * @param method The method.
+   * @returns The operation result.
+   */
+  getMethodTimeout(method: string): number | null {
+    return this.config.methods[method.toUpperCase()] || null;
+  }
+
+  /**
+   * Retrieves timeout For Request.
+   * @param method The method.
+   * @param path The path.
+   * @returns The calculated numeric value.
+   */
+  getTimeoutForRequest(method: string, path: string): number {
+    // Priority: endpoint > method > default
+    const endpointTimeout = this.getEndpointTimeout(path);
+    if (endpointTimeout) {
+      return endpointTimeout;
     }
     getEndpointTimeout(path: string): number | null {
         // Check for exact path match
@@ -85,4 +156,36 @@ export class TimeoutConfigService {
     getConfig(): TimeoutConfig {
         return { ...this.config };
     }
+    return false;
+  }
+
+  /**
+   * Updates endpoint Timeout.
+   * @param path The path.
+   * @param timeout The timeout.
+   */
+  updateEndpointTimeout(path: string, timeout: number): void {
+    this.config.endpoints[path] = timeout;
+  }
+
+  /**
+   * Updates method Timeout.
+   * @param method The method.
+   * @param timeout The timeout.
+   */
+  updateMethodTimeout(method: string, timeout: number): void {
+    this.config.methods[method.toUpperCase()] = timeout;
+  }
+
+  /**
+   * Updates default Timeout.
+   * @param timeout The timeout.
+   */
+  updateDefaultTimeout(timeout: number): void {
+    this.config.default = timeout;
+  }
+
+  getConfig(): ITimeoutConfig {
+    return { ...this.config };
+  }
 }

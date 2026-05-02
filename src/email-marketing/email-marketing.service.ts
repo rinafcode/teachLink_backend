@@ -14,6 +14,10 @@ import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { ScheduleCampaignDto } from './dto/schedule-campaign.dto';
 import { CampaignStatus } from './enums/campaign-status.enum';
+
+/**
+ * Provides email Marketing operations.
+ */
 @Injectable()
 export class EmailMarketingService {
     constructor(

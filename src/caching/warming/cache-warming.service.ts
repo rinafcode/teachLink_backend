@@ -3,76 +3,118 @@ import { ConfigService } from '@nestjs/config';
 import { CachingService } from '../caching.service';
 import { CacheStrategiesService } from '../strategies/cache-strategies.service';
 import { CACHE_TTL, CACHE_PREFIXES } from '../caching.constants';
-export interface CacheWarmingConfig {
-    /**
-     * Whether cache warming is enabled
-     */
-    enabled: boolean;
-    /**
-     * Warm popular courses on startup
-     */
-    warmPopularCourses: boolean;
-    /**
-     * Warm featured content on startup
-     */
-    warmFeaturedContent: boolean;
-    /**
-     * Number of popular courses to warm
-     */
-    popularCoursesLimit: number;
-    /**
-     * Warm system configuration
-     */
-    warmSystemConfig: boolean;
-    /**
-     * Delay before starting cache warming (ms)
-     */
-    startupDelay: number;
+
+export interface ICacheWarmingConfig {
+  /**
+   * Whether cache warming is enabled
+   */
+  enabled: boolean;
+
+  /**
+   * Warm popular courses on startup
+   */
+  warmPopularCourses: boolean;
+
+  /**
+   * Warm featured content on startup
+   */
+  warmFeaturedContent: boolean;
+
+  /**
+   * Number of popular courses to warm
+   */
+  popularCoursesLimit: number;
+
+  /**
+   * Warm system configuration
+   */
+  warmSystemConfig: boolean;
+
+  /**
+   * Delay before starting cache warming (ms)
+   */
+  startupDelay: number;
 }
-export interface WarmedData {
-    key: string;
-    type: string;
-    timestamp: Date;
+
+export interface IWarmedData {
+  key: string;
+  type: string;
+  timestamp: Date;
 }
 /**
  * Interface for data providers that can be warmed
  */
-export interface CacheWarmableProvider {
-    /**
-     * Get data to warm into cache
-     */
-    getWarmableData(): Promise<Array<{
-        key: string;
-        data: unknown;
-        ttl?: number;
-    }>>;
+export interface ICacheWarmableProvider {
+  /**
+   * Get data to warm into cache
+   */
+  getWarmableData(): Promise<Array<{ key: string; data: any; ttl?: number }>>;
 }
+
+/**
+ * Provides cache Warming operations.
+ */
 @Injectable()
 export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
-    private readonly logger = new Logger(CacheWarmingService.name);
-    private readonly config: CacheWarmingConfig;
-    private warmedKeys: Map<string, WarmedData> = new Map();
-    private warmupInterval?: NodeJS.Timeout;
-    private dataProviders: CacheWarmableProvider[] = [];
-    constructor(private readonly cachingService: CachingService, private readonly strategiesService: CacheStrategiesService, private readonly configService: ConfigService, 
-    @Optional()
-    @Inject('CACHE_WARMING_CONFIG')
-    config?: Partial<CacheWarmingConfig>) {
-        this.config = {
-            enabled: this.configService.get<string>('CACHE_WARMING_ENABLED') !== 'false',
-            warmPopularCourses: true,
-            warmFeaturedContent: true,
-            popularCoursesLimit: parseInt(this.configService.get<string>('CACHE_WARMING_POPULAR_LIMIT') || '10', 10),
-            warmSystemConfig: true,
-            startupDelay: parseInt(this.configService.get<string>('CACHE_WARMING_DELAY') || '5000', 10),
-            ...config,
-        };
+  private readonly logger = new Logger(CacheWarmingService.name);
+  private readonly config: ICacheWarmingConfig;
+  private warmedKeys: Map<string, IWarmedData> = new Map();
+  private warmupInterval?: NodeJS.Timeout;
+  private dataProviders: ICacheWarmableProvider[] = [];
+
+  constructor(
+    private readonly cachingService: CachingService,
+    private readonly strategiesService: CacheStrategiesService,
+    private readonly configService: ConfigService,
+    @Optional() @Inject('CACHE_WARMING_CONFIG') config?: Partial<ICacheWarmingConfig>,
+  ) {
+    this.config = {
+      enabled: this.configService.get<string>('CACHE_WARMING_ENABLED') !== 'false',
+      warmPopularCourses: true,
+      warmFeaturedContent: true,
+      popularCoursesLimit: parseInt(
+        this.configService.get<string>('CACHE_WARMING_POPULAR_LIMIT') || '10',
+        10,
+      ),
+      warmSystemConfig: true,
+      startupDelay: parseInt(this.configService.get<string>('CACHE_WARMING_DELAY') || '5000', 10),
+      ...config,
+    };
+  }
+
+  /**
+   * Register a data provider for cache warming
+   */
+  registerDataProvider(provider: ICacheWarmableProvider): void {
+    this.dataProviders.push(provider);
+  }
+
+  /**
+   * Executes on Module Init.
+   */
+  async onModuleInit(): Promise<void> {
+    if (!this.config.enabled) {
+      this.logger.log('Cache warming is disabled');
+      return;
     }
-    /**
-     * Register a data provider for cache warming
-     */
-    registerDataProvider(provider: CacheWarmableProvider): void {
-        this.dataProviders.push(provider);
+
+    // Delay warming to allow the application to fully start
+    setTimeout(() => {
+      this.warmCache().catch((error) => {
+        this.logger.error('Failed to warm cache on startup', error);
+      });
+    }, this.config.startupDelay);
+
+    // Schedule periodic refresh of warmed data
+    this.schedulePeriodicWarmup();
+  }
+
+  /**
+   * Executes on Module Destroy.
+   */
+  onModuleDestroy(): void {
+    if (this.warmupInterval) {
+      clearInterval(this.warmupInterval);
     }
     async onModuleInit(): Promise<void> {
         if (!this.config.enabled) {
@@ -243,16 +285,34 @@ export class CacheWarmingService implements OnModuleInit, OnModuleDestroy {
         this.warmedKeys.clear();
         await this.warmCache();
     }
-    /**
-     * Check if a key was warmed
-     */
-    isWarmed(key: string): boolean {
-        return this.warmedKeys.has(key);
-    }
-    /**
-     * Get all warmed keys
-     */
-    getWarmedKeys(): WarmedData[] {
-        return Array.from(this.warmedKeys.values());
-    }
+
+    return {
+      totalKeys: this.warmedKeys.size,
+      byType,
+      lastWarmup,
+    };
+  }
+
+  /**
+   * Force refresh all warmed data
+   */
+  async refreshAll(): Promise<void> {
+    this.logger.log('Force refreshing all warmed data...');
+    this.warmedKeys.clear();
+    await this.warmCache();
+  }
+
+  /**
+   * Check if a key was warmed
+   */
+  isWarmed(key: string): boolean {
+    return this.warmedKeys.has(key);
+  }
+
+  /**
+   * Get all warmed keys
+   */
+  getWarmedKeys(): IWarmedData[] {
+    return Array.from(this.warmedKeys.values());
+  }
 }

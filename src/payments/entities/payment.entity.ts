@@ -1,4 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
 export enum PaymentStatus {
@@ -16,44 +26,70 @@ export enum PaymentMethod {
     CRYPTO = 'crypto',
     WALLET = 'wallet'
 }
+
+/**
+ * Represents the payment entity.
+ */
 @Entity('payments')
 @Index(['userId', 'status'])
 export class Payment {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    amount: number;
-    @Column({ type: 'varchar', length: 3, default: 'USD' })
-    currency: string;
-    @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
-    @Index()
-    status: PaymentStatus;
-    @Column({ type: 'enum', enum: PaymentMethod })
-    method: PaymentMethod;
-    @Column({ type: 'varchar', nullable: true })
-    provider: string; // 'stripe', 'paypal', etc.
-    @Column({ type: 'varchar', nullable: true })
-    providerPaymentId: string; // External payment ID from provider
-    @Column({ type: 'jsonb', nullable: true })
-    metadata: Record<string, unknown>;
-    @ManyToOne(() => User, (user) => user.courses)
-    @JoinColumn({ name: 'user_id' })
-    user: User;
-    @Column({ name: 'user_id' })
-    @Index()
-    userId: string;
-    @ManyToOne(() => Course, (course) => course.id)
-    @JoinColumn({ name: 'course_id' })
-    course: Course;
-    @Column({ name: 'course_id', nullable: true })
-    @Index()
-    courseId: string;
-    @Column({ type: 'boolean', default: false })
-    isSubscription: boolean;
-    @Column({ type: 'varchar', nullable: true })
-    subscriptionId: string;
-    @CreateDateColumn()
-    createdAt: Date;
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @VersionColumn()
+  version: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  amount: number;
+
+  @Column({ type: 'varchar', length: 3, default: 'USD' })
+  currency: string;
+
+  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Index()
+  status: PaymentStatus;
+
+  @Column({ type: 'enum', enum: PaymentMethod })
+  method: PaymentMethod;
+
+  @Column({ type: 'varchar', nullable: true })
+  provider: string; // 'stripe', 'paypal', etc.
+
+  @Column({ type: 'varchar', nullable: true })
+  providerPaymentId: string; // External payment ID from provider
+
+  @Column({ type: 'jsonb', nullable: true })
+  metadata: Record<string, any>;
+
+  @ManyToOne(() => User, (user) => user.courses)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id' })
+  @Index()
+  userId: string;
+
+  @ManyToOne(() => Course, (course) => course.id)
+  @JoinColumn({ name: 'course_id' })
+  course: Course;
+
+  @Column({ name: 'course_id', nullable: true })
+  @Index()
+  courseId: string;
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Index()
+  idempotencyKey: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  isSubscription: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  subscriptionId: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

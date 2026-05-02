@@ -8,7 +8,7 @@ import { Question } from './entities/question.entity';
 import { AssessmentStatus } from './enums/assessment-status.enum';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { FeedbackGenerationService } from './feedback/feedback-generation.service';
-import { createMockRepository, createMockQueryBuilder, } from 'test/utils/mock-factories';
+import { createMockRepository, createMockQueryBuilder } from 'test/utils/mock-factories';
 import { Repository } from 'typeorm';
 describe('AssessmentsService', () => {
     // ─────────────────────────────────────────────────────────────────────────
@@ -335,4 +335,196 @@ describe('AssessmentsService', () => {
             });
         });
     });
+
+    it('should create and save a new assessment', async () => {
+      const result = await service.create(createData);
+
+      expect(result).toEqual(mockAssessment);
+      expect(mockAssessmentRepo.create).toHaveBeenCalledWith(createData);
+      expect(mockAssessmentRepo.save).toHaveBeenCalledWith(mockAssessment);
+    });
+
+    it('should handle array return from save', async () => {
+      const savedArray = [mockAssessment];
+      mockAssessmentRepo.save.mockResolvedValue(savedArray as any);
+
+      const result = await service.create(createData);
+
+      expect(result).toEqual(mockAssessment);
+    });
+  });
+
+  describe('update', () => {
+    const assessmentId = 'assessment-1';
+    const updateData = { title: 'Updated Title' };
+    const mockAssessment = {
+      id: assessmentId,
+      title: 'Updated Title',
+      description: 'Original description',
+    };
+
+    beforeEach(() => {
+      mockAssessmentRepo.update.mockResolvedValue({ affected: 1, raw: {}, generatedMaps: [] });
+      mockAssessmentRepo.findOne.mockResolvedValue(mockAssessment);
+    });
+
+    it('should update assessment and return updated entity', async () => {
+      const result = await service.update(assessmentId, updateData);
+
+      expect(result).toEqual(mockAssessment);
+      expect(mockAssessmentRepo.update).toHaveBeenCalledWith(assessmentId, updateData);
+      expect(mockAssessmentRepo.findOne).toHaveBeenCalledWith({
+        where: { id: assessmentId },
+        relations: ['questions'],
+      });
+    });
+  });
+
+  describe('remove', () => {
+    const assessmentId = 'assessment-1';
+    const mockAssessment = {
+      id: assessmentId,
+      title: 'Test Assessment',
+    };
+
+    beforeEach(() => {
+      mockAssessmentRepo.findOne.mockResolvedValue(mockAssessment);
+      mockAssessmentRepo.manager = {
+        transaction: jest.fn().mockImplementation(async (fn) =>
+          fn({
+            getRepository: jest.fn().mockReturnValue({
+              createQueryBuilder: jest.fn().mockReturnValue({
+                softDelete: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                execute: jest.fn().mockResolvedValue(undefined),
+              }),
+            }),
+          }),
+        ),
+      } as any;
+    });
+
+    it('should soft delete assessment and its questions', async () => {
+      await service.remove(assessmentId);
+
+      expect(mockAssessmentRepo.findOne).toHaveBeenCalledWith({
+        where: { id: assessmentId },
+        relations: ['questions'],
+      });
+      expect(mockAssessmentRepo.manager.transaction).toHaveBeenCalled();
+    });
+
+    it('should do nothing if assessment not found', async () => {
+      mockAssessmentRepo.findOne.mockResolvedValue(null);
+
+      await service.remove(assessmentId);
+
+      expect(mockAssessmentRepo.manager.transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('submitAssessment', () => {
+    const attemptId = 'attempt-1';
+    const answers = [
+      { questionId: 'q1', response: 'Answer 1' },
+      { questionId: 'q2', response: 'Answer 2' },
+    ];
+
+    const mockAttempt = {
+      id: attemptId,
+      startedAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      assessment: {
+        id: 'assessment-1',
+        durationMinutes: 60,
+        questions: [
+          { id: 'q1', points: 10 },
+          { id: 'q2', points: 15 },
+        ],
+      },
+    };
+
+    beforeEach(() => {
+      mockAttemptRepo.findOne.mockResolvedValue(mockAttempt as any);
+      mockScoringService.calculate
+        .mockReturnValueOnce(8) // Question 1: 8/10 points
+        .mockReturnValueOnce(12); // Question 2: 12/15 points
+      mockAnswerRepo.save.mockResolvedValue({} as any);
+      mockAttemptRepo.save.mockImplementation(async (attempt) => attempt);
+      mockFeedbackService.generate.mockReturnValue({
+        overall: 'Good performance',
+        strengths: ['Good understanding'],
+        improvements: ['Need more practice'],
+      });
+    });
+
+    it('should submit assessment and calculate score', async () => {
+      const result = await service.submitAssessment(attemptId, answers);
+
+      expect(result).toEqual({
+        attempt: {
+          ...mockAttempt,
+          score: 20, // 8 + 12
+          status: AssessmentStatus.GRADED,
+          submittedAt: expect.any(Date),
+        },
+        feedback: {
+          overall: 'Good performance',
+          strengths: ['Good understanding'],
+          improvements: ['Need more practice'],
+        },
+      });
+
+      expect(mockAttemptRepo.findOne).toHaveBeenCalledWith({
+        where: { id: attemptId },
+        relations: ['assessment', 'assessment.questions'],
+      });
+      expect(mockScoringService.calculate).toHaveBeenCalledTimes(2);
+      expect(mockAnswerRepo.save).toHaveBeenCalledTimes(2);
+      expect(mockFeedbackService.generate).toHaveBeenCalledWith(20, 25); // totalScore, maxScore
+    });
+
+    it('should mark as timed out if submitted after duration', async () => {
+      // Set startedAt to 2 hours ago, duration is 60 minutes
+      const oldAttempt = {
+        ...mockAttempt,
+        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      };
+      mockAttemptRepo.findOne.mockResolvedValue(oldAttempt as any);
+
+      const result = await service.submitAssessment(attemptId, answers);
+
+      expect(result.status).toBe(AssessmentStatus.TIMED_OUT);
+      expect(mockScoringService.calculate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getResults', () => {
+    const attemptId = 'attempt-1';
+    const mockResults = {
+      id: attemptId,
+      score: 85,
+      answers: [
+        {
+          id: 'answer-1',
+          question: { id: 'q1', question: 'Question 1' },
+          response: 'Answer 1',
+          awardedPoints: 8,
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      mockAttemptRepo.findOne.mockResolvedValue(mockResults as any);
+    });
+
+    it('should return assessment results with answers and questions', async () => {
+      const result = await service.getResults(attemptId);
+
+      expect(result).toEqual(mockResults);
+      expect(mockAttemptRepo.findOne).toHaveBeenCalledWith({
+        where: { id: attemptId },
+        relations: ['answers', 'answers.question'],
+      });
+    });
+  });
 });

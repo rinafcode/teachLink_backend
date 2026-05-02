@@ -1,6 +1,10 @@
 import { InputType, Field } from '@nestjs/graphql';
 import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
 import { UserRole, UserStatus } from '../../users/entities/user.entity';
+
+/**
+ * Provides create User Input behavior.
+ */
 @InputType()
 export class CreateUserInput {
     @Field()
@@ -25,6 +29,10 @@ export class CreateUserInput {
     @IsEnum(UserRole)
     role?: UserRole;
 }
+
+/**
+ * Provides update User Input behavior.
+ */
 @InputType()
 export class UpdateUserInput {
     @Field({ nullable: true })
@@ -48,6 +56,10 @@ export class UpdateUserInput {
     @IsEnum(UserStatus)
     status?: UserStatus;
 }
+
+/**
+ * Provides user Filter Input behavior.
+ */
 @InputType()
 export class UserFilterInput {
     @Field({ nullable: true })
