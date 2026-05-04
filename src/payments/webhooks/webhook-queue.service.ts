@@ -21,11 +21,10 @@ export interface IWebhookQueuePayload {
  */
 @Injectable()
 export class WebhookQueueService {
-  private readonly logger = new Logger(WebhookQueueService.name);
-
-  constructor(
+    private readonly logger = new Logger(WebhookQueueService.name);
+    constructor(
     @InjectQueue(QUEUE_NAMES.WEBHOOKS)
-    private readonly webhookQueue: Queue,
+    private readonly webhookQueue: Queue, 
     @InjectRepository(WebhookRetry)
     private readonly webhookRetryRepository: Repository<WebhookRetry>,
   ) {}
@@ -143,45 +142,4 @@ export class WebhookQueueService {
       this.logger.error(`Failed to requeue webhook: ${error.message}`);
       throw error;
     }
-  }
-
-  /**
-   * Get webhook retry status
-   */
-  async getWebhookStatus(webhookRetryId: string): Promise<WebhookRetry | null> {
-    return this.webhookRetryRepository.findOne({
-      where: { id: webhookRetryId },
-    });
-  }
-
-  /**
-   * Get all dead letter webhooks
-   */
-  async getDeadLetterWebhooks(limit: number = 100): Promise<WebhookRetry[]> {
-    return this.webhookRetryRepository.find({
-      where: { status: WebhookStatus.DEAD_LETTER },
-      order: { createdAt: 'DESC' },
-      take: limit,
-    });
-  }
-
-  /**
-   * Get pending webhooks
-   */
-  async getPendingWebhooks(limit: number = 100): Promise<WebhookRetry[]> {
-    return this.webhookRetryRepository.find({
-      where: { status: WebhookStatus.PENDING },
-      order: { createdAt: 'ASC' },
-      take: limit,
-    });
-  }
-
-  /**
-   * Get processing webhooks
-   */
-  async getProcessingWebhooks(): Promise<WebhookRetry[]> {
-    return this.webhookRetryRepository.find({
-      where: { status: WebhookStatus.PROCESSING },
-    });
-  }
 }

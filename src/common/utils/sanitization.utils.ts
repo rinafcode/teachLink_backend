@@ -4,18 +4,15 @@
  * @returns The resulting string value.
  */
 export function sanitizeSqlLike(input: string): string {
-  if (typeof input !== 'string') {
-    throw new TypeError('Expected a string for SQL LIKE sanitization');
-  }
-
-  const trimmed = input.trim();
-
-  // Prevent CR/LF/Tab injection and normalize whitespace
-  const normalized = trimmed.replace(/[\r\n\t]+/g, ' ');
-
-  // Escape SQL wildcard and escape characters for LIKE operators.
-  // This makes sure user-supplied `%`, `_`, and `\\` are treated literally.
-  return normalized.replace(/[\\%_]/g, (char) => `\\${char}`);
+    if (typeof input !== 'string') {
+        throw new TypeError('Expected a string for SQL LIKE sanitization');
+    }
+    const trimmed = input.trim();
+    // Prevent CR/LF/Tab injection and normalize whitespace
+    const normalized = trimmed.replace(/[\r\n\t]+/g, ' ');
+    // Escape SQL wildcard and escape characters for LIKE operators.
+    // This makes sure user-supplied `%`, `_`, and `\\` are treated literally.
+    return normalized.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
 /**

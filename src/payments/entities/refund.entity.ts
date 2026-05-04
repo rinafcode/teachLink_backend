@@ -10,13 +10,12 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
-
 export enum RefundStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  PROCESSED = 'processed',
-  FAILED = 'failed',
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+    PROCESSED = 'processed',
+    FAILED = 'failed'
 }
 
 /**

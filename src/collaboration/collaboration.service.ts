@@ -9,61 +9,42 @@ import { CollaborationPermissionsService } from './permissions/collaboration-per
  */
 @Injectable()
 export class CollaborationService {
-  constructor(
-    private readonly sharedDocumentService: SharedDocumentService,
-    private readonly whiteboardService: WhiteboardService,
-    private readonly versionControlService: VersionControlService,
-    private readonly permissionsService: CollaborationPermissionsService,
-  ) {}
-
-  /**
-   * Initialize a new collaborative session
-   */
-  async initializeSession(
-    sessionId: string,
-    userId: string,
-    resourceType: 'document' | 'whiteboard',
-  ): Promise<any> {
-    // Set up initial permissions and session tracking
-    await this.permissionsService.grantAccess(sessionId, userId);
-
-    if (resourceType === 'document') {
-      return await this.sharedDocumentService.initializeDocument(sessionId);
-    } else if (resourceType === 'whiteboard') {
-      return await this.whiteboardService.initializeWhiteboard(sessionId);
+    constructor(private readonly sharedDocumentService: SharedDocumentService, private readonly whiteboardService: WhiteboardService, private readonly versionControlService: VersionControlService, private readonly permissionsService: CollaborationPermissionsService) { }
+    /**
+     * Initialize a new collaborative session
+     */
+    async initializeSession(sessionId: string, userId: string, resourceType: 'document' | 'whiteboard'): Promise<unknown> {
+        // Set up initial permissions and session tracking
+        await this.permissionsService.grantAccess(sessionId, userId);
+        if (resourceType === 'document') {
+            return await this.sharedDocumentService.initializeDocument(sessionId);
+        }
+        else if (resourceType === 'whiteboard') {
+            return await this.whiteboardService.initializeWhiteboard(sessionId);
+        }
+        throw new Error(`Unsupported resource type: ${resourceType}`);
     }
-
-    throw new Error(`Unsupported resource type: ${resourceType}`);
-  }
-
-  /**
-   * Handle incoming collaborative changes
-   */
-  async handleCollaborativeChange(
-    sessionId: string,
-    userId: string,
-    operation: any,
-    resourceType: 'document' | 'whiteboard',
-  ): Promise<any> {
-    // Check permissions
-    const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
-    if (!hasPermission) {
-      throw new Error('User does not have permission to modify this resource');
+    /**
+     * Handle incoming collaborative changes
+     */
+    async handleCollaborativeChange(sessionId: string, userId: string, operation: unknown, resourceType: 'document' | 'whiteboard'): Promise<unknown> {
+        // Check permissions
+        const hasPermission = await this.permissionsService.hasAccess(sessionId, userId);
+        if (!hasPermission) {
+            throw new Error('User does not have permission to modify this resource');
+        }
+        if (resourceType === 'document') {
+            return await this.sharedDocumentService.applyOperation(sessionId, userId, operation);
+        }
+        else if (resourceType === 'whiteboard') {
+            return await this.whiteboardService.applyOperation(sessionId, userId, operation);
+        }
+        throw new Error(`Unsupported resource type: ${resourceType}`);
     }
-
-    if (resourceType === 'document') {
-      return await this.sharedDocumentService.applyOperation(sessionId, userId, operation);
-    } else if (resourceType === 'whiteboard') {
-      return await this.whiteboardService.applyOperation(sessionId, userId, operation);
+    /**
+     * Track changes for version control
+     */
+    async trackChange(sessionId: string, userId: string, change: unknown): Promise<unknown> {
+        return await this.versionControlService.recordChange(sessionId, userId, change);
     }
-
-    throw new Error(`Unsupported resource type: ${resourceType}`);
-  }
-
-  /**
-   * Track changes for version control
-   */
-  async trackChange(sessionId: string, userId: string, change: any): Promise<any> {
-    return await this.versionControlService.recordChange(sessionId, userId, change);
-  }
 }

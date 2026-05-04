@@ -31,45 +31,4 @@ export class TransactionalInterceptor implements NestInterceptor {
     if (!options) {
       return next.handle();
     }
-
-    const handler = context.getHandler();
-    const className = context.getClass().name;
-    const methodName = handler.name;
-
-    this.logger.debug(`Executing transactional method: ${className}.${methodName}`);
-
-    try {
-      let result;
-
-      if (options.retry) {
-        result = await this.transactionService.runWithRetry(
-          async (_manager) => {
-            // Execute the original method
-            return await next.handle().toPromise();
-          },
-          options.maxRetries || 3,
-          options.retryDelay || 1000,
-        );
-      } else if (options.isolationLevel) {
-        result = await this.transactionService.runWithIsolationLevel(
-          options.isolationLevel,
-          async (_manager) => {
-            return await next.handle().toPromise();
-          },
-        );
-      } else {
-        result = await this.transactionService.runInTransaction(async (_manager) => {
-          return await next.handle().toPromise();
-        });
-      }
-
-      return new Observable((subscriber) => {
-        subscriber.next(result);
-        subscriber.complete();
-      });
-    } catch (error) {
-      this.logger.error(`Transaction failed in ${className}.${methodName}:`, error);
-      throw error;
-    }
-  }
 }

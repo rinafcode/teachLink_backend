@@ -49,9 +49,49 @@ export interface IExtractedData {
   data: any[];
   metadata: {
     source: string;
-    timestamp: Date;
-    recordCount: number;
-  };
+    target: string;
+    status: 'pending' | 'running' | 'completed' | 'failed';
+    startTime: Date;
+    endTime?: Date;
+    duration?: number;
+    recordsProcessed: number;
+    recordsFailed: number;
+    config: ETLConfig;
+}
+export interface ETLConfig {
+    sourceConnection: DataSourceConfig;
+    targetConnection: DataSourceConfig;
+    transformations: TransformationRule[];
+    schedule?: string;
+    incremental?: boolean;
+    batchSize?: number;
+}
+export interface DataSourceConfig {
+    type: 'postgres' | 'mysql' | 'mongodb' | 'api' | 'file';
+    host?: string;
+    port?: number;
+    database?: string;
+    username?: string;
+    password?: string;
+    collection?: string;
+    endpoint?: string;
+    filePath?: string;
+    query?: string;
+}
+export interface TransformationRule {
+    id: string;
+    sourceField: string;
+    targetField: string;
+    transformationType: 'map' | 'filter' | 'aggregate' | 'calculate' | 'format';
+    config: unknown;
+}
+export interface ExtractedData {
+    data: unknown[];
+    metadata: {
+        source: string;
+        timestamp: Date;
+        recordCount: number;
+    };
 }
 
 export interface ITransformedData {
@@ -105,36 +145,40 @@ export class ETLPipelineService {
     if (!job) {
       throw new Error(`Job ${jobId} not found`);
     }
-
-    job.status = 'running';
-    job.startTime = new Date();
-
-    try {
-      // Extract phase
-      this.logger.log(`Starting extraction for job ${jobId}`);
-      const extractedData = await this.extract(job.config.sourceConnection);
-
-      // Transform phase
-      this.logger.log(`Starting transformation for job ${jobId}`);
-      const transformedData = await this.transform(extractedData, job.config.transformations);
-
-      // Load phase
-      this.logger.log(`Starting loading for job ${jobId}`);
-      await this.load(transformedData, job.config.targetConnection);
-
-      // Update job status
-      job.status = 'completed';
-      job.endTime = new Date();
-      job.duration = job.endTime.getTime() - job.startTime.getTime();
-      job.recordsProcessed = transformedData.data.length;
-
-      this.logger.log(`ETL pipeline ${jobId} completed successfully`);
-    } catch (error) {
-      this.logger.error(`ETL pipeline ${jobId} failed: ${error.message}`);
-      job.status = 'failed';
-      job.endTime = new Date();
-      job.duration = job.endTime.getTime() - job.startTime.getTime();
-      job.recordsFailed = 1;
+    /**
+     * Execute the ETL pipeline
+     */
+    private async executePipeline(jobId: string): Promise<void> {
+        const job = this.jobs.get(jobId);
+        if (!job) {
+            throw new Error(`Job ${jobId} not found`);
+        }
+        job.status = 'running';
+        job.startTime = new Date();
+        try {
+            // Extract phase
+            this.logger.log(`Starting extraction for job ${jobId}`);
+            const extractedData = await this.extract(job.config.sourceConnection);
+            // Transform phase
+            this.logger.log(`Starting transformation for job ${jobId}`);
+            const transformedData = await this.transform(extractedData, job.config.transformations);
+            // Load phase
+            this.logger.log(`Starting loading for job ${jobId}`);
+            await this.load(transformedData, job.config.targetConnection);
+            // Update job status
+            job.status = 'completed';
+            job.endTime = new Date();
+            job.duration = job.endTime.getTime() - job.startTime.getTime();
+            job.recordsProcessed = transformedData.data.length;
+            this.logger.log(`ETL pipeline ${jobId} completed successfully`);
+        }
+        catch (error) {
+            this.logger.error(`ETL pipeline ${jobId} failed: ${error.message}`);
+            job.status = 'failed';
+            job.endTime = new Date();
+            job.duration = job.endTime.getTime() - job.startTime.getTime();
+            job.recordsFailed = 1;
+        }
     }
   }
 
@@ -341,37 +385,94 @@ export class ETLPipelineService {
     if (config.mapping && config.mapping[value] !== undefined) {
       return config.mapping[value];
     }
-    return value;
-  }
-
-  private applyFilter(value: any, config: any): boolean {
-    if (config.operator === 'equals') {
-      return value === config.value;
-    } else if (config.operator === 'greaterThan') {
-      return value > config.value;
-    } else if (config.operator === 'lessThan') {
-      return value < config.value;
+    /**
+     * Cancel a running job
+     */
+    async cancelJob(jobId: string): Promise<boolean> {
+        const job = this.jobs.get(jobId);
+        if (!job || job.status !== 'running') {
+            return false;
+        }
+        job.status = 'failed';
+        job.endTime = new Date();
+        return true;
     }
-    return true;
-  }
-
-  private applyCalculation(item: any, config: any): any {
-    if (config.operation === 'sum') {
-      return (item[config.field1] || 0) + (item[config.field2] || 0);
-    } else if (config.operation === 'multiply') {
-      return (item[config.field1] || 0) * (item[config.field2] || 0);
+    // Helper methods for data source operations
+    private async extractFromPostgres(config: DataSourceConfig): Promise<unknown[]> {
+        // Implementation would use a PostgreSQL client
+        this.logger.log(`Extracting from PostgreSQL: ${config.database}`);
+        return []; // Placeholder
     }
-    return item[config.field1];
-  }
-
-  private applyFormatting(value: any, config: any): any {
-    if (config.format === 'date') {
-      return new Date(value).toISOString();
-    } else if (config.format === 'uppercase') {
-      return String(value).toUpperCase();
-    } else if (config.format === 'lowercase') {
-      return String(value).toLowerCase();
+    private async extractFromMysql(config: DataSourceConfig): Promise<unknown[]> {
+        // Implementation would use a MySQL client
+        this.logger.log(`Extracting from MySQL: ${config.database}`);
+        return []; // Placeholder
     }
-    return value;
-  }
+    private async extractFromMongoDB(config: DataSourceConfig): Promise<unknown[]> {
+        // Implementation would use MongoDB client
+        this.logger.log(`Extracting from MongoDB: ${config.database}`);
+        return []; // Placeholder
+    }
+    private async extractFromAPI(config: DataSourceConfig): Promise<unknown[]> {
+        // Implementation would make HTTP requests
+        this.logger.log(`Extracting from API: ${config.endpoint}`);
+        return []; // Placeholder
+    }
+    private async extractFromFile(config: DataSourceConfig): Promise<unknown[]> {
+        // Implementation would read from file system
+        this.logger.log(`Extracting from file: ${config.filePath}`);
+        return []; // Placeholder
+    }
+    private async loadToPostgres(data: TransformedData, config: DataSourceConfig): Promise<void> {
+        // Implementation would use a PostgreSQL client
+        this.logger.log(`Loading to PostgreSQL: ${config.database}`);
+    }
+    private async loadToMysql(data: TransformedData, config: DataSourceConfig): Promise<void> {
+        // Implementation would use a MySQL client
+        this.logger.log(`Loading to MySQL: ${config.database}`);
+    }
+    private async loadToMongoDB(data: TransformedData, config: DataSourceConfig): Promise<void> {
+        // Implementation would use MongoDB client
+        this.logger.log(`Loading to MongoDB: ${config.database}`);
+    }
+    // Transformation helper methods
+    private applyMapping(value: unknown, config: unknown): unknown {
+        if (config.mapping && config.mapping[value] !== undefined) {
+            return config.mapping[value];
+        }
+        return value;
+    }
+    private applyFilter(value: unknown, config: unknown): boolean {
+        if (config.operator === 'equals') {
+            return value === config.value;
+        }
+        else if (config.operator === 'greaterThan') {
+            return value > config.value;
+        }
+        else if (config.operator === 'lessThan') {
+            return value < config.value;
+        }
+        return true;
+    }
+    private applyCalculation(item: unknown, config: unknown): unknown {
+        if (config.operation === 'sum') {
+            return (item[config.field1] || 0) + (item[config.field2] || 0);
+        }
+        else if (config.operation === 'multiply') {
+            return (item[config.field1] || 0) * (item[config.field2] || 0);
+        }
+        return item[config.field1];
+    }
+    private applyFormatting(value: unknown, config: unknown): unknown {
+        if (config.format === 'date') {
+            return new Date(value).toISOString();
+        }
+        else if (config.format === 'uppercase') {
+            return String(value).toUpperCase();
+        }
+        else if (config.format === 'lowercase') {
+            return String(value).toLowerCase();
+        }
+        return value;
+    }
 }

@@ -9,13 +9,14 @@ import { MilestoneTrackingService } from './services/milestone-tracking.service'
  * Registers the learning Paths module.
  */
 @Module({
-  controllers: [LearningPathsController],
-  providers: [
-    LearningPathsService,
-    SkillAssessmentService,
-    PathGenerationService,
-    MilestoneTrackingService,
-  ],
-  exports: [LearningPathsService],
+    controllers: [LearningPathsController],
+    providers: [
+        LearningPathsService,
+        SkillAssessmentService,
+        PathGenerationService,
+        MilestoneTrackingService,
+    ],
+    exports: [LearningPathsService],
 })
-export class LearningPathsModule {}
+export class LearningPathsModule {
+}

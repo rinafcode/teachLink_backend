@@ -108,32 +108,34 @@ export class GeoLocationService {
       // Default to primary edge location
       return this.edgeLocations[0].id;
     }
-
-    const userCoords = await this.getCoordinates(userLocation);
-    if (!userCoords) {
-      return this.edgeLocations[0].id;
+    async getNearestEdgeLocations(userLocation: string, limit: number = 3): Promise<EdgeLocation[]> {
+        const userCoords = await this.getCoordinates(userLocation);
+        if (!userCoords) {
+            return this.edgeLocations.slice(0, limit);
+        }
+        const sortedLocations = this.edgeLocations
+            .map((location) => ({
+            ...location,
+            distance: this.calculateDistance(userCoords.latitude, userCoords.longitude, location.latitude, location.longitude),
+        }))
+            .sort((a, b) => a.distance - b.distance);
+        return sortedLocations.slice(0, limit);
     }
-
-    let optimalLocation = this.edgeLocations[0];
-    let minDistance = this.calculateDistance(
-      userCoords.latitude,
-      userCoords.longitude,
-      optimalLocation.latitude,
-      optimalLocation.longitude,
-    );
-
-    for (const location of this.edgeLocations.slice(1)) {
-      const distance = this.calculateDistance(
-        userCoords.latitude,
-        userCoords.longitude,
-        location.latitude,
-        location.longitude,
-      );
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        optimalLocation = location;
-      }
+    async optimizeRouteForConnection(userLocation: string, connectionType: string): Promise<string> {
+        const locations = await this.getNearestEdgeLocations(userLocation, 5);
+        // Adjust based on connection type
+        switch (connectionType.toLowerCase()) {
+            case 'mobile':
+            case '3g':
+            case '4g':
+                // Prefer locations with better mobile optimization
+                return locations[0].id;
+            case 'satellite':
+                // Prefer locations with lower latency for satellite
+                return locations[0].id;
+            default:
+                return locations[0].id;
+        }
     }
 
     return optimalLocation.id;

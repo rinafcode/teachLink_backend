@@ -6,8 +6,9 @@ import { HealthService } from './health.service';
  * Registers the health module.
  */
 @Module({
-  controllers: [HealthController],
-  providers: [HealthService],
-  exports: [HealthService],
+    controllers: [HealthController],
+    providers: [HealthService],
+    exports: [HealthService],
 })
-export class HealthModule {}
+export class HealthModule {
+}

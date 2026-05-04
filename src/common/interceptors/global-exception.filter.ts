@@ -1,11 +1,4 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger, } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MulterError } from 'multer';
 import { QueryFailedError, EntityNotFoundError, OptimisticLockVersionMismatchError } from 'typeorm';
@@ -217,24 +210,57 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           error: 'Payload Too Large',
           stack: exception.stack,
         };
-      case 'LIMIT_FILE_COUNT':
-      case 'LIMIT_PART_COUNT':
-      case 'LIMIT_FIELD_COUNT':
-      case 'LIMIT_FIELD_KEY':
-      case 'LIMIT_FIELD_VALUE':
-      case 'LIMIT_UNEXPECTED_FILE':
+        if (correlationId) {
+            response.setHeader(CORRELATION_ID_HEADER, correlationId);
+        }
+        this.logger.error(`[${request.method}] ${request.url} → ${statusCode} ${error}: ${Array.isArray(message) ? message.join(', ') : message}`, !this.isProduction ? stack : undefined, GlobalExceptionFilter.name);
+        response.status(statusCode).json(errorResponse);
+    }
+    // ─── Resolution helpers ────────────────────────────────────────────────────
+    private resolveException(exception: unknown): {
+        statusCode: number;
+        message: string | string[];
+        error: string;
+        details?: ValidationErrorDetail[];
+        stack?: string;
+    } {
+        // 1. NestJS HttpException (includes class-validator BadRequestException)
+        if (exception instanceof HttpException) {
+            return this.fromHttpException(exception);
+        }
+        // 2. TypeORM – query/constraint failures
+        if (exception instanceof QueryFailedError) {
+            return this.fromQueryFailedError(exception);
+        }
+        // 3. Multer upload failures
+        if (exception instanceof MulterError) {
+            return this.fromMulterError(exception);
+        }
+        // 4. TypeORM – entity not found
+        if (exception instanceof EntityNotFoundError) {
+            return {
+                statusCode: HttpStatus.NOT_FOUND,
+                message: 'The requested resource was not found.',
+                error: 'Not Found',
+                stack: (exception as Error).stack,
+            };
+        }
+        // 5. Generic / unexpected Error
+        if (exception instanceof Error) {
+            return {
+                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+                message: this.isProduction
+                    ? 'An unexpected error occurred. Please try again later.'
+                    : exception.message,
+                error: 'Internal Server Error',
+                stack: exception.stack,
+            };
+        }
+        // 6. Non-Error throw (strings, objects, etc.)
         return {
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: exception.message,
-          error: 'Bad Request',
-          stack: exception.stack,
-        };
-      default:
-        return {
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Upload validation failed.',
-          error: 'Bad Request',
-          stack: exception.stack,
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'An unexpected error occurred.',
+            error: 'Internal Server Error',
         };
     }
   }

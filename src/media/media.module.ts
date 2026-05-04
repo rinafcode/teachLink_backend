@@ -45,4 +45,5 @@ import { FileCleanupTask } from './file-cleanup.task';
     ImageProcessingService,
   ],
 })
-export class MediaModule {}
+export class MediaModule {
+}

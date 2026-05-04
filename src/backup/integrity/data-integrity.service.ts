@@ -11,9 +11,8 @@ import * as fs from 'fs';
  */
 @Injectable()
 export class DataIntegrityService {
-  private readonly logger = new Logger(DataIntegrityService.name);
-
-  constructor(
+    private readonly logger = new Logger(DataIntegrityService.name);
+    constructor(
     @InjectRepository(BackupRecord)
     private readonly backupRepository: Repository<BackupRecord>,
     private readonly fileStorageService: FileStorageService,
@@ -34,10 +33,14 @@ export class DataIntegrityService {
     if (!backup) {
       throw new NotFoundException(`Backup ${backupId} not found`);
     }
-
-    if (!backup.encryptedStorageKey) {
-      this.logger.error(`Backup ${backupId} has no encrypted storage key, cannot verify`);
-      return false;
+    async calculateChecksums(filePath: string): Promise<{
+        md5: string;
+        sha256: string;
+    }> {
+        const fileBuffer = await fs.promises.readFile(filePath);
+        const md5 = crypto.createHash('md5').update(fileBuffer).digest('hex');
+        const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+        return { md5, sha256 };
     }
 
     try {

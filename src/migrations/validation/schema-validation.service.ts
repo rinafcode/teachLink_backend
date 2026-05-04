@@ -143,18 +143,45 @@ export class SchemaValidationService {
     if (!migration.dependencies || migration.dependencies.length === 0) {
       return true;
     }
-
-    const missingDependencies = migration.dependencies.filter(
-      (dep) => !appliedMigrations.includes(dep),
-    );
-
-    if (missingDependencies.length > 0) {
-      this.logger.error(
-        `Missing dependencies for migration ${migration.name}: ${missingDependencies.join(', ')}`,
-      );
-      return false;
+    /**
+     * Checks for potential breaking changes in a migration
+     */
+    async checkForBreakingChanges(migration: MigrationConfig): Promise<string[]> {
+        this.logger.log(`Checking for breaking changes in migration: ${migration.name}`);
+        const breakingChanges: string[] = [];
+        // Analyze the migration to detect potential breaking changes
+        // This is a simplified implementation - in practice, you'd parse the SQL operations
+        // and check for things like dropping columns/tables, changing data types, etc.
+        // For now, return an empty array
+        return breakingChanges;
     }
-
-    return true;
-  }
+    /**
+     * Creates a backup of the current schema before migration
+     */
+    async backupSchemaBeforeMigration(migration: MigrationConfig): Promise<string | null> {
+        this.logger.log(`Creating schema backup before migration: ${migration.name}`);
+        try {
+            // In a real implementation, this would create a backup of the schema
+            // For now, return a placeholder
+            return `backup_${migration.name}_${new Date().toISOString()}`;
+        }
+        catch (error) {
+            this.logger.error(`Failed to create schema backup for migration: ${migration.name}`, error.stack);
+            return null;
+        }
+    }
+    /**
+     * Validates migration dependencies
+     */
+    async validateMigrationDependencies(migration: MigrationConfig, appliedMigrations: string[]): Promise<boolean> {
+        if (!migration.dependencies || migration.dependencies.length === 0) {
+            return true;
+        }
+        const missingDependencies = migration.dependencies.filter((dep) => !appliedMigrations.includes(dep));
+        if (missingDependencies.length > 0) {
+            this.logger.error(`Missing dependencies for migration ${migration.name}: ${missingDependencies.join(', ')}`);
+            return false;
+        }
+        return true;
+    }
 }

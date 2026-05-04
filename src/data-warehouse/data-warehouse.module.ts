@@ -10,21 +10,22 @@ import { DataWarehouseController } from './data-warehouse.controller';
  * Registers the data Warehouse module.
  */
 @Module({
-  imports: [],
-  controllers: [DataWarehouseController],
-  providers: [
-    ETLPipelineService,
-    DimensionalModelingService,
-    DataQualityService,
-    DataLineageService,
-    IncrementalLoaderService,
-  ],
-  exports: [
-    ETLPipelineService,
-    DimensionalModelingService,
-    DataQualityService,
-    DataLineageService,
-    IncrementalLoaderService,
-  ],
+    imports: [],
+    controllers: [DataWarehouseController],
+    providers: [
+        ETLPipelineService,
+        DimensionalModelingService,
+        DataQualityService,
+        DataLineageService,
+        IncrementalLoaderService,
+    ],
+    exports: [
+        ETLPipelineService,
+        DimensionalModelingService,
+        DataQualityService,
+        DataLineageService,
+        IncrementalLoaderService,
+    ],
 })
-export class DataWarehouseModule {}
+export class DataWarehouseModule {
+}

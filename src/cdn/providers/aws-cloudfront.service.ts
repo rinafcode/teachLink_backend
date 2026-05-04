@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  CloudFrontClient,
-  CreateInvalidationCommand,
-  GetInvalidationCommand,
-} from '@aws-sdk/client-cloudfront';
+import { CloudFrontClient, CreateInvalidationCommand, GetInvalidationCommand, } from '@aws-sdk/client-cloudfront';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 export interface IFileUpload {
@@ -252,20 +248,41 @@ export class AWSCloudFrontService {
           DistributionId: this.config.distributionId,
           Id: invalidationId,
         });
-
-        const result = await this.cloudfrontClient.send(command);
-
-        if (result.Invalidation?.Status === 'Completed') {
-          this.logger.log(`Invalidation ${invalidationId} completed`);
-          return;
+        this.s3Client = new S3Client({
+            region: this.config.region,
+            credentials: {
+                accessKeyId: this.config.accessKeyId,
+                secretAccessKey: this.config.secretAccessKey,
+            },
+        });
+    }
+    async uploadFile(file: FileUpload): Promise<UploadResult> {
+        try {
+            this.logger.log(`Uploading file ${file.originalname} to AWS CloudFront/S3`);
+            if (!this.config.bucketName) {
+                throw new Error('S3 bucket name not configured');
+            }
+            const key = `uploads/${Date.now()}_${file.originalname}`;
+            const command = new PutObjectCommand({
+                Bucket: this.config.bucketName,
+                Key: key,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+                ACL: 'public-read', // Make it publicly accessible
+            });
+            const result = await this.s3Client.send(command);
+            const url = `https://${this.config.distributionId}.cloudfront.net/${key}`;
+            return {
+                id: key,
+                url,
+                etag: result.ETag,
+                size: file.size,
+            };
         }
-
-        await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 seconds
-        attempts++;
-      } catch (error) {
-        this.logger.error('Error checking invalidation status:', error);
-        attempts++;
-      }
+        catch (error) {
+            this.logger.error('AWS CloudFront upload failed:', error);
+            throw new Error(`Failed to upload file to AWS CloudFront: ${error.message}`);
+        }
     }
 
     throw new Error(`Invalidation ${invalidationId} did not complete within timeout`);

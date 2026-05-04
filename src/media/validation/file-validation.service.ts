@@ -25,10 +25,9 @@ export interface IFileValidationResult {
     hasAlpha?: boolean;
   };
 }
-
 export interface ImageDimensions {
-  width: number;
-  height: number;
+    width: number;
+    height: number;
 }
 
 /**
@@ -391,15 +390,92 @@ export class FileValidationService {
       Buffer.from([0xca, 0xfe, 0xba, 0xbe]), // Java class file
       Buffer.from([0xcf, 0xfa, 0xed, 0xfe]), // macOS Mach-O
     ];
-
-    for (const signature of executableSignatures) {
-      if (file.buffer.length >= signature.length) {
-        const fileHeader = file.buffer.slice(0, signature.length);
-        if (fileHeader.equals(signature)) {
-          issues.push('File appears to be an executable, which is not allowed');
-          break;
+    private readonly allAllowedExtensions: string[] = [
+        ...ALLOWED_EXTENSIONS.IMAGES,
+        ...ALLOWED_EXTENSIONS.VIDEOS,
+        ...ALLOWED_EXTENSIONS.DOCUMENTS,
+        ...ALLOWED_EXTENSIONS.AUDIO,
+        ...ALLOWED_EXTENSIONS.ARCHIVES,
+    ];
+    /**
+     * Validate file comprehensively
+     */
+    async validateFile(file: UploadedFile): Promise<FileValidationResult> {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        // 1. Check if file exists
+        if (!file || !file.buffer || file.buffer.length === 0) {
+            return {
+                valid: false,
+                mimeType: '',
+                fileType: 'unknown',
+                size: 0,
+                maxSize: 0,
+                errors: ['No file provided or file is empty'],
+                warnings: [],
+            };
         }
-      }
+        // 2. Validate MIME type against whitelist
+        const mimeValidation = this.validateMimeType(file.mimetype);
+        if (!mimeValidation.valid) {
+            errors.push(`File type "${file.mimetype}" is not allowed`);
+        }
+        // 3. Validate file extension
+        const extValidation = this.validateExtension(file.originalname);
+        if (!extValidation.valid) {
+            errors.push(`File extension "${extValidation.extension}" is not allowed`);
+        }
+        // 4. Validate magic numbers (file signature)
+        const signatureValidation = await this.validateFileSignature(file);
+        if (!signatureValidation.valid) {
+            errors.push('File signature does not match the declared type. Possible spoofing attempt.');
+        }
+        // 5. Get file type category
+        const fileType = this.getFileType(file.mimetype);
+        // 6. Validate file size
+        const sizeValidation = this.validateFileSize(file.size, fileType);
+        if (!sizeValidation.valid) {
+            errors.push(`File size ${this.formatBytes(file.size)} exceeds maximum allowed ${this.formatBytes(sizeValidation.maxSize)}`);
+        }
+        // 7. Validate image dimensions if it's an image
+        let imageMetadata: {
+            width?: number;
+            height?: number;
+            format?: string;
+            hasAlpha?: boolean;
+        } | undefined;
+        if (fileType === 'image') {
+            const dimValidation = await this.validateImageDimensions(file.buffer);
+            if (!dimValidation.valid && dimValidation.dimensions) {
+                errors.push(`Image dimensions (${dimValidation.dimensions.width}x${dimValidation.dimensions.height}) are outside allowed limits`);
+            }
+            if (dimValidation.dimensions) {
+                imageMetadata = {
+                    width: dimValidation.dimensions.width,
+                    height: dimValidation.dimensions.height,
+                    format: dimValidation.dimensions.format,
+                    hasAlpha: dimValidation.dimensions.hasAlpha,
+                };
+            }
+            if (dimValidation.warnings) {
+                warnings.push(...dimValidation.warnings);
+            }
+        }
+        // 8. Check for suspicious patterns
+        const securityCheck = await this.checkSecurityPatterns(file);
+        if (!securityCheck.valid) {
+            errors.push(...securityCheck.issues);
+        }
+        return {
+            valid: errors.length === 0,
+            mimeType: file.mimetype,
+            fileType,
+            size: file.size,
+            maxSize: sizeValidation.maxSize,
+            errors,
+            warnings,
+            metadata: imageMetadata,
+        };
     }
 
     return {
@@ -431,5 +507,4 @@ export class FileValidationService {
         warnings: result.warnings,
       });
     }
-  }
 }

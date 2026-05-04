@@ -115,16 +115,28 @@ export class QueueService {
       await job.remove();
       this.logger.log(`Job ${jobId} removed from queue`);
     }
-  }
-
-  /**
-   * Retry a failed job
-   */
-  async retryJob(jobId: string): Promise<void> {
-    const job = await this.getJob(jobId);
-    if (job) {
-      await job.retry();
-      this.logger.log(`Job ${jobId} retried`);
+    /**
+     * Get job metrics
+     */
+    async getJobMetrics(jobId: string): Promise<JobMetrics | null> {
+        const job = await this.getJob(jobId);
+        if (!job)
+            return null;
+        const state = await job.getState();
+        return {
+            jobId: job.id.toString(),
+            name: job.name,
+            status: state as JobStatus,
+            priority: job.opts.priority as JobPriority,
+            attempts: job.attemptsMade,
+            maxAttempts: job.opts.attempts || 3,
+            progress: await job.progress(),
+            createdAt: new Date(job.timestamp),
+            processedAt: job.processedOn ? new Date(job.processedOn) : undefined,
+            finishedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
+            failedReason: job.failedReason,
+            data: job.data,
+        };
     }
   }
 
@@ -159,27 +171,4 @@ export class QueueService {
       await this.defaultQueue.clean(grace, 'failed');
       this.logger.log(`Cleaned all jobs older than ${grace}ms`);
     }
-  }
-
-  /**
-   * Get queue counts
-   */
-  async getQueueCounts() {
-    return {
-      waiting: await this.defaultQueue.getWaitingCount(),
-      active: await this.defaultQueue.getActiveCount(),
-      completed: await this.defaultQueue.getCompletedCount(),
-      failed: await this.defaultQueue.getFailedCount(),
-      delayed: await this.defaultQueue.getDelayedCount(),
-      paused: await this.defaultQueue.getPausedCount(),
-    };
-  }
-
-  /**
-   * Empty the queue (remove all jobs)
-   */
-  async emptyQueue(): Promise<void> {
-    await this.defaultQueue.empty();
-    this.logger.warn('Queue emptied - all jobs removed');
-  }
 }

@@ -10,17 +10,16 @@ import {
 } from 'typeorm';
 
 export enum TenantStatus {
-  ACTIVE = 'active',
-  SUSPENDED = 'suspended',
-  INACTIVE = 'inactive',
-  TRIAL = 'trial',
+    ACTIVE = 'active',
+    SUSPENDED = 'suspended',
+    INACTIVE = 'inactive',
+    TRIAL = 'trial'
 }
-
 export enum TenantPlan {
-  FREE = 'free',
-  BASIC = 'basic',
-  PROFESSIONAL = 'professional',
-  ENTERPRISE = 'enterprise',
+    FREE = 'free',
+    BASIC = 'basic',
+    PROFESSIONAL = 'professional',
+    ENTERPRISE = 'enterprise'
 }
 
 /**

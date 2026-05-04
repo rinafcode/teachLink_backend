@@ -39,4 +39,5 @@ import { ElasticsearchService } from './elasticsearch/elasticsearch.service';
     SearchIndexOptimizerService,
   ],
 })
-export class SearchModule {}
+export class SearchModule {
+}

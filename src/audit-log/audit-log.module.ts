@@ -18,4 +18,5 @@ import { SensitiveOperationsService } from './services/sensitive-operations.serv
   providers: [AuditLogService, AuditLogInterceptor, AuditRetentionTask, SensitiveOperationsService],
   exports: [AuditLogService, AuditLogInterceptor, SensitiveOperationsService],
 })
-export class AuditLogModule {}
+export class AuditLogModule {
+}

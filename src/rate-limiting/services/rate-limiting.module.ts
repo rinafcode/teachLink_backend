@@ -9,13 +9,14 @@ import { DistributedLimiterService } from './distrubutes.service';
  * Registers the rate Limiting module.
  */
 @Module({
-  providers: [
-    RateLimitingService,
-    ThrottlingService,
-    QuotaManagementService,
-    AdaptiveRateLimitingService,
-    DistributedLimiterService,
-  ],
-  exports: [RateLimitingService],
+    providers: [
+        RateLimitingService,
+        ThrottlingService,
+        QuotaManagementService,
+        AdaptiveRateLimitingService,
+        DistributedLimiterService,
+    ],
+    exports: [RateLimitingService],
 })
-export class RateLimitingModule {}
+export class RateLimitingModule {
+}

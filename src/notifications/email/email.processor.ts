@@ -3,7 +3,6 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { EmailService, IEmailOptions } from './email.service';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
-
 @Processor(QUEUE_NAMES.EMAIL)
 export class EmailProcessor {
   private readonly logger = new Logger(EmailProcessor.name);
@@ -35,5 +34,4 @@ export class EmailProcessor {
         throw error;
       }
     }
-  }
 }

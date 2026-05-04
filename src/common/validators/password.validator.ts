@@ -12,13 +12,12 @@ export interface IPasswordStrengthResult {
   score: number;
   level: 'weak' | 'medium' | 'strong';
 }
-
 export const PASSWORD_REQUIREMENTS = {
-  minLength: 8,
-  uppercase: /[A-Z]/,
-  lowercase: /[a-z]/,
-  number: /\d/,
-  special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
+    minLength: 8,
+    uppercase: /[A-Z]/,
+    lowercase: /[a-z]/,
+    number: /\d/,
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
 };
 
 export function calculatePasswordStrength(password: string): IPasswordStrengthResult {
@@ -82,8 +81,6 @@ export class PasswordConstraint implements ValidatorConstraintInterface {
     if (result.errors.length === 0) {
       return 'Password does not meet strength requirements';
     }
-    return result.errors.join('; ');
-  }
 }
 
 /**
@@ -92,13 +89,13 @@ export class PasswordConstraint implements ValidatorConstraintInterface {
  * @returns The operation result.
  */
 export function IsStrongPassword(validationOptions?: ValidationOptions) {
-  return function (object: object, propertyName: string) {
-    registerDecorator({
-      target: object.constructor,
-      propertyName,
-      options: validationOptions,
-      constraints: [],
-      validator: PasswordConstraint,
-    });
-  };
+    return function (object: object, propertyName: string) {
+        registerDecorator({
+            target: object.constructor,
+            propertyName,
+            options: validationOptions,
+            constraints: [],
+            validator: PasswordConstraint,
+        });
+    };
 }

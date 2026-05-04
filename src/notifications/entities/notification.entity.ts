@@ -10,19 +10,17 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-
 export enum NotificationType {
-  EMAIL = 'email',
-  PUSH = 'push',
-  IN_APP = 'in_app',
-  SMS = 'sms',
+    EMAIL = 'email',
+    PUSH = 'push',
+    IN_APP = 'in_app',
+    SMS = 'sms'
 }
-
 export enum NotificationPriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  URGENT = 'urgent',
+    LOW = 'low',
+    MEDIUM = 'medium',
+    HIGH = 'high',
+    URGENT = 'urgent'
 }
 
 export enum NotificationStatus {

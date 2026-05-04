@@ -6,14 +6,13 @@ import { StripeService } from './stripe.service';
  */
 @Injectable()
 export class ProviderFactoryService {
-  constructor(private readonly stripeService: StripeService) {}
-
-  getProvider(provider: string): StripeService {
-    switch (provider.toLowerCase()) {
-      case 'stripe':
-        return this.stripeService;
-      default:
-        throw new Error(`Unsupported payment provider: ${provider}`);
+    constructor(private readonly stripeService: StripeService) { }
+    getProvider(provider: string): StripeService {
+        switch (provider.toLowerCase()) {
+            case 'stripe':
+                return this.stripeService;
+            default:
+                throw new Error(`Unsupported payment provider: ${provider}`);
+        }
     }
-  }
 }

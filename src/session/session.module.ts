@@ -21,4 +21,5 @@ import { SessionService } from './session.service';
   ],
   exports: [SESSION_REDIS_CLIENT, SessionService],
 })
-export class SessionModule {}
+export class SessionModule {
+}

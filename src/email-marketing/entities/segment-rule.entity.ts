@@ -8,7 +8,6 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { Segment } from './segment.entity';
 import { SegmentRuleOperator } from '../enums/segment-rule-operator.enum';
 import { SegmentRuleField } from '../enums/segment-rule-field.enum';

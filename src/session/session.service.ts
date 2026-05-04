@@ -184,15 +184,47 @@ export class SessionService implements OnModuleDestroy {
         await this.delay(this.lockRetryDelayMs);
       }
     }
-
-    if (!locked) {
-      throw new Error(`Could not acquire lock: ${lockName}`);
+    async migrateSession(oldSid: string, newSid = randomUUID()): Promise<string> {
+        const existing = await this.getSession(oldSid);
+        if (!existing) {
+            return newSid;
+        }
+        const migrated: SessionRecord = {
+            ...existing,
+            sid: newSid,
+            updatedAt: Date.now(),
+            version: existing.version + 1,
+        };
+        await this.redis
+            .multi()
+            .set(this.sessionKey(newSid), JSON.stringify(migrated), 'EX', this.sessionTtlSeconds)
+            .del(this.sessionKey(oldSid))
+            .exec();
+        return newSid;
     }
-
-    try {
-      return await handler();
-    } finally {
-      await this.releaseLock(lockKey, lockToken);
+    async withLock<T>(lockName: string, handler: () => Promise<T>): Promise<T> {
+        const lockKey = `lock:${lockName}`;
+        const lockToken = randomUUID();
+        let locked = false;
+        for (let attempt = 0; attempt <= this.lockRetries; attempt += 1) {
+            const response = await this.redis.set(lockKey, lockToken, 'PX', this.lockTtlMs, 'NX');
+            if (response === 'OK') {
+                locked = true;
+                break;
+            }
+            if (attempt < this.lockRetries) {
+                await this.delay(this.lockRetryDelayMs);
+            }
+        }
+        if (!locked) {
+            throw new Error(`Could not acquire lock: ${lockName}`);
+        }
+        try {
+            return await handler();
+        }
+        finally {
+            await this.releaseLock(lockKey, lockToken);
+        }
     }
   }
 
@@ -239,15 +271,12 @@ export class SessionService implements OnModuleDestroy {
       end
       return 0
     `;
-
-    await this.redis.eval(releaseScript, 1, lockKey, lockToken);
-  }
-
-  private sessionKey(sid: string): string {
-    return `${this.sessionPrefix}${sid}`;
-  }
-
-  private async delay(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-  }
+        await this.redis.eval(releaseScript, 1, lockKey, lockToken);
+    }
+    private sessionKey(sid: string): string {
+        return `${this.sessionPrefix}${sid}`;
+    }
+    private async delay(ms: number): Promise<void> {
+        await new Promise((resolve) => setTimeout(resolve, ms));
+    }
 }

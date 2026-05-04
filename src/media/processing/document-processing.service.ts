@@ -10,10 +10,8 @@ import { FileStorageService } from '../storage/file-storage.service';
  */
 @Injectable()
 export class DocumentProcessingService {
-  private readonly logger = new Logger(DocumentProcessingService.name);
-
-  constructor(
-    private readonly storage: FileStorageService,
+    private readonly logger = new Logger(DocumentProcessingService.name);
+    constructor(private readonly storage: FileStorageService, 
     @InjectRepository(ContentMetadata)
     private readonly contentRepo: Repository<ContentMetadata>,
   ) {}
@@ -41,18 +39,17 @@ export class DocumentProcessingService {
       this.logger.error('PDF parsing failed', err);
       throw err;
     }
-  }
 }
-
 async function downloadToBuffer(url: string): Promise<Buffer> {
-  const https = url.startsWith('https') ? await import('https') : await import('http');
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, (res: any) => {
-      if (res.statusCode >= 400) return reject(new Error(`Failed to download: ${res.statusCode}`));
-      const data: Buffer[] = [];
-      res.on('data', (chunk: Buffer) => data.push(chunk));
-      res.on('end', () => resolve(Buffer.concat(data)));
+    const https = url.startsWith('https') ? await import('https') : await import('http');
+    return new Promise((resolve, reject) => {
+        const req = https.get(url, (res: unknown) => {
+            if (res.statusCode >= 400)
+                return reject(new Error(`Failed to download: ${res.statusCode}`));
+            const data: Buffer[] = [];
+            res.on('data', (chunk: Buffer) => data.push(chunk));
+            res.on('end', () => resolve(Buffer.concat(data)));
+        });
+        req.on('error', (err: Error) => reject(err));
     });
-    req.on('error', (err: Error) => reject(err));
-  });
 }

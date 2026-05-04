@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Param,
-  Query,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Query, HttpCode, HttpStatus, UseGuards, } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CachingService } from './caching.service';
 import { CacheAnalyticsService } from './analytics/cache-analytics.service';
@@ -291,9 +281,4 @@ export class CacheManagementController {
     } else {
       this.analyticsService.resetMetrics();
     }
-
-    return {
-      message: pattern ? `Analytics reset for pattern: ${pattern}` : 'All analytics reset',
-    };
-  }
 }

@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { IMigrationConfig } from '../migration.service';
 
 export enum EnvironmentType {
-  DEVELOPMENT = 'development',
-  STAGING = 'staging',
-  PRODUCTION = 'production',
-  TEST = 'test',
+    DEVELOPMENT = 'development',
+    STAGING = 'staging',
+    PRODUCTION = 'production',
+    TEST = 'test'
 }
 
 /**

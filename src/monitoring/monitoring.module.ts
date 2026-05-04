@@ -37,4 +37,5 @@ import { AwsCostCollectorService } from './cloud/aws-cost-collector.service';
     AwsCostCollectorService,
   ],
 })
-export class MonitoringModule {}
+export class MonitoringModule {
+}

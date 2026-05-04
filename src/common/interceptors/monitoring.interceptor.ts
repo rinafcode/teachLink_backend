@@ -25,25 +25,4 @@ export class MonitoringInterceptor implements NestInterceptor {
     if (!request) {
       return next.handle();
     }
-
-    const method = request.method || 'UNKNOWN';
-    const route = request.route ? request.route.path : request.url;
-
-    return next.handle().pipe(
-      tap({
-        next: () => {
-          const response = httpContext.getResponse();
-          const statusCode = response ? response.statusCode : 200;
-          const duration = (Date.now() - now) / 1000;
-          this.metricsService.recordHttpRequest(method, route, statusCode, duration);
-        },
-        error: (error) => {
-          // Track errors too
-          const duration = (Date.now() - now) / 1000;
-          const status = error.status || 500;
-          this.metricsService.recordHttpRequest(method, route, status, duration);
-        },
-      }),
-    );
-  }
 }

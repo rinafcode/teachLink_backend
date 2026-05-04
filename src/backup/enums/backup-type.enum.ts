@@ -1,3 +1,3 @@
 export enum BackupType {
-  FULL = 'full',
+    FULL = 'full'
 }

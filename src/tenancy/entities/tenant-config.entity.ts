@@ -67,27 +67,46 @@ export class TenantConfig {
       requireSpecialChars?: boolean;
       requireUppercase?: boolean;
     };
-    sessionTimeout?: number;
-    [key: string]: any;
-  };
-
-  @Column({ type: 'jsonb', nullable: true })
-  integrations?: {
-    stripe?: { enabled: boolean; publicKey?: string };
-    aws?: { enabled: boolean; region?: string };
-    openai?: { enabled: boolean };
-    [key: string]: any;
-  };
-
-  @Column({ type: 'jsonb', nullable: true })
-  customSettings?: Record<string, any>;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @DeleteDateColumn()
-  deletedAt?: Date;
+    @Column({ type: 'jsonb', nullable: true })
+    notifications?: {
+        email?: boolean;
+        push?: boolean;
+        sms?: boolean;
+        [key: string]: unknown;
+    };
+    @Column({ type: 'jsonb', nullable: true })
+    security?: {
+        mfaRequired?: boolean;
+        passwordPolicy?: {
+            minLength?: number;
+            requireNumbers?: boolean;
+            requireSpecialChars?: boolean;
+            requireUppercase?: boolean;
+        };
+        sessionTimeout?: number;
+        [key: string]: unknown;
+    };
+    @Column({ type: 'jsonb', nullable: true })
+    integrations?: {
+        stripe?: {
+            enabled: boolean;
+            publicKey?: string;
+        };
+        aws?: {
+            enabled: boolean;
+            region?: string;
+        };
+        openai?: {
+            enabled: boolean;
+        };
+        [key: string]: unknown;
+    };
+    @Column({ type: 'jsonb', nullable: true })
+    customSettings?: Record<string, unknown>;
+    @CreateDateColumn()
+    createdAt: Date;
+    @UpdateDateColumn()
+    updatedAt: Date;
+    @DeleteDateColumn()
+    deletedAt?: Date;
 }

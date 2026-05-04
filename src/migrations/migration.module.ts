@@ -13,23 +13,24 @@ import { MigrationRunnerService } from './migration-runner.service';
  * Registers the migration module.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Migration])],
-  controllers: [MigrationController],
-  providers: [
-    MigrationService,
-    RollbackService,
-    SchemaValidationService,
-    EnvironmentSyncService,
-    ConflictResolutionService,
-    MigrationRunnerService,
-  ],
-  exports: [
-    MigrationService,
-    RollbackService,
-    SchemaValidationService,
-    EnvironmentSyncService,
-    ConflictResolutionService,
-    MigrationRunnerService,
-  ],
+    imports: [TypeOrmModule.forFeature([Migration])],
+    controllers: [MigrationController],
+    providers: [
+        MigrationService,
+        RollbackService,
+        SchemaValidationService,
+        EnvironmentSyncService,
+        ConflictResolutionService,
+        MigrationRunnerService,
+    ],
+    exports: [
+        MigrationService,
+        RollbackService,
+        SchemaValidationService,
+        EnvironmentSyncService,
+        ConflictResolutionService,
+        MigrationRunnerService,
+    ],
 })
-export class MigrationModule {}
+export class MigrationModule {
+}

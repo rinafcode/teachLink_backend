@@ -14,10 +14,7 @@ import { CollaborationService } from './collaboration.service';
 import { SharedDocumentService } from './documents/shared-document.service';
 import { WhiteboardService } from './whiteboard/whiteboard.service';
 import { VersionControlService } from './versioning/version-control.service';
-import {
-  CollaborationPermissionsService,
-  PermissionLevel,
-} from './permissions/collaboration-permissions.service';
+import { CollaborationPermissionsService, PermissionLevel, } from './permissions/collaboration-permissions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 // import { IsString, IsNotEmpty } from 'class-validator';
@@ -28,77 +25,48 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 @Controller('collaboration')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CollaborationController {
-  constructor(
-    private readonly collaborationService: CollaborationService,
-    private readonly sharedDocumentService: SharedDocumentService,
-    private readonly whiteboardService: WhiteboardService,
-    private readonly versionControlService: VersionControlService,
-    private readonly permissionsService: CollaborationPermissionsService,
-  ) {}
-
-  /**
-   * Initialize a new collaborative session
-   */
-  @Post('session')
-  async createSession(
-    @Request() req,
-    @Body() body: { sessionId: string; resourceType: 'document' | 'whiteboard' },
-  ): Promise<any> {
-    const { sessionId, resourceType } = body;
-    const userId = req.user.id;
-
-    const session = await this.collaborationService.initializeSession(
-      sessionId,
-      userId,
-      resourceType,
-    );
-
-    return {
-      success: true,
-      sessionId,
-      resourceType,
-      session,
-    };
-  }
-
-  /**
-   * Get collaborative document
-   */
-  @Get('document/:id')
-  async getDocument(@Param('id') documentId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      documentId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to access document' };
+    constructor(private readonly collaborationService: CollaborationService, private readonly sharedDocumentService: SharedDocumentService, private readonly whiteboardService: WhiteboardService, private readonly versionControlService: VersionControlService, private readonly permissionsService: CollaborationPermissionsService) { }
+    /**
+     * Initialize a new collaborative session
+     */
+    @Post('session')
+    async createSession(
+    @Request()
+    req, 
+    @Body()
+    body: {
+        sessionId: string;
+        resourceType: 'document' | 'whiteboard';
+    }): Promise<unknown> {
+        const { sessionId, resourceType } = body;
+        const userId = req.user.id;
+        const session = await this.collaborationService.initializeSession(sessionId, userId, resourceType);
+        return {
+            success: true,
+            sessionId,
+            resourceType,
+            session,
+        };
     }
-
-    const document = await this.sharedDocumentService.getDocument(documentId);
-
-    return {
-      success: true,
-      document,
-    };
-  }
-
-  /**
-   * Get collaborative whiteboard
-   */
-  @Get('whiteboard/:id')
-  async getWhiteboard(@Param('id') whiteboardId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      whiteboardId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to access whiteboard' };
+    /**
+     * Get collaborative document
+     */
+    @Get('document/:id')
+    async getDocument(
+    @Param('id')
+    documentId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(documentId, userId, PermissionLevel.READ);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to access document' };
+        }
+        const document = await this.sharedDocumentService.getDocument(documentId);
+        return {
+            success: true,
+            document,
+        };
     }
 
     const whiteboard = await this.whiteboardService.getWhiteboard(whiteboardId);
@@ -158,199 +126,180 @@ export class CollaborationController {
     if (!hasPermission) {
       return { success: false, message: 'Insufficient permissions to modify whiteboard' };
     }
-
-    const whiteboard = await this.whiteboardService.applyOperation(whiteboardId, userId, operation);
-
-    return {
-      success: true,
-      whiteboard,
-    };
-  }
-
-  /**
-   * Get document history
-   */
-  @Get('document/:id/history')
-  async getDocumentHistory(@Param('id') documentId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      documentId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to access history' };
+    /**
+     * Update collaborative whiteboard
+     */
+    @Put('whiteboard/:id')
+    async updateWhiteboard(
+    @Param('id')
+    whiteboardId: string, 
+    @Request()
+    req, 
+    @Body()
+    body: {
+        operation: unknown;
+    }): Promise<unknown> {
+        const { operation } = body;
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(whiteboardId, userId, PermissionLevel.WRITE);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to modify whiteboard' };
+        }
+        const whiteboard = await this.whiteboardService.applyOperation(whiteboardId, userId, operation);
+        return {
+            success: true,
+            whiteboard,
+        };
     }
-
-    const history = await this.sharedDocumentService.getDocumentHistory(documentId);
-
-    return {
-      success: true,
-      history,
-    };
-  }
-
-  /**
-   * Get whiteboard history
-   */
-  @Get('whiteboard/:id/history')
-  async getWhiteboardHistory(@Param('id') whiteboardId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      whiteboardId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to access history' };
+    /**
+     * Get document history
+     */
+    @Get('document/:id/history')
+    async getDocumentHistory(
+    @Param('id')
+    documentId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(documentId, userId, PermissionLevel.READ);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to access history' };
+        }
+        const history = await this.sharedDocumentService.getDocumentHistory(documentId);
+        return {
+            success: true,
+            history,
+        };
     }
-
-    const history = await this.whiteboardService.getWhiteboardHistory(whiteboardId);
-
-    return {
-      success: true,
-      history,
-    };
-  }
-
-  /**
-   * Get version history for a session
-   */
-  @Get('version-history/:sessionId')
-  async getVersionHistory(@Param('sessionId') sessionId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      sessionId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to access version history' };
+    /**
+     * Get whiteboard history
+     */
+    @Get('whiteboard/:id/history')
+    async getWhiteboardHistory(
+    @Param('id')
+    whiteboardId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(whiteboardId, userId, PermissionLevel.READ);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to access history' };
+        }
+        const history = await this.whiteboardService.getWhiteboardHistory(whiteboardId);
+        return {
+            success: true,
+            history,
+        };
     }
-
-    const history = await this.versionControlService.getVersionHistory(sessionId);
-
-    return {
-      success: true,
-      history,
-    };
-  }
-
-  /**
-   * Get current version of a session
-   */
-  @Get('version-current/:sessionId')
-  async getCurrentVersion(@Param('sessionId') sessionId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      sessionId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to access current version' };
+    /**
+     * Get version history for a session
+     */
+    @Get('version-history/:sessionId')
+    async getVersionHistory(
+    @Param('sessionId')
+    sessionId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(sessionId, userId, PermissionLevel.READ);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to access version history' };
+        }
+        const history = await this.versionControlService.getVersionHistory(sessionId);
+        return {
+            success: true,
+            history,
+        };
     }
-
-    const currentVersion = await this.versionControlService.getCurrentVersion(sessionId);
-
-    return {
-      success: true,
-      currentVersion,
-    };
-  }
-
-  /**
-   * Grant permissions to a user
-   */
-  @Post('permission/:resourceId/user/:userId')
-  async grantPermission(
-    @Param('resourceId') resourceId: string,
-    @Param('userId') userId: string,
-    @Request() req,
-    @Body() body: { permission: PermissionLevel },
-  ): Promise<any> {
-    const adminUserId = req.user.id;
-    const { permission } = body;
-
-    // Check if the requesting user has admin permissions
-    const isAdmin = await this.permissionsService.hasAccess(
-      resourceId,
-      adminUserId,
-      PermissionLevel.ADMIN,
-    );
-
-    if (!isAdmin) {
-      return { success: false, message: 'Insufficient permissions to grant permissions' };
+    /**
+     * Get current version of a session
+     */
+    @Get('version-current/:sessionId')
+    async getCurrentVersion(
+    @Param('sessionId')
+    sessionId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(sessionId, userId, PermissionLevel.READ);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to access current version' };
+        }
+        const currentVersion = await this.versionControlService.getCurrentVersion(sessionId);
+        return {
+            success: true,
+            currentVersion,
+        };
     }
-
-    const grantedPermission = await this.permissionsService.grantAccess(
-      resourceId,
-      userId,
-      permission,
-      adminUserId,
-    );
-
-    return {
-      success: true,
-      permission: grantedPermission,
-    };
-  }
-
-  /**
-   * Revoke permissions from a user
-   */
-  @Delete('permission/:resourceId/user/:userId')
-  async revokePermission(
-    @Param('resourceId') resourceId: string,
-    @Param('userId') userId: string,
-    @Request() req,
-  ): Promise<any> {
-    const adminUserId = req.user.id;
-
-    // Check if the requesting user has admin permissions
-    const isAdmin = await this.permissionsService.hasAccess(
-      resourceId,
-      adminUserId,
-      PermissionLevel.ADMIN,
-    );
-
-    if (!isAdmin) {
-      return { success: false, message: 'Insufficient permissions to revoke permissions' };
+    /**
+     * Grant permissions to a user
+     */
+    @Post('permission/:resourceId/user/:userId')
+    async grantPermission(
+    @Param('resourceId')
+    resourceId: string, 
+    @Param('userId')
+    userId: string, 
+    @Request()
+    req, 
+    @Body()
+    body: {
+        permission: PermissionLevel;
+    }): Promise<unknown> {
+        const adminUserId = req.user.id;
+        const { permission } = body;
+        // Check if the requesting user has admin permissions
+        const isAdmin = await this.permissionsService.hasAccess(resourceId, adminUserId, PermissionLevel.ADMIN);
+        if (!isAdmin) {
+            return { success: false, message: 'Insufficient permissions to grant permissions' };
+        }
+        const grantedPermission = await this.permissionsService.grantAccess(resourceId, userId, permission, adminUserId);
+        return {
+            success: true,
+            permission: grantedPermission,
+        };
     }
-
-    const revoked = await this.permissionsService.revokeAccess(resourceId, userId);
-
-    return {
-      success: true,
-      revoked,
-    };
-  }
-
-  /**
-   * Get users with access to a resource
-   */
-  @Get('users/:resourceId')
-  async getUsersForResource(@Param('resourceId') resourceId: string, @Request() req): Promise<any> {
-    const userId = req.user.id;
-    const hasPermission = await this.permissionsService.hasAccess(
-      resourceId,
-      userId,
-      PermissionLevel.READ,
-    );
-
-    if (!hasPermission) {
-      return { success: false, message: 'Insufficient permissions to view resource users' };
+    /**
+     * Revoke permissions from a user
+     */
+    @Delete('permission/:resourceId/user/:userId')
+    async revokePermission(
+    @Param('resourceId')
+    resourceId: string, 
+    @Param('userId')
+    userId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const adminUserId = req.user.id;
+        // Check if the requesting user has admin permissions
+        const isAdmin = await this.permissionsService.hasAccess(resourceId, adminUserId, PermissionLevel.ADMIN);
+        if (!isAdmin) {
+            return { success: false, message: 'Insufficient permissions to revoke permissions' };
+        }
+        const revoked = await this.permissionsService.revokeAccess(resourceId, userId);
+        return {
+            success: true,
+            revoked,
+        };
     }
-
-    const users = await this.permissionsService.getUsersForResource(resourceId);
-
-    return {
-      success: true,
-      users,
-    };
-  }
+    /**
+     * Get users with access to a resource
+     */
+    @Get('users/:resourceId')
+    async getUsersForResource(
+    @Param('resourceId')
+    resourceId: string, 
+    @Request()
+    req): Promise<unknown> {
+        const userId = req.user.id;
+        const hasPermission = await this.permissionsService.hasAccess(resourceId, userId, PermissionLevel.READ);
+        if (!hasPermission) {
+            return { success: false, message: 'Insufficient permissions to view resource users' };
+        }
+        const users = await this.permissionsService.getUsersForResource(resourceId);
+        return {
+            success: true,
+            users,
+        };
+    }
 }

@@ -9,18 +9,17 @@ import {
 } from 'typeorm';
 
 export enum ContentType {
-  IMAGE = 'image',
-  VIDEO = 'video',
-  DOCUMENT = 'document',
-  AUDIO = 'audio',
+    IMAGE = 'image',
+    VIDEO = 'video',
+    DOCUMENT = 'document',
+    AUDIO = 'audio'
 }
-
 export enum ContentStatus {
-  UPLOADING = 'uploading',
-  PROCESSING = 'processing',
-  OPTIMIZED = 'optimized',
-  READY = 'ready',
-  FAILED = 'failed',
+    UPLOADING = 'uploading',
+    PROCESSING = 'processing',
+    OPTIMIZED = 'optimized',
+    READY = 'ready',
+    FAILED = 'failed'
 }
 
 /**

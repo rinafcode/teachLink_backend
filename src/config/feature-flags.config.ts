@@ -182,7 +182,6 @@ export interface IFeatureFlagsConfig {
    *  `false`: OnboardingModule is skipped. */
   ENABLE_ONBOARDING: boolean;
 }
-
 /**
  * Default feature flags - all features enabled by default
  * except AB_TESTING, DATA_WAREHOUSE, and GRAPHQL which are not yet GA
@@ -217,7 +216,6 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_LOCALIZATION: true,
   ENABLE_ONBOARDING: true,
 };
-
 /**
  * Load feature flags from environment variables
  */
@@ -289,18 +287,16 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
     ENABLE_ONBOARDING: getBooleanEnv('ENABLE_ONBOARDING', defaultFeatureFlags.ENABLE_ONBOARDING),
   };
 }
-
 /**
  * Helper function to parse boolean environment variables
  */
 function getBooleanEnv(key: string, defaultValue: boolean): boolean {
-  const value = process.env[key];
-  if (value === undefined) {
-    return defaultValue;
-  }
-  return value.toLowerCase() === 'true' || value === '1';
+    const value = process.env[key];
+    if (value === undefined) {
+        return defaultValue;
+    }
+    return value.toLowerCase() === 'true' || value === '1';
 }
-
 /**
  * Get list of enabled modules based on feature flags
  */
@@ -337,7 +333,6 @@ export function getEnabledModules(flags: IFeatureFlagsConfig): string[] {
 
   return modules;
 }
-
 /**
  * Get list of disabled modules based on feature flags
  */

@@ -8,13 +8,12 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { Experiment } from './experiment.entity';
-
 export enum MetricType {
-  CONVERSION = 'conversion',
-  REVENUE = 'revenue',
-  ENGAGEMENT = 'engagement',
-  RETENTION = 'retention',
-  CUSTOM = 'custom',
+    CONVERSION = 'conversion',
+    REVENUE = 'revenue',
+    ENGAGEMENT = 'engagement',
+    RETENTION = 'retention',
+    CUSTOM = 'custom'
 }
 
 /**

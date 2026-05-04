@@ -8,7 +8,6 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { AutomationWorkflow } from './automation-workflow.entity';
 import { ActionType } from '../enums/action-type.enum';
 

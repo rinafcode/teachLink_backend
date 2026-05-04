@@ -1,11 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
@@ -40,7 +34,7 @@ export interface IPaginatedTranslations {
  */
 @Injectable()
 export class LocalizationService {
-  constructor(
+    constructor(
     @InjectRepository(Translation)
     private readonly translationRepo: Repository<Translation>,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
@@ -81,19 +75,8 @@ export class LocalizationService {
       seen.add(k);
       await this.cacheManager.del(bundleCacheKey(namespace, locale));
     }
-  }
-
-  private async loadRawBundleFromDb(
-    namespace: string,
-    locale: string,
-  ): Promise<Record<string, string>> {
-    const rows = await this.translationRepo.find({
-      where: { namespace, locale: languageDetectionNormalize(locale) },
-      select: ['translationKey', 'value'],
-    });
-    const map: Record<string, string> = {};
-    for (const r of rows) {
-      map[r.translationKey] = r.value;
+    private getDefaultLocale(): string {
+        return this.languageDetection.getDefaultLocale();
     }
     return map;
   }
@@ -210,24 +193,21 @@ export class LocalizationService {
       await this.invalidateBundles([{ namespace: restored.namespace, locale: restored.locale }]);
       return this.toItem(restored);
     }
-
-    const entity = this.translationRepo.create({
-      namespace,
-      translationKey: key,
-      locale,
-      value: dto.value,
-    });
-    try {
-      const saved = await this.translationRepo.save(entity);
-      await this.invalidateBundles([{ namespace: saved.namespace, locale: saved.locale }]);
-      return this.toItem(saved);
-    } catch (e) {
-      if (isUniqueViolation(e)) {
-        throw new ConflictException(
-          'Translation already exists for this namespace, key, and locale',
-        );
-      }
-      throw e;
+    async getRawBundleCached(namespace: string, locale: string): Promise<Record<string, string>> {
+        const loc = languageDetectionNormalize(locale);
+        const key = bundleCacheKey(namespace, loc);
+        const ttl = this.getCacheTtlMs();
+        const cached = await this.cacheManager.get<Record<string, string>>(key);
+        if (cached)
+            return cached;
+        const fresh = await this.loadRawBundleFromDb(namespace, loc);
+        if (ttl > 0) {
+            await this.cacheManager.set(key, fresh, ttl);
+        }
+        else {
+            await this.cacheManager.set(key, fresh);
+        }
+        return fresh;
     }
   }
 
@@ -238,12 +218,19 @@ export class LocalizationService {
     if (query.namespace) {
       qb.andWhere('t.namespace = :ns', { ns: query.namespace.trim() });
     }
-    if (query.locale) {
-      qb.andWhere('t.locale = :loc', { loc: languageDetectionNormalize(query.locale) });
+    interpolate(template: string, vars?: Record<string, string | number>): string {
+        if (!vars)
+            return template;
+        return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : `{{${k}}}`);
     }
-    if (query.search?.trim()) {
-      const term = `%${query.search.trim()}%`;
-      qb.andWhere('(t.translationKey ILIKE :term OR t.value ILIKE :term)', { term });
+    async translate(namespace: string, key: string, locale?: string, vars?: Record<string, string | number>): Promise<string> {
+        const loc = locale
+            ? this.languageDetection.pickSupported(locale) || this.getDefaultLocale()
+            : this.getDefaultLocale();
+        const merged = await this.getMessagesMerged(namespace, loc);
+        const raw = merged[key];
+        const text = raw !== undefined && raw !== null && raw !== '' ? raw : `${namespace}.${key}`;
+        return this.interpolate(text, vars);
     }
     qb.orderBy('t.namespace', 'ASC')
       .addOrderBy('t.locale', 'ASC')
@@ -307,31 +294,32 @@ export class LocalizationService {
     if (!rows?.length) {
       throw new BadRequestException('Import payload must contain at least one row');
     }
-
-    for (const row of rows) {
-      const namespace = row.namespace.trim();
-      const translationKey = row.key.trim();
-      const locale = languageDetectionNormalize(row.locale);
-      const existing = await this.translationRepo.findOne({
-        where: { namespace, translationKey, locale },
-        withDeleted: true,
-      });
-
-      if (existing) {
-        existing.value = row.value;
-        existing.deletedAt = null;
-        await this.translationRepo.save(existing);
-        continue;
-      }
-
-      await this.translationRepo.save(
-        this.translationRepo.create({
-          namespace,
-          translationKey,
-          locale,
-          value: row.value,
-        }),
-      );
+    async findAll(query: ListTranslationsQueryDto): Promise<PaginatedTranslations> {
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 20;
+        const qb = this.translationRepo.createQueryBuilder('t');
+        if (query.namespace) {
+            qb.andWhere('t.namespace = :ns', { ns: query.namespace.trim() });
+        }
+        if (query.locale) {
+            qb.andWhere('t.locale = :loc', { loc: languageDetectionNormalize(query.locale) });
+        }
+        if (query.search?.trim()) {
+            const term = `%${query.search.trim()}%`;
+            qb.andWhere('(t.translationKey ILIKE :term OR t.value ILIKE :term)', { term });
+        }
+        qb.orderBy('t.namespace', 'ASC')
+            .addOrderBy('t.locale', 'ASC')
+            .addOrderBy('t.translationKey', 'ASC');
+        const total = await qb.getCount();
+        qb.skip((page - 1) * limit).take(limit);
+        const rows = await qb.getMany();
+        return {
+            items: rows.map((r) => this.toItem(r)),
+            total,
+            page,
+            limit,
+        };
     }
 
     const pairs = rows.map((r) => ({
@@ -383,21 +371,20 @@ export class LocalizationService {
     return [header, ...lines].join('\n');
   }
 }
-
 function languageDetectionNormalize(locale: string): string {
-  return locale.trim().toLowerCase().replace(/_/g, '-');
+    return locale.trim().toLowerCase().replace(/_/g, '-');
 }
-
 function csvEscape(field: string): string {
-  if (/[",\n\r]/.test(field)) {
-    return `"${field.replace(/"/g, '""')}"`;
-  }
-  return field;
+    if (/[",\n\r]/.test(field)) {
+        return `"${field.replace(/"/g, '""')}"`;
+    }
+    return field;
 }
-
 function isUniqueViolation(err: unknown): boolean {
-  return (
-    err instanceof QueryFailedError &&
-    (err as { driverError?: { code?: string } }).driverError?.code === '23505'
-  );
+    return (err instanceof QueryFailedError &&
+        (err as {
+            driverError?: {
+                code?: string;
+            };
+        }).driverError?.code === '23505');
 }

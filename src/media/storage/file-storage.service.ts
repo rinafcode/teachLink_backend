@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  S3Client,
-  GetObjectCommand,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { ContentMetadata } from '../../cdn/entities/content-metadata.entity';
 import { UploadedFile } from '@nestjs/common';

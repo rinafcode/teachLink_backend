@@ -66,4 +66,5 @@ import { IdempotencyService } from '../common/services/idempotency.service';
     IdempotencyService,
   ],
 })
-export class PaymentsModule {}
+export class PaymentsModule {
+}

@@ -1,11 +1,9 @@
 import { SetMetadata } from '@nestjs/common';
-
 export const CACHE_KEY_METADATA = 'cache:key';
 export const CACHE_TTL_METADATA = 'cache:ttl';
 export const CACHE_EVICT_METADATA = 'cache:evict';
 export const CACHE_PREFIX_METADATA = 'cache:prefix';
 export const CACHE_CONDITION_METADATA = 'cache:condition';
-
 /**
  * Options for cacheable decorator
  */
@@ -32,7 +30,6 @@ export interface ICacheableOptions {
    */
   condition?: (...args: any[]) => boolean;
 }
-
 /**
  * Options for cache evict decorator
  */
@@ -48,7 +45,6 @@ export interface ICacheEvictOptions {
    */
   beforeInvocation?: boolean;
 }
-
 /**
  * Decorator to cache method result
  *
@@ -96,7 +92,6 @@ export function Cacheable(ttlOrOptions?: number | ICacheableOptions): MethodDeco
     return descriptor;
   };
 }
-
 /**
  * Decorator to evict cache entries when method is executed
  *
@@ -134,7 +129,6 @@ export function CacheEvict(
     return descriptor;
   };
 }
-
 /**
  * Decorator to set a custom cache key for a method
  *
@@ -155,17 +149,12 @@ export function CacheEvict(
  * }
  * ```
  */
-export function CacheKey(key: string | ((...args: any[]) => string)): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_KEY_METADATA, key)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+export function CacheKey(key: string | ((...args: unknown[]) => string)): MethodDecorator {
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_KEY_METADATA, key)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to set TTL for a cached method
  *
@@ -181,16 +170,11 @@ export function CacheKey(key: string | ((...args: any[]) => string)): MethodDeco
  * ```
  */
 export function CacheTTL(ttl: number): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_TTL_METADATA, ttl)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_TTL_METADATA, ttl)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to set cache prefix for a method
  *
@@ -206,16 +190,11 @@ export function CacheTTL(ttl: number): MethodDecorator {
  * ```
  */
 export function CachePrefix(prefix: string): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_PREFIX_METADATA, prefix)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_PREFIX_METADATA, prefix)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }
-
 /**
  * Decorator to conditionally cache based on method arguments
  *
@@ -230,15 +209,9 @@ export function CachePrefix(prefix: string): MethodDecorator {
  * }
  * ```
  */
-export function CacheCondition(
-  condition: (result: any, ...args: any[]) => boolean,
-): MethodDecorator {
-  return (
-    target: object,
-    propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<any>,
-  ) => {
-    SetMetadata(CACHE_CONDITION_METADATA, condition)(target, propertyKey, descriptor);
-    return descriptor;
-  };
+export function CacheCondition(condition: (result: unknown, ...args: unknown[]) => boolean): MethodDecorator {
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<unknown>) => {
+        SetMetadata(CACHE_CONDITION_METADATA, condition)(target, propertyKey, descriptor);
+        return descriptor;
+    };
 }

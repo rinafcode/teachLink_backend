@@ -74,7 +74,20 @@ export class CsrfService {
     for (const [sessionId, tokenData] of this.csrfTokens.entries()) {
       if (tokenData.expires <= now) {
         this.csrfTokens.delete(sessionId);
-      }
     }
-  }
+    getToken(sessionId: string): string | null {
+        const storedToken = this.csrfTokens.get(sessionId);
+        if (!storedToken || storedToken.expires <= Date.now()) {
+            return null;
+        }
+        return storedToken.token;
+    }
+    cleanupExpiredTokens(): void {
+        const now = Date.now();
+        for (const [sessionId, tokenData] of this.csrfTokens.entries()) {
+            if (tokenData.expires <= now) {
+                this.csrfTokens.delete(sessionId);
+            }
+        }
+    }
 }

@@ -7,7 +7,6 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { ABTest } from './ab-test.entity';
 
 /**

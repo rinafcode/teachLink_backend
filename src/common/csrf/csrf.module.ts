@@ -7,9 +7,9 @@ import { CsrfController } from './csrf.controller';
  * Registers the csrf module.
  */
 @Module({
-  providers: [CsrfService],
-  controllers: [CsrfController],
-  exports: [CsrfService],
+    providers: [CsrfService],
+    controllers: [CsrfController],
+    exports: [CsrfService],
 })
 export class CsrfModule {
   /**

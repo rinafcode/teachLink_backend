@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager, QueryRunner } from 'typeorm';
-
 /**
  * Transaction monitoring interface
  */
@@ -13,7 +12,6 @@ export interface ITransactionMetrics {
   operations: string[];
   error?: string;
 }
-
 /**
  * Transaction Service
  * Provides robust transaction management for critical operations
@@ -150,46 +148,20 @@ export class TransactionService {
         } else {
           throw error;
         }
-      }
     }
-
-    throw lastError ?? new Error('Transaction failed');
-  }
-
-  /**
-   * Execute multiple operations in parallel within a transaction
-   */
-  async runParallelInTransaction<T>(
-    operations: Array<(manager: EntityManager) => Promise<T>>,
-  ): Promise<T[]> {
-    return this.runInTransaction(async (manager) => {
-      return Promise.all(operations.map((op) => op(manager)));
-    });
-  }
-
-  /**
-   * Execute operations with savepoint support
-   */
-  async runWithSavepoint<T>(
-    savepointName: string,
-    operation: (manager: EntityManager) => Promise<T>,
-    parentManager?: EntityManager,
-  ): Promise<T> {
-    if (parentManager) {
-      // Use existing transaction with savepoint
-      await parentManager.query(`SAVEPOINT ${savepointName}`);
-
-      try {
-        const result = await operation(parentManager);
-        await parentManager.query(`RELEASE SAVEPOINT ${savepointName}`);
-        return result;
-      } catch (error) {
-        await parentManager.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
-        throw error;
-      }
-    } else {
-      // Create new transaction
-      return this.runInTransaction(operation);
+    /**
+     * Execute operations with manual transaction control
+     * Useful for complex scenarios requiring custom logic
+     */
+    async withTransaction<T>(callback: (queryRunner: QueryRunner) => Promise<T>): Promise<T> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        try {
+            return await callback(queryRunner);
+        }
+        finally {
+            await queryRunner.release();
+        }
     }
   }
 
@@ -255,12 +227,4 @@ export class TransactionService {
         this.activeTransactions.delete(id);
       }
     }
-  }
-
-  /**
-   * Check if currently in a transaction
-   */
-  isInTransaction(manager: EntityManager): boolean {
-    return manager.queryRunner?.isTransactionActive || false;
-  }
 }

@@ -44,9 +44,6 @@ export class FlagAnalyticsService {
         if (!this.flagUsers.has(event.flagKey)) {
           this.flagUsers.set(event.flagKey, new Set());
         }
-        const flagUsers = this.flagUsers.get(event.flagKey);
-        if (flagUsers) flagUsers.add(event.userId);
-      }
     }
   }
 
@@ -202,26 +199,54 @@ export class FlagAnalyticsService {
       this.flagUsers.delete(flagKey);
       return;
     }
-
-    this.flagEvents.clear();
-    this.flagUsers.clear();
-    this.experimentImpressions.clear();
-    this.experimentConversions.clear();
-  }
-
-  private incrementExperimentCounter(
-    store: Map<string, Map<string, number>>,
-    experimentId: string,
-    variantKey: string,
-  ): void {
-    if (!store.has(experimentId)) {
-      store.set(experimentId, new Map());
+    /**
+     * Returns the most evaluated flags, sorted by evaluation count descending.
+     */
+    getTopFlags(limit: number = 10): FlagSummary[] {
+        const summaries: FlagSummary[] = [];
+        for (const [flagKey, events] of this.flagEvents.entries()) {
+            const evaluations = events.filter((e) => e.eventType === 'evaluation');
+            summaries.push({
+                flagKey,
+                totalEvaluations: evaluations.length,
+                lastEvaluatedAt: events[events.length - 1]?.timestamp,
+            });
+        }
+        return summaries.sort((a, b) => b.totalEvaluations - a.totalEvaluations).slice(0, limit);
     }
-    const inner = store.get(experimentId) ?? new Map();
-    inner.set(variantKey, (inner.get(variantKey) ?? 0) + 1);
-  }
-
-  private generateEventId(): string {
-    return `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  }
+    /**
+     * Returns the most recent evaluation events for a flag in reverse-chronological order.
+     */
+    getFlagEvaluationHistory(flagKey: string, limit: number = 100): FlagAnalyticsEvent[] {
+        const events = this.flagEvents.get(flagKey) ?? [];
+        return events
+            .filter((e) => e.eventType === 'evaluation')
+            .slice(-limit)
+            .reverse();
+    }
+    /**
+     * Clears stored analytics. Pass a flagKey to clear only that flag's data,
+     * or call without arguments to wipe all analytics.
+     */
+    clearAnalytics(flagKey?: string): void {
+        if (flagKey) {
+            this.flagEvents.delete(flagKey);
+            this.flagUsers.delete(flagKey);
+            return;
+        }
+        this.flagEvents.clear();
+        this.flagUsers.clear();
+        this.experimentImpressions.clear();
+        this.experimentConversions.clear();
+    }
+    private incrementExperimentCounter(store: Map<string, Map<string, number>>, experimentId: string, variantKey: string): void {
+        if (!store.has(experimentId)) {
+            store.set(experimentId, new Map());
+        }
+        const inner = store.get(experimentId) ?? new Map();
+        inner.set(variantKey, (inner.get(variantKey) ?? 0) + 1);
+    }
+    private generateEventId(): string {
+        return `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
 }

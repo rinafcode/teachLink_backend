@@ -40,7 +40,6 @@ export interface IResponseLog extends IRequestLog {
   responseTimeMs: number;
   contentLength?: number;
 }
-
 /**
  * #154 / #360 – LoggingInterceptor
  *
@@ -73,12 +72,15 @@ export class LoggingInterceptor implements NestInterceptor {
     if (context.getType() !== 'http') {
       return next.handle();
     }
-
-    const httpCtx = context.switchToHttp();
-    const request = httpCtx.getRequest<Request & { user?: Record<string, unknown> }>();
-
-    if (!request) {
-      return next.handle();
+    // ─── Private helpers ───────────────────────────────────────────────────────
+    private logIncoming(log: RequestLog): void {
+        const message = `→ ${log.method} ${log.url}`;
+        if (this.isProd) {
+            this.logger.log(JSON.stringify({ event: 'request.incoming', ...log }));
+        }
+        else {
+            this.logger.log(`${message} | id=${log.requestId} ip=${log.ip}${log.userId ? ` user=${log.userId}` : ''}`);
+        }
     }
 
     const startTime = Date.now();
@@ -163,11 +165,4 @@ export class LoggingInterceptor implements NestInterceptor {
     if (typeof forwarded === 'string') {
       return forwarded.split(',')[0].trim();
     }
-    return request.ip ?? request.socket?.remoteAddress ?? 'unknown';
-  }
-
-  private getContentLength(response: Response): number | undefined {
-    const header = response.getHeader('content-length');
-    return header !== undefined ? Number(header) : undefined;
-  }
 }

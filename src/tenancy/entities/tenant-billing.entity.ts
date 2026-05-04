@@ -11,11 +11,10 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
-
 export enum BillingCycle {
-  MONTHLY = 'monthly',
-  QUARTERLY = 'quarterly',
-  YEARLY = 'yearly',
+    MONTHLY = 'monthly',
+    QUARTERLY = 'quarterly',
+    YEARLY = 'yearly'
 }
 
 /**

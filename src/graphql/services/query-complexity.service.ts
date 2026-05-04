@@ -17,7 +17,6 @@ export interface IComplexityConfig {
   /** Custom complexity values for specific types/fields */
   fieldComplexityMap: Record<string, number>;
 }
-
 /**
  * Complexity analysis result
  */
@@ -31,7 +30,6 @@ export interface IComplexityResult {
   /** Error message if not allowed */
   error?: string;
 }
-
 /**
  * Query Complexity Analysis Service
  *
@@ -101,153 +99,67 @@ export class QueryComplexityService {
           depth: 0,
           allowed: true,
         };
-      }
-
-      // Calculate depth and complexity
-      const depth = this.calculateDepth(operation);
-      const complexity = this.calculateComplexity(operation, variables);
-
-      // Check if within limits
-      const allowed = depth <= this.config.maxDepth && complexity <= this.config.maxComplexity;
-
-      let error: string | undefined;
-      if (!allowed) {
-        if (depth > this.config.maxDepth) {
-          error = `Query depth ${depth} exceeds maximum allowed depth ${this.config.maxDepth}`;
-        } else {
-          error = `Query complexity ${complexity} exceeds maximum allowed complexity ${this.config.maxComplexity}`;
-        }
-        this.logger.warn(`Query rejected: ${error}`);
-      }
-
-      return {
-        complexity,
-        depth,
-        allowed,
-        error,
-      };
-    } catch (error) {
-      this.logger.error(`Error analyzing query complexity: ${error.message}`);
-      // On parse error, allow the query to proceed (it will fail at execution anyway)
-      return {
-        complexity: 0,
-        depth: 0,
-        allowed: true,
-        error: undefined,
-      };
     }
-  }
-
-  /**
-   * Calculate the depth of a query
-   */
-  private calculateDepth(operation: OperationDefinitionNode): number {
-    let maxDepth = 0;
-
-    const visitor = {
-      Field: {
-        enter: (node: FieldNode) => {
-          const depth = this.getFieldDepth(node);
-          if (depth > maxDepth) {
-            maxDepth = depth;
-          }
-        },
-      },
-    };
-
-    visit(operation, visitor);
-    return maxDepth;
-  }
-
-  /**
-   * Get the depth of a specific field
-   */
-  private getFieldDepth(field: FieldNode, currentDepth: number = 0): number {
-    if (!field.selectionSet) {
-      return currentDepth;
+    /**
+     * Set the GraphQL schema for complexity analysis
+     */
+    setSchema(schema: GraphQLSchema): void {
+        this.schema = schema;
     }
-
-    let maxDepth = currentDepth;
-    for (const selection of field.selectionSet.selections) {
-      if (selection.kind === 'Field') {
-        const depth = this.getFieldDepth(selection, currentDepth + 1);
-        if (depth > maxDepth) {
-          maxDepth = depth;
-        }
-      }
+    /**
+     * Update complexity configuration
+     */
+    setConfig(config: Partial<ComplexityConfig>): void {
+        this.config = { ...this.defaultConfig, ...config };
     }
-
-    return maxDepth;
-  }
-
-  /**
-   * Calculate the complexity score of a query
-   */
-  private calculateComplexity(
-    operation: OperationDefinitionNode,
-    variables?: Record<string, any>,
-  ): number {
-    let totalComplexity = 0;
-
-    const visitor = {
-      Field: {
-        enter: (node: FieldNode): void => {
-          const fieldName = node.name.value;
-          const args = node.arguments || [];
-
-          // Get complexity for this field
-          let fieldComplexity =
-            this.config.fieldComplexityMap[fieldName] || this.config.defaultFieldComplexity;
-
-          // Check for list arguments (like limit, first, last)
-          for (const arg of args) {
-            if (
-              arg.name.value === 'limit' ||
-              arg.name.value === 'first' ||
-              arg.name.value === 'last'
-            ) {
-              // Get the actual value from variables or literal
-              let listSize = 10; // Default
-              if (arg.value.kind === 'IntValue') {
-                listSize = parseInt(arg.value.value, 10);
-              } else if (arg.value.kind === 'Variable' && variables) {
-                listSize = variables[arg.value.name.value] || 10;
-              }
-              // Multiply complexity by list size with scalar
-              fieldComplexity += (listSize - 1) * this.config.listScalarMultiplier;
+    /**
+     * Analyze a query for complexity
+     */
+    analyze(query: string, variables?: Record<string, unknown>): ComplexityResult {
+        try {
+            // Parse the query to get AST
+            const ast = parse(query);
+            // Find the operation
+            const operation = this.findOperation(ast);
+            if (!operation) {
+                return {
+                    complexity: 0,
+                    depth: 0,
+                    allowed: true,
+                };
             }
-          }
-
-          totalComplexity += fieldComplexity;
-
-          // Stop if we exceeds max complexity (early termination)
-          if (totalComplexity > this.config.maxComplexity) {
-            // Early termination by throwing an error
-            throw new Error(
-              `Query complexity ${totalComplexity} exceeds maximum allowed complexity of ${this.config.maxComplexity}`,
-            );
-          }
-        },
-      },
-    };
-
-    visit(operation, visitor);
-    return totalComplexity;
-  }
-
-  /**
-   * Find the main operation in the query
-   */
-  private findOperation(ast: any): OperationDefinitionNode | null {
-    const definitions = ast.definitions || [];
-
-    for (const def of definitions) {
-      if (def.kind === 'OperationDefinition') {
-        // Return first query operation
-        if (def.operation === 'query') {
-          return def;
+            // Calculate depth and complexity
+            const depth = this.calculateDepth(operation);
+            const complexity = this.calculateComplexity(operation, variables);
+            // Check if within limits
+            const allowed = depth <= this.config.maxDepth && complexity <= this.config.maxComplexity;
+            let error: string | undefined;
+            if (!allowed) {
+                if (depth > this.config.maxDepth) {
+                    error = `Query depth ${depth} exceeds maximum allowed depth ${this.config.maxDepth}`;
+                }
+                else {
+                    error = `Query complexity ${complexity} exceeds maximum allowed complexity ${this.config.maxComplexity}`;
+                }
+                this.logger.warn(`Query rejected: ${error}`);
+            }
+            return {
+                complexity,
+                depth,
+                allowed,
+                error,
+            };
         }
-      }
+        catch (error) {
+            this.logger.error(`Error analyzing query complexity: ${error.message}`);
+            // On parse error, allow the query to proceed (it will fail at execution anyway)
+            return {
+                complexity: 0,
+                depth: 0,
+                allowed: true,
+                error: undefined,
+            };
+        }
     }
 
     return null;
@@ -269,16 +181,15 @@ export class QueryComplexityService {
     return result.allowed;
   }
 }
-
 /**
  * GraphQL complexity validator function for Apollo Server
  */
 export function createComplexityValidator(service: QueryComplexityService) {
-  return (query: string, variables?: Record<string, any>): Error | undefined => {
-    const result = service.analyze(query, variables);
-    if (!result.allowed && result.error) {
-      return new Error(result.error);
-    }
-    return undefined;
-  };
+    return (query: string, variables?: Record<string, unknown>): Error | undefined => {
+        const result = service.analyze(query, variables);
+        if (!result.allowed && result.error) {
+            return new Error(result.error);
+        }
+        return undefined;
+    };
 }

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionService } from '../transaction.service';
 // import { Transactional } from '../transactional.decorator';
-
 /**
  * Example: Payment Transaction
  * Demonstrates atomic payment processing with transaction management
@@ -147,17 +146,4 @@ export class PaymentTransactionExample {
     if (!sender || sender.length === 0) {
       throw new Error('Insufficient balance');
     }
-
-    await manager.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [
-      amount,
-      recipientId,
-    ]);
-
-    const payment = await manager.query(
-      'INSERT INTO payments (user_id, recipient_id, amount, status) VALUES ($1, $2, $3, $4) RETURNING *',
-      [userId, recipientId, amount, 'completed'],
-    );
-
-    return payment[0];
-  }
 }

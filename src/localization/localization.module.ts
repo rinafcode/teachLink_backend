@@ -12,16 +12,16 @@ import { LocalizationService } from './localization.service';
  * Registers the localization module.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Translation])],
-  controllers: [LocalizationController],
-  providers: [
-    LocalizationService,
-    LanguageDetectionService,
-    LanguageMiddleware,
-    JwtAuthGuard,
-    RolesGuard,
-  ],
-  exports: [LocalizationService, LanguageDetectionService],
+    imports: [TypeOrmModule.forFeature([Translation])],
+    controllers: [LocalizationController],
+    providers: [
+        LocalizationService,
+        LanguageDetectionService,
+        LanguageMiddleware,
+        JwtAuthGuard,
+        RolesGuard,
+    ],
+    exports: [LocalizationService, LanguageDetectionService],
 })
 export class LocalizationModule implements NestModule {
   /**

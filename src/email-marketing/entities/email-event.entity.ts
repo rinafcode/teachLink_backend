@@ -7,7 +7,6 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { EmailEventType } from '../enums/email-event-type.enum';
 
 /**

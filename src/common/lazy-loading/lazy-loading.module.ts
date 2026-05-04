@@ -6,8 +6,8 @@ import { LazyModuleLoader } from './lazy-module-loader.service';
  */
 @Global()
 @Module({
-  providers: [LazyModuleLoader],
-  exports: [LazyModuleLoader],
+    providers: [LazyModuleLoader],
+    exports: [LazyModuleLoader],
 })
 export class LazyLoadingModule {
   /**

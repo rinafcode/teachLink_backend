@@ -103,9 +103,24 @@ export class VersionControlService {
     if (!history) {
       return null;
     }
-
-    if (history.versions.length === 0) {
-      return null;
+    /**
+     * Revert to a specific version
+     */
+    async revertToVersion(sessionId: string, versionNumber: number): Promise<ChangeRecord[]> {
+        const history = this.histories.get(sessionId);
+        if (!history) {
+            throw new Error(`No history found for session ${sessionId}`);
+        }
+        const versionIndex = history.versions.findIndex((v) => v.versionNumber === versionNumber);
+        if (versionIndex === -1) {
+            throw new Error(`Version ${versionNumber} not found for session ${sessionId}`);
+        }
+        // Keep only versions up to the specified version
+        history.versions = history.versions.slice(0, versionIndex + 1);
+        history.currentVersion = versionNumber;
+        history.updatedAt = new Date();
+        this.logger.log(`Reverted session ${sessionId} to version ${versionNumber}`);
+        return [...history.versions];
     }
 
     return history.versions[history.versions.length - 1];
@@ -119,10 +134,52 @@ export class VersionControlService {
     if (!history) {
       throw new Error(`No history found for session ${sessionId}`);
     }
-
-    const versionIndex = history.versions.findIndex((v) => v.versionNumber === versionNumber);
-    if (versionIndex === -1) {
-      throw new Error(`Version ${versionNumber} not found for session ${sessionId}`);
+    /**
+     * Get change statistics
+     */
+    async getChangeStatistics(sessionId: string): Promise<{
+        totalChanges: number;
+        changesByUser: Map<string, number>;
+        changesOverTime: Array<{
+            date: Date;
+            count: number;
+        }>;
+    }> {
+        const history = this.histories.get(sessionId);
+        if (!history) {
+            return {
+                totalChanges: 0,
+                changesByUser: new Map(),
+                changesOverTime: [],
+            };
+        }
+        const changesByUser = new Map<string, number>();
+        const changesOverTime: Array<{
+            date: Date;
+            count: number;
+        }> = [];
+        for (const version of history.versions) {
+            // Count changes by user
+            const userCount = changesByUser.get(version.userId) || 0;
+            changesByUser.set(version.userId, userCount + 1);
+            // Group by day for time series
+            const _dateStr = new Date(version.timestamp).toDateString();
+            const timeEntry = changesOverTime.find((entry) => entry.date.toDateString() === new Date(version.timestamp).toDateString());
+            if (timeEntry) {
+                timeEntry.count++;
+            }
+            else {
+                changesOverTime.push({
+                    date: new Date(version.timestamp),
+                    count: 1,
+                });
+            }
+        }
+        return {
+            totalChanges: history.versions.length,
+            changesByUser,
+            changesOverTime,
+        };
     }
 
     // Keep only versions up to the specified version
@@ -198,23 +255,29 @@ export class VersionControlService {
         });
       }
     }
-
-    return {
-      totalChanges: history.versions.length,
-      changesByUser,
-      changesOverTime,
-    };
-  }
-
-  /**
-   * Get the operation type from a change object
-   */
-  private getOperationType(change: any): string {
-    if (change.type) {
-      return change.type;
+    /**
+     * Extract the new value from a change
+     */
+    private getNewValue(change: unknown): unknown {
+        if (change.newValue !== undefined) {
+            return change.newValue;
+        }
+        if (change.data !== undefined) {
+            return change.data;
+        }
+        return change;
     }
-    if (change.operation) {
-      return change.operation;
+    /**
+     * Calculate differences between two states
+     */
+    private calculateDifferences(state1: unknown, state2: unknown): unknown {
+        // This is a simplified difference calculation
+        // A production implementation would use a more sophisticated diff algorithm
+        return {
+            state1,
+            state2,
+            hasChanges: JSON.stringify(state1) !== JSON.stringify(state2),
+        };
     }
     return 'unknown';
   }

@@ -117,15 +117,4 @@ export class AuditLogInterceptor implements NestInterceptor {
     } catch (error) {
       this.logger.error('Failed to log audit entry:', error);
     }
-  }
-
-  private shouldSkipLogging(endpoint: string): boolean {
-    const skipPatterns = [
-      /^\/health/,
-      /^\/favicon/,
-      /\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/,
-    ];
-
-    return skipPatterns.some((pattern) => pattern.test(endpoint));
-  }
 }

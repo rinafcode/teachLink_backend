@@ -8,7 +8,7 @@ import { ReviewItem } from './review-item.entity';
  */
 @Injectable()
 export class ManualReviewService {
-  constructor(
+    constructor(
     @InjectRepository(ReviewItem)
     private readonly reviewRepo: Repository<ReviewItem>,
   ) {}

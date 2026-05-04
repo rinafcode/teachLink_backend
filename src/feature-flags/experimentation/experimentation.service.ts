@@ -63,11 +63,19 @@ export class ExperimentationService {
     if (!this.conversions.has(experimentId)) {
       this.conversions.set(experimentId, new Map());
     }
-
-    const expConversions = this.conversions.get(experimentId) ?? new Map();
-
-    if (!expConversions.has(userId)) {
-      expConversions.set(userId, []);
+    /**
+     * Records a conversion event for a user in an experiment.
+     */
+    trackConversion(experimentId: string, userId: string, eventName: string, metadata?: Record<string, unknown>): void {
+        if (!this.conversions.has(experimentId)) {
+            this.conversions.set(experimentId, new Map());
+        }
+        const expConversions = this.conversions.get(experimentId) ?? new Map();
+        if (!expConversions.has(userId)) {
+            expConversions.set(userId, []);
+        }
+        const userConversions = expConversions.get(userId) ?? [];
+        userConversions.push({ eventName, metadata, timestamp: new Date() });
     }
 
     const userConversions = expConversions.get(userId) ?? [];
@@ -151,5 +159,4 @@ export class ExperimentationService {
       default:
         return userContext.attributes?.[attribute]?.toString() ?? userContext.userId;
     }
-  }
 }

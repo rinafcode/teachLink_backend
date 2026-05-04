@@ -36,4 +36,5 @@ import { CommonModule } from '../common/common.module';
     AnomalyDetectionService,
   ],
 })
-export class ObservabilityModule {}
+export class ObservabilityModule {
+}

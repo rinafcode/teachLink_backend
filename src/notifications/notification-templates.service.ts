@@ -66,5 +66,4 @@ export class NotificationTemplatesService {
       default:
         return n.content;
     }
-  }
 }

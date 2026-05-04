@@ -13,41 +13,40 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
 import { PasswordPolicyService } from './services/password-policy.service';
 
 function parseJwtSecrets(raw: string): Record<string, string> {
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (parsed && typeof parsed === 'object') {
-      return parsed as Record<string, string>;
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (parsed && typeof parsed === 'object') {
+            return parsed as Record<string, string>;
+        }
     }
-  } catch {
-    // ignore
-  }
-
-  return raw
-    .split(',')
-    .map((pair) => pair.trim())
-    .filter(Boolean)
-    .reduce<Record<string, string>>((acc, pair) => {
-      const idx = pair.indexOf(':');
-      if (idx <= 0) return acc;
-      const version = pair.slice(0, idx).trim();
-      const secret = pair.slice(idx + 1).trim();
-      if (!version || !secret) return acc;
-      acc[version] = secret;
-      return acc;
+    catch {
+        // ignore
+    }
+    return raw
+        .split(',')
+        .map((pair) => pair.trim())
+        .filter(Boolean)
+        .reduce<Record<string, string>>((acc, pair) => {
+        const idx = pair.indexOf(':');
+        if (idx <= 0)
+            return acc;
+        const version = pair.slice(0, idx).trim();
+        const secret = pair.slice(idx + 1).trim();
+        if (!version || !secret)
+            return acc;
+        acc[version] = secret;
+        return acc;
     }, {});
 }
-
 function getCurrentJwtAccessSecret(configService: ConfigService): string {
-  const jwtSecretsRaw = configService.get<string>('JWT_SECRETS');
-  if (!jwtSecretsRaw) return configService.get<string>('JWT_SECRET') ?? 'your-secret-key';
-
-  const currentVersion = configService.get<string>('JWT_SECRET_CURRENT_VERSION');
-  const secrets = parseJwtSecrets(jwtSecretsRaw);
-  const current =
-    (currentVersion && secrets[currentVersion]) || configService.get<string>('JWT_SECRET');
-  return current || Object.values(secrets)[0] || 'your-secret-key';
+    const jwtSecretsRaw = configService.get<string>('JWT_SECRETS');
+    if (!jwtSecretsRaw)
+        return configService.get<string>('JWT_SECRET') ?? 'your-secret-key';
+    const currentVersion = configService.get<string>('JWT_SECRET_CURRENT_VERSION');
+    const secrets = parseJwtSecrets(jwtSecretsRaw);
+    const current = (currentVersion && secrets[currentVersion]) || configService.get<string>('JWT_SECRET');
+    return current || Object.values(secrets)[0] || 'your-secret-key';
 }
-
 @Module({
   imports: [
     ConfigModule,
@@ -73,4 +72,5 @@ function getCurrentJwtAccessSecret(configService: ConfigService): string {
   providers: [AuthService, JwtStrategy, TransactionService, PasswordPolicyService],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule {
+}

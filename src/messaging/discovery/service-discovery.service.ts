@@ -172,14 +172,5 @@ export class ServiceDiscoveryService implements OnModuleInit, OnModuleDestroy {
           }
           services[instance.name].push(instance);
         }
-      }
-
-      return services;
-    } catch (error) {
-      this.logger.error('Failed to get all services', error);
-      throw error;
-    } finally {
-      this.tracingService.endSpan(span);
     }
-  }
 }

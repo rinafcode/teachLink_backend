@@ -10,9 +10,8 @@ import { MIGRATION_REGISTRY } from '../migration.registry';
  */
 @Injectable()
 export class RollbackService {
-  private readonly logger = new Logger(RollbackService.name);
-
-  constructor(
+    private readonly logger = new Logger(RollbackService.name);
+    constructor(
     @InjectRepository(Migration)
     private migrationRepository: Repository<Migration>,
     @InjectDataSource()
@@ -142,36 +141,25 @@ export class RollbackService {
           status: MigrationStatus.COMPLETED,
           appliedAt: Raw((alias) => `${alias} > :appliedAt`, { appliedAt: targetRecord.appliedAt }),
         }
-      : { status: MigrationStatus.COMPLETED };
-
-    const migrationsToRollback = await this.migrationRepository.find({
-      where: whereClause,
-      order: { appliedAt: 'DESC' },
-    });
-
-    for (const appliedMigration of migrationsToRollback) {
-      const migrationConfig = registeredMigrations.find((m) => m.name === appliedMigration.name);
-      if (migrationConfig) {
         await this.rollbackMigration(migrationConfig);
-      } else {
-        this.logger.warn(`Could not find migration config for: ${appliedMigration.name}`);
-      }
     }
-
-    this.logger.log(`Rollback to version ${targetMigrationName} complete.`);
-  }
-
-  /**
-   * Rolls back a specific named migration regardless of order.
-   */
-  async rollbackByName(migrationName: string): Promise<void> {
-    this.logger.log(`Rolling back specific migration by name: ${migrationName}`);
-
-    const registeredMigrations = this.getRegisteredMigrations();
-    const migrationConfig = registeredMigrations.find((m) => m.name === migrationName);
-
-    if (!migrationConfig) {
-      throw new Error(`Migration not found in registry: ${migrationName}`);
+    async canRollbackMigration(migrationName: string): Promise<boolean> {
+        // Check if the migration exists and is completed
+        const migration = await this.migrationRepository.findOne({
+            where: { name: migrationName, status: MigrationStatus.COMPLETED },
+        });
+        if (!migration) {
+            return false;
+        }
+        // Check if there are dependent migrations that have been applied after this one
+        const laterMigrations = await this.migrationRepository.find({
+            where: {
+                appliedAt: Raw((alias) => `${alias} > :appliedAt`, { appliedAt: migration.appliedAt }),
+            },
+        });
+        // In a real implementation, you'd check dependencies here
+        // For now, we'll return true if no later migrations exist
+        return laterMigrations.length === 0;
     }
 
     const canRollback = await this.canRollbackMigration(migrationName);

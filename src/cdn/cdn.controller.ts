@@ -117,24 +117,6 @@ export class CdnController {
           this.logger.error(`Malware detected in ${file.originalname}:`, scanResult.threats);
           throw new HttpException(errorMsg, HttpStatus.FORBIDDEN);
         }
-      }
-
-      // Step 3: Process and upload
-      const result = await this.cdnService.uploadContent(file, options);
-
-      this.logger.log(`Successfully uploaded content: ${result.contentId}`);
-      return result;
-    } catch (error) {
-      this.logger.error('Upload failed:', error);
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
     }
   }
 
@@ -455,21 +437,239 @@ export class CdnController {
           start: start.toISOString(),
           end: end.toISOString(),
         },
-      };
-    } catch (_error) {
-      console.error('failed to retrieve');
-      throw new HttpException('Failed to retrieve analytics', HttpStatus.INTERNAL_SERVER_ERROR);
+    })
+    @ApiResponse({ status: 400, description: 'No file provided' })
+    @ApiResponse({ status: 503, description: 'Scanning service not available' })
+    async scanFile(
+    @UploadedFile()
+    file: FileUpload) {
+        if (!file) {
+            throw new BadRequestException('No file provided');
+        }
+        if (!this.malwareScanning.isScanningAvailable()) {
+            throw new HttpException('Malware scanning service not available', HttpStatus.SERVICE_UNAVAILABLE);
+        }
+        this.logger.log(`Scanning file: ${file.originalname}`);
+        return this.malwareScanning.scanFile(file);
     }
-  }
-
-  /**
-   * Format bytes to human readable string
-   */
-  private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-  }
+    @Get('allowed-types')
+    @ApiOperation({ summary: 'Get allowed file types and size limits' })
+    @ApiResponse({
+        status: 200,
+        description: 'Allowed file types and limits',
+        schema: {
+            type: 'object',
+            properties: {
+                allowedTypes: { type: 'object' },
+                sizeLimits: { type: 'object' },
+                dimensionLimits: { type: 'object' },
+            },
+        },
+    })
+    getAllowedTypes() {
+        return {
+            allowedTypes: ALLOWED_FILE_TYPES,
+            sizeLimits: {
+                image: this.formatBytes(FILE_SIZE_LIMITS.IMAGE_MAX_SIZE),
+                video: this.formatBytes(FILE_SIZE_LIMITS.VIDEO_MAX_SIZE),
+                document: this.formatBytes(FILE_SIZE_LIMITS.DOCUMENT_MAX_SIZE),
+                audio: this.formatBytes(FILE_SIZE_LIMITS.AUDIO_MAX_SIZE),
+                archive: this.formatBytes(FILE_SIZE_LIMITS.ARCHIVE_MAX_SIZE),
+                default: this.formatBytes(FILE_SIZE_LIMITS.DEFAULT_MAX_SIZE),
+            },
+            dimensionLimits: {
+                minWidth: 1,
+                minHeight: 1,
+                maxWidth: 16384,
+                maxHeight: 16384,
+                maxPixels: 100000000,
+            },
+        };
+    }
+    @Post('compress-preview')
+    @UseInterceptors(FileInterceptor('file'))
+    @ApiOperation({ summary: 'Preview image compression without saving' })
+    @ApiConsumes('multipart/form-data')
+    @ApiResponse({
+        status: 200,
+        description: 'Compression preview result',
+        schema: {
+            type: 'object',
+            properties: {
+                originalSize: { type: 'number' },
+                compressedSize: { type: 'number' },
+                compressionRatio: { type: 'number' },
+                width: { type: 'number' },
+                height: { type: 'number' },
+                format: { type: 'string' },
+            },
+        },
+    })
+    @ApiResponse({ status: 400, description: 'Invalid file or not an image' })
+    async compressPreview(
+    @UploadedFile()
+    file: FileUpload) {
+        if (!file) {
+            throw new BadRequestException('No file provided');
+        }
+        if (!file.mimetype.startsWith('image/')) {
+            throw new BadRequestException('File is not an image');
+        }
+        try {
+            const result = await this.imageProcessing.compressImage(file.buffer);
+            return {
+                originalSize: result.originalSize,
+                compressedSize: result.size,
+                compressionRatio: result.compressionRatio,
+                width: result.width,
+                height: result.height,
+                format: result.format,
+            };
+        }
+        catch (error) {
+            this.logger.error('Compression preview failed:', error);
+            throw new BadRequestException('Failed to compress image');
+        }
+    }
+    @Get('content/:contentId')
+    @ApiOperation({ summary: 'Get optimized content URL' })
+    @ApiParam({ name: 'contentId', description: 'Content identifier' })
+    @ApiQuery({ name: 'optimize', required: false, type: Boolean })
+    @ApiQuery({ name: 'width', required: false, type: Number })
+    @ApiQuery({ name: 'height', required: false, type: Number })
+    @ApiQuery({ name: 'quality', required: false, type: Number })
+    @ApiQuery({ name: 'format', required: false, enum: ['webp', 'jpeg', 'png'] })
+    @ApiQuery({ name: 'userLocation', required: false, type: String })
+    @ApiQuery({ name: 'bandwidth', required: false, type: Number })
+    @ApiResponse({ status: 200, description: 'Content URL retrieved successfully' })
+    @ApiResponse({ status: 404, description: 'Content not found' })
+    async getContentUrl(
+    @Param('contentId')
+    contentId: string, 
+    @Query('optimize')
+    optimize?: string, 
+    @Query('width')
+    width?: string, 
+    @Query('height')
+    height?: string, 
+    @Query('quality')
+    quality?: string, 
+    @Query('format')
+    format?: 'webp' | 'jpeg' | 'png', 
+    @Query('userLocation')
+    userLocation?: string, 
+    @Query('bandwidth')
+    bandwidth?: string): Promise<{
+        url: string;
+        metadata?: unknown;
+    }> {
+        try {
+            const options = {
+                optimize: optimize === 'true',
+                width: width ? parseInt(width) : undefined,
+                height: height ? parseInt(height) : undefined,
+                quality: quality ? parseInt(quality) : undefined,
+                format,
+                userLocation,
+                bandwidth: bandwidth ? parseFloat(bandwidth) : undefined,
+            };
+            const url = await this.cdnService.deliverContent(contentId, options);
+            return { url };
+        }
+        catch (error) {
+            this.logger.error(`Failed to get content URL for ${contentId}:`, error);
+            if (error.message.includes('not found')) {
+                throw new HttpException('Content not found', HttpStatus.NOT_FOUND);
+            }
+            throw new HttpException('Failed to retrieve content', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @Delete('content/:contentId')
+    @ApiOperation({ summary: 'Invalidate content cache' })
+    @ApiParam({ name: 'contentId', description: 'Content identifier' })
+    @ApiResponse({ status: 200, description: 'Content cache invalidated successfully' })
+    @ApiResponse({ status: 404, description: 'Content not found' })
+    async invalidateContent(
+    @Param('contentId')
+    contentId: string): Promise<{
+        success: boolean;
+    }> {
+        try {
+            await this.cdnService.invalidateContent(contentId);
+            this.logger.log(`Invalidated cache for content: ${contentId}`);
+            return { success: true };
+        }
+        catch (error) {
+            this.logger.error(`Failed to invalidate content ${contentId}:`, error);
+            throw new HttpException('Failed to invalidate content', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @Get('health')
+    @ApiOperation({ summary: 'Check CDN health status' })
+    @ApiResponse({ status: 200, description: 'CDN health status' })
+    async getHealth(): Promise<{
+        status: string;
+        providers: Record<string, boolean>;
+        timestamp: string;
+    }> {
+        try {
+            // In a real implementation, check actual provider connectivity
+            const providers = {
+                cloudflare: true, // Mock health check
+                aws: true,
+            };
+            return {
+                status: 'healthy',
+                providers,
+                timestamp: new Date().toISOString(),
+            };
+        }
+        catch (_error) {
+            console.error('health check failed');
+            throw new HttpException('Health check failed', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @Get('analytics')
+    @ApiOperation({ summary: 'Get CDN analytics' })
+    @ApiQuery({ name: 'startDate', required: false })
+    @ApiQuery({ name: 'endDate', required: false })
+    @ApiResponse({ status: 200, description: 'CDN analytics data' })
+    async getAnalytics(
+    @Query('startDate')
+    startDate?: string, 
+    @Query('endDate')
+    endDate?: string): Promise<unknown> {
+        try {
+            const start = startDate
+                ? new Date(startDate)
+                : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const end = endDate ? new Date(endDate) : new Date();
+            // In a real implementation, aggregate analytics from providers
+            return {
+                totalRequests: 0,
+                totalBandwidth: 0,
+                cacheHitRate: 0,
+                topContent: [],
+                period: {
+                    start: start.toISOString(),
+                    end: end.toISOString(),
+                },
+            };
+        }
+        catch (_error) {
+            console.error('failed to retrieve');
+            throw new HttpException('Failed to retrieve analytics', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    /**
+     * Format bytes to human readable string
+     */
+    private formatBytes(bytes: number): string {
+        if (bytes === 0)
+            return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    }
 }

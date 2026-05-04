@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { QUOTA_LIMITS } from '../rate-limiting.constants';
 
 export enum UserTier {
-  FREE = 'FREE',
-  PRO = 'PRO',
-  PREMIUM = 'PREMIUM',
+    FREE = 'FREE',
+    PRO = 'PRO',
+    PREMIUM = 'PREMIUM'
 }
 
 /**

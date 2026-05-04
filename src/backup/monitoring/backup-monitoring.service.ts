@@ -14,13 +14,12 @@ import { Histogram, Counter } from 'prom-client';
  */
 @Injectable()
 export class BackupMonitoringService {
-  private readonly logger = new Logger(BackupMonitoringService.name);
-  private backupDuration: Histogram;
-  private backupTotal: Counter;
-
-  constructor(
+    private readonly logger = new Logger(BackupMonitoringService.name);
+    private backupDuration: Histogram;
+    private backupTotal: Counter;
+    constructor(
     @InjectRepository(BackupRecord)
-    private readonly backupRepository: Repository<BackupRecord>,
+    private readonly backupRepository: Repository<BackupRecord>, 
     @InjectRepository(RecoveryTest)
     private readonly recoveryTestRepository: Repository<RecoveryTest>,
     private readonly metricsService: MetricsCollectionService,
@@ -81,15 +80,21 @@ export class BackupMonitoringService {
         issues.push('Last backup was not replicated to secondary region');
       }
     }
-
-    // Check recent recovery tests
-    const lastTest = await this.recoveryTestRepository.findOne({
-      where: {},
-      order: { createdAt: 'DESC' },
-    });
-
-    if (lastTest && lastTest.status === RecoveryTestStatus.FAILED) {
-      issues.push(`Last recovery test failed: ${lastTest.errorMessage}`);
+    private initializeMetrics(): void {
+        const registry = this.metricsService.getRegistry();
+        this.backupDuration = new Histogram({
+            name: 'backup_duration_seconds',
+            help: 'Duration of backup operations in seconds',
+            labelNames: ['status'],
+            buckets: [60, 300, 600, 900, 1200],
+            registers: [registry],
+        });
+        this.backupTotal = new Counter({
+            name: 'backup_total',
+            help: 'Total number of backups',
+            labelNames: ['status'],
+            registers: [registry],
+        });
     }
 
     return {
@@ -111,12 +116,4 @@ export class BackupMonitoringService {
     if (!backup) {
       return;
     }
-
-    const status = backup.status === BackupStatus.COMPLETED ? 'success' : 'failure';
-
-    this.backupDuration.observe({ status }, duration / 1000);
-    this.backupTotal.inc({ status });
-
-    this.logger.log(`Recorded backup metrics for ${backupId}: ${duration}ms, status: ${status}`);
-  }
 }

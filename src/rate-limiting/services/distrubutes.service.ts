@@ -38,5 +38,4 @@ export class DistributedLimiterService {
     if (requestCount > limit) {
       throw new ForbiddenException('Rate limit exceeded');
     }
-  }
 }

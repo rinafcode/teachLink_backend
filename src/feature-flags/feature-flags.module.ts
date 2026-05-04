@@ -26,4 +26,5 @@ import { FeatureFlagsController } from './feature-flags.controller';
     FlagAnalyticsService,
   ],
 })
-export class FeatureFlagsModule {}
+export class FeatureFlagsModule {
+}

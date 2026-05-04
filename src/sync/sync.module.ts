@@ -11,24 +11,25 @@ import { ReplicationService } from './replication/replication.service';
  * Registers the sync module.
  */
 @Module({
-  imports: [
-    BullModule.registerQueue({
-      name: QUEUE_NAMES.SYNC_TASKS,
-    }),
-  ],
-  providers: [
-    SyncService,
-    DataConsistencyService,
-    ConflictResolutionService,
-    CacheInvalidationService,
-    ReplicationService,
-  ],
-  exports: [
-    SyncService,
-    DataConsistencyService,
-    ConflictResolutionService,
-    CacheInvalidationService,
-    ReplicationService,
-  ],
+    imports: [
+        BullModule.registerQueue({
+            name: QUEUE_NAMES.SYNC_TASKS,
+        }),
+    ],
+    providers: [
+        SyncService,
+        DataConsistencyService,
+        ConflictResolutionService,
+        CacheInvalidationService,
+        ReplicationService,
+    ],
+    exports: [
+        SyncService,
+        DataConsistencyService,
+        ConflictResolutionService,
+        CacheInvalidationService,
+        ReplicationService,
+    ],
 })
-export class SyncModule {}
+export class SyncModule {
+}

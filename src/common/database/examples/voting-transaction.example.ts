@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TransactionService } from '../transaction.service';
-
 /**
  * Example: DAO Voting Transaction
  * Demonstrates atomic voting operations with proper locking
@@ -298,5 +297,4 @@ export class VotingTransactionExample {
       default:
         this.logger.warn(`Unknown action type: ${actionType}`);
     }
-  }
 }

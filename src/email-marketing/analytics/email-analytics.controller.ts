@@ -1,6 +1,5 @@
 import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-
 import { EmailAnalyticsService } from './email-analytics.service';
 
 /**

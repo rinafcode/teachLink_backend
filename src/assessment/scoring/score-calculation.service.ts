@@ -26,5 +26,4 @@ export class ScoreCalculationService {
       default:
         return 0;
     }
-  }
 }

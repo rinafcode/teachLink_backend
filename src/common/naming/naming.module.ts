@@ -1,10 +1,9 @@
 // src/common/naming/naming.module.ts
-
 import { Module } from '@nestjs/common';
 import { NamingService } from './naming.service';
-
 @Module({
-  providers: [NamingService],
-  exports: [NamingService],
+    providers: [NamingService],
+    exports: [NamingService],
 })
-export class NamingModule {}
+export class NamingModule {
+}

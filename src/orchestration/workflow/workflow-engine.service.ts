@@ -28,9 +28,5 @@ export class WorkflowEngineService {
         if (step.compensate) {
           await step.compensate();
         }
-      }
-
-      throw error;
     }
-  }
 }

@@ -50,4 +50,5 @@ import { WorkersModule } from '../workers/workers.module';
     JobSchedulerService,
   ],
 })
-export class QueueModule {}
+export class QueueModule {
+}

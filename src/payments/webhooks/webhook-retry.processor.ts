@@ -118,40 +118,13 @@ export class WebhookRetryProcessor {
       this.logger.error(`Webhook retry record not found for error handling: ${webhookRetryId}`);
       return;
     }
-
-    webhookRetry.retryCount += 1;
-    webhookRetry.lastError = error.message;
-    webhookRetry.errorDetails = {
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-      retryCount: webhookRetry.retryCount,
-    };
-
-    // Check if we should retry
-    if (webhookRetry.retryCount < webhookRetry.maxRetries) {
-      // Calculate next retry time with exponential backoff
-      const nextRetryTime = this.calculateNextRetryTime(webhookRetry.retryCount);
-      webhookRetry.nextRetryTime = new Date(Date.now() + nextRetryTime);
-      webhookRetry.status = WebhookStatus.PENDING;
-
-      await this.webhookRetryRepository.save(webhookRetry);
-      this.logger.warn(
-        `Webhook ${webhookRetryId} will be retried at ${webhookRetry.nextRetryTime}. Retry ${webhookRetry.retryCount}/${webhookRetry.maxRetries}`,
-      );
-
-      // Re-queue the job with delay (Bull's retry() takes no arguments in this version)
-      await job.retry();
-    } else {
-      // All retries exhausted - move to dead letter
-      webhookRetry.status = WebhookStatus.DEAD_LETTER;
-      await this.webhookRetryRepository.save(webhookRetry);
-
-      this.logger.error(
-        `Webhook ${webhookRetryId} moved to dead letter after ${webhookRetry.retryCount} attempts. Error: ${error.message}`,
-      );
-
-      // You can emit an event here for alerting operations team
-      // this.eventEmitter.emit('webhook.dead-letter', { webhookRetryId, error });
+    private calculateNextRetryTime(retryCount: number): number {
+        // Exponential backoff: initialDelay * (backoffMultiplier ^ retryCount)
+        const delay = this.initialDelayMs * Math.pow(this.backoffMultiplier, retryCount);
+        // Add jitter to prevent thundering herd
+        const jitter = Math.random() * 0.1 * delay;
+        const totalDelay = Math.min(delay + jitter, this.maxDelayMs);
+        return totalDelay;
     }
   }
 
@@ -168,14 +141,8 @@ export class WebhookRetryProcessor {
     if (!payload) {
       throw new Error('Missing payload for Stripe webhook');
     }
-
-    let event: any;
-    try {
-      const stripeProvider = this.providerFactory.getProvider('stripe');
-      event = await stripeProvider.handleWebhook(payload, signature);
-    } catch (err: any) {
-      this.logger.error(`Stripe webhook signature verification failed: ${err.message}`);
-      throw new Error(`Webhook signature verification failed: ${err.message}`);
+    private async handlePaymentIntentSucceeded(paymentIntent: StripePaymentIntent): Promise<void> {
+        await this.paymentsService.updatePaymentStatus(paymentIntent.id, PaymentStatus.COMPLETED, paymentIntent.metadata);
     }
 
     this.logger.log(`Processing Stripe webhook: ${event.type}`);

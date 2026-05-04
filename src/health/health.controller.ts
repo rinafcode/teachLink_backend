@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  HttpStatus,
-  OnModuleDestroy,
-  Query,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, HttpStatus, OnModuleDestroy, Query, Res, UseGuards, } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DataSource } from 'typeorm';
@@ -15,33 +7,21 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { HealthService } from './health.service';
 import { ShutdownStateService } from '../common/services/shutdown-state.service';
-
 @SkipThrottle()
 @ApiTags('health')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('health')
 export class HealthController implements OnModuleDestroy {
-  private redis: Redis;
-
-  constructor(
-    private readonly dataSource: DataSource,
-    private readonly healthService: HealthService,
-    private readonly shutdownState: ShutdownStateService,
-  ) {
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT),
-    });
-
-    this.redis.on('error', () => {
-      // Health endpoint handles Redis failures explicitly in checkHealth.
-    });
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.redis.status !== 'end') {
-      await this.redis.quit();
+    private redis: Redis;
+    constructor(private readonly dataSource: DataSource, private readonly healthService: HealthService, private readonly shutdownState: ShutdownStateService) {
+        this.redis = new Redis({
+            host: process.env.REDIS_HOST,
+            port: Number(process.env.REDIS_PORT),
+        });
+        this.redis.on('error', () => {
+            // Health endpoint handles Redis failures explicitly in checkHealth.
+        });
     }
   }
 
