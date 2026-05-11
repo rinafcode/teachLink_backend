@@ -15,11 +15,13 @@ import {
  * Worker Orchestration Service
  * Manages worker pool, routing, and lifecycle
  */
+type WorkerConstructor = new () => BaseWorker;
+
 @Injectable()
 export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WorkerOrchestrationService.name);
   private workerPool: Map<string, BaseWorker[]> = new Map();
-  private workerRegistry: Map<string, typeof BaseWorker> = new Map();
+  private workerRegistry: Map<string, WorkerConstructor> = new Map();
   private activeWorkers: Map<string, BaseWorker> = new Map();
   private workerConfigs: Map<string, IWorkerPoolConfig> = new Map();
   private isRunning: boolean = false;
@@ -33,12 +35,12 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
    * Initialize worker registry with all available workers
    */
   private initializeWorkerRegistry(): void {
-    this.workerRegistry.set('email', EmailWorker as any);
-    this.workerRegistry.set('media-processing', MediaProcessingWorker as any);
-    this.workerRegistry.set('data-sync', DataSyncWorker as any);
-    this.workerRegistry.set('backup-processing', BackupProcessingWorker as any);
-    this.workerRegistry.set('webhooks', WebhooksWorker as any);
-    this.workerRegistry.set('subscriptions', SubscriptionsWorker as any);
+    this.workerRegistry.set('email', EmailWorker as WorkerConstructor);
+    this.workerRegistry.set('media-processing', MediaProcessingWorker as WorkerConstructor);
+    this.workerRegistry.set('data-sync', DataSyncWorker as WorkerConstructor);
+    this.workerRegistry.set('backup-processing', BackupProcessingWorker as WorkerConstructor);
+    this.workerRegistry.set('webhooks', WebhooksWorker as WorkerConstructor);
+    this.workerRegistry.set('subscriptions', SubscriptionsWorker as WorkerConstructor);
 
     this.logger.log('Worker registry initialized with 6 worker types');
   }

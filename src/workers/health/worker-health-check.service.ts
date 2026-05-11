@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { WorkerOrchestrationService } from './worker-orchestration.service';
+import { WorkerOrchestrationService } from '../orchestration/worker-orchestration.service';
 import { IWorkerHealthCheck, IWorkerMetrics } from '../interfaces/worker.interfaces';
 
 /**

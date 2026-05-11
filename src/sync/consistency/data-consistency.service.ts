@@ -7,10 +7,15 @@ import { APP_EVENTS } from '../../common/constants/event.constants';
 import { TIME } from '../../common/constants/time.constants';
 
 export interface IntegrityCheckResult {
-    consistent: boolean;
-    issues: string[];
-    timestamp: Date;
+  consistent: boolean;
+  issues: string[];
+  timestamp: Date;
 }
+
+type IntegrityComparable = {
+  id?: string;
+  version?: number;
+};
 
 /**
  * Provides data Consistency operations.
@@ -20,17 +25,13 @@ export class DataConsistencyService {
   private readonly logger = new Logger(DataConsistencyService.name);
 
   constructor(
-    private eventEmitter: EventEmitter2,
-    @InjectQueue(QUEUE_NAMES.SYNC_TASKS) private syncQueue: Queue,
+    private readonly eventEmitter: EventEmitter2,
+    @InjectQueue(QUEUE_NAMES.SYNC_TASKS) private readonly syncQueue: Queue,
   ) {}
 
-  /**
-   * Schedules an eventual consistency task.
-   */
-  async scheduleConsistencyTask(dataId: string, payload: any): Promise<void> {
+  async scheduleConsistencyTask(dataId: string, payload: unknown): Promise<void> {
     this.logger.log(`Scheduling consistency task for ${dataId}`);
 
-    // Add to queue for background processing
     await this.syncQueue.add(
       JOB_NAMES.CONSISTENCY_CHECK,
       {
@@ -47,65 +48,53 @@ export class DataConsistencyService {
       },
     );
 
-    // Emit event for real-time subscribers
     this.eventEmitter.emit(APP_EVENTS.DATA_CONSISTENCY_SCHEDULED, {
       dataId,
       timestamp: new Date(),
     });
   }
 
-  /**
-   * Performs a data integrity check across multiple sources.
-   */
-  async performIntegrityCheck(sourceA: any, sourceB: any): Promise<IntegrityCheckResult> {
+  async performIntegrityCheck(
+    sourceA: IntegrityComparable,
+    sourceB: IntegrityComparable,
+  ): Promise<IntegrityCheckResult> {
     this.logger.log('Performing data integrity check');
     const issues: string[] = [];
 
-    // Simple deep equality check or hash comparison could go here
-    // For demonstration, we'll check if IDs match
     if (sourceA.id !== sourceB.id) {
       issues.push(`ID mismatch: ${sourceA.id} vs ${sourceB.id}`);
     }
-    /**
-     * Performs a data integrity check across multiple sources.
-     */
-    async performIntegrityCheck(sourceA: unknown, sourceB: unknown): Promise<IntegrityCheckResult> {
-        this.logger.log('Performing data integrity check');
-        const issues: string[] = [];
-        // Simple deep equality check or hash comparison could go here
-        // For demonstration, we'll check if IDs match
-        if (sourceA.id !== sourceB.id) {
-            issues.push(`ID mismatch: ${sourceA.id} vs ${sourceB.id}`);
-        }
-        // Check version consistency if available
-        if (sourceA.version !== undefined && sourceB.version !== undefined) {
-            if (Math.abs(sourceA.version - sourceB.version) > 1) {
-                issues.push(`Version drift too large: ${sourceA.version} vs ${sourceB.version}`);
-            }
-        }
-        const consistent = issues.length === 0;
-        if (!consistent) {
-            this.logger.warn(`Integrity check failed with issues: ${issues.join(', ')}`);
-            this.eventEmitter.emit(APP_EVENTS.DATA_INTEGRITY_VIOLATION, {
-                issues,
-                timestamp: new Date(),
-            });
-        }
-        return {
-            consistent,
-            issues,
-            timestamp: new Date(),
-        };
+
+    if (sourceA.version !== undefined && sourceB.version !== undefined) {
+      if (Math.abs(sourceA.version - sourceB.version) > 1) {
+        issues.push(`Version drift too large: ${sourceA.version} vs ${sourceB.version}`);
+      }
     }
-    /**
-     * Heals data based on a source of truth.
-     */
-    async heal(staleData: unknown, sourceOfTruth: unknown): Promise<unknown> {
-        this.logger.log(`Healing data for ID: ${sourceOfTruth.id}`);
-        // In a real app, this would update the database or cache
-        return {
-            ...sourceOfTruth,
-            _recoveredAt: new Date(),
-        };
+
+    const consistent = issues.length === 0;
+    if (!consistent) {
+      this.logger.warn(`Integrity check failed with issues: ${issues.join(', ')}`);
+      this.eventEmitter.emit(APP_EVENTS.DATA_INTEGRITY_VIOLATION, {
+        issues,
+        timestamp: new Date(),
+      });
     }
+
+    return {
+      consistent,
+      issues,
+      timestamp: new Date(),
+    };
+  }
+
+  async heal(
+    _staleData: unknown,
+    sourceOfTruth: Record<string, unknown> & { id?: string },
+  ): Promise<Record<string, unknown>> {
+    this.logger.log(`Healing data for ID: ${sourceOfTruth.id}`);
+    return {
+      ...sourceOfTruth,
+      _recoveredAt: new Date(),
+    };
+  }
 }

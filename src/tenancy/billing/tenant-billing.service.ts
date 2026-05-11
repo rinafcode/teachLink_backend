@@ -57,16 +57,6 @@ export class TenantBillingService {
         return await this.billingRepository.save(billing);
     }
 
-    const billing = this.billingRepository.create({
-      tenantId,
-      billingCycle,
-      monthlyFee: this.calculateMonthlyFee(tenant.plan),
-      nextBillingDate: this.calculateNextBillingDate(billingCycle),
-    });
-
-    return await this.billingRepository.save(billing);
-  }
-
   /**
    * Update usage metrics
    */
@@ -218,4 +208,5 @@ export class TenantBillingService {
       default:
         return new Date(now.setMonth(now.getMonth() + 1));
     }
+  }
 }

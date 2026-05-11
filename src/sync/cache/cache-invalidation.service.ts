@@ -4,6 +4,15 @@ import { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { APP_EVENTS } from '../../common/constants/event.constants';
 
+interface CacheStoreWithKeys {
+  keys?(pattern: string): Promise<string[]> | string[];
+}
+
+interface CacheManagerExtended extends Cache {
+  store?: CacheStoreWithKeys;
+  reset?(): Promise<void>;
+}
+
 /**
  * Provides cache Invalidation operations.
  */
@@ -32,11 +41,12 @@ export class CacheInvalidationService {
         // For now, we'll emit an event that other specialized listeners might handle
         this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { pattern, type: 'pattern' });
         // If the store supports a store-specific method, call it here.
-        const store: unknown = (this.cacheManager as unknown).store;
-        if (store && typeof store.keys === 'function') {
+        const store = (this.cacheManager as CacheManagerExtended).store;
+        if (store?.keys) {
             const keys = await store.keys(pattern);
-            if (keys && keys.length > 0) {
-                await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+            const list = Array.isArray(keys) ? keys : [];
+            if (list.length > 0) {
+                await Promise.all(list.map((key: string) => this.cacheManager.del(key)));
             }
         }
     }
@@ -59,8 +69,8 @@ export class CacheInvalidationService {
         if (typeof this.cacheManager.clear === 'function') {
             await this.cacheManager.clear();
         }
-        else if (typeof (this.cacheManager as unknown).reset === 'function') {
-            await (this.cacheManager as unknown).reset();
+        else if (typeof (this.cacheManager as CacheManagerExtended).reset === 'function') {
+            await (this.cacheManager as CacheManagerExtended).reset!();
         }
         this.eventEmitter.emit(APP_EVENTS.CACHE_PURGED, { timestamp: new Date() });
     }

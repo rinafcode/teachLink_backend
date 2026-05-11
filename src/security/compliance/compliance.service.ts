@@ -18,9 +18,13 @@ export class ComplianceService {
         // Soft delete or anonymize
         return { success: true };
     }
-    async anonymizeData(data: unknown): Promise<unknown> {
+    async anonymizeData(data: unknown): Promise<Record<string, unknown>> {
+        const base =
+            typeof data === 'object' && data !== null && !Array.isArray(data)
+                ? { ...(data as Record<string, unknown>) }
+                : {};
         return {
-            ...data,
+            ...base,
             email: 'anonymized@domain.com',
             phone: null,
         };
