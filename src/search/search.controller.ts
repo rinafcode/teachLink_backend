@@ -33,57 +33,30 @@ export class SearchController {
         throw new BadRequestException('filters must be valid JSON');
       }
     }
-    @Get('autocomplete')
-    async autocomplete(
+
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+
+    return this.searchService.search(query, parsedFilters, sort, pageNum, limitNum);
+  }
+
+  @Get('autocomplete')
+  async autocomplete(
     @Query('q')
     query: string): Promise<unknown> {
-        return this.searchService.getAutoComplete(query);
-    }
-    @Get('filters')
-    async getFilters(): Promise<unknown> {
-        return this.searchService.getAvailableFilters();
-    }
-    @Get('analytics')
-    async getAnalytics(
+      return this.searchService.getAutoComplete(query);
+  }
+
+  @Get('filters')
+  async getFilters(): Promise<unknown> {
+      return this.searchService.getAvailableFilters();
+  }
+
+  @Get('analytics')
+  async getAnalytics(
     @Query('days')
     days?: string): Promise<unknown> {
-        const parsedDays = days ? parseInt(days, 10) : 7;
-        return this.searchService.getSearchAnalytics(parsedDays);
-    }
-
-    return this.searchService.performSearch(query, parsedFilters, sort, {
-      page: parsedPage,
-      limit: parsedLimit,
-    });
-  }
-
-  /**
-   * Executes autocomplete.
-   * @param query The query value.
-   * @returns The operation result.
-   */
-  @Get('autocomplete')
-  async autocomplete(@Query('q') query: string): Promise<any> {
-    return this.searchService.getAutoComplete(query);
-  }
-
-  /**
-   * Returns filters.
-   * @returns The operation result.
-   */
-  @Get('filters')
-  async getFilters(): Promise<any> {
-    return this.searchService.getAvailableFilters();
-  }
-
-  /**
-   * Returns analytics.
-   * @param days The days.
-   * @returns The operation result.
-   */
-  @Get('analytics')
-  async getAnalytics(@Query('days') days?: string): Promise<any> {
-    const parsedDays = days ? parseInt(days, 10) : 7;
-    return this.searchService.getSearchAnalytics(parsedDays);
+      const parsedDays = days ? parseInt(days, 10) : 7;
+      return this.searchService.getAnalytics(parsedDays);
   }
 }

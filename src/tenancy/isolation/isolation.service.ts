@@ -1,7 +1,7 @@
 import { Injectable, Scope, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Tenant } from '../entities/tenant.entity';
+import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Tenant, TenantStatus } from '../entities/tenant.entity';
 /**
  * IsolationService manages tenant context and data isolation
  * This service is request-scoped to maintain tenant context per request
@@ -82,7 +82,10 @@ export class IsolationService {
     /**
      * Add tenant filter to query builder
      */
-    applyTenantFilter(queryBuilder: unknown, entityAlias: string): unknown {
+    applyTenantFilter<Entity>(
+        queryBuilder: SelectQueryBuilder<Entity>,
+        entityAlias: string,
+    ): SelectQueryBuilder<Entity> {
         if (!this.currentTenantId) {
             throw new Error('Cannot apply tenant filter without tenant context');
         }
@@ -94,13 +97,13 @@ export class IsolationService {
      * Check if tenant is active
      */
     isActiveTenant(): boolean {
-        return this.currentTenant?.status === 'active';
+        return this.currentTenant?.status === TenantStatus.ACTIVE;
     }
     /**
      * Check if tenant is in trial
      */
     isTrialTenant(): boolean {
-        return this.currentTenant?.status === 'trial';
+        return this.currentTenant?.status === TenantStatus.TRIAL;
     }
     /**
      * Check if tenant has reached user limit

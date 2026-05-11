@@ -27,4 +27,11 @@ export class TenantGuard implements CanActivate {
     if (!requiresTenant) {
       return true;
     }
+
+    if (!this.isolationService.hasTenantContext()) {
+      throw new UnauthorizedException('Tenant context is required');
+    }
+
+    return true;
+  }
 }
