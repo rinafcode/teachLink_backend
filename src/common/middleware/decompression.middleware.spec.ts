@@ -1,12 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DecompressionMiddleware } from './decompression.middleware';
-import { createGzip, createBrotliCompress, createDeflate } from 'zlib';
-import { createReadStream, createWriteStream } from 'fs';
 import { Request, Response } from 'express';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { unlinkSync } from 'fs';
-import { Readable } from 'stream';
+import { PassThrough } from 'stream';
 
 describe('DecompressionMiddleware', () => {
   let middleware: DecompressionMiddleware;
@@ -154,7 +149,7 @@ describe('DecompressionMiddleware', () => {
 
     it('should handle decompression errors', (done) => {
       req.headers = { 'content-encoding': 'gzip' };
-      const mockDecompressor = new (require('stream').PassThrough)();
+      const mockDecompressor = new PassThrough();
       req.pipe = jest.fn().mockReturnValue(mockDecompressor);
       req.on = jest.fn();
 
@@ -186,50 +181,24 @@ describe('DecompressionMiddleware', () => {
   });
 
   describe('integration tests', () => {
-    it('should decompress gzip data end-to-end', (done) => {
-      const testData = Buffer.from('Hello, World!');
-      const tmpFile = join(tmpdir(), `gzip-test-${Date.now()}.gz`);
+    it('should handle gzip encoding with proper setup', () => {
+      const mockReq = {
+        headers: { 'content-encoding': 'gzip' },
+        method: 'POST',
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn(),
+      } as unknown as Request;
 
-      // Create gzip compressed data
-      const gzipStream = createGzip();
-      const writeStream = createWriteStream(tmpFile);
+      const mockRes = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as unknown as Response;
 
-      writeStream.on('finish', () => {
-        // Now test decompression
-        const req = new Readable();
-        req.push(testData);
-        req.push(null);
+      const mockNext = jest.fn();
 
-        // Mock the actual piping would happen here
-        // For this test, we're verifying the middleware properly handles the encoding
-        const middleware2 = new DecompressionMiddleware();
-
-        const mockReq = {
-          headers: { 'content-encoding': 'gzip' },
-          method: 'POST',
-          pipe: jest.fn().mockReturnThis(),
-          on: jest.fn(),
-        } as unknown as Request;
-
-        const mockRes = {} as Response;
-        const mockNext = jest.fn();
-
-        middleware2.use(mockReq as Request, mockRes as Response, mockNext);
-        expect(mockNext).toHaveBeenCalled();
-
-        // Cleanup
-        try {
-          unlinkSync(tmpFile);
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-
-        done();
-      });
-
-      gzipStream.pipe(writeStream);
-      gzipStream.write(testData);
-      gzipStream.end();
+      middleware.use(mockReq as Request, mockRes as Response, mockNext);
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockReq.headers['content-encoding']).toBeUndefined();
     });
   });
 });

@@ -57,30 +57,12 @@ export class DecompressionMiddleware implements NestMiddleware {
       // Get the decompression stream
       const decompressor = this.decompressors[encoding]();
 
-      // Track decompressed data to calculate new content length
-      let decompressedLength = 0;
-      const dataTracker = new Transform({
-        transform(chunk: Buffer, encoding: string, callback: Function) {
-          decompressedLength += chunk.length;
-          callback(null, chunk);
-        },
-      });
-
       // Handle errors during decompression
-      decompressor.on('error', (error) => {
+      decompressor.on('error', (error: Error) => {
         this.logger.error(`Decompression error for encoding ${encoding}:`, error.message);
         res.status(400).json({
           statusCode: 400,
           message: `Failed to decompress request body with encoding: ${encoding}`,
-          error: 'Bad Request',
-        });
-      });
-
-      dataTracker.on('error', (error) => {
-        this.logger.error('Error tracking decompressed data:', error.message);
-        res.status(400).json({
-          statusCode: 400,
-          message: 'Error processing decompressed request',
           error: 'Bad Request',
         });
       });
@@ -93,16 +75,14 @@ export class DecompressionMiddleware implements NestMiddleware {
       delete req.headers['content-length'];
 
       // Pipe the incoming request through decompression
-      req.pipe(decompressor).pipe(dataTracker).pipe(req);
-
-      // Update the request to indicate it's been handled
-      req.on('data', () => {
-        // Data is being piped through
-      });
+      req.pipe(decompressor).pipe(req);
 
       next();
-    } catch (error) {
-      this.logger.error(`Failed to setup decompression for encoding ${encoding}:`, error);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to setup decompression for encoding ${encoding}:`,
+        error instanceof Error ? error.message : String(error),
+      );
       res.status(400).json({
         statusCode: 400,
         message: `Decompression setup failed for encoding: ${encoding}`,
