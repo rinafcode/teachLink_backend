@@ -6,18 +6,21 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
   VersionColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
-
 export enum RefundStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  PROCESSED = 'processed',
-  FAILED = 'failed',
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+    PROCESSED = 'processed',
+    FAILED = 'failed'
 }
 
+/**
+ * Represents the refund entity.
+ */
 @Entity('refunds')
 export class Refund {
   @PrimaryGeneratedColumn('uuid')
@@ -40,6 +43,10 @@ export class Refund {
 
   @Column({ type: 'varchar', nullable: true })
   providerRefundId: string; // External refund ID from payment provider
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Index()
+  idempotencyKey: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;

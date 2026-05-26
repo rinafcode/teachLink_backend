@@ -19,19 +19,9 @@ export class DirectiveValidationService {
   private readonly logger = new Logger(DirectiveValidationService.name);
 
   // Add any custom directives your project uses here
-  private readonly KNOWN_CUSTOM_DIRECTIVES = [
-    'auth',
-    'rateLimit',
-    'cacheControl',
-    'deprecated',
-  ];
+  private readonly KNOWN_CUSTOM_DIRECTIVES = ['auth', 'rateLimit', 'cacheControl', 'deprecated'];
 
-  private readonly BUILT_IN_DIRECTIVES = [
-    'skip',
-    'include',
-    'deprecated',
-    'specifiedBy',
-  ];
+  private readonly BUILT_IN_DIRECTIVES = ['skip', 'include', 'deprecated', 'specifiedBy'];
 
   validateDirectives(schema: GraphQLSchema): IDirectiveValidationResult {
     const result: IDirectiveValidationResult = {
@@ -52,9 +42,7 @@ export class DirectiveValidationService {
       result.valid = false;
       result.errors.forEach((e) => this.logger.error(`Directive error: ${e}`));
     } else {
-      this.logger.log(
-        `✅ Directive validation passed. Found: [${result.directives.join(', ')}]`,
-      );
+      this.logger.log(`✅ Directive validation passed. Found: [${result.directives.join(', ')}]`);
     }
 
     if (result.warnings.length > 0) {
@@ -86,16 +74,12 @@ export class DirectiveValidationService {
       if (this.BUILT_IN_DIRECTIVES.includes(directive.name)) continue;
 
       if (directive.locations.length === 0) {
-        result.errors.push(
-          `Custom directive @${directive.name} has no valid locations defined`,
-        );
+        result.errors.push(`Custom directive @${directive.name} has no valid locations defined`);
         continue;
       }
 
       if (!directive.description) {
-        result.warnings.push(
-          `Custom directive @${directive.name} is missing a description`,
-        );
+        result.warnings.push(`Custom directive @${directive.name} is missing a description`);
       }
 
       this.logger.log(

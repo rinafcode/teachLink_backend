@@ -4,16 +4,24 @@ import { Queue, Job } from 'bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { TracingService } from './tracing/tracing.service';
 
+/**
+ * Provides messaging operations.
+ */
 @Injectable()
 export class MessagingService {
-  private readonly logger = new Logger(MessagingService.name);
-
-  constructor(
+    private readonly logger = new Logger(MessagingService.name);
+    constructor(
     @InjectQueue(QUEUE_NAMES.MESSAGE_QUEUE)
     private readonly messageQueue: Queue,
     private readonly tracingService: TracingService,
   ) {}
 
+  /**
+   * Executes add Message To Queue.
+   * @param data The data to process.
+   * @param options The options.
+   * @returns The resulting job<any>.
+   */
   async addMessageToQueue(data: any, options?: any): Promise<Job<any>> {
     const span = this.tracingService.startSpan('add-message-to-queue');
     try {
@@ -28,6 +36,9 @@ export class MessagingService {
     }
   }
 
+  /**
+   * Processes messages.
+   */
   async processMessages(): Promise<void> {
     this.messageQueue.process(async (job: Job) => {
       const span = this.tracingService.startSpan('process-message');
@@ -50,6 +61,10 @@ export class MessagingService {
     this.logger.log('Handling message:', data);
   }
 
+  /**
+   * Retrieves queue Status.
+   * @returns The operation result.
+   */
   async getQueueStatus(): Promise<any> {
     const waiting = await this.messageQueue.getWaiting();
     const active = await this.messageQueue.getActive();

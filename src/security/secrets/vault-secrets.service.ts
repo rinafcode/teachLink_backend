@@ -4,12 +4,6 @@ import { ISecretProvider } from './secrets-manager.service';
 import * as https from 'https';
 import * as crypto from 'crypto';
 
-interface IVaultSecret {
-  data: {
-    data: Record<string, string>;
-  };
-}
-
 @Injectable()
 export class VaultSecretsService implements ISecretProvider, OnModuleInit {
   private readonly logger = new Logger(VaultSecretsService.name);
@@ -41,7 +35,7 @@ export class VaultSecretsService implements ISecretProvider, OnModuleInit {
     try {
       const url = `${this.vaultUrl}/v1/${this.vaultPath}/${secretName}`;
       const response = await this.makeVaultRequest(url, 'GET');
-      
+
       if (response && response.data && response.data.data) {
         // Return the secret value - assuming single key-value pair
         const keys = Object.keys(response.data.data);
@@ -84,7 +78,7 @@ export class VaultSecretsService implements ISecretProvider, OnModuleInit {
     }
 
     this.logger.log(`Initiating rotation for secret in Vault: ${secretName}`);
-    
+
     try {
       const newSecret = this.generateSecretValue();
       await this.updateSecret(secretName, newSecret);
@@ -98,12 +92,12 @@ export class VaultSecretsService implements ISecretProvider, OnModuleInit {
   private async makeVaultRequest(url: string, method: string, body?: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(url);
-      
+
       const options = {
         hostname: parsedUrl.hostname,
         port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
         path: parsedUrl.pathname + parsedUrl.search,
-        method: method,
+        method,
         headers: {
           'X-Vault-Token': this.vaultToken,
           'Content-Type': 'application/json',
@@ -112,11 +106,11 @@ export class VaultSecretsService implements ISecretProvider, OnModuleInit {
 
       const req = https.request(options, (res) => {
         let data = '';
-        
+
         res.on('data', (chunk) => {
           data += chunk;
         });
-        
+
         res.on('end', () => {
           try {
             if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {

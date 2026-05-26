@@ -9,9 +9,11 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { SegmentRule } from './segment-rule.entity';
 
+/**
+ * Represents the segment entity.
+ */
 @Entity('segments')
 export class Segment {
   @ApiProperty()

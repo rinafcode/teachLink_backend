@@ -10,6 +10,9 @@ import {
 } from 'typeorm';
 import { Question } from './question.entity';
 
+/**
+ * Represents the assessment entity.
+ */
 @Entity()
 export class Assessment {
   @PrimaryGeneratedColumn('uuid')

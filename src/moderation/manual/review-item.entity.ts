@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, VersionColumn } from 'typeorm';
 
+/**
+ * Represents the review Item entity.
+ */
 @Entity()
 export class ReviewItem {
   @PrimaryGeneratedColumn()

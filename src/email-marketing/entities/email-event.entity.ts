@@ -7,9 +7,11 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { EmailEventType } from '../enums/email-event-type.enum';
 
+/**
+ * Represents the email Event entity.
+ */
 @Entity('email_events')
 @Index(['campaignId', 'eventType'])
 @Index(['recipientId', 'eventType'])

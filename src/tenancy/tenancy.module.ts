@@ -11,7 +11,13 @@ import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
 import { TenantAdminService } from './admin/tenant-admin.service';
 import { TenantGuard } from './guards/tenant.guard';
+import { TenantMiddleware } from '../middleware/tenant/tenant.middleware';
+import { TenantRlsSubscriber } from '../middleware/tenant/tenant-rls.subscriber';
+import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-validation.guard';
 
+/**
+ * Registers the tenancy module.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([Tenant, TenantConfig, TenantBilling, TenantCustomization])],
   controllers: [TenancyController],
@@ -22,6 +28,9 @@ import { TenantGuard } from './guards/tenant.guard';
     CustomizationService,
     TenantAdminService,
     TenantGuard,
+    TenantMiddleware,
+    TenantRlsSubscriber,
+    TenantAccessValidationGuard,
   ],
   exports: [
     TenancyService,
@@ -30,6 +39,10 @@ import { TenantGuard } from './guards/tenant.guard';
     CustomizationService,
     TenantAdminService,
     TenantGuard,
+    TenantMiddleware,
+    TenantRlsSubscriber,
+    TenantAccessValidationGuard,
   ],
 })
-export class TenancyModule {}
+export class TenancyModule {
+}

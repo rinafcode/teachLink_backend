@@ -12,6 +12,9 @@ import { BackupStatus } from '../enums/backup-status.enum';
 import { BackupType } from '../enums/backup-type.enum';
 import { Region } from '../enums/region.enum';
 
+/**
+ * Represents the backup Record entity.
+ */
 @Entity('backup_records')
 @Index(['status', 'createdAt'])
 @Index(['region'])

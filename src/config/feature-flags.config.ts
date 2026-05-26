@@ -33,6 +33,7 @@
  * - ENABLE_TENANCY: Gates the TenancyModule for multi-tenant isolation
  * - ENABLE_CDN: Gates the CDNModule for CDN/CloudFront asset delivery
  * - ENABLE_LOCALIZATION: Gates the LocalizationModule for i18n/l10n support
+ * - ENABLE_ONBOARDING: Gates the OnboardingModule for user onboarding flow
  *
  * To add a new flag:
  * 1. Add the constant here with a JSDoc comment
@@ -108,6 +109,8 @@ export interface IFeatureFlagsConfig {
    *  `true`: CachingModule is loaded, cache decorators and interceptors active.
    *  `false`: CachingModule is skipped. */
   ENABLE_CACHING: boolean;
+  /** Gates the AnalyticsModule — controls feature analytics event collection and reporting. */
+  ENABLE_ANALYTICS: boolean;
 
   /** Gates the FeatureFlagsModule — controls runtime feature flag management UI/API.
    *  `true`: FeatureFlagsModule is loaded, flag CRUD endpoints available.
@@ -173,8 +176,12 @@ export interface IFeatureFlagsConfig {
    *  `true`: LocalizationModule is loaded, locale negotiation active.
    *  `false`: LocalizationModule is skipped. */
   ENABLE_LOCALIZATION: boolean;
-}
 
+  /** Gates the OnboardingModule — controls user onboarding flow.
+   *  `true`: OnboardingModule is loaded, onboarding endpoints available.
+   *  `false`: OnboardingModule is skipped. */
+  ENABLE_ONBOARDING: boolean;
+}
 /**
  * Default feature flags - all features enabled by default
  * except AB_TESTING, DATA_WAREHOUSE, and GRAPHQL which are not yet GA
@@ -196,6 +203,7 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_FEATURE_FLAGS: true,
   ENABLE_SEARCH: true,
   ENABLE_NOTIFICATIONS: true,
+  ENABLE_ANALYTICS: true,
   ENABLE_EMAIL_MARKETING: true,
   ENABLE_GAMIFICATION: true,
   ENABLE_ASSESSMENT: true,
@@ -206,8 +214,8 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_TENANCY: true,
   ENABLE_CDN: true,
   ENABLE_LOCALIZATION: true,
+  ENABLE_ONBOARDING: true,
 };
-
 /**
  * Load feature flags from environment variables
  */
@@ -250,6 +258,7 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
       'ENABLE_NOTIFICATIONS',
       defaultFeatureFlags.ENABLE_NOTIFICATIONS,
     ),
+    ENABLE_ANALYTICS: getBooleanEnv('ENABLE_ANALYTICS', defaultFeatureFlags.ENABLE_ANALYTICS ?? true),
     ENABLE_EMAIL_MARKETING: getBooleanEnv(
       'ENABLE_EMAIL_MARKETING',
       defaultFeatureFlags.ENABLE_EMAIL_MARKETING,
@@ -275,20 +284,19 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
       'ENABLE_LOCALIZATION',
       defaultFeatureFlags.ENABLE_LOCALIZATION,
     ),
+    ENABLE_ONBOARDING: getBooleanEnv('ENABLE_ONBOARDING', defaultFeatureFlags.ENABLE_ONBOARDING),
   };
 }
-
 /**
  * Helper function to parse boolean environment variables
  */
 function getBooleanEnv(key: string, defaultValue: boolean): boolean {
-  const value = process.env[key];
-  if (value === undefined) {
-    return defaultValue;
-  }
-  return value.toLowerCase() === 'true' || value === '1';
+    const value = process.env[key];
+    if (value === undefined) {
+        return defaultValue;
+    }
+    return value.toLowerCase() === 'true' || value === '1';
 }
-
 /**
  * Get list of enabled modules based on feature flags
  */
@@ -321,10 +329,10 @@ export function getEnabledModules(flags: IFeatureFlagsConfig): string[] {
   if (flags.ENABLE_TENANCY) modules.push('TenancyModule');
   if (flags.ENABLE_CDN) modules.push('CDNModule');
   if (flags.ENABLE_LOCALIZATION) modules.push('LocalizationModule');
+  if (flags.ENABLE_ONBOARDING) modules.push('OnboardingModule');
 
   return modules;
 }
-
 /**
  * Get list of disabled modules based on feature flags
  */

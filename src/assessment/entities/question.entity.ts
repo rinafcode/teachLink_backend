@@ -10,6 +10,9 @@ import {
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
 
+/**
+ * Represents the question entity.
+ */
 @Entity()
 export class Question {
   @PrimaryGeneratedColumn('uuid')

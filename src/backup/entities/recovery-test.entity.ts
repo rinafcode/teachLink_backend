@@ -12,6 +12,9 @@ import {
 import { RecoveryTestStatus } from '../enums/recovery-test-status.enum';
 import { BackupRecord } from './backup-record.entity';
 
+/**
+ * Represents the recovery Test entity.
+ */
 @Entity('recovery_tests')
 @Index(['status', 'createdAt'])
 @Index(['backupRecordId'])

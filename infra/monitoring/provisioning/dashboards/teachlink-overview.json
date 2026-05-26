@@ -56,6 +56,93 @@
       ]
     },
     {
+      "title": "Hourly Infrastructure Cost (USD)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "targets": [
+        { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Estimated Spend (24h)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+      ]
+    }
+  ]
+}
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 6, "x": 18, "y": 24 },
+            "id": 11,
+            "fieldConfig": { "defaults": {}, "overrides": [] },
+            "options": {
+              "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+              "colorMode": "value",
+              "graphMode": "area"
+            },
+            "targets": [{ "expr": "sum(anomalies_detected_total)", "refId": "A" }]
+          },
+          {
+            "title": "Hourly Infrastructure Cost (USD)",
+            "type": "timeseries",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
+            "id": 12,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+            ]
+          },
+          {
+            "title": "Estimated Spend (24h)",
+            "type": "stat",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
+            "id": 13,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+            ]
+          }
+        ]
+      }
+        {
+      ],
+    }
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
+          "id": 12,
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+          "targets": [
+            { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+          ]
+        },
+        {
+          "title": "Estimated Spend (24h)",
+          "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
+          "id": 13,
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+          "targets": [
+            { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+          ]
+        }
+          "expr": "topk(10, sum by (endpoint) (rate(api_requests_total[5m])))",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
       "title": "API latency p50 / p95 / p99",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
@@ -213,35 +300,35 @@
       "id": 11,
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 10 }
-            ]
-          }
+          {
+          "defaults": {},
+          "overrides": []
         },
-        "overrides": []
+        "options": {
+          "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "targets": [{ "expr": "sum(anomalies_detected_total)", "refId": "A" }]
       },
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "background"
-      },
-      "targets": [{ "expr": "sum(increase(anomalies_detected_total[15m]))", "refId": "A" }]
-    }
-  ],
-  "refresh": "30s",
-  "schemaVersion": 39,
-  "style": "dark",
-  "tags": ["teachlink", "backend", "overview"],
-  "templating": { "list": [] },
-  "time": { "from": "now-6h", "to": "now" },
-  "timepicker": {},
-  "timezone": "",
-  "title": "TeachLink Overview",
-  "uid": "teachlink-overview",
-  "version": 1,
-  "weekStart": ""
-}
+            "title": "Hourly Infrastructure Cost (USD)",
+            "type": "timeseries",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
+            "id": 12,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+            ]
+          },
+          {
+            "title": "Estimated Spend (24h)",
+            "type": "stat",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
+            "id": 13,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+            ]
+          },

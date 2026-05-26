@@ -1,6 +1,9 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, VersionColumn } from 'typeorm';
 import { AssessmentAttempt } from './assessment-attempt.entity';
 import { Question } from './question.entity';
+/**
+ * Represents the answer entity.
+ */
 @Entity()
 export class Answer {
   @PrimaryGeneratedColumn('uuid')

@@ -10,6 +10,9 @@ import {
   VersionColumn,
 } from 'typeorm';
 
+/**
+ * Represents the translation entity.
+ */
 @Entity('translations')
 @Unique(['namespace', 'translationKey', 'locale'])
 @Index('IDX_translations_namespace_locale', ['namespace', 'locale'])

@@ -36,10 +36,19 @@ export class EnhancedCircuitBreakerService implements OnModuleInit {
   constructor(private configService: ConfigService) {
     this.defaultOptions = {
       timeout: this.configService.get<number>('CIRCUIT_BREAKER_TIMEOUT_MS', 3000),
-      errorThresholdPercentage: this.configService.get<number>('CIRCUIT_BREAKER_ERROR_THRESHOLD', 50),
+      errorThresholdPercentage: this.configService.get<number>(
+        'CIRCUIT_BREAKER_ERROR_THRESHOLD',
+        50,
+      ),
       resetTimeout: this.configService.get<number>('CIRCUIT_BREAKER_RESET_TIMEOUT_MS', 30000),
-      rollingCountTimeout: this.configService.get<number>('CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT', 60000),
-      rollingCountBuckets: this.configService.get<number>('CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS', 10),
+      rollingCountTimeout: this.configService.get<number>(
+        'CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT',
+        60000,
+      ),
+      rollingCountBuckets: this.configService.get<number>(
+        'CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS',
+        10,
+      ),
     };
   }
 
@@ -80,7 +89,7 @@ export class EnhancedCircuitBreakerService implements OnModuleInit {
         this.logger.log(`Circuit breaker ${key} HALF_OPEN - testing recovery`);
       });
 
-      breaker.on('fallback', (result) => {
+      breaker.on('fallback', (_result) => {
         this.logger.warn(`Circuit breaker ${key} FALLBACK triggered`);
       });
 
@@ -104,9 +113,11 @@ export class EnhancedCircuitBreakerService implements OnModuleInit {
     }
 
     // If fallback is provided in options but breaker already exists, use it
-    const fallbackFn = options.fallback || (() => {
-      throw new Error(`Circuit breaker ${key} is open and no fallback provided`);
-    });
+    const fallbackFn =
+      options.fallback ||
+      (() => {
+        throw new Error(`Circuit breaker ${key} is open and no fallback provided`);
+      });
 
     try {
       return await breaker.fire();
@@ -141,7 +152,7 @@ export class EnhancedCircuitBreakerService implements OnModuleInit {
    */
   getAllStats(): Record<string, ICircuitBreakerStats> {
     const stats: Record<string, ICircuitBreakerStats> = {};
-    
+
     for (const [key, breaker] of this.breakers.entries()) {
       stats[key] = {
         name: breaker.name,
@@ -227,8 +238,7 @@ export class EnhancedCircuitBreakerService implements OnModuleInit {
     for (const [key, breaker] of this.breakers.entries()) {
       const stats = breaker.status.stats;
       const totalRequests = stats.successes + stats.failures + stats.rejects;
-      const errorRate =
-        totalRequests > 0 ? (stats.failures / totalRequests) * 100 : 0;
+      const errorRate = totalRequests > 0 ? (stats.failures / totalRequests) * 100 : 0;
 
       const state = breaker.closed ? 'CLOSED' : 'OPEN';
       circuitBreakers[key] = { state, errorRate };

@@ -13,7 +13,10 @@ export class DataAnonymizationService {
   /**
    * Anonymize user data for export
    */
-  anonymizeUserData(data: Record<string, any>, options: IAnonymizationOptions = {}): Record<string, any> {
+  anonymizeUserData(
+    data: Record<string, any>,
+    options: IAnonymizationOptions = {},
+  ): Record<string, any> {
     const {
       fieldsToAnonymize = ['email', 'firstName', 'lastName', 'phone', 'address'],
       keepEmailDomain = true,
@@ -51,9 +54,8 @@ export class DataAnonymizationService {
     }
 
     // Keep first character and hash the rest of username
-    const anonymizedUsername = username.length > 1
-      ? username[0] + '*'.repeat(username.length - 1)
-      : '*';
+    const anonymizedUsername =
+      username.length > 1 ? username[0] + '*'.repeat(username.length - 1) : '*';
 
     return `${anonymizedUsername}@${domain}`;
   }
@@ -115,7 +117,9 @@ export class DataAnonymizationService {
       'creditCard',
     ];
 
-    return piiFields.some((field) => field in data && data[field] !== null && data[field] !== undefined);
+    return piiFields.some(
+      (field) => field in data && data[field] !== null && data[field] !== undefined,
+    );
   }
 
   /**

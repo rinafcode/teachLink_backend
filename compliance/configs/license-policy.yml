@@ -1,0 +1,46 @@
+name: TeachLink License Policy
+version: 1.0.0
+
+allowed_licenses:
+  - MIT
+  - Apache-2.0
+  - Apache-2
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - BSD-4-Clause
+  - ISC
+  - MPL-2.0
+  - CC0-1.0
+  - Unlicense
+  - 0BSD
+  - Python-2.0
+  - BlueOak-1.0.0
+  - CC-BY-4.0
+
+prohibited_licenses:
+  - GPL-3.0
+  - AGPL-3.0
+  - SSPL-1.0
+  - Proprietary
+
+review_licenses:
+  - LGPL-2.1
+  - LGPL-3.0
+
+high_risk_dependencies:
+  - name: sharp
+    reason: Native bindings require careful handling
+    severity: medium
+  - name: bcrypt
+    reason: Cryptographic library - verify usage
+    severity: low
+
+review_required_for:
+  - licenses:
+      - GPL-2.0
+      - LGPL-2.1
+    action: Legal review required
+  - packages:
+      - name: '@opentelemetry/*'
+        reason: Verify export compliance
+        action: Technical review required

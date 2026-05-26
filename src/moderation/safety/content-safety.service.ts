@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
 
+/**
+ * Provides content Safety operations.
+ */
 @Injectable()
 export class ContentSafetyService {
+  /**
+   * Executes score Content.
+   * @param content The content.
+   * @returns The calculated numeric value.
+   */
   scoreContent(content: string): number {
     // Simple scoring logic (replace with ML model later)
     let score = 0;

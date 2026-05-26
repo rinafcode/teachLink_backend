@@ -10,19 +10,25 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-
 export enum NotificationType {
-  EMAIL = 'email',
-  PUSH = 'push',
-  IN_APP = 'in_app',
-  SMS = 'sms',
+    EMAIL = 'email',
+    PUSH = 'push',
+    IN_APP = 'in_app',
+    SMS = 'sms'
+}
+export enum NotificationPriority {
+    LOW = 'low',
+    MEDIUM = 'medium',
+    HIGH = 'high',
+    URGENT = 'urgent'
 }
 
-export enum NotificationPriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  URGENT = 'urgent',
+export enum NotificationStatus {
+  PENDING = 'pending',
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  FAILED = 'failed',
+  RETRYING = 'retrying',
 }
 
 @Entity('notifications')
@@ -55,6 +61,13 @@ export class Notification {
 
   @Column({
     type: 'enum',
+    enum: NotificationStatus,
+    default: NotificationStatus.PENDING,
+  })
+  status: NotificationStatus;
+
+  @Column({
+    type: 'enum',
     enum: NotificationPriority,
     default: NotificationPriority.MEDIUM,
   })
@@ -65,6 +78,15 @@ export class Notification {
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
+
+  @Column({ default: 0 })
+  deliveryAttempts: number;
+
+  @Column({ nullable: true })
+  lastAttemptAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  failureReason: string;
 
   @Column({ nullable: true })
   readAt: Date;
@@ -79,3 +101,4 @@ export class Notification {
   @DeleteDateColumn()
   deletedAt?: Date;
 }
+

@@ -1,9 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { TenancyService } from './tenancy.service';
@@ -37,7 +32,7 @@ export class TenancyGuard implements CanActivate {
       req = gqlCtx.getContext().req;
     }
 
-    const tenantId = this.tenancyService.getTenantFromRequest(req);
+    const tenantId = await this.tenancyService.resolveTenantIdFromRequest(req);
     await this.tenancyService.validateTenantExists(tenantId);
 
     // Attach tenantId to request for downstream use

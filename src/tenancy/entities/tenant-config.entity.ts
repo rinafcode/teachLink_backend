@@ -12,6 +12,9 @@ import {
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
+/**
+ * Represents the tenant Config entity.
+ */
 @Entity('tenant_configs')
 export class TenantConfig {
   @PrimaryGeneratedColumn('uuid')
@@ -44,7 +47,7 @@ export class TenantConfig {
     courses?: boolean;
     assessments?: boolean;
     recommendations?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'jsonb', nullable: true })
@@ -52,7 +55,7 @@ export class TenantConfig {
     email?: boolean;
     push?: boolean;
     sms?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'jsonb', nullable: true })
@@ -65,19 +68,27 @@ export class TenantConfig {
       requireUppercase?: boolean;
     };
     sessionTimeout?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'jsonb', nullable: true })
   integrations?: {
-    stripe?: { enabled: boolean; publicKey?: string };
-    aws?: { enabled: boolean; region?: string };
-    openai?: { enabled: boolean };
-    [key: string]: any;
+    stripe?: {
+      enabled: boolean;
+      publicKey?: string;
+    };
+    aws?: {
+      enabled: boolean;
+      region?: string;
+    };
+    openai?: {
+      enabled: boolean;
+    };
+    [key: string]: unknown;
   };
 
   @Column({ type: 'jsonb', nullable: true })
-  customSettings?: Record<string, any>;
+  customSettings?: Record<string, unknown>;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -39,6 +39,9 @@ export interface IProgressUpdate {
   result?: IUploadProgress['result'];
 }
 
+/**
+ * Provides upload Progress operations.
+ */
 @Injectable()
 export class UploadProgressService {
   private readonly logger = new Logger(UploadProgressService.name);
@@ -144,7 +147,10 @@ export class UploadProgressService {
   /**
    * Mark upload as completed
    */
-  async markCompleted(uploadId: string, result: IUploadProgress['result']): Promise<IUploadProgress> {
+  async markCompleted(
+    uploadId: string,
+    result: IUploadProgress['result'],
+  ): Promise<IUploadProgress> {
     return this.updateProgress(uploadId, {
       status: 'completed',
       progress: 100,

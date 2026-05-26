@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
 
+/**
+ * Represents the badge entity.
+ */
 @Entity('badges')
 export class Badge {
   @PrimaryGeneratedColumn('uuid')

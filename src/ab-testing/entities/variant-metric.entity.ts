@@ -9,6 +9,9 @@ import {
 } from 'typeorm';
 import { IExperimentVariant } from './experiment-variant.entity';
 
+/**
+ * Represents the variant Metric entity.
+ */
 @Entity({ name: 'variant_metrics' })
 export class VariantMetric {
   @PrimaryGeneratedColumn('uuid')

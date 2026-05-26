@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
 
+/**
+ * Represents the challenge entity.
+ */
 @Entity('challenges')
 export class Challenge {
   @PrimaryGeneratedColumn('uuid')

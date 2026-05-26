@@ -9,6 +9,9 @@ import {
 } from 'typeorm';
 import { CourseModule } from './course-module.entity';
 
+/**
+ * Represents the lesson entity.
+ */
 @Entity()
 export class Lesson {
   @PrimaryGeneratedColumn('uuid')

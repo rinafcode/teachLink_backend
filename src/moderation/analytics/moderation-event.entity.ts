@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, VersionColumn } from 'typeorm';
 
+/**
+ * Represents the moderation Event entity.
+ */
 @Entity()
 export class ModerationEvent {
   @PrimaryGeneratedColumn()

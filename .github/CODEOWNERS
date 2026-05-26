@@ -49,4 +49,5 @@ nest-cli.json                       @teachlink/backend-maintainers
 # ── Documentation ─────────────────────────────────────────────────────────────
 README.md                           @teachlink/backend-maintainers
 CONTRIBUTING.md                     @teachlink/backend-maintainers
+docs/                               @teachlink/backend-maintainers
 CODEOWNERS                          @teachlink/backend-maintainers

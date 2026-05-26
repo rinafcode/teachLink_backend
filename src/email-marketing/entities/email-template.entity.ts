@@ -9,6 +9,9 @@ import {
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Represents the email Template entity.
+ */
 @Entity('email_templates')
 export class EmailTemplate {
   @ApiProperty()

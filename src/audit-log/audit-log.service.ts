@@ -5,6 +5,11 @@ import { AuditLog } from './audit-log.entity';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
 import { ConfigService } from '@nestjs/config';
 import { sanitizePii } from '../common/utils/pii-sanitizer.utils';
+import {
+  buildRetentionCutoff,
+  buildRetentionUntil,
+  resolveRetentionDays,
+} from '../middleware/audit/log-retention.policy';
 
 export interface IAuditLogEntry {
   userId?: string;
@@ -66,25 +71,28 @@ export interface IAuditReport {
   failedActions: Array<{ action: string; count: number }>;
 }
 
+/**
+ * Provides audit Log operations.
+ */
 @Injectable()
 export class AuditLogService {
-  private readonly logger = new Logger(AuditLogService.name);
-  private readonly retentionDays: number;
-
-  constructor(
+    private readonly logger = new Logger(AuditLogService.name);
+    private readonly retentionDays: number;
+    constructor(
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
     private readonly configService: ConfigService,
   ) {
-    this.retentionDays = this.configService.get<number>('AUDIT_LOG_RETENTION_DAYS', 365);
+    this.retentionDays = resolveRetentionDays(
+      this.configService.get<number>('AUDIT_LOG_RETENTION_DAYS', 365),
+    );
   }
 
   /**
    * Log an audit event
    */
   async log(entry: IAuditLogEntry): Promise<AuditLog> {
-    const retentionUntil = new Date();
-    retentionUntil.setDate(retentionUntil.getDate() + this.retentionDays);
+    const retentionUntil = buildRetentionUntil(this.retentionDays);
 
     const log = this.auditRepo.create({
       ...entry,
@@ -238,57 +246,45 @@ export class AuditLogService {
     if (filters.userEmail) {
       queryBuilder.andWhere('audit.userEmail = :userEmail', { userEmail: filters.userEmail });
     }
-
     if (filters.actions && filters.actions.length > 0) {
       queryBuilder.andWhere('audit.action IN (:...actions)', { actions: filters.actions });
     }
-
     if (filters.categories && filters.categories.length > 0) {
       queryBuilder.andWhere('audit.category IN (:...categories)', {
         categories: filters.categories,
       });
     }
-
     if (filters.severities && filters.severities.length > 0) {
       queryBuilder.andWhere('audit.severity IN (:...severities)', {
         severities: filters.severities,
       });
     }
-
     if (filters.entityType) {
       queryBuilder.andWhere('audit.entityType = :entityType', { entityType: filters.entityType });
     }
-
     if (filters.entityId) {
       queryBuilder.andWhere('audit.entityId = :entityId', { entityId: filters.entityId });
     }
-
     if (filters.ipAddress) {
       queryBuilder.andWhere('audit.ipAddress = :ipAddress', { ipAddress: filters.ipAddress });
     }
-
     if (filters.sessionId) {
       queryBuilder.andWhere('audit.sessionId = :sessionId', { sessionId: filters.sessionId });
     }
-
     if (filters.tenantId) {
       queryBuilder.andWhere('audit.tenantId = :tenantId', { tenantId: filters.tenantId });
     }
-
     if (filters.apiEndpoint) {
       queryBuilder.andWhere('audit.apiEndpoint LIKE :apiEndpoint', {
         apiEndpoint: `%${filters.apiEndpoint}%`,
       });
     }
-
     if (filters.httpMethod) {
       queryBuilder.andWhere('audit.httpMethod = :httpMethod', { httpMethod: filters.httpMethod });
     }
-
     if (filters.statusCode) {
       queryBuilder.andWhere('audit.statusCode = :statusCode', { statusCode: filters.statusCode });
     }
-
     if (filters.startDate && filters.endDate) {
       queryBuilder.andWhere('audit.timestamp BETWEEN :startDate AND :endDate', {
         startDate: filters.startDate,
@@ -300,16 +296,11 @@ export class AuditLogService {
       queryBuilder.andWhere('audit.timestamp <= :endDate', { endDate: filters.endDate });
     }
 
-    // Order by timestamp desc
     queryBuilder.orderBy('audit.timestamp', 'DESC');
 
-    // Get total count
     const total = await queryBuilder.getCount();
-
-    // Apply pagination
     const skip = (page - 1) * limit;
     queryBuilder.skip(skip).take(limit);
-
     const logs = await queryBuilder.getMany();
 
     return {
@@ -510,8 +501,7 @@ export class AuditLogService {
    * Apply retention policy - delete old logs
    */
   async applyRetentionPolicy(): Promise<number> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
+    const cutoffDate = buildRetentionCutoff(this.retentionDays);
 
     const result = await this.auditRepo
       .createQueryBuilder()
@@ -624,8 +614,7 @@ export class AuditLogService {
     };
   }
 }
-
 // Helper function for date comparison
 function MoreThanOrEqual(date: Date) {
-  return MoreThan(date);
+    return MoreThan(date);
 }

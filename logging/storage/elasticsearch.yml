@@ -1,0 +1,97 @@
+# ─── Elasticsearch – Centralised Log Storage ─────────────────────────────────
+# Standalone Docker Compose that brings up a single-node Elasticsearch cluster
+# optimised for log ingestion.
+#
+# The app's LogShipperService writes directly to this cluster via the HTTP API.
+# Filebeat (logging/shipper/filebeat.yml) can also forward container stdout.
+#
+# Usage:
+#   docker compose -f logging/storage/elasticsearch.yml up -d
+#
+# Environment variables (override via shell or .env):
+#   ELASTICSEARCH_VERSION  – defaults to 8.13.4
+#   ELASTICSEARCH_PORT     – host port, defaults to 9200
+#   ES_JAVA_OPTS           – JVM heap, defaults to -Xms512m -Xmx512m
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: teachlink-logging-storage
+
+networks:
+  logging:
+    driver: bridge
+
+volumes:
+  elasticsearch-logs-data:
+
+services:
+  elasticsearch:
+    image: elasticsearch:${ELASTICSEARCH_VERSION:-8.13.4}
+    container_name: teachlink-elasticsearch
+    restart: unless-stopped
+    ports:
+      - '${ELASTICSEARCH_PORT:-9200}:9200'
+    environment:
+      discovery.type: single-node
+      # Disable TLS/auth for local dev; enable xpack.security in production
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: '${ES_JAVA_OPTS:--Xms512m -Xmx512m}'
+      cluster.name: teachlink-logs
+      # Log-optimised index settings applied via LogShipperService template
+      indices.lifecycle.poll_interval: 1m
+    networks:
+      - logging
+    volumes:
+      - elasticsearch-logs-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          curl -s http://localhost:9200/_cluster/health
+          | grep -qv '"status":"red"'
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      com.teachlink.component: 'log-storage'
+
+  # ─── Index Lifecycle Policy initialiser ──────────────────────────────────
+  # One-shot container that registers a 30-day hot/delete ILM policy so log
+  # indices are automatically pruned without manual intervention.
+  elasticsearch-ilm-init:
+    image: curlimages/curl:latest
+    container_name: teachlink-elasticsearch-ilm-init
+    restart: on-failure
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - logging
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Registering ILM policy teachlink-logs-policy ..."
+        curl -s -X PUT "http://elasticsearch:9200/_ilm/policy/teachlink-logs-policy" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "policy": {
+              "phases": {
+                "hot": {
+                  "min_age": "0ms",
+                  "actions": {
+                    "rollover": { "max_age": "1d", "max_size": "5gb" },
+                    "set_priority": { "priority": 100 }
+                  }
+                },
+                "delete": {
+                  "min_age": "30d",
+                  "actions": { "delete": {} }
+                }
+              }
+            }
+          }'
+        echo ""
+        echo "ILM policy registered."
+    labels:
+      com.teachlink.component: 'log-storage'

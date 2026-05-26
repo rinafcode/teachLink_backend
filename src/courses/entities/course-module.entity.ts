@@ -11,6 +11,9 @@ import {
 import { Course } from './course.entity';
 import { Lesson } from './lesson.entity';
 
+/**
+ * Represents the course entity.
+ */
 @Entity()
 export class CourseModule {
   @PrimaryGeneratedColumn('uuid')

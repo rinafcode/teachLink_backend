@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teachlink-backend
+  namespace: default
+  labels:
+    app: teachlink-backend
+    track: stable
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: teachlink-backend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: teachlink-backend
+        track: stable
+    spec:
+      containers:
+        - name: teachlink-backend
+          image: teachlink/backend:stable
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - secretRef:
+                name: teachlink-backend-secrets
+          resources:
+            requests:
+              cpu: '100m'
+              memory: '256Mi'
+            limits:
+              cpu: '500m'
+              memory: '512Mi'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3

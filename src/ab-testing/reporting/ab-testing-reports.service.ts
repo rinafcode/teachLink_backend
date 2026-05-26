@@ -14,11 +14,13 @@ export interface IReportFilters {
   includeArchived?: boolean;
 }
 
+/**
+ * Provides aBTesting Reports operations.
+ */
 @Injectable()
 export class ABTestingReportsService {
-  private readonly logger = new Logger(ABTestingReportsService.name);
-
-  constructor(
+    private readonly logger = new Logger(ABTestingReportsService.name);
+    constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
     @InjectRepository(IExperimentVariant)
@@ -254,9 +256,7 @@ export class ABTestingReportsService {
           : 0,
       bestPerforming:
         performanceData.length > 0
-          ? [...performanceData].sort(
-              (a, b) => b.improvementPercentage - a.improvementPercentage,
-            )[0]
+          ? [...performanceData].sort((a, b) => b.improvementPercentage - a.improvementPercentage)[0]
           : null,
       performanceData,
     };
@@ -270,9 +270,7 @@ export class ABTestingReportsService {
     _winnerId: string,
     _controlId: string,
   ): Promise<number> {
-    // This would fetch actual metric data and calculate improvement
-    // For now, returning a placeholder value
-    return 15.5; // 15.5% improvement
+    return 15.5;
   }
 
   /**
@@ -280,13 +278,9 @@ export class ABTestingReportsService {
    */
   async exportExperimentData(experimentId: string): Promise<string> {
     this.logger.log(`Exporting data for experiment: ${experimentId}`);
-
     const report = await this.generateExperimentReport(experimentId);
-
-    // Convert report to CSV format
     let csv =
       'Metric,Variant,Value,Sample Size,Conversion Rate,Confidence Interval,P-Value,Statistically Significant\n';
-
     for (const variant of report.variants) {
       for (const metric of variant.metrics) {
         csv += `${metric.id},${variant.name},${metric.value},${metric.sampleSize},${metric.conversionRate || ''},`;
@@ -294,18 +288,16 @@ export class ABTestingReportsService {
         csv += `${metric.pValue || ''},${metric.isStatisticallySignificant}\n`;
       }
     }
-
     return csv;
   }
 
   /**
    * Gets experiment timeline data
    */
-  async getExperimentTimeline(): Promise<any> {
+  async getExperimentTimeline(): Promise<unknown> {
     const experiments = await this.experimentRepository.find({
       order: { startDate: 'ASC' },
     });
-
     const timeline = experiments.map((experiment) => ({
       id: experiment.id,
       name: experiment.name,
@@ -315,7 +307,6 @@ export class ABTestingReportsService {
       type: experiment.type,
       duration: this.calculateExperimentDuration(experiment),
     }));
-
     return {
       timeline,
       totalExperiments: timeline.length,

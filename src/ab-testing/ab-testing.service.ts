@@ -36,6 +36,9 @@ export interface ICreateMetricDto {
   configuration?: any;
 }
 
+/**
+ * Provides aBTesting operations.
+ */
 @Injectable()
 export class ABTestingService {
   private readonly logger = new Logger(ABTestingService.name);
@@ -68,10 +71,8 @@ export class ABTestingService {
     experiment.exclusionCriteria = createExperimentDto.exclusionCriteria;
     experiment.status = ExperimentStatus.DRAFT;
 
-    // Save the experiment first
     const savedExperiment = await this.experimentRepository.save(experiment);
 
-    // Create variants
     const variants = createExperimentDto.variants.map((variantDto) => {
       const variant = new IExperimentVariant();
       variant.name = variantDto.name;
@@ -88,9 +89,6 @@ export class ABTestingService {
     return savedExperiment;
   }
 
-  /**
-   * Gets all experiments
-   */
   async getAllExperiments(): Promise<Experiment[]> {
     return await this.experimentRepository.find({
       relations: ['variants', 'metrics'],
@@ -98,9 +96,6 @@ export class ABTestingService {
     });
   }
 
-  /**
-   * Gets experiment by ID
-   */
   async getExperimentById(id: string): Promise<Experiment> {
     const experiment = await this.experimentRepository.findOne({
       where: { id },
@@ -110,43 +105,29 @@ export class ABTestingService {
     if (!experiment) {
       throw new Error(`Experiment with ID ${id} not found`);
     }
-
     return experiment;
   }
 
-  /**
-   * Starts an experiment
-   */
   async startExperiment(id: string): Promise<Experiment> {
     this.logger.log(`Starting experiment: ${id}`);
-
     const experiment = await this.getExperimentById(id);
-
     if (experiment.status !== ExperimentStatus.DRAFT) {
       throw new Error('Only draft experiments can be started');
     }
-
     if (!experiment.variants || experiment.variants.length < 2) {
       throw new Error('Experiment must have at least 2 variants');
     }
-
-    // Validate that there's exactly one control variant
     const controlVariants = experiment.variants.filter((v) => v.isControl);
     if (controlVariants.length !== 1) {
       throw new Error('Experiment must have exactly one control variant');
     }
-
     experiment.status = ExperimentStatus.RUNNING;
     experiment.startDate = new Date();
-
     const updatedExperiment = await this.experimentRepository.save(experiment);
     this.logger.log(`Experiment started: ${updatedExperiment.name}`);
     return updatedExperiment;
   }
 
-  /**
-   * Stops an experiment
-   */
   async stopExperiment(id: string): Promise<Experiment> {
     this.logger.log(`Stopping experiment: ${id}`);
 
@@ -159,43 +140,33 @@ export class ABTestingService {
     return updatedExperiment;
   }
 
-  /**
-   * Gets active experiments for a user
-   */
   async getActiveExperimentsForUser(_userId: string): Promise<Experiment[]> {
     return await this.experimentRepository.find({
-      where: {
-        status: ExperimentStatus.RUNNING,
-        startDate: new Date(),
-      },
+      where: { status: ExperimentStatus.RUNNING },
       relations: ['variants'],
     });
   }
 
-  /**
-   * Assigns a user to a variant
-   */
   async assignUserToVariant(experimentId: string, userId: string): Promise<IExperimentVariant> {
     const experiment = await this.getExperimentById(experimentId);
 
     if (experiment.status !== ExperimentStatus.RUNNING) {
       throw new Error('Experiment is not running');
     }
+    if (!experiment.variants?.length) {
+      throw new Error('Experiment has no variants');
+    }
 
-    // Simple hash-based assignment for consistent user-to-variant mapping
     const variantIndex = this.hashUserIdToVariant(userId, experiment.variants.length);
     return experiment.variants[variantIndex];
   }
 
-  /**
-   * Hashes user ID to determine variant assignment
-   */
   private hashUserIdToVariant(userId: string, variantCount: number): number {
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
       const char = userId.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
     return Math.abs(hash) % variantCount;
   }

@@ -1,0 +1,63 @@
+# Canary-specific service — used by the canary ingress below
+apiVersion: v1
+kind: Service
+metadata:
+  name: teachlink-backend-canary
+  namespace: default
+  labels:
+    app: teachlink-backend
+    track: canary
+spec:
+  selector:
+    app: teachlink-backend
+    track: canary
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+# Primary ingress (stable)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: teachlink-backend
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.teachlink.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: teachlink-backend
+                port:
+                  number: 80
+---
+# Canary ingress — nginx routes ~20% of traffic here via weight annotation
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: teachlink-backend-canary
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/canary: 'true'
+    nginx.ingress.kubernetes.io/canary-weight: '20' # percentage of requests sent to canary
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.teachlink.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: teachlink-backend-canary
+                port:
+                  number: 80

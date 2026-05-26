@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HfInference } from '@huggingface/inference';
 
+/**
+ * Provides auto Moderation operations.
+ */
 @Injectable()
 export class AutoModerationService {
   private hf: HfInference;
@@ -9,6 +12,11 @@ export class AutoModerationService {
     this.hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
   }
 
+  /**
+   * Analyzes analyze.
+   * @param content The content.
+   * @returns The operation result.
+   */
   async analyze(content: string): Promise<{ flagged: boolean; reasons: string[]; score: number }> {
     const result = await this.hf.textClassification({
       model: 's-nlp/roberta_toxicity_classifier', // or 'unitary/toxic-bert'

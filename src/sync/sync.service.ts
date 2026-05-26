@@ -10,6 +10,9 @@ import { DataConsistencyService } from './consistency/data-consistency.service';
 import { CacheInvalidationService } from './cache/cache-invalidation.service';
 import { ReplicationService } from './replication/replication.service';
 
+/**
+ * Provides sync operations.
+ */
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);

@@ -13,12 +13,14 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { EmailTemplate } from './email-template.entity';
 import { ABTest } from './ab-test.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
 import { CampaignStatus } from '../enums/campaign-status.enum';
 
+/**
+ * Represents the campaign entity.
+ */
 @Entity('email_campaigns')
 export class Campaign {
   @ApiProperty()

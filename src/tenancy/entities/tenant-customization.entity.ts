@@ -12,6 +12,9 @@ import {
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
+/**
+ * Represents the tenant Customization entity.
+ */
 @Entity('tenant_customizations')
 export class TenantCustomization {
   @PrimaryGeneratedColumn('uuid')
@@ -52,7 +55,7 @@ export class TenantCustomization {
     colors?: Record<string, string>;
     fonts?: Record<string, string>;
     spacing?: Record<string, string>;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'text', nullable: true })
@@ -66,7 +69,7 @@ export class TenantCustomization {
     welcome?: string;
     passwordReset?: string;
     notification?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'jsonb', nullable: true })
@@ -81,7 +84,7 @@ export class TenantCustomization {
       description: string;
       icon?: string;
     }>;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ nullable: true })

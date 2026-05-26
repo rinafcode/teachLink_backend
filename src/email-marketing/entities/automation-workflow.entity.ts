@@ -9,11 +9,13 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { AutomationTrigger } from './automation-trigger.entity';
 import { AutomationAction } from './automation-action.entity';
 import { WorkflowStatus } from '../enums/workflow-status.enum';
 
+/**
+ * Represents the automation Workflow entity.
+ */
 @Entity('automation_workflows')
 export class AutomationWorkflow {
   @ApiProperty()

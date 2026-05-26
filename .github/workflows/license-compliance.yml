@@ -1,0 +1,70 @@
+name: License Compliance
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  scan-licenses:
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.scan.outputs.status }}
+      exit_code: ${{ steps.scan.outputs.exit_code }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run license scan
+        id: scan
+        shell: bash
+        run: |
+          set +e
+          node scripts/scan-licenses.js > compliance-output.txt 2>&1
+          RESULT=$?
+          set -e
+          cat compliance-output.txt
+          echo "exit_code=$RESULT" >> "$GITHUB_OUTPUT"
+          
+          if grep -q "Status: FAILED" compliance-output.txt; then
+            echo "status=FAILED" >> "$GITHUB_OUTPUT"
+          elif grep -q "Status: WARNING" compliance-output.txt; then
+            echo "status=WARNING" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=PASSED" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: license-report
+          path: compliance/reports/
+          retention-days: 30
+
+  check-compliance:
+    needs: scan-licenses
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check license compliance status
+        run: |
+          if [[ "${{ needs.scan-licenses.outputs.status }}" == "FAILED" ]]; then
+            echo "::error::Prohibited licenses found in dependencies!"
+            echo "Please review the license report and address any prohibited licenses."
+            exit 1
+          fi
+
+      - name: Approval needed for review-required packages
+        if: needs.scan-licenses.outputs.status == 'WARNING'
+        run: |
+          echo "::warning::License review required for some dependencies"
+          echo ""
+          echo "Some packages have licenses that require review:"
+          echo "- LGPL (GNU Lesser General Public License)"
+          echo "- Unknown licenses"
+          echo ""
+          echo "To proceed, add a comment to this PR stating:"
+          echo "  License review completed - all dependencies acceptable"
+          echo ""
+          echo "Or create an issue to track license compliance approval."

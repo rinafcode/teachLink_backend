@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-
 export enum ConflictResolutionStrategy {
-  LAST_WRITE_WINS = 'LAST_WRITE_WINS',
-  VERSIONING = 'VERSIONING',
-  MANUAL_MERGE = 'MANUAL_MERGE',
+    LAST_WRITE_WINS = 'LAST_WRITE_WINS',
+    VERSIONING = 'VERSIONING',
+    MANUAL_MERGE = 'MANUAL_MERGE'
 }
 
 export interface ISyncData {
@@ -13,6 +12,9 @@ export interface ISyncData {
   data: any;
 }
 
+/**
+ * Provides conflict Resolution operations.
+ */
 @Injectable()
 export class ConflictResolutionService {
   private readonly logger = new Logger(ConflictResolutionService.name);

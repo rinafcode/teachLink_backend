@@ -11,6 +11,9 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { Course } from './course.entity';
 
+/**
+ * Represents the enrollment entity.
+ */
 @Entity()
 @Index(['userId', 'status'])
 @Index(['courseId', 'status'])

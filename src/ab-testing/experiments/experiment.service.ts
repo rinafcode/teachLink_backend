@@ -6,6 +6,9 @@ import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { ExperimentMetric } from '../entities/experiment-metric.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
 
+/**
+ * Provides experiment operations.
+ */
 @Injectable()
 export class ExperimentService {
   private readonly logger = new Logger(ExperimentService.name);
@@ -21,30 +24,20 @@ export class ExperimentService {
     private variantMetricRepository: Repository<VariantMetric>,
   ) {}
 
-  /**
-   * Updates experiment configuration
-   */
   async updateExperiment(id: string, updateData: Partial<Experiment>): Promise<Experiment> {
     this.logger.log(`Updating experiment: ${id}`);
-
     const experiment = await this.experimentRepository.findOne({
       where: { id },
     });
-
     if (!experiment) {
       throw new Error(`Experiment with ID ${id} not found`);
     }
-
     Object.assign(experiment, updateData);
     const updatedExperiment = await this.experimentRepository.save(experiment);
-
     this.logger.log(`Experiment updated: ${updatedExperiment.name}`);
     return updatedExperiment;
   }
 
-  /**
-   * Adds a variant to an experiment
-   */
   async addVariant(
     experimentId: string,
     variantData: Partial<IExperimentVariant>,
@@ -68,18 +61,12 @@ export class ExperimentService {
     return savedVariant;
   }
 
-  /**
-   * Removes a variant from an experiment
-   */
   async removeVariant(variantId: string): Promise<void> {
     this.logger.log(`Removing variant: ${variantId}`);
     await this.variantRepository.softDelete(variantId);
     this.logger.log(`Variant removed: ${variantId}`);
   }
 
-  /**
-   * Updates traffic allocation for variants
-   */
   async updateTrafficAllocation(
     experimentId: string,
     allocations: Record<string, number>,
@@ -95,39 +82,30 @@ export class ExperimentService {
       throw new Error(`Experiment with ID ${experimentId} not found`);
     }
 
-    // Validate that allocations sum to 100%
     const totalAllocation = Object.values(allocations).reduce((sum, alloc) => sum + alloc, 0);
     if (Math.abs(totalAllocation - 1) > 0.01) {
-      throw new Error('Traffic allocations must sum to 100%');
+      throw new Error('Traffic allocations must sum to 1 (e.g. 0.5 + 0.5)');
     }
 
-    // Update each variant's allocation
     for (const variant of experiment.variants) {
       if (allocations[variant.id] !== undefined) {
         variant.trafficAllocation = allocations[variant.id];
         await this.variantRepository.save(variant);
       }
     }
-
     this.logger.log(`Traffic allocation updated for experiment: ${experiment.name}`);
   }
 
-  /**
-   * Gets experiment results
-   */
-  async getExperimentResults(experimentId: string): Promise<any> {
+  async getExperimentResults(experimentId: string): Promise<unknown> {
     this.logger.log(`Getting results for experiment: ${experimentId}`);
-
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
       relations: ['variants', 'metrics', 'variants.metrics'],
     });
-
     if (!experiment) {
       throw new Error(`Experiment with ID ${experimentId} not found`);
     }
 
-    // Calculate results for each variant
     const results = {
       experiment: {
         id: experiment.id,
@@ -152,77 +130,53 @@ export class ExperimentService {
         })),
       })),
     };
-
     return results;
   }
 
-  /**
-   * Archives an experiment
-   */
   async archiveExperiment(id: string): Promise<Experiment> {
     this.logger.log(`Archiving experiment: ${id}`);
-
     const experiment = await this.experimentRepository.findOne({
       where: { id },
     });
-
     if (!experiment) {
       throw new Error(`Experiment with ID ${id} not found`);
     }
-
     experiment.status = ExperimentStatus.ARCHIVED;
     const archivedExperiment = await this.experimentRepository.save(experiment);
-
     this.logger.log(`Experiment archived: ${archivedExperiment.name}`);
     return archivedExperiment;
   }
 
-  /**
-   * Pauses an experiment
-   */
   async pauseExperiment(id: string): Promise<Experiment> {
     this.logger.log(`Pausing experiment: ${id}`);
-
     const experiment = await this.experimentRepository.findOne({
       where: { id },
     });
-
     if (!experiment) {
       throw new Error(`Experiment with ID ${id} not found`);
     }
-
     if (experiment.status !== ExperimentStatus.RUNNING) {
       throw new Error('Only running experiments can be paused');
     }
-
     experiment.status = ExperimentStatus.PAUSED;
     const pausedExperiment = await this.experimentRepository.save(experiment);
-
     this.logger.log(`Experiment paused: ${pausedExperiment.name}`);
     return pausedExperiment;
   }
 
-  /**
-   * Resumes a paused experiment
-   */
   async resumeExperiment(id: string): Promise<Experiment> {
     this.logger.log(`Resuming experiment: ${id}`);
-
     const experiment = await this.experimentRepository.findOne({
       where: { id },
     });
-
     if (!experiment) {
       throw new Error(`Experiment with ID ${id} not found`);
     }
-
     if (experiment.status !== ExperimentStatus.PAUSED) {
       throw new Error('Only paused experiments can be resumed');
     }
-
     experiment.status = ExperimentStatus.RUNNING;
     const resumedExperiment = await this.experimentRepository.save(experiment);
-
     this.logger.log(`Experiment resumed: ${resumedExperiment.name}`);
     return resumedExperiment;
   }

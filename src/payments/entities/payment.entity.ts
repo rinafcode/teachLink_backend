@@ -11,24 +11,25 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
-
 export enum PaymentStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
-  CANCELLED = 'cancelled',
+    PENDING = 'pending',
+    PROCESSING = 'processing',
+    COMPLETED = 'completed',
+    FAILED = 'failed',
+    REFUNDED = 'refunded',
+    CANCELLED = 'cancelled'
 }
-
 export enum PaymentMethod {
-  CREDIT_CARD = 'credit_card',
-  BANK_TRANSFER = 'bank_transfer',
-  PAYPAL = 'paypal',
-  CRYPTO = 'crypto',
-  WALLET = 'wallet',
+    CREDIT_CARD = 'credit_card',
+    BANK_TRANSFER = 'bank_transfer',
+    PAYPAL = 'paypal',
+    CRYPTO = 'crypto',
+    WALLET = 'wallet'
 }
 
+/**
+ * Represents the payment entity.
+ */
 @Entity('payments')
 @Index(['userId', 'status'])
 export class Payment {
@@ -75,6 +76,10 @@ export class Payment {
   @Column({ name: 'course_id', nullable: true })
   @Index()
   courseId: string;
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Index()
+  idempotencyKey: string | null;
 
   @Column({ type: 'boolean', default: false })
   isSubscription: boolean;

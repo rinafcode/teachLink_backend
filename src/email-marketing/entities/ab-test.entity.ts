@@ -9,11 +9,13 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { Campaign } from './campaign.entity';
 import { ABTestVariant } from './ab-test-variant.entity';
 import { ABTestStatus } from '../enums/ab-test-status.enum';
 
+/**
+ * Represents the aBTest entity.
+ */
 @Entity('ab_tests')
 export class ABTest {
   @ApiProperty()

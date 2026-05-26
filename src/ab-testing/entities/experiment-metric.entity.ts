@@ -8,15 +8,17 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { Experiment } from './experiment.entity';
-
 export enum MetricType {
-  CONVERSION = 'conversion',
-  REVENUE = 'revenue',
-  ENGAGEMENT = 'engagement',
-  RETENTION = 'retention',
-  CUSTOM = 'custom',
+    CONVERSION = 'conversion',
+    REVENUE = 'revenue',
+    ENGAGEMENT = 'engagement',
+    RETENTION = 'retention',
+    CUSTOM = 'custom'
 }
 
+/**
+ * Represents the experiment Metric entity.
+ */
 @Entity({ name: 'experiment_metrics' })
 export class ExperimentMetric {
   @PrimaryGeneratedColumn('uuid')

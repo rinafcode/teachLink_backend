@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tenant } from './entities/tenant.entity';
@@ -10,6 +15,9 @@ import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
 import { TENANT_DEFAULTS } from './tenancy.constants';
 
+/**
+ * Provides tenancy operations.
+ */
 @Injectable()
 export class TenancyService {
   constructor(
@@ -25,30 +33,23 @@ export class TenancyService {
     private readonly customizationService: CustomizationService,
   ) {}
 
-  /**
-   * Create a new tenant
-   */
   async create(createTenantDto: CreateTenantDto): Promise<Tenant> {
-    // Check if slug already exists
     const existingTenant = await this.tenantRepository.findOne({
       where: { slug: createTenantDto.slug },
       withDeleted: true,
     });
-
     if (existingTenant) {
       throw new ConflictException('Tenant with this slug already exists');
     }
 
-    // Create tenant
     const tenant = this.tenantRepository.create({
       ...createTenantDto,
-      userLimit: createTenantDto.userLimit || TENANT_DEFAULTS.USER_LIMIT,
-      storageLimit: createTenantDto.storageLimit || TENANT_DEFAULTS.STORAGE_LIMIT_MB,
+      userLimit: createTenantDto.userLimit ?? TENANT_DEFAULTS.USER_LIMIT,
+      storageLimit: createTenantDto.storageLimit ?? TENANT_DEFAULTS.STORAGE_LIMIT_MB,
     });
 
     const savedTenant = await this.tenantRepository.save(tenant);
 
-    // Create related records
     await Promise.all([
       this.createDefaultConfig(savedTenant.id),
       this.billingService.createBillingRecord(savedTenant.id),
@@ -58,9 +59,6 @@ export class TenancyService {
     return savedTenant;
   }
 
-  /**
-   * Find all tenants
-   */
   async findAll(
     page: number = 1,
     limit: number = TENANT_DEFAULTS.DEFAULT_PAGE_SIZE,
@@ -79,9 +77,6 @@ export class TenancyService {
     };
   }
 
-  /**
-   * Find tenant by ID
-   */
   async findOne(id: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id } });
     if (!tenant) {
@@ -90,9 +85,6 @@ export class TenancyService {
     return tenant;
   }
 
-  /**
-   * Find tenant by slug
-   */
   async findBySlug(slug: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { slug } });
     if (!tenant) {
@@ -101,9 +93,6 @@ export class TenancyService {
     return tenant;
   }
 
-  /**
-   * Find tenant by domain
-   */
   async findByDomain(domain: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { domain } });
     if (!tenant) {
@@ -112,23 +101,14 @@ export class TenancyService {
     return tenant;
   }
 
-  /**
-   * Update tenant
-   */
   async update(id: string, updateTenantDto: UpdateTenantDto): Promise<Tenant> {
     const tenant = await this.findOne(id);
-
     Object.assign(tenant, updateTenantDto);
-
     return await this.tenantRepository.save(tenant);
   }
 
-  /**
-   * Delete tenant
-   */
   async remove(id: string): Promise<void> {
     await this.findOne(id);
-
     await this.tenantRepository.manager.transaction(async (manager) => {
       await manager.getRepository(TenantConfig).softDelete({ tenantId: id });
       await manager.getRepository(TenantBilling).softDelete({ tenantId: id });
@@ -137,9 +117,6 @@ export class TenancyService {
     });
   }
 
-  /**
-   * Get tenant configuration
-   */
   async getConfig(tenantId: string): Promise<TenantConfig> {
     const config = await this.configRepository.findOne({ where: { tenantId } });
     if (!config) {
@@ -148,23 +125,12 @@ export class TenancyService {
     return config;
   }
 
-  /**
-   * Update tenant configuration
-   */
-  async updateConfig(
-    tenantId: string,
-    updateConfigDto: UpdateTenantConfigDto,
-  ): Promise<TenantConfig> {
+  async updateConfig(tenantId: string, updateConfigDto: UpdateTenantConfigDto): Promise<TenantConfig> {
     const config = await this.getConfig(tenantId);
-
     Object.assign(config, updateConfigDto);
-
     return await this.configRepository.save(config);
   }
 
-  /**
-   * Create default configuration
-   */
   private async createDefaultConfig(tenantId: string): Promise<TenantConfig> {
     const config = this.configRepository.create({
       tenantId,
@@ -195,32 +161,20 @@ export class TenancyService {
     return await this.configRepository.save(config);
   }
 
-  /**
-   * Increment user count
-   */
   async incrementUserCount(tenantId: string): Promise<void> {
     await this.tenantRepository.increment({ id: tenantId }, 'currentUserCount', 1);
   }
 
-  /**
-   * Decrement user count
-   */
   async decrementUserCount(tenantId: string): Promise<void> {
     await this.tenantRepository.decrement({ id: tenantId }, 'currentUserCount', 1);
   }
 
-  /**
-   * Update storage usage
-   */
   async updateStorageUsage(tenantId: string, sizeInMB: number): Promise<void> {
     const tenant = await this.findOne(tenantId);
     tenant.currentStorageUsage += sizeInMB;
     await this.tenantRepository.save(tenant);
   }
 
-  /**
-   * Get tenant with all related data
-   */
   async getTenantWithRelations(tenantId: string): Promise<{
     tenant: Tenant;
     config: TenantConfig;
@@ -240,5 +194,43 @@ export class TenancyService {
       billing,
       customization,
     };
+  }
+
+  /**
+   * Resolves tenant id from headers, authenticated user, middleware-populated req.tenant, or domain.
+   * Order matches TenantMiddleware resolution.
+   */
+  async resolveTenantIdFromRequest(req: {
+    headers?: Record<string, unknown>;
+    hostname?: string;
+    user?: { tenantId?: string };
+    tenant?: { id?: string };
+  }): Promise<string> {
+    const headerId = req.headers?.['x-tenant-id'] as string | undefined;
+    if (headerId) return headerId;
+
+    const slug = req.headers?.['x-tenant-slug'] as string | undefined;
+    if (slug) {
+      const tenant = await this.tenantRepository.findOne({ where: { slug } });
+      if (tenant) return tenant.id;
+    }
+
+    const userTenantId = req.user?.tenantId;
+    if (userTenantId) return userTenantId;
+
+    if (req.tenant?.id) return req.tenant.id;
+
+    const domain =
+      (req.headers?.['x-tenant-domain'] as string | undefined) || req.hostname;
+    if (domain) {
+      const tenant = await this.tenantRepository.findOne({ where: { domain } });
+      if (tenant) return tenant.id;
+    }
+
+    throw new BadRequestException('Tenant context could not be resolved from the request');
+  }
+
+  async validateTenantExists(tenantId: string): Promise<void> {
+    await this.findOne(tenantId);
   }
 }

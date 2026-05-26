@@ -9,20 +9,22 @@ import {
 } from 'typeorm';
 
 export enum ContentType {
-  IMAGE = 'image',
-  VIDEO = 'video',
-  DOCUMENT = 'document',
-  AUDIO = 'audio',
+    IMAGE = 'image',
+    VIDEO = 'video',
+    DOCUMENT = 'document',
+    AUDIO = 'audio'
 }
-
 export enum ContentStatus {
-  UPLOADING = 'uploading',
-  PROCESSING = 'processing',
-  OPTIMIZED = 'optimized',
-  READY = 'ready',
-  FAILED = 'failed',
+    UPLOADING = 'uploading',
+    PROCESSING = 'processing',
+    OPTIMIZED = 'optimized',
+    READY = 'ready',
+    FAILED = 'failed'
 }
 
+/**
+ * Represents the content Metadata entity.
+ */
 @Entity('content_metadata')
 @Index(['contentId'], { unique: true })
 @Index(['status'])
@@ -120,7 +122,7 @@ export class ContentMetadata {
 
   @Column({ name: 'access_count', default: 0 })
   accessCount: number;
-  
+
   @Column({ name: 'expires_at', type: 'timestamp', nullable: true })
   @Index()
   expiresAt: Date;

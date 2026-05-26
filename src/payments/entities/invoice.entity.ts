@@ -11,22 +11,23 @@ import {
 } from 'typeorm';
 import { Payment } from './payment.entity';
 import { User } from '../../users/entities/user.entity';
-
 export enum InvoiceStatus {
-  DRAFT = 'draft',
-  SENT = 'sent',
-  PAID = 'paid',
-  OVERDUE = 'overdue',
-  CANCELLED = 'cancelled',
+    DRAFT = 'draft',
+    SENT = 'sent',
+    PAID = 'paid',
+    OVERDUE = 'overdue',
+    CANCELLED = 'cancelled'
 }
-
 interface InvoiceItem {
-  description: string;
-  amount: number;
-  quantity: number;
-  taxRate?: number;
+    description: string;
+    amount: number;
+    quantity: number;
+    taxRate?: number;
 }
 
+/**
+ * Represents the invoice entity.
+ */
 @Entity('invoices')
 export class Invoice {
   @PrimaryGeneratedColumn('uuid')

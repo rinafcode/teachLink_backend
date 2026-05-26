@@ -9,18 +9,20 @@ import {
 } from 'typeorm';
 
 export enum WebhookStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  SUCCEEDED = 'succeeded',
-  FAILED = 'failed',
-  DEAD_LETTER = 'dead_letter',
+    PENDING = 'pending',
+    PROCESSING = 'processing',
+    SUCCEEDED = 'succeeded',
+    FAILED = 'failed',
+    DEAD_LETTER = 'dead_letter'
 }
-
 export enum WebhookProvider {
-  STRIPE = 'stripe',
-  PAYPAL = 'paypal',
+    STRIPE = 'stripe',
+    PAYPAL = 'paypal'
 }
 
+/**
+ * Represents the webhook Retry entity.
+ */
 @Entity('webhook_retries')
 @Index(['provider', 'externalEventId'], { unique: true })
 @Index(['status', 'nextRetryTime'])

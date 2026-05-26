@@ -7,6 +7,9 @@ import { ComplianceService } from './compliance/compliance.service';
 import { AuditLoggingService } from './audit/audit-logging.service';
 import { SecretsModule } from './secrets/secrets.module';
 
+/**
+ * Registers the security module.
+ */
 @Module({
   imports: [ScheduleModule.forRoot(), SecretsModule],
   providers: [
@@ -18,4 +21,5 @@ import { SecretsModule } from './secrets/secrets.module';
   ],
   exports: [SecurityService, EncryptionService, SecretsModule],
 })
-export class SecurityModule {}
+export class SecurityModule {
+}

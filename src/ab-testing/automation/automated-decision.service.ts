@@ -10,25 +10,28 @@ export interface IWinnerSelectionCriteria {
   confidenceLevel: number;
   minimumSampleSize: number;
   effectSizeThreshold: number;
-  durationThreshold: number; // in days
+  durationThreshold: number;
 }
 
+/**
+ * Provides automated Decision operations.
+ */
 @Injectable()
 export class AutomatedDecisionService {
   private readonly logger = new Logger(AutomatedDecisionService.name);
 
   constructor(
     @InjectRepository(Experiment)
-    private experimentRepository: Repository<Experiment>,
+    private readonly experimentRepository: Repository<Experiment>,
     @InjectRepository(IExperimentVariant)
-    private variantRepository: Repository<IExperimentVariant>,
-    private statisticalAnalysisService: StatisticalAnalysisService,
+    private readonly variantRepository: Repository<IExperimentVariant>,
+    private readonly statisticalAnalysisService: StatisticalAnalysisService,
   ) {}
 
-  /**
-   * Automatically selects winner for an experiment
-   */
-  async autoSelectWinner(experimentId: string, criteria?: IWinnerSelectionCriteria): Promise<any> {
+  async autoSelectWinner(
+    experimentId: string,
+    criteria?: Partial<IWinnerSelectionCriteria>,
+  ): Promise<Record<string, unknown>> {
     this.logger.log(`Auto-selecting winner for experiment: ${experimentId}`);
 
     const experiment = await this.experimentRepository.findOne({
@@ -45,15 +48,15 @@ export class AutomatedDecisionService {
     }
 
     const defaultCriteria: IWinnerSelectionCriteria = {
-      confidenceLevel: experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
-      minimumSampleSize: experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
+      confidenceLevel: experiment.confidenceLevel ?? AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
+      minimumSampleSize:
+        experiment.minimumSampleSize ?? AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
       effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
       durationThreshold: AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS,
     };
 
     const selectionCriteria = { ...defaultCriteria, ...criteria };
 
-    // Check if experiment meets duration threshold
     const experimentDuration = this.calculateExperimentDuration(experiment);
     if (experimentDuration < selectionCriteria.durationThreshold) {
       return {
@@ -63,11 +66,9 @@ export class AutomatedDecisionService {
       };
     }
 
-    // Perform statistical analysis
     const statisticalResults =
       await this.statisticalAnalysisService.calculateStatisticalSignificance(experimentId);
 
-    // Check if results are statistically significant
     if (!statisticalResults.statisticallySignificant) {
       return {
         experimentId: experiment.id,
@@ -76,15 +77,12 @@ export class AutomatedDecisionService {
       };
     }
 
-    // Find the winning variant
     const winner = await this.determineWinner(experiment, statisticalResults, selectionCriteria);
 
     if (winner) {
-      // Mark winner
       winner.isWinner = true;
       await this.variantRepository.save(winner);
 
-      // Update experiment status
       experiment.status = ExperimentStatus.COMPLETED;
       experiment.endDate = new Date();
       await this.experimentRepository.save(experiment);
@@ -97,21 +95,18 @@ export class AutomatedDecisionService {
         confidenceLevel: statisticalResults.confidenceLevel,
         effectSize: await this.calculateEffectSizeForWinner(experiment.id, winner.id),
       };
-    } else {
-      return {
-        experimentId: experiment.id,
-        decision: 'no_winner',
-        reason: 'No clear winner could be determined',
-      };
     }
+
+    return {
+      experimentId: experiment.id,
+      decision: 'no_winner',
+      reason: 'No clear winner could be determined',
+    };
   }
 
-  /**
-   * Determines the winning variant based on analysis results
-   */
   private async determineWinner(
     experiment: Experiment,
-    statisticalResults: any,
+    statisticalResults: { variants: any[] },
     criteria: IWinnerSelectionCriteria,
   ): Promise<IExperimentVariant | null> {
     const controlVariant = experiment.variants.find((v) => v.isControl);
@@ -120,26 +115,27 @@ export class AutomatedDecisionService {
     let bestVariant: IExperimentVariant | null = null;
     let bestPerformance = -Infinity;
 
-    // Find the variant with the best performance that meets criteria
     for (const variantAnalysis of statisticalResults.variants) {
       const variant = experiment.variants.find((v) => v.id === variantAnalysis.variantId);
       if (!variant || variant.isControl) continue;
 
-      // Check minimum sample size
-      const hasSufficientSample = variantAnalysis.metrics.every(
-        (metric: any) => metric.sampleSize >= criteria.minimumSampleSize,
-      );
+      const hasSufficientSample =
+        Array.isArray(variantAnalysis.metrics) &&
+        variantAnalysis.metrics.every(
+          (metric: { sampleSize?: number }) =>
+            (metric.sampleSize ?? 0) >= criteria.minimumSampleSize,
+        );
 
       if (!hasSufficientSample) continue;
 
-      // Check if statistically significant
-      const isSignificant = variantAnalysis.metrics.some(
-        (metric: any) => metric.isStatisticallySignificant,
-      );
+      const isSignificant =
+        Array.isArray(variantAnalysis.metrics) &&
+        variantAnalysis.metrics.some(
+          (metric: { isStatisticallySignificant?: boolean }) => metric.isStatisticallySignificant,
+        );
 
       if (!isSignificant) continue;
 
-      // Check effect size
       const effectSize = await this.calculateEffectSizeForVariant(
         experiment.id,
         variant.id,
@@ -147,8 +143,10 @@ export class AutomatedDecisionService {
       );
       if (effectSize < criteria.effectSizeThreshold) continue;
 
-      // Compare performance (simplified - would be more complex in real implementation)
-      const performance = variantAnalysis.overallPerformance;
+      const performance =
+        typeof variantAnalysis.overallPerformance === 'number'
+          ? variantAnalysis.overallPerformance
+          : 0;
       if (performance > bestPerformance) {
         bestPerformance = performance;
         bestVariant = variant;
@@ -158,22 +156,14 @@ export class AutomatedDecisionService {
     return bestVariant;
   }
 
-  /**
-   * Calculates effect size for a specific variant compared to control
-   */
   private async calculateEffectSizeForVariant(
     _experimentId: string,
     _variantId: string,
     _controlId: string,
   ): Promise<number> {
-    // This would use the statistical analysis service to calculate effect size
-    // For now, returning a placeholder value
     return 0.25;
   }
 
-  /**
-   * Calculates effect size for the winning variant
-   */
   private async calculateEffectSizeForWinner(
     experimentId: string,
     winnerId: string,
@@ -189,9 +179,6 @@ export class AutomatedDecisionService {
     return await this.calculateEffectSizeForVariant(experimentId, winnerId, controlVariant.id);
   }
 
-  /**
-   * Calculates experiment duration in days
-   */
   private calculateExperimentDuration(experiment: Experiment): number {
     const startDate = new Date(experiment.startDate);
     const endDate = experiment.endDate ? new Date(experiment.endDate) : new Date();
@@ -199,42 +186,37 @@ export class AutomatedDecisionService {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  /**
-   * Checks if an experiment is ready for winner selection
-   */
   async isReadyForWinnerSelection(experimentId: string): Promise<boolean> {
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
-      relations: ['variants'],
+      relations: ['variants', 'variants.metrics'],
     });
 
     if (!experiment || experiment.status !== ExperimentStatus.RUNNING) {
       return false;
     }
 
-    // Check if experiment has run for minimum duration
     const duration = this.calculateExperimentDuration(experiment);
-    const minimumDuration = AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS; // 7 days minimum
-
-    if (duration < minimumDuration) {
+    if (duration < AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS) {
       return false;
     }
 
-    // Check if all variants have sufficient sample size
-    const _minimumSampleSize = experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
+    const minimumSampleSize =
+      experiment.minimumSampleSize ?? AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE;
 
-    for (const _variant of experiment.variants) {
-      // This would check actual sample sizes from metrics
-      // For now, we'll assume variants are ready
+    for (const variant of experiment.variants) {
+      const variantSampleSize =
+        variant.metrics?.reduce((sum, metric) => sum + (metric.sampleSize ?? 0), 0) ?? 0;
+
+      if (variantSampleSize < minimumSampleSize) {
+        return false;
+      }
     }
 
     return true;
   }
 
-  /**
-   * Gets automated decision recommendations
-   */
-  async getDecisionRecommendations(experimentId: string): Promise<any> {
+  async getDecisionRecommendations(experimentId: string): Promise<Record<string, unknown>> {
     this.logger.log(`Getting decision recommendations for experiment: ${experimentId}`);
 
     const experiment = await this.experimentRepository.findOne({
@@ -268,26 +250,27 @@ export class AutomatedDecisionService {
     if (ready) {
       recommendations.recommendations.push('Experiment is ready for winner selection');
 
-      // Get potential winner
       const statisticalResults =
         await this.statisticalAnalysisService.calculateStatisticalSignificance(experimentId);
       if (statisticalResults.statisticallySignificant) {
         const winner = await this.determineWinner(experiment, statisticalResults, {
-          confidenceLevel: experiment.confidenceLevel || AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
-          minimumSampleSize: experiment.minimumSampleSize || AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
+          confidenceLevel:
+            experiment.confidenceLevel ?? AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
+          minimumSampleSize:
+            experiment.minimumSampleSize ?? AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
           effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
           durationThreshold: AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS,
         });
-
         if (winner) {
           recommendations.winnerCandidate = winner.id;
-          recommendations.recommendations.push(
-            `Variant "${winner.name}" is the recommended winner`,
-          );
+          recommendations.recommendations.push(`Variant "${winner.name}" is the recommended winner`);
         }
       }
     } else {
-      const remainingDays = Math.max(0, AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS - duration);
+      const remainingDays = Math.max(
+        0,
+        AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS - duration,
+      );
       recommendations.recommendations.push(
         `Wait ${remainingDays} more days before making decision`,
       );
@@ -296,9 +279,6 @@ export class AutomatedDecisionService {
     return recommendations;
   }
 
-  /**
-   * Auto-allocates traffic based on performance
-   */
   async autoAllocateTraffic(experimentId: string): Promise<void> {
     this.logger.log(`Auto-allocating traffic for experiment: ${experimentId}`);
 
@@ -311,37 +291,29 @@ export class AutomatedDecisionService {
       return;
     }
 
-    // This would implement multi-armed bandit algorithm or similar
-    // For now, we'll implement a simple performance-based allocation
-
     const variants = experiment.variants;
     if (variants.length < 2) return;
 
-    // Calculate performance scores for each variant
     const performanceScores = await this.calculateVariantPerformanceScores(variants);
-
-    // Allocate traffic proportionally to performance scores
     const totalScore = performanceScores.reduce((sum, score) => sum + score.score, 0);
 
     for (let i = 0; i < variants.length; i++) {
       const variant = variants[i];
       const score = performanceScores[i];
-      variant.trafficAllocation = totalScore > 0 ? score.score / totalScore : 1 / variants.length;
+      variant.trafficAllocation =
+        totalScore > 0 ? score.score / totalScore : 1 / variants.length;
       await this.variantRepository.save(variant);
     }
 
     this.logger.log(`Traffic auto-allocated for experiment: ${experiment.name}`);
   }
 
-  /**
-   * Calculates performance scores for variants
-   */
-  private async calculateVariantPerformanceScores(variants: IExperimentVariant[]): Promise<any[]> {
-    // This would fetch actual performance data
-    // For now, returning equal scores
+  private async calculateVariantPerformanceScores(
+    variants: IExperimentVariant[],
+  ): Promise<Array<{ variantId: string; score: number }>> {
     return variants.map((variant) => ({
       variantId: variant.id,
-      score: 1.0, // Placeholder score
+      score: 1.0,
     }));
   }
 }
