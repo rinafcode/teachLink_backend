@@ -23,6 +23,7 @@ import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
 import { TIME, BYTES } from './common/constants/time.constants';
+import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
 
 type SessionRequest = Request & {
   session?: Session & Partial<SessionData> & { userAgent?: string };
@@ -66,6 +67,10 @@ async function bootstrapWorker(): Promise<void> {
       },
     }),
   );
+
+  // ─── Request Decompression ────────────────────────────────────────────────
+  // Handle compressed request payloads (gzip, brotli, deflate)
+  app.use(new DecompressionMiddleware());
 
   app.use(json({ limit: requestBodyLimit }));
   app.use(urlencoded({ extended: true, limit: requestBodyLimit }));
