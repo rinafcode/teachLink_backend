@@ -13,7 +13,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      issues: read
     steps:
       - name: Detect changed paths
         id: changed-files
@@ -100,7 +99,7 @@ jobs:
                 const match = line.match(/^(\S+)\s+(.+)$/);
                 if (!match) return;
 
-                const [pattern, owners] = match;
+                const [, pattern, owners] = match;
                 const ownerList = owners.split(' ').filter(o => o.startsWith('@'));
 
                 for (const file of changedFiles) {
