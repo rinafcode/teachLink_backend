@@ -1,4 +1,8 @@
-import { RoutingCondition, RoutingConditionType, RoutingOperator } from '../interfaces/routing.interface';
+import {
+  RoutingCondition,
+  RoutingConditionType,
+  RoutingOperator,
+} from '../interfaces/routing.interface';
 
 /**
  * Utility functions for creating routing conditions and rules
@@ -11,14 +15,14 @@ export function createHeaderCondition(
   headerName: string,
   operator: RoutingOperator,
   value: string | string[],
-  caseSensitive = false
+  caseSensitive = false,
 ): RoutingCondition {
   return {
     type: RoutingConditionType.HEADER,
     field: headerName.toLowerCase(),
     operator,
     value,
-    caseSensitive
+    caseSensitive,
   };
 }
 
@@ -29,14 +33,14 @@ export function createQueryCondition(
   paramName: string,
   operator: RoutingOperator,
   value: string | string[],
-  caseSensitive = false
+  caseSensitive = false,
 ): RoutingCondition {
   return {
     type: RoutingConditionType.QUERY_PARAM,
     field: paramName,
     operator,
     value,
-    caseSensitive
+    caseSensitive,
   };
 }
 
@@ -46,14 +50,14 @@ export function createQueryCondition(
 export function createPathCondition(
   operator: RoutingOperator,
   pattern: string | RegExp,
-  caseSensitive = false
+  caseSensitive = false,
 ): RoutingCondition {
   return {
     type: RoutingConditionType.PATH_PATTERN,
     field: 'path',
     operator,
     value: pattern,
-    caseSensitive
+    caseSensitive,
   };
 }
 
@@ -64,14 +68,14 @@ export function createBodyCondition(
   fieldPath: string,
   operator: RoutingOperator,
   value: string | string[],
-  caseSensitive = false
+  caseSensitive = false,
 ): RoutingCondition {
   return {
     type: RoutingConditionType.BODY_CONTENT,
     field: fieldPath,
     operator,
     value,
-    caseSensitive
+    caseSensitive,
   };
 }
 
@@ -82,14 +86,14 @@ export function createUserCondition(
   userField: string,
   operator: RoutingOperator,
   value: string | string[],
-  caseSensitive = false
+  caseSensitive = false,
 ): RoutingCondition {
   return {
     type: RoutingConditionType.CUSTOM,
     field: `user.${userField}`,
     operator,
     value,
-    caseSensitive
+    caseSensitive,
   };
 }
 
@@ -100,14 +104,14 @@ export function createTenantCondition(
   tenantField: string,
   operator: RoutingOperator,
   value: string | string[],
-  caseSensitive = false
+  caseSensitive = false,
 ): RoutingCondition {
   return {
     type: RoutingConditionType.CUSTOM,
     field: `tenant.${tenantField}`,
     operator,
     value,
-    caseSensitive
+    caseSensitive,
   };
 }
 
@@ -121,7 +125,7 @@ export const RoutingPresets = {
   apiVersion: {
     v1: () => createHeaderCondition('x-api-version', RoutingOperator.EQUALS, 'v1'),
     v2: () => createHeaderCondition('x-api-version', RoutingOperator.EQUALS, 'v2'),
-    latest: () => createHeaderCondition('x-api-version', RoutingOperator.IN, ['v2', 'latest'])
+    latest: () => createHeaderCondition('x-api-version', RoutingOperator.IN, ['v2', 'latest']),
   },
 
   /**
@@ -130,7 +134,7 @@ export const RoutingPresets = {
   clientType: {
     mobile: () => createHeaderCondition('x-client-type', RoutingOperator.EQUALS, 'mobile'),
     web: () => createHeaderCondition('x-client-type', RoutingOperator.EQUALS, 'web'),
-    api: () => createHeaderCondition('x-client-type', RoutingOperator.EQUALS, 'api')
+    api: () => createHeaderCondition('x-client-type', RoutingOperator.EQUALS, 'api'),
   },
 
   /**
@@ -140,7 +144,7 @@ export const RoutingPresets = {
     admin: () => createUserCondition('role', RoutingOperator.EQUALS, 'ADMIN'),
     user: () => createUserCondition('role', RoutingOperator.EQUALS, 'USER'),
     guest: () => createUserCondition('role', RoutingOperator.EQUALS, 'GUEST'),
-    notAdmin: () => createUserCondition('role', RoutingOperator.NOT_EQUALS, 'ADMIN')
+    notAdmin: () => createUserCondition('role', RoutingOperator.NOT_EQUALS, 'ADMIN'),
   },
 
   /**
@@ -149,8 +153,9 @@ export const RoutingPresets = {
   paths: {
     admin: () => createPathCondition(RoutingOperator.STARTS_WITH, '/admin'),
     api: () => createPathCondition(RoutingOperator.STARTS_WITH, '/api'),
-    static: () => createPathCondition(RoutingOperator.REGEX_MATCH, /\.(css|js|png|jpg|jpeg|gif|ico|svg)$/i),
-    upload: () => createPathCondition(RoutingOperator.CONTAINS, '/upload')
+    static: () =>
+      createPathCondition(RoutingOperator.REGEX_MATCH, '\\.(css|js|png|jpg|jpeg|gif|ico|svg)$'),
+    upload: () => createPathCondition(RoutingOperator.CONTAINS, '/upload'),
   },
 
   /**
@@ -159,8 +164,14 @@ export const RoutingPresets = {
   contentType: {
     json: () => createHeaderCondition('content-type', RoutingOperator.CONTAINS, 'application/json'),
     xml: () => createHeaderCondition('content-type', RoutingOperator.CONTAINS, 'application/xml'),
-    formData: () => createHeaderCondition('content-type', RoutingOperator.CONTAINS, 'multipart/form-data'),
-    urlEncoded: () => createHeaderCondition('content-type', RoutingOperator.CONTAINS, 'application/x-www-form-urlencoded')
+    formData: () =>
+      createHeaderCondition('content-type', RoutingOperator.CONTAINS, 'multipart/form-data'),
+    urlEncoded: () =>
+      createHeaderCondition(
+        'content-type',
+        RoutingOperator.CONTAINS,
+        'application/x-www-form-urlencoded',
+      ),
   },
 
   /**
@@ -169,7 +180,7 @@ export const RoutingPresets = {
   featureFlags: {
     beta: () => createQueryCondition('beta', RoutingOperator.EQUALS, 'true'),
     experimental: () => createQueryCondition('experimental', RoutingOperator.EQUALS, 'true'),
-    preview: () => createHeaderCondition('x-preview-features', RoutingOperator.EQUALS, 'enabled')
+    preview: () => createHeaderCondition('x-preview-features', RoutingOperator.EQUALS, 'enabled'),
   },
 
   /**
@@ -179,8 +190,9 @@ export const RoutingPresets = {
     byId: (tenantId: string) => createTenantCondition('id', RoutingOperator.EQUALS, tenantId),
     bySlug: (slug: string) => createTenantCondition('slug', RoutingOperator.EQUALS, slug),
     byDomain: (domain: string) => createTenantCondition('domain', RoutingOperator.EQUALS, domain),
-    subdomainPattern: () => createHeaderCondition('host', RoutingOperator.REGEX_MATCH, '^([^.]+)\\.teachlink\\.')
-  }
+    subdomainPattern: () =>
+      createHeaderCondition('host', RoutingOperator.REGEX_MATCH, '^([^.]+)\\.teachlink\\.'),
+  },
 };
 
 /**
@@ -202,7 +214,10 @@ export function validateCondition(condition: RoutingCondition): string[] {
   }
 
   if (condition.value === undefined || condition.value === null) {
-    if (condition.operator !== RoutingOperator.EXISTS && condition.operator !== RoutingOperator.NOT_EXISTS) {
+    if (
+      condition.operator !== RoutingOperator.EXISTS &&
+      condition.operator !== RoutingOperator.NOT_EXISTS
+    ) {
       errors.push('Condition value is required for this operator');
     }
   }
@@ -266,28 +281,25 @@ export const CommonPatterns = {
           type: 'header' as const,
           operation: 'add' as const,
           field: 'x-api-version-routed',
-          value: version
-        }
-      ]
-    }
+          value: version,
+        },
+      ],
+    },
   }),
 
   /**
    * Admin access control pattern
    */
   adminOnly: (blockMessage = 'Admin access required') => ({
-    conditions: [
-      RoutingPresets.paths.admin(),
-      RoutingPresets.userRole.notAdmin()
-    ],
+    conditions: [RoutingPresets.paths.admin(), RoutingPresets.userRole.notAdmin()],
     action: {
       type: 'block' as const,
       target: 'unauthorized',
       parameters: {
         statusCode: 403,
-        message: blockMessage
-      }
-    }
+        message: blockMessage,
+      },
+    },
   }),
 
   /**
@@ -303,10 +315,10 @@ export const CommonPatterns = {
           type: 'header' as const,
           operation: 'add' as const,
           field: 'x-mobile-optimized',
-          value: 'true'
-        }
-      ]
-    }
+          value: 'true',
+        },
+      ],
+    },
   }),
 
   /**
@@ -319,8 +331,8 @@ export const CommonPatterns = {
       target: 'static-assets',
       parameters: {
         maxAge,
-        cacheControl: `public, max-age=${maxAge}, immutable`
-      }
-    }
-  })
+        cacheControl: `public, max-age=${maxAge}, immutable`,
+      },
+    },
+  }),
 };

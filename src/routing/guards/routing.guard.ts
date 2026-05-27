@@ -13,7 +13,7 @@ export class RoutingGuard implements CanActivate {
 
   constructor(
     private readonly reflector: Reflector,
-    private readonly routingEngine: RoutingEngineService
+    private readonly routingEngine: RoutingEngineService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -28,13 +28,12 @@ export class RoutingGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
 
     // Get routing metadata from decorators
-    const routingMetadata = this.reflector.getAllAndOverride<Record<string, any>>(ROUTING_METADATA_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const routingMetadata = this.reflector.getAllAndOverride<Record<string, any>>(
+      ROUTING_METADATA_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // Build routing context
     const routingContext: RoutingContext = {
@@ -45,7 +44,7 @@ export class RoutingGuard implements CanActivate {
         query: request.query,
         body: request.body,
         ip: this.getClientIP(request),
-        userAgent: request.get('user-agent')
+        userAgent: request.get('user-agent'),
       },
       tenant: request.tenant,
       user: request.user,
@@ -53,8 +52,8 @@ export class RoutingGuard implements CanActivate {
         ...routingMetadata,
         timestamp: new Date().toISOString(),
         handler: context.getHandler().name,
-        controller: context.getClass().name
-      }
+        controller: context.getClass().name,
+      },
     };
 
     try {
@@ -82,7 +81,7 @@ export class RoutingGuard implements CanActivate {
    */
   private normalizeHeaders(headers: any): Record<string, string> {
     const normalized: Record<string, string> = {};
-    
+
     Object.entries(headers).forEach(([key, value]) => {
       if (typeof value === 'string') {
         normalized[key.toLowerCase()] = value;

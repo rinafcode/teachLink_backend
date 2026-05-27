@@ -1,11 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-import { NotificationStatus } from './entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification } from './entities/notification.entity';
+import { Notification, NotificationStatus } from './entities/notification.entity';
 
 @Injectable()
 export class NotificationsQueueService {
@@ -50,7 +49,7 @@ export class NotificationsQueueService {
 
       await this.snsClient.send(command);
       this.logger.log(`Notification ${notification.id} published to SNS topic`);
-      
+
       await this.notificationRepository.update(notification.id, {
         status: NotificationStatus.SENT,
         lastAttemptAt: new Date(),
@@ -75,11 +74,13 @@ export class NotificationsQueueService {
         failureReason: `Max attempts reached. Last error: ${reason}`,
         lastAttemptAt: new Date(),
       });
-      this.logger.error(`Notification ${notification.id} permanently failed after ${maxAttempts} attempts`);
+      this.logger.error(
+        `Notification ${notification.id} permanently failed after ${maxAttempts} attempts`,
+      );
     } else {
       // Calculate backoff: 2^attempt * 1000ms
       const delaySeconds = Math.pow(2, nextAttempt);
-      
+
       await this.notificationRepository.update(notification.id, {
         status: NotificationStatus.RETRYING,
         failureReason: reason,
@@ -89,8 +90,10 @@ export class NotificationsQueueService {
 
       // In a real SQS setup, we would send this back to the queue with a delay
       await this.enqueueWithDelay(notification, delaySeconds);
-      
-      this.logger.warn(`Notification ${notification.id} scheduled for retry in ${delaySeconds}s (Attempt ${nextAttempt})`);
+
+      this.logger.warn(
+        `Notification ${notification.id} scheduled for retry in ${delaySeconds}s (Attempt ${nextAttempt})`,
+      );
     }
   }
 

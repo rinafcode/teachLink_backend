@@ -17,7 +17,7 @@ import { RoutingInterceptor } from './interceptors/routing.interceptor';
     RoutingConfigService,
     ContentRoutingMiddleware,
     RoutingGuard,
-    RoutingInterceptor
+    RoutingInterceptor,
   ],
   controllers: [RoutingAdminController],
   exports: [
@@ -25,15 +25,13 @@ import { RoutingInterceptor } from './interceptors/routing.interceptor';
     RoutingConfigService,
     ContentRoutingMiddleware,
     RoutingGuard,
-    RoutingInterceptor
-  ]
+    RoutingInterceptor,
+  ],
 })
 export class RoutingModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply content routing middleware to all routes
     // This should be applied early in the middleware chain
-    consumer
-      .apply(ContentRoutingMiddleware)
-      .forRoutes('*');
+    consumer.apply(ContentRoutingMiddleware).forRoutes('*');
   }
 }

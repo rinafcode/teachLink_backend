@@ -27,7 +27,7 @@ export class ContentRoutingMiddleware implements NestMiddleware {
 
   constructor(
     private readonly routingEngine: RoutingEngineService,
-    private readonly routingConfig: RoutingConfigService
+    private readonly routingConfig: RoutingConfigService,
   ) {}
 
   async use(req: ExtendedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -45,24 +45,26 @@ export class ContentRoutingMiddleware implements NestMiddleware {
           query: req.query as Record<string, any>,
           body: req.body,
           ip: this.getClientIP(req),
-          userAgent: req.get('user-agent')
+          userAgent: req.get('user-agent'),
         },
         tenant: req.tenant,
-        user: req.user ? {
-          ...req.user,
-          permissions: req.user.permissions || []
-        } : undefined,
+        user: req.user
+          ? {
+              ...req.user,
+              permissions: req.user.permissions || [],
+            }
+          : undefined,
         metadata: {
           timestamp: new Date().toISOString(),
           originalUrl: req.originalUrl,
           protocol: req.protocol,
-          secure: req.secure
-        }
+          secure: req.secure,
+        },
       };
 
       // Evaluate routing rules
       const routingResult = await this.routingEngine.evaluateRouting(context);
-      
+
       // Store result for potential use by other middleware/controllers
       req.routingResult = routingResult;
 
@@ -86,7 +88,7 @@ export class ContentRoutingMiddleware implements NestMiddleware {
     req: ExtendedRequest,
     res: Response,
     next: NextFunction,
-    routingResult: any
+    routingResult: any,
   ): Promise<void> {
     const { action, transformedRequest } = routingResult;
 
@@ -137,11 +139,21 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   /**
    * Handles FORWARD action - continues processing with modifications
    */
-  private async handleForward(req: ExtendedRequest, res: Response, next: NextFunction, action: any): Promise<void> {
+  private async handleForward(
+    req: ExtendedRequest,
+    res: Response,
+    next: NextFunction,
+    action: any,
+  ): Promise<void> {
     if (action.target && action.target !== req.path) {
       // Modify the request path for internal forwarding
       req.url = req.url.replace(req.path, action.target);
-      (req as any).path = action.target;
+      // Use Object.defineProperty to modify the read-only path property
+      Object.defineProperty(req, 'path', {
+        value: action.target,
+        writable: true,
+        configurable: true,
+      });
     }
 
     this.logger.debug(`Forwarding request to: ${action.target}`);
@@ -154,7 +166,7 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   private async handleRedirect(req: ExtendedRequest, res: Response, action: any): Promise<void> {
     const statusCode = action.parameters?.statusCode || 302;
     const target = this.interpolateTarget(action.target, req);
-    
+
     this.logger.debug(`Redirecting request to: ${target} (${statusCode})`);
     res.redirect(statusCode, target);
   }
@@ -162,13 +174,23 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   /**
    * Handles REWRITE action - modifies request URL internally
    */
-  private async handleRewrite(req: ExtendedRequest, res: Response, next: NextFunction, action: any): Promise<void> {
+  private async handleRewrite(
+    req: ExtendedRequest,
+    res: Response,
+    next: NextFunction,
+    action: any,
+  ): Promise<void> {
     const newPath = this.interpolateTarget(action.target, req);
     const originalPath = req.path;
-    
+
     req.url = req.url.replace(originalPath, newPath);
-    (req as any).path = newPath;
-    
+    // Use Object.defineProperty to modify the read-only path property
+    Object.defineProperty(req, 'path', {
+      value: newPath,
+      writable: true,
+      configurable: true,
+    });
+
     this.logger.debug(`Rewriting request from ${originalPath} to: ${newPath}`);
     next();
   }
@@ -179,7 +201,7 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   private async handleBlock(req: ExtendedRequest, res: Response, action: any): Promise<void> {
     const statusCode = action.parameters?.statusCode || HttpStatus.FORBIDDEN;
     const message = action.parameters?.message || 'Access denied by routing rule';
-    
+
     this.logger.warn(`Blocking request: ${req.method} ${req.path} - ${message}`);
     throw new HttpException(message, statusCode);
   }
@@ -187,15 +209,20 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   /**
    * Handles RATE_LIMIT action - applies additional rate limiting
    */
-  private async handleRateLimit(req: ExtendedRequest, res: Response, next: NextFunction, action: any): Promise<void> {
+  private async handleRateLimit(
+    req: ExtendedRequest,
+    res: Response,
+    next: NextFunction,
+    action: any,
+  ): Promise<void> {
     // This would integrate with your existing throttling system
     const limit = action.parameters?.limit || 10;
     const window = action.parameters?.window || 60000; // 1 minute
-    
+
     // For now, just add headers and continue
     res.setHeader('X-RateLimit-Limit', limit);
     res.setHeader('X-RateLimit-Window', window);
-    
+
     this.logger.debug(`Applied rate limiting: ${limit} requests per ${window}ms`);
     next();
   }
@@ -203,12 +230,17 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   /**
    * Handles CACHE action - sets cache headers
    */
-  private async handleCache(req: ExtendedRequest, res: Response, next: NextFunction, action: any): Promise<void> {
+  private async handleCache(
+    req: ExtendedRequest,
+    res: Response,
+    next: NextFunction,
+    action: any,
+  ): Promise<void> {
     const maxAge = action.parameters?.maxAge || 300; // 5 minutes
     const cacheControl = action.parameters?.cacheControl || `public, max-age=${maxAge}`;
-    
+
     res.setHeader('Cache-Control', cacheControl);
-    
+
     this.logger.debug(`Applied cache headers: ${cacheControl}`);
     next();
   }
@@ -216,7 +248,12 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   /**
    * Handles TRANSFORM action - applies custom transformations
    */
-  private async handleTransform(req: ExtendedRequest, res: Response, next: NextFunction, action: any): Promise<void> {
+  private async handleTransform(
+    req: ExtendedRequest,
+    res: Response,
+    next: NextFunction,
+    action: any,
+  ): Promise<void> {
     // Apply any additional transformations specified in the action
     if (action.parameters?.headers) {
       Object.entries(action.parameters.headers).forEach(([key, value]) => {
@@ -235,12 +272,17 @@ export class ContentRoutingMiddleware implements NestMiddleware {
   /**
    * Handles CUSTOM_HANDLER action - delegates to custom handler
    */
-  private async handleCustom(req: ExtendedRequest, res: Response, next: NextFunction, action: any): Promise<void> {
+  private async handleCustom(
+    req: ExtendedRequest,
+    res: Response,
+    next: NextFunction,
+    action: any,
+  ): Promise<void> {
     // This would allow for custom handler functions to be registered and called
     const handlerName = action.target;
-    
+
     this.logger.debug(`Delegating to custom handler: ${handlerName}`);
-    
+
     // For now, just continue - in a full implementation, you'd have a registry of custom handlers
     next();
   }
@@ -259,7 +301,12 @@ export class ContentRoutingMiddleware implements NestMiddleware {
 
     if (transformedRequest.path && transformedRequest.path !== req.path) {
       req.url = req.url.replace(req.path, transformedRequest.path);
-      (req as any).path = transformedRequest.path;
+      // Use Object.defineProperty to modify the read-only path property
+      Object.defineProperty(req, 'path', {
+        value: transformedRequest.path,
+        writable: true,
+        configurable: true,
+      });
     }
   }
 
@@ -279,7 +326,7 @@ export class ContentRoutingMiddleware implements NestMiddleware {
    */
   private normalizeHeaders(headers: any): Record<string, string> {
     const normalized: Record<string, string> = {};
-    
+
     Object.entries(headers).forEach(([key, value]) => {
       if (typeof value === 'string') {
         normalized[key.toLowerCase()] = value;

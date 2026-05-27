@@ -24,7 +24,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "lib": ["es2021", "dom"],
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test/**/*"]

@@ -7,7 +7,7 @@ import {
   RoutingConditionType,
   RoutingOperator,
   DynamicRoutingConfig,
-  RoutingTransformation
+  RoutingTransformation,
 } from '../interfaces/routing.interface';
 
 /**
@@ -27,8 +27,8 @@ export class RoutingEngineService {
       cacheConfig: {
         enabled: true,
         ttl: 300000, // 5 minutes
-        maxSize: 1000
-      }
+        maxSize: 1000,
+      },
     };
   }
 
@@ -46,7 +46,7 @@ export class RoutingEngineService {
    */
   async evaluateRouting(context: RoutingContext): Promise<RoutingResult> {
     const cacheKey = this.generateCacheKey(context);
-    
+
     // Check cache first
     if (this.config.cacheConfig?.enabled && this.ruleCache.has(cacheKey)) {
       const cachedResult = this.ruleCache.get(cacheKey)!;
@@ -58,7 +58,7 @@ export class RoutingEngineService {
 
     // Sort rules by priority (higher priority first)
     const sortedRules = [...this.config.rules]
-      .filter(rule => rule.enabled)
+      .filter((rule) => rule.enabled)
       .sort((a, b) => b.priority - a.priority);
 
     for (const rule of sortedRules) {
@@ -67,13 +67,16 @@ export class RoutingEngineService {
           matched: true,
           rule,
           action: rule.action,
-          transformedRequest: this.applyTransformations(context.request, rule.action.transformations),
+          transformedRequest: this.applyTransformations(
+            context.request,
+            rule.action.transformations,
+          ),
           metadata: {
             ruleId: rule.id,
             ruleName: rule.name,
             evaluatedAt: new Date().toISOString(),
-            ...rule.metadata
-          }
+            ...rule.metadata,
+          },
         };
 
         // Cache the result
@@ -95,8 +98,8 @@ export class RoutingEngineService {
       action: this.config.defaultAction,
       metadata: {
         evaluatedAt: new Date().toISOString(),
-        rulesEvaluated: sortedRules.length
-      }
+        rulesEvaluated: sortedRules.length,
+      },
     };
 
     if (this.config.cacheConfig?.enabled) {
@@ -127,7 +130,10 @@ export class RoutingEngineService {
   /**
    * Evaluates a single condition against the context
    */
-  private async evaluateCondition(condition: RoutingCondition, context: RoutingContext): Promise<boolean> {
+  private async evaluateCondition(
+    condition: RoutingCondition,
+    context: RoutingContext,
+  ): Promise<boolean> {
     const value = this.extractValue(condition, context);
     const targetValue = condition.value;
 
@@ -139,30 +145,32 @@ export class RoutingEngineService {
       return true;
     }
 
-    const compareValue = condition.caseSensitive === false ? 
-      String(value).toLowerCase() : String(value);
-    const compareTarget = condition.caseSensitive === false && typeof targetValue === 'string' ? 
-      targetValue.toLowerCase() : targetValue;
+    const compareValue =
+      condition.caseSensitive === false ? String(value).toLowerCase() : String(value);
+    const compareTarget =
+      condition.caseSensitive === false && typeof targetValue === 'string'
+        ? targetValue.toLowerCase()
+        : targetValue;
 
     switch (condition.operator) {
       case RoutingOperator.EQUALS:
         return compareValue === compareTarget;
-      
+
       case RoutingOperator.NOT_EQUALS:
         return compareValue !== compareTarget;
-      
+
       case RoutingOperator.CONTAINS:
         return typeof compareTarget === 'string' && compareValue.includes(compareTarget);
-      
+
       case RoutingOperator.NOT_CONTAINS:
         return typeof compareTarget === 'string' && !compareValue.includes(compareTarget);
-      
+
       case RoutingOperator.STARTS_WITH:
         return typeof compareTarget === 'string' && compareValue.startsWith(compareTarget);
-      
+
       case RoutingOperator.ENDS_WITH:
         return typeof compareTarget === 'string' && compareValue.endsWith(compareTarget);
-      
+
       case RoutingOperator.REGEX_MATCH:
         if (targetValue instanceof RegExp) {
           return targetValue.test(compareValue);
@@ -172,19 +180,19 @@ export class RoutingEngineService {
           return regex.test(compareValue);
         }
         return false;
-      
+
       case RoutingOperator.IN:
         return Array.isArray(targetValue) && targetValue.includes(compareValue);
-      
+
       case RoutingOperator.NOT_IN:
         return Array.isArray(targetValue) && !targetValue.includes(compareValue);
-      
+
       case RoutingOperator.GREATER_THAN:
         return Number(value) > Number(targetValue);
-      
+
       case RoutingOperator.LESS_THAN:
         return Number(value) < Number(targetValue);
-      
+
       default:
         this.logger.warn(`Unknown operator: ${condition.operator}`);
         return false;
@@ -198,31 +206,31 @@ export class RoutingEngineService {
     switch (condition.type) {
       case RoutingConditionType.HEADER:
         return context.request.headers[condition.field.toLowerCase()];
-      
+
       case RoutingConditionType.QUERY_PARAM:
         return context.request.query[condition.field];
-      
+
       case RoutingConditionType.BODY_CONTENT:
         return this.extractFromBody(context.request.body, condition.field);
-      
+
       case RoutingConditionType.PATH_PATTERN:
         return context.request.path;
-      
+
       case RoutingConditionType.METHOD:
         return context.request.method;
-      
+
       case RoutingConditionType.CONTENT_TYPE:
         return context.request.headers['content-type'];
-      
+
       case RoutingConditionType.USER_AGENT:
         return context.request.userAgent || context.request.headers['user-agent'];
-      
+
       case RoutingConditionType.IP_ADDRESS:
         return context.request.ip;
-      
+
       case RoutingConditionType.CUSTOM:
         return this.extractCustomValue(condition.field, context);
-      
+
       default:
         return undefined;
     }
@@ -255,15 +263,17 @@ export class RoutingEngineService {
    */
   private extractCustomValue(field: string, context: RoutingContext): any {
     const parts = field.split('.');
-    
+
     if (parts[0] === 'tenant' && context.tenant) {
-      return parts.length > 1 ? context.tenant[parts[1] as keyof typeof context.tenant] : context.tenant;
+      return parts.length > 1
+        ? context.tenant[parts[1] as keyof typeof context.tenant]
+        : context.tenant;
     }
-    
+
     if (parts[0] === 'user' && context.user) {
       return parts.length > 1 ? context.user[parts[1] as keyof typeof context.user] : context.user;
     }
-    
+
     if (parts[0] === 'metadata') {
       return parts.length > 1 ? context.metadata[parts[1]] : context.metadata;
     }
@@ -275,8 +285,8 @@ export class RoutingEngineService {
    * Applies transformations to the request
    */
   private applyTransformations(
-    request: RoutingContext['request'], 
-    transformations?: RoutingTransformation[]
+    request: RoutingContext['request'],
+    transformations?: RoutingTransformation[],
   ): Partial<RoutingContext['request']> {
     if (!transformations || transformations.length === 0) {
       return request;
@@ -362,15 +372,20 @@ export class RoutingEngineService {
     const key = {
       method: context.request.method,
       path: context.request.path,
-      headers: Object.keys(context.request.headers).sort().reduce((acc, key) => {
-        acc[key] = context.request.headers[key];
-        return acc;
-      }, {} as Record<string, string>),
+      headers: Object.keys(context.request.headers)
+        .sort()
+        .reduce(
+          (acc, headerKey) => {
+            acc[headerKey] = context.request.headers[headerKey];
+            return acc;
+          },
+          {} as Record<string, string>,
+        ),
       query: context.request.query,
       tenantId: context.tenant?.id,
-      userId: context.user?.id
+      userId: context.user?.id,
     };
-    
+
     return Buffer.from(JSON.stringify(key)).toString('base64');
   }
 
@@ -408,9 +423,9 @@ export class RoutingEngineService {
   getStats(): any {
     return {
       rulesCount: this.config.rules.length,
-      enabledRulesCount: this.config.rules.filter(r => r.enabled).length,
+      enabledRulesCount: this.config.rules.filter((r) => r.enabled).length,
       cacheSize: this.ruleCache.size,
-      cacheEnabled: this.config.cacheConfig?.enabled || false
+      cacheEnabled: this.config.cacheConfig?.enabled || false,
     };
   }
 }

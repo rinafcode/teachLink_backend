@@ -1,4 +1,6 @@
 // Test setup file to optimize memory usage and test performance
+/// <reference types="jest" />
+
 export {};
 
 declare global {

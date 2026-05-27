@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  
+
   try {
     const app = await NestFactory.create(AppModule);
 
@@ -38,10 +38,9 @@ async function bootstrap() {
     // Start server
     const port = process.env.PORT || 3000;
     await app.listen(port);
-    
+
     logger.log(`Server is running on port ${port}`);
     logger.log(`Swagger docs available at http://localhost:${port}/api`);
-    
   } catch (error) {
     logger.error('Application failed to start:', error);
     process.exit(1);

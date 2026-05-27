@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, map } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
@@ -22,18 +16,18 @@ export class RoutingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
-    
+
     // Get routing result from middleware or guard
     const routingResult = request.routingResult;
-    
+
     // Get routing metadata from decorators
-    const routingMetadata = this.reflector.getAllAndOverride<Record<string, any>>(ROUTING_METADATA_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const routingMetadata = this.reflector.getAllAndOverride<Record<string, any>>(
+      ROUTING_METADATA_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     return next.handle().pipe(
-      map(data => {
+      map((data) => {
         // Apply response transformations based on routing context
         if (routingResult?.matched) {
           return this.transformResponse(data, routingResult, routingMetadata);
@@ -43,7 +37,7 @@ export class RoutingInterceptor implements NestInterceptor {
       tap(() => {
         // Apply response headers based on routing
         this.applyResponseHeaders(response, routingResult, routingMetadata);
-      })
+      }),
     );
   }
 
@@ -60,7 +54,11 @@ export class RoutingInterceptor implements NestInterceptor {
 
     // Apply API version transformations
     if (this.hasApiVersionContext(routingResult, metadata)) {
-      transformedData = this.applyApiVersionTransformations(transformedData, routingResult, metadata);
+      transformedData = this.applyApiVersionTransformations(
+        transformedData,
+        routingResult,
+        metadata,
+      );
     }
 
     // Apply beta feature transformations
@@ -171,7 +169,7 @@ export class RoutingInterceptor implements NestInterceptor {
     // Add mobile-specific fields
     optimized._mobile = {
       optimized: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     return optimized;
@@ -182,7 +180,7 @@ export class RoutingInterceptor implements NestInterceptor {
    */
   private applyApiVersionTransformations(data: any, routingResult: any, metadata?: any): any {
     const version = metadata?.apiVersion || this.extractApiVersion(routingResult);
-    
+
     if (!version || !data || typeof data !== 'object') {
       return data;
     }
@@ -202,7 +200,7 @@ export class RoutingInterceptor implements NestInterceptor {
           delete transformed.updated_at;
         }
         break;
-      
+
       case 'v1':
         // V1 API transformations (legacy support)
         if (transformed.createdAt) {
@@ -229,14 +227,14 @@ export class RoutingInterceptor implements NestInterceptor {
     transformed._beta = {
       enabled: true,
       features: ['enhanced-search', 'real-time-updates'],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Include experimental data
     if (transformed.analytics) {
       transformed.analytics.experimental = {
         predictiveScores: Math.random(),
-        behaviorInsights: 'beta-feature-data'
+        behaviorInsights: 'beta-feature-data',
       };
     }
 
@@ -250,7 +248,7 @@ export class RoutingInterceptor implements NestInterceptor {
     if (routingResult?.transformedRequest?.headers?.['x-api-version']) {
       return routingResult.transformedRequest.headers['x-api-version'];
     }
-    
+
     if (routingResult?.rule?.id?.includes('api-v')) {
       const match = routingResult.rule.id.match(/api-v(\d+)/);
       return match ? `v${match[1]}` : null;

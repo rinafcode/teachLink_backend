@@ -2,12 +2,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { 
-  DynamicRoutingConfig, 
-  RoutingRule, 
-  RoutingConditionType, 
-  RoutingOperator, 
-  RoutingActionType 
+import {
+  DynamicRoutingConfig,
+  RoutingRule,
+  RoutingConditionType,
+  RoutingOperator,
+  RoutingActionType,
 } from '../interfaces/routing.interface';
 
 /**
@@ -20,7 +20,10 @@ export class RoutingConfigService implements OnModuleInit {
   private configPath: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.configPath = this.configService.get<string>('ROUTING_CONFIG_PATH', './config/routing.json');
+    this.configPath = this.configService.get<string>(
+      'ROUTING_CONFIG_PATH',
+      './config/routing.json',
+    );
     this.config = this.getDefaultConfig();
   }
 
@@ -34,7 +37,7 @@ export class RoutingConfigService implements OnModuleInit {
   async loadConfig(): Promise<void> {
     try {
       const configExists = await this.fileExists(this.configPath);
-      
+
       if (configExists) {
         const configData = await fs.readFile(this.configPath, 'utf-8');
         this.config = JSON.parse(configData);
@@ -85,9 +88,9 @@ export class RoutingConfigService implements OnModuleInit {
   async addRule(rule: RoutingRule): Promise<void> {
     // Validate rule
     this.validateRule(rule);
-    
+
     // Check for duplicate IDs
-    if (this.config.rules.some(r => r.id === rule.id)) {
+    if (this.config.rules.some((r) => r.id === rule.id)) {
       throw new Error(`Rule with ID ${rule.id} already exists`);
     }
 
@@ -100,15 +103,15 @@ export class RoutingConfigService implements OnModuleInit {
    * Updates an existing routing rule
    */
   async updateRule(ruleId: string, updates: Partial<RoutingRule>): Promise<void> {
-    const ruleIndex = this.config.rules.findIndex(r => r.id === ruleId);
-    
+    const ruleIndex = this.config.rules.findIndex((r) => r.id === ruleId);
+
     if (ruleIndex === -1) {
       throw new Error(`Rule with ID ${ruleId} not found`);
     }
 
     const updatedRule = { ...this.config.rules[ruleIndex], ...updates };
     this.validateRule(updatedRule);
-    
+
     this.config.rules[ruleIndex] = updatedRule;
     await this.saveConfig();
     this.logger.log(`Updated routing rule: ${updatedRule.name} (${ruleId})`);
@@ -118,8 +121,8 @@ export class RoutingConfigService implements OnModuleInit {
    * Removes a routing rule
    */
   async removeRule(ruleId: string): Promise<void> {
-    const ruleIndex = this.config.rules.findIndex(r => r.id === ruleId);
-    
+    const ruleIndex = this.config.rules.findIndex((r) => r.id === ruleId);
+
     if (ruleIndex === -1) {
       throw new Error(`Rule with ID ${ruleId} not found`);
     }
@@ -133,8 +136,8 @@ export class RoutingConfigService implements OnModuleInit {
    * Enables or disables a routing rule
    */
   async toggleRule(ruleId: string, enabled: boolean): Promise<void> {
-    const rule = this.config.rules.find(r => r.id === ruleId);
-    
+    const rule = this.config.rules.find((r) => r.id === ruleId);
+
     if (!rule) {
       throw new Error(`Rule with ID ${ruleId} not found`);
     }
@@ -155,7 +158,7 @@ export class RoutingConfigService implements OnModuleInit {
    * Gets a specific routing rule by ID
    */
   getRule(ruleId: string): RoutingRule | undefined {
-    return this.config.rules.find(r => r.id === ruleId);
+    return this.config.rules.find((r) => r.id === ruleId);
   }
 
   /**
@@ -216,8 +219,8 @@ export class RoutingConfigService implements OnModuleInit {
               type: RoutingConditionType.HEADER,
               field: 'x-api-version',
               operator: RoutingOperator.EQUALS,
-              value: 'v2'
-            }
+              value: 'v2',
+            },
           ],
           action: {
             type: RoutingActionType.REWRITE,
@@ -227,10 +230,10 @@ export class RoutingConfigService implements OnModuleInit {
                 type: 'path',
                 operation: 'modify',
                 field: 'path',
-                value: '/api/v2${originalPath}'
-              }
-            ]
-          }
+                value: '/api/v2${originalPath}',
+              },
+            ],
+          },
         },
         {
           id: 'mobile-client-routing',
@@ -243,8 +246,8 @@ export class RoutingConfigService implements OnModuleInit {
               type: RoutingConditionType.HEADER,
               field: 'x-client-type',
               operator: RoutingOperator.EQUALS,
-              value: 'mobile'
-            }
+              value: 'mobile',
+            },
           ],
           action: {
             type: RoutingActionType.FORWARD,
@@ -254,10 +257,10 @@ export class RoutingConfigService implements OnModuleInit {
                 type: 'header',
                 operation: 'add',
                 field: 'x-mobile-optimized',
-                value: 'true'
-              }
-            ]
-          }
+                value: 'true',
+              },
+            ],
+          },
         },
         {
           id: 'admin-access-control',
@@ -270,19 +273,19 @@ export class RoutingConfigService implements OnModuleInit {
               type: RoutingConditionType.PATH_PATTERN,
               field: 'path',
               operator: RoutingOperator.STARTS_WITH,
-              value: '/admin'
+              value: '/admin',
             },
             {
               type: RoutingConditionType.CUSTOM,
               field: 'user.role',
               operator: RoutingOperator.NOT_EQUALS,
-              value: 'ADMIN'
-            }
+              value: 'ADMIN',
+            },
           ],
           action: {
             type: RoutingActionType.BLOCK,
-            target: 'unauthorized'
-          }
+            target: 'unauthorized',
+          },
         },
         {
           id: 'tenant-routing',
@@ -295,8 +298,8 @@ export class RoutingConfigService implements OnModuleInit {
               type: RoutingConditionType.HEADER,
               field: 'host',
               operator: RoutingOperator.REGEX_MATCH,
-              value: '^([^.]+)\\.teachlink\\.'
-            }
+              value: '^([^.]+)\\.teachlink\\.',
+            },
           ],
           action: {
             type: RoutingActionType.FORWARD,
@@ -306,10 +309,10 @@ export class RoutingConfigService implements OnModuleInit {
                 type: 'header',
                 operation: 'add',
                 field: 'x-tenant-from-subdomain',
-                value: 'true'
-              }
-            ]
-          }
+                value: 'true',
+              },
+            ],
+          },
         },
         {
           id: 'feature-flag-routing',
@@ -322,8 +325,8 @@ export class RoutingConfigService implements OnModuleInit {
               type: RoutingConditionType.QUERY_PARAM,
               field: 'beta',
               operator: RoutingOperator.EQUALS,
-              value: 'true'
-            }
+              value: 'true',
+            },
           ],
           action: {
             type: RoutingActionType.FORWARD,
@@ -333,23 +336,23 @@ export class RoutingConfigService implements OnModuleInit {
                 type: 'header',
                 operation: 'add',
                 field: 'x-beta-features',
-                value: 'enabled'
-              }
-            ]
-          }
-        }
+                value: 'enabled',
+              },
+            ],
+          },
+        },
       ],
       defaultAction: {
         type: RoutingActionType.FORWARD,
-        target: '/api'
+        target: '/api',
       },
       enableLogging: true,
       enableMetrics: true,
       cacheConfig: {
         enabled: true,
         ttl: 300000, // 5 minutes
-        maxSize: 1000
-      }
+        maxSize: 1000,
+      },
     };
   }
 

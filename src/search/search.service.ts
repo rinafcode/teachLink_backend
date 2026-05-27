@@ -26,7 +26,7 @@ export class SearchService {
     limit: number = SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE,
   ): Promise<any> {
     this.logger.log(`Searching for: ${query}`);
-    
+
     // Return mock data for now to get server running
     return {
       results: [],

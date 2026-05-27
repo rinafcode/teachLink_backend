@@ -30,7 +30,7 @@ export enum RoutingConditionType {
   CONTENT_TYPE = 'content_type',
   USER_AGENT = 'user_agent',
   IP_ADDRESS = 'ip_address',
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
 }
 
 export enum RoutingOperator {
@@ -46,7 +46,7 @@ export enum RoutingOperator {
   EXISTS = 'exists',
   NOT_EXISTS = 'not_exists',
   GREATER_THAN = 'greater_than',
-  LESS_THAN = 'less_than'
+  LESS_THAN = 'less_than',
 }
 
 export interface RoutingAction {
@@ -64,7 +64,7 @@ export enum RoutingActionType {
   RATE_LIMIT = 'rate_limit',
   CACHE = 'cache',
   TRANSFORM = 'transform',
-  CUSTOM_HANDLER = 'custom_handler'
+  CUSTOM_HANDLER = 'custom_handler',
 }
 
 export interface RoutingTransformation {
@@ -93,7 +93,7 @@ export interface RoutingContext {
   user?: {
     id: string;
     role: string;
-    permissions?: string[];
+    permissions: string[];
   };
   metadata: Record<string, any>;
 }

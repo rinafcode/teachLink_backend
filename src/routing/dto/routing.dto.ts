@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsBoolean, IsArray, IsOptional, IsEnum, ValidateNested, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsArray,
+  IsOptional,
+  IsEnum,
+  ValidateNested,
+  IsObject,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import {
   RoutingConditionType,
@@ -9,7 +18,7 @@ import {
   RoutingAction,
   RoutingTransformation,
   RoutingRule,
-  DynamicRoutingConfig
+  DynamicRoutingConfig,
 } from '../interfaces/routing.interface';
 
 /**
@@ -45,7 +54,10 @@ export class CreateRoutingTransformationDto implements RoutingTransformation {
   @IsEnum(['header', 'query', 'body', 'path'])
   type: 'header' | 'query' | 'body' | 'path';
 
-  @ApiProperty({ enum: ['add', 'remove', 'modify', 'rename'], description: 'Transformation operation' })
+  @ApiProperty({
+    enum: ['add', 'remove', 'modify', 'rename'],
+    description: 'Transformation operation',
+  })
   @IsEnum(['add', 'remove', 'modify', 'rename'])
   operation: 'add' | 'remove' | 'modify' | 'rename';
 
@@ -81,7 +93,10 @@ export class CreateRoutingActionDto implements RoutingAction {
   @IsObject()
   parameters?: Record<string, any>;
 
-  @ApiPropertyOptional({ type: [CreateRoutingTransformationDto], description: 'Request transformations to apply' })
+  @ApiPropertyOptional({
+    type: [CreateRoutingTransformationDto],
+    description: 'Request transformations to apply',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -121,7 +136,10 @@ export class CreateRoutingRuleDto {
   @Type(() => CreateRoutingConditionDto)
   conditions: RoutingCondition[];
 
-  @ApiProperty({ type: CreateRoutingActionDto, description: 'Action to take when conditions are met' })
+  @ApiProperty({
+    type: CreateRoutingActionDto,
+    description: 'Action to take when conditions are met',
+  })
   @ValidateNested()
   @Type(() => CreateRoutingActionDto)
   action: RoutingAction;
@@ -156,14 +174,20 @@ export class UpdateRoutingRuleDto {
   @IsBoolean()
   enabled?: boolean;
 
-  @ApiPropertyOptional({ type: [CreateRoutingConditionDto], description: 'Conditions that must be met' })
+  @ApiPropertyOptional({
+    type: [CreateRoutingConditionDto],
+    description: 'Conditions that must be met',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateRoutingConditionDto)
   conditions?: RoutingCondition[];
 
-  @ApiPropertyOptional({ type: CreateRoutingActionDto, description: 'Action to take when conditions are met' })
+  @ApiPropertyOptional({
+    type: CreateRoutingActionDto,
+    description: 'Action to take when conditions are met',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => CreateRoutingActionDto)
@@ -179,7 +203,10 @@ export class UpdateRoutingRuleDto {
  * DTO for updating routing configuration
  */
 export class UpdateRoutingConfigDto {
-  @ApiPropertyOptional({ type: CreateRoutingActionDto, description: 'Default action when no rules match' })
+  @ApiPropertyOptional({
+    type: CreateRoutingActionDto,
+    description: 'Default action when no rules match',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => CreateRoutingActionDto)

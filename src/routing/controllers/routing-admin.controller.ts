@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
   HttpStatus,
-  HttpCode
+  HttpCode,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -18,14 +18,14 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
 import { RoutingConfigService } from '../services/routing-config.service';
 import { RoutingEngineService } from '../services/routing-engine.service';
-import { RoutingRule, DynamicRoutingConfig } from '../interfaces/routing.interface';
+import { RoutingRule } from '../interfaces/routing.interface';
 import {
   CreateRoutingRuleDto,
   UpdateRoutingRuleDto,
   UpdateRoutingConfigDto,
   RoutingRuleResponseDto,
   RoutingConfigResponseDto,
-  RoutingStatsResponseDto
+  RoutingStatsResponseDto,
 } from '../dto/routing.dto';
 
 /**
@@ -39,7 +39,7 @@ import {
 export class RoutingAdminController {
   constructor(
     private readonly routingConfig: RoutingConfigService,
-    private readonly routingEngine: RoutingEngineService
+    private readonly routingEngine: RoutingEngineService,
   ) {}
 
   /**
@@ -47,13 +47,17 @@ export class RoutingAdminController {
    */
   @Get('config')
   @ApiOperation({ summary: 'Get routing configuration' })
-  @ApiResponse({ status: 200, description: 'Routing configuration retrieved', type: RoutingConfigResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Routing configuration retrieved',
+    type: RoutingConfigResponseDto,
+  })
   async getConfig(): Promise<RoutingConfigResponseDto> {
     const config = this.routingConfig.getConfig();
     return {
       success: true,
       data: config,
-      message: 'Routing configuration retrieved successfully'
+      message: 'Routing configuration retrieved successfully',
     };
   }
 
@@ -67,7 +71,7 @@ export class RoutingAdminController {
     await this.routingConfig.updateConfig(updateDto);
     return {
       success: true,
-      message: 'Routing configuration updated successfully'
+      message: 'Routing configuration updated successfully',
     };
   }
 
@@ -76,20 +80,29 @@ export class RoutingAdminController {
    */
   @Get('rules')
   @ApiOperation({ summary: 'Get all routing rules' })
-  @ApiResponse({ status: 200, description: 'Routing rules retrieved', type: [RoutingRuleResponseDto] })
-  @ApiQuery({ name: 'enabled', required: false, type: Boolean, description: 'Filter by enabled status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Routing rules retrieved',
+    type: [RoutingRuleResponseDto],
+  })
+  @ApiQuery({
+    name: 'enabled',
+    required: false,
+    type: Boolean,
+    description: 'Filter by enabled status',
+  })
   async getRules(@Query('enabled') enabled?: boolean): Promise<any> {
     let rules = this.routingConfig.getRules();
-    
+
     if (enabled !== undefined) {
-      rules = rules.filter(rule => rule.enabled === enabled);
+      rules = rules.filter((rule) => rule.enabled === enabled);
     }
 
     return {
       success: true,
       data: rules,
       count: rules.length,
-      message: 'Routing rules retrieved successfully'
+      message: 'Routing rules retrieved successfully',
     };
   }
 
@@ -102,18 +115,18 @@ export class RoutingAdminController {
   @ApiResponse({ status: 404, description: 'Routing rule not found' })
   async getRule(@Param('id') id: string): Promise<any> {
     const rule = this.routingConfig.getRule(id);
-    
+
     if (!rule) {
       return {
         success: false,
-        message: `Routing rule with ID ${id} not found`
+        message: `Routing rule with ID ${id} not found`,
       };
     }
 
     return {
       success: true,
       data: rule,
-      message: 'Routing rule retrieved successfully'
+      message: 'Routing rule retrieved successfully',
     };
   }
 
@@ -135,7 +148,7 @@ export class RoutingAdminController {
         enabled: createDto.enabled ?? true,
         conditions: createDto.conditions,
         action: createDto.action,
-        metadata: createDto.metadata
+        metadata: createDto.metadata,
       };
 
       await this.routingConfig.addRule(rule);
@@ -143,12 +156,12 @@ export class RoutingAdminController {
       return {
         success: true,
         data: rule,
-        message: 'Routing rule created successfully'
+        message: 'Routing rule created successfully',
       };
     } catch (error) {
       return {
         success: false,
-        message: `Failed to create routing rule: ${error.message}`
+        message: `Failed to create routing rule: ${error.message}`,
       };
     }
   }
@@ -166,12 +179,12 @@ export class RoutingAdminController {
 
       return {
         success: true,
-        message: 'Routing rule updated successfully'
+        message: 'Routing rule updated successfully',
       };
     } catch (error) {
       return {
         success: false,
-        message: `Failed to update routing rule: ${error.message}`
+        message: `Failed to update routing rule: ${error.message}`,
       };
     }
   }
@@ -189,12 +202,12 @@ export class RoutingAdminController {
 
       return {
         success: true,
-        message: 'Routing rule deleted successfully'
+        message: 'Routing rule deleted successfully',
       };
     } catch (error) {
       return {
         success: false,
-        message: `Failed to delete routing rule: ${error.message}`
+        message: `Failed to delete routing rule: ${error.message}`,
       };
     }
   }
@@ -211,12 +224,12 @@ export class RoutingAdminController {
 
       return {
         success: true,
-        message: `Routing rule ${body.enabled ? 'enabled' : 'disabled'} successfully`
+        message: `Routing rule ${body.enabled ? 'enabled' : 'disabled'} successfully`,
       };
     } catch (error) {
       return {
         success: false,
-        message: `Failed to toggle routing rule: ${error.message}`
+        message: `Failed to toggle routing rule: ${error.message}`,
       };
     }
   }
@@ -237,14 +250,14 @@ export class RoutingAdminController {
           query: testRequest.query || {},
           body: testRequest.body,
           ip: testRequest.ip || '127.0.0.1',
-          userAgent: testRequest.userAgent
+          userAgent: testRequest.userAgent,
         },
         tenant: testRequest.tenant,
         user: testRequest.user,
         metadata: {
           timestamp: new Date().toISOString(),
-          test: true
-        }
+          test: true,
+        },
       };
 
       const result = await this.routingEngine.evaluateRouting(context);
@@ -256,14 +269,14 @@ export class RoutingAdminController {
           rule: result.rule,
           action: result.action,
           transformedRequest: result.transformedRequest,
-          metadata: result.metadata
+          metadata: result.metadata,
         },
-        message: 'Routing test completed successfully'
+        message: 'Routing test completed successfully',
       };
     } catch (error) {
       return {
         success: false,
-        message: `Routing test failed: ${error.message}`
+        message: `Routing test failed: ${error.message}`,
       };
     }
   }
@@ -273,7 +286,11 @@ export class RoutingAdminController {
    */
   @Get('stats')
   @ApiOperation({ summary: 'Get routing statistics' })
-  @ApiResponse({ status: 200, description: 'Routing statistics retrieved', type: RoutingStatsResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Routing statistics retrieved',
+    type: RoutingStatsResponseDto,
+  })
   async getStats(): Promise<RoutingStatsResponseDto> {
     const stats = this.routingEngine.getStats();
     const rules = this.routingConfig.getRules();
@@ -284,16 +301,16 @@ export class RoutingAdminController {
         ...stats,
         rulesByPriority: rules
           .sort((a, b) => b.priority - a.priority)
-          .map(rule => ({
+          .map((rule) => ({
             id: rule.id,
             name: rule.name,
             priority: rule.priority,
-            enabled: rule.enabled
+            enabled: rule.enabled,
           })),
         conditionTypes: this.getConditionTypeStats(rules),
-        actionTypes: this.getActionTypeStats(rules)
+        actionTypes: this.getActionTypeStats(rules),
       },
-      message: 'Routing statistics retrieved successfully'
+      message: 'Routing statistics retrieved successfully',
     };
   }
 
@@ -308,7 +325,7 @@ export class RoutingAdminController {
 
     return {
       success: true,
-      message: 'Routing cache cleared successfully'
+      message: 'Routing cache cleared successfully',
     };
   }
 
@@ -324,12 +341,12 @@ export class RoutingAdminController {
 
       return {
         success: true,
-        message: 'Routing configuration reloaded successfully'
+        message: 'Routing configuration reloaded successfully',
       };
     } catch (error) {
       return {
         success: false,
-        message: `Failed to reload configuration: ${error.message}`
+        message: `Failed to reload configuration: ${error.message}`,
       };
     }
   }
@@ -339,9 +356,9 @@ export class RoutingAdminController {
    */
   private getConditionTypeStats(rules: RoutingRule[]): Record<string, number> {
     const stats: Record<string, number> = {};
-    
-    rules.forEach(rule => {
-      rule.conditions.forEach(condition => {
+
+    rules.forEach((rule) => {
+      rule.conditions.forEach((condition) => {
         stats[condition.type] = (stats[condition.type] || 0) + 1;
       });
     });
@@ -354,8 +371,8 @@ export class RoutingAdminController {
    */
   private getActionTypeStats(rules: RoutingRule[]): Record<string, number> {
     const stats: Record<string, number> = {};
-    
-    rules.forEach(rule => {
+
+    rules.forEach((rule) => {
       stats[rule.action.type] = (stats[rule.action.type] || 0) + 1;
     });
 

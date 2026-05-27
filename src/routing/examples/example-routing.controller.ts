@@ -8,7 +8,7 @@ import {
   RateLimit,
   CacheControl,
   BypassRouting,
-  RoutingMetadata
+  RoutingMetadata,
 } from '../decorators/routing.decorator';
 import { RoutingGuard } from '../guards/routing.guard';
 import { RoutingInterceptor } from '../interceptors/routing.interceptor';
@@ -21,7 +21,6 @@ import { RoutingInterceptor } from '../interceptors/routing.interceptor';
 @UseGuards(RoutingGuard)
 @UseInterceptors(RoutingInterceptor)
 export class ExampleRoutingController {
-
   /**
    * Example endpoint with API version routing
    */
@@ -34,7 +33,7 @@ export class ExampleRoutingController {
       message: 'This endpoint uses API version routing',
       version: 'v2',
       features: ['enhanced-response', 'new-fields'],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -54,10 +53,12 @@ export class ExampleRoutingController {
         // Heavy fields would be removed by the interceptor
         metadata: {
           fullDescription: 'This would be removed for mobile clients',
-          detailedAnalytics: { /* complex data */ }
-        }
+          detailedAnalytics: {
+            /* complex data */
+          },
+        },
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -71,13 +72,9 @@ export class ExampleRoutingController {
   getBetaFeaturesExample() {
     return {
       message: 'This endpoint includes beta features',
-      betaFeatures: [
-        'enhanced-search',
-        'real-time-updates',
-        'predictive-analytics'
-      ],
+      betaFeatures: ['enhanced-search', 'real-time-updates', 'predictive-analytics'],
       experimental: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -92,7 +89,7 @@ export class ExampleRoutingController {
     return {
       message: 'This endpoint provides tenant-specific content',
       tenantFeatures: ['custom-branding', 'tenant-analytics'],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -109,9 +106,9 @@ export class ExampleRoutingController {
       received: data,
       rateLimit: {
         limit: 10,
-        window: '1 minute'
+        window: '1 minute',
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -127,12 +124,12 @@ export class ExampleRoutingController {
       message: 'This endpoint response is cached',
       data: {
         staticContent: 'This content is cached for 1 hour',
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
       },
       cacheInfo: {
         maxAge: 3600,
-        cacheControl: 'public, max-age=3600'
-      }
+        cacheControl: 'public, max-age=3600',
+      },
     };
   }
 
@@ -148,9 +145,9 @@ export class ExampleRoutingController {
       message: 'This endpoint bypasses all routing middleware',
       routing: {
         bypassed: true,
-        reason: 'Uses @BypassRouting() decorator'
+        reason: 'Uses @BypassRouting() decorator',
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -161,7 +158,7 @@ export class ExampleRoutingController {
   @RoutingMetadata({
     category: 'analytics',
     priority: 'high',
-    customField: 'example-value'
+    customField: 'example-value',
   })
   @ApiOperation({ summary: 'Example of endpoint with custom routing metadata' })
   @ApiResponse({ status: 200, description: 'Returns response with custom metadata' })
@@ -171,9 +168,9 @@ export class ExampleRoutingController {
       metadata: {
         category: 'analytics',
         priority: 'high',
-        customField: 'example-value'
+        customField: 'example-value',
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -188,7 +185,7 @@ export class ExampleRoutingController {
   @CacheControl(1800)
   @RoutingMetadata({
     category: 'premium-features',
-    requiresAuth: true
+    requiresAuth: true,
   })
   @ApiOperation({ summary: 'Example combining multiple routing features' })
   @ApiResponse({ status: 200, description: 'Returns response with combined routing features' })
@@ -203,11 +200,11 @@ export class ExampleRoutingController {
         cache: { maxAge: 1800 },
         customMetadata: {
           category: 'premium-features',
-          requiresAuth: true
-        }
+          requiresAuth: true,
+        },
       },
       requestFormat: format,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -218,12 +215,13 @@ export class ExampleRoutingController {
   @ApiOperation({ summary: 'Test routing behavior with different parameters' })
   @ApiResponse({ status: 200, description: 'Returns routing test results' })
   postTestRoutingExample(
-    @Body() testData: {
+    @Body()
+    testData: {
       headers?: Record<string, string>;
       query?: Record<string, any>;
       userRole?: string;
       clientType?: string;
-    }
+    },
   ) {
     return {
       message: 'Routing test endpoint',
@@ -232,22 +230,22 @@ export class ExampleRoutingController {
         'Send different headers to test header-based routing',
         'Include query parameters to test query-based routing',
         'Modify userRole to test role-based routing',
-        'Change clientType to test client-specific routing'
+        'Change clientType to test client-specific routing',
       ],
       examples: {
         headers: {
           'x-api-version': 'v2',
           'x-client-type': 'mobile',
-          'x-feature-flags': 'beta'
+          'x-feature-flags': 'beta',
         },
         query: {
           beta: 'true',
-          format: 'compact'
+          format: 'compact',
         },
         userRole: 'ADMIN',
-        clientType: 'mobile'
+        clientType: 'mobile',
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }

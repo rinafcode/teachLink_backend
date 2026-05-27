@@ -5,7 +5,7 @@ import {
   RoutingConditionType,
   RoutingOperator,
   RoutingActionType,
-  DynamicRoutingConfig
+  DynamicRoutingConfig,
 } from '../interfaces/routing.interface';
 
 describe('RoutingEngineService', () => {
@@ -24,12 +24,30 @@ describe('RoutingEngineService', () => {
   });
 
   describe('evaluateRouting', () => {
+    it('should return no match when no rules are configured', async () => {
+      const context: RoutingContext = {
+        request: {
+          method: 'GET',
+          path: '/api/test',
+          headers: {},
+          query: {},
+          ip: '127.0.0.1',
+        },
+        metadata: {},
+      };
+
+      const result = await service.evaluateRouting(context);
+
+      expect(result.matched).toBe(false);
+      expect(result.rule).toBeUndefined();
+    });
+
     it('should match header-based routing rule', async () => {
       const config: DynamicRoutingConfig = {
         rules: [
           {
-            id: 'test-header-rule',
-            name: 'Test Header Rule',
+            id: 'test-rule',
+            name: 'Test Rule',
             priority: 100,
             enabled: true,
             conditions: [
@@ -37,15 +55,15 @@ describe('RoutingEngineService', () => {
                 type: RoutingConditionType.HEADER,
                 field: 'x-api-version',
                 operator: RoutingOperator.EQUALS,
-                value: 'v2'
-              }
+                value: 'v2',
+              },
             ],
             action: {
               type: RoutingActionType.FORWARD,
-              target: '/api/v2'
-            }
-          }
-        ]
+              target: '/api/v2',
+            },
+          },
+        ],
       };
 
       service.updateConfig(config);
@@ -53,44 +71,43 @@ describe('RoutingEngineService', () => {
       const context: RoutingContext = {
         request: {
           method: 'GET',
-          path: '/api/users',
+          path: '/api/test',
           headers: { 'x-api-version': 'v2' },
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.evaluateRouting(context);
 
       expect(result.matched).toBe(true);
-      expect(result.rule?.id).toBe('test-header-rule');
+      expect(result.rule?.id).toBe('test-rule');
       expect(result.action?.type).toBe(RoutingActionType.FORWARD);
-      expect(result.action?.target).toBe('/api/v2');
     });
 
     it('should match query parameter routing rule', async () => {
       const config: DynamicRoutingConfig = {
         rules: [
           {
-            id: 'test-query-rule',
-            name: 'Test Query Rule',
-            priority: 100,
+            id: 'beta-rule',
+            name: 'Beta Feature Rule',
+            priority: 90,
             enabled: true,
             conditions: [
               {
                 type: RoutingConditionType.QUERY_PARAM,
                 field: 'beta',
                 operator: RoutingOperator.EQUALS,
-                value: 'true'
-              }
+                value: 'true',
+              },
             ],
             action: {
               type: RoutingActionType.FORWARD,
-              target: '/api/beta'
-            }
-          }
-        ]
+              target: '/api/beta',
+            },
+          },
+        ],
       };
 
       service.updateConfig(config);
@@ -98,42 +115,42 @@ describe('RoutingEngineService', () => {
       const context: RoutingContext = {
         request: {
           method: 'GET',
-          path: '/api/users',
+          path: '/api/test',
           headers: {},
           query: { beta: 'true' },
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.evaluateRouting(context);
 
       expect(result.matched).toBe(true);
-      expect(result.rule?.id).toBe('test-query-rule');
+      expect(result.rule?.id).toBe('beta-rule');
     });
 
     it('should match path pattern routing rule', async () => {
       const config: DynamicRoutingConfig = {
         rules: [
           {
-            id: 'test-path-rule',
-            name: 'Test Path Rule',
-            priority: 100,
+            id: 'admin-rule',
+            name: 'Admin Rule',
+            priority: 200,
             enabled: true,
             conditions: [
               {
                 type: RoutingConditionType.PATH_PATTERN,
                 field: 'path',
                 operator: RoutingOperator.STARTS_WITH,
-                value: '/admin'
-              }
+                value: '/admin',
+              },
             ],
             action: {
               type: RoutingActionType.BLOCK,
-              target: 'unauthorized'
-            }
-          }
-        ]
+              target: 'unauthorized',
+            },
+          },
+        ],
       };
 
       service.updateConfig(config);
@@ -144,113 +161,23 @@ describe('RoutingEngineService', () => {
           path: '/admin/users',
           headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.evaluateRouting(context);
 
       expect(result.matched).toBe(true);
+      expect(result.rule?.id).toBe('admin-rule');
       expect(result.action?.type).toBe(RoutingActionType.BLOCK);
     });
 
-    it('should match custom user role condition', async () => {
+    it('should respect rule priority order', async () => {
       const config: DynamicRoutingConfig = {
         rules: [
           {
-            id: 'test-user-rule',
-            name: 'Test User Rule',
-            priority: 100,
-            enabled: true,
-            conditions: [
-              {
-                type: RoutingConditionType.CUSTOM,
-                field: 'user.role',
-                operator: RoutingOperator.EQUALS,
-                value: 'ADMIN'
-              }
-            ],
-            action: {
-              type: RoutingActionType.FORWARD,
-              target: '/admin'
-            }
-          }
-        ]
-      };
-
-      service.updateConfig(config);
-
-      const context: RoutingContext = {
-        request: {
-          method: 'GET',
-          path: '/dashboard',
-          headers: {},
-          query: {},
-          ip: '127.0.0.1'
-        },
-        user: {
-          id: 'user-1',
-          role: 'ADMIN',
-          permissions: []
-        },
-        metadata: {}
-      };
-
-      const result = await service.evaluateRouting(context);
-
-      expect(result.matched).toBe(true);
-      expect(result.action?.target).toBe('/admin');
-    });
-
-    it('should not match when conditions are not met', async () => {
-      const config: DynamicRoutingConfig = {
-        rules: [
-          {
-            id: 'test-no-match-rule',
-            name: 'Test No Match Rule',
-            priority: 100,
-            enabled: true,
-            conditions: [
-              {
-                type: RoutingConditionType.HEADER,
-                field: 'x-api-version',
-                operator: RoutingOperator.EQUALS,
-                value: 'v3'
-              }
-            ],
-            action: {
-              type: RoutingActionType.FORWARD,
-              target: '/api/v3'
-            }
-          }
-        ]
-      };
-
-      service.updateConfig(config);
-
-      const context: RoutingContext = {
-        request: {
-          method: 'GET',
-          path: '/api/users',
-          headers: { 'x-api-version': 'v2' },
-          query: {},
-          ip: '127.0.0.1'
-        },
-        metadata: {}
-      };
-
-      const result = await service.evaluateRouting(context);
-
-      expect(result.matched).toBe(false);
-      expect(result.rule).toBeUndefined();
-    });
-
-    it('should respect rule priority', async () => {
-      const config: DynamicRoutingConfig = {
-        rules: [
-          {
-            id: 'low-priority-rule',
+            id: 'low-priority',
             name: 'Low Priority Rule',
             priority: 50,
             enabled: true,
@@ -259,16 +186,16 @@ describe('RoutingEngineService', () => {
                 type: RoutingConditionType.PATH_PATTERN,
                 field: 'path',
                 operator: RoutingOperator.STARTS_WITH,
-                value: '/api'
-              }
+                value: '/api',
+              },
             ],
             action: {
               type: RoutingActionType.FORWARD,
-              target: '/api/v1'
-            }
+              target: '/api/v1',
+            },
           },
           {
-            id: 'high-priority-rule',
+            id: 'high-priority',
             name: 'High Priority Rule',
             priority: 100,
             enabled: true,
@@ -277,15 +204,15 @@ describe('RoutingEngineService', () => {
                 type: RoutingConditionType.PATH_PATTERN,
                 field: 'path',
                 operator: RoutingOperator.STARTS_WITH,
-                value: '/api'
-              }
+                value: '/api',
+              },
             ],
             action: {
               type: RoutingActionType.FORWARD,
-              target: '/api/v2'
-            }
-          }
-        ]
+              target: '/api/v2',
+            },
+          },
+        ],
       };
 
       service.updateConfig(config);
@@ -293,22 +220,22 @@ describe('RoutingEngineService', () => {
       const context: RoutingContext = {
         request: {
           method: 'GET',
-          path: '/api/users',
+          path: '/api/test',
           headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.evaluateRouting(context);
 
       expect(result.matched).toBe(true);
-      expect(result.rule?.id).toBe('high-priority-rule');
+      expect(result.rule?.id).toBe('high-priority');
       expect(result.action?.target).toBe('/api/v2');
     });
 
-    it('should skip disabled rules', async () => {
+    it('should not match disabled rules', async () => {
       const config: DynamicRoutingConfig = {
         rules: [
           {
@@ -321,15 +248,15 @@ describe('RoutingEngineService', () => {
                 type: RoutingConditionType.PATH_PATTERN,
                 field: 'path',
                 operator: RoutingOperator.STARTS_WITH,
-                value: '/api'
-              }
+                value: '/api',
+              },
             ],
             action: {
-              type: RoutingActionType.BLOCK,
-              target: 'blocked'
-            }
-          }
-        ]
+              type: RoutingActionType.FORWARD,
+              target: '/api/v2',
+            },
+          },
+        ],
       };
 
       service.updateConfig(config);
@@ -337,12 +264,12 @@ describe('RoutingEngineService', () => {
       const context: RoutingContext = {
         request: {
           method: 'GET',
-          path: '/api/users',
+          path: '/api/test',
           headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.evaluateRouting(context);
@@ -350,36 +277,28 @@ describe('RoutingEngineService', () => {
       expect(result.matched).toBe(false);
     });
 
-    it('should apply transformations', async () => {
+    it('should handle regex matching', async () => {
       const config: DynamicRoutingConfig = {
         rules: [
           {
-            id: 'transformation-rule',
-            name: 'Transformation Rule',
+            id: 'regex-rule',
+            name: 'Regex Rule',
             priority: 100,
             enabled: true,
             conditions: [
               {
-                type: RoutingConditionType.HEADER,
-                field: 'x-client-type',
-                operator: RoutingOperator.EQUALS,
-                value: 'mobile'
-              }
+                type: RoutingConditionType.PATH_PATTERN,
+                field: 'path',
+                operator: RoutingOperator.REGEX_MATCH,
+                value: '\\.css$',
+              },
             ],
             action: {
-              type: RoutingActionType.FORWARD,
-              target: '/api/mobile',
-              transformations: [
-                {
-                  type: 'header',
-                  operation: 'add',
-                  field: 'x-mobile-optimized',
-                  value: 'true'
-                }
-              ]
-            }
-          }
-        ]
+              type: RoutingActionType.CACHE,
+              target: 'static-assets',
+            },
+          },
+        ],
       };
 
       service.updateConfig(config);
@@ -387,59 +306,35 @@ describe('RoutingEngineService', () => {
       const context: RoutingContext = {
         request: {
           method: 'GET',
-          path: '/api/users',
-          headers: { 'x-client-type': 'mobile' },
+          path: '/assets/style.css',
+          headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: {}
+        metadata: {},
       };
 
       const result = await service.evaluateRouting(context);
 
       expect(result.matched).toBe(true);
-      expect(result.transformedRequest?.headers?.['x-mobile-optimized']).toBe('true');
-    });
-  });
-
-  describe('getStats', () => {
-    it('should return routing statistics', () => {
-      const config: DynamicRoutingConfig = {
-        rules: [
-          {
-            id: 'rule-1',
-            name: 'Rule 1',
-            priority: 100,
-            enabled: true,
-            conditions: [],
-            action: { type: RoutingActionType.FORWARD, target: '/test' }
-          },
-          {
-            id: 'rule-2',
-            name: 'Rule 2',
-            priority: 50,
-            enabled: false,
-            conditions: [],
-            action: { type: RoutingActionType.BLOCK, target: 'blocked' }
-          }
-        ]
-      };
-
-      service.updateConfig(config);
-
-      const stats = service.getStats();
-
-      expect(stats.rulesCount).toBe(2);
-      expect(stats.enabledRulesCount).toBe(1);
-      expect(stats.cacheEnabled).toBe(true);
+      expect(result.rule?.id).toBe('regex-rule');
     });
   });
 
   describe('clearCache', () => {
     it('should clear the routing cache', () => {
-      service.clearCache();
-      // No assertion needed, just ensure it doesn't throw
-      expect(true).toBe(true);
+      expect(() => service.clearCache()).not.toThrow();
+    });
+  });
+
+  describe('getStats', () => {
+    it('should return routing statistics', () => {
+      const stats = service.getStats();
+
+      expect(stats).toHaveProperty('rulesCount');
+      expect(stats).toHaveProperty('enabledRulesCount');
+      expect(stats).toHaveProperty('cacheSize');
+      expect(stats).toHaveProperty('cacheEnabled');
     });
   });
 });

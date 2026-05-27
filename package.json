@@ -61,6 +61,7 @@
   "dependencies": {
     "@apollo/server": "^4.13.0",
     "@aws-sdk/client-cloudfront": "^3.975.0",
+    "@aws-sdk/client-cost-explorer": "^3.1054.0",
     "@aws-sdk/client-kms": "^3.978.0",
     "@aws-sdk/client-s3": "^3.975.0",
     "@aws-sdk/client-secrets-manager": "^3.978.0",
