@@ -142,13 +142,9 @@ class TestEnvironment extends NodeEnvironment {
 
   // Utility method for tests to wait for conditions
   async waitForCondition(
-    condition: () => boolean | Promise<boolean>,
-    options: {
-      timeout?: number;
-      interval?: number;
-      description?: string;
-    } = {},
-  ): Promise<void> {
+    condition,
+    options = {},
+  ) {
     const { timeout = 5000, interval = 100, description = 'condition' } = options;
     const startTime = Date.now();
 
@@ -169,15 +165,10 @@ class TestEnvironment extends NodeEnvironment {
   }
 
   // Utility method for stable async operations
-  async withRetry<T>(
-    operation: () => Promise<T>,
-    options: {
-      maxAttempts?: number;
-      delayMs?: number;
-      backoffMultiplier?: number;
-      retryCondition?: (error: any) => boolean;
-    } = {},
-  ): Promise<T> {
+  async withRetry(
+    operation,
+    options = {},
+  ) {
     const {
       maxAttempts = 3,
       delayMs = 1000,
@@ -185,7 +176,7 @@ class TestEnvironment extends NodeEnvironment {
       retryCondition = (error) => error.code === 'ECONNREFUSED' || error.status >= 500,
     } = options;
 
-    let lastError: any;
+    let lastError;
     let currentDelay = delayMs;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

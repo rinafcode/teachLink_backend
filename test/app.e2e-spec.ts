@@ -38,8 +38,12 @@ describe('App (e2e)', () => {
   }, 60000); // 60 second timeout for setup
 
   afterAll(async () => {
-    await app.close();
-    await testDb.teardown();
+    if (app) {
+      await app.close();
+    }
+    if (testDb) {
+      await testDb.teardown();
+    }
   }, 30000);
 
   beforeEach(async () => {
