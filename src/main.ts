@@ -12,6 +12,7 @@ import { GlobalExceptionFilter } from './common/interceptors/global-exception.fi
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { correlationMiddleware } from './common/utils/correlation.utils';
 import {
+  ApiVersionInterceptor,
   API_VERSION_HEADER,
   DEFAULT_API_VERSION,
   SUPPORTED_API_VERSIONS,
@@ -149,6 +150,7 @@ async function bootstrapWorker(): Promise<void> {
   });
 
   app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new ApiVersionInterceptor());
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
   app.enableCors(corsConfig);
 
