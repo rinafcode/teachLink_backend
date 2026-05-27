@@ -11,6 +11,7 @@ import { getDatabaseConfig } from './config/database.config';
 import { loadFeatureFlags } from './config/feature-flags.config';
 
 const featureFlags = loadFeatureFlags();
+import { DebuggingModule } from './debugging/debugging.module';
 
 @Module({
   imports: [
@@ -19,10 +20,11 @@ const featureFlags = loadFeatureFlags();
     ScheduleModule.forRoot(),
     SearchModule,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
+    DebuggingModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
     ? [{ provide: APP_GUARD, useClass: QuotaGuard }]
     : [],
 })
-export class AppModule {}
+export class AppModule { }
