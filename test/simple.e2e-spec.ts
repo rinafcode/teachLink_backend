@@ -22,8 +22,6 @@ describe('Simple E2E Test', () => {
   });
 
   it('should return app info', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200);
+    return request(app.getHttpServer()).get('/').expect(200);
   });
 });
