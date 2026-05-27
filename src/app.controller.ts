@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipQuota } from './rate-limiting/decorators/quota.decorator';
 
 @ApiTags('App')
+@SkipQuota()
 @Controller()
 export class AppController {
   @Get()
