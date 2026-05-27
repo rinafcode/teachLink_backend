@@ -21,5 +21,4 @@ import { SecretsModule } from './secrets/secrets.module';
   ],
   exports: [SecurityService, EncryptionService, SecretsModule],
 })
-export class SecurityModule {
-}
+export class SecurityModule {}

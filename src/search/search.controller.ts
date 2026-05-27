@@ -43,20 +43,22 @@ export class SearchController {
   @Get('autocomplete')
   async autocomplete(
     @Query('q')
-    query: string): Promise<unknown> {
-      return this.searchService.getAutoComplete(query);
+    query: string,
+  ): Promise<unknown> {
+    return this.searchService.getAutoComplete(query);
   }
 
   @Get('filters')
   async getFilters(): Promise<unknown> {
-      return this.searchService.getAvailableFilters();
+    return this.searchService.getAvailableFilters();
   }
 
   @Get('analytics')
   async getAnalytics(
     @Query('days')
-    days?: string): Promise<unknown> {
-      const parsedDays = days ? parseInt(days, 10) : 7;
-      return this.searchService.getAnalytics(parsedDays);
+    days?: string,
+  ): Promise<unknown> {
+    const parsedDays = days ? parseInt(days, 10) : 7;
+    return this.searchService.getAnalytics(parsedDays);
   }
 }

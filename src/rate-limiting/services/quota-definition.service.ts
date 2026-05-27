@@ -3,10 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QuotaDefinition } from '../entities/quota-definition.entity';
 import { QUOTA_LIMITS, UserTier } from '../rate-limiting.constants';
-import {
-  CreateQuotaDefinitionDto,
-  UpdateQuotaDefinitionDto,
-} from '../dto/quota.dto';
+import { CreateQuotaDefinitionDto, UpdateQuotaDefinitionDto } from '../dto/quota.dto';
 
 /**
  * Manages quota rule definitions (CRUD).
@@ -29,9 +26,7 @@ export class QuotaDefinitionService {
       });
       if (!exists) {
         const limits = QUOTA_LIMITS[tier];
-        await this.repo.save(
-          this.repo.create({ tier, userId: null, ...limits, isActive: true }),
-        );
+        await this.repo.save(this.repo.create({ tier, userId: null, ...limits, isActive: true }));
         this.logger.log(`Seeded default quota for tier ${tier}`);
       }
     }

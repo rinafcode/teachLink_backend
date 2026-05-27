@@ -30,12 +30,7 @@ import { UserQuotaController } from './controllers/user-quota.controller';
     AdaptiveRateLimitingService,
     QuotaGuard,
   ],
-  exports: [
-    QuotaManagementService,
-    QuotaDefinitionService,
-    QuotaTrackingService,
-    QuotaGuard,
-  ],
+  exports: [QuotaManagementService, QuotaDefinitionService, QuotaTrackingService, QuotaGuard],
 })
 export class RateLimitingModule implements OnModuleInit {
   constructor(private readonly definitions: QuotaDefinitionService) {}

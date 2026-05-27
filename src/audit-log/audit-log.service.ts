@@ -76,9 +76,9 @@ export interface IAuditReport {
  */
 @Injectable()
 export class AuditLogService {
-    private readonly logger = new Logger(AuditLogService.name);
-    private readonly retentionDays: number;
-    constructor(
+  private readonly logger = new Logger(AuditLogService.name);
+  private readonly retentionDays: number;
+  constructor(
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
     private readonly configService: ConfigService,
@@ -616,5 +616,5 @@ export class AuditLogService {
 }
 // Helper function for date comparison
 function MoreThanOrEqual(date: Date) {
-    return MoreThan(date);
+  return MoreThan(date);
 }

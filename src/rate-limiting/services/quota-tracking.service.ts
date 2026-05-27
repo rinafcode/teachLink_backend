@@ -139,9 +139,7 @@ export class QuotaTrackingService {
     day: UserQuotaUsage,
     now: Date,
   ): boolean {
-    return [minute, hour, day].some(
-      (window) => window.isBlocked && window.windowEnd > now,
-    );
+    return [minute, hour, day].some((window) => window.isBlocked && window.windowEnd > now);
   }
 
   private async markOverage(
@@ -192,9 +190,8 @@ export class QuotaTrackingService {
   }
 
   private earliestReset(...windows: UserQuotaUsage[]): Date {
-    return windows.reduce((earliest, window) =>
-      window.windowEnd < earliest ? window.windowEnd : earliest,
-    );
+    const earliestMs = Math.min(...windows.map((window) => window.windowEnd.getTime()));
+    return new Date(earliestMs);
   }
 
   private async getOrCreateUsage(

@@ -86,7 +86,7 @@ export class QuotaGuard implements CanActivate {
     if (!user) return UserTier.FREE;
     // Map user.tier or user.plan field; default to FREE
     const raw = (user.tier ?? user.plan ?? 'FREE').toString().toUpperCase();
-    return (UserTier[raw as keyof typeof UserTier]) ?? UserTier.FREE;
+    return UserTier[raw as keyof typeof UserTier] ?? UserTier.FREE;
   }
 
   private resolveIp(req: Request): string {

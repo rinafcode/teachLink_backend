@@ -101,7 +101,9 @@ describe('QuotaTrackingService', () => {
       const expired = makeUsage({ windowEnd: new Date(Date.now() - 1000) });
       repo.findOne.mockResolvedValue(expired);
       repo.delete.mockResolvedValue({ affected: 1 } as never);
-      repo.save.mockImplementation(async (entity) => ({ ...entity, id: 'new-uuid' }) as UserQuotaUsage);
+      repo.save.mockImplementation(
+        async (entity) => ({ ...entity, id: 'new-uuid' }) as UserQuotaUsage,
+      );
       repo.increment.mockResolvedValue({ affected: 1 } as never);
 
       const result = await service.checkAndIncrement('user-1', UserTier.FREE);

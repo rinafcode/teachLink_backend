@@ -10,12 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { QuotaDefinitionService } from '../services/quota-definition.service';
 import { QuotaTrackingService } from '../services/quota-tracking.service';
 import {
@@ -28,7 +23,7 @@ import { UserTier } from '../rate-limiting.constants';
 import { SkipQuota } from '../decorators/quota.decorator';
 
 @ApiTags('Quota Management')
-@SkipQuota()   // Admin endpoints are exempt from quota checks
+@SkipQuota() // Admin endpoints are exempt from quota checks
 @Controller('admin/quota')
 export class QuotaController {
   constructor(
@@ -61,10 +56,7 @@ export class QuotaController {
   @Patch('definitions/:id')
   @ApiOperation({ summary: 'Update a quota definition' })
   @ApiParam({ name: 'id', type: String })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateQuotaDefinitionDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateQuotaDefinitionDto) {
     return this.definitions.update(id, dto);
   }
 
