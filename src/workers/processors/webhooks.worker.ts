@@ -48,8 +48,8 @@ export class WebhooksWorker extends BaseWorker {
     url: string,
     event: string,
     payload: any,
-    headers?: any,
-    timeout?: number,
+    _headers?: any,
+    _timeout?: number,
   ): Promise<any> {
     await job.progress(60);
 

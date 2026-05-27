@@ -10,7 +10,7 @@ export class AnalyticsService {
     try {
       const registry = this.metrics.getRegistry();
       // Lazy require prom-client to avoid import cycles
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const prom = require('prom-client');
 
       // Create a shared counter for feature events with labels

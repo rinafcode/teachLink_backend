@@ -39,12 +39,13 @@ class E2ETestRunner {
         const result = await this.runSingleTest(testPattern, run, timeout);
         results.push(result);
 
-        console.log(`✅ Run ${run}/${runs} completed: ${result.passed}/${result.total} tests passed`);
+        console.log(
+          `✅ Run ${run}/${runs} completed: ${result.passed}/${result.total} tests passed`,
+        );
 
         if (result.failed > 0) {
-          console.log(`❌ Failed tests: ${result.failures.map(f => f.title).join(', ')}`);
+          console.log(`❌ Failed tests: ${result.failures.map((f) => f.title).join(', ')}`);
         }
-
       } catch (error) {
         console.error(`💥 Run ${run}/${runs} failed:`, error.message);
         results.push({
@@ -128,13 +129,17 @@ class E2ETestRunner {
           passed: result.numPassedTests || 0,
           failed: result.numFailedTests || 0,
           total: result.numTotalTests || 0,
-          failures: result.testResults?.flatMap(tr =>
-            tr.assertionResults?.filter(ar => ar.status === 'failed').map(ar => ({
-              title: ar.title,
-              file: tr.testFilePath,
-              error: ar.failureMessages?.[0],
-            })) || []
-          ) || [],
+          failures:
+            result.testResults?.flatMap(
+              (tr) =>
+                tr.assertionResults
+                  ?.filter((ar) => ar.status === 'failed')
+                  .map((ar) => ({
+                    title: ar.title,
+                    file: tr.testFilePath,
+                    error: ar.failureMessages?.[0],
+                  })) || [],
+            ) || [],
         };
       }
     } catch (error) {
@@ -156,14 +161,14 @@ class E2ETestRunner {
 
   analyzeResults(results) {
     const totalRuns = results.length;
-    const successfulRuns = results.filter(r => r.failed === 0).length;
+    const successfulRuns = results.filter((r) => r.failed === 0).length;
     const successRate = successfulRuns / totalRuns;
 
     // Analyze individual test flakiness
     const testFlakiness = new Map();
 
-    results.forEach(run => {
-      run.failures?.forEach(failure => {
+    results.forEach((run) => {
+      run.failures?.forEach((failure) => {
         const key = `${failure.file}:${failure.title}`;
         const existing = testFlakiness.get(key) || {
           test: failure.title,
@@ -179,12 +184,12 @@ class E2ETestRunner {
 
     // Calculate flakiness for each test
     const flakyTests = Array.from(testFlakiness.values())
-      .map(test => ({
+      .map((test) => ({
         ...test,
         failureRate: test.failures / totalRuns,
-        isFlaky: test.runs >= this.minRuns && (test.failures / totalRuns) >= this.flakinessThreshold,
+        isFlaky: test.runs >= this.minRuns && test.failures / totalRuns >= this.flakinessThreshold,
       }))
-      .filter(test => test.isFlaky)
+      .filter((test) => test.isFlaky)
       .sort((a, b) => b.failureRate - a.failureRate);
 
     return {
@@ -244,7 +249,7 @@ class E2ETestRunner {
         report += `- Error: ${result.error}\n`;
       }
       if (result.failures?.length > 0) {
-        report += `- Failed Tests: ${result.failures.map(f => f.title).join(', ')}\n`;
+        report += `- Failed Tests: ${result.failures.map((f) => f.title).join(', ')}\n`;
       }
       report += '\n';
     });
@@ -256,7 +261,7 @@ class E2ETestRunner {
   }
 
   async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -307,13 +312,17 @@ Examples:
     const analysis = await runner.runStabilityTest(options);
 
     if (analysis.summary.successRate < 0.9) {
-      console.error(`❌ Test stability is poor: ${(analysis.summary.successRate * 100).toFixed(1)}% success rate`);
+      console.error(
+        `❌ Test stability is poor: ${(analysis.summary.successRate * 100).toFixed(1)}% success rate`,
+      );
       process.exit(1);
     } else if (analysis.summary.flakyTestsCount > 0) {
       console.warn(`⚠️  Found ${analysis.summary.flakyTestsCount} flaky tests`);
       process.exit(1);
     } else {
-      console.log(`✅ All tests are stable: ${(analysis.summary.successRate * 100).toFixed(1)}% success rate`);
+      console.log(
+        `✅ All tests are stable: ${(analysis.summary.successRate * 100).toFixed(1)}% success rate`,
+      );
     }
   } catch (error) {
     console.error('💥 Stability test failed:', error.message);

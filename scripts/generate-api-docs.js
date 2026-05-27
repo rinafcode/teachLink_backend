@@ -198,9 +198,23 @@ const spec = {
           role: 'student',
         }),
         responses: {
-          201: response(201, 'Registration successful', successEnvelope(examples.user, 'Registration successful')),
-          400: response(400, 'Invalid registration data', errorEnvelope('Validation failed', 'email'), '#/components/schemas/ApiError'),
-          409: response(409, 'Email already exists', errorEnvelope('Email already exists'), '#/components/schemas/ApiError'),
+          201: response(
+            201,
+            'Registration successful',
+            successEnvelope(examples.user, 'Registration successful'),
+          ),
+          400: response(
+            400,
+            'Invalid registration data',
+            errorEnvelope('Validation failed', 'email'),
+            '#/components/schemas/ApiError',
+          ),
+          409: response(
+            409,
+            'Email already exists',
+            errorEnvelope('Email already exists'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -214,12 +228,24 @@ const spec = {
           password: 'Password123!',
         }),
         responses: {
-          200: response(200, 'Login successful', successEnvelope({
-            accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-            refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
-            user: examples.user,
-          }, 'Login successful')),
-          401: response(401, 'Invalid credentials', errorEnvelope('Invalid credentials'), '#/components/schemas/ApiError'),
+          200: response(
+            200,
+            'Login successful',
+            successEnvelope(
+              {
+                accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
+                user: examples.user,
+              },
+              'Login successful',
+            ),
+          ),
+          401: response(
+            401,
+            'Invalid credentials',
+            errorEnvelope('Invalid credentials'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -231,11 +257,21 @@ const spec = {
         security: bearerSecurity,
         parameters: [
           { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, maximum: 100 } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, maximum: 100 },
+          },
         ],
         responses: {
           200: response(200, 'Users found', successEnvelope([examples.user])),
-          401: response(401, 'Authentication required', errorEnvelope('Authentication required'), '#/components/schemas/ApiError'),
+          401: response(
+            401,
+            'Authentication required',
+            errorEnvelope('Authentication required'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
       post: {
@@ -251,8 +287,17 @@ const spec = {
           role: 'teacher',
         }),
         responses: {
-          201: response(201, 'User created', successEnvelope({ ...examples.user, role: 'teacher' }, 'User created')),
-          400: response(400, 'Invalid user data', errorEnvelope('Validation failed'), '#/components/schemas/ApiError'),
+          201: response(
+            201,
+            'User created',
+            successEnvelope({ ...examples.user, role: 'teacher' }, 'User created'),
+          ),
+          400: response(
+            400,
+            'Invalid user data',
+            errorEnvelope('Validation failed'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -263,7 +308,12 @@ const spec = {
         operationId: 'listCourses',
         parameters: [
           { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, maximum: 100 } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, maximum: 100 },
+          },
         ],
         responses: {
           200: response(200, 'Courses found', successEnvelope([examples.course])),
@@ -283,7 +333,12 @@ const spec = {
         }),
         responses: {
           201: response(201, 'Course created', successEnvelope(examples.course, 'Course created')),
-          400: response(400, 'Invalid course data', errorEnvelope('Validation failed', 'title'), '#/components/schemas/ApiError'),
+          400: response(
+            400,
+            'Invalid course data',
+            errorEnvelope('Validation failed', 'title'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -308,8 +363,17 @@ const spec = {
           currency: 'USD',
         }),
         responses: {
-          201: response(201, 'Payment intent created', successEnvelope(examples.payment, 'Payment intent created')),
-          409: response(409, 'Duplicate idempotency key', errorEnvelope('Request already processed'), '#/components/schemas/ApiError'),
+          201: response(
+            201,
+            'Payment intent created',
+            successEnvelope(examples.payment, 'Payment intent created'),
+          ),
+          409: response(
+            409,
+            'Duplicate idempotency key',
+            errorEnvelope('Request already processed'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -319,7 +383,13 @@ const spec = {
         summary: 'Search courses and learning content',
         operationId: 'searchContent',
         parameters: [
-          { name: 'q', in: 'query', required: true, schema: { type: 'string' }, example: 'javascript basics' },
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            example: 'javascript basics',
+          },
           {
             name: 'filters',
             in: 'query',
@@ -327,20 +397,36 @@ const spec = {
             schema: { type: 'string' },
             example: '{"category":"programming","level":"beginner"}',
           },
-          { name: 'sort', in: 'query', required: false, schema: { type: 'string' }, example: 'relevance' },
+          {
+            name: 'sort',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            example: 'relevance',
+          },
           { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20 } },
         ],
         responses: {
-          200: response(200, 'Search results', {
-            results: [examples.course],
-            total: 1,
-            page: 1,
-            limit: 20,
-            filters: { category: 'programming', level: 'beginner' },
-            query: 'javascript basics',
-          }, '#/components/schemas/SearchResponse'),
-          400: response(400, 'Invalid filters JSON', errorEnvelope('filters must be valid JSON', 'filters'), '#/components/schemas/ApiError'),
+          200: response(
+            200,
+            'Search results',
+            {
+              results: [examples.course],
+              total: 1,
+              page: 1,
+              limit: 20,
+              filters: { category: 'programming', level: 'beginner' },
+              query: 'javascript basics',
+            },
+            '#/components/schemas/SearchResponse',
+          ),
+          400: response(
+            400,
+            'Invalid filters JSON',
+            errorEnvelope('filters must be valid JSON', 'filters'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -349,9 +435,15 @@ const spec = {
         tags: ['Search'],
         summary: 'Get search autocomplete suggestions',
         operationId: 'getAutocomplete',
-        parameters: [{ name: 'q', in: 'query', required: true, schema: { type: 'string' }, example: 'java' }],
+        parameters: [
+          { name: 'q', in: 'query', required: true, schema: { type: 'string' }, example: 'java' },
+        ],
         responses: {
-          200: response(200, 'Autocomplete suggestions', ['javascript', 'java fundamentals', 'java spring']),
+          200: response(200, 'Autocomplete suggestions', [
+            'javascript',
+            'java fundamentals',
+            'java spring',
+          ]),
         },
       },
     },
@@ -361,7 +453,9 @@ const spec = {
         summary: 'List recently captured requests',
         operationId: 'listCapturedRequests',
         security: bearerSecurity,
-        parameters: [{ name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 50 } }],
+        parameters: [
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 50 } },
+        ],
         responses: {
           200: response(200, 'Captured request summaries', {
             total: 1,
@@ -420,11 +514,14 @@ function generateExamplesMarkdown() {
         '  -H "Content-Type: application/json" \\',
         `  -d '${JSON.stringify({ email: 'learner@example.com', password: 'Password123!' })}'`,
       ].join('\n'),
-      response: successEnvelope({
-        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
-        user: examples.user,
-      }, 'Login successful'),
+      response: successEnvelope(
+        {
+          accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
+          user: examples.user,
+        },
+        'Login successful',
+      ),
     },
     {
       title: 'Create Course',

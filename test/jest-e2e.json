@@ -14,10 +14,7 @@
   "detectOpenHandles": true,
   "testRunner": "jest-circus",
   "bail": false,
-  "reporters": [
-    "default",
-    "./utils/flakiness-reporter.js"
-  ],
+  "reporters": ["default", "./utils/flakiness-reporter.js"],
   "globals": {
     "ts-jest": {
       "tsconfig": {

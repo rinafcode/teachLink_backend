@@ -30,15 +30,18 @@ export class CostTrackingService {
       const existing = registry.getSingleMetric(gaugeName);
       const latest = amountUsd;
       if (existing) {
-        // @ts-ignore - prom-client Metric has set
+        // @ts-expect-error - prom-client Metric has set
         existing.set(latest);
       } else {
         // Create a new gauge
-        // Lazy require to avoid import ordering issues
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const prom = require('prom-client');
         const Gauge = prom.Gauge;
-        new Gauge({ name: gaugeName, help: 'Hourly infrastructure cost in USD', registers: [registry] }).set(latest);
+        new Gauge({
+          name: gaugeName,
+          help: 'Hourly infrastructure cost in USD',
+          registers: [registry],
+        }).set(latest);
       }
     } catch (err) {
       this.logger.error('Failed to record cost metric', err as Error);

@@ -18,60 +18,61 @@ interface CacheManagerExtended extends Cache {
  */
 @Injectable()
 export class CacheInvalidationService {
-    private readonly logger = new Logger(CacheInvalidationService.name);
-    constructor(
+  private readonly logger = new Logger(CacheInvalidationService.name);
+  constructor(
     @Inject(CACHE_MANAGER)
-    private cacheManager: Cache, private eventEmitter: EventEmitter2) { }
-    /**
-     * Invalidates a specific cache key.
-     */
-    async invalidateKey(key: string): Promise<void> {
-        this.logger.log(`Invalidating cache key: ${key}`);
-        await this.cacheManager.del(key);
-        this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { key, type: 'single' });
+    private cacheManager: Cache,
+    private eventEmitter: EventEmitter2,
+  ) {}
+  /**
+   * Invalidates a specific cache key.
+   */
+  async invalidateKey(key: string): Promise<void> {
+    this.logger.log(`Invalidating cache key: ${key}`);
+    await this.cacheManager.del(key);
+    this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { key, type: 'single' });
+  }
+  /**
+   * Invalidates multiple cache keys based on a pattern.
+   * Note: Standard cache-manager doesn't support pattern deletion easily with all stores,
+   * so this is a simplified implementation.
+   */
+  async invalidatePattern(pattern: string): Promise<void> {
+    this.logger.log(`Invalidating cache pattern: ${pattern}`);
+    // In a production environment with Redis, we'd use 'SCAN' and 'DEL'
+    // For now, we'll emit an event that other specialized listeners might handle
+    this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { pattern, type: 'pattern' });
+    // If the store supports a store-specific method, call it here.
+    const store = (this.cacheManager as CacheManagerExtended).store;
+    if (store?.keys) {
+      const keys = await store.keys(pattern);
+      const list = Array.isArray(keys) ? keys : [];
+      if (list.length > 0) {
+        await Promise.all(list.map((key: string) => this.cacheManager.del(key)));
+      }
     }
-    /**
-     * Invalidates multiple cache keys based on a pattern.
-     * Note: Standard cache-manager doesn't support pattern deletion easily with all stores,
-     * so this is a simplified implementation.
-     */
-    async invalidatePattern(pattern: string): Promise<void> {
-        this.logger.log(`Invalidating cache pattern: ${pattern}`);
-        // In a production environment with Redis, we'd use 'SCAN' and 'DEL'
-        // For now, we'll emit an event that other specialized listeners might handle
-        this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { pattern, type: 'pattern' });
-        // If the store supports a store-specific method, call it here.
-        const store = (this.cacheManager as CacheManagerExtended).store;
-        if (store?.keys) {
-            const keys = await store.keys(pattern);
-            const list = Array.isArray(keys) ? keys : [];
-            if (list.length > 0) {
-                await Promise.all(list.map((key: string) => this.cacheManager.del(key)));
-            }
-        }
+  }
+  /**
+   * Automatically invalidates cache based on data change events.
+   */
+  async handleDataChange(entity: string, id: string): Promise<void> {
+    this.logger.log(`Handling data change for ${entity}:${id}`);
+    const specificKey = `${entity}:${id}`;
+    const collectionKey = `${entity}:list:*`;
+    await this.invalidateKey(specificKey);
+    await this.invalidatePattern(collectionKey);
+  }
+  /**
+   * Purges the entire cache.
+   */
+  async purgeAll(): Promise<void> {
+    this.logger.warn('Purging entire cache');
+    // cache-manager v5+ uses clear() instead of reset()
+    if (typeof this.cacheManager.clear === 'function') {
+      await this.cacheManager.clear();
+    } else if (typeof (this.cacheManager as CacheManagerExtended).reset === 'function') {
+      await (this.cacheManager as CacheManagerExtended).reset!();
     }
-    /**
-     * Automatically invalidates cache based on data change events.
-     */
-    async handleDataChange(entity: string, id: string): Promise<void> {
-        this.logger.log(`Handling data change for ${entity}:${id}`);
-        const specificKey = `${entity}:${id}`;
-        const collectionKey = `${entity}:list:*`;
-        await this.invalidateKey(specificKey);
-        await this.invalidatePattern(collectionKey);
-    }
-    /**
-     * Purges the entire cache.
-     */
-    async purgeAll(): Promise<void> {
-        this.logger.warn('Purging entire cache');
-        // cache-manager v5+ uses clear() instead of reset()
-        if (typeof this.cacheManager.clear === 'function') {
-            await this.cacheManager.clear();
-        }
-        else if (typeof (this.cacheManager as CacheManagerExtended).reset === 'function') {
-            await (this.cacheManager as CacheManagerExtended).reset!();
-        }
-        this.eventEmitter.emit(APP_EVENTS.CACHE_PURGED, { timestamp: new Date() });
-    }
+    this.eventEmitter.emit(APP_EVENTS.CACHE_PURGED, { timestamp: new Date() });
+  }
 }

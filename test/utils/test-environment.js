@@ -42,7 +42,7 @@ class TestEnvironment extends NodeEnvironment {
     await super.setup();
 
     // Ensure clean test environment
-    this.global.beforeAll && await this.ensureCleanSetup();
+    this.global.beforeAll && (await this.ensureCleanSetup());
   }
 
   async teardown() {
@@ -80,7 +80,7 @@ class TestEnvironment extends NodeEnvironment {
     await Promise.all(pendingOps);
 
     // Small delay to ensure system stability
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   async ensureDatabaseReady() {
@@ -159,7 +159,7 @@ class TestEnvironment extends NodeEnvironment {
         // Continue waiting
       }
 
-      await new Promise(resolve => setTimeout(resolve, interval));
+      await new Promise((resolve) => setTimeout(resolve, interval));
     }
 
     throw new Error(`${description} did not become true within ${timeout}ms`);
@@ -187,8 +187,11 @@ class TestEnvironment extends NodeEnvironment {
           throw error;
         }
 
-        console.warn(`Operation failed on attempt ${attempt}, retrying in ${currentDelay}ms:`, error.message);
-        await new Promise(resolve => setTimeout(resolve, currentDelay));
+        console.warn(
+          `Operation failed on attempt ${attempt}, retrying in ${currentDelay}ms:`,
+          error.message,
+        );
+        await new Promise((resolve) => setTimeout(resolve, currentDelay));
         currentDelay = Math.floor(currentDelay * backoffMultiplier);
       }
     }

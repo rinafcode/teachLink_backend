@@ -11,18 +11,18 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 export enum SubscriptionStatus {
-    ACTIVE = 'active',
-    CANCELLED = 'cancelled',
-    PAST_DUE = 'past_due',
-    UNPAID = 'unpaid',
-    TRIALING = 'trialing',
-    INCOMPLETE = 'incomplete'
+  ACTIVE = 'active',
+  CANCELLED = 'cancelled',
+  PAST_DUE = 'past_due',
+  UNPAID = 'unpaid',
+  TRIALING = 'trialing',
+  INCOMPLETE = 'incomplete',
 }
 export enum SubscriptionInterval {
-    MONTHLY = 'monthly',
-    YEARLY = 'yearly',
-    QUARTERLY = 'quarterly',
-    WEEKLY = 'weekly'
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  QUARTERLY = 'quarterly',
+  WEEKLY = 'weekly',
 }
 
 /**

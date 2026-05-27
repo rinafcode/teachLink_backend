@@ -16,12 +16,12 @@ export class AwsCostCollectorService {
   constructor(private readonly costService: CostTrackingService) {
     // Try to lazily load the AWS Cost Explorer client
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { CostExplorerClient, GetCostAndUsageCommand } = require('@aws-sdk/client-cost-explorer');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { CostExplorerClient } = require('@aws-sdk/client-cost-explorer');
       const region = process.env.AWS_REGION || 'us-east-1';
       this.client = new CostExplorerClient({ region });
       this.enabled = true;
-    } catch (err) {
+    } catch (_err) {
       this.logger.warn('AWS Cost Explorer client not available — AWS cost collection disabled');
       this.enabled = false;
     }
@@ -45,6 +45,7 @@ export class AwsCostCollectorService {
         Metrics: ['UnblendedCost'],
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { GetCostAndUsageCommand } = require('@aws-sdk/client-cost-explorer');
       const cmd = new GetCostAndUsageCommand(params);
       const resp = await this.client.send(cmd);
