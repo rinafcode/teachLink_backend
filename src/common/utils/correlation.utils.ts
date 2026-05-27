@@ -13,7 +13,7 @@ const correlationStorage = new AsyncLocalStorage<ICorrelationContext>();
  * @returns The resulting string value.
  */
 export function generateCorrelationId(): string {
-    return `cid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return `cid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /**
@@ -21,8 +21,8 @@ export function generateCorrelationId(): string {
  * @returns The operation result.
  */
 export function getCorrelationId(): string | undefined {
-    const store = correlationStorage.getStore();
-    return store?.correlationId;
+  const store = correlationStorage.getStore();
+  return store?.correlationId;
 }
 
 /**
@@ -32,10 +32,12 @@ export function getCorrelationId(): string | undefined {
  * @param correlationId The correlation identifier.
  */
 export function setCorrelationId(req: Request, res: Response, correlationId: string): void {
-    (req as Request & {
-        correlationId?: string;
-    }).correlationId = correlationId;
-    res.setHeader(CORRELATION_ID_HEADER, correlationId);
+  (
+    req as Request & {
+      correlationId?: string;
+    }
+  ).correlationId = correlationId;
+  res.setHeader(CORRELATION_ID_HEADER, correlationId);
 }
 
 /**
@@ -45,12 +47,13 @@ export function setCorrelationId(req: Request, res: Response, correlationId: str
  * @param next The next.
  */
 export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
-    const incoming = (req.headers[CORRELATION_ID_HEADER] as string) || (req.headers['x-correlation-id'] as string);
-    const correlationId = incoming || generateCorrelationId();
-    correlationStorage.run({ correlationId }, () => {
-        setCorrelationId(req, res, correlationId);
-        next();
-    });
+  const incoming =
+    (req.headers[CORRELATION_ID_HEADER] as string) || (req.headers['x-correlation-id'] as string);
+  const correlationId = incoming || generateCorrelationId();
+  correlationStorage.run({ correlationId }, () => {
+    setCorrelationId(req, res, correlationId);
+    next();
+  });
 }
 
 /**
@@ -60,8 +63,8 @@ export function correlationMiddleware(req: Request, res: Response, next: NextFun
  * @returns The resulting t.
  */
 export function runWithCorrelationId<T>(callback: () => T, correlationId?: string): T {
-    const id = correlationId || generateCorrelationId();
-    return correlationStorage.run({ correlationId: id }, callback);
+  const id = correlationId || generateCorrelationId();
+  return correlationStorage.run({ correlationId: id }, callback);
 }
 
 /**

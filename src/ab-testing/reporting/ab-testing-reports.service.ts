@@ -19,8 +19,8 @@ export interface IReportFilters {
  */
 @Injectable()
 export class ABTestingReportsService {
-    private readonly logger = new Logger(ABTestingReportsService.name);
-    constructor(
+  private readonly logger = new Logger(ABTestingReportsService.name);
+  constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
     @InjectRepository(IExperimentVariant)
@@ -256,7 +256,9 @@ export class ABTestingReportsService {
           : 0,
       bestPerforming:
         performanceData.length > 0
-          ? [...performanceData].sort((a, b) => b.improvementPercentage - a.improvementPercentage)[0]
+          ? [...performanceData].sort(
+              (a, b) => b.improvementPercentage - a.improvementPercentage,
+            )[0]
           : null,
       performanceData,
     };

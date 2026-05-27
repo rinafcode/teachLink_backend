@@ -39,20 +39,16 @@ export class BackupProcessingWorker extends BaseWorker {
           });
           break;
         case 'incremental':
-          result = await this.performIncrementalBackup(
-            job,
-            targetDatabase,
-            destination,
-            { compression, encryption },
-          );
+          result = await this.performIncrementalBackup(job, targetDatabase, destination, {
+            compression,
+            encryption,
+          });
           break;
         case 'differential':
-          result = await this.performDifferentialBackup(
-            job,
-            targetDatabase,
-            destination,
-            { compression, encryption },
-          );
+          result = await this.performDifferentialBackup(job, targetDatabase, destination, {
+            compression,
+            encryption,
+          });
           break;
         case 'restore':
           result = await this.restoreFromBackup(job, targetDatabase, destination);
@@ -162,11 +158,7 @@ export class BackupProcessingWorker extends BaseWorker {
   /**
    * Restore from backup
    */
-  private async restoreFromBackup(
-    job: Job,
-    database: string,
-    source: string,
-  ): Promise<any> {
+  private async restoreFromBackup(job: Job, database: string, source: string): Promise<any> {
     await job.progress(30);
     this.logger.log(`Restoring ${database} from backup at ${source}`);
 

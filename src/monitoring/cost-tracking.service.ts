@@ -38,7 +38,11 @@ export class CostTrackingService {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const prom = require('prom-client');
         const Gauge = prom.Gauge;
-        new Gauge({ name: gaugeName, help: 'Hourly infrastructure cost in USD', registers: [registry] }).set(latest);
+        new Gauge({
+          name: gaugeName,
+          help: 'Hourly infrastructure cost in USD',
+          registers: [registry],
+        }).set(latest);
       }
     } catch (err) {
       this.logger.error('Failed to record cost metric', err as Error);
