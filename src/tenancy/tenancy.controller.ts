@@ -1,10 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { TenancyService } from './tenancy.service';
 import { TenantAdminService } from './admin/tenant-admin.service';
 import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
-import { CreateTenantDto, UpdateTenantDto, UpdateTenantConfigDto, UpdateTenantCustomizationDto, } from './dto/tenant.dto';
+import {
+  CreateTenantDto,
+  UpdateTenantDto,
+  UpdateTenantConfigDto,
+  UpdateTenantCustomizationDto,
+} from './dto/tenant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -18,6 +33,8 @@ import { TenantPlan } from './entities/tenant.entity';
 @Controller('tenants')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
+@ApiResponse({ status: 403, description: 'Insufficient tenant permissions' })
 export class TenancyController {
   constructor(
     private readonly tenancyService: TenancyService,

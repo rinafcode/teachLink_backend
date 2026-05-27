@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -37,11 +37,29 @@ export class DebugController {
   @Get('requests')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List recently captured request/response exchanges' })
+  @ApiResponse({
+    status: 200,
+    description: 'Captured request summaries',
+    schema: {
+      example: {
+        total: 1,
+        records: [
+          {
+            id: 'req_01',
+            timestamp: '2026-05-27T18:00:00.000Z',
+            method: 'GET',
+            path: '/search?q=javascript',
+            statusCode: 200,
+            durationMs: 18,
+            hasError: false,
+          },
+        ],
+      },
+    },
+  })
   list(@Query('limit') limit?: string) {
     const parsed = limit ? Number(limit) : undefined;
-    const records = this.capture.list(
-      Number.isFinite(parsed) ? parsed : undefined,
-    );
+    const records = this.capture.list(Number.isFinite(parsed) ? parsed : undefined);
     // Summaries only — keep the list view light. Full payload via :id.
     return {
       total: this.capture.size,
@@ -60,6 +78,8 @@ export class DebugController {
   @Get('requests/:id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Inspect a captured request/response in full' })
+  @ApiResponse({ status: 200, description: 'Captured request details' })
+  @ApiResponse({ status: 404, description: 'Captured request not found' })
   inspect(@Param('id') id: string) {
     const record = this.capture.get(id);
     if (!record) throw new NotFoundException(`No captured request "${id}"`);
@@ -69,6 +89,8 @@ export class DebugController {
   @Get('requests/:id/timeline')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get the performance timeline for a captured request' })
+  @ApiResponse({ status: 200, description: 'Captured request performance timeline' })
+  @ApiResponse({ status: 404, description: 'Captured request not found' })
   timeline(@Param('id') id: string) {
     const record = this.capture.get(id);
     if (!record) throw new NotFoundException(`No captured request "${id}"`);
@@ -81,6 +103,8 @@ export class DebugController {
   @Get('requests/:id/trace')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get the enhanced stack trace for a failed request' })
+  @ApiResponse({ status: 200, description: 'Enhanced error trace or no-error message' })
+  @ApiResponse({ status: 404, description: 'Captured request not found' })
   trace(@Param('id') id: string) {
     const record = this.capture.get(id);
     if (!record) throw new NotFoundException(`No captured request "${id}"`);
@@ -93,6 +117,7 @@ export class DebugController {
   @Post('requests/:id/replay')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Replay a captured request and diff the response' })
+  @ApiResponse({ status: 200, description: 'Replay result and response diff' })
   replay(@Param('id') id: string, @Body() body: ReplayRequestDto) {
     return this.replayService.replay(id, {
       baseUrl: body?.baseUrl,
@@ -104,6 +129,11 @@ export class DebugController {
   @Delete('requests')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Clear the captured request buffer' })
+  @ApiResponse({
+    status: 200,
+    description: 'Capture buffer cleared',
+    schema: { example: { message: 'Debug capture buffer cleared' } },
+  })
   clear() {
     this.capture.clear();
     return { message: 'Debug capture buffer cleared' };

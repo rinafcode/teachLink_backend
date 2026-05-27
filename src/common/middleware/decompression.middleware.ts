@@ -75,7 +75,7 @@ export class DecompressionMiddleware implements NestMiddleware {
       delete req.headers['content-length'];
 
       // Pipe the incoming request through decompression
-      req.pipe(decompressor).pipe(req);
+      req.pipe(decompressor).pipe(req as unknown as NodeJS.WritableStream);
 
       next();
     } catch (error: unknown) {
