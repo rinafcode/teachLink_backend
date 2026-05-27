@@ -30,6 +30,8 @@ async function bootstrap() {
       .setDescription('TeachLink Backend API Documentation')
       .setVersion('1.0')
       .addTag('App')
+      .addTag('Quota')
+      .addTag('Quota Management')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

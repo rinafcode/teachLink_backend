@@ -6,3 +6,4 @@ export { QuotaGuard } from './guards/quota.guard';
 export { UseQuota, SkipQuota, QUOTA_KEY } from './decorators/quota.decorator';
 export { QUOTA_LIMITS, QUOTA_RESET_PERIODS } from './rate-limiting.constants';
 export { RateLimitingModule } from './rate-limiting.module';
+export { QuotaStatusDto, CreateQuotaDefinitionDto } from './dto/quota.dto';

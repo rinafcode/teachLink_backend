@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { In, LessThan, Repository } from 'typeorm';
 import { UserQuotaUsage } from '../entities/user-quota-usage.entity';
 import { QuotaDefinitionService } from './quota-definition.service';
+import { AdaptiveRateLimitingService } from './adaptive-rate-limiting.service';
 import { UserTier, QuotaResetPeriod } from '../rate-limiting.constants';
 import { QuotaStatusDto } from '../dto/quota.dto';
 
@@ -10,7 +11,7 @@ export interface QuotaCheckResult {
   allowed: boolean;
   remaining: { minute: number; hour: number; day: number };
   limit: { minute: number; hour: number; day: number };
-  retryAfter?: number; // seconds
+  retryAfter?: number;
 }
 
 @Injectable()
@@ -21,21 +22,29 @@ export class QuotaTrackingService {
     @InjectRepository(UserQuotaUsage)
     private readonly usageRepo: Repository<UserQuotaUsage>,
     private readonly definitionService: QuotaDefinitionService,
+    private readonly adaptive: AdaptiveRateLimitingService,
   ) {}
 
   /**
    * Atomically increment the user's counters and check if they are within quota.
-   * Returns allowed=false if any window is exhausted.
+   * Returns allowed=false if any window is exhausted or the user is blocked from overage.
    */
   async checkAndIncrement(userId: string, tier: UserTier): Promise<QuotaCheckResult> {
-    const limits = await this.definitionService.resolveForUser(userId, tier);
+    const baseLimits = await this.definitionService.resolveForUser(userId, tier);
+    const limits = {
+      requestsPerMinute: this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
+      requestsPerHour: this.adaptive.adjustLimit(baseLimits.requestsPerHour),
+      requestsPerDay: this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+    };
     const now = new Date();
 
-    const [minute, hour, day] = await Promise.all([
-      this.getOrCreateUsage(userId, tier, 'MINUTELY', now),
-      this.getOrCreateUsage(userId, tier, 'HOURLY', now),
-      this.getOrCreateUsage(userId, tier, 'DAILY', now),
-    ]);
+    const minute = await this.getOrCreateUsage(userId, tier, 'MINUTELY', now);
+    const hour = await this.getOrCreateUsage(userId, tier, 'HOURLY', now);
+    const day = await this.getOrCreateUsage(userId, tier, 'DAILY', now);
+
+    if (this.isBlockedInWindow(minute, hour, day, now)) {
+      return this.buildDeniedResult(minute, hour, day, limits, now);
+    }
 
     const withinMinute = minute.count < limits.requestsPerMinute;
     const withinHour = hour.count < limits.requestsPerHour;
@@ -43,58 +52,50 @@ export class QuotaTrackingService {
     const allowed = withinMinute && withinHour && withinDay;
 
     if (allowed) {
-      // Increment all windows atomically
       await Promise.all([
         this.usageRepo.increment({ id: minute.id }, 'count', 1),
         this.usageRepo.increment({ id: hour.id }, 'count', 1),
         this.usageRepo.increment({ id: day.id }, 'count', 1),
       ]);
     } else {
+      await this.markOverage({ minute, hour, day }, { withinMinute, withinHour, withinDay });
       this.logger.warn(
         `Quota exceeded userId=${userId} tier=${tier} ` +
           `min=${minute.count}/${limits.requestsPerMinute} ` +
           `hr=${hour.count}/${limits.requestsPerHour} ` +
           `day=${day.count}/${limits.requestsPerDay}`,
       );
-    }
-
-    // retryAfter = seconds until the tightest exhausted window resets
-    let retryAfter: number | undefined;
-    if (!allowed) {
-      const exhausted: Date[] = [];
-      if (!withinMinute) exhausted.push(minute.windowEnd);
-      if (!withinHour) exhausted.push(hour.windowEnd);
-      if (!withinDay) exhausted.push(day.windowEnd);
-      const earliest = exhausted.sort((a, b) => a.getTime() - b.getTime())[0];
-      retryAfter = Math.ceil((earliest.getTime() - now.getTime()) / 1000);
+      return this.buildDeniedResult(minute, hour, day, limits, now);
     }
 
     return {
-      allowed,
+      allowed: true,
       remaining: {
-        minute: Math.max(0, limits.requestsPerMinute - minute.count - (allowed ? 1 : 0)),
-        hour: Math.max(0, limits.requestsPerHour - hour.count - (allowed ? 1 : 0)),
-        day: Math.max(0, limits.requestsPerDay - day.count - (allowed ? 1 : 0)),
+        minute: Math.max(0, limits.requestsPerMinute - minute.count - 1),
+        hour: Math.max(0, limits.requestsPerHour - hour.count - 1),
+        day: Math.max(0, limits.requestsPerDay - day.count - 1),
       },
       limit: {
         minute: limits.requestsPerMinute,
         hour: limits.requestsPerHour,
         day: limits.requestsPerDay,
       },
-      retryAfter,
     };
   }
 
   /** Get quota status without incrementing (for status endpoint). */
   async getStatus(userId: string, tier: UserTier): Promise<QuotaStatusDto> {
-    const limits = await this.definitionService.resolveForUser(userId, tier);
+    const baseLimits = await this.definitionService.resolveForUser(userId, tier);
+    const limits = {
+      requestsPerMinute: this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
+      requestsPerHour: this.adaptive.adjustLimit(baseLimits.requestsPerHour),
+      requestsPerDay: this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+    };
     const now = new Date();
 
-    const [minute, hour, day] = await Promise.all([
-      this.getOrCreateUsage(userId, tier, 'MINUTELY', now),
-      this.getOrCreateUsage(userId, tier, 'HOURLY', now),
-      this.getOrCreateUsage(userId, tier, 'DAILY', now),
-    ]);
+    const minute = await this.getOrCreateUsage(userId, tier, 'MINUTELY', now);
+    const hour = await this.getOrCreateUsage(userId, tier, 'HOURLY', now);
+    const day = await this.getOrCreateUsage(userId, tier, 'DAILY', now);
 
     return {
       userId,
@@ -105,8 +106,8 @@ export class QuotaTrackingService {
       hourLimit: limits.requestsPerHour,
       dayUsed: day.count,
       dayLimit: limits.requestsPerDay,
-      isBlocked: minute.isBlocked || hour.isBlocked || day.isBlocked,
-      nextResetAt: minute.windowEnd, // smallest window resets first
+      isBlocked: this.isBlockedInWindow(minute, hour, day, now),
+      nextResetAt: this.earliestReset(minute, hour, day),
     };
   }
 
@@ -132,6 +133,70 @@ export class QuotaTrackingService {
 
   // ─── Private helpers ──────────────────────────────────────────────────────
 
+  private isBlockedInWindow(
+    minute: UserQuotaUsage,
+    hour: UserQuotaUsage,
+    day: UserQuotaUsage,
+    now: Date,
+  ): boolean {
+    return [minute, hour, day].some(
+      (window) => window.isBlocked && window.windowEnd > now,
+    );
+  }
+
+  private async markOverage(
+    windows: { minute: UserQuotaUsage; hour: UserQuotaUsage; day: UserQuotaUsage },
+    within: { withinMinute: boolean; withinHour: boolean; withinDay: boolean },
+  ): Promise<void> {
+    const ids: string[] = [];
+    if (!within.withinMinute) ids.push(windows.minute.id);
+    if (!within.withinHour) ids.push(windows.hour.id);
+    if (!within.withinDay) ids.push(windows.day.id);
+
+    if (ids.length === 0) return;
+    await this.usageRepo.update({ id: In(ids) }, { isBlocked: true });
+  }
+
+  private buildDeniedResult(
+    minute: UserQuotaUsage,
+    hour: UserQuotaUsage,
+    day: UserQuotaUsage,
+    limits: { requestsPerMinute: number; requestsPerHour: number; requestsPerDay: number },
+    now: Date,
+  ): QuotaCheckResult {
+    const withinMinute = minute.count < limits.requestsPerMinute;
+    const withinHour = hour.count < limits.requestsPerHour;
+    const withinDay = day.count < limits.requestsPerDay;
+
+    const exhausted: Date[] = [];
+    if (!withinMinute || minute.isBlocked) exhausted.push(minute.windowEnd);
+    if (!withinHour || hour.isBlocked) exhausted.push(hour.windowEnd);
+    if (!withinDay || day.isBlocked) exhausted.push(day.windowEnd);
+    const earliest = exhausted.sort((a, b) => a.getTime() - b.getTime())[0];
+    const retryAfter = Math.max(1, Math.ceil((earliest.getTime() - now.getTime()) / 1000));
+
+    return {
+      allowed: false,
+      remaining: {
+        minute: Math.max(0, limits.requestsPerMinute - minute.count),
+        hour: Math.max(0, limits.requestsPerHour - hour.count),
+        day: Math.max(0, limits.requestsPerDay - day.count),
+      },
+      limit: {
+        minute: limits.requestsPerMinute,
+        hour: limits.requestsPerHour,
+        day: limits.requestsPerDay,
+      },
+      retryAfter,
+    };
+  }
+
+  private earliestReset(...windows: UserQuotaUsage[]): Date {
+    return windows.reduce((earliest, window) =>
+      window.windowEnd < earliest ? window.windowEnd : earliest,
+    );
+  }
+
   private async getOrCreateUsage(
     userId: string,
     tier: UserTier,
@@ -140,12 +205,10 @@ export class QuotaTrackingService {
   ): Promise<UserQuotaUsage> {
     const existing = await this.usageRepo.findOne({ where: { userId, period } });
 
-    // If exists and window is still valid, return it
     if (existing && existing.windowEnd > now) {
       return existing;
     }
 
-    // Window expired — delete old and create fresh
     if (existing) {
       await this.usageRepo.delete({ id: existing.id });
     }
@@ -172,14 +235,14 @@ export class QuotaTrackingService {
 
     if (period === 'MINUTELY') {
       windowStart.setSeconds(0, 0);
-      windowEnd.setSeconds(59, 999);
+      windowEnd.setMinutes(windowEnd.getMinutes() + 1, 0, -1);
     } else if (period === 'HOURLY') {
       windowStart.setMinutes(0, 0, 0);
-      windowEnd.setMinutes(59, 59, 999);
+      windowEnd.setHours(windowEnd.getHours() + 1, 0, 0, -1);
     } else {
-      // DAILY
       windowStart.setHours(0, 0, 0, 0);
-      windowEnd.setHours(23, 59, 59, 999);
+      windowEnd.setDate(windowEnd.getDate() + 1);
+      windowEnd.setHours(0, 0, 0, -1);
     }
 
     return { windowStart, windowEnd };
