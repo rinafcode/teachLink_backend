@@ -10,22 +10,9 @@ import { CacheManagementController } from './cache-management.controller';
 import { AdaptiveTTLService } from './adaptive-ttl.service';
 
 @Module({
-  imports: [
-    CacheModule.register(cacheConfig),
-    EventEmitterModule,
-    ScheduleModule,
-    ConfigModule,
-  ],
-  providers: [
-    CacheAnalyticsService,
-    CacheOptimizationService,
-    AdaptiveTTLService,
-  ],
+  imports: [CacheModule.register(cacheConfig), EventEmitterModule, ScheduleModule, ConfigModule],
+  providers: [CacheAnalyticsService, CacheOptimizationService, AdaptiveTTLService],
   controllers: [CacheManagementController],
-  exports: [
-    CacheAnalyticsService,
-    CacheOptimizationService,
-    AdaptiveTTLService,
-  ],
+  exports: [CacheAnalyticsService, CacheOptimizationService, AdaptiveTTLService],
 })
 export class CachingModule {}

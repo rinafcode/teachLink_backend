@@ -1,7 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
-import { CacheAnalyticsService, CacheAnalyticsReport, TTLRecommendation } from './cache-analytics.service';
-import { CacheOptimizationService, OptimizationResult, CacheOptimizationConfig } from './cache-optimization.service';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import {
+  CacheAnalyticsService,
+  CacheAnalyticsReport,
+  TTLRecommendation,
+} from './cache-analytics.service';
+import {
+  CacheOptimizationService,
+  OptimizationResult,
+  CacheOptimizationConfig,
+} from './cache-optimization.service';
 
 @ApiTags('Cache Management')
 @Controller('cache')
@@ -13,9 +21,10 @@ export class CacheManagementController {
 
   @Get('analytics/report')
   @ApiOperation({ summary: 'Get comprehensive cache analytics report' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Cache analytics report with hit rates, TTL recommendations, and performance metrics',
+  @ApiResponse({
+    status: 200,
+    description:
+      'Cache analytics report with hit rates, TTL recommendations, and performance metrics',
     schema: {
       type: 'object',
       properties: {
@@ -26,9 +35,9 @@ export class CacheManagementController {
         underPerformers: { type: 'array' },
         ttlRecommendations: { type: 'array' },
         adaptiveTtlAdjustments: { type: 'number' },
-        generatedAt: { type: 'string', format: 'date-time' }
-      }
-    }
+        generatedAt: { type: 'string', format: 'date-time' },
+      },
+    },
   })
   async getAnalyticsReport(): Promise<CacheAnalyticsReport> {
     return this.analyticsService.generateAnalyticsReport();
@@ -44,9 +53,14 @@ export class CacheManagementController {
 
   @Get('ttl/recommendations')
   @ApiOperation({ summary: 'Get TTL optimization recommendations' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Limit number of recommendations' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Limit number of recommendations',
+  })
+  @ApiResponse({
+    status: 200,
     description: 'List of TTL optimization recommendations',
     schema: {
       type: 'array',
@@ -58,10 +72,10 @@ export class CacheManagementController {
           recommendedTtl: { type: 'number' },
           reason: { type: 'string' },
           confidence: { type: 'number' },
-          potentialSavings: { type: 'number' }
-        }
-      }
-    }
+          potentialSavings: { type: 'number' },
+        },
+      },
+    },
   })
   async getTTLRecommendations(@Query('limit') limit?: number): Promise<TTLRecommendation[]> {
     const report = await this.analyticsService.generateAnalyticsReport();
@@ -70,8 +84,8 @@ export class CacheManagementController {
 
   @Post('optimize')
   @ApiOperation({ summary: 'Run comprehensive cache optimization' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Optimization results',
     schema: {
       type: 'object',
@@ -80,9 +94,9 @@ export class CacheManagementController {
         memoryFreed: { type: 'number' },
         hitRateImprovement: { type: 'number' },
         recommendations: { type: 'array' },
-        timestamp: { type: 'string', format: 'date-time' }
-      }
-    }
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
   })
   async optimizeCache(): Promise<OptimizationResult> {
     return this.optimizationService.optimizeCache();
@@ -106,16 +120,13 @@ export class CacheManagementController {
   @Post('ttl/:key')
   @ApiOperation({ summary: 'Set custom TTL for a specific cache key pattern' })
   @ApiResponse({ status: 200, description: 'TTL updated successfully' })
-  async setCustomTTL(
-    @Param('key') key: string,
-    @Body() body: { ttl: number; reason?: string }
-  ) {
+  async setCustomTTL(@Param('key') key: string, @Body() body: { ttl: number; reason?: string }) {
     // This would update the TTL configuration
-    return { 
+    return {
       message: `TTL for key pattern '${key}' set to ${body.ttl} seconds`,
       key,
       ttl: body.ttl,
-      reason: body.reason
+      reason: body.reason,
     };
   }
 
@@ -137,8 +148,8 @@ export class CacheManagementController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Get real-time cache statistics' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Real-time cache statistics',
     schema: {
       type: 'object',
@@ -147,20 +158,20 @@ export class CacheManagementController {
         memoryUsage: { type: 'number' },
         hitRate: { type: 'number' },
         operationsPerSecond: { type: 'number' },
-        averageResponseTime: { type: 'number' }
-      }
-    }
+        averageResponseTime: { type: 'number' },
+      },
+    },
   })
   async getCacheStats() {
     const report = await this.analyticsService.generateAnalyticsReport();
-    
+
     return {
       totalKeys: report.totalKeys,
       memoryUsage: report.memoryUsage,
       hitRate: report.overallHitRate,
       operationsPerSecond: 0, // Would need to be calculated from recent metrics
       averageResponseTime: 0, // Would need to be calculated from performance metrics
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     };
   }
 
@@ -169,7 +180,7 @@ export class CacheManagementController {
   @ApiResponse({ status: 200, description: 'Cache system health status' })
   async getCacheHealth() {
     const report = await this.analyticsService.generateAnalyticsReport();
-    
+
     // Define health thresholds
     const healthStatus = {
       status: 'healthy' as 'healthy' | 'warning' | 'critical',
@@ -177,7 +188,7 @@ export class CacheManagementController {
       memoryUsage: report.memoryUsage,
       totalKeys: report.totalKeys,
       issues: [] as string[],
-      recommendations: [] as string[]
+      recommendations: [] as string[],
     };
 
     // Check hit rate health
@@ -195,7 +206,8 @@ export class CacheManagementController {
     }
 
     // Check memory usage (if available)
-    if (report.memoryUsage > 1024 * 1024 * 1024) { // > 1GB
+    if (report.memoryUsage > 1024 * 1024 * 1024) {
+      // > 1GB
       healthStatus.status = 'warning';
       healthStatus.issues.push('High memory usage');
       healthStatus.recommendations.push('Consider reducing TTL for large objects');

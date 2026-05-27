@@ -100,7 +100,7 @@ export class AdaptiveTTLService {
    */
   private async initializeRules(): Promise<void> {
     const existingRules = await this.redis.get(this.rulesKey);
-    
+
     if (!existingRules) {
       await this.redis.set(this.rulesKey, JSON.stringify(this.defaultRules));
       this.logger.log('Initialized default adaptive TTL rules');
@@ -111,13 +111,13 @@ export class AdaptiveTTLService {
    * Get adaptive TTL for a cache key
    */
   async getAdaptiveTTL(
-    key: string, 
-    defaultTtl: number, 
-    hitRate?: number, 
-    accessFrequency?: number
+    key: string,
+    defaultTtl: number,
+    hitRate?: number,
+    accessFrequency?: number,
   ): Promise<number> {
     const rule = await this.findMatchingRule(key);
-    
+
     if (!rule || !rule.enabled) {
       return defaultTtl;
     }
@@ -149,7 +149,7 @@ export class AdaptiveTTLService {
     if (Math.abs(adjustedTtl - defaultTtl) / defaultTtl > 0.1) {
       this.logger.debug(
         `Adaptive TTL adjustment for ${key}: ${defaultTtl}s -> ${adjustedTtl}s ` +
-        `(hit rate: ${hitRate?.toFixed(2)}, frequency: ${accessFrequency?.toFixed(2)})`
+          `(hit rate: ${hitRate?.toFixed(2)}, frequency: ${accessFrequency?.toFixed(2)})`,
       );
 
       // Record the adjustment
@@ -172,14 +172,14 @@ export class AdaptiveTTLService {
    */
   private async findMatchingRule(key: string): Promise<AdaptiveTTLRule | null> {
     const rulesData = await this.redis.get(this.rulesKey);
-    
+
     if (!rulesData) {
       return null;
     }
 
     const rules: AdaptiveTTLRule[] = JSON.parse(rulesData);
-    
-    return rules.find(rule => this.matchesPattern(key, rule.keyPattern)) || null;
+
+    return rules.find((rule) => this.matchesPattern(key, rule.keyPattern)) || null;
   }
 
   /**
@@ -187,10 +187,8 @@ export class AdaptiveTTLService {
    */
   private matchesPattern(key: string, pattern: string): boolean {
     // Convert glob pattern to regex
-    const regexPattern = pattern
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
-    
+    const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.');
+
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(key);
   }
@@ -199,9 +197,9 @@ export class AdaptiveTTLService {
    * Get reason for TTL adjustment
    */
   private getAdjustmentReason(
-    hitRate: number, 
-    accessFrequency: number, 
-    rule: AdaptiveTTLRule
+    hitRate: number,
+    accessFrequency: number,
+    rule: AdaptiveTTLRule,
   ): string {
     if (hitRate >= rule.hitRateThreshold && accessFrequency >= rule.accessFrequencyThreshold) {
       return 'High hit rate and access frequency - increased TTL';
@@ -221,13 +219,13 @@ export class AdaptiveTTLService {
   private async recordAdjustment(adjustment: TTLAdjustmentEvent): Promise<void> {
     const adjustmentData = JSON.stringify(adjustment);
     const timestamp = adjustment.timestamp.getTime();
-    
+
     // Store with timestamp as score for time-based queries
     await this.redis.zadd(this.adjustmentsKey, timestamp, adjustmentData);
-    
+
     // Keep only last 1000 adjustments
     await this.redis.zremrangebyrank(this.adjustmentsKey, 0, -1001);
-    
+
     // Emit event for real-time monitoring
     this.eventEmitter.emit('cache.ttl.adjusted', adjustment);
   }
@@ -237,8 +235,8 @@ export class AdaptiveTTLService {
    */
   async getRecentAdjustments(limit: number = 50): Promise<TTLAdjustmentEvent[]> {
     const adjustments = await this.redis.zrevrange(this.adjustmentsKey, 0, limit - 1);
-    
-    return adjustments.map(data => JSON.parse(data));
+
+    return adjustments.map((data) => JSON.parse(data));
   }
 
   /**
@@ -251,22 +249,23 @@ export class AdaptiveTTLService {
     averageAdjustment: number;
     topAdjustedKeys: string[];
   }> {
-    const since = Date.now() - (hours * 60 * 60 * 1000);
+    const since = Date.now() - hours * 60 * 60 * 1000;
     const adjustments = await this.redis.zrangebyscore(this.adjustmentsKey, since, '+inf');
-    
-    const parsed = adjustments.map(data => JSON.parse(data) as TTLAdjustmentEvent);
-    
-    const increased = parsed.filter(adj => adj.newTtl > adj.oldTtl).length;
-    const decreased = parsed.filter(adj => adj.newTtl < adj.oldTtl).length;
-    
-    const adjustmentRatios = parsed.map(adj => adj.newTtl / adj.oldTtl);
-    const averageAdjustment = adjustmentRatios.length > 0 
-      ? adjustmentRatios.reduce((sum, ratio) => sum + ratio, 0) / adjustmentRatios.length 
-      : 1;
+
+    const parsed = adjustments.map((data) => JSON.parse(data) as TTLAdjustmentEvent);
+
+    const increased = parsed.filter((adj) => adj.newTtl > adj.oldTtl).length;
+    const decreased = parsed.filter((adj) => adj.newTtl < adj.oldTtl).length;
+
+    const adjustmentRatios = parsed.map((adj) => adj.newTtl / adj.oldTtl);
+    const averageAdjustment =
+      adjustmentRatios.length > 0
+        ? adjustmentRatios.reduce((sum, ratio) => sum + ratio, 0) / adjustmentRatios.length
+        : 1;
 
     // Count adjustments per key
     const keyAdjustments = new Map<string, number>();
-    parsed.forEach(adj => {
+    parsed.forEach((adj) => {
       keyAdjustments.set(adj.key, (keyAdjustments.get(adj.key) || 0) + 1);
     });
 
@@ -306,14 +305,14 @@ export class AdaptiveTTLService {
    */
   async updateRule(rule: AdaptiveTTLRule): Promise<void> {
     const rules = await this.getRules();
-    const existingIndex = rules.findIndex(r => r.keyPattern === rule.keyPattern);
-    
+    const existingIndex = rules.findIndex((r) => r.keyPattern === rule.keyPattern);
+
     if (existingIndex >= 0) {
       rules[existingIndex] = rule;
     } else {
       rules.push(rule);
     }
-    
+
     await this.updateRules(rules);
   }
 
@@ -322,8 +321,8 @@ export class AdaptiveTTLService {
    */
   async removeRule(keyPattern: string): Promise<void> {
     const rules = await this.getRules();
-    const filteredRules = rules.filter(r => r.keyPattern !== keyPattern);
-    
+    const filteredRules = rules.filter((r) => r.keyPattern !== keyPattern);
+
     if (filteredRules.length !== rules.length) {
       await this.updateRules(filteredRules);
       this.logger.log(`Removed adaptive TTL rule for pattern: ${keyPattern}`);
@@ -335,12 +334,14 @@ export class AdaptiveTTLService {
    */
   async toggleRule(keyPattern: string, enabled: boolean): Promise<void> {
     const rules = await this.getRules();
-    const rule = rules.find(r => r.keyPattern === keyPattern);
-    
+    const rule = rules.find((r) => r.keyPattern === keyPattern);
+
     if (rule) {
       rule.enabled = enabled;
       await this.updateRules(rules);
-      this.logger.log(`${enabled ? 'Enabled' : 'Disabled'} adaptive TTL rule for pattern: ${keyPattern}`);
+      this.logger.log(
+        `${enabled ? 'Enabled' : 'Disabled'} adaptive TTL rule for pattern: ${keyPattern}`,
+      );
     }
   }
 
@@ -349,9 +350,9 @@ export class AdaptiveTTLService {
    */
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanupOldAdjustments(): Promise<void> {
-    const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 days ago
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days ago
     const removed = await this.redis.zremrangebyscore(this.adjustmentsKey, '-inf', cutoff);
-    
+
     if (removed > 0) {
       this.logger.log(`Cleaned up ${removed} old TTL adjustment records`);
     }
@@ -371,7 +372,7 @@ export class AdaptiveTTLService {
       payload.key,
       payload.currentTtl,
       payload.hitRate,
-      payload.accessFrequency
+      payload.accessFrequency,
     );
 
     if (adaptiveTtl !== payload.currentTtl) {
@@ -382,7 +383,7 @@ export class AdaptiveTTLService {
         reason: this.getAdjustmentReason(
           payload.hitRate,
           payload.accessFrequency,
-          await this.findMatchingRule(payload.key) || this.defaultRules[0]
+          (await this.findMatchingRule(payload.key)) || this.defaultRules[0],
         ),
       });
     }

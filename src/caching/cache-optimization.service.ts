@@ -3,7 +3,11 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
-import { CacheAnalyticsService, CacheAnalyticsReport, TTLRecommendation } from './cache-analytics.service';
+import {
+  CacheAnalyticsService,
+  CacheAnalyticsReport,
+  TTLRecommendation,
+} from './cache-analytics.service';
 import { CACHE_TTL, CACHE_PREFIXES } from './caching.constants';
 
 export interface CacheOptimizationConfig {
@@ -36,8 +40,14 @@ export class CacheOptimizationService {
   ) {
     this.config = {
       enableAdaptiveTtl: configService.get<boolean>('CACHE_ADAPTIVE_TTL_ENABLED', true),
-      enableHitRateOptimization: configService.get<boolean>('CACHE_HIT_RATE_OPTIMIZATION_ENABLED', true),
-      enableMemoryOptimization: configService.get<boolean>('CACHE_MEMORY_OPTIMIZATION_ENABLED', true),
+      enableHitRateOptimization: configService.get<boolean>(
+        'CACHE_HIT_RATE_OPTIMIZATION_ENABLED',
+        true,
+      ),
+      enableMemoryOptimization: configService.get<boolean>(
+        'CACHE_MEMORY_OPTIMIZATION_ENABLED',
+        true,
+      ),
       minHitRateThreshold: configService.get<number>('CACHE_MIN_HIT_RATE_THRESHOLD', 0.6),
       maxMemoryUsageThreshold: configService.get<number>('CACHE_MAX_MEMORY_THRESHOLD', 0.8),
       optimizationInterval: configService.get<number>('CACHE_OPTIMIZATION_INTERVAL_MINUTES', 60),
@@ -47,26 +57,26 @@ export class CacheOptimizationService {
   /**
    * Enhanced cache get with analytics tracking
    */
-  async get<T>(key: string, defaultTtl?: number): Promise<T | undefined> {
+  async get<T>(key: string, _defaultTtl?: number): Promise<T | undefined> {
     const startTime = Date.now();
-    
+
     try {
       const value = await this.cacheManager.get<T>(key);
       const hit = value !== undefined;
-      
+
       // Get TTL for analytics
       const ttl = hit ? await this.getTTL(key) : undefined;
-      
+
       // Record analytics
       this.eventEmitter.emit('cache.get', { key, hit, ttl });
-      
+
       // Track performance
       const duration = Date.now() - startTime;
-      this.eventEmitter.emit('cache.performance', { 
-        operation: 'get', 
-        key, 
-        duration, 
-        hit 
+      this.eventEmitter.emit('cache.performance', {
+        operation: 'get',
+        key,
+        duration,
+        hit,
       });
 
       return value;
@@ -82,30 +92,30 @@ export class CacheOptimizationService {
    */
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       // Get recommended TTL if adaptive TTL is enabled
-      const finalTtl = this.config.enableAdaptiveTtl && ttl
-        ? await this.analyticsService.getRecommendedTTL(key, ttl)
-        : ttl || this.getDefaultTTL(key);
+      const finalTtl =
+        this.config.enableAdaptiveTtl && ttl
+          ? await this.analyticsService.getRecommendedTTL(key, ttl)
+          : ttl || this.getDefaultTTL(key);
 
       await this.cacheManager.set(key, value, finalTtl * 1000); // Convert to milliseconds
-      
+
       // Calculate data size for analytics
       const dataSize = this.calculateDataSize(value);
-      
+
       // Record analytics
       this.eventEmitter.emit('cache.set', { key, ttl: finalTtl, size: dataSize });
-      
+
       // Track performance
       const duration = Date.now() - startTime;
-      this.eventEmitter.emit('cache.performance', { 
-        operation: 'set', 
-        key, 
-        duration, 
-        size: dataSize 
+      this.eventEmitter.emit('cache.performance', {
+        operation: 'set',
+        key,
+        duration,
+        size: dataSize,
       });
-
     } catch (error) {
       this.logger.error(`Cache set error for key ${key}:`, error);
       this.eventEmitter.emit('cache.error', { operation: 'set', key, error });
@@ -117,19 +127,18 @@ export class CacheOptimizationService {
    */
   async del(key: string): Promise<void> {
     const startTime = Date.now();
-    
+
     try {
       await this.cacheManager.del(key);
-      
-      this.eventEmitter.emit('cache.delete', { key });
-      
-      const duration = Date.now() - startTime;
-      this.eventEmitter.emit('cache.performance', { 
-        operation: 'delete', 
-        key, 
-        duration 
-      });
 
+      this.eventEmitter.emit('cache.delete', { key });
+
+      const duration = Date.now() - startTime;
+      this.eventEmitter.emit('cache.performance', {
+        operation: 'delete',
+        key,
+        duration,
+      });
     } catch (error) {
       this.logger.error(`Cache delete error for key ${key}:`, error);
       this.eventEmitter.emit('cache.error', { operation: 'delete', key, error });
@@ -141,7 +150,7 @@ export class CacheOptimizationService {
    */
   async optimizeCache(): Promise<OptimizationResult> {
     this.logger.log('Starting cache optimization process');
-    
+
     const report = await this.analyticsService.generateAnalyticsReport();
     let optimizationsApplied = 0;
     let memoryFreed = 0;
@@ -185,7 +194,9 @@ export class CacheOptimizationService {
   /**
    * Apply TTL optimizations based on recommendations
    */
-  private async applyTTLOptimizations(recommendations: TTLRecommendation[]): Promise<{ count: number; memoryFreed: number }> {
+  private async applyTTLOptimizations(
+    recommendations: TTLRecommendation[],
+  ): Promise<{ count: number; memoryFreed: number }> {
     let count = 0;
     let memoryFreed = 0;
 
@@ -195,8 +206,10 @@ export class CacheOptimizationService {
         await this.updateTTLConfiguration(recommendation.key, recommendation.recommendedTtl);
         count++;
         memoryFreed += recommendation.potentialSavings;
-        
-        this.logger.debug(`Applied TTL optimization for ${recommendation.key}: ${recommendation.currentTtl}s -> ${recommendation.recommendedTtl}s`);
+
+        this.logger.debug(
+          `Applied TTL optimization for ${recommendation.key}: ${recommendation.currentTtl}s -> ${recommendation.recommendedTtl}s`,
+        );
       }
     }
 
@@ -206,24 +219,29 @@ export class CacheOptimizationService {
   /**
    * Apply hit rate optimizations
    */
-  private async applyHitRateOptimizations(report: CacheAnalyticsReport): Promise<{ count: number; improvement: number }> {
+  private async applyHitRateOptimizations(
+    report: CacheAnalyticsReport,
+  ): Promise<{ count: number; improvement: number }> {
     let count = 0;
     let improvement = 0;
 
     // Identify keys with low hit rates
     const lowHitRateKeys = report.underPerformers.filter(
-      metric => metric.hitRate < this.config.minHitRateThreshold
+      (metric) => metric.hitRate < this.config.minHitRateThreshold,
     );
 
     for (const metric of lowHitRateKeys) {
       // Strategy 1: Reduce TTL for low-performing keys
-      if (metric.avgTtl > 300) { // More than 5 minutes
+      if (metric.avgTtl > 300) {
+        // More than 5 minutes
         const newTtl = Math.max(metric.avgTtl * 0.5, 60);
         await this.updateTTLConfiguration(metric.key, newTtl);
         count++;
         improvement += 0.1; // Estimated improvement
-        
-        this.logger.debug(`Reduced TTL for low hit rate key ${metric.key}: ${metric.avgTtl}s -> ${newTtl}s`);
+
+        this.logger.debug(
+          `Reduced TTL for low hit rate key ${metric.key}: ${metric.avgTtl}s -> ${newTtl}s`,
+        );
       }
 
       // Strategy 2: Mark for potential removal if extremely low hit rate
@@ -240,21 +258,25 @@ export class CacheOptimizationService {
   /**
    * Apply memory optimizations
    */
-  private async applyMemoryOptimizations(report: CacheAnalyticsReport): Promise<{ count: number; memoryFreed: number }> {
+  private async applyMemoryOptimizations(
+    report: CacheAnalyticsReport,
+  ): Promise<{ count: number; memoryFreed: number }> {
     let count = 0;
     let memoryFreed = 0;
 
     // Remove large, low-performing keys
     const largeLowPerformingKeys = report.underPerformers.filter(
-      metric => metric.dataSize > 1024 * 1024 && metric.hitRate < 0.3 // > 1MB and < 30% hit rate
+      (metric) => metric.dataSize > 1024 * 1024 && metric.hitRate < 0.3, // > 1MB and < 30% hit rate
     );
 
     for (const metric of largeLowPerformingKeys) {
       await this.del(metric.key);
       count++;
       memoryFreed += metric.dataSize;
-      
-      this.logger.debug(`Removed large low-performing key ${metric.key}: ${metric.dataSize} bytes freed`);
+
+      this.logger.debug(
+        `Removed large low-performing key ${metric.key}: ${metric.dataSize} bytes freed`,
+      );
     }
 
     return { count, memoryFreed };
@@ -300,7 +322,7 @@ export class CacheOptimizationService {
     if (key.startsWith(CACHE_PREFIXES.ENROLLMENT)) {
       return CACHE_TTL.ENROLLMENT_DATA;
     }
-    
+
     // Default fallback
     return CACHE_TTL.COURSE_DETAILS; // 5 minutes
   }
@@ -308,12 +330,12 @@ export class CacheOptimizationService {
   /**
    * Get TTL for a specific key
    */
-  private async getTTL(key: string): Promise<number | undefined> {
+  private async getTTL(_key: string): Promise<number | undefined> {
     try {
       // This is a simplified implementation
       // In a real Redis setup, you'd use TTL command
       return undefined; // cache-manager doesn't expose TTL easily
-    } catch (error) {
+    } catch (_error) {
       return undefined;
     }
   }

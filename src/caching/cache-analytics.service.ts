@@ -61,10 +61,10 @@ export class CacheAnalyticsService {
   async recordHit(key: string, ttl?: number): Promise<void> {
     const timestamp = Date.now();
     const metrics = await this.getKeyMetrics(key);
-    
+
     metrics.hits += 1;
     metrics.lastAccessed = new Date(timestamp);
-    
+
     if (ttl) {
       metrics.avgTtl = (metrics.avgTtl * (metrics.hits - 1) + ttl) / metrics.hits;
     }
@@ -79,7 +79,7 @@ export class CacheAnalyticsService {
   async recordMiss(key: string): Promise<void> {
     const timestamp = Date.now();
     const metrics = await this.getKeyMetrics(key);
-    
+
     metrics.misses += 1;
     metrics.lastAccessed = new Date(timestamp);
 
@@ -93,7 +93,7 @@ export class CacheAnalyticsService {
   async recordSet(key: string, ttl: number, dataSize: number): Promise<void> {
     const timestamp = Date.now();
     const metrics = await this.getKeyMetrics(key);
-    
+
     metrics.avgTtl = ttl;
     metrics.dataSize = dataSize;
     metrics.lastAccessed = new Date(timestamp);
@@ -107,7 +107,7 @@ export class CacheAnalyticsService {
    */
   private async getKeyMetrics(key: string): Promise<CacheMetrics> {
     const metricsData = await this.redis.hget(this.metricsKey, key);
-    
+
     if (metricsData) {
       return JSON.parse(metricsData);
     }
@@ -132,11 +132,12 @@ export class CacheAnalyticsService {
     // Calculate derived metrics
     const totalAccesses = metrics.hits + metrics.misses;
     metrics.hitRate = totalAccesses > 0 ? metrics.hits / totalAccesses : 0;
-    
+
     // Calculate access frequency (accesses per hour)
     const hoursSinceLastAccess = (Date.now() - metrics.lastAccessed.getTime()) / (1000 * 60 * 60);
-    metrics.accessFrequency = hoursSinceLastAccess > 0 ? totalAccesses / Math.max(hoursSinceLastAccess, 1) : totalAccesses;
-    
+    metrics.accessFrequency =
+      hoursSinceLastAccess > 0 ? totalAccesses / Math.max(hoursSinceLastAccess, 1) : totalAccesses;
+
     // Calculate cost-benefit score
     metrics.costScore = this.calculateCostScore(metrics);
 
@@ -148,14 +149,14 @@ export class CacheAnalyticsService {
    */
   private calculateCostScore(metrics: CacheMetrics): number {
     const { hitRate, accessFrequency, dataSize, avgTtl } = metrics;
-    
+
     // Higher score = better cache candidate
     // Factors: hit rate (40%), access frequency (30%), data efficiency (20%), TTL efficiency (10%)
     const hitRateScore = hitRate * 0.4;
     const frequencyScore = Math.min(accessFrequency / 10, 1) * 0.3; // normalize to max 10 accesses/hour
-    const sizeEfficiencyScore = Math.max(0, 1 - (dataSize / 1024 / 1024)) * 0.2; // penalize large objects
+    const sizeEfficiencyScore = Math.max(0, 1 - dataSize / 1024 / 1024) * 0.2; // penalize large objects
     const ttlEfficiencyScore = Math.min(avgTtl / 3600, 1) * 0.1; // normalize to max 1 hour
-    
+
     return hitRateScore + frequencyScore + sizeEfficiencyScore + ttlEfficiencyScore;
   }
 
@@ -165,21 +166,21 @@ export class CacheAnalyticsService {
   async generateAnalyticsReport(): Promise<CacheAnalyticsReport> {
     const allMetrics = await this.getAllMetrics();
     const totalKeys = allMetrics.length;
-    
+
     // Calculate overall hit rate
     const totalHits = allMetrics.reduce((sum, m) => sum + m.hits, 0);
     const totalMisses = allMetrics.reduce((sum, m) => sum + m.misses, 0);
-    const overallHitRate = (totalHits + totalMisses) > 0 ? totalHits / (totalHits + totalMisses) : 0;
-    
+    const overallHitRate = totalHits + totalMisses > 0 ? totalHits / (totalHits + totalMisses) : 0;
+
     // Get memory usage
     const memoryUsage = await this.getMemoryUsage();
-    
+
     // Sort by cost score
     const sortedMetrics = allMetrics.sort((a, b) => b.costScore - a.costScore);
-    
+
     // Generate TTL recommendations
     const ttlRecommendations = await this.generateTTLRecommendations(allMetrics);
-    
+
     return {
       totalKeys,
       overallHitRate,
@@ -217,7 +218,7 @@ export class CacheAnalyticsService {
    */
   private calculateOptimalTTL(metrics: CacheMetrics): TTLRecommendation | null {
     const { key, hitRate, accessFrequency, avgTtl, dataSize } = metrics;
-    
+
     let recommendedTtl = avgTtl;
     let reason = '';
     let confidence = 0;
@@ -245,7 +246,8 @@ export class CacheAnalyticsService {
       potentialSavings = dataSize * 0.2;
     }
     // Large objects with moderate performance = decrease TTL
-    else if (dataSize > 1024 * 1024 && hitRate < 0.6) { // > 1MB
+    else if (dataSize > 1024 * 1024 && hitRate < 0.6) {
+      // > 1MB
       recommendedTtl = Math.max(avgTtl * 0.8, 120);
       reason = 'Large object with moderate hit rate - decrease TTL';
       confidence = 0.6;
@@ -277,7 +279,7 @@ export class CacheAnalyticsService {
     }
 
     this.logger.log('Starting adaptive TTL adjustments');
-    
+
     const metrics = await this.getAllMetrics();
     let adjustmentCount = 0;
 
@@ -303,7 +305,7 @@ export class CacheAnalyticsService {
   private async applyTTLAdjustment(recommendation: TTLRecommendation): Promise<void> {
     const configKey = `ttl:${recommendation.key}`;
     await this.redis.hset(this.configKey, configKey, recommendation.recommendedTtl);
-    
+
     this.eventEmitter.emit('cache.ttl.adjusted', {
       key: recommendation.key,
       oldTtl: recommendation.currentTtl,
@@ -319,7 +321,7 @@ export class CacheAnalyticsService {
   async getRecommendedTTL(key: string, defaultTtl: number): Promise<number> {
     const configKey = `ttl:${key}`;
     const recommendedTtl = await this.redis.hget(this.configKey, configKey);
-    
+
     return recommendedTtl ? parseInt(recommendedTtl, 10) : defaultTtl;
   }
 
@@ -328,8 +330,8 @@ export class CacheAnalyticsService {
    */
   private async getAllMetrics(): Promise<CacheMetrics[]> {
     const allMetricsData = await this.redis.hgetall(this.metricsKey);
-    
-    return Object.values(allMetricsData).map(data => JSON.parse(data));
+
+    return Object.values(allMetricsData).map((data) => JSON.parse(data));
   }
 
   /**
@@ -368,10 +370,10 @@ export class CacheAnalyticsService {
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async cleanupOldMetrics(): Promise<void> {
     this.logger.log('Cleaning up old cache metrics');
-    
+
     const allMetrics = await this.getAllMetrics();
     const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-    
+
     let cleanedCount = 0;
     for (const metric of allMetrics) {
       if (metric.lastAccessed < cutoffDate && metric.hits + metric.misses < this.minSampleSize) {
