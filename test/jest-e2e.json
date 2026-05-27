@@ -1,7 +1,7 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": ["ts", "js", "json"],
   "rootDir": ".",
-  "testEnvironment": "./test/utils/test-environment.js",
+  "testEnvironment": "./utils/test-environment.js",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
@@ -16,7 +16,7 @@
   "bail": false,
   "reporters": [
     "default",
-    "./test/utils/flaky-test-detector.ts"
+    "./utils/flakiness-reporter.js"
   ],
   "globals": {
     "ts-jest": {
@@ -40,5 +40,5 @@
       }
     }
   },
-  "testSequencer": "./test/utils/test-sequencer.js"
+  "testSequencer": "./utils/test-sequencer.js"
 }

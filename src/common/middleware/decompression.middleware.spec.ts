@@ -69,7 +69,7 @@ describe('DecompressionMiddleware', () => {
     });
 
     it('should pass through when content-encoding is not a string', () => {
-      req.headers = { 'content-encoding': ['gzip', 'deflate'] };
+      req.headers = { 'content-encoding': ['gzip', 'deflate'] as any };
 
       middleware.use(req as Request, res as Response, next);
       expect(next).toHaveBeenCalled();
@@ -150,6 +150,8 @@ describe('DecompressionMiddleware', () => {
     it('should handle decompression errors', (done) => {
       req.headers = { 'content-encoding': 'gzip' };
       const mockDecompressor = new PassThrough();
+      (mockDecompressor.pipe as any) = jest.fn().mockReturnValue(mockDecompressor);
+      (middleware as any).decompressors.gzip = () => mockDecompressor;
       req.pipe = jest.fn().mockReturnValue(mockDecompressor);
       req.on = jest.fn();
 

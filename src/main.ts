@@ -179,7 +179,13 @@ async function bootstrapWorker(): Promise<void> {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+    },
+    jsonDocumentUrl: 'api/docs-json',
+  });
 
   const port = process.env.PORT || 3000;
   app.enableShutdownHooks();
@@ -194,7 +200,7 @@ async function bootstrapWorker(): Promise<void> {
   }
 
   logger.log(`TeachLink API running on http://localhost:${port}`);
-  logger.log(`Swagger docs available at http://localhost:${port}/api`);
+  logger.log(`Swagger docs available at http://localhost:${port}/api/docs`);
   logger.log(
     `API versioning enabled via ${API_VERSION_HEADER}. Supported versions: ${SUPPORTED_API_VERSIONS.join(', ')}; default route version: ${DEFAULT_API_VERSION}.`,
   );
