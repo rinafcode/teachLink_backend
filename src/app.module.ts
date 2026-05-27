@@ -12,6 +12,7 @@ import { loadFeatureFlags } from './config/feature-flags.config';
 
 const featureFlags = loadFeatureFlags();
 import { DebuggingModule } from './debugging/debugging.module';
+import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { DebuggingModule } from './debugging/debugging.module';
     SearchModule,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
+    DataPipelineModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
