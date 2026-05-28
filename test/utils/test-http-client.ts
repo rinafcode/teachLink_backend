@@ -20,7 +20,7 @@ export interface HttpResponse extends Response {
 
 export class TestHttpClient {
   private server: Server;
-  private defaultTimeout = 10000;
+  private defaultTimeout: number | undefined;
   private defaultRetries = 2;
   private defaultRetryDelay = 500;
 
@@ -148,12 +148,22 @@ export class TestHttpClient {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         if (timeout) {
-          return await Promise.race([
-            operation(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Request timeout after ${timeout}ms`)), timeout),
-            ),
-          ]);
+          let timeoutId: NodeJS.Timeout | undefined;
+          try {
+            return await Promise.race([
+              operation(),
+              new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(
+                  () => reject(new Error(`Request timeout after ${timeout}ms`)),
+                  timeout,
+                );
+              }),
+            ]);
+          } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
+          }
         }
         return await operation();
       } catch (error) {
