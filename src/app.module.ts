@@ -6,29 +6,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
-import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
-import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
-import { QuotaGuard } from './rate-limiting/guards/quota.guard';
-import { getDatabaseConfig } from './config/database.config';
-import { loadFeatureFlags } from './config/feature-flags.config';
-import { SessionModule } from './session/session.module';
-import { DebuggingModule } from './debugging/debugging.module';
-import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
-
-const featureFlags = loadFeatureFlags();
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(getDatabaseConfig()),
-    ScheduleModule.forRoot(),
-    SessionModule,
-    SearchModule,
-    IndexOptimizationModule, // ✅ from feat branch
-    ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
-    DebuggingModule,
-    DataPipelineModule,
-  ],
+  imports: [SearchModule, MonitoringModule],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
     ? [{ provide: APP_GUARD, useClass: QuotaGuard }]
