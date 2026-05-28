@@ -40,6 +40,8 @@
     "migrate:rollback:to": "curl -s -X POST http://localhost:3000/migrations/rollback/to/${MIGRATION_NAME} | npx json",
     "migrate:reset": "curl -s -X DELETE http://localhost:3000/migrations/reset | npx json",
     "docs:generate": "node scripts/generate-api-docs.js",
+    "docs:validate": "node scripts/validate-openapi.js",
+    "docs:check": "npm run docs:generate && git diff --exit-code -- openapi-spec.json docs/api/openapi-spec.json docs/api/examples.md docs/site",
     "docs:generate:examples": "node scripts/generate-examples-multi-language.js",
     "docs:version": "node scripts/manage-doc-versions.js archive",
     "docs:versions:list": "node scripts/manage-doc-versions.js list",
