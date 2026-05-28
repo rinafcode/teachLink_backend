@@ -12,9 +12,9 @@ import { loadFeatureFlags } from './config/feature-flags.config';
 import { SessionModule } from './session/session.module';
 import { DebuggingModule } from './debugging/debugging.module';
 import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
+import { CanaryModule } from './canary/canary.module';
 
 const featureFlags = loadFeatureFlags();
-
 
 @Module({
   imports: [
@@ -26,10 +26,11 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
     DataPipelineModule,
+    CanaryModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
     ? [{ provide: APP_GUARD, useClass: QuotaGuard }]
     : [],
 })
-export class AppModule { }
+export class AppModule {}
