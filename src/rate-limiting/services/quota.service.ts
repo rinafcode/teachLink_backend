@@ -1,23 +1,45 @@
 import { Injectable } from '@nestjs/common';
-import { QUOTA_LIMITS } from '../rate-limiting.constants';
+import { QUOTA_LIMITS, UserTier } from '../rate-limiting.constants';
+import { QuotaDefinitionService } from './quota-definition.service';
+import { QuotaTrackingService } from './quota-tracking.service';
+import { AdaptiveRateLimitingService } from './adaptive-rate-limiting.service';
 
-export enum UserTier {
-    FREE = 'FREE',
-    PRO = 'PRO',
-    PREMIUM = 'PREMIUM'
-}
+export { UserTier };
 
 /**
- * Provides quota Management operations.
+ * Facade service — unified entry point for quota operations.
+ * Combines definition lookup, tracking, and adaptive adjustment.
  */
 @Injectable()
 export class QuotaManagementService {
-  /**
-   * Retrieves quota For Tier.
-   * @param tier The tier.
-   * @returns The operation result.
-   */
+  constructor(
+    private readonly definitions: QuotaDefinitionService,
+    private readonly tracking: QuotaTrackingService,
+    private readonly adaptive: AdaptiveRateLimitingService,
+  ) {}
+
+  /** Resolve and return the effective quota limits for a user. */
+  async getQuotaForUser(userId: string, tier: UserTier) {
+    const base = await this.definitions.resolveForUser(userId, tier);
+    return {
+      requestsPerMinute: this.adaptive.adjustLimit(base.requestsPerMinute),
+      requestsPerHour: this.adaptive.adjustLimit(base.requestsPerHour),
+      requestsPerDay: this.adaptive.adjustLimit(base.requestsPerDay),
+    };
+  }
+
+  /** Legacy helper — kept for backwards compat with existing callers. */
   getQuotaForTier(tier: UserTier) {
-    return QUOTA_LIMITS[tier] || QUOTA_LIMITS.DEFAULT;
+    return QUOTA_LIMITS[tier] ?? QUOTA_LIMITS[UserTier.FREE];
+  }
+
+  /** Perform a quota check + increment. Delegates to tracking service. */
+  async checkAndConsume(userId: string, tier: UserTier) {
+    return this.tracking.checkAndIncrement(userId, tier);
+  }
+
+  /** Fetch live quota status for a user. */
+  async getStatus(userId: string, tier: UserTier) {
+    return this.tracking.getStatus(userId, tier);
   }
 }

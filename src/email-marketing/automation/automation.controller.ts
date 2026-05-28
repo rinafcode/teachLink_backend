@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseUUIDPipe, HttpCode, HttpStatus, } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AutomationService } from './automation.service';
 import { CreateAutomationDto } from '../dto/create-automation.dto';
@@ -10,6 +22,7 @@ import { AutomationWorkflow } from '../entities/automation-workflow.entity';
  */
 @ApiTags('Email Marketing - Automation')
 @ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
 @Controller('email-marketing/automation')
 export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}

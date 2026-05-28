@@ -91,4 +91,4 @@ export const AuditLogout = (options?: Partial<IAuditLogOptions>) =>
     action: AuditAction.LOGOUT,
     category: AuditCategory.AUTHENTICATION,
     ...options,
-});
+  });

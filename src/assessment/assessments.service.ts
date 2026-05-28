@@ -14,11 +14,11 @@ import { Question } from './entities/question.entity';
  */
 @Injectable()
 export class AssessmentsService {
-    constructor(
+  constructor(
     @InjectRepository(Assessment)
-    private readonly assessmentRepo: Repository<Assessment>, 
+    private readonly assessmentRepo: Repository<Assessment>,
     @InjectRepository(AssessmentAttempt)
-    private readonly attemptRepo: Repository<AssessmentAttempt>, 
+    private readonly attemptRepo: Repository<AssessmentAttempt>,
     @InjectRepository(Answer)
     private readonly answerRepo: Repository<Answer>,
     private readonly scoringService: ScoreCalculationService,
