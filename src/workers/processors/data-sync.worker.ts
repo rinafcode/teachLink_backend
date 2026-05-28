@@ -28,9 +28,7 @@ export class DataSyncWorker extends BaseWorker {
     await job.progress(30);
 
     try {
-      this.logger.log(
-        `Starting ${syncType} sync from ${source} to ${destination || 'local'}`,
-      );
+      this.logger.log(`Starting ${syncType} sync from ${source} to ${destination || 'local'}`);
 
       let result;
       switch (syncType.toLowerCase()) {
@@ -58,11 +56,7 @@ export class DataSyncWorker extends BaseWorker {
   /**
    * Perform data consistency check
    */
-  private async performConsistencyCheck(
-    job: Job,
-    source: string,
-    filters?: any,
-  ): Promise<any> {
+  private async performConsistencyCheck(job: Job, source: string, filters?: any): Promise<any> {
     await job.progress(40);
     this.logger.log(`Checking data consistency in ${source}`);
 
@@ -113,11 +107,7 @@ export class DataSyncWorker extends BaseWorker {
   /**
    * Reconcile data between systems
    */
-  private async reconcileData(
-    job: Job,
-    source: string,
-    destination: string,
-  ): Promise<any> {
+  private async reconcileData(job: Job, source: string, destination: string): Promise<any> {
     await job.progress(40);
     this.logger.log(`Reconciling data between ${source} and ${destination}`);
 

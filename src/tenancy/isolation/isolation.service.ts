@@ -8,127 +8,126 @@ import { Tenant, TenantStatus } from '../entities/tenant.entity';
  */
 @Injectable({ scope: Scope.REQUEST })
 export class IsolationService {
-    private currentTenantId: string | null = null;
-    private currentTenant: Tenant | null = null;
-    constructor(
+  private currentTenantId: string | null = null;
+  private currentTenant: Tenant | null = null;
+  constructor(
     @InjectRepository(Tenant)
-    private readonly tenantRepository: Repository<Tenant>) { }
-    /**
-     * Set the current tenant context
-     */
-    async setTenant(tenantId: string): Promise<void> {
-        const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
-        if (!tenant) {
-            throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
-        }
-        this.currentTenantId = tenantId;
-        this.currentTenant = tenant;
+    private readonly tenantRepository: Repository<Tenant>,
+  ) {}
+  /**
+   * Set the current tenant context
+   */
+  async setTenant(tenantId: string): Promise<void> {
+    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
     }
-    /**
-     * Set tenant by slug
-     */
-    async setTenantBySlug(slug: string): Promise<void> {
-        const tenant = await this.tenantRepository.findOne({ where: { slug } });
-        if (!tenant) {
-            throw new NotFoundException(`Tenant with slug ${slug} not found`);
-        }
-        this.currentTenantId = tenant.id;
-        this.currentTenant = tenant;
+    this.currentTenantId = tenantId;
+    this.currentTenant = tenant;
+  }
+  /**
+   * Set tenant by slug
+   */
+  async setTenantBySlug(slug: string): Promise<void> {
+    const tenant = await this.tenantRepository.findOne({ where: { slug } });
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with slug ${slug} not found`);
     }
-    /**
-     * Set tenant by domain
-     */
-    async setTenantByDomain(domain: string): Promise<void> {
-        const tenant = await this.tenantRepository.findOne({ where: { domain } });
-        if (!tenant) {
-            throw new NotFoundException(`Tenant with domain ${domain} not found`);
-        }
-        this.currentTenantId = tenant.id;
-        this.currentTenant = tenant;
+    this.currentTenantId = tenant.id;
+    this.currentTenant = tenant;
+  }
+  /**
+   * Set tenant by domain
+   */
+  async setTenantByDomain(domain: string): Promise<void> {
+    const tenant = await this.tenantRepository.findOne({ where: { domain } });
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with domain ${domain} not found`);
     }
-    /**
-     * Get the current tenant ID
-     */
-    getTenantId(): string | null {
-        return this.currentTenantId;
+    this.currentTenantId = tenant.id;
+    this.currentTenant = tenant;
+  }
+  /**
+   * Get the current tenant ID
+   */
+  getTenantId(): string | null {
+    return this.currentTenantId;
+  }
+  /**
+   * Get the current tenant
+   */
+  getTenant(): Tenant | null {
+    return this.currentTenant;
+  }
+  /**
+   * Check if tenant context is set
+   */
+  hasTenantContext(): boolean {
+    return this.currentTenantId !== null;
+  }
+  /**
+   * Clear tenant context
+   */
+  clearTenant(): void {
+    this.currentTenantId = null;
+    this.currentTenant = null;
+  }
+  /**
+   * Ensure tenant context is set, throw error if not
+   */
+  ensureTenantContext(): void {
+    if (!this.hasTenantContext()) {
+      throw new Error('Tenant context is not set');
     }
-    /**
-     * Get the current tenant
-     */
-    getTenant(): Tenant | null {
-        return this.currentTenant;
+  }
+  /**
+   * Add tenant filter to query builder
+   */
+  applyTenantFilter<Entity>(
+    queryBuilder: SelectQueryBuilder<Entity>,
+    entityAlias: string,
+  ): SelectQueryBuilder<Entity> {
+    if (!this.currentTenantId) {
+      throw new Error('Cannot apply tenant filter without tenant context');
     }
-    /**
-     * Check if tenant context is set
-     */
-    hasTenantContext(): boolean {
-        return this.currentTenantId !== null;
+    return queryBuilder.andWhere(`${entityAlias}.tenantId = :tenantId`, {
+      tenantId: this.currentTenantId,
+    });
+  }
+  /**
+   * Check if tenant is active
+   */
+  isActiveTenant(): boolean {
+    return this.currentTenant?.status === TenantStatus.ACTIVE;
+  }
+  /**
+   * Check if tenant is in trial
+   */
+  isTrialTenant(): boolean {
+    return this.currentTenant?.status === TenantStatus.TRIAL;
+  }
+  /**
+   * Check if tenant has reached user limit
+   */
+  hasReachedUserLimit(): boolean {
+    if (!this.currentTenant) return false;
+    return this.currentTenant.currentUserCount >= this.currentTenant.userLimit;
+  }
+  /**
+   * Check if tenant has reached storage limit
+   */
+  hasReachedStorageLimit(): boolean {
+    if (!this.currentTenant) return false;
+    return this.currentTenant.currentStorageUsage >= this.currentTenant.storageLimit;
+  }
+  /**
+   * Get tenant feature flags
+   */
+  async getTenantFeatures(): Promise<Record<string, unknown>> {
+    if (!this.currentTenant) {
+      return {};
     }
-    /**
-     * Clear tenant context
-     */
-    clearTenant(): void {
-        this.currentTenantId = null;
-        this.currentTenant = null;
-    }
-    /**
-     * Ensure tenant context is set, throw error if not
-     */
-    ensureTenantContext(): void {
-        if (!this.hasTenantContext()) {
-            throw new Error('Tenant context is not set');
-        }
-    }
-    /**
-     * Add tenant filter to query builder
-     */
-    applyTenantFilter<Entity>(
-        queryBuilder: SelectQueryBuilder<Entity>,
-        entityAlias: string,
-    ): SelectQueryBuilder<Entity> {
-        if (!this.currentTenantId) {
-            throw new Error('Cannot apply tenant filter without tenant context');
-        }
-        return queryBuilder.andWhere(`${entityAlias}.tenantId = :tenantId`, {
-            tenantId: this.currentTenantId,
-        });
-    }
-    /**
-     * Check if tenant is active
-     */
-    isActiveTenant(): boolean {
-        return this.currentTenant?.status === TenantStatus.ACTIVE;
-    }
-    /**
-     * Check if tenant is in trial
-     */
-    isTrialTenant(): boolean {
-        return this.currentTenant?.status === TenantStatus.TRIAL;
-    }
-    /**
-     * Check if tenant has reached user limit
-     */
-    hasReachedUserLimit(): boolean {
-        if (!this.currentTenant)
-            return false;
-        return this.currentTenant.currentUserCount >= this.currentTenant.userLimit;
-    }
-    /**
-     * Check if tenant has reached storage limit
-     */
-    hasReachedStorageLimit(): boolean {
-        if (!this.currentTenant)
-            return false;
-        return this.currentTenant.currentStorageUsage >= this.currentTenant.storageLimit;
-    }
-    /**
-     * Get tenant feature flags
-     */
-    async getTenantFeatures(): Promise<Record<string, unknown>> {
-        if (!this.currentTenant) {
-            return {};
-        }
-        // This would typically fetch from TenantConfig
-        return this.currentTenant.metadata?.features || {};
-    }
+    // This would typically fetch from TenantConfig
+    return this.currentTenant.metadata?.features || {};
+  }
 }

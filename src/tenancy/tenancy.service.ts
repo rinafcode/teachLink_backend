@@ -125,7 +125,10 @@ export class TenancyService {
     return config;
   }
 
-  async updateConfig(tenantId: string, updateConfigDto: UpdateTenantConfigDto): Promise<TenantConfig> {
+  async updateConfig(
+    tenantId: string,
+    updateConfigDto: UpdateTenantConfigDto,
+  ): Promise<TenantConfig> {
     const config = await this.getConfig(tenantId);
     Object.assign(config, updateConfigDto);
     return await this.configRepository.save(config);
@@ -220,8 +223,7 @@ export class TenancyService {
 
     if (req.tenant?.id) return req.tenant.id;
 
-    const domain =
-      (req.headers?.['x-tenant-domain'] as string | undefined) || req.hostname;
+    const domain = (req.headers?.['x-tenant-domain'] as string | undefined) || req.hostname;
     if (domain) {
       const tenant = await this.tenantRepository.findOne({ where: { domain } });
       if (tenant) return tenant.id;

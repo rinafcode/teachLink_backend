@@ -1,7 +1,11 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
-import { IWorkerPoolConfig, IWorkerHealthCheck, IWorkerMetrics } from '../interfaces/worker.interfaces';
+import {
+  IWorkerPoolConfig,
+  IWorkerHealthCheck,
+  IWorkerMetrics,
+} from '../interfaces/worker.interfaces';
 import {
   EmailWorker,
   MediaProcessingWorker,
@@ -141,10 +145,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   /**
    * Initialize worker pool for a specific worker type
    */
-  private async initializeWorkerPool(
-    workerType: string,
-    config: IWorkerPoolConfig,
-  ): Promise<void> {
+  private async initializeWorkerPool(workerType: string, config: IWorkerPoolConfig): Promise<void> {
     const workerClass = this.workerRegistry.get(workerType);
     if (!workerClass) {
       throw new Error(`Unknown worker type: ${workerType}`);
@@ -339,7 +340,9 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
       for (const worker of workersToRemove) {
         this.activeWorkers.delete(worker.getId());
       }
-      this.logger.log(`Scaled down ${workerType} workers from ${currentCount} to ${newWorkerCount}`);
+      this.logger.log(
+        `Scaled down ${workerType} workers from ${currentCount} to ${newWorkerCount}`,
+      );
     }
   }
 

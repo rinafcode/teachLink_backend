@@ -49,9 +49,9 @@ export const MEDIA_UPLOAD_INTERCEPTOR_OPTIONS = {
  * @returns The operation result.
  */
 export function buildUploadValidationDetails() {
-    return {
-        allowedTypes: ALL_ALLOWED_FILE_TYPES,
-        sizeLimits: FILE_SIZE_LIMITS,
-        maxUploadSize: MAX_UPLOAD_FILE_SIZE,
-    };
+  return {
+    allowedTypes: ALL_ALLOWED_FILE_TYPES,
+    sizeLimits: FILE_SIZE_LIMITS,
+    maxUploadSize: MAX_UPLOAD_FILE_SIZE,
+  };
 }

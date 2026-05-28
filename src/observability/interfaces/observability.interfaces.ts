@@ -27,11 +27,11 @@ export interface IErrorDetails {
   statusCode?: number;
 }
 export enum LogLevel {
-    DEBUG = 'debug',
-    INFO = 'info',
-    WARN = 'warn',
-    ERROR = 'error',
-    FATAL = 'fatal'
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+  FATAL = 'fatal',
 }
 
 export interface IMetricData {
@@ -42,10 +42,10 @@ export interface IMetricData {
   timestamp: Date;
 }
 export enum MetricType {
-    COUNTER = 'counter',
-    GAUGE = 'gauge',
-    HISTOGRAM = 'histogram',
-    SUMMARY = 'summary'
+  COUNTER = 'counter',
+  GAUGE = 'gauge',
+  HISTOGRAM = 'histogram',
+  SUMMARY = 'summary',
 }
 
 export interface ITraceSpan {
@@ -61,9 +61,9 @@ export interface ITraceSpan {
   events: ISpanEvent[];
 }
 export enum SpanStatus {
-    OK = 'ok',
-    ERROR = 'error',
-    UNSET = 'unset'
+  OK = 'ok',
+  ERROR = 'error',
+  UNSET = 'unset',
 }
 
 export interface ISpanEvent {
