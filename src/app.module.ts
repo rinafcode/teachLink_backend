@@ -9,16 +9,19 @@ import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
 import { getDatabaseConfig } from './config/database.config';
 import { loadFeatureFlags } from './config/feature-flags.config';
-
-const featureFlags = loadFeatureFlags();
+import { SessionModule } from './session/session.module';
 import { DebuggingModule } from './debugging/debugging.module';
 import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
+
+const featureFlags = loadFeatureFlags();
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
+    SessionModule,
     SearchModule,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
