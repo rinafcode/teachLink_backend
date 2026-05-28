@@ -34,6 +34,8 @@ export class AutomatedDecisionService {
   ): Promise<Record<string, unknown>> {
     this.logger.log(`Auto-selecting winner for experiment: ${experimentId}`);
 
+    // Winner selection is based on duration, statistical significance,
+    // minimum sample size, and a minimum effect size threshold.
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
       relations: ['variants'],
@@ -108,6 +110,9 @@ export class AutomatedDecisionService {
     statisticalResults: { variants: any[] },
     criteria: IWinnerSelectionCriteria,
   ): Promise<IExperimentVariant | null> {
+    // The winner selection algorithm compares each non-control variant to the
+    // control variant, filters by sample size and significance, then picks the
+    // variant with the strongest overall performance.
     const controlVariant = experiment.variants.find((v) => v.isControl);
     if (!controlVariant) return null;
 
