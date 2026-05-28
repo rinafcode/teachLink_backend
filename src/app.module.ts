@@ -6,6 +6,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
+import { AnalyticsModule } from './analytics/analytics.module'; // ✅ added
+
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -14,6 +16,7 @@ import { loadFeatureFlags } from './config/feature-flags.config';
 import { SessionModule } from './session/session.module';
 import { DebuggingModule } from './debugging/debugging.module';
 import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
+import { CanaryModule } from './canary/canary.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -24,10 +27,12 @@ const featureFlags = loadFeatureFlags();
     ScheduleModule.forRoot(),
     SessionModule,
     SearchModule,
-    IndexOptimizationModule, // ✅ from feat branch
+    AnalyticsModule, // ✅ merged from feat branch
+    IndexOptimizationModule,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
     DataPipelineModule,
+    CanaryModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
