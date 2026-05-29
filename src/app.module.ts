@@ -17,6 +17,7 @@ import { SessionModule } from './session/session.module';
 import { DebuggingModule } from './debugging/debugging.module';
 import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
 import { CanaryModule } from './canary/canary.module';
+import { IncidentManagementModule } from './incident-management/incident-management.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -33,6 +34,7 @@ const featureFlags = loadFeatureFlags();
     DebuggingModule,
     DataPipelineModule,
     CanaryModule,
+    IncidentManagementModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
