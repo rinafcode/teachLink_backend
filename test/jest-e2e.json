@@ -1,7 +1,7 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": ["ts", "js", "json"],
   "rootDir": ".",
-  "testEnvironment": "node",
+  "testEnvironment": "./utils/test-environment.js",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
@@ -15,7 +15,8 @@
   "testRunner": "jest-circus",
   "bail": false,
   "reporters": [
-    "default"
+    "default",
+    "./utils/flakiness-reporter.js"
   ],
   "globals": {
     "ts-jest": {
@@ -38,5 +39,6 @@
         "esModuleInterop": true
       }
     }
-  }
+  },
+  "testSequencer": "./utils/test-sequencer.js"
 }

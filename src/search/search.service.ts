@@ -18,6 +18,13 @@ export interface SearchFilters {
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
 
+  /**
+   * Search logic is currently stubbed for API development.
+   *
+   * A production implementation should translate query + filters into an
+   * Elasticsearch request, evaluate relevance scores, and return paginated
+   * results with stable caching and analytics tracking.
+   */
   async search(
     query: string,
     filters?: SearchFilters,
@@ -27,7 +34,8 @@ export class SearchService {
   ): Promise<any> {
     this.logger.log(`Searching for: ${query}`);
 
-    // Return mock data for now to get server running
+    // TODO: build a real Elasticsearch query from query, filters, and sort.
+    // Currently this is a placeholder to preserve API contracts.
     return {
       results: [],
       total: 0,
@@ -40,6 +48,7 @@ export class SearchService {
 
   async getAutoComplete(query: string): Promise<any> {
     this.logger.log(`Autocomplete for: ${query}`);
+    // TODO: return suggestions from Elasticsearch search_as_you_type fields
     return [];
   }
 
@@ -68,6 +77,8 @@ export class SearchService {
     page = 1,
     limit: number = SEARCH_CONSTANTS.DEFAULT_PAGE_SIZE,
   ): string {
+    // Stable hash of the query state ensures identical search requests
+    // map to the same cache entry regardless of object ordering.
     const str = `${query}:${JSON.stringify(filters)}:${sort ?? 'default'}:${page}:${limit}`;
     let hash = 0;
     for (let i = 0; i < str.length; i++) {

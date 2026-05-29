@@ -22,6 +22,7 @@ import { AutomationWorkflow } from '../entities/automation-workflow.entity';
  */
 @ApiTags('Email Marketing - Automation')
 @ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
 @Controller('email-marketing/automation')
 export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}

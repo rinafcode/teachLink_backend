@@ -33,6 +33,8 @@ import { TenantPlan } from './entities/tenant.entity';
 @Controller('tenants')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
+@ApiResponse({ status: 403, description: 'Insufficient tenant permissions' })
 export class TenancyController {
   constructor(
     private readonly tenancyService: TenancyService,

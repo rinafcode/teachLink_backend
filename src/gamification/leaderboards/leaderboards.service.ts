@@ -23,6 +23,9 @@ export class LeaderboardService {
     const allProgress = await this.userProgressRepository.find({
       order: { totalPoints: 'DESC' },
     });
+    // This is a simple rank calculation that is O(n) over users.
+    // For large leaderboards, consider a direct database rank query or a
+    // cached materialized ranking field.
     const rank = allProgress.findIndex((p) => p.user?.id === userId) + 1;
     return rank > 0 ? rank : null;
   }
