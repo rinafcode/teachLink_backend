@@ -36,9 +36,11 @@ Or run the helper script:
 ```
 
 To stop the backend:
+
 ```bash
 kill $(lsof -ti:3000)
 ```
+
 # 🧠 TeachLink Backend
 
 [![CI](https://github.com/teachlink/backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teachlink/backend/actions/workflows/ci.yml)
@@ -173,6 +175,8 @@ src/
 └── main.ts                   # Application entry point
 ```
 
+- Algorithm documentation: [docs/complex-algorithms.md](docs/complex-algorithms.md)
+
 ## 🔧 Project Overview
 
 TeachLink Backend provides secure and scalable APIs to power features such as:
@@ -206,20 +210,21 @@ curl -H "X-API-Version: 1" http://localhost:3000/users
 
 ## ⚙️ Tech Stack
 
-| Layer         | Technology                 |
-| ------------- | -------------------------- |
-| Framework     | NestJS                     |
-| Database      | PostgreSQL + TypeORM       |
-| Blockchain    | Starknet + Starknet.js     |
-| Realtime      | WebSockets (Gateway)       |
-| Queues/Async  | BullMQ + Redis (optional)  |
-| File Uploads  | Cloudinary                 |
-| Config Mgmt   | @nestjs/config             |
-| Testing       | Jest + Supertest           |
-| Auth          | JWT + Wallet Sign-In       |
-| Deployment    | Docker, Railway, or Fly.io |
-| File Upload   | Cloudinary                 |
-| Security      | Helmet + bcrypt            | Security headers and password hashing |
+| Layer        | Technology                 |
+| ------------ | -------------------------- | ------------------------------------- |
+| Framework    | NestJS                     |
+| Database     | PostgreSQL + TypeORM       |
+| Blockchain   | Starknet + Starknet.js     |
+| Realtime     | WebSockets (Gateway)       |
+| Queues/Async | BullMQ + Redis (optional)  |
+| File Uploads | Cloudinary                 |
+| Config Mgmt  | @nestjs/config             |
+| Testing      | Jest + Supertest           |
+| Auth         | JWT + Wallet Sign-In       |
+| Deployment   | Docker, Railway, or Fly.io |
+| File Upload  | Cloudinary                 |
+| Security     | Helmet + bcrypt            | Security headers and password hashing |
+
 ### System Overview
 
 TeachLink Backend follows a **modular microservices architecture** built on NestJS, designed for scalability and maintainability. The system uses a layered approach with clear separation of concerns:
@@ -300,21 +305,23 @@ The application uses **bcrypt** for password hashing with configurable rounds vi
 
 #### Recommended Bcrypt Rounds by Environment
 
-| Environment | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
-| ----------- | ----------------- | -------------- | -------------- | ------------------ |
-| **Development** | 8-10 | 50-100 | Good | Low |
-| **Staging** | 10-12 | 100-300 | High | Medium |
-| **Production** | 12-14 | 300-1000 | Very High | High |
+| Environment     | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
+| --------------- | ------------------ | -------------- | -------------- | ------------------ |
+| **Development** | 8-10               | 50-100         | Good           | Low                |
+| **Staging**     | 10-12              | 100-300        | High           | Medium             |
+| **Production**  | 12-14              | 300-1000       | Very High      | High               |
 
 #### Security vs Performance Tradeoffs
 
 **Lower Rounds (4-8):**
+
 - ✅ Faster authentication
 - ✅ Lower CPU usage
 - ⚠️ Reduced security against brute force attacks
 - ⚠️ May be vulnerable to GPU-based cracking
 
 **Higher Rounds (12-15):**
+
 - ✅ Strong resistance against brute force attacks
 - ✅ Future-proof against computational advances
 - ❌ Slower authentication (may impact user experience)
@@ -341,6 +348,7 @@ BCRYPT_ROUNDS=12
 #### Migration Considerations
 
 When changing `BCRYPT_ROUNDS`:
+
 - Existing passwords remain valid until users change them
 - New passwords will use the configured rounds
 - Consider forcing password reset for sensitive accounts

@@ -40,6 +40,8 @@ export class StatisticalAnalysisService {
   async calculateStatisticalSignificance(experimentId: string): Promise<ISignificanceResults> {
     this.logger.log(`Calculating statistical significance for experiment: ${experimentId}`);
 
+    // Calculate whether any variant differs from the control by a statistically
+    // significant margin based on confidence level and metric variance.
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
       relations: ['variants', 'variants.metrics'],

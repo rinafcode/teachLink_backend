@@ -16,6 +16,14 @@ export class PointsService {
     @InjectRepository(PointTransaction)
     private pointTransactionRepository: Repository<PointTransaction>,
   ) {}
+
+  /**
+   * Award points for a user activity and update progress.
+   *
+   * The current progression model is intentionally simple: points and XP are
+   * identical, and level increases every 1000 XP. This is a good place to add
+   * more advanced reward rules later.
+   */
   async addPoints(userId: string, points: number, activityType: string): Promise<UserProgress> {
     // Log the transaction
     const transaction = this.pointTransactionRepository.create({
@@ -42,7 +50,7 @@ export class PointsService {
     const newLevel = Math.floor(progress.xp / 1000) + 1;
     if (newLevel > progress.level) {
       progress.level = newLevel;
-      // TODO: Emit level up event
+      // TODO: Emit level up event for notification, badge award, or milestone tracking
     }
     return await this.userProgressRepository.save(progress);
   }

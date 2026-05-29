@@ -1,4 +1,8 @@
-const NodeEnvironment = require('jest-environment-node');
+const NodeEnvironmentPackage = require('jest-environment-node');
+const NodeEnvironment =
+  NodeEnvironmentPackage.TestEnvironment ||
+  NodeEnvironmentPackage.default ||
+  NodeEnvironmentPackage;
 
 class TestEnvironment extends NodeEnvironment {
   constructor(config, context) {
@@ -141,10 +145,7 @@ class TestEnvironment extends NodeEnvironment {
   }
 
   // Utility method for tests to wait for conditions
-  async waitForCondition(
-    condition,
-    options = {},
-  ) {
+  async waitForCondition(condition, options = {}) {
     const { timeout = 5000, interval = 100, description = 'condition' } = options;
     const startTime = Date.now();
 
@@ -165,10 +166,7 @@ class TestEnvironment extends NodeEnvironment {
   }
 
   // Utility method for stable async operations
-  async withRetry(
-    operation,
-    options = {},
-  ) {
+  async withRetry(operation, options = {}) {
     const {
       maxAttempts = 3,
       delayMs = 1000,
