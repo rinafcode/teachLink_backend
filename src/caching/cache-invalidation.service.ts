@@ -2,7 +2,9 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { APP_EVENTS } from '../../common/constants/event.constants';
+import { APP_EVENTS } from '../common/constants/event.constants';
+import { getSharedRedisClient } from '../config/cache.config';
+import { CACHE_PREFIXES } from './caching.constants';
 
 interface CacheStoreWithKeys {
   keys?(pattern: string): Promise<string[]> | string[];
@@ -14,35 +16,28 @@ interface CacheManagerExtended extends Cache {
 }
 
 /**
- * Provides cache Invalidation operations.
+ * Provides cache invalidation operations for the cache-aside layer.
  */
 @Injectable()
 export class CacheInvalidationService {
   private readonly logger = new Logger(CacheInvalidationService.name);
+
   constructor(
     @Inject(CACHE_MANAGER)
     private cacheManager: Cache,
     private eventEmitter: EventEmitter2,
   ) {}
-  /**
-   * Invalidates a specific cache key.
-   */
+
   async invalidateKey(key: string): Promise<void> {
     this.logger.log(`Invalidating cache key: ${key}`);
     await this.cacheManager.del(key);
     this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { key, type: 'single' });
   }
-  /**
-   * Invalidates multiple cache keys based on a pattern.
-   * Note: Standard cache-manager doesn't support pattern deletion easily with all stores,
-   * so this is a simplified implementation.
-   */
+
   async invalidatePattern(pattern: string): Promise<void> {
     this.logger.log(`Invalidating cache pattern: ${pattern}`);
-    // In a production environment with Redis, we'd use 'SCAN' and 'DEL'
-    // For now, we'll emit an event that other specialized listeners might handle
     this.eventEmitter.emit(APP_EVENTS.CACHE_INVALIDATED, { pattern, type: 'pattern' });
-    // If the store supports a store-specific method, call it here.
+
     const store = (this.cacheManager as CacheManagerExtended).store;
     if (store?.keys) {
       const keys = await store.keys(pattern);
@@ -50,29 +45,61 @@ export class CacheInvalidationService {
       if (list.length > 0) {
         await Promise.all(list.map((key: string) => this.cacheManager.del(key)));
       }
+      return;
     }
+
+    await this.invalidatePatternViaRedisScan(pattern);
   }
-  /**
-   * Automatically invalidates cache based on data change events.
-   */
+
+  async invalidateCourseCache(courseId: string): Promise<void> {
+    await this.invalidateKey(`${CACHE_PREFIXES.COURSE}:${courseId}`);
+    await this.invalidatePattern(`${CACHE_PREFIXES.COURSES_LIST}:*`);
+    await this.invalidatePattern(`${CACHE_PREFIXES.POPULAR}:*`);
+    await this.invalidatePattern(`${CACHE_PREFIXES.SEARCH}:*`);
+  }
+
+  async invalidateUserCache(userId: string): Promise<void> {
+    await this.invalidateKey(`${CACHE_PREFIXES.USER}:${userId}`);
+    await this.invalidateKey(`${CACHE_PREFIXES.USER_PROFILE}:${userId}`);
+  }
+
   async handleDataChange(entity: string, id: string): Promise<void> {
     this.logger.log(`Handling data change for ${entity}:${id}`);
-    const specificKey = `${entity}:${id}`;
-    const collectionKey = `${entity}:list:*`;
-    await this.invalidateKey(specificKey);
-    await this.invalidatePattern(collectionKey);
+
+    if (entity === 'course' || entity.startsWith('cache:course')) {
+      await this.invalidateCourseCache(id);
+      return;
+    }
+
+    if (entity === 'user' || entity.startsWith('cache:user')) {
+      await this.invalidateUserCache(id);
+      return;
+    }
+
+    await this.invalidateKey(`${entity}:${id}`);
+    await this.invalidatePattern(`${entity}:list:*`);
   }
-  /**
-   * Purges the entire cache.
-   */
+
   async purgeAll(): Promise<void> {
     this.logger.warn('Purging entire cache');
-    // cache-manager v5+ uses clear() instead of reset()
     if (typeof this.cacheManager.clear === 'function') {
       await this.cacheManager.clear();
     } else if (typeof (this.cacheManager as CacheManagerExtended).reset === 'function') {
       await (this.cacheManager as CacheManagerExtended).reset!();
     }
     this.eventEmitter.emit(APP_EVENTS.CACHE_PURGED, { timestamp: new Date() });
+  }
+
+  private async invalidatePatternViaRedisScan(pattern: string): Promise<void> {
+    const redis = getSharedRedisClient();
+    let cursor = '0';
+
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } while (cursor !== '0');
   }
 }

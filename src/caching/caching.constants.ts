@@ -58,6 +58,12 @@ export const CACHE_PREFIXES = {
   LESSON: 'cache:lesson',
   QUIZ: 'cache:quiz',
 } as const;
+export const CACHE_WARMING = {
+  POPULAR_COURSES_LIMIT: 20,
+  USER_PROFILE_WARM_LIMIT: 50,
+  SEARCH_WARM_QUERIES: ['', 'programming', 'math', 'science'],
+} as const;
+
 export const CACHE_EVENTS = {
   COURSE_CREATED: 'cache.course.created',
   COURSE_UPDATED: 'cache.course.updated',
