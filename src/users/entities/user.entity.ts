@@ -12,14 +12,16 @@ import {
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
 export enum UserRole {
-    STUDENT = 'student',
-    TEACHER = 'teacher',
-    ADMIN = 'admin'
+  STUDENT = 'student',
+  TEACHER = 'teacher',
+  INSTRUCTOR = 'instructor',
+  MODERATOR = 'moderator',
+  ADMIN = 'admin',
 }
 export enum UserStatus {
-    ACTIVE = 'active',
-    INACTIVE = 'inactive',
-    SUSPENDED = 'suspended'
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
 }
 
 /**

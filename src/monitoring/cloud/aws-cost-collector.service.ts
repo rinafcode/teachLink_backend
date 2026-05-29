@@ -17,7 +17,10 @@ export class AwsCostCollectorService {
     // Try to lazily load the AWS Cost Explorer client
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { CostExplorerClient, GetCostAndUsageCommand } = require('@aws-sdk/client-cost-explorer');
+      const {
+        CostExplorerClient,
+        GetCostAndUsageCommand,
+      } = require('@aws-sdk/client-cost-explorer');
       const region = process.env.AWS_REGION || 'us-east-1';
       this.client = new CostExplorerClient({ region });
       this.enabled = true;

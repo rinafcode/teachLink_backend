@@ -1,14 +1,12 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
-import { MetricsCollectionService } from './metrics/metrics-collection.service';
+import { ConfigModule } from '@nestjs/config';
 import { AlertingService } from './alerting/alerting.service';
-import { CapacityPlanningService } from './capacity-planning.service';
-import { CapacityPlanningController } from './capacity-planning.controller';
+import { MetricsCollectionService } from './metrics/metrics-collection.service';
+import { CustomMetricsService } from './custom-metrics.service';
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
-  providers: [MetricsCollectionService, AlertingService, CapacityPlanningService],
-  controllers: [CapacityPlanningController],
-  exports: [MetricsCollectionService, AlertingService, CapacityPlanningService],
+  imports: [ConfigModule],
+  providers: [AlertingService, MetricsCollectionService, CustomMetricsService],
+  exports: [AlertingService, MetricsCollectionService, CustomMetricsService],
 })
 export class MonitoringModule {}

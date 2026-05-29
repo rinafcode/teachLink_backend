@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuditLogService, IAuditLogEntry } from '../../audit-log/audit-log.service';
+import { AuditLogService } from '../../audit-log/audit-log.service';
+import { IAuditLogEntry } from '../../audit-log/interfaces/audit-log.interfaces';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { UserRole } from '../../users/entities/user.entity';
 

@@ -8,7 +8,8 @@ const WINDOW_MS = 60_000;
 @Injectable()
 export class ThrottleMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
-    const key = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ?? req.ip ?? 'unknown';
+    const key =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ?? req.ip ?? 'unknown';
     const now = Date.now();
     const entry = hits.get(key);
     if (!entry || now > entry.reset) {

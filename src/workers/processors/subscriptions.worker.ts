@@ -92,11 +92,7 @@ export class SubscriptionsWorker extends BaseWorker {
   /**
    * Renew subscription
    */
-  private async renewSubscription(
-    job: Job,
-    subscriptionId: string,
-    metadata?: any,
-  ): Promise<any> {
+  private async renewSubscription(job: Job, subscriptionId: string, metadata?: any): Promise<any> {
     await job.progress(40);
     this.logger.log(`Renewing subscription ${subscriptionId}`);
 
@@ -118,11 +114,7 @@ export class SubscriptionsWorker extends BaseWorker {
   /**
    * Cancel subscription
    */
-  private async cancelSubscription(
-    job: Job,
-    subscriptionId: string,
-    metadata?: any,
-  ): Promise<any> {
+  private async cancelSubscription(job: Job, subscriptionId: string, metadata?: any): Promise<any> {
     await job.progress(40);
     this.logger.log(`Canceling subscription ${subscriptionId}`);
 

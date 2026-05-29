@@ -12,6 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ABTestingService, ICreateExperimentDto } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
 import { StatisticalAnalysisService } from './analysis/statistical-analysis.service';
@@ -25,8 +26,12 @@ import { UserRole } from '../users/entities/user.entity';
 /**
  * Exposes AB testing endpoints.
  */
+@ApiTags('A/B Testing')
 @Controller('ab-testing')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
+@ApiResponse({ status: 403, description: 'Insufficient role for this experiment operation' })
 export class ABTestingController {
   private readonly logger = new Logger(ABTestingController.name);
 
