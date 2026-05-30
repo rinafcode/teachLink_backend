@@ -1,19 +1,22 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
 
 /**
- * Protects roles execution paths.
+ * Protects execution paths based on roles extracted from the user object.
+ * Evaluates custom RBAC roles passed from Auth0 token custom claims or local user properties.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  private readonly logger = new Logger(RolesGuard.name);
+
+  constructor(private readonly reflector: Reflector) {}
 
   /**
-   * Executes can Activate.
-   * @param context The context.
-   * @returns Whether the operation succeeded.
+   * Evaluates if the current user has the required roles.
+   * @param context The execution context.
+   * @returns Whether the operation is allowed.
    */
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
@@ -21,15 +24,87 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles) {
+    if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
     if (!user) {
-      throw new UnauthorizedException();
+      this.logger.warn('Access denied: User object is missing from the request context.');
+      throw new UnauthorizedException('Authentication required');
     }
 
-    return requiredRoles.includes(user.role);
+    // Extract roles from Auth0 custom claims, standard claims, or local user properties
+    const userRoles = this.extractRoles(user);
+
+    const hasRole = requiredRoles.some((role) => userRoles.includes(role));
+
+    if (!hasRole) {
+      this.logger.warn(
+        `Access denied: User does not possess any of the required roles [${requiredRoles.join(', ')}]. Extracted user roles: [${userRoles.join(', ')}]`,
+      );
+    }
+
+    return hasRole;
+  }
+
+  /**
+   * Safely extracts roles from the user object.
+   * Supports Auth0 custom claims namespace, standard roles array, standard role string, and local user role.
+   * @param user Decoded user token payload or user entity.
+   * @returns Array of extracted user roles.
+   */
+  private extractRoles(user: any): string[] {
+    const roles: string[] = [];
+
+    // 1. Check Auth0 custom claims (e.g. https://api.teachlink.com/roles)
+    const audience = process.env.AUTH0_AUDIENCE || 'https://api.teachlink.com';
+    const namespacedClaims = [
+      `${audience}/roles`,
+      `${audience}/role`,
+      'https://teachlink.com/roles',
+      'https://teachlink.com/role',
+    ];
+
+    for (const claim of namespacedClaims) {
+      const claimVal = user[claim];
+      if (claimVal) {
+        if (Array.isArray(claimVal)) {
+          roles.push(...claimVal);
+        } else if (typeof claimVal === 'string') {
+          roles.push(claimVal);
+        }
+      }
+    }
+
+    // 2. Check standard 'roles' property in JWT payload/user object
+    if (user.roles) {
+      if (Array.isArray(user.roles)) {
+        roles.push(...user.roles);
+      } else if (typeof user.roles === 'string') {
+        roles.push(user.roles);
+      }
+    }
+
+    // 3. Check standard 'role' property (used in local JWT implementation)
+    if (user.role) {
+      if (Array.isArray(user.role)) {
+        roles.push(...user.role);
+      } else if (typeof user.role === 'string') {
+        roles.push(user.role);
+      }
+    }
+
+    // 4. Check permissions array in Auth0 (fallback)
+    if (user.permissions && Array.isArray(user.permissions)) {
+      roles.push(...user.permissions);
+    }
+
+    // Clean up, normalize to lowercase strings, and filter out empty values
+    return roles
+      .map((r) => String(r).trim().toLowerCase())
+      .filter((r) => r.length > 0);
   }
 }
