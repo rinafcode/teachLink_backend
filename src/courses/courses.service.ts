@@ -7,7 +7,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course, CourseStatus } from './entities/course.entity';
-import { CourseReview, ReviewDecision } from './entities/course-review.entity';
+import {
+  CourseReview,
+  ReviewDecision,
+} from './entities/course-review.entity';
+import {
+  CourseVersion,
+  CourseVersionEventType,
+} from './entities/course-version.entity';
 import { User, UserRole } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -33,6 +40,8 @@ export class CoursesService {
     private readonly courseRepo: Repository<Course>,
     @InjectRepository(CourseReview)
     private readonly reviewRepo: Repository<CourseReview>,
+    @InjectRepository(CourseVersion)
+    private readonly versionRepo: Repository<CourseVersion>,
   ) {}
 
   // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -46,7 +55,13 @@ export class CoursesService {
       instructorId: instructor.id,
       status: CourseStatus.DRAFT,
     });
-    return this.courseRepo.save(course);
+    const savedCourse = await this.courseRepo.save(course);
+    await this.createVersionSnapshot(
+      savedCourse,
+      instructor.id,
+      CourseVersionEventType.CREATED,
+    );
+    return savedCourse;
   }
 
   /**
@@ -87,7 +102,13 @@ export class CoursesService {
     const course = await this.findOne(id);
     this.assertOwnerOrPrivileged(course, requestingUser);
     Object.assign(course, dto);
-    return this.courseRepo.save(course);
+    const updatedCourse = await this.courseRepo.save(course);
+    await this.createVersionSnapshot(
+      updatedCourse,
+      requestingUser.id,
+      CourseVersionEventType.UPDATED,
+    );
+    return updatedCourse;
   }
 
   /**
@@ -160,6 +181,126 @@ export class CoursesService {
       relations: ['reviewer'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  /**
+   * Returns the full version history for a course.
+   */
+  async getVersionHistory(id: string): Promise<CourseVersion[]> {
+    await this.findOne(id);
+    return this.versionRepo.find({
+      where: { courseId: id },
+      relations: ['changedBy'],
+      order: { versionNumber: 'DESC' },
+    });
+  }
+
+  async getVersionDiff(id: string, versionNumber: number) {
+    const currentCourse = await this.findOne(id);
+    const version = await this.findVersion(id, versionNumber);
+    return this.computeCourseChanges(version, currentCourse);
+  }
+
+  async rollbackToVersion(
+    id: string,
+    versionNumber: number,
+    requestingUser?: User,
+  ): Promise<Course> {
+    const course = await this.findOne(id);
+    if (requestingUser) {
+      this.assertOwnerOrPrivileged(course, requestingUser);
+    }
+    const version = await this.findVersion(id, versionNumber);
+
+    Object.assign(course, {
+      title: version.title,
+      description: version.description,
+      price: Number(version.price),
+      thumbnailUrl: version.thumbnailUrl,
+      status: version.status,
+      submissionNote: version.submissionNote,
+    });
+
+    const rolledBackCourse = await this.courseRepo.save(course);
+    await this.createVersionSnapshot(
+      rolledBackCourse,
+      requestingUser?.id,
+      CourseVersionEventType.ROLLEDBACK,
+    );
+    return rolledBackCourse;
+  }
+
+  private async findVersion(
+    courseId: string,
+    versionNumber: number,
+  ): Promise<CourseVersion> {
+    const version = await this.versionRepo.findOne({
+      where: { courseId, versionNumber },
+    });
+    if (!version) {
+      throw new NotFoundException(
+        `Version ${versionNumber} not found for course ${courseId}`,
+      );
+    }
+    return version;
+  }
+
+  private async createVersionSnapshot(
+    course: Course,
+    changedByUserId?: string,
+    eventType: CourseVersionEventType = CourseVersionEventType.UPDATED,
+  ): Promise<CourseVersion> {
+    const previousVersion = await this.versionRepo.findOne({
+      where: { courseId: course.id },
+      order: { versionNumber: 'DESC' },
+    });
+
+    const versionNumber = previousVersion ? previousVersion.versionNumber + 1 : 1;
+    const changes = this.computeCourseChanges(previousVersion, course);
+
+    const courseVersion = this.versionRepo.create({
+      courseId: course.id,
+      versionNumber,
+      eventType,
+      changedByUserId,
+      title: course.title,
+      description: course.description,
+      price: course.price,
+      thumbnailUrl: course.thumbnailUrl,
+      status: course.status,
+      submissionNote: course.submissionNote,
+      changes: Object.keys(changes).length ? changes : null,
+    });
+
+    return this.versionRepo.save(courseVersion);
+  }
+
+  private computeCourseChanges(
+    previous: Partial<CourseVersion> | null,
+    current: Partial<Course>,
+  ): Record<string, { previous: unknown; next: unknown }> {
+    const trackedFields: Array<keyof Course> = [
+      'title',
+      'description',
+      'price',
+      'thumbnailUrl',
+      'status',
+      'submissionNote',
+    ];
+    const changes: Record<string, { previous: unknown; next: unknown }> = {};
+
+    trackedFields.forEach((field) => {
+      const previousValue = previous ? previous[field] : undefined;
+      const currentValue = current[field];
+      if (previousValue !== currentValue) {
+        changes[field as string] = {
+          previous: previousValue ?? null,
+          next: currentValue ?? null,
+        };
+      }
+    });
+
+    return changes;
   }
 
   /**

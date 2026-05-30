@@ -14,6 +14,7 @@ import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
 import { CourseReview } from './course-review.entity';
+import { CourseVersion } from './course-version.entity';
 
 /** Lifecycle states a course can be in. */
 export enum CourseStatus {
@@ -69,6 +70,9 @@ export class Course {
 
   @OneToMany(() => Enrollment, (enrollment) => enrollment.course)
   enrollments: Enrollment[];
+
+  @OneToMany(() => CourseVersion, (version) => version.course, { eager: false })
+  versions: CourseVersion[];
 
   @OneToMany(() => CourseReview, (review) => review.course, { eager: false })
   reviews: CourseReview[];
