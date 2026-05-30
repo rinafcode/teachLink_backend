@@ -16,6 +16,9 @@ import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
+import compression from 'compression';
+import { FieldFilterInterceptor } from './common/interceptors/field-filter.interceptor';
+import { ImageOptimizationInterceptor } from './common/interceptors/image-optimization.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
@@ -63,6 +66,7 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   app.use(new DecompressionMiddleware());
+  app.use(compression());
 
   app.use(json({ limit: requestBodyLimit }));
   app.use(urlencoded({ extended: true, limit: requestBodyLimit }));
@@ -146,6 +150,11 @@ async function bootstrapWorker(): Promise<void> {
   });
 
   app.enableCors(corsConfig);
+
+  app.useGlobalInterceptors(
+    new FieldFilterInterceptor(),
+    new ImageOptimizationInterceptor()
+  );
 
   app.useGlobalPipes(
     new ValidationPipe({
