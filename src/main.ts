@@ -14,6 +14,10 @@ import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
+import { GracefulShutdownService } from './common/services/graceful-shutdown.service';
+import { RequestTrackerService } from './common/services/request-tracker.service';
+import { DatabaseShutdownService } from './database/services/database-shutdown.service';
+import { WorkerShutdownService } from './workers/services/worker-shutdown.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
 import compression from 'compression';
@@ -38,13 +42,68 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  
+  // Get shutdown services
   const shutdownState = app.get(ShutdownStateService);
+  const gracefulShutdown = app.get(GracefulShutdownService);
+  const requestTracker = app.get(RequestTrackerService);
+  const databaseShutdown = app.get(DatabaseShutdownService);
+  const workerShutdown = app.get(WorkerShutdownService);
+
+  // Register shutdown phases
+  gracefulShutdown.registerShutdownPhase({
+    name: 'stop-accepting-requests',
+    timeout: 5000,
+    execute: async () => {
+      logger.log('Phase 1: Stopping new request acceptance...');
+      shutdownState.markShuttingDown('Graceful shutdown initiated');
+    },
+  });
+
+  gracefulShutdown.registerShutdownPhase({
+    name: 'complete-active-requests',
+    timeout: 15000,
+    execute: async () => {
+      logger.log('Phase 2: Waiting for active requests to complete...');
+      await requestTracker.waitForActiveRequests(12000);
+    },
+  });
+
+  gracefulShutdown.registerShutdownPhase({
+    name: 'shutdown-workers',
+    timeout: 20000,
+    execute: async () => {
+      logger.log('Phase 3: Shutting down workers and completing jobs...');
+      await workerShutdown.shutdown();
+    },
+  });
+
+  gracefulShutdown.registerShutdownPhase({
+    name: 'shutdown-database',
+    timeout: 15000,
+    execute: async () => {
+      logger.log('Phase 4: Shutting down database connections...');
+      await databaseShutdown.shutdown();
+    },
+  });
+
+  gracefulShutdown.registerShutdownPhase({
+    name: 'close-application',
+    timeout: 5000,
+    execute: async () => {
+      logger.log('Phase 5: Closing NestJS application...');
+      await app.close();
+    },
+  });
 
   app.enableVersioning({
     type: VersioningType.HEADER,
     header: API_VERSION_HEADER,
     defaultVersion: DEFAULT_API_VERSION,
   });
+
+  // Add request tracking middleware early in the pipeline
+  app.use(requestTracker.trackRequest());
 
   app.use(
     helmet({
@@ -224,17 +283,10 @@ async function bootstrapWorker(): Promise<void> {
     }
 
     isShuttingDown = true;
-    shutdownState.markShuttingDown();
     logger.log(`Received ${signal}. Starting graceful shutdown...`);
 
-    const forceExitTimer = setTimeout(() => {
-      logger.error(`Graceful shutdown timed out after ${shutdownTimeoutMs}ms. Forcing exit.`);
-      process.exit(1);
-    }, shutdownTimeoutMs);
-    forceExitTimer.unref();
-
     try {
-      await app.close();
+      await gracefulShutdown.shutdown(signal);
       logger.log('Graceful shutdown completed.');
       process.exit(0);
     } catch (error) {

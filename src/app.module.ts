@@ -8,7 +8,7 @@ import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 
-import { EmailModule } from './email-marketing/email.module';
+import { MessagingModule } from './messaging/messaging.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -24,10 +24,12 @@ import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { HealthModule } from './health/health.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
+import { CoursesModule } from './courses/courses.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -49,12 +51,16 @@ const featureFlags = loadFeatureFlags();
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
+    HealthModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
 
     // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
+
+    // ✅ courses module with enrollment and prerequisite enforcement
+    CoursesModule,
   ],
   controllers: [AppController],
   providers: [
