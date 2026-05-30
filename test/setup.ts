@@ -1,4 +1,5 @@
 // Test setup file to optimize memory usage and test performance
+/// <reference path="../src/test-typings.d.ts" />
 export {};
 
 declare global {
