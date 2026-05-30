@@ -2,6 +2,8 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: teachlink-backend-ingress
+  labels:
+    app: teachlink-backend
 spec:
   rules:
     - host: example.local
