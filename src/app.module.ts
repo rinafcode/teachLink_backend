@@ -26,6 +26,7 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
+import { CoursesModule } from './courses/courses.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -51,6 +52,9 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
+
+    // ✅ courses module with enrollment and prerequisite enforcement
+    CoursesModule,
   ],
   controllers: [AppController],
   providers: [
