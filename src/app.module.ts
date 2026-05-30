@@ -23,6 +23,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
+import { ReportingModule } from './payments/reporting/reporting.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -47,6 +48,7 @@ const featureFlags = loadFeatureFlags();
     MonitoringModule,
     DeepLinkModule,
     InvoicesModule,
+    ReportingModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
