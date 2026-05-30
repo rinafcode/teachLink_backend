@@ -2,11 +2,22 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: teachlink-backend-ingress
+  namespace: teachlink
   labels:
     app: teachlink-backend
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
 spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.teachlink.io
+      secretName: teachlink-tls
   rules:
-    - host: example.local
+    - host: api.teachlink.io
       http:
         paths:
           - path: /

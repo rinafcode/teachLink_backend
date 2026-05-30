@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: teachlink-backend
+  namespace: teachlink
   labels:
     app: teachlink-backend
 spec:
@@ -14,20 +15,35 @@ spec:
       labels:
         app: teachlink-backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: teachlink-backend
           image: teachlink-backend:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
-              cpu: '100m'
-              memory: '256Mi'
+              cpu: "100m"
+              memory: "256Mi"
             limits:
-              cpu: '500m'
-              memory: '512Mi'
+              cpu: "500m"
+              memory: "512Mi"
           ports:
             - containerPort: 3000
               name: http
+          envFrom:
+            - configMapRef:
+                name: teachlink-backend-config
+            - secretRef:
+                name: teachlink-backend-secret
           livenessProbe:
             httpGet:
               path: /health

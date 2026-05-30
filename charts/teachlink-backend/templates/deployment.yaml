@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "teachlink-backend.fullname" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "teachlink-backend.labels" . | nindent 4 }}
 spec:
@@ -15,20 +16,32 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "teachlink-backend.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- with .Values.podAnnotations }}
       annotations:
-        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: {{ include "teachlink-backend.name" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: 3000
-          env:
-            - name: NODE_ENV
-              value: production
-            {{- include "teachlink-backend.env" . | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "teachlink-backend.fullname" . }}-config
+            - secretRef:
+                name: {{ include "teachlink-backend.fullname" . }}-secret
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
@@ -50,15 +63,15 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 3
-      {{- if .Values.nodeSelector }}
+      {{- with .Values.nodeSelector }}
       nodeSelector:
-        {{- toYaml .Values.nodeSelector | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.affinity }}
+      {{- with .Values.affinity }}
       affinity:
-        {{- toYaml .Values.affinity | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.tolerations }}
+      {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml .Values.tolerations | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
