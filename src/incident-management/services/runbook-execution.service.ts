@@ -81,7 +81,7 @@ export class RunbookExecutionService {
 
           const result = await this.executeStep(step);
 
-          stepExecution['status'] = result.success ? 'completed' : 'failed';
+          (stepExecution as any)['status'] = result.success ? 'completed' : 'failed';
           stepExecution['output'] = result.output;
           if (!result.success) {
             stepExecution['error'] = result.error;
