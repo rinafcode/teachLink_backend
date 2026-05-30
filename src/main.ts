@@ -8,6 +8,8 @@ import session, { type Session, type SessionData } from 'express-session';
 import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 import { AppModule } from './app.module';
+import { initStructuredLogging } from './logging/structured-logging';
+import { requestIdMiddleware } from './logging/request-id.middleware';
 import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 import { correlationMiddleware } from './common/utils/correlation.utils';
@@ -31,6 +33,7 @@ type SessionRequest = Request & {
 };
 
 async function bootstrapWorker(): Promise<void> {
+  initStructuredLogging(process.env.SERVICE_NAME || 'teachlink-backend');
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '1mb';
@@ -106,6 +109,8 @@ async function bootstrapWorker(): Promise<void> {
     expressApp.set('trust proxy', 1);
   }
 
+  // attach request id and basic HTTP access logs
+  app.use(requestIdMiddleware);
   app.use(correlationMiddleware);
 
   app.use(
