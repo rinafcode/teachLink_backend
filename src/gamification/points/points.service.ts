@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserProgress } from '../entities/user-progress.entity';
 import { PointTransaction } from '../entities/point-transaction.entity';
 import { User } from '../../users/entities/user.entity';
+import { GAMIFICATION_EVENTS, PointsAwardedEvent } from '../events/gamification.events';
 
-/**
- * Provides points operations.
- */
 @Injectable()
 export class PointsService {
   constructor(
@@ -15,24 +14,17 @@ export class PointsService {
     private userProgressRepository: Repository<UserProgress>,
     @InjectRepository(PointTransaction)
     private pointTransactionRepository: Repository<PointTransaction>,
+    private eventEmitter: EventEmitter2,
   ) {}
 
-  /**
-   * Award points for a user activity and update progress.
-   *
-   * The current progression model is intentionally simple: points and XP are
-   * identical, and level increases every 1000 XP. This is a good place to add
-   * more advanced reward rules later.
-   */
   async addPoints(userId: string, points: number, activityType: string): Promise<UserProgress> {
-    // Log the transaction
     const transaction = this.pointTransactionRepository.create({
       user: { id: userId } as User,
       points,
       activityType,
     });
     await this.pointTransactionRepository.save(transaction);
-    // Update user progress
+
     let progress = await this.userProgressRepository.findOne({
       where: { user: { id: userId } },
     });
@@ -44,19 +36,33 @@ export class PointsService {
         xp: 0,
       });
     }
+
     progress.totalPoints += points;
     progress.xp += points;
-    // Basic level progression logic: level up every 1000 XP
+
     const newLevel = Math.floor(progress.xp / 1000) + 1;
-    if (newLevel > progress.level) {
-      progress.level = newLevel;
-      // TODO: Emit level up event for notification, badge award, or milestone tracking
-    }
-    return await this.userProgressRepository.save(progress);
+    progress.level = newLevel;
+
+    const saved = await this.userProgressRepository.save(progress);
+
+    // Emit event so BadgesService can react
+    this.eventEmitter.emit(
+      GAMIFICATION_EVENTS.POINTS_AWARDED,
+      new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
+    );
+
+    return saved;
   }
+
   async getUserProgress(userId: string): Promise<UserProgress | null> {
-    return await this.userProgressRepository.findOne({
+    return this.userProgressRepository.findOne({ where: { user: { id: userId } } });
+  }
+
+  async getPointHistory(userId: string): Promise<PointTransaction[]> {
+    return this.pointTransactionRepository.find({
       where: { user: { id: userId } },
+      order: { createdAt: 'DESC' },
+      take: 50,
     });
   }
 }

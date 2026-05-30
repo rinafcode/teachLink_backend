@@ -20,6 +20,7 @@ import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
 import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { GamificationModule } from './gamification/gamification.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
 
 // ✅ keep BOTH modules
@@ -43,6 +44,7 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    GamificationModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
