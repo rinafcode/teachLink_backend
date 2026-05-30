@@ -95,6 +95,25 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
+  // Location and Currency Fields
+  @Column({ nullable: true })
+  @Index()
+  country?: string; // Country name or full name
+
+  @Column({ nullable: true, length: 2 })
+  @Index()
+  countryCode?: string; // ISO 3166-1 alpha-2 country code
+
+  @Column({ nullable: true })
+  timezone?: string; // IANA timezone identifier
+
+  @Column({ nullable: true })
+  city?: string;
+
+  @Column({ nullable: true, length: 3, default: 'USD' })
+  @Index()
+  preferredCurrency?: string; // ISO 4217 currency code
+
   @OneToMany(() => Course, (course) => course.instructor)
   courses: Course[];
 

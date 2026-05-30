@@ -35,6 +35,10 @@ export class Course {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   price: number;
 
+  @Column({ nullable: true, length: 3, default: 'USD' })
+  @Index()
+  currency?: string; // ISO 4217 currency code (base currency for the course)
+
   @Column({ default: 'draft' }) // draft, published, archived
   @Index()
   status: string;
