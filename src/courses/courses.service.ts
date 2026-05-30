@@ -54,8 +54,7 @@ export class CoursesService {
    */
   async findAll(requestingUser?: User): Promise<Course[]> {
     const isPrivileged =
-      requestingUser &&
-      [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
+      requestingUser && [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
 
     if (isPrivileged) {
       return this.courseRepo.find({ order: { createdAt: 'DESC' } });
@@ -108,10 +107,7 @@ export class CoursesService {
     const course = await this.findOne(id);
     this.assertCourseOwner(course, instructor);
 
-    if (
-      course.status !== CourseStatus.DRAFT &&
-      course.status !== CourseStatus.CHANGES_REQUESTED
-    ) {
+    if (course.status !== CourseStatus.DRAFT && course.status !== CourseStatus.CHANGES_REQUESTED) {
       throw new BusinessValidationException(
         `Cannot submit a course with status "${course.status}" for review. ` +
           `Only DRAFT or CHANGES_REQUESTED courses may be submitted.`,

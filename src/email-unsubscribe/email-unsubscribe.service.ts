@@ -23,7 +23,11 @@ export class EmailUnsubscribeService {
     private readonly subscriptionRepository: Repository<EmailSubscription>,
   ) {}
 
-  async generateUnsubscribeToken(email: string, userId?: string, emailType?: string): Promise<string> {
+  async generateUnsubscribeToken(
+    email: string,
+    userId?: string,
+    emailType?: string,
+  ): Promise<string> {
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + this.TOKEN_TTL_HOURS);
@@ -44,16 +48,21 @@ export class EmailUnsubscribeService {
 
     await this.tokenRepository.update(record.id, { used: true });
 
-    let subscription = await this.subscriptionRepository.findOne({ where: { email: record.email } });
+    let subscription = await this.subscriptionRepository.findOne({
+      where: { email: record.email },
+    });
     if (!subscription) {
-      subscription = this.subscriptionRepository.create({ email: record.email, userId: record.userId });
+      subscription = this.subscriptionRepository.create({
+        email: record.email,
+        userId: record.userId,
+      });
     }
 
     subscription.isSubscribed = false;
     subscription.unsubscribedAt = new Date();
 
     if (record.emailType && subscription.preferences) {
-      subscription.preferences = subscription.preferences.filter(p => p !== record.emailType);
+      subscription.preferences = subscription.preferences.filter((p) => p !== record.emailType);
     }
 
     await this.subscriptionRepository.save(subscription);

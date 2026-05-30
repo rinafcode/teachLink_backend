@@ -1,6 +1,9 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { GlobalExceptionFilter } from './global-exception.filter';
-import { ResourceNotFoundException, ForbiddenOperationException } from '../exceptions/app.exceptions';
+import {
+  ResourceNotFoundException,
+  ForbiddenOperationException,
+} from '../exceptions/app.exceptions';
 
 jest.mock('../utils/correlation.utils', () => ({
   getCorrelationId: () => 'test-correlation-id',
