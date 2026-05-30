@@ -26,6 +26,7 @@
     "test:ci": "jest --config jest.config.js --coverage --forceExit --runInBand && node ./test/utils/check-coverage-summary.js",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit --runInBand",
+    "test:sanity": "jest --config ./test/jest-sanity.json --forceExit --runInBand",
     "test:e2e:stability": "node test/utils/e2e-test-runner.js --runs 5",
     "test:e2e:stability:quick": "node test/utils/e2e-test-runner.js --runs 3",
     "test:e2e:stability:auth": "node test/utils/e2e-test-runner.js --pattern \"auth.e2e-spec.ts\" --runs 5",
