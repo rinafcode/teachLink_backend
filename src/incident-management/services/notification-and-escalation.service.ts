@@ -4,6 +4,7 @@ import * as nodemailer from 'nodemailer';
 import axios from 'axios';
 import { Incident, IncidentSeverity } from '../entities/incident.entity';
 import { RemediationAction } from '../entities/remediation-action.entity';
+import { EnhancedCircuitBreakerService } from '../../common/services/circuit-breaker.service';
 
 export enum NotificationChannel {
   EMAIL = 'email',
@@ -31,7 +32,10 @@ export class NotificationAndEscalationService {
   private emailTransporter: nodemailer.Transporter;
   private escalationPolicies: Map<string, EscalationPolicy> = new Map();
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private circuitBreakerService: EnhancedCircuitBreakerService,
+  ) {
     this.initializeEmailTransport();
     this.initializeEscalationPolicies();
   }
@@ -377,34 +381,47 @@ export class NotificationAndEscalationService {
 
     const text = this.buildSlackMessage(incident, eventType, remediationAction);
 
-    await axios.post(slackWebhook, {
-      channel,
-      attachments: [
-        {
-          color,
-          title: incident.title,
-          text,
-          fields: [
+    await this.circuitBreakerService.execute(
+      'slack-notification',
+      () =>
+        axios.post(slackWebhook, {
+          channel,
+          attachments: [
             {
-              title: 'Severity',
-              value: incident.severity,
-              short: true,
-            },
-            {
-              title: 'Status',
-              value: incident.status,
-              short: true,
-            },
-            {
-              title: 'Incident ID',
-              value: incident.id,
-              short: false,
+              color,
+              title: incident.title,
+              text,
+              fields: [
+                {
+                  title: 'Severity',
+                  value: incident.severity,
+                  short: true,
+                },
+                {
+                  title: 'Status',
+                  value: incident.status,
+                  short: true,
+                },
+                {
+                  title: 'Incident ID',
+                  value: incident.id,
+                  short: false,
+                },
+              ],
+              ts: Math.floor(Date.now() / 1000),
             },
           ],
-          ts: Math.floor(Date.now() / 1000),
+        }),
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        fallback: (error: Error) => {
+          this.logger.warn(`Slack notification fallback triggered: ${error.message}`);
+          return null;
         },
-      ],
-    });
+      },
+    );
 
     this.logger.log(`Slack notification sent to ${channel}`);
   }
@@ -429,20 +446,33 @@ export class NotificationAndEscalationService {
           ? 'resolve'
           : 'acknowledge';
 
-    await axios.post('https://events.pagerduty.com/v2/enqueue', {
-      routing_key: pagerDutyKey,
-      event_action: eventAction,
-      dedup_key: incident.id,
-      payload: {
-        summary: incident.title,
-        severity: incident.severity.toLowerCase(),
-        source: 'TeachLink Incident Management',
-        custom_details: {
-          description: incident.description,
-          incidentId: incident.id,
+    await this.circuitBreakerService.execute(
+      'pagerduty-notification',
+      () =>
+        axios.post('https://events.pagerduty.com/v2/enqueue', {
+          routing_key: pagerDutyKey,
+          event_action: eventAction,
+          dedup_key: incident.id,
+          payload: {
+            summary: incident.title,
+            severity: incident.severity.toLowerCase(),
+            source: 'TeachLink Incident Management',
+            custom_details: {
+              description: incident.description,
+              incidentId: incident.id,
+            },
+          },
+        }),
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        fallback: (error: Error) => {
+          this.logger.warn(`PagerDuty notification fallback triggered: ${error.message}`);
+          return null;
         },
       },
-    });
+    );
 
     this.logger.log(`PagerDuty notification sent for incident ${incident.id}`);
   }
@@ -455,17 +485,30 @@ export class NotificationAndEscalationService {
     incident: Incident,
     eventType: string,
   ): Promise<void> {
-    await axios.post(webhookUrl, {
-      eventType,
-      incident: {
-        id: incident.id,
-        title: incident.title,
-        description: incident.description,
-        severity: incident.severity,
-        status: incident.status,
-        detectedAt: incident.detectedAt,
+    await this.circuitBreakerService.execute(
+      `webhook-notification-${webhookUrl}`,
+      () =>
+        axios.post(webhookUrl, {
+          eventType,
+          incident: {
+            id: incident.id,
+            title: incident.title,
+            description: incident.description,
+            severity: incident.severity,
+            status: incident.status,
+            detectedAt: incident.detectedAt,
+          },
+        }),
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        fallback: (error: Error) => {
+          this.logger.warn(`Webhook notification fallback triggered for ${webhookUrl}: ${error.message}`);
+          return null;
+        },
       },
-    });
+    );
 
     this.logger.log(`Webhook notification sent to ${webhookUrl}`);
   }
