@@ -1,9 +1,9 @@
 import {
-  NotFoundException,
-  UnauthorizedException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+  ResourceNotFoundException,
+  InvalidCredentialsException,
+  InvalidTokenException,
+  ResourceConflictException,
+} from '../exceptions/app.exceptions';
 import { User } from '../../users/entities/user.entity';
 /**
  * Ensures a user exists, throwing a NotFoundException otherwise.
@@ -13,7 +13,7 @@ import { User } from '../../users/entities/user.entity';
  */
 export function ensureUserExists(user: User | null | undefined, message = 'User not found'): User {
   if (!user) {
-    throw new NotFoundException(message);
+    throw new ResourceNotFoundException('User');
   }
   return user;
 }
@@ -28,7 +28,7 @@ export function ensureValidCredentials(
   message = 'Invalid credentials',
 ): User {
   if (!user) {
-    throw new UnauthorizedException(message);
+    throw new InvalidCredentialsException(message);
   }
   return user;
 }
@@ -39,7 +39,7 @@ export function ensureValidCredentials(
  */
 export function ensureUserIsActive(user: User, message = 'Account is not active'): void {
   if (user.status !== 'active') {
-    throw new UnauthorizedException(message);
+    throw new InvalidCredentialsException(message);
   }
 }
 /**
@@ -57,11 +57,11 @@ export function ensureValidUserToken(
   message = 'Invalid or expired token',
 ): User {
   if (!user || !user[tokenField] || !user[expiresField]) {
-    throw new BadRequestException(message);
+    throw new InvalidTokenException(message);
   }
   const expireDate = user[expiresField] as Date;
   if (new Date() > expireDate) {
-    throw new BadRequestException(message);
+    throw new InvalidTokenException(message);
   }
   return user;
 }
@@ -76,6 +76,6 @@ export function ensureUserDoesNotExist(
   message = 'User already exists',
 ): void {
   if (user) {
-    throw new ConflictException(message);
+    throw new ResourceConflictException('User');
   }
 }

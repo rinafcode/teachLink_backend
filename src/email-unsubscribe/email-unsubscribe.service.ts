@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  ResourceNotFoundException,
+  BusinessValidationException,
+  InvalidTokenException,
+} from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
@@ -33,9 +38,9 @@ export class EmailUnsubscribeService {
   async unsubscribe(dto: UnsubscribeDto): Promise<void> {
     const record = await this.tokenRepository.findOne({ where: { token: dto.token } });
 
-    if (!record) throw new NotFoundException('Invalid unsubscribe token');
-    if (record.used) throw new BadRequestException('Token already used');
-    if (record.expiresAt < new Date()) throw new BadRequestException('Token has expired');
+    if (!record) throw new ResourceNotFoundException('UnsubscribeToken');
+    if (record.used) throw new BusinessValidationException('Token already used');
+    if (record.expiresAt < new Date()) throw new InvalidTokenException('Token has expired');
 
     await this.tokenRepository.update(record.id, { used: true });
 

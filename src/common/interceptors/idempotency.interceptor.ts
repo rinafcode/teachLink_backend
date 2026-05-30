@@ -3,9 +3,10 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  HttpException,
+  BadRequestException,
   HttpStatus,
 } from '@nestjs/common';
+import { ResourceConflictException } from '../exceptions/app.exceptions';
 import { Reflector } from '@nestjs/core';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
@@ -38,10 +39,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     // Get idempotency key from header
     const idempotencyKey = request.headers['x-idempotency-key'] as string;
     if (!idempotencyKey) {
-      throw new HttpException(
-        'X-Idempotency-Key header is required for this operation',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException('X-Idempotency-Key header is required for this operation');
     }
 
     // Check if request already processed
@@ -54,7 +52,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     // Try to acquire lock
     const lockAcquired = await this.idempotencyService.acquireLock(idempotencyKey);
     if (!lockAcquired) {
-      throw new HttpException('Request is being processed, please wait', HttpStatus.CONFLICT);
+      throw new ResourceConflictException('IdempotentRequest', 'key');
     }
 
     try {

@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { sanitizeSqlLike } from '../../common/utils/sanitization.utils';
@@ -41,7 +42,7 @@ export class TenantAdminService {
   async getTenantStatistics(tenantId: string): Promise<ITenantStatistics> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
 
     return {
@@ -56,7 +57,7 @@ export class TenantAdminService {
   async suspendTenant(tenantId: string, reason?: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
     tenant.status = TenantStatus.SUSPENDED;
     tenant.metadata = {
@@ -70,7 +71,7 @@ export class TenantAdminService {
   async activateTenant(tenantId: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
     tenant.status = TenantStatus.ACTIVE;
     tenant.metadata = {
@@ -85,7 +86,7 @@ export class TenantAdminService {
   async upgradePlan(tenantId: string, newPlan: TenantPlan): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
     const oldPlan = tenant.plan;
     tenant.plan = newPlan;
@@ -109,7 +110,7 @@ export class TenantAdminService {
   async checkTenantHealth(tenantId: string): Promise<ITenantHealth> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
 
     const issues: string[] = [];
@@ -164,7 +165,7 @@ export class TenantAdminService {
   async resetTenantData(tenantId: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
 
     tenant.currentUserCount = 0;

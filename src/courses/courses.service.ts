@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course, CourseStatus } from './entities/course.entity';
@@ -13,6 +8,11 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
 import { ReviewCourseDto } from './dto/review-course.dto';
+import {
+  ResourceNotFoundException,
+  ForbiddenOperationException,
+  BusinessValidationException,
+} from '../common/exceptions/app.exceptions';
 
 /**
  * Maps a ReviewDecision to the resulting CourseStatus after the decision.
@@ -75,7 +75,7 @@ export class CoursesService {
       relations: ['instructor', 'reviews', 'reviews.reviewer'],
     });
     if (!course) {
-      throw new NotFoundException(`Course ${id} not found`);
+      throw new ResourceNotFoundException('Course', id);
     }
     return course;
   }
@@ -112,7 +112,7 @@ export class CoursesService {
       course.status !== CourseStatus.DRAFT &&
       course.status !== CourseStatus.CHANGES_REQUESTED
     ) {
-      throw new BadRequestException(
+      throw new BusinessValidationException(
         `Cannot submit a course with status "${course.status}" for review. ` +
           `Only DRAFT or CHANGES_REQUESTED courses may be submitted.`,
       );
@@ -131,7 +131,7 @@ export class CoursesService {
 
     const course = await this.findOne(id);
     if (course.status !== CourseStatus.PENDING_REVIEW) {
-      throw new BadRequestException(
+      throw new BusinessValidationException(
         `Course "${id}" is not pending review (current status: "${course.status}").`,
       );
     }
@@ -178,13 +178,13 @@ export class CoursesService {
 
   private assertCourseOwner(course: Course, user: User): void {
     if (course.instructorId !== user.id) {
-      throw new ForbiddenException('Only the course owner may perform this action.');
+      throw new ForbiddenOperationException('Only the course owner may perform this action.');
     }
   }
 
   private assertPrivileged(user: User): void {
     if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
-      throw new ForbiddenException('Only admins or moderators may perform this action.');
+      throw new ForbiddenOperationException('Only admins or moderators may perform this action.');
     }
   }
 
@@ -192,7 +192,7 @@ export class CoursesService {
     const isOwner = course.instructorId === user.id;
     const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
     if (!isOwner && !isPrivileged) {
-      throw new ForbiddenException('Insufficient permissions.');
+      throw new ForbiddenOperationException('Insufficient permissions.');
     }
   }
 }

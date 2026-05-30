@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { RequestCaptureService } from './request-capture.service';
 import { IReplayOptions, IReplayResult } from '../interfaces/debug.interfaces';
 
@@ -34,7 +35,7 @@ export class RequestReplayService {
   async replay(id: string, options: IReplayOptions = {}): Promise<IReplayResult> {
     const record = this.capture.get(id);
     if (!record) {
-      throw new NotFoundException(`No captured request with id "${id}"`);
+      throw new ResourceNotFoundException('CapturedRequest', id);
     }
 
     const baseUrl = options.baseUrl ?? this.selfBaseUrl;

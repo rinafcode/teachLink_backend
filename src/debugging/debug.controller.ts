@@ -3,12 +3,12 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -82,7 +82,7 @@ export class DebugController {
   @ApiResponse({ status: 404, description: 'Captured request not found' })
   inspect(@Param('id') id: string) {
     const record = this.capture.get(id);
-    if (!record) throw new NotFoundException(`No captured request "${id}"`);
+    if (!record) throw new ResourceNotFoundException('CapturedRequest', id);
     return record;
   }
 
@@ -93,7 +93,7 @@ export class DebugController {
   @ApiResponse({ status: 404, description: 'Captured request not found' })
   timeline(@Param('id') id: string) {
     const record = this.capture.get(id);
-    if (!record) throw new NotFoundException(`No captured request "${id}"`);
+    if (!record) throw new ResourceNotFoundException('CapturedRequest', id);
     return {
       ...record.timeline,
       hotspots: this.timelines.hotspots(record.timeline),
@@ -107,7 +107,7 @@ export class DebugController {
   @ApiResponse({ status: 404, description: 'Captured request not found' })
   trace(@Param('id') id: string) {
     const record = this.capture.get(id);
-    if (!record) throw new NotFoundException(`No captured request "${id}"`);
+    if (!record) throw new ResourceNotFoundException('CapturedRequest', id);
     if (!record.error) {
       return { message: 'Request completed without an error' };
     }

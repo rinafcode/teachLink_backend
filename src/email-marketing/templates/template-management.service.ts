@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as Handlebars from 'handlebars';
@@ -57,7 +58,7 @@ export class TemplateManagementService {
   async findOne(id: string): Promise<EmailTemplate> {
     const template = await this.templateRepository.findOne({ where: { id } });
     if (!template) {
-      throw new NotFoundException(`Template with ID ${id} not found`);
+      throw new ResourceNotFoundException('EmailTemplate', id);
     }
     return template;
   }
