@@ -12,6 +12,8 @@ RUN npm run build
 # Stage 2: Production
 FROM node:18-alpine AS production
 
+ENV NODE_ENV=production
+
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init \
   && rm -rf /var/cache/apk/*
@@ -33,7 +35,9 @@ USER node
 
 EXPOSE 3000
 
-# no-new-privileges enforced at runtime via security_opt in compose;
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+
 # dumb-init ensures SIGTERM is forwarded to the Node process
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main.js"]
