@@ -22,6 +22,7 @@ import { IncidentManagementModule } from './incident-management/incident-managem
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
 import { DeepLinkModule } from './deep-link/deep-link.module';
+import { HealthModule } from './health/health.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -46,6 +47,7 @@ const featureFlags = loadFeatureFlags();
     IncidentManagementModule,
     MonitoringModule,
     DeepLinkModule,
+    HealthModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
