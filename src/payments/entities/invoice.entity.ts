@@ -79,6 +79,9 @@ export class Invoice {
   @Column({ type: 'text', nullable: true })
   terms: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  fileUrl: string;
+
   @ManyToOne(() => Payment, (payment) => payment.id)
   @JoinColumn({ name: 'payment_id' })
   payment: Payment;
