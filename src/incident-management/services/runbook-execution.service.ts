@@ -81,7 +81,7 @@ export class RunbookExecutionService {
 
           const result = await this.executeStep(step);
 
-          stepExecution['status'] = result.success ? 'completed' : 'failed';
+          (stepExecution as any)['status'] = result.success ? 'completed' : 'failed';
           stepExecution['output'] = result.output;
           if (!result.success) {
             stepExecution['error'] = result.error;
@@ -93,7 +93,7 @@ export class RunbookExecutionService {
           );
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
-          stepExecution['status'] = 'failed';
+          (stepExecution as any)['status'] = 'failed';
           stepExecution['error'] = errorMsg;
           allSuccess = false;
           this.logger.error(`Step ${step.stepNumber} failed: ${errorMsg}`);
