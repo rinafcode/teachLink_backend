@@ -5,7 +5,7 @@ metadata:
   labels:
     app: teachlink-backend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: teachlink-backend
@@ -16,14 +16,29 @@ spec:
     spec:
       containers:
         - name: teachlink-backend
-          image: your-dockerhub-username/teachlink-backend:latest
-          imagePullPolicy: Always
+          image: teachlink-backend:latest
+          imagePullPolicy: IfNotPresent
           resources:
-            limits:
-              cpu: '250m'
-              memory: '256Mi'
             requests:
               cpu: '100m'
-              memory: '128Mi'
+              memory: '256Mi'
+            limits:
+              cpu: '500m'
+              memory: '512Mi'
           ports:
             - containerPort: 3000
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
