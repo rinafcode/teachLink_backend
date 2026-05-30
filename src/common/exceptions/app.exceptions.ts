@@ -60,3 +60,17 @@ export class ServiceUnavailableException extends HttpException {
     );
   }
 }
+
+/**
+ * Thrown when a request exceeds the configured timeout.
+ * Maps to HTTP 504 Gateway Timeout.
+ */
+export class RequestTimeoutException extends HttpException {
+  constructor(timeoutMs: number) {
+    const message = `Request timeout after ${timeoutMs}ms`;
+    super(
+      { message, error: 'Gateway Timeout', statusCode: HttpStatus.GATEWAY_TIMEOUT },
+      HttpStatus.GATEWAY_TIMEOUT,
+    );
+  }
+}

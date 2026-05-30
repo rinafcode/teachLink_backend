@@ -23,6 +23,7 @@ export class MetricsCollectionService implements OnModuleInit {
   public queueProcessingTime: Histogram;
   public emailCampaignsSent: Counter;
   public backupOperations: Counter;
+  public requestTimeouts: Counter;
 
   constructor() {
     this.registry = new Registry();
@@ -125,6 +126,14 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'backup_operations_total',
       help: 'Total number of backup operations',
       labelNames: ['operation_type', 'status'],
+      registers: [this.registry],
+    });
+
+    // Request Timeouts Counter
+    this.requestTimeouts = new Counter({
+      name: 'http_request_timeouts_total',
+      help: 'Total number of HTTP request timeouts',
+      labelNames: ['route'],
       registers: [this.registry],
     });
   }
@@ -248,5 +257,14 @@ export class MetricsCollectionService implements OnModuleInit {
    */
   recordBackupOperation(operationType: string, status: string) {
     this.backupOperations.inc({ operation_type: operationType, status });
+  }
+
+  /**
+   * Records request Timeout.
+   * @param route The route.
+   * @returns The operation result.
+   */
+  recordRequestTimeout(route: string) {
+    this.requestTimeouts.inc({ route });
   }
 }
