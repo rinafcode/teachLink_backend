@@ -8,7 +8,8 @@ import { User } from '../users/entities/user.entity';
 export interface JwtPayload {
   sub: string;
   email: string;
-  role: string;
+  roles: string[];
+  permissions: string[];
 }
 
 /**
@@ -30,13 +31,36 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   /**
    * Validates the decoded JWT payload and returns the user object.
    * @param payload The decoded JWT payload.
-   * @returns The authenticated user.
+   * @returns The authenticated user with roles and permissions.
    */
-  async validate(payload: JwtPayload): Promise<User> {
+  async validate(payload: JwtPayload): Promise<any> {
     const user = await this.userRepository.findOneBy({ id: payload.sub });
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
-    return user;
+
+    // Fetch roles and permissions for the user
+    const userWithRolesAndPermissions = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role')
+      .leftJoinAndSelect('role.permissions', 'permission')
+      .where('user.id = :id', { id: user.id })
+      .getOne();
+
+    if (!userWithRolesAndPermissions) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const roles = userWithRolesAndPermissions.roles.map(role => role.name);
+    const permissions = userWithRolesAndPermissions.roles
+      .reduce((acc, role) => {
+        return acc.concat(role.permissions.map(p => `${p.resource}:${p.action}`));
+      }, [] as string[]);
+
+    return {
+      ...payload,
+      roles,
+      permissions,
+    };
   }
 }

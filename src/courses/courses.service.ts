@@ -10,7 +10,7 @@ import { Repository } from 'typeorm';
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview, ReviewDecision } from './entities/course-review.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
@@ -74,7 +74,7 @@ export class CoursesService {
   async findAll(requestingUser?: User): Promise<Course[]> {
     const isPrivileged =
       requestingUser &&
-      [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
+      requestingUser.roles.some(role => ['admin', 'moderator'].includes(role));
 
     if (isPrivileged) {
       return this.courseRepo.find({ order: { createdAt: 'DESC' } });
@@ -223,14 +223,14 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
+    if (!user.roles.some(role => ['admin', 'moderator'].includes(role))) {
       throw new ForbiddenException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role));
     if (!isOwner && !isPrivileged) {
       throw new ForbiddenException('Insufficient permissions.');
     }
