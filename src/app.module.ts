@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module'; // ✅ added
 
+import { EmailModule } from './email-marketing/email.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -32,7 +33,7 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
     DataPipelineModule,
-    CanaryModule,
+    CanaryModule, EmailModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
