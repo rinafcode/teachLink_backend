@@ -103,6 +103,7 @@
     "@opentelemetry/exporter-prometheus": "^0.215.0",
     "@opentelemetry/instrumentation": "^0.203.0",
     "@opentelemetry/sdk-node": "^0.203.0",
+    "@segment/analytics-node": "^2.1.2",
     "@types/csurf": "^1.11.5",
     "@types/express-session": "^1.18.2",
     "@types/handlebars": "^4.0.40",
