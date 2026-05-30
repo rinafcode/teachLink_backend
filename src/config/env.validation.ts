@@ -68,6 +68,8 @@ export const envValidationSchema = Joi.object({
 
   // SendGrid Configuration
   SENDGRID_API_KEY: Joi.string().required(),
+  SENDGRID_SENDER_EMAIL: Joi.string().email().required(),
+  SENDGRID_WEBHOOK_TOKEN: Joi.string().required(),
   SENDGRID_HEALTH_URL: Joi.string().uri().optional(),
 
   // Elasticsearch Configuration

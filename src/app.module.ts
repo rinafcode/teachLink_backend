@@ -6,8 +6,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
-import { AnalyticsModule } from './analytics/analytics.module'; // ✅ added
+import { AnalyticsModule } from './analytics/analytics.module';
 
+import { EmailModule } from './email-marketing/email.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -19,7 +20,10 @@ import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
 import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+
+// ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
+import { CachingModule } from './caching/caching.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -30,7 +34,7 @@ const featureFlags = loadFeatureFlags();
     ScheduleModule.forRoot(),
     SessionModule,
     SearchModule,
-    AnalyticsModule, // ✅ merged from feat branch
+    AnalyticsModule,
     IndexOptimizationModule,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
@@ -38,7 +42,12 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+
+    // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
+
+    // ✅ feature-flagged caching
+    ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
