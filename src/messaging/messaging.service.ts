@@ -1,4 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CreateMessageDto, MarkReadDto } from './message.dto';
+import { Message } from './message.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
@@ -14,6 +18,8 @@ export class MessagingService {
     @InjectQueue(QUEUE_NAMES.MESSAGE_QUEUE)
     private readonly messageQueue: Queue,
     private readonly tracingService: TracingService,
+    @InjectRepository(Message)
+    private readonly messageRepo: Repository<Message>,
   ) {}
 
   /**
@@ -22,19 +28,49 @@ export class MessagingService {
    * @param options The options.
    * @returns The resulting job<any>.
    */
-  async addMessageToQueue(data: any, options?: any): Promise<Job<any>> {
-    const span = this.tracingService.startSpan('add-message-to-queue');
+  async createMessage(dto: CreateMessageDto): Promise<Message> {
+    const span = this.tracingService.startSpan('create-message');
     try {
-      const job = await this.messageQueue.add(data, options);
-      this.logger.log(`Message added to queue: ${job.id}`);
-      return job;
+      const message = this.messageRepo.create({
+        ...dto,
+        readAt: null,
+      });
+      const saved = await this.messageRepo.save(message);
+      // Add to queue for async processing if needed
+      await this.messageQueue.add(saved);
+      return saved;
     } catch (error) {
-      this.logger.error('Failed to add message to queue', error);
+      this.logger.error('Failed to create message', error);
       throw error;
     } finally {
       this.tracingService.endSpan(span);
     }
   }
+
+  async getConversation(userId: string, otherUserId: string): Promise<Message[]> {
+    const span = this.tracingService.startSpan('get-conversation');
+    try {
+      return await this.messageRepo.find({
+        where: [
+          { senderId: userId, recipientId: otherUserId },
+          { senderId: otherUserId, recipientId: userId },
+        ],
+        order: { createdAt: 'ASC' },
+      });
+    } finally {
+      this.tracingService.endSpan(span);
+    }
+  }
+
+  async markAsRead(messageId: string): Promise<void> {
+    const span = this.tracingService.startSpan('mark-as-read');
+    try {
+      await this.messageRepo.update(messageId, { readAt: new Date() });
+    } finally {
+      this.tracingService.endSpan(span);
+    }
+  }
+
 
   /**
    * Processes messages.

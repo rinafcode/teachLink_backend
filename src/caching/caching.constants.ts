@@ -80,3 +80,22 @@ export const CACHE_EVENTS = {
   CACHE_INVALIDATED: 'cache.invalidated',
   CACHE_PURGED: 'cache.purged',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Computation cache TTLs — Issue #603
+//
+// These TTLs are tuned for expensive O(n) computations that run against the
+// full dataset on every request:
+//
+//  LEADERBOARD — top-players query: full table scan ordered by totalPoints.
+//                30 min is safe; leaderboard shifts slowly.
+//  USER_RANK   — getUserRank() loads ALL user progress into memory (O(n)
+//                linear search). 5 min balances freshness vs DB load.
+// ---------------------------------------------------------------------------
+export const COMPUTATION_TTL = {
+  LEADERBOARD: 1800, // 30 minutes — top players list
+  USER_RANK: 300,    // 5 minutes  — per-user rank lookup
+} as const;
+
+// Merge into CACHE_TTL for consistent access across the codebase
+//(CACHE_TTL as Record<string, unknown>)['COMPUTATION'] = COMPUTATION_TTL;
