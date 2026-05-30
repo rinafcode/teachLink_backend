@@ -4,8 +4,10 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CACHE_EVENTS } from '../caching/caching.constants';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview, ReviewDecision } from './entities/course-review.entity';
 import { User, UserRole } from '../users/entities/user.entity';
@@ -33,6 +35,7 @@ export class CoursesService {
     private readonly courseRepo: Repository<Course>,
     @InjectRepository(CourseReview)
     private readonly reviewRepo: Repository<CourseReview>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -46,7 +49,9 @@ export class CoursesService {
       instructorId: instructor.id,
       status: CourseStatus.DRAFT,
     });
-    return this.courseRepo.save(course);
+    const saved = await this.courseRepo.save(course);
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
+    return saved;
   }
 
   /**
@@ -87,7 +92,9 @@ export class CoursesService {
     const course = await this.findOne(id);
     this.assertOwnerOrPrivileged(course, requestingUser);
     Object.assign(course, dto);
-    return this.courseRepo.save(course);
+    const saved = await this.courseRepo.save(course);
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
+    return saved;
   }
 
   /**
@@ -97,6 +104,7 @@ export class CoursesService {
     const course = await this.findOne(id);
     this.assertOwnerOrPrivileged(course, requestingUser);
     await this.courseRepo.softDelete(id);
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_DELETED, { id });
   }
 
   // ─── WORKFLOW ─────────────────────────────────────────────────────────────────
@@ -120,7 +128,9 @@ export class CoursesService {
 
     course.status = CourseStatus.PENDING_REVIEW;
     course.submissionNote = dto.submissionNote ?? null;
-    return this.courseRepo.save(course);
+    const saved = await this.courseRepo.save(course);
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
+    return saved;
   }
 
   /**
@@ -139,6 +149,7 @@ export class CoursesService {
     const previousStatus = course.status;
     course.status = DECISION_TO_STATUS[dto.decision];
     await this.courseRepo.save(course);
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: course.id });
 
     const review = this.reviewRepo.create({
       courseId: id,
