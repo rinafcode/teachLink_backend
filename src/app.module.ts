@@ -24,6 +24,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
+import { SlackService } from './slack.service';
 
 const featureFlags = loadFeatureFlags();
 
@@ -50,8 +51,9 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
   ],
   controllers: [AppController],
-  providers: featureFlags.ENABLE_RATE_LIMITING
-    ? [{ provide: APP_GUARD, useClass: QuotaGuard }]
-    : [],
+  providers: [
+    SlackService,
+    ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
+  ],
 })
 export class AppModule {}

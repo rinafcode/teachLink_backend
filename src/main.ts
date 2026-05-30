@@ -16,6 +16,7 @@ import { corsConfig } from './config/cors.config';
 import { ShutdownStateService } from './common/services/shutdown-state.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
+import { SlackService } from './slack.service';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
@@ -189,6 +190,8 @@ async function bootstrapWorker(): Promise<void> {
 
   const port = process.env.PORT || 3000;
   app.enableShutdownHooks();
+  const slackService = app.get(SlackService);
+  await slackService.sendAlert('TeachLink Backend has successfully started up on local system! 🚀', 'low');
   await app.listen(port);
 
   const startupTime = Date.now() - bootstrapStartTime;

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsController } from './analytics.controller';
@@ -7,7 +7,7 @@ import { FingerprintInterceptor } from './fingerprint/fingerprint.interceptor';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 
 @Module({
-  imports: [FingerprintModule],
+  imports: [forwardRef(() => FingerprintModule)],
   providers: [
     MetricsCollectionService,
     AnalyticsService,
