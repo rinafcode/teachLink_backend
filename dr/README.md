@@ -7,11 +7,16 @@ Welcome to the TeachLink Disaster Recovery (DR) documentation. This directory co
 ### Planning & Strategy
 - **[RTO/RPO Definitions](./procedures/RTO-RPO.md)** — Recovery Time and Point Objectives, alert thresholds
 - **[Failover Plan](./procedures/failover-plan.md)** — Failover procedures, failback strategy, infrastructure requirements
+- **[Data Replication Strategy](./procedures/data-replication.md)** — Cross-region RDS replica, S3 CRR, cache/state handling
 
 ### Incident Response
 - **[Database Failure Runbook](./runbooks/database-failure.md)** — PostgreSQL failures, connection issues, data integrity problems
 - **[Region Outage Runbook](./runbooks/region-outage.md)** — AWS region unavailability, cross-region failover procedures
+- **[Multi-Region Deployment Runbook](./runbooks/multi-region-deployment.md)** — Deploy, drill, fail over and fail back the two-region topology
 - **[Data Corruption Runbook](./runbooks/data-corruption.md)** — Data inconsistency, corruption detection, point-in-time recovery
+
+### Infrastructure as Code
+- **[Multi-Region Terraform](../tf/multi-region/README.md)** — Active/standby deployment across two regions (issue #620)
 
 ## 🎯 Recovery Objectives at a Glance
 

@@ -3,6 +3,11 @@ output "db_instance_id" {
   value       = aws_db_instance.main.id
 }
 
+output "db_instance_arn" {
+  description = "RDS instance ARN (required as the source for cross-region read replicas)"
+  value       = aws_db_instance.main.arn
+}
+
 output "db_instance_endpoint" {
   description = "RDS instance endpoint"
   value       = aws_db_instance.main.endpoint
