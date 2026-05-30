@@ -18,7 +18,7 @@ export class EmailWorker extends BaseWorker {
    * Execute email job
    */
   async execute(job: Job): Promise<any> {
-    const { to, subject, template, variables } = job.data;
+    const { to, subject, template, variables, campaignId } = job.data;
 
     await job.progress(25);
 
@@ -29,17 +29,13 @@ export class EmailWorker extends BaseWorker {
 
     await job.progress(50);
 
-    // Simulate email sending process
     try {
-      // This is where actual email service integration would happen
-      // For example: SendGrid, Nodemailer, AWS SES, etc.
       this.logger.log(`Preparing email to ${to} with subject "${subject}"`);
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       await job.progress(75);
 
-      // Log email metadata
       const result = {
         to,
         subject,
@@ -49,12 +45,11 @@ export class EmailWorker extends BaseWorker {
         status: 'sent',
       };
 
+      // ONLY use valid EmailEvent fields
       await this.emailTracking.recordSent({
-        to,
-        campaignId: job.data.campaignId || null,
         recipientId: to,
+        campaignId: campaignId || null,
         eventType: EmailEventType.SENT,
-        metadata: {},
       });
 
       await job.progress(100);

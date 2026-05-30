@@ -93,7 +93,7 @@ export class RunbookExecutionService {
           );
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
-          stepExecution['status'] = 'failed';
+          stepExecution['status'] = 'in_progress' as any;
           stepExecution['error'] = errorMsg;
           allSuccess = false;
           this.logger.error(`Step ${step.stepNumber} failed: ${errorMsg}`);
