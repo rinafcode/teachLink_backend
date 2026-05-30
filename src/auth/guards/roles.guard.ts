@@ -1,7 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserRole } from '../../users/entities/user.entity';
 
 /**
  * Protects roles execution paths.
@@ -16,7 +15,7 @@ export class RolesGuard implements CanActivate {
    * @returns Whether the operation succeeded.
    */
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -25,11 +24,13 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
     if (!user) {
       throw new UnauthorizedException();
     }
 
-    return requiredRoles.includes(user.role);
+    // Assuming user.roles is an array of role names (strings)
+    return requiredRoles.some(role => user.roles.includes(role));
   }
 }
