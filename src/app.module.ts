@@ -21,6 +21,8 @@ import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
+import { IdempotencyModule } from './common/modules/idempotency.module';
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
@@ -48,6 +50,7 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
@@ -66,6 +69,7 @@ const featureFlags = loadFeatureFlags();
   providers: [
     ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
 })
 export class AppModule {}
