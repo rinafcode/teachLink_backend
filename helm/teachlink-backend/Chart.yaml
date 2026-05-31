@@ -1,0 +1,13 @@
+apiVersion: v2
+name: teachlink-backend
+description: TeachLink Backend NestJS API
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - teachlink
+  - nestjs
+  - backend
+maintainers:
+  - name: TeachLink Team
+    email: dev@teachlink.io

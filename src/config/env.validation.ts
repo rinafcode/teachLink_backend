@@ -7,8 +7,12 @@ export const envValidationSchema = Joi.object({
   // Database Configuration
   DATABASE_HOST: Joi.string().required(),
   DATABASE_PORT: Joi.number().required(),
-  DATABASE_REPLICA_HOSTS: Joi.string().required(),
-  DATABASE_REPLICA_PORT: Joi.number().required(),
+  DATABASE_REPLICA_URLS: Joi.string().optional(),
+  DATABASE_REPLICA_HOSTS: Joi.string().optional(),
+  DATABASE_REPLICA_PORTS: Joi.string().optional(),
+  DATABASE_REPLICA_USER: Joi.string().optional(),
+  DATABASE_REPLICA_PASSWORD: Joi.string().optional(),
+  DATABASE_REPLICA_NAME: Joi.string().optional(),
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
@@ -64,6 +68,8 @@ export const envValidationSchema = Joi.object({
 
   // SendGrid Configuration
   SENDGRID_API_KEY: Joi.string().required(),
+  SENDGRID_SENDER_EMAIL: Joi.string().email().required(),
+  SENDGRID_WEBHOOK_TOKEN: Joi.string().required(),
   SENDGRID_HEALTH_URL: Joi.string().uri().optional(),
 
   // Elasticsearch Configuration
