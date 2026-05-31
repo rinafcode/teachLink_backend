@@ -74,7 +74,7 @@ export class CoursesService {
   async findAll(requestingUser?: User): Promise<Course[]> {
     const isPrivileged =
       requestingUser &&
-      requestingUser.roles.some(role => ['admin', 'moderator'].includes(role));
+      requestingUser.roles.some(role => ['admin', 'moderator'].includes(role.name));
 
     if (isPrivileged) {
       return this.courseRepo.find({ order: { createdAt: 'DESC' } });
@@ -223,14 +223,14 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    if (!user.roles.some(role => ['admin', 'moderator'].includes(role))) {
+    if (!user.roles.some(role => ['admin', 'moderator'].includes(role.name))) {
       throw new ForbiddenException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role));
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
     if (!isOwner && !isPrivileged) {
       throw new ForbiddenException('Insufficient permissions.');
     }

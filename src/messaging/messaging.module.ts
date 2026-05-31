@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { MessagingService } from './messaging.service';
-import { MessageController } from './message.controller';
+import { MessagingController } from './message.controller';
 import { MessageGateway } from './message.gateway';
 import { Message } from './message.entity';
 
@@ -13,7 +13,7 @@ import { Message } from './message.entity';
     BullModule.registerQueue({ name: QUEUE_NAMES.MESSAGE_QUEUE }),
   ],
   providers: [MessagingService, MessageGateway],
-  controllers: [MessageController],
+  controllers: [MessagingController],
   exports: [MessagingService],
 })
 export class MessagingModule {}

@@ -29,6 +29,7 @@ import { HealthModule } from './health/health.module';
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
+import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
 
 const featureFlags = loadFeatureFlags();
@@ -64,6 +65,7 @@ const featureFlags = loadFeatureFlags();
   ],
   controllers: [AppController],
   providers: [
+    SlackService,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
   ],
