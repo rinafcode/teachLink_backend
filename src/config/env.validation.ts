@@ -155,6 +155,9 @@ export const envValidationSchema = Joi.object({
   // Idempotency Configuration
   IDEMPOTENCY_TTL_SECONDS: Joi.number().integer().min(60).default(86400),
 
+  // Segment Analytics
+  SEGMENT_WRITE_KEY: Joi.string().optional(),
+
   // Circuit Breaker Configuration
   CIRCUIT_BREAKER_TIMEOUT_MS: Joi.number().integer().min(100).default(3000),
   CIRCUIT_BREAKER_ERROR_THRESHOLD: Joi.number().integer().min(1).max(100).default(50),

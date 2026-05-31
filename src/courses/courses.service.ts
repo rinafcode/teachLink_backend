@@ -10,7 +10,7 @@ import { Repository } from 'typeorm';
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview, ReviewDecision } from './entities/course-review.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
@@ -44,10 +44,24 @@ export class CoursesService {
    * Creates a new course in DRAFT status for the given instructor.
    */
   async create(dto: CreateCourseDto, instructor: User): Promise<Course> {
+    let prerequisite = null;
+    if (dto.prerequisiteCourseId) {
+      prerequisite = await this.courseRepo.findOne({
+        where: { id: dto.prerequisiteCourseId },
+      });
+      if (!prerequisite) {
+        throw new NotFoundException(`Prerequisite course ${dto.prerequisiteCourseId} not found`);
+      }
+    }
+
     const course = this.courseRepo.create({
-      ...dto,
+      title: dto.title,
+      description: dto.description,
+      price: dto.price,
+      thumbnailUrl: dto.thumbnailUrl,
       instructorId: instructor.id,
       status: CourseStatus.DRAFT,
+      prerequisite,
     });
     const saved = await this.courseRepo.save(course);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
@@ -60,7 +74,7 @@ export class CoursesService {
   async findAll(requestingUser?: User): Promise<Course[]> {
     const isPrivileged =
       requestingUser &&
-      [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
+      requestingUser.roles.some(role => ['admin', 'moderator'].includes(role.name));
 
     if (isPrivileged) {
       return this.courseRepo.find({ order: { createdAt: 'DESC' } });
@@ -77,7 +91,7 @@ export class CoursesService {
   async findOne(id: string): Promise<Course> {
     const course = await this.courseRepo.findOne({
       where: { id },
-      relations: ['instructor', 'reviews', 'reviews.reviewer'],
+      relations: ['instructor', 'reviews', 'reviews.reviewer', 'prerequisite'],
     });
     if (!course) {
       throw new NotFoundException(`Course ${id} not found`);
@@ -91,7 +105,22 @@ export class CoursesService {
   async update(id: string, dto: UpdateCourseDto, requestingUser: User): Promise<Course> {
     const course = await this.findOne(id);
     this.assertOwnerOrPrivileged(course, requestingUser);
-    Object.assign(course, dto);
+
+    if (dto.prerequisiteCourseId !== undefined) {
+      if (dto.prerequisiteCourseId === null) {
+        course.prerequisite = null;
+      } else {
+        const prerequisite = await this.courseRepo.findOne({
+          where: { id: dto.prerequisiteCourseId },
+        });
+        if (!prerequisite) {
+          throw new NotFoundException(`Prerequisite course ${dto.prerequisiteCourseId} not found`);
+        }
+        course.prerequisite = prerequisite;
+      }
+    }
+
+    Object.assign(course, dto, { prerequisite: course.prerequisite });
     const saved = await this.courseRepo.save(course);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
     return saved;
@@ -194,14 +223,14 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
+    if (!user.roles.some(role => ['admin', 'moderator'].includes(role.name))) {
       throw new ForbiddenException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
     if (!isOwner && !isPrivileged) {
       throw new ForbiddenException('Insufficient permissions.');
     }
