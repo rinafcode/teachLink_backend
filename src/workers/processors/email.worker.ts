@@ -55,7 +55,7 @@ export class EmailWorker extends BaseWorker {
         recipientId: to,
         eventType: EmailEventType.SENT,
         metadata: {},
-      });
+      } as any);
 
       await job.progress(100);
       return result;

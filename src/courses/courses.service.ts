@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -49,10 +44,24 @@ export class CoursesService {
    * Creates a new course in DRAFT status for the given instructor.
    */
   async create(dto: CreateCourseDto, instructor: User): Promise<Course> {
+    let prerequisite = null;
+    if (dto.prerequisiteCourseId) {
+      prerequisite = await this.courseRepo.findOne({
+        where: { id: dto.prerequisiteCourseId },
+      });
+      if (!prerequisite) {
+        throw new ResourceNotFoundException('Prerequisite course', dto.prerequisiteCourseId);
+      }
+    }
+
     const course = this.courseRepo.create({
-      ...dto,
+      title: dto.title,
+      description: dto.description,
+      price: dto.price,
+      thumbnailUrl: dto.thumbnailUrl,
       instructorId: instructor.id,
       status: CourseStatus.DRAFT,
+      prerequisite,
     });
     const saved = await this.courseRepo.save(course);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
@@ -81,7 +90,7 @@ export class CoursesService {
   async findOne(id: string): Promise<Course> {
     const course = await this.courseRepo.findOne({
       where: { id },
-      relations: ['instructor', 'reviews', 'reviews.reviewer'],
+      relations: ['instructor', 'reviews', 'reviews.reviewer', 'prerequisite'],
     });
     if (!course) {
       throw new ResourceNotFoundException('Course', id);
@@ -95,7 +104,22 @@ export class CoursesService {
   async update(id: string, dto: UpdateCourseDto, requestingUser: User): Promise<Course> {
     const course = await this.findOne(id);
     this.assertOwnerOrPrivileged(course, requestingUser);
-    Object.assign(course, dto);
+
+    if (dto.prerequisiteCourseId !== undefined) {
+      if (dto.prerequisiteCourseId === null) {
+        course.prerequisite = null;
+      } else {
+        const prerequisite = await this.courseRepo.findOne({
+          where: { id: dto.prerequisiteCourseId },
+        });
+        if (!prerequisite) {
+          throw new ResourceNotFoundException('Prerequisite course', dto.prerequisiteCourseId);
+        }
+        course.prerequisite = prerequisite;
+      }
+    }
+
+    Object.assign(course, dto, { prerequisite: course.prerequisite });
     const saved = await this.courseRepo.save(course);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
     return saved;
