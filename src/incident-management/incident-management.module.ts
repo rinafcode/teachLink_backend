@@ -14,6 +14,7 @@ import {
   RunbookExecutionService,
   NotificationAndEscalationService,
 } from './services';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import {
       RunbookExecution,
     ]),
     ConfigModule,
+    CommonModule,
   ],
   controllers: [IncidentManagementController],
   providers: [
