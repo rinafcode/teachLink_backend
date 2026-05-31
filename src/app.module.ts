@@ -33,6 +33,7 @@ import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
 import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
+import { DataRetentionModule } from './data-retention/data-retention.module';
 import { GatewayModule } from './gateway/gateway.module';
 
 const featureFlags = loadFeatureFlags();
@@ -66,6 +67,9 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
+
+    // ✅ data retention: archiving and purging
+    DataRetentionModule,
 
     // ✅ API gateway: routing, rate limiting, transformation, caching
     GatewayModule,
