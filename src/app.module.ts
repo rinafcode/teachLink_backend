@@ -21,6 +21,7 @@ import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
+import { ModerationModule } from './modules/moderation/moderation.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -49,6 +50,9 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
+
+    // content moderation
+    ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
   ],
   controllers: [AppController],
   providers: [
