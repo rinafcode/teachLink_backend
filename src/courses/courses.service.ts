@@ -338,7 +338,7 @@ export class CoursesService {
     }
 
     const isInitiator = op.initiatedById === user.id;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
     if (!isInitiator && !isPrivileged) {
       throw new ForbiddenOperationException('Only the initiator or an admin/moderator may undo this operation.');
     }
@@ -400,7 +400,7 @@ export class CoursesService {
     apply: (course: Course) => BulkCourseSnapshot['previous'];
   }): Promise<BulkOperation> {
     const { type, payload, courseIds, user, apply } = args;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
 
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
     const found = new Map(courses.map(c => [c.id, c]));

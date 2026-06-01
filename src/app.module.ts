@@ -36,6 +36,7 @@ import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -81,6 +82,8 @@ const featureFlags = loadFeatureFlags();
     // ✅ API gateway: routing, rate limiting, transformation, caching
     GatewayModule,
 
+    // ✅ Users module for profile and activity management
+    UsersModule,
     NotificationsModule,
     MessagingModule,
     DashboardModule,
