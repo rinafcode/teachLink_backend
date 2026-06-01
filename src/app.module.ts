@@ -25,7 +25,9 @@ import { IdempotencyModule } from './common/modules/idempotency.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
+import { PaymentMethodsModule } from './payments/payment-methods/payment-methods.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 
 // ✅ keep BOTH modules
@@ -56,6 +58,8 @@ const featureFlags = loadFeatureFlags();
     IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
+    PaymentMethodsModule,
+    NotificationsModule,
     ReportingModule,
     HealthModule,
 
