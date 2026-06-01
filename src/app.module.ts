@@ -21,6 +21,8 @@ import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
+import { IdempotencyModule } from './common/modules/idempotency.module';
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
@@ -29,7 +31,10 @@ import { HealthModule } from './health/health.module';
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
+import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
+import { DataRetentionModule } from './data-retention/data-retention.module';
+import { GatewayModule } from './gateway/gateway.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -48,6 +53,7 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
@@ -61,11 +67,19 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
+
+    // ✅ data retention: archiving and purging
+    DataRetentionModule,
+
+    // ✅ API gateway: routing, rate limiting, transformation, caching
+    GatewayModule,
   ],
   controllers: [AppController],
   providers: [
+    SlackService,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
 })
 export class AppModule {}

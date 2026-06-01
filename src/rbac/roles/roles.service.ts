@@ -32,7 +32,7 @@ export class RolesService {
   }
 
   async findRoleById(id: string): Promise<Role> {
-    const role = await this.roleRepository.findOneBy({ id }, { relations: ['permissions'] });
+    const role = await this.roleRepository.findOne({ where: { id }, relations: ['permissions'] });
     if (!role) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
@@ -55,7 +55,7 @@ export class RolesService {
         .set(permissions);
     }
 
-    const updated = await this.roleRepository.findOneBy({ id }, { relations: ['permissions'] });
+    const updated = await this.roleRepository.findOne({ where: { id }, relations: ['permissions'] });
     if (!updated) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
@@ -70,12 +70,12 @@ export class RolesService {
   }
 
   async addPermissionToRole(roleId: string, permissionId: string): Promise<Role> {
-    const role = await this.roleRepository.findOneBy({ roleId }, { relations: ['permissions'] });
+    const role = await this.roleRepository.findOne({ where: { id: roleId }, relations: ['permissions'] });
     if (!role) {
       throw new NotFoundException(`Role with ID ${roleId} not found`);
     }
 
-    const permission = await this.permissionRepository.findOneBy({ permissionId });
+    const permission = await this.permissionRepository.findOneBy({ id: permissionId });
     if (!permission) {
       throw new NotFoundException(`Permission with ID ${permissionId} not found`);
     }
@@ -89,7 +89,7 @@ export class RolesService {
   }
 
   async removePermissionFromRole(roleId: string, permissionId: string): Promise<Role> {
-    const role = await this.roleRepository.findOneBy({ roleId }, { relations: ['permissions'] });
+    const role = await this.roleRepository.findOne({ where: { id: roleId }, relations: ['permissions'] });
     if (!role) {
       throw new NotFoundException(`Role with ID ${roleId} not found`);
     }

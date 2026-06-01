@@ -146,7 +146,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
    * Initialize worker registry with all available workers
    */
   private initializeWorkerRegistry(): void {
-    this.workerRegistry.set('email', EmailWorker as WorkerConstructor);
+    this.workerRegistry.set('email', EmailWorker as unknown as WorkerConstructor);
     this.workerRegistry.set('media-processing', MediaProcessingWorker as WorkerConstructor);
     this.workerRegistry.set('data-sync', DataSyncWorker as WorkerConstructor);
     this.workerRegistry.set('backup-processing', BackupProcessingWorker as WorkerConstructor);

@@ -48,6 +48,7 @@ export class EmailTrackingService {
   async updateReputation(score: number) {
     // Implementation depends on where reputation is stored; placeholder for now
     this.logger.log(`Reputation score updated to ${score}`);
+  }
 
   async recordDelivered(data: Partial<EmailEvent>) {
     const event = this.emailEventRepo.create({
@@ -77,6 +78,5 @@ export class EmailTrackingService {
     await this.emailEventRepo.save(event);
     this.logger.log(`Email click recorded for ${event.recipientId}`);
     return event;
-  }
   }
 }

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../users/user.entity'; // Assuming a User entity exists
+import { User } from '../users/entities/user.entity'; // Assuming a User entity exists
 
 @Entity({ name: 'messages' })
 export class Message {
@@ -22,11 +22,11 @@ export class Message {
   readAt: Date | null;
 
   // Optional relations for convenience (may be lazy loaded)
-  @ManyToOne(() => User, (user) => user.sentMessages, { eager: false })
+  @ManyToOne(() => User, { eager: false })
   @JoinColumn({ name: 'senderId' })
   sender: User;
 
-  @ManyToOne(() => User, (user) => user.receivedMessages, { eager: false })
+  @ManyToOne(() => User, { eager: false })
   @JoinColumn({ name: 'recipientId' })
   recipient: User;
 }

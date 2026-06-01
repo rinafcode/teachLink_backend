@@ -9,6 +9,7 @@ import { PrometheusController } from './metrics/prometheus.controller';
 import { HttpMetricsMiddleware } from './metrics/http-metrics.middleware';
 import { DbMetricsSubscriber } from './metrics/db-metrics.subscriber';
 import { DbPoolMetricsCollector } from './metrics/db-pool-metrics.collector';
+import { CommonModule } from '../common/common.module';
 
 /**
  * MonitoringModule
@@ -28,6 +29,7 @@ import { DbPoolMetricsCollector } from './metrics/db-pool-metrics.collector';
     ConfigModule,
     ScheduleModule.forRoot(),
     TypeOrmModule,
+    CommonModule,
   ],
   controllers: [PrometheusController],
   providers: [
