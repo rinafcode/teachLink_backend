@@ -226,4 +226,5 @@ export class AuditLogService {
   }> {
     return this.reportingService.getStatistics();
   }
+}
 

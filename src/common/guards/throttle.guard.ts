@@ -1,4 +1,5 @@
-import { Injectable, ExecutionContext, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
+import { RateLimitExceededException } from '../exceptions/app.exceptions';
 import { ThrottlerGuard, ThrottlerLimitDetail } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 /**
@@ -29,15 +30,7 @@ export class CustomThrottleGuard extends ThrottlerGuard {
     response.setHeader('X-RateLimit-Limit', throttlerLimitDetail.limit);
     response.setHeader('X-RateLimit-Remaining', 0);
     response.setHeader('X-RateLimit-Reset', Math.floor(Date.now() / 1000) + ttlSeconds);
-    throw new HttpException(
-      {
-        statusCode: HttpStatus.TOO_MANY_REQUESTS,
-        error: 'Too Many Requests',
-        message: 'You have exceeded the request rate limit. Please wait before retrying.',
-        retryAfterSeconds: ttlSeconds,
-      },
-      HttpStatus.TOO_MANY_REQUESTS,
-    );
+    throw new RateLimitExceededException(ttlSeconds);
   }
   private resolveClientIp(request: Request): string {
     const forwarded = request.headers['x-forwarded-for'];

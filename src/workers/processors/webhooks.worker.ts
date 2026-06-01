@@ -1,93 +1,56 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
+import { WebhookDeliveryService, WebhookTarget } from '../../webhooks/webhook-delivery.service';
 
 /**
  * Webhooks Worker
- * Handles webhook delivery and retry logic
+ *
+ * Delivers outbound webhooks via {@link WebhookDeliveryService}, which applies
+ * exponential-backoff retries, a configurable max retry count, dead-letter
+ * handling and failure monitoring (issue #615).
+ *
+ * Transient failures raise a retryable error so Bull re-enqueues the job with
+ * backoff (the retry queue); permanent failures and exhausted retries resolve
+ * with a dead-lettered result.
  */
 @Injectable()
 export class WebhooksWorker extends BaseWorker {
-  constructor() {
+  private readonly delivery: WebhookDeliveryService;
+
+  // The delivery service is injected under Nest DI, but the worker is also
+  // instantiated manually by the orchestration pool (`new WebhooksWorker()`),
+  // so fall back to a self-contained default when none is provided.
+  constructor(@Optional() delivery?: WebhookDeliveryService) {
     super('webhooks');
+    this.delivery = delivery ?? WebhookDeliveryService.createDefault();
   }
 
   /**
-   * Execute webhook delivery job
+   * Execute a webhook delivery job. `job.attemptsMade` is the number of attempts
+   * already completed, which drives backoff scheduling.
    */
-  async execute(job: Job): Promise<any> {
-    const { url, event, payload, headers, timeout } = job.data;
+  async execute(job: Job): Promise<unknown> {
+    const { url, event, payload, headers, secret, timeout } = job.data ?? {};
 
     await job.progress(20);
 
-    // Validate webhook data
-    if (!url || !event || !payload) {
-      throw new Error('Missing required webhook fields: url, event, payload');
-    }
+    const target: WebhookTarget = {
+      url,
+      event,
+      payload,
+      headers,
+      secret,
+      timeoutMs: timeout,
+    };
 
     await job.progress(40);
 
-    try {
-      this.logger.log(`Delivering webhook: ${event} to ${url}`);
+    // Delegates retry/backoff/dead-letter decisions to the delivery service.
+    // A retryable failure throws here so Bull re-enqueues with backoff.
+    const result = await this.delivery.processDelivery(target, job.attemptsMade);
 
-      const result = await this.deliverWebhook(job, url, event, payload, headers, timeout);
-
-      await job.progress(100);
-      return result;
-    } catch (error) {
-      this.logger.error(`Failed to deliver webhook to ${url}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Deliver webhook with retry logic
-   */
-  private async deliverWebhook(
-    job: Job,
-    url: string,
-    event: string,
-    payload: any,
-    _headers?: any,
-    _timeout?: number,
-  ): Promise<any> {
-    await job.progress(60);
-
-    const requestBody = {
-      id: `evt_${Date.now()}`,
-      event,
-      timestamp: new Date(),
-      payload,
-      retryCount: job.attemptsMade,
-    };
-
-    // Simulate webhook delivery (in production, this would use axios or fetch)
-    try {
-      this.logger.log(`Sending webhook payload to ${url}:`, requestBody);
-
-      // Simulate HTTP request
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      await job.progress(90);
-
-      // Simulate response
-      const statusCode = 200; // In production, actual HTTP status
-
-      if (statusCode >= 200 && statusCode < 300) {
-        return {
-          event,
-          url,
-          statusCode,
-          delivered: true,
-          deliveredAt: new Date(),
-          retryCount: job.attemptsMade,
-        };
-      } else {
-        throw new Error(`Webhook delivery failed with status ${statusCode}`);
-      }
-    } catch (error) {
-      this.logger.error(`Webhook delivery error for ${url}:`, error.message);
-      throw error;
-    }
+    await job.progress(100);
+    return result;
   }
 }

@@ -1,0 +1,147 @@
+replicaCount: 3
+
+image:
+  repository: teachlink/backend
+  tag: "latest"
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.teachlink.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: teachlink-tls
+      hosts:
+        - api.teachlink.io
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Non-sensitive configuration (goes into ConfigMap)
+config:
+  NODE_ENV: "production"
+  PORT: "3000"
+  DATABASE_PORT: "5432"
+  DATABASE_POOL_MAX: "30"
+  DATABASE_POOL_MIN: "5"
+  DATABASE_POOL_ACQUIRE_TIMEOUT_MS: "10000"
+  DATABASE_POOL_IDLE_TIMEOUT_MS: "30000"
+  REDIS_PORT: "6379"
+  JWT_EXPIRES_IN: "15m"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+  BCRYPT_ROUNDS: "12"
+  SESSION_TTL_SECONDS: "604800"
+  TRUST_PROXY: "true"
+  ENABLE_AUTH: "true"
+  ENABLE_RATE_LIMITING: "true"
+  ENABLE_OBSERVABILITY: "true"
+  ENABLE_CACHING: "true"
+  ENABLE_SECURITY: "true"
+  ENABLE_TENANCY: "true"
+  ENABLE_MIGRATIONS: "true"
+  AWS_REGION: "us-east-1"
+  SECRET_PROVIDER: "env"
+  CIRCUIT_BREAKER_TIMEOUT_MS: "3000"
+  CIRCUIT_BREAKER_ERROR_THRESHOLD: "50"
+  IDEMPOTENCY_TTL_SECONDS: "86400"
+
+# Sensitive values — override via --set or external secret manager.
+# All values here are placeholders; never commit real secrets.
+secrets:
+  DATABASE_HOST: "postgres-service"
+  DATABASE_USER: "CHANGE_ME"
+  DATABASE_PASSWORD: "CHANGE_ME"
+  DATABASE_NAME: "teachlink"
+  JWT_SECRET: "CHANGE_ME"
+  JWT_REFRESH_SECRET: "CHANGE_ME"
+  ENCRYPTION_SECRET: "CHANGE_ME"
+  REDIS_HOST: "redis-service"
+  SESSION_SECRET: "CHANGE_ME"
+  SESSION_COOKIE_NAME: "teachlink.sid"
+  SESSION_PREFIX: "sess:"
+  STRIPE_SECRET_KEY: "CHANGE_ME"
+  STRIPE_WEBHOOK_SECRET: "CHANGE_ME"
+  AWS_ACCESS_KEY_ID: "CHANGE_ME"
+  AWS_SECRET_ACCESS_KEY: "CHANGE_ME"
+  AWS_S3_BUCKET: "CHANGE_ME"
+  SENDGRID_API_KEY: "CHANGE_ME"
+  SMTP_HOST: "CHANGE_ME"
+  SMTP_PORT: "587"
+  SMTP_USER: "CHANGE_ME"
+  SMTP_PASS: "CHANGE_ME"
+  EMAIL_FROM: "noreply@teachlink.io"
+  APP_URL: "https://api.teachlink.io"
+  CORS_ALLOWED_ORIGINS: "https://teachlink.io"
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 12
+
+terminationGracePeriodSeconds: 30
+
+rollingUpdate:
+  maxSurge: 1
+  maxUnavailable: 0

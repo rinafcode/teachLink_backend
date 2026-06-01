@@ -8,6 +8,7 @@ import {
   JoinColumn,
   Index,
   VersionColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 export enum SubscriptionStatus {
@@ -84,4 +85,7 @@ export class Subscription {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
