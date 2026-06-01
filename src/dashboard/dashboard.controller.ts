@@ -1,5 +1,5 @@
-import { Controller, Get, Header, Query, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Header, Query, BadRequestException, Param } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { DashboardService, RevenuePeriod } from './dashboard.service';
 
 @ApiTags('dashboard')
@@ -40,6 +40,13 @@ export class DashboardController {
   @ApiOperation({ summary: 'Conversion funnel tracking' })
   getFunnel() {
     return this.dashboardService.getConversionFunnel();
+  }
+
+  @Get('instructors/:instructorId')
+  @ApiOperation({ summary: 'Instructor course analytics dashboard' })
+  @ApiParam({ name: 'instructorId', description: 'UUID of the instructor' })
+  async getInstructorDashboard(@Param('instructorId') instructorId: string) {
+    return this.dashboardService.getInstructorDashboard(instructorId);
   }
 
   @Get('export/csv')
