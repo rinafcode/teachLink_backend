@@ -4,13 +4,14 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
   Index,
+  Check,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
-/** Type of bulk operation an instructor can perform on their courses. */
 export enum BulkOperationType {
   PUBLISH = 'publish',
   UNPUBLISH = 'unpublish',
@@ -18,7 +19,6 @@ export enum BulkOperationType {
   CATEGORY_UPDATE = 'category_update',
 }
 
-/** Lifecycle of a bulk operation record. */
 export enum BulkOperationStatus {
   COMPLETED = 'completed',
   PARTIAL = 'partial',
@@ -26,48 +26,71 @@ export enum BulkOperationStatus {
   UNDONE = 'undone',
 }
 
-/**
- * One snapshot per affected course captured before a bulk operation
- * is applied. Used to deterministically undo the operation later.
- */
+export interface CoursePreviousState {
+  status?: string;
+  price?: number;
+  category?: string | null;
+}
+
 export interface BulkCourseSnapshot {
-  /** Course ID that was modified. */
   courseId: string;
-  /** Field-level previous values (only fields the op touched). */
-  previous: {
-    status?: string;
-    price?: number;
-    category?: string | null;
-  };
-  /** Whether this course was applied successfully in the bulk run. */
+  previous: CoursePreviousState;
   applied: boolean;
-  /** Optional error message if this course failed. */
   error?: string;
 }
 
-/**
- * Records a bulk operation performed by an instructor so it can be
- * audited and undone. The `snapshots` JSON column stores the
- * pre-operation state of every affected course.
- */
+export interface BulkOperationPayload {
+  price?: number;
+  category?: string;
+  status?: string;
+}
+
 @Entity('course_bulk_operations')
+@Check(`"totalCount" >= 0`)
+@Check(`"successCount" >= 0`)
+@Check(`"failureCount" >= 0`)
 export class BulkOperation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  /** The instructor (or admin) who triggered the operation. */
+  /**
+   * User who initiated the bulk operation.
+   */
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'initiated_by_id' })
   initiatedBy?: User;
 
-  @Column({ name: 'initiated_by_id', type: 'uuid', nullable: true })
   @Index()
-  initiatedById?: string;
+  @Column({
+    name: 'initiated_by_id',
+    type: 'uuid',
+    nullable: true,
+  })
+  initiatedBy?: string;
 
-  @Column({ type: 'enum', enum: BulkOperationType })
+  /**
+   * User who executed the undo operation.
+   */
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'undone_by_id' })
+  undoneBy?: User;
+
   @Index()
+  @Column({
+    name: 'undone_by_id',
+    type: 'uuid',
+    nullable: true,
+  })
+  undoneById?: string;
+
+  @Index()
+  @Column({
+    type: 'enum',
+    enum: BulkOperationType,
+  })
   type: BulkOperationType;
 
+  @Index()
   @Column({
     type: 'enum',
     enum: BulkOperationStatus,
@@ -75,33 +98,106 @@ export class BulkOperation {
   })
   status: BulkOperationStatus;
 
-  /** The payload that was applied (e.g. `{ price: 49.99 }`). */
+  /**
+   * Payload applied during the operation.
+   * Example:
+   * { price: 49.99 }
+   */
   @Column({ type: 'jsonb' })
-  payload: Record<string, unknown>;
+  payload: BulkOperationPayload;
 
-  /** Per-course snapshot used for undo. */
-  @Column({ type: 'jsonb', default: () => "'[]'" })
+  /**
+   * Original state of every affected course.
+   */
+  @Column({
+    type: 'jsonb',
+    default: () => "'[]'",
+  })
   snapshots: BulkCourseSnapshot[];
 
-  /** Total number of courses requested in the bulk action. */
-  @Column({ type: 'int', default: 0 })
+  @Column({
+    type: 'int',
+    default: 0,
+  })
   totalCount: number;
 
-  /** Number of courses that were applied successfully. */
-  @Column({ type: 'int', default: 0 })
+  @Column({
+    type: 'int',
+    default: 0,
+  })
   successCount: number;
 
-  /** Number of courses that failed during the bulk run. */
-  @Column({ type: 'int', default: 0 })
+  @Column({
+    type: 'int',
+    default: 0,
+  })
   failureCount: number;
 
-  /** Timestamp at which an undo was successfully performed. */
-  @Column({ type: 'timestamptz', nullable: true })
+  /**
+   * Optional reason supplied by the instructor.
+   */
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  reason?: string;
+
+  /**
+   * Internal audit notes.
+   */
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  notes?: string;
+
+  @Column({
+    type: 'timestamptz',
+    nullable: true,
+  })
   undoneAt?: Date;
 
-  @CreateDateColumn()
+  /**
+   * Optimistic locking to prevent concurrent updates.
+   */
+  @VersionColumn()
+  version: number;
+
+  @Index()
+  @CreateDateColumn({
+    type: 'timestamptz',
+  })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({
+    type: 'timestamptz',
+  })
   updatedAt: Date;
+
+  /**
+   * Derived helpers
+   */
+  get isSuccessful(): boolean {
+    return (
+      this.status === BulkOperationStatus.COMPLETED &&
+      this.failureCount === 0
+    );
+  }
+
+  get isPartiallySuccessful(): boolean {
+    return this.status === BulkOperationStatus.PARTIAL;
+  }
+
+  get canUndo(): boolean {
+    return (
+      this.status !== BulkOperationStatus.UNDONE &&
+      this.successCount > 0
+    );
+  }
+
+  get successRate(): number {
+    if (!this.totalCount) return 0;
+    return (this.successCount / this.totalCount) * 100;
+  }
 }

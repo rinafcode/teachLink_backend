@@ -69,7 +69,7 @@ export class DataRetentionService {
     
     const records = await repository.find({
       where: {
-        createdAt: LessThan(cutoff),
+        timestamp: LessThan(cutoff),
       },
       take: this.configService.get<number>('retention.batchSize', 1000),
     });

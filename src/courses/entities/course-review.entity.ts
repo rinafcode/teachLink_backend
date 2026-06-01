@@ -52,7 +52,7 @@ export class CourseReview {
   feedback?: string;
 
   /** Snapshot of the course status before the decision. */
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: '50', nullable: true })
   previousStatus?: string;
 
   @CreateDateColumn()

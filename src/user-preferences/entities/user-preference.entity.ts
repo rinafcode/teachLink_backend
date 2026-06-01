@@ -24,6 +24,16 @@ export enum AppLanguage {
   AR = 'ar',
 }
 
+// NEW — locale for formatting (CRITICAL FOR TASK)
+export enum AppLocale {
+  EN_US = 'en-US',
+  EN_GB = 'en-GB',
+  FR_FR = 'fr-FR',
+  ES_ES = 'es-ES',
+  DE_DE = 'de-DE',
+  AR_SA = 'ar-SA',
+}
+
 @Entity('user_preferences')
 export class UserPreference {
   @PrimaryGeneratedColumn('uuid')
@@ -37,12 +47,32 @@ export class UserPreference {
   @JoinColumn()
   user: User;
 
+  // =========================
+  // UI Preferences
+  // =========================
   @Column({ type: 'enum', enum: AppTheme, default: AppTheme.SYSTEM })
   theme: AppTheme;
 
   @Column({ type: 'enum', enum: AppLanguage, default: AppLanguage.EN })
   language: AppLanguage;
 
+  // NEW — REQUIRED FOR LOCALE FORMATTING
+  @Column({
+    type: 'enum',
+    enum: AppLocale,
+    default: AppLocale.EN_US,
+  })
+  locale: AppLocale;
+
+  // =========================
+  // TIMEZONE SUPPORT (REQUIRED)
+  // =========================
+  @Column({ default: 'UTC' })
+  timezone: string; // e.g. Africa/Lagos, Europe/London
+
+  // =========================
+  // Notification Settings
+  // =========================
   @Column({ default: true })
   emailNotifications: boolean;
 
@@ -61,6 +91,9 @@ export class UserPreference {
   @Column({ default: true })
   weeklyDigest: boolean;
 
+  // =========================
+  // Advanced Custom Settings
+  // =========================
   @Column({ type: 'jsonb', nullable: true })
   customSettings: Record<string, unknown>;
 

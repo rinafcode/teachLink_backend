@@ -1,0 +1,23 @@
+name: Code Cleanup Audit
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 1 * * 0"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npx depcheck
+
+      - run: npx ts-prune

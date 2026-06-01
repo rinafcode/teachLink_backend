@@ -2,12 +2,13 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsEvent, EventType } from './entities/event.entity';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 import { EventBatchingService, ITrackEventDto } from './services/event-batching.service';
 import { EventValidationService } from './services/event-validation.service';
 
 @Injectable()
-export class AnalyticsService {
+export class AnalyticsService implements OnModuleInit {
   private readonly logger = new Logger(AnalyticsService.name);
   private featureEventsCounter: any | null = null;
 
@@ -18,11 +19,13 @@ export class AnalyticsService {
     private readonly batchingService: EventBatchingService,
     private readonly validationService: EventValidationService,
   ) {
+  constructor(private readonly metrics: MetricsCollectionService) {}
+
+  async onModuleInit() {
     try {
       const registry = this.metrics.getRegistry();
-      // Lazy require prom-client to avoid import cycles
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const prom = require('prom-client');
+      // Lazy import prom-client to avoid import cycles
+      const prom = await import('prom-client');
 
       // Create a shared counter for feature events with labels
       this.featureEventsCounter =
