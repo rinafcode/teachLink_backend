@@ -55,6 +55,19 @@ describe('Sanity test suite', () => {
       expect(Array.isArray(response.body.results)).toBe(true);
     }, 15000);
 
+    it('accepts valid search filters payload', async () => {
+      const filters = encodeURIComponent(JSON.stringify({ category: 'programming', level: 'beginner' }));
+      const response = await retryHelper.withRetry(
+        () => httpClient.get(`/search?q=javascript&filters=${filters}`),
+        { maxAttempts: 3, delayMs: 500 },
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('query', 'javascript');
+      expect(response.body).toHaveProperty('filters');
+      expect(response.body.filters).toMatchObject({ category: 'programming', level: 'beginner' });
+    }, 15000);
+
     it('returns autocomplete suggestions', async () => {
       const response = await retryHelper.withRetry(
         () => httpClient.get('/search/autocomplete?q=java'),
@@ -73,5 +86,15 @@ describe('Sanity test suite', () => {
       expect(response.body).toHaveProperty('levels');
       expect(response.body).toHaveProperty('languages');
     }, 10000);
+
+    it('returns analytics summary for the search service', async () => {
+      const response = await httpClient.get('/search/analytics?days=7');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('topQueries');
+      expect(Array.isArray(response.body.topQueries)).toBe(true);
+      expect(response.body).toHaveProperty('totalSearches', 0);
+      expect(response.body).toHaveProperty('averageResults', 0);
+    }, 15000);
   });
 });

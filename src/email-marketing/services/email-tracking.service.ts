@@ -18,6 +18,7 @@ export class EmailTrackingService {
       ...data,
       eventType: EmailEventType.SENT,
     });
+
     await this.emailEventRepo.save(event);
     this.logger.log(`Email sent recorded for ${event.recipientId}`);
     return event;
@@ -29,8 +30,12 @@ export class EmailTrackingService {
       eventType: EmailEventType.BOUNCED,
       bounceReason,
     });
+
     await this.emailEventRepo.save(event);
-    this.logger.warn(`Email bounce recorded for ${event.recipientId}: ${bounceReason}`);
+    this.logger.warn(
+      `Email bounce recorded for ${event.recipientId}: ${bounceReason}`,
+    );
+
     return event;
   }
 
@@ -40,13 +45,16 @@ export class EmailTrackingService {
       eventType: EmailEventType.COMPLAINED,
       complaintType,
     });
+
     await this.emailEventRepo.save(event);
-    this.logger.warn(`Email complaint recorded for ${event.recipientId}: ${complaintType}`);
+    this.logger.warn(
+      `Email complaint recorded for ${event.recipientId}: ${complaintType}`,
+    );
+
     return event;
   }
 
   async updateReputation(score: number) {
-    // Implementation depends on where reputation is stored; placeholder for now
     this.logger.log(`Reputation score updated to ${score}`);
   }
 
@@ -55,6 +63,7 @@ export class EmailTrackingService {
       ...data,
       eventType: EmailEventType.DELIVERED,
     });
+
     await this.emailEventRepo.save(event);
     this.logger.log(`Email delivery recorded for ${event.recipientId}`);
     return event;
@@ -65,6 +74,7 @@ export class EmailTrackingService {
       ...data,
       eventType: EmailEventType.OPENED,
     });
+
     await this.emailEventRepo.save(event);
     this.logger.log(`Email open recorded for ${event.recipientId}`);
     return event;
@@ -75,6 +85,7 @@ export class EmailTrackingService {
       ...data,
       eventType: EmailEventType.CLICKED,
     });
+
     await this.emailEventRepo.save(event);
     this.logger.log(`Email click recorded for ${event.recipientId}`);
     return event;
