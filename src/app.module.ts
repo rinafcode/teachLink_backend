@@ -7,8 +7,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ShardingModule } from './sharding/sharding.module';
 
-import { MessagingModule } from './messaging/messaging.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -36,6 +36,9 @@ import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { UsersModule } from './users/users.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -54,6 +57,7 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    ShardingModule,
     IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
@@ -77,6 +81,9 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ Users module for profile and activity management
     UsersModule,
+    NotificationsModule,
+    MessagingModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [

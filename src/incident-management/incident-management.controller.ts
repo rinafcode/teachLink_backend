@@ -20,6 +20,8 @@ import {
   RemediationActionResponseDto,
   CreateRunbookExecutionDto,
   RunbookExecutionResponseDto,
+  ResolveIncidentDto,
+  EscalateIncidentDto,
 } from './dto';
 import { Incident } from './entities/incident.entity';
 import { RemediationAction } from './entities/remediation-action.entity';
@@ -97,12 +99,12 @@ export class IncidentManagementController {
   @Post(':incidentId/resolve')
   async resolveIncident(
     @Param('incidentId') incidentId: string,
-    @Body() body: { resolutionNotes: string },
+    @Body() resolveIncidentDto: ResolveIncidentDto,
   ): Promise<IncidentResponseDto> {
     this.logger.log(`Resolving incident: ${incidentId}`);
     const incident = await this.incidentManagementService.resolveIncident(
       incidentId,
-      body.resolutionNotes,
+      resolveIncidentDto.resolutionNotes,
     );
     return this.mapIncidentToDto(incident);
   }
@@ -113,13 +115,13 @@ export class IncidentManagementController {
   @Post(':incidentId/escalate')
   async escalateIncident(
     @Param('incidentId') incidentId: string,
-    @Body() body: { escalatedTo: string; reason: string },
+    @Body() escalateIncidentDto: EscalateIncidentDto,
   ): Promise<IncidentResponseDto> {
     this.logger.log(`Escalating incident: ${incidentId}`);
     const incident = await this.incidentManagementService.escalateIncident(
       incidentId,
-      body.escalatedTo,
-      body.reason,
+      escalateIncidentDto.escalatedTo,
+      escalateIncidentDto.reason,
     );
     return this.mapIncidentToDto(incident);
   }
