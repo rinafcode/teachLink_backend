@@ -7,8 +7,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ShardingModule } from './sharding/sharding.module';
 
-import { MessagingModule } from './messaging/messaging.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -27,6 +27,7 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -35,6 +36,10 @@ import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { GamificationModule } from './gamification/gamification.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -53,11 +58,13 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    ShardingModule,
     IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
     HealthModule,
+    AuditLogModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
@@ -73,6 +80,11 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ API gateway: routing, rate limiting, transformation, caching
     GatewayModule,
+
+    NotificationsModule,
+    MessagingModule,
+    DashboardModule,
+    GamificationModule,
   ],
   controllers: [AppController],
   providers: [

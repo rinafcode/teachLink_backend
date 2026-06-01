@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AssessmentStatus } from './enums/assessment-status.enum';
@@ -37,6 +38,11 @@ export class AssessmentsService {
     });
 
     const attempt = await this.attemptRepo.save({
+    if (!assessment) {
+      throw new ResourceNotFoundException('Assessment', assessmentId);
+    }
+
+    return this.attemptRepo.save({
       studentId,
       assessment,
       status: AssessmentStatus.IN_PROGRESS,
@@ -115,7 +121,7 @@ export class AssessmentsService {
     });
 
     if (!attempt?.assessment?.questions) {
-      throw new NotFoundException(`Attempt ${attemptId} not found`);
+      throw new ResourceNotFoundException('AssessmentAttempt', attemptId);
     }
 
     const endTime =

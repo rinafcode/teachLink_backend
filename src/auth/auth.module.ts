@@ -16,7 +16,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default-jwt-secret',
-      signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any },
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m', },
     }),
     TypeOrmModule.forFeature([User]),
   ],
