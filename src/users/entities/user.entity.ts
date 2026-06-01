@@ -8,9 +8,13 @@ import {
   Index,
   OneToMany,
   VersionColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
+import { Role } from '../../rbac/entities/role.entity';
+
 export enum UserRole {
   STUDENT = 'student',
   TEACHER = 'teacher',
@@ -18,6 +22,7 @@ export enum UserRole {
   MODERATOR = 'moderator',
   ADMIN = 'admin',
 }
+
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
@@ -51,13 +56,6 @@ export class User {
 
   @Column()
   lastName: string;
-
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.STUDENT,
-  })
-  role: UserRole;
 
   @Column({
     type: 'enum',
@@ -96,6 +94,17 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
+
+  @ManyToMany(() => Role, (role) => role.users)
+  @JoinTable()
+  roles: Role[];
+
+  get role(): UserRole {
+    if (this.roles && this.roles.length > 0) {
+      return this.roles[0].name as UserRole;
+    }
+    return UserRole.STUDENT;
+  }
 
   @OneToMany(() => Course, (course) => course.instructor)
   courses: Course[];

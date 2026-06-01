@@ -1,0 +1,129 @@
+import {
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+
+@Injectable()
+export class GdprService {
+  constructor(
+    private readonly usersService: UsersService,
+
+    private readonly auditService: AuditService,
+
+    @InjectRepository(
+      UserConsent,
+    )
+    private readonly consentRepository:
+      Repository<UserConsent>,
+  ) {}
+
+  async exportUserData(
+    userId: string,
+  ) {
+    const user =
+      await this.usersService.findById(
+        userId,
+      );
+
+    if (!user) {
+      throw new NotFoundException(
+        "User not found",
+      );
+    }
+
+    const consents =
+      await this.consentRepository.find({
+        where: {
+          userId,
+        },
+      });
+
+    await this.auditService.log(
+      "GDPR_EXPORT",
+      userId,
+    );
+
+    return {
+      profile: user,
+      consents,
+    };
+  }
+
+  async eraseUserData(
+    userId: string,
+  ) {
+    const user =
+      await this.usersService.findById(
+        userId,
+      );
+
+    if (!user) {
+      throw new NotFoundException(
+        "User not found",
+      );
+    }
+
+    await this.usersService.update(
+      userId,
+      {
+        email: null,
+        firstName:
+          "[DELETED]",
+        lastName:
+          "[DELETED]",
+        phone: null,
+        address: null,
+        deletedAt:
+          new Date(),
+      },
+    );
+
+    await this.auditService.log(
+      "GDPR_ERASURE",
+      userId,
+    );
+
+    return {
+      success: true,
+    };
+  }
+
+  async updateConsent(
+    userId: string,
+    dto: ConsentDto,
+  ) {
+    const consent =
+      this.consentRepository.create({
+        userId,
+        consentType:
+          dto.consentType,
+        granted:
+          dto.granted,
+        revokedAt:
+          dto.granted
+            ? null
+            : new Date(),
+      });
+
+    await this.consentRepository.save(
+      consent,
+    );
+
+    await this.auditService.log(
+      "CONSENT_UPDATED",
+      userId,
+    );
+
+    return consent;
+  }
+
+  async getConsents(
+    userId: string,
+  ) {
+    return this.consentRepository.find({
+      where: {
+        userId,
+      },
+    });
+  }
+}
