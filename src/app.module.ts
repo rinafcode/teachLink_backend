@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ShardingModule } from './sharding/sharding.module';
 
 import { MessagingModule } from './messaging/messaging.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
@@ -53,6 +54,7 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    ShardingModule,
     IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
