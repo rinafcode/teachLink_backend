@@ -52,6 +52,88 @@ export class ABTestingController {
   ) {}
 
   /**
+   * Get available experiment templates
+   */
+  @Get('templates')
+  @ApiResponse({
+    status: 200,
+    description: 'Available experiment templates',
+    schema: {
+      example: [
+        {
+          name: 'Standard A/B Test',
+          description: 'Standard 50/50 A/B test with 95% confidence',
+          trafficAllocation: 50,
+          confidenceLevel: 0.95,
+          minimumSampleSize: 1000,
+        },
+      ],
+    },
+  })
+  async getExperimentTemplates(): Promise<any> {
+    this.logger.log('Fetching experiment templates');
+    return this.abTestingService.getAvailableTemplates();
+  }
+
+  /**
+   * Analyze experiment and check for auto-stop conditions
+   */
+  @Post('experiments/:id/analyze')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN)
+  @ApiResponse({
+    status: 200,
+    description: 'Analysis complete',
+    schema: {
+      example: {
+        results: [
+          {
+            variantId: 'variant-1',
+            sampleSize: 2500,
+            conversionRate: 0.085,
+            confidence: 0.97,
+            pValue: 0.03,
+            isSignificant: true,
+            uplift: 0.15,
+            upliftCI: { lower: 0.08, upper: 0.22 },
+          },
+        ],
+        shouldStop: true,
+        reason: 'Statistical significance reached',
+      },
+    },
+  })
+  async analyzeAndAutoStop(@Param('id') experimentId: string): Promise<any> {
+    this.logger.log(`Analyzing experiment for auto-stop: ${experimentId}`);
+    return await this.abTestingService.analyzeAndAutoStop(experimentId);
+  }
+
+  /**
+   * Get comprehensive experiment results dashboard
+   */
+  @Get('experiments/:id/dashboard')
+  @ApiResponse({
+    status: 200,
+    description: 'Experiment results dashboard',
+    schema: {
+      example: {
+        experiment: {},
+        variantResults: [],
+        summary: {
+          winner: 'variant-2',
+          confidence: 0.96,
+          estimatedUplift: 0.12,
+          sampleSizeReached: true,
+        },
+      },
+    },
+  })
+  async getResultsDashboard(@Param('id') experimentId: string): Promise<any> {
+    this.logger.log(`Fetching results dashboard for experiment: ${experimentId}`);
+    return await this.abTestingService.getExperimentResults(experimentId);
+  }
+
+  /**
    * Returns all Experiments.
    * @returns The operation result.
    */
