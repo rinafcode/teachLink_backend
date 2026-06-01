@@ -25,9 +25,11 @@ import { IdempotencyModule } from './common/modules/idempotency.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
+import { PaymentMethodsModule } from './payments/payment-methods/payment-methods.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
-import { AuditLogModule } from './audit-log/audit-log.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -36,6 +38,7 @@ import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -62,9 +65,11 @@ const featureFlags = loadFeatureFlags();
     IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
+    PaymentMethodsModule,
+    NotificationsModule,
     ReportingModule,
     HealthModule,
-    AuditLogModule,
+    ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
@@ -81,6 +86,8 @@ const featureFlags = loadFeatureFlags();
     // ✅ API gateway: routing, rate limiting, transformation, caching
     GatewayModule,
 
+    // ✅ Users module for profile and activity management
+    UsersModule,
     NotificationsModule,
     MessagingModule,
     DashboardModule,

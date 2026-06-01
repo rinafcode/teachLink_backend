@@ -80,6 +80,9 @@ export class Experiment {
   @Column({ type: 'json', nullable: true })
   exclusionCriteria: any;
 
+  @Column({ type: 'json', nullable: true })
+  properties?: Record<string, any>;
+
   @CreateDateColumn()
   createdAt: Date;
 
