@@ -30,6 +30,8 @@ import { SlackService } from './slack.service';
 import compression from 'compression';
 import { FieldFilterInterceptor } from './common/interceptors/field-filter.interceptor';
 import { ImageOptimizationInterceptor } from './common/interceptors/image-optimization.interceptor';
+import { AuditLogService } from './audit-log/audit-log.service';
+import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
@@ -191,6 +193,9 @@ async function bootstrapWorker(): Promise<void> {
   }
 
   app.use(correlationMiddleware);
+
+  const auditLogService = app.get(AuditLogService);
+  app.use(createAuditLoggerMiddleware(auditLogService));
 
   app.use(
     session({

@@ -28,6 +28,7 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -60,6 +61,7 @@ const featureFlags = loadFeatureFlags();
     InvoicesModule,
     ReportingModule,
     HealthModule,
+    AuditLogModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
