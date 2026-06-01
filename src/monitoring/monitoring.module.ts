@@ -6,9 +6,12 @@ import { AlertingService } from './alerting/alerting.service';
 import { MetricsCollectionService } from './metrics/metrics-collection.service';
 import { CustomMetricsService } from './custom-metrics.service';
 import { PrometheusController } from './metrics/prometheus.controller';
+import { CostController } from './cost.controller';
 import { HttpMetricsMiddleware } from './metrics/http-metrics.middleware';
 import { DbMetricsSubscriber } from './metrics/db-metrics.subscriber';
 import { DbPoolMetricsCollector } from './metrics/db-pool-metrics.collector';
+import { CostTrackingService } from './cost-tracking.service';
+import { CostSchedulerService } from './cost-scheduler.service';
 import { CommonModule } from '../common/common.module';
 
 /**
@@ -31,13 +34,15 @@ import { CommonModule } from '../common/common.module';
     TypeOrmModule,
     CommonModule,
   ],
-  controllers: [PrometheusController],
+  controllers: [PrometheusController, CostController],
   providers: [
     AlertingService,
     MetricsCollectionService,
     CustomMetricsService,
     DbMetricsSubscriber,
     DbPoolMetricsCollector,
+    CostTrackingService,
+    CostSchedulerService,
   ],
   exports: [
     AlertingService,
@@ -45,6 +50,7 @@ import { CommonModule } from '../common/common.module';
     CustomMetricsService,
     DbMetricsSubscriber,
     DbPoolMetricsCollector,
+    CostTrackingService,
   ],
 })
 export class MonitoringModule implements NestModule {

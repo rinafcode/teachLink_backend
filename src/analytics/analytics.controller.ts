@@ -30,6 +30,21 @@ export class AnalyticsController {
     return { success: true };
   }
 
+  @Post('event')
+  @ApiOperation({ summary: 'Track a feature event (compatibility endpoint)' })
+  @ApiResponse({ status: 201, description: 'Feature event tracked successfully' })
+  async trackEventCompatibility(@Body() dto: CreateEventDto, @Request() req: any): Promise<{ success: boolean }> {
+    await this.analyticsService.trackEvent({
+      ...dto,
+      eventType: EventType.CUSTOM,
+      userId: req.user?.id,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    return { success: true };
+  }
+
   /**
    * Get analytics events with filtering
    */
