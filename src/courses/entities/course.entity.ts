@@ -58,6 +58,11 @@ export class Course {
   @Column({ nullable: true })
   thumbnailUrl: string;
 
+  /** Optional category/tag used for catalog grouping and bulk operations. */
+  @Column({ nullable: true })
+  @Index()
+  category?: string;
+
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
 

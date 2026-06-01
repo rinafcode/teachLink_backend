@@ -8,11 +8,12 @@ import { Course } from './entities/course.entity';
 import { Enrollment } from './entities/enrollment.entity';
 import { CourseReview } from './entities/course-review.entity';
 import { CourseModule } from './entities/course-module.entity';
+import { BulkOperation } from './entities/bulk-operation.entity';
 import { CachingModule } from '../caching/caching.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule]),
+    TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule, BulkOperation]),
     CachingModule,
   ],
   providers: [CoursesService, EnrollmentsService],
