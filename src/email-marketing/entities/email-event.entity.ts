@@ -36,9 +36,14 @@ export class EmailEvent {
   eventType: EmailEventType;
 
   @ApiProperty({ required: false })
-  @Column({ type: 'jsonb', nullable: true })
-  metadata?: Record<string, any>;
+  @Column({ nullable: true })
+  bounceReason?: string;
 
+  @Column({ nullable: true })
+  complaintType?: string;
+
+  @Column({ type: 'int', nullable: true })
+  reputationScore?: number;
   @ApiProperty()
   @CreateDateColumn()
   occurredAt: Date;

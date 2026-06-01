@@ -415,6 +415,28 @@ Sizing rule:
 - Formula: `DATABASE_POOL_MAX x app_instances x cluster_workers <= postgres_max_connections - reserved_connections`.
 - Reserve at least 20 to 30 connections for migrations, admin access, and background jobs.
 
+### Read Replicas (TypeORM + PostgreSQL)
+
+Read replicas can be enabled without changing the primary database settings. Add one or more replicas with `DATABASE_REPLICA_URLS`:
+
+```env
+DATABASE_REPLICA_URLS=postgres://teachlink_ro:secret@replica-1.db:5432/teachlink,postgres://teachlink_ro:secret@replica-2.db:5432/teachlink
+```
+
+Or use host-based configuration:
+
+```env
+DATABASE_REPLICA_HOSTS=replica-1.db,replica-2.db
+DATABASE_REPLICA_PORTS=5432,5432
+DATABASE_REPLICA_USER=teachlink_ro
+DATABASE_REPLICA_PASSWORD=secret
+DATABASE_REPLICA_NAME=teachlink
+```
+
+When replicas are configured, TypeORM replication routes writes to the primary and eligible reads to replicas. Use `ReadReplicaRoutingService.consistentRead()` for read-after-write, authorization, and workflow reads that must prefer the primary. Replica read failures are retried on the primary by default so read paths can fail over during a replica outage.
+
+See [docs/database-read-replicas.md](docs/database-read-replicas.md) for setup, routing behavior, consistent-read guidance, and failover operations.
+
 ## �🚀 Getting Started
 
 ### Prerequisites

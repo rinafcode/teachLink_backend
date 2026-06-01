@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
+import { EmailTrackingService } from '../../email-marketing/services/email-tracking.service';
+import { EmailEventType } from '../../email-marketing/enums/email-event-type.enum';
 
 /**
  * Email Worker
@@ -8,7 +10,7 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class EmailWorker extends BaseWorker {
-  constructor() {
+  constructor(private readonly emailTracking: EmailTrackingService) {
     super('email');
   }
 
@@ -46,6 +48,14 @@ export class EmailWorker extends BaseWorker {
         sentAt: new Date(),
         status: 'sent',
       };
+
+      await this.emailTracking.recordSent({
+        to,
+        campaignId: job.data.campaignId || null,
+        recipientId: to,
+        eventType: EmailEventType.SENT,
+        metadata: {},
+      } as any);
 
       await job.progress(100);
       return result;

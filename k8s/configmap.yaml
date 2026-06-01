@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: teachlink-backend-config
+  namespace: default
+  labels:
+    app: teachlink-backend
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  # Database
+  DATABASE_PORT: "5432"
+  DATABASE_POOL_MAX: "30"
+  DATABASE_POOL_MIN: "5"
+  DATABASE_POOL_ACQUIRE_TIMEOUT_MS: "10000"
+  DATABASE_POOL_IDLE_TIMEOUT_MS: "30000"
+  # Redis
+  REDIS_PORT: "6379"
+  # JWT
+  JWT_EXPIRES_IN: "15m"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+  # Security
+  BCRYPT_ROUNDS: "12"
+  # Session
+  SESSION_TTL_SECONDS: "604800"
+  SESSION_COOKIE_MAX_AGE_MS: "604800000"
+  SESSION_LOCK_TTL_MS: "5000"
+  SESSION_LOCK_MAX_RETRIES: "5"
+  SESSION_LOCK_RETRY_DELAY_MS: "120"
+  STICKY_SESSIONS_REQUIRED: "true"
+  TRUST_PROXY: "true"
+  # Feature flags
+  ENABLE_AUTH: "true"
+  ENABLE_SESSION_MANAGEMENT: "true"
+  ENABLE_PAYMENTS: "true"
+  ENABLE_RATE_LIMITING: "true"
+  ENABLE_OBSERVABILITY: "true"
+  ENABLE_CACHING: "true"
+  ENABLE_SEARCH: "true"
+  ENABLE_NOTIFICATIONS: "true"
+  ENABLE_SECURITY: "true"
+  ENABLE_TENANCY: "true"
+  ENABLE_MIGRATIONS: "true"
+  # Circuit breaker
+  CIRCUIT_BREAKER_TIMEOUT_MS: "3000"
+  CIRCUIT_BREAKER_ERROR_THRESHOLD: "50"
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS: "30000"
+  # Idempotency
+  IDEMPOTENCY_TTL_SECONDS: "86400"
+  # GraphQL
+  GRAPHQL_MAX_DEPTH: "10"
+  GRAPHQL_MAX_COMPLEXITY: "1000"
+  GRAPHQL_LIST_MULTIPLIER: "10"
+  # AWS region (non-sensitive)
+  AWS_REGION: "us-east-1"
+  # Secret provider
+  SECRET_PROVIDER: "env"
