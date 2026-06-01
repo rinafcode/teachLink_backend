@@ -29,7 +29,7 @@ import { PaymentMethodsModule } from './payments/payment-methods/payment-methods
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
-import { AuditLogModule } from './audit-log/audit-log.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -69,7 +69,7 @@ const featureFlags = loadFeatureFlags();
     NotificationsModule,
     ReportingModule,
     HealthModule,
-    AuditLogModule,
+    ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
