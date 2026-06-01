@@ -49,6 +49,27 @@ export class PrometheusController {
   async getMetrics(@Req() req: Request, @Res() res: Response): Promise<void> {
     this.assertAuthorized(req);
 
+    return this.sendPrometheusMetrics(req, res);
+  }
+
+  @Get('observability/metrics/export/prometheus')
+  @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+  @ApiOperation({
+    summary: 'Legacy observability endpoint for Prometheus metrics export',
+    description:
+      'Alias for the Prometheus scrape endpoint to support legacy observability integrations.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Prometheus metrics in text/plain exposition format',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized – invalid or missing bearer token' })
+  async exportPrometheusMetrics(@Req() req: Request, @Res() res: Response): Promise<void> {
+    this.assertAuthorized(req);
+    return this.sendPrometheusMetrics(req, res);
+  }
+
+  private async sendPrometheusMetrics(req: Request, res: Response): Promise<void> {
     try {
       const metrics = await this.metricsCollectionService.getMetrics();
       res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');

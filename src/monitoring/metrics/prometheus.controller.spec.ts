@@ -84,6 +84,23 @@ describe('PrometheusController', () => {
       expect(res.statusSpy().send).toHaveBeenCalledWith(metricText);
     });
 
+    it('returns 200 from the legacy observability alias endpoint', async () => {
+      const metricText = '# HELP process_memory_bytes\n# TYPE gauge\n';
+      mockMetricsCollectionService.getMetrics.mockResolvedValue(metricText);
+
+      const req = buildRequest({ path: '/observability/metrics/export/prometheus' });
+      const res = buildResponse();
+
+      await controller.exportPrometheusMetrics(req, res);
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/plain; version=0.0.4; charset=utf-8',
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.statusSpy().send).toHaveBeenCalledWith(metricText);
+    });
+
     it('returns 500 when getMetrics throws', async () => {
       mockMetricsCollectionService.getMetrics.mockRejectedValue(new Error('prom-client error'));
 
