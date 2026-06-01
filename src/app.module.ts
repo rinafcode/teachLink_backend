@@ -27,6 +27,7 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -39,6 +40,7 @@ import { UsersModule } from './users/users.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { GamificationModule } from './gamification/gamification.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -63,6 +65,7 @@ const featureFlags = loadFeatureFlags();
     InvoicesModule,
     ReportingModule,
     HealthModule,
+    AuditLogModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
@@ -84,6 +87,7 @@ const featureFlags = loadFeatureFlags();
     NotificationsModule,
     MessagingModule,
     DashboardModule,
+    GamificationModule,
   ],
   controllers: [AppController],
   providers: [
