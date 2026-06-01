@@ -8,6 +8,7 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Tier } from '../enums/tier.enum';
 
 /**
  * Represents the user Progress entity.
@@ -36,4 +37,8 @@ export class UserProgress {
   @Column({ default: 0 })
   @Index()
   xp: number;
+
+  @Column({ type: 'enum', enum: Tier, default: Tier.BRONZE })
+  @Index()
+  tier: Tier;
 }
