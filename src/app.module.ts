@@ -9,7 +9,6 @@ import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ShardingModule } from './sharding/sharding.module';
 
-import { MessagingModule } from './messaging/messaging.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -36,6 +35,9 @@ import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';
 import { GatewayModule } from './gateway/gateway.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -75,6 +77,10 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ API gateway: routing, rate limiting, transformation, caching
     GatewayModule,
+
+    NotificationsModule,
+    MessagingModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
