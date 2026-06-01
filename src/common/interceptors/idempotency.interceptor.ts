@@ -7,6 +7,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ResourceConflictException } from '../exceptions/app.exceptions';
 import { Reflector } from '@nestjs/core';
 import { Observable, of, from } from 'rxjs';
 import { finalize, map, mergeMap } from 'rxjs/operators';
