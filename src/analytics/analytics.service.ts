@@ -1,17 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 
 @Injectable()
-export class AnalyticsService {
+export class AnalyticsService implements OnModuleInit {
   private readonly logger = new Logger(AnalyticsService.name);
   private featureEventsCounter: any | null = null;
 
-  constructor(private readonly metrics: MetricsCollectionService) {
+  constructor(private readonly metrics: MetricsCollectionService) {}
+
+  async onModuleInit() {
     try {
       const registry = this.metrics.getRegistry();
-      // Lazy require prom-client to avoid import cycles
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const prom = require('prom-client');
+      // Lazy import prom-client to avoid import cycles
+      const prom = await import('prom-client');
 
       // Create a shared counter for feature events with labels
       this.featureEventsCounter =
