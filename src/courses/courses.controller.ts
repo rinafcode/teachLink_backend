@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
   HttpCode,
@@ -17,6 +18,11 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
 import { ReviewCourseDto } from './dto/review-course.dto';
+import {
+  BulkCategoryUpdateDto,
+  BulkPriceUpdateDto,
+  BulkPublishDto,
+} from './dto/bulk-operations.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('courses')
@@ -91,5 +97,70 @@ export class CoursesController {
   @ApiResponse({ status: 200, description: 'Returns pending courses' })
   async getPendingQueue(@Request() req) {
     return this.coursesService.getPendingQueue(req.user);
+  }
+
+  // ─── BULK OPERATIONS ──────────────────────────────────────────────────────
+
+  @Post('bulk/publish')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Bulk publish or unpublish courses',
+    description:
+      'Apply a publish/unpublish action to many courses owned by the caller in one request. ' +
+      'Courses that are not found or not owned by the caller are skipped and reported in the snapshots.',
+  })
+  @ApiResponse({ status: 200, description: 'Bulk publish operation recorded' })
+  async bulkPublish(@Body() dto: BulkPublishDto, @Request() req) {
+    return this.coursesService.bulkPublish(dto, req.user);
+  }
+
+  @Post('bulk/price')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Bulk update price across courses',
+    description: 'Apply a single new price value to many courses owned by the caller in one request.',
+  })
+  @ApiResponse({ status: 200, description: 'Bulk price update recorded' })
+  async bulkUpdatePrice(@Body() dto: BulkPriceUpdateDto, @Request() req) {
+    return this.coursesService.bulkUpdatePrice(dto, req.user);
+  }
+
+  @Post('bulk/category')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Bulk update category across courses',
+    description:
+      'Apply a single new category value to many courses owned by the caller. ' +
+      'Send `category: null` (or omit) to clear the category.',
+  })
+  @ApiResponse({ status: 200, description: 'Bulk category update recorded' })
+  async bulkUpdateCategory(@Body() dto: BulkCategoryUpdateDto, @Request() req) {
+    return this.coursesService.bulkUpdateCategory(dto, req.user);
+  }
+
+  @Get('bulk/operations')
+  @ApiOperation({ summary: 'List recent bulk operations triggered by the current user' })
+  @ApiResponse({ status: 200, description: 'Returns recent bulk operations' })
+  async listBulkOperations(@Request() req, @Query('limit') limit?: string) {
+    const parsed = limit ? Number(limit) : undefined;
+    return this.coursesService.listBulkOperations(
+      req.user,
+      Number.isFinite(parsed) ? (parsed as number) : 50,
+    );
+  }
+
+  @Post('bulk/operations/:id/undo')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Undo a previously executed bulk operation',
+    description:
+      'Restores every successfully-modified course to its pre-operation state using the stored snapshot. ' +
+      'Only the initiator or an admin/moderator may undo. An already-undone operation cannot be undone again.',
+  })
+  @ApiResponse({ status: 200, description: 'Bulk operation undone' })
+  @ApiResponse({ status: 400, description: 'Operation already undone' })
+  @ApiResponse({ status: 404, description: 'Bulk operation not found' })
+  async undoBulkOperation(@Param('id') id: string, @Request() req) {
+    return this.coursesService.undoBulkOperation(id, req.user);
   }
 }

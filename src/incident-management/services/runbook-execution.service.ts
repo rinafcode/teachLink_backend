@@ -68,10 +68,16 @@ export class RunbookExecutionService {
       let allSuccess = true;
 
       for (const step of runbook.steps) {
-        const stepExecution = {
+        const stepExecution: {
+          stepNumber: number;
+          stepName: string;
+          status: 'in_progress' | 'completed' | 'failed';
+          output?: string;
+          error?: string;
+        } = {
           stepNumber: step.stepNumber,
           stepName: step.stepName,
-          status: 'in_progress' as const,
+          status: 'in_progress',
         };
 
         try {
@@ -84,12 +90,12 @@ export class RunbookExecutionService {
           (stepExecution as any)['status'] = result.success ? 'completed' : 'failed';
           stepExecution['output'] = result.output;
           if (!result.success) {
-            stepExecution['error'] = result.error;
+            stepExecution.error = result.error;
             allSuccess = false;
           }
 
           this.logger.log(
-            `Step ${step.stepNumber} completed: ${stepExecution['status']}`,
+            `Step ${step.stepNumber} completed: ${stepExecution.status}`,
           );
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);

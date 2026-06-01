@@ -26,6 +26,7 @@ import { DatabaseShutdownService } from './database/services/database-shutdown.s
 import { WorkerShutdownService } from './workers/services/worker-shutdown.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
+import { SlackService } from './slack.service';
 import compression from 'compression';
 import { FieldFilterInterceptor } from './common/interceptors/field-filter.interceptor';
 import { ImageOptimizationInterceptor } from './common/interceptors/image-optimization.interceptor';
@@ -300,6 +301,8 @@ async function bootstrapWorker(): Promise<void> {
   const port = process.env.PORT || 3000;
 
   app.enableShutdownHooks();
+  const slackService = app.get(SlackService);
+  await slackService.sendAlert('TeachLink Backend has successfully started up on local system! 🚀', 'low');
   await app.listen(port);
 
   const startupTime = Date.now() - bootstrapStartTime;

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import axios from 'axios';
+import { EnhancedCircuitBreakerService } from '../../common/services/circuit-breaker.service';
 
 export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
@@ -121,7 +122,10 @@ export class AlertingService {
   private readonly emailFrom: string;
   private mailerTransport: nodemailer.Transporter | null = null;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly circuitBreakerService: EnhancedCircuitBreakerService,
+  ) {
     this.emailFrom = this.configService.get<string>('EMAIL_FROM', 'noreply@teachlink.io');
     const recipientRaw = this.configService.get<string>('ALERT_EMAIL_RECIPIENTS', '');
     this.alertEmailRecipients = recipientRaw
@@ -369,6 +373,18 @@ export class AlertingService {
       ],
     };
 
-    await axios.post(this.slackWebhookUrl, body);
+    await this.circuitBreakerService.execute(
+      'alerting-slack',
+      () => axios.post(this.slackWebhookUrl, body),
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        fallback: (error: Error) => {
+          this.logger.warn(`Alerting Slack fallback triggered: ${error.message}`);
+          return null;
+        },
+      },
+    );
   }
 }

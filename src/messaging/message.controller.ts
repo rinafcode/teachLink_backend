@@ -1,9 +1,9 @@
 import { Controller, Post, Body, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { MessagingService } from './messaging.service';
 import { CreateMessageDto, MarkReadDto } from './message.dto';
-import { AuthGuard } from '../auth/auth.guard'; // Adjust path if auth guard location differs
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('messages')
 export class MessagingController {
   constructor(private readonly messagingService: MessagingService) {}
