@@ -52,9 +52,9 @@ export class PreferencesService {
   async toggleChannel(
     userId: string,
     channel: 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled',
-  ): Promise<void> {
+  ): Promise<NotificationPreferences> {
     const preferences = await this.getPreferences(userId);
     preferences[channel] = !preferences[channel];
-    await this.preferencesRepository.save(preferences);
+    return this.preferencesRepository.save(preferences);
   }
 }
