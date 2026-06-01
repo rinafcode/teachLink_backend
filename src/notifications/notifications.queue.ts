@@ -35,6 +35,16 @@ export class NotificationsQueueService {
    * Publish notification to SNS topic
    */
   async publishToTopic(notification: Notification): Promise<void> {
+    if (!this.snsTopicArn || !this.queueUrl) {
+      this.logger.warn(
+        `AWS SNS/SQS not configured; marking notification ${notification.id} as sent (dev mode)`,
+      );
+      await this.notificationRepository.update(notification.id, {
+        status: NotificationStatus.SENT,
+        lastAttemptAt: new Date(),
+      });
+      return;
+    }
     try {
       const command = new PublishCommand({
         TopicArn: this.snsTopicArn,
@@ -61,8 +71,10 @@ export class NotificationsQueueService {
         deliveryAttempts: notification.deliveryAttempts + 1,
       });
     } catch (error) {
-      this.logger.error(`Failed to publish notification ${notification.id} to SNS`, error.stack);
-      await this.handleFailure(notification, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to publish notification ${notification.id} to SNS`, errorStack);
+      await this.handleFailure(notification, errorMessage);
     }
   }
 
