@@ -2,77 +2,280 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Registry, collectDefaultMetrics, Histogram, Gauge, Counter } from 'prom-client';
 
 /**
- * Provides metrics Collection operations.
+ * Central Prometheus metrics registry for TeachLink.
+ *
+ * Provides:
+ *  - Infrastructure metrics: HTTP request duration, DB query duration,
+ *    active connections, DB pool statistics
+ *  - Business metrics: user registrations, course enrolments, assessment
+ *    completions, payment transactions, active users, cache hit rate,
+ *    queue processing time, email campaigns, backup operations, API errors
+ *
+ * All metrics are registered on a dedicated `Registry` instance to avoid
+ * conflicts when running multiple test suites or module instances.
  */
 @Injectable()
 export class MetricsCollectionService implements OnModuleInit {
   private registry: Registry;
+
+  // ── Infrastructure – HTTP ─────────────────────────────────────────────────
+
   public httpRequestDuration: Histogram;
+
+  // ── Infrastructure – Database ─────────────────────────────────────────────
+
   public dbQueryDuration: Histogram;
   public activeConnections: Gauge;
-  /** Tracks total DB pool connections acquired since startup (#274) */
+
+  /** Total DB pool connections acquired since startup */
   public dbPoolConnectionsAcquired: Counter;
-  /** Tracks total DB pool connections released since startup (#274) */
+  /** Total DB pool connections released since startup */
   public dbPoolConnectionsReleased: Counter;
-  /** Tracks current DB pool size (active + idle) (#274) */
+  /** Current DB connection pool size (active + idle) */
   public dbPoolSize: Gauge;
+  /** Currently idle / available pool connections */
+  public dbPoolIdleConnections: Gauge;
+  /** Requests queued waiting for a free pool slot */
+  public dbPoolPendingRequests: Gauge;
+
+  // ── Business Metrics – Users ───────────────────────────────────────────────
+
+  /** Total user registrations, labelled by user_type and source */
   public userRegistrations: Counter;
+  /** Gauge for currently active users, labelled by role */
+  public activeUsers: Gauge;
+
+  // ── Business Metrics – Courses ─────────────────────────────────────────────
+
+  /** Total course enrolments, labelled by course_id and status */
+  public courseEnrollments: Counter;
+  /** Per-course completion rate (0–100), labelled by course_id */
+  public courseCompletionRate: Gauge;
+
+  // ── Business Metrics – Assessments ────────────────────────────────────────
+
+  /** Total assessment completions, labelled by assessment_type and difficulty */
   public assessmentCompletions: Counter;
+
+  // ── Business Metrics – Learning Paths ─────────────────────────────────────
+
+  /** Learning path progress percentage, labelled by path_id and user_id */
   public learningPathProgress: Gauge;
+
+  // ── Business Metrics – Payments ───────────────────────────────────────────
+
+  /** Total payment transactions, labelled by payment_method and status */
+  public paymentTransactions: Counter;
+
+  // ── Business Metrics – Cache ───────────────────────────────────────────────
+
+  /** Cache hit rate percentage, labelled by cache_type */
   public cacheHitRate: Gauge;
+
+  // ── Business Metrics – Queues ──────────────────────────────────────────────
+
+  /** Queue job processing duration, labelled by queue_name and job_type */
   public queueProcessingTime: Histogram;
+
+  // ── Business Metrics – Email ───────────────────────────────────────────────
+
+  /** Total email campaigns sent, labelled by campaign_type and status */
   public emailCampaignsSent: Counter;
+
+  // ── Business Metrics – Backup ──────────────────────────────────────────────
+
+  /** Total backup operations, labelled by operation_type and status */
   public backupOperations: Counter;
-  public requestTimeouts: Counter;
+
+  // ── Business Metrics – API Errors ─────────────────────────────────────────
+
+  /** Total API errors (≥ 400), labelled by route and error_code */
+  public apiErrors: Counter;
+
+  // ── Constructor ───────────────────────────────────────────────────────────
 
   constructor() {
     this.registry = new Registry();
+    this.initialiseMetrics();
+  }
 
-    // HTTP Request Duration
+  // ── Module lifecycle ──────────────────────────────────────────────────────
+
+  onModuleInit() {
+    // Collect default system metrics (CPU, memory, event loop lag, GC, etc.)
+    collectDefaultMetrics({ register: this.registry });
+  }
+
+  // ── Registry access ───────────────────────────────────────────────────────
+
+  /**
+   * Returns the Prometheus Registry instance used by this service.
+   */
+  getRegistry(): Registry {
+    return this.registry;
+  }
+
+  /**
+   * Returns all registered metrics in Prometheus text exposition format.
+   */
+  async getMetrics(): Promise<string> {
+    return this.registry.metrics();
+  }
+
+  // ── Recording helpers – HTTP ──────────────────────────────────────────────
+
+  /**
+   * Observes an HTTP request duration.
+   *
+   * @param method      HTTP method (GET, POST, …)
+   * @param route       Normalised route path (e.g. /users/:id)
+   * @param statusCode  HTTP response status code
+   * @param duration    Duration in **seconds**
+   */
+  recordHttpRequest(method: string, route: string, statusCode: number, duration: number): void {
+    this.httpRequestDuration.observe({ method, route, status_code: statusCode }, duration);
+  }
+
+  // ── Recording helpers – Database ──────────────────────────────────────────
+
+  /**
+   * Observes a database query duration.
+   *
+   * @param queryType  SQL verb (SELECT, INSERT, UPDATE, DELETE, OTHER)
+   * @param table      Primary table name
+   * @param duration   Duration in **seconds**
+   */
+  recordDbQuery(queryType: string, table: string, duration: number): void {
+    this.dbQueryDuration.observe({ query_type: queryType, table }, duration);
+  }
+
+  // ── Recording helpers – Users ─────────────────────────────────────────────
+
+  recordUserRegistration(userType: string, source: string): void {
+    this.userRegistrations.inc({ user_type: userType, source });
+  }
+
+  updateActiveUsers(role: string, count: number): void {
+    this.activeUsers.set({ role }, count);
+  }
+
+  // ── Recording helpers – Courses ───────────────────────────────────────────
+
+  recordCourseEnrollment(courseId: string, status: string): void {
+    this.courseEnrollments.inc({ course_id: courseId, status });
+  }
+
+  updateCourseCompletionRate(courseId: string, rate: number): void {
+    this.courseCompletionRate.set({ course_id: courseId }, rate);
+  }
+
+  // ── Recording helpers – Assessments ──────────────────────────────────────
+
+  recordAssessmentCompletion(assessmentType: string, difficulty: string): void {
+    this.assessmentCompletions.inc({ assessment_type: assessmentType, difficulty });
+  }
+
+  // ── Recording helpers – Learning Paths ───────────────────────────────────
+
+  updateLearningPathProgress(pathId: string, userId: string, progress: number): void {
+    this.learningPathProgress.set({ path_id: pathId, user_id: userId }, progress);
+  }
+
+  // ── Recording helpers – Payments ─────────────────────────────────────────
+
+  recordPaymentTransaction(paymentMethod: string, status: string): void {
+    this.paymentTransactions.inc({ payment_method: paymentMethod, status });
+  }
+
+  // ── Recording helpers – Cache ─────────────────────────────────────────────
+
+  updateCacheHitRate(cacheType: string, hitRate: number): void {
+    this.cacheHitRate.set({ cache_type: cacheType }, hitRate);
+  }
+
+  // ── Recording helpers – Queues ────────────────────────────────────────────
+
+  recordQueueProcessingTime(queueName: string, jobType: string, duration: number): void {
+    this.queueProcessingTime.observe({ queue_name: queueName, job_type: jobType }, duration);
+  }
+
+  // ── Recording helpers – Email ─────────────────────────────────────────────
+
+  recordEmailCampaignSent(campaignType: string, status: string): void {
+    this.emailCampaignsSent.inc({ campaign_type: campaignType, status });
+  }
+
+  // ── Recording helpers – Backup ────────────────────────────────────────────
+
+  recordBackupOperation(operationType: string, status: string): void {
+    this.backupOperations.inc({ operation_type: operationType, status });
+  }
+
+  // ── Recording helpers – API Errors ────────────────────────────────────────
+
+  recordApiError(route: string, errorCode: string): void {
+    this.apiErrors.inc({ route, error_code: errorCode });
+  }
+
+  // ── Private – metric registration ─────────────────────────────────────────
+
+  private initialiseMetrics(): void {
+    // HTTP
     this.httpRequestDuration = new Histogram({
       name: 'http_request_duration_seconds',
       help: 'Duration of HTTP requests in seconds',
       labelNames: ['method', 'route', 'status_code'],
-      buckets: [0.1, 0.3, 0.5, 1, 1.5, 2, 5],
+      buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
       registers: [this.registry],
     });
 
-    // Database Query Duration
+    // Database – query durations
     this.dbQueryDuration = new Histogram({
       name: 'db_query_duration_seconds',
       help: 'Duration of database queries in seconds',
       labelNames: ['query_type', 'table'],
-      buckets: [0.01, 0.05, 0.1, 0.5, 1, 2],
+      buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2, 5],
       registers: [this.registry],
     });
 
-    // Active Connections (Example of custom gauge)
+    // Database – connections
     this.activeConnections = new Gauge({
-      name: 'active_connections_count',
-      help: 'Number of active connections',
+      name: 'db_active_connections',
+      help: 'Number of currently active database connections',
       registers: [this.registry],
     });
 
-    // DB connection pool metrics (#274)
     this.dbPoolConnectionsAcquired = new Counter({
       name: 'db_pool_connections_acquired_total',
-      help: 'Total number of DB pool connections acquired',
+      help: 'Total number of DB pool connections acquired since startup',
       registers: [this.registry],
     });
 
     this.dbPoolConnectionsReleased = new Counter({
       name: 'db_pool_connections_released_total',
-      help: 'Total number of DB pool connections released',
+      help: 'Total number of DB pool connections released since startup',
       registers: [this.registry],
     });
 
     this.dbPoolSize = new Gauge({
       name: 'db_pool_size',
-      help: 'Current DB connection pool size (active + idle)',
+      help: 'Current total DB connection pool size (active + idle)',
       registers: [this.registry],
     });
 
-    // User Registrations Counter
+    this.dbPoolIdleConnections = new Gauge({
+      name: 'db_pool_idle_connections',
+      help: 'Number of idle (available) connections in the DB pool',
+      registers: [this.registry],
+    });
+
+    this.dbPoolPendingRequests = new Gauge({
+      name: 'db_pool_pending_requests',
+      help: 'Number of requests waiting for a free DB pool connection',
+      registers: [this.registry],
+    });
+
+    // Users
     this.userRegistrations = new Counter({
       name: 'user_registrations_total',
       help: 'Total number of user registrations',
@@ -80,7 +283,29 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    // Assessment Completions Counter
+    this.activeUsers = new Gauge({
+      name: 'active_users',
+      help: 'Number of currently active users by role',
+      labelNames: ['role'],
+      registers: [this.registry],
+    });
+
+    // Courses
+    this.courseEnrollments = new Counter({
+      name: 'course_enrollments_total',
+      help: 'Total number of course enrolments',
+      labelNames: ['course_id', 'status'],
+      registers: [this.registry],
+    });
+
+    this.courseCompletionRate = new Gauge({
+      name: 'course_completion_rate_percentage',
+      help: 'Completion rate percentage for a course (0–100)',
+      labelNames: ['course_id'],
+      registers: [this.registry],
+    });
+
+    // Assessments
     this.assessmentCompletions = new Counter({
       name: 'assessment_completions_total',
       help: 'Total number of assessment completions',
@@ -88,7 +313,7 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    // Learning Path Progress Gauge
+    // Learning paths
     this.learningPathProgress = new Gauge({
       name: 'learning_path_progress_percentage',
       help: 'Average learning path progress percentage',
@@ -96,7 +321,15 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    // Cache Hit Rate Gauge
+    // Payments
+    this.paymentTransactions = new Counter({
+      name: 'payment_transactions_total',
+      help: 'Total number of payment transactions',
+      labelNames: ['payment_method', 'status'],
+      registers: [this.registry],
+    });
+
+    // Cache
     this.cacheHitRate = new Gauge({
       name: 'cache_hit_rate_percentage',
       help: 'Cache hit rate percentage',
@@ -104,16 +337,16 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    // Queue Processing Time Histogram
+    // Queues
     this.queueProcessingTime = new Histogram({
       name: 'queue_processing_duration_seconds',
       help: 'Duration of queue job processing in seconds',
       labelNames: ['queue_name', 'job_type'],
-      buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
+      buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
       registers: [this.registry],
     });
 
-    // Email Campaigns Sent Counter
+    // Email
     this.emailCampaignsSent = new Counter({
       name: 'email_campaigns_sent_total',
       help: 'Total number of email campaigns sent',
@@ -121,7 +354,7 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    // Backup Operations Counter
+    // Backup
     this.backupOperations = new Counter({
       name: 'backup_operations_total',
       help: 'Total number of backup operations',
@@ -129,142 +362,12 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
-    // Request Timeouts Counter
-    this.requestTimeouts = new Counter({
-      name: 'http_request_timeouts_total',
-      help: 'Total number of HTTP request timeouts',
-      labelNames: ['route'],
+    // API Errors
+    this.apiErrors = new Counter({
+      name: 'api_errors_total',
+      help: 'Total number of API errors (HTTP 4xx/5xx)',
+      labelNames: ['route', 'error_code'],
       registers: [this.registry],
     });
-  }
-
-  /**
-   * Executes on Module Init.
-   * @returns The operation result.
-   */
-  onModuleInit() {
-    // Collect default system metrics (CPU, Memory, Event Loop, etc.)
-    collectDefaultMetrics({ register: this.registry });
-  }
-
-  /**
-   * Retrieves registry.
-   * @returns The resulting registry.
-   */
-  getRegistry(): Registry {
-    return this.registry;
-  }
-
-  /**
-   * Retrieves metrics.
-   * @returns The resulting string value.
-   */
-  async getMetrics(): Promise<string> {
-    return this.registry.metrics();
-  }
-
-  /**
-   * Records http Request.
-   * @param method The method.
-   * @param route The route.
-   * @param statusCode The status value.
-   * @param duration The duration.
-   * @returns The operation result.
-   */
-  recordHttpRequest(method: string, route: string, statusCode: number, duration: number) {
-    this.httpRequestDuration.observe({ method, route, status_code: statusCode }, duration);
-  }
-
-  /**
-   * Records db Query.
-   * @param queryType The query value.
-   * @param table The table.
-   * @param duration The duration.
-   * @returns The operation result.
-   */
-  recordDbQuery(queryType: string, table: string, duration: number) {
-    this.dbQueryDuration.observe({ query_type: queryType, table }, duration);
-  }
-
-  // Custom business metrics methods
-  /**
-   * Records user Registration.
-   * @param userType The user type.
-   * @param source The source.
-   * @returns The operation result.
-   */
-  recordUserRegistration(userType: string, source: string) {
-    this.userRegistrations.inc({ user_type: userType, source });
-  }
-
-  /**
-   * Records assessment Completion.
-   * @param assessmentType The assessment type.
-   * @param difficulty The difficulty.
-   * @returns The operation result.
-   */
-  recordAssessmentCompletion(assessmentType: string, difficulty: string) {
-    this.assessmentCompletions.inc({ assessment_type: assessmentType, difficulty });
-  }
-
-  /**
-   * Updates learning Path Progress.
-   * @param pathId The path identifier.
-   * @param userId The user identifier.
-   * @param progress The progress.
-   * @returns The operation result.
-   */
-  updateLearningPathProgress(pathId: string, userId: string, progress: number) {
-    this.learningPathProgress.set({ path_id: pathId, user_id: userId }, progress);
-  }
-
-  /**
-   * Updates cache Hit Rate.
-   * @param cacheType The cache type.
-   * @param hitRate The hit rate.
-   * @returns The operation result.
-   */
-  updateCacheHitRate(cacheType: string, hitRate: number) {
-    this.cacheHitRate.set({ cache_type: cacheType }, hitRate);
-  }
-
-  /**
-   * Records queue Processing Time.
-   * @param queueName The queue name.
-   * @param jobType The job type.
-   * @param duration The duration.
-   * @returns The operation result.
-   */
-  recordQueueProcessingTime(queueName: string, jobType: string, duration: number) {
-    this.queueProcessingTime.observe({ queue_name: queueName, job_type: jobType }, duration);
-  }
-
-  /**
-   * Records email Campaign Sent.
-   * @param campaignType The campaign type.
-   * @param status The status value.
-   * @returns The operation result.
-   */
-  recordEmailCampaignSent(campaignType: string, status: string) {
-    this.emailCampaignsSent.inc({ campaign_type: campaignType, status });
-  }
-
-  /**
-   * Records backup Operation.
-   * @param operationType The operation type.
-   * @param status The status value.
-   * @returns The operation result.
-   */
-  recordBackupOperation(operationType: string, status: string) {
-    this.backupOperations.inc({ operation_type: operationType, status });
-  }
-
-  /**
-   * Records request Timeout.
-   * @param route The route.
-   * @returns The operation result.
-   */
-  recordRequestTimeout(route: string) {
-    this.requestTimeouts.inc({ route });
   }
 }

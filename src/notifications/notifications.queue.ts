@@ -7,10 +7,9 @@ import {
   DeleteMessageCommand,
 } from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-import { NotificationStatus } from './entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification } from './entities/notification.entity';
+import { Notification, NotificationStatus } from './entities/notification.entity';
 
 @Injectable()
 export class NotificationsQueueService {
@@ -36,6 +35,17 @@ export class NotificationsQueueService {
    * Publish notification to SNS topic
    */
   async publishToTopic(notification: Notification, options?: { bypassBatch?: boolean }): Promise<void> {
+  async publishToTopic(notification: Notification): Promise<void> {
+    if (!this.snsTopicArn || !this.queueUrl) {
+      this.logger.warn(
+        `AWS SNS/SQS not configured; marking notification ${notification.id} as sent (dev mode)`,
+      );
+      await this.notificationRepository.update(notification.id, {
+        status: NotificationStatus.SENT,
+        lastAttemptAt: new Date(),
+      });
+      return;
+    }
     try {
       const payload = {
         id: notification.id,
@@ -65,8 +75,10 @@ export class NotificationsQueueService {
         deliveryAttempts: notification.deliveryAttempts + 1,
       });
     } catch (error) {
-      this.logger.error(`Failed to publish notification ${notification.id} to SNS`, error.stack);
-      await this.handleFailure(notification, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to publish notification ${notification.id} to SNS`, errorStack);
+      await this.handleFailure(notification, errorMessage);
     }
   }
 
