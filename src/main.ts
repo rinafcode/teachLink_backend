@@ -242,6 +242,7 @@ async function bootstrapWorker(): Promise<void> {
     .addTag('Email Marketing - Segments', 'Audience segmentation')
     .addTag('Email Marketing - A/B Testing', 'A/B testing for campaigns')
     .addTag('Email Marketing - Analytics', 'Campaign analytics and reporting')
+    .addTag('moderation', 'User reports and moderation queue')
     .addTag('App')
     .addTag('Quota')
     .addTag('Quota Management')
