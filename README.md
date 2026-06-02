@@ -188,6 +188,7 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 - 🎖️ Gamified reputation and contribution tracking
 - 🔔 Real-time notifications via WebSockets
 - 📊 Analytics and activity insights
+- 🧭 User reporting and moderation queue processing for inappropriate content
 - 🧾 DAO integration for content moderation and governance
 
 ## 🔀 API Versioning

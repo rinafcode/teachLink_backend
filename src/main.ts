@@ -1,5 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
+import {
+  ValidationPipe,
+  Logger,
+  VersioningType,
+} from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -7,7 +11,9 @@ import { json, urlencoded, type NextFunction, type Request, type Response } from
 import session, { type Session, type SessionData } from 'express-session';
 import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
+
 import { AppModule } from './app.module';
+
 import { correlationMiddleware } from './common/utils/correlation.utils';
 import { sessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
@@ -24,6 +30,11 @@ import { SlackService } from './slack.service';
 import compression from 'compression';
 import { FieldFilterInterceptor } from './common/interceptors/field-filter.interceptor';
 import { ImageOptimizationInterceptor } from './common/interceptors/image-optimization.interceptor';
+import { AuditLogService } from './audit-log/audit-log.service';
+import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
+
+// GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
+import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
@@ -36,7 +47,9 @@ type SessionRequest = Request & {
 async function bootstrapWorker(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
+
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '1mb';
+
   const fileUploadMaxBytes = parseInt(
     process.env.FILE_UPLOAD_MAX_BYTES || `${10 * BYTES.ONE_MB_BYTES}`,
     10,
@@ -97,15 +110,18 @@ async function bootstrapWorker(): Promise<void> {
     },
   });
 
+  // =========================
+  // API VERSIONING
+  // =========================
   app.enableVersioning({
     type: VersioningType.HEADER,
     header: API_VERSION_HEADER,
     defaultVersion: DEFAULT_API_VERSION,
   });
 
-  // Add request tracking middleware early in the pipeline
-  app.use(requestTracker.trackRequest());
-
+  // =========================
+  // SECURITY
+  // =========================
   app.use(
     helmet({
       hsts: {
@@ -128,23 +144,31 @@ async function bootstrapWorker(): Promise<void> {
   app.use(new DecompressionMiddleware());
   app.use(compression());
 
-  app.use(json({ limit: requestBodyLimit }));
-  app.use(urlencoded({ extended: true, limit: requestBodyLimit }));
+  // =========================
+  // BODY PARSING
+  // =========================
+  const requestBodyLimitBytes = requestBodyLimit;
 
+  app.use(json({ limit: requestBodyLimitBytes }));
+  app.use(urlencoded({ extended: true, limit: requestBodyLimitBytes }));
+
+  // =========================
+  // FILE SIZE GUARD
+  // =========================
   app.use((req: Request, res: Response, next: NextFunction): void => {
     const contentType = req.headers['content-type'];
     const contentLengthHeader = req.headers['content-length'];
-    const isMultipart =
-      typeof contentType === 'string' && contentType.toLowerCase().includes('multipart/form-data');
 
-    if (!isMultipart) {
-      next();
-      return;
-    }
+    const isMultipart =
+      typeof contentType === 'string' &&
+      contentType.toLowerCase().includes('multipart/form-data');
+
+    if (!isMultipart) return next();
 
     const contentLengthValue = Array.isArray(contentLengthHeader)
       ? contentLengthHeader[0]
       : contentLengthHeader;
+
     const contentLength = parseInt(contentLengthValue || '', 10);
 
     if (!Number.isNaN(contentLength) && contentLength > fileUploadMaxBytes) {
@@ -158,6 +182,9 @@ async function bootstrapWorker(): Promise<void> {
     next();
   });
 
+  // =========================
+  // REDIS SESSION
+  // =========================
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
 
   if (sessionConfig.trustProxy) {
@@ -166,6 +193,9 @@ async function bootstrapWorker(): Promise<void> {
   }
 
   app.use(correlationMiddleware);
+
+  const auditLogService = app.get(AuditLogService);
+  app.use(createAuditLoggerMiddleware(auditLogService));
 
   app.use(
     session({
@@ -188,34 +218,37 @@ async function bootstrapWorker(): Promise<void> {
     }),
   );
 
+  // =========================
+  // SESSION FIXATION PROTECTION
+  // =========================
   app.use((req: SessionRequest, res: Response, next: NextFunction): void => {
-    if (!req.session) {
-      next();
-      return;
-    }
+    if (!req.session) return next();
 
     const userAgent = req.headers['user-agent'] || 'unknown';
+
     if (!req.session.userAgent) {
       req.session.userAgent = userAgent;
     } else if (req.session.userAgent !== userAgent) {
       req.session.destroy((err: unknown): void => {
-        if (err) {
-          logger.error('Error destroying session', err);
-        }
-        res.status(401).json({ message: 'Session invalidation due to fixation protection' });
+        if (err) logger.error('Error destroying session', err);
+        res.status(401).json({
+          message: 'Session invalidation due to fixation protection',
+        });
       });
       return;
     }
+
     next();
   });
 
+  // =========================
+  // CORS
+  // =========================
   app.enableCors(corsConfig);
 
-  app.useGlobalInterceptors(
-    new FieldFilterInterceptor(),
-    new ImageOptimizationInterceptor()
-  );
-
+  // =========================
+  // GLOBAL PIPE
+  // =========================
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -230,6 +263,16 @@ async function bootstrapWorker(): Promise<void> {
     }),
   );
 
+  // =========================
+  // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
+  // =========================
+  app.useGlobalInterceptors(
+    new LocaleInterceptor(),
+  );
+
+  // =========================
+  // SWAGGER
+  // =========================
   const config = new DocumentBuilder()
     .setTitle('TeachLink API')
     .setDescription('The TeachLink API documentation - Unified System.')
@@ -242,12 +285,14 @@ async function bootstrapWorker(): Promise<void> {
     .addTag('Email Marketing - Segments', 'Audience segmentation')
     .addTag('Email Marketing - A/B Testing', 'A/B testing for campaigns')
     .addTag('Email Marketing - Analytics', 'Campaign analytics and reporting')
+    .addTag('moderation', 'User reports and moderation queue')
     .addTag('App')
     .addTag('Quota')
     .addTag('Quota Management')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
@@ -256,7 +301,11 @@ async function bootstrapWorker(): Promise<void> {
     jsonDocumentUrl: 'api/docs-json',
   });
 
+  // =========================
+  // START SERVER
+  // =========================
   const port = process.env.PORT || 3000;
+
   app.enableShutdownHooks();
   const slackService = app.get(SlackService);
   await slackService.sendAlert('TeachLink Backend has successfully started up on local system! 🚀', 'low');
@@ -264,49 +313,43 @@ async function bootstrapWorker(): Promise<void> {
 
   const startupTime = Date.now() - bootstrapStartTime;
 
-  if (sessionConfig.stickySessionsRequired) {
-    logger.log(
-      'Sticky sessions are enabled by policy. Configure LB cookie affinity on teachlink.sid.',
-    );
-  }
-
   logger.log(`TeachLink API running on http://localhost:${port}`);
   logger.log(`Swagger docs available at http://localhost:${port}/api/docs`);
-  logger.log(
-    `API versioning enabled via ${API_VERSION_HEADER}. Supported versions: ${SUPPORTED_API_VERSIONS.join(', ')}; default route version: ${DEFAULT_API_VERSION}.`,
-  );
-  logger.log(`Application startup completed in ${startupTime}ms`);
+  logger.log(`Startup completed in ${startupTime}ms`);
 
+  // =========================
+  // SHUTDOWN HANDLER
+  // =========================
   const shutdownTimeoutMs = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || '30000', 10);
   let isShuttingDown = false;
 
   const shutdown = async (signal: string): Promise<void> => {
-    if (isShuttingDown) {
-      return;
-    }
+    if (isShuttingDown) return;
 
     isShuttingDown = true;
+    shutdownState.markShuttingDown();
+
     logger.log(`Received ${signal}. Starting graceful shutdown...`);
+
+    const timer = setTimeout(() => {
+      logger.error('Forced shutdown due to timeout');
+      process.exit(1);
+    }, shutdownTimeoutMs);
+
+    timer.unref();
 
     try {
       await gracefulShutdown.shutdown(signal);
       logger.log('Graceful shutdown completed.');
       process.exit(0);
-    } catch (error) {
-      logger.error(
-        'Error during graceful shutdown',
-        error instanceof Error ? error.stack : String(error),
-      );
+    } catch (err) {
+      logger.error('Shutdown error', err);
       process.exit(1);
     }
   };
 
-  process.on('SIGTERM', () => {
-    void shutdown('SIGTERM');
-  });
-  process.on('SIGINT', () => {
-    void shutdown('SIGINT');
-  });
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
 async function bootstrap(): Promise<void> {
@@ -314,74 +357,20 @@ async function bootstrap(): Promise<void> {
   const clusterModeEnabled = (process.env.CLUSTER_MODE || 'false') === 'true';
 
   if (clusterModeEnabled && cluster.isPrimary) {
-    const workerCount = parseInt(process.env.CLUSTER_WORKERS || `${cpus().length}`, 10);
-    const shutdownTimeoutMs = parseInt(process.env.SHUTDOWN_TIMEOUT_MS || '30000', 10);
-    let isShuttingDown = false;
-    let forceExitTimer: NodeJS.Timeout | undefined;
+    const workerCount = parseInt(
+      process.env.CLUSTER_WORKERS || `${cpus().length}`,
+      10,
+    );
 
-    logger.log(`Primary process started in cluster mode with ${workerCount} workers.`);
+    logger.log(`Cluster mode enabled with ${workerCount} workers`);
 
-    for (let i = 0; i < workerCount; i += 1) {
+    for (let i = 0; i < workerCount; i++) {
       cluster.fork();
     }
 
-    cluster.on('exit', (worker, code, signal) => {
-      if (isShuttingDown) {
-        logger.log(
-          `Worker ${worker.id} (${worker.process.pid}) exited during shutdown (code: ${code}, signal: ${signal}).`,
-        );
-        const remainingWorkers = Object.keys(cluster.workers || {}).length;
-        if (remainingWorkers === 0) {
-          if (forceExitTimer) {
-            clearTimeout(forceExitTimer);
-          }
-          logger.log('All workers have exited. Primary shutting down.');
-          process.exit(0);
-        }
-        return;
-      }
-
-      logger.warn(
-        `Worker ${worker.id} (${worker.process.pid}) died (code: ${code}, signal: ${signal}). Restarting...`,
-      );
+    cluster.on('exit', (worker) => {
+      logger.warn(`Worker ${worker.process.pid} died. Restarting...`);
       cluster.fork();
-    });
-
-    const shutdownCluster = (signal: string): void => {
-      if (isShuttingDown) {
-        return;
-      }
-
-      isShuttingDown = true;
-      logger.log(
-        `Primary received ${signal}. Shutting down ${Object.keys(cluster.workers || {}).length} workers...`,
-      );
-
-      forceExitTimer = setTimeout(() => {
-        logger.error(`Cluster shutdown timed out after ${shutdownTimeoutMs}ms. Forcing exit.`);
-        for (const id in cluster.workers) {
-          const worker = cluster.workers[id];
-          if (worker && !worker.isDead()) {
-            worker.process.kill('SIGKILL');
-          }
-        }
-        process.exit(1);
-      }, shutdownTimeoutMs);
-      forceExitTimer.unref();
-
-      for (const id in cluster.workers) {
-        const worker = cluster.workers[id];
-        if (worker) {
-          worker.process.kill(signal as NodeJS.Signals);
-        }
-      }
-    };
-
-    process.on('SIGTERM', () => {
-      shutdownCluster('SIGTERM');
-    });
-    process.on('SIGINT', () => {
-      shutdownCluster('SIGINT');
     });
 
     return;

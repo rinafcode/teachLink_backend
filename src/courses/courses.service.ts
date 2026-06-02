@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -16,11 +11,16 @@ import {
   BulkOperationStatus,
   BulkOperationType,
 } from './entities/bulk-operation.entity';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
 import { ReviewCourseDto } from './dto/review-course.dto';
+import {
+  ResourceNotFoundException,
+  ForbiddenOperationException,
+  BusinessValidationException,
+} from '../common/exceptions/app.exceptions';
 import {
   BulkCategoryUpdateDto,
   BulkPriceUpdateDto,
@@ -63,7 +63,7 @@ export class CoursesService {
         where: { id: dto.prerequisiteCourseId },
       });
       if (!prerequisite) {
-        throw new NotFoundException(`Prerequisite course ${dto.prerequisiteCourseId} not found`);
+        throw new ResourceNotFoundException('Prerequisite course', dto.prerequisiteCourseId);
       }
     }
 
@@ -86,8 +86,7 @@ export class CoursesService {
    */
   async findAll(requestingUser?: User): Promise<Course[]> {
     const isPrivileged =
-      requestingUser &&
-      requestingUser.roles.some(role => ['admin', 'moderator'].includes(role.name));
+      requestingUser && [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
 
     if (isPrivileged) {
       return this.courseRepo.find({ order: { createdAt: 'DESC' } });
@@ -107,7 +106,7 @@ export class CoursesService {
       relations: ['instructor', 'reviews', 'reviews.reviewer', 'prerequisite'],
     });
     if (!course) {
-      throw new NotFoundException(`Course ${id} not found`);
+      throw new ResourceNotFoundException('Course', id);
     }
     return course;
   }
@@ -127,7 +126,7 @@ export class CoursesService {
           where: { id: dto.prerequisiteCourseId },
         });
         if (!prerequisite) {
-          throw new NotFoundException(`Prerequisite course ${dto.prerequisiteCourseId} not found`);
+          throw new ResourceNotFoundException('Prerequisite course', dto.prerequisiteCourseId);
         }
         course.prerequisite = prerequisite;
       }
@@ -158,11 +157,8 @@ export class CoursesService {
     const course = await this.findOne(id);
     this.assertCourseOwner(course, instructor);
 
-    if (
-      course.status !== CourseStatus.DRAFT &&
-      course.status !== CourseStatus.CHANGES_REQUESTED
-    ) {
-      throw new BadRequestException(
+    if (course.status !== CourseStatus.DRAFT && course.status !== CourseStatus.CHANGES_REQUESTED) {
+      throw new BusinessValidationException(
         `Cannot submit a course with status "${course.status}" for review. ` +
           `Only DRAFT or CHANGES_REQUESTED courses may be submitted.`,
       );
@@ -183,7 +179,7 @@ export class CoursesService {
 
     const course = await this.findOne(id);
     if (course.status !== CourseStatus.PENDING_REVIEW) {
-      throw new BadRequestException(
+      throw new BusinessValidationException(
         `Course "${id}" is not pending review (current status: "${course.status}").`,
       );
     }
@@ -231,21 +227,21 @@ export class CoursesService {
 
   private assertCourseOwner(course: Course, user: User): void {
     if (course.instructorId !== user.id) {
-      throw new ForbiddenException('Only the course owner may perform this action.');
+      throw new ForbiddenOperationException('Only the course owner may perform this action.');
     }
   }
 
   private assertPrivileged(user: User): void {
-    if (!user.roles.some(role => ['admin', 'moderator'].includes(role.name))) {
-      throw new ForbiddenException('Only admins or moderators may perform this action.');
+    if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
+      throw new ForbiddenOperationException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
+    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
     if (!isOwner && !isPrivileged) {
-      throw new ForbiddenException('Insufficient permissions.');
+      throw new ForbiddenOperationException('Insufficient permissions.');
     }
   }
 
@@ -338,17 +334,17 @@ export class CoursesService {
   async undoBulkOperation(operationId: string, user: User): Promise<BulkOperation> {
     const op = await this.bulkOpRepo.findOne({ where: { id: operationId } });
     if (!op) {
-      throw new NotFoundException(`Bulk operation ${operationId} not found`);
+      throw new ResourceNotFoundException('Bulk operation', operationId);
     }
 
     const isInitiator = op.initiatedById === user.id;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role));
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
     if (!isInitiator && !isPrivileged) {
-      throw new ForbiddenException('Only the initiator or an admin/moderator may undo this operation.');
+      throw new ForbiddenOperationException('Only the initiator or an admin/moderator may undo this operation.');
     }
 
     if (op.status === BulkOperationStatus.UNDONE) {
-      throw new BadRequestException('This bulk operation has already been undone.');
+      throw new BusinessValidationException('This bulk operation has already been undone.');
     }
 
     const appliedSnapshots = (op.snapshots ?? []).filter(s => s.applied);
@@ -365,7 +361,7 @@ export class CoursesService {
     const restored: Course[] = [];
     for (const snap of appliedSnapshots) {
       const course = courseById.get(snap.courseId);
-      if (!course) continue; // course removed since the op; skip silently
+      if (!course) continue;
 
       if (snap.previous.status !== undefined) {
         course.status = snap.previous.status as CourseStatus;
@@ -404,7 +400,7 @@ export class CoursesService {
     apply: (course: Course) => BulkCourseSnapshot['previous'];
   }): Promise<BulkOperation> {
     const { type, payload, courseIds, user, apply } = args;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role));
+    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
 
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
     const found = new Map(courses.map(c => [c.id, c]));

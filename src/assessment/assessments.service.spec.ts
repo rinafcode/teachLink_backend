@@ -7,10 +7,38 @@ import { AssessmentAttempt } from './entities/assessment-attempt.entity';
 import { Answer } from './entities/answer.entity';
 import { FeedbackGenerationService } from './feedback/feedback-generation.service';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 import { AssessmentStatus } from './enums/assessment-status.enum';
 import { QuestionType } from './enums/question-type.enum';
 
-const mockAssessmentRepo = {
+// ─── Factories ────────────────────────────────────────────────────────────────
+
+const makeAssessment = (overrides: Partial<typeof BASE_ASSESSMENT> = {}) => ({
+  id: 'assess-1',
+  title: 'JS Basics',
+  durationMinutes: 30,
+  questions: [
+    { id: 'q-1', type: QuestionType.MULTIPLE_CHOICE, correctAnswer: 'A', points: 10 },
+    { id: 'q-2', type: QuestionType.MULTIPLE_CHOICE, correctAnswer: 'B', points: 5 },
+  ],
+  ...overrides,
+});
+
+const makeAttempt = (overrides: Record<string, any> = {}) => ({
+  id: 'attempt-1',
+  studentId: 'student-1',
+  startedAt: new Date(),
+  status: AssessmentStatus.IN_PROGRESS,
+  assessment: makeAssessment(),
+  ...overrides,
+});
+
+// Convenience alias for tests that don't need to inspect the shape
+const BASE_ASSESSMENT = makeAssessment();
+
+// ─── Mock factories (fresh per test via beforeEach) ───────────────────────────
+
+const makeMockAssessmentRepo = () => ({
   findOne: jest.fn(),
   find: jest.fn(),
   findByIds: jest.fn(),
@@ -21,236 +49,350 @@ const mockAssessmentRepo = {
   manager: {
     transaction: jest.fn(),
   },
-};
+});
 
-const mockAttemptRepo = {
+const makeMockAttemptRepo = () => ({
   findOne: jest.fn(),
   save: jest.fn(),
-};
+});
 
-const mockAnswerRepo = {
+const makeMockAnswerRepo = () => ({
   save: jest.fn(),
-};
+});
 
-const mockScoringService = {
+const makeMockScoringService = () => ({
   calculate: jest.fn(),
-};
+});
 
-const mockFeedbackService = {
+const makeMockFeedbackService = () => ({
   generate: jest.fn(),
-};
+});
 
-const baseAssessment = {
-  id: 'assess-1',
-  title: 'JS Basics',
-  durationMinutes: 30,
-  questions: [
-    {
-      id: 'q-1',
-      type: QuestionType.MULTIPLE_CHOICE,
-      correctAnswer: 'A',
-      points: 10,
-    },
-  ],
-};
+const makeMockAnalyticsService = () => ({
+  recordAssessmentStarted: jest.fn(),
+  recordAssessmentSubmitted: jest.fn(),
+  recordAssessmentTimedOut: jest.fn(),
+  recordAssessmentScore: jest.fn(),
+});
+
+// ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe('AssessmentsService', () => {
   let service: AssessmentsService;
+  let assessmentRepo: ReturnType<typeof makeMockAssessmentRepo>;
+  let attemptRepo: ReturnType<typeof makeMockAttemptRepo>;
+  let answerRepo: ReturnType<typeof makeMockAnswerRepo>;
+  let scoringService: ReturnType<typeof makeMockScoringService>;
+  let feedbackService: ReturnType<typeof makeMockFeedbackService>;
+  let analyticsService: ReturnType<typeof makeMockAnalyticsService>;
 
   beforeEach(async () => {
+    assessmentRepo = makeMockAssessmentRepo();
+    attemptRepo = makeMockAttemptRepo();
+    answerRepo = makeMockAnswerRepo();
+    scoringService = makeMockScoringService();
+    feedbackService = makeMockFeedbackService();
+    analyticsService = makeMockAnalyticsService();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AssessmentsService,
-        { provide: getRepositoryToken(Assessment), useValue: mockAssessmentRepo },
-        { provide: getRepositoryToken(AssessmentAttempt), useValue: mockAttemptRepo },
-        { provide: getRepositoryToken(Answer), useValue: mockAnswerRepo },
-        { provide: ScoreCalculationService, useValue: mockScoringService },
-        { provide: FeedbackGenerationService, useValue: mockFeedbackService },
+        { provide: getRepositoryToken(Assessment), useValue: assessmentRepo },
+        { provide: getRepositoryToken(AssessmentAttempt), useValue: attemptRepo },
+        { provide: getRepositoryToken(Answer), useValue: answerRepo },
+        { provide: ScoreCalculationService, useValue: scoringService },
+        { provide: FeedbackGenerationService, useValue: feedbackService },
+        { provide: AnalyticsService, useValue: analyticsService },
       ],
     }).compile();
 
     service = module.get<AssessmentsService>(AssessmentsService);
   });
 
-  afterEach(() => jest.clearAllMocks());
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
+  // ── findAll ──────────────────────────────────────────────────────────────
+
   describe('findAll', () => {
-    it('should return all assessments with questions', async () => {
-      mockAssessmentRepo.find.mockResolvedValue([baseAssessment]);
+    it('returns all assessments with questions relation', async () => {
+      assessmentRepo.find.mockResolvedValue([BASE_ASSESSMENT]);
+
       const result = await service.findAll();
-      expect(result).toEqual([baseAssessment]);
-      expect(mockAssessmentRepo.find).toHaveBeenCalledWith({ relations: ['questions'] });
+
+      expect(result).toEqual([BASE_ASSESSMENT]);
+      expect(assessmentRepo.find).toHaveBeenCalledWith({ relations: ['questions'] });
+    });
+
+    it('returns empty array when no assessments exist', async () => {
+      assessmentRepo.find.mockResolvedValue([]);
+      expect(await service.findAll()).toEqual([]);
     });
   });
 
+  // ── findOne ──────────────────────────────────────────────────────────────
+
   describe('findOne', () => {
-    it('should return assessment by id', async () => {
-      mockAssessmentRepo.findOne.mockResolvedValue(baseAssessment);
+    it('returns assessment by id with questions relation', async () => {
+      assessmentRepo.findOne.mockResolvedValue(BASE_ASSESSMENT);
+
       const result = await service.findOne('assess-1');
-      expect(result).toEqual(baseAssessment);
-      expect(mockAssessmentRepo.findOne).toHaveBeenCalledWith({
+
+      expect(result).toEqual(BASE_ASSESSMENT);
+      expect(assessmentRepo.findOne).toHaveBeenCalledWith({
         where: { id: 'assess-1' },
         relations: ['questions'],
       });
     });
+
+    it('returns null when assessment does not exist', async () => {
+      assessmentRepo.findOne.mockResolvedValue(null);
+      expect(await service.findOne('unknown')).toBeNull();
+    });
   });
+
+  // ── findByIds ────────────────────────────────────────────────────────────
 
   describe('findByIds', () => {
-    it('should return empty array for empty ids', async () => {
+    it('short-circuits and returns [] without hitting the repo for empty input', async () => {
       const result = await service.findByIds([]);
       expect(result).toEqual([]);
-      expect(mockAssessmentRepo.findByIds).not.toHaveBeenCalled();
+      expect(assessmentRepo.findByIds).not.toHaveBeenCalled();
     });
 
-    it('should return assessments for given ids', async () => {
-      mockAssessmentRepo.findByIds.mockResolvedValue([baseAssessment]);
+    it('returns assessments for given ids', async () => {
+      assessmentRepo.findByIds.mockResolvedValue([BASE_ASSESSMENT]);
       const result = await service.findByIds(['assess-1']);
-      expect(result).toEqual([baseAssessment]);
+      expect(result).toEqual([BASE_ASSESSMENT]);
     });
   });
 
+  // ── create ───────────────────────────────────────────────────────────────
+
   describe('create', () => {
-    it('should create and save an assessment', async () => {
+    it('creates and saves an assessment', async () => {
       const data = { title: 'New Quiz', durationMinutes: 15 };
-      mockAssessmentRepo.create.mockReturnValue(data);
-      mockAssessmentRepo.save.mockResolvedValue({ id: 'new-1', ...data });
+      assessmentRepo.create.mockReturnValue(data);
+      assessmentRepo.save.mockResolvedValue({ id: 'new-1', ...data });
 
       const result = await service.create(data);
 
-      expect(mockAssessmentRepo.create).toHaveBeenCalledWith(data);
-      expect(result).toMatchObject({ id: 'new-1' });
+      expect(assessmentRepo.create).toHaveBeenCalledWith(data);
+      expect(result).toMatchObject({ id: 'new-1', title: 'New Quiz' });
     });
 
-    it('should handle array result from save', async () => {
+    it('unwraps array result from save (TypeORM bulk-save edge case)', async () => {
       const data = { title: 'Quiz' };
-      mockAssessmentRepo.create.mockReturnValue(data);
-      mockAssessmentRepo.save.mockResolvedValue([{ id: 'arr-1', ...data }]);
+      assessmentRepo.create.mockReturnValue(data);
+      assessmentRepo.save.mockResolvedValue([{ id: 'arr-1', ...data }]);
 
       const result = await service.create(data);
       expect(result).toMatchObject({ id: 'arr-1' });
     });
   });
 
+  // ── update ───────────────────────────────────────────────────────────────
+
   describe('update', () => {
-    it('should update and return the assessment', async () => {
-      const updated = { ...baseAssessment, title: 'Updated' };
-      mockAssessmentRepo.update.mockResolvedValue({ affected: 1 });
-      mockAssessmentRepo.findOne.mockResolvedValue(updated);
+    it('updates the record and returns the refreshed assessment', async () => {
+      const updated = makeAssessment({ title: 'Updated' });
+      assessmentRepo.update.mockResolvedValue({ affected: 1 });
+      assessmentRepo.findOne.mockResolvedValue(updated);
 
       const result = await service.update('assess-1', { title: 'Updated' });
+
+      expect(assessmentRepo.update).toHaveBeenCalledWith('assess-1', { title: 'Updated' });
       expect(result.title).toBe('Updated');
     });
   });
 
+  // ── remove ───────────────────────────────────────────────────────────────
+
   describe('remove', () => {
-    it('should soft-delete assessment and its questions in a transaction', async () => {
-      mockAssessmentRepo.findOne.mockResolvedValue(baseAssessment);
-      mockAssessmentRepo.manager.transaction.mockImplementation(async (cb) => {
-        const manager = {
-          getRepository: jest.fn().mockReturnValue({
-            createQueryBuilder: jest.fn().mockReturnValue({
-              softDelete: jest.fn().mockReturnThis(),
-              where: jest.fn().mockReturnThis(),
-              execute: jest.fn().mockResolvedValue({}),
-            }),
-            softDelete: jest.fn().mockResolvedValue({}),
-          }),
-        };
-        await cb(manager);
+    it('soft-deletes assessment and questions inside a transaction', async () => {
+      assessmentRepo.findOne.mockResolvedValue(BASE_ASSESSMENT);
+
+      const qbMock = {
+        softDelete: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({}),
+      };
+      const softDeleteMock = jest.fn().mockResolvedValue({});
+      const getRepositoryMock = jest.fn().mockReturnValue({
+        createQueryBuilder: jest.fn().mockReturnValue(qbMock),
+        softDelete: softDeleteMock,
+      });
+
+      assessmentRepo.manager.transaction.mockImplementation(async (cb: any) => {
+        await cb({ getRepository: getRepositoryMock });
       });
 
       await service.remove('assess-1');
-      expect(mockAssessmentRepo.manager.transaction).toHaveBeenCalled();
+
+      expect(assessmentRepo.manager.transaction).toHaveBeenCalledTimes(1);
+      expect(qbMock.execute).toHaveBeenCalled();
+      expect(softDeleteMock).toHaveBeenCalledWith('assess-1');
     });
 
-    it('should do nothing when assessment not found', async () => {
-      mockAssessmentRepo.findOne.mockResolvedValue(null);
+    it('skips the transaction when assessment does not exist', async () => {
+      assessmentRepo.findOne.mockResolvedValue(null);
       await service.remove('nonexistent');
-      expect(mockAssessmentRepo.manager.transaction).not.toHaveBeenCalled();
+      expect(assessmentRepo.manager.transaction).not.toHaveBeenCalled();
     });
   });
 
+  // ── startAssessment ──────────────────────────────────────────────────────
+
   describe('startAssessment', () => {
-    it('should create an in-progress attempt', async () => {
-      mockAssessmentRepo.findOne.mockResolvedValue(baseAssessment);
-      mockAttemptRepo.save.mockResolvedValue({ id: 'attempt-1', status: AssessmentStatus.IN_PROGRESS });
+    it('saves an IN_PROGRESS attempt and records the analytics event', async () => {
+      assessmentRepo.findOne.mockResolvedValue(BASE_ASSESSMENT);
+      attemptRepo.save.mockResolvedValue({
+        id: 'attempt-1',
+        status: AssessmentStatus.IN_PROGRESS,
+      });
 
       const result = await service.startAssessment('student-1', 'assess-1');
 
-      expect(mockAttemptRepo.save).toHaveBeenCalledWith(
+      expect(attemptRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
           studentId: 'student-1',
-          assessment: baseAssessment,
+          assessment: BASE_ASSESSMENT,
           status: AssessmentStatus.IN_PROGRESS,
         }),
       );
-      expect(result).toMatchObject({ status: AssessmentStatus.IN_PROGRESS });
+      expect(result.status).toBe(AssessmentStatus.IN_PROGRESS);
+      expect(analyticsService.recordAssessmentStarted).toHaveBeenCalledWith('assess-1');
     });
   });
+
+  // ── submitAssessment ─────────────────────────────────────────────────────
 
   describe('submitAssessment', () => {
-    it('should throw NotFoundException when attempt not found', async () => {
-      mockAttemptRepo.findOne.mockResolvedValue(null);
-      await expect(service.submitAssessment('bad-attempt', [])).rejects.toThrow(NotFoundException);
+    it('throws NotFoundException when attempt is not found', async () => {
+      attemptRepo.findOne.mockResolvedValue(null);
+      await expect(service.submitAssessment('missing', [])).rejects.toThrow(NotFoundException);
     });
 
-    it('should mark attempt as TIMED_OUT when past deadline', async () => {
-      const pastAttempt = {
-        id: 'attempt-1',
-        startedAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-        assessment: { ...baseAssessment, durationMinutes: 1 },
-        status: AssessmentStatus.IN_PROGRESS,
-      };
-      mockAttemptRepo.findOne.mockResolvedValue(pastAttempt);
-      mockAttemptRepo.save.mockResolvedValue({ ...pastAttempt, status: AssessmentStatus.TIMED_OUT });
+    it('throws NotFoundException when attempt has no questions', async () => {
+      attemptRepo.findOne.mockResolvedValue(
+        makeAttempt({ assessment: { ...makeAssessment(), questions: undefined } }),
+      );
+      await expect(service.submitAssessment('attempt-1', [])).rejects.toThrow(NotFoundException);
+    });
 
-      const result = await service.submitAssessment('attempt-1', []);
+    it('marks attempt TIMED_OUT and fires timeout analytics when past deadline', async () => {
+      const timedOutAttempt = makeAttempt({
+        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        assessment: makeAssessment({ durationMinutes: 1 }),
+      });
+      attemptRepo.findOne.mockResolvedValue(timedOutAttempt);
+      attemptRepo.save.mockResolvedValue({ ...timedOutAttempt, status: AssessmentStatus.TIMED_OUT });
 
-      expect(mockAttemptRepo.save).toHaveBeenCalledWith(
+      await service.submitAssessment('attempt-1', []);
+
+      expect(attemptRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: AssessmentStatus.TIMED_OUT }),
       );
+      expect(analyticsService.recordAssessmentTimedOut).toHaveBeenCalledWith(
+        timedOutAttempt.assessment.id,
+        timedOutAttempt.startedAt,
+      );
+      expect(analyticsService.recordAssessmentSubmitted).not.toHaveBeenCalled();
     });
 
-    it('should grade attempt and return feedback', async () => {
-      const activeAttempt = {
-        id: 'attempt-1',
-        startedAt: new Date(),
-        assessment: { ...baseAssessment, durationMinutes: 60 },
-        status: AssessmentStatus.IN_PROGRESS,
-      };
-      mockAttemptRepo.findOne.mockResolvedValue(activeAttempt);
-      mockScoringService.calculate.mockReturnValue(10);
-      mockFeedbackService.generate.mockReturnValue('Excellent performance 🎉');
-      mockAnswerRepo.save.mockResolvedValue({});
-      mockAttemptRepo.save.mockResolvedValue({ ...activeAttempt, score: 10, status: AssessmentStatus.GRADED });
+    it('grades all questions, saves answers, and returns feedback', async () => {
+      const activeAttempt = makeAttempt({
+        assessment: makeAssessment({ durationMinutes: 60 }),
+      });
+      attemptRepo.findOne.mockResolvedValue(activeAttempt);
+      scoringService.calculate.mockReturnValue(10);
+      feedbackService.generate.mockReturnValue('Excellent');
+      answerRepo.save.mockResolvedValue({});
+      attemptRepo.save.mockResolvedValue({
+        ...activeAttempt,
+        score: 20,
+        status: AssessmentStatus.GRADED,
+      });
 
-      const result = await service.submitAssessment('attempt-1', [
+      const result = (await service.submitAssessment('attempt-1', [
         { questionId: 'q-1', response: 'A' },
-      ]) as { attempt: any; feedback: string };
+        { questionId: 'q-2', response: 'B' },
+      ])) as { attempt: any; feedback: string };
 
-      expect(result.feedback).toBe('Excellent performance 🎉');
-      expect(mockAttemptRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ status: AssessmentStatus.GRADED, score: 10 }),
+      // One saved answer per question
+      expect(answerRepo.save).toHaveBeenCalledTimes(2);
+      expect(answerRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ question: activeAttempt.assessment.questions[0], response: 'A', awardedPoints: 10 }),
       );
+
+      expect(attemptRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: AssessmentStatus.GRADED, score: 20 }),
+      );
+      expect(result.feedback).toBe('Excellent');
+    });
+
+    it('records submission and score analytics on successful grade', async () => {
+      const activeAttempt = makeAttempt({
+        assessment: makeAssessment({ durationMinutes: 60 }),
+      });
+      attemptRepo.findOne.mockResolvedValue(activeAttempt);
+      // q-1 = 10pts correct, q-2 = 0pts wrong → score 10 out of 15
+      scoringService.calculate
+        .mockReturnValueOnce(10)
+        .mockReturnValueOnce(0);
+      feedbackService.generate.mockReturnValue('Good job');
+      answerRepo.save.mockResolvedValue({});
+      attemptRepo.save.mockResolvedValue({ ...activeAttempt, score: 10, status: AssessmentStatus.GRADED });
+
+      await service.submitAssessment('attempt-1', []);
+
+      expect(analyticsService.recordAssessmentSubmitted).toHaveBeenCalledWith(
+        activeAttempt.assessment.id,
+        activeAttempt.startedAt,
+      );
+      expect(analyticsService.recordAssessmentScore).toHaveBeenCalledWith(10, 15);
+    });
+
+    it('handles all questions unanswered (score of 0)', async () => {
+      const activeAttempt = makeAttempt({
+        assessment: makeAssessment({ durationMinutes: 60 }),
+      });
+      attemptRepo.findOne.mockResolvedValue(activeAttempt);
+      scoringService.calculate.mockReturnValue(0);
+      feedbackService.generate.mockReturnValue('Keep practising');
+      answerRepo.save.mockResolvedValue({});
+      attemptRepo.save.mockResolvedValue({ ...activeAttempt, score: 0, status: AssessmentStatus.GRADED });
+
+      const result = (await service.submitAssessment('attempt-1', [])) as { attempt: any; feedback: string };
+
+      expect(attemptRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ score: 0, status: AssessmentStatus.GRADED }),
+      );
+      expect(feedbackService.generate).toHaveBeenCalledWith(0, 15);
+      expect(result.feedback).toBe('Keep practising');
     });
   });
 
+  // ── getResults ───────────────────────────────────────────────────────────
+
   describe('getResults', () => {
-    it('should return attempt with answers', async () => {
-      const attempt = { id: 'attempt-1', answers: [] };
-      mockAttemptRepo.findOne.mockResolvedValue(attempt);
+    it('returns attempt with answers and nested question relations', async () => {
+      const attempt = { id: 'attempt-1', answers: [{ id: 'ans-1', question: { id: 'q-1' } }] };
+      attemptRepo.findOne.mockResolvedValue(attempt);
 
       const result = await service.getResults('attempt-1');
 
-      expect(mockAttemptRepo.findOne).toHaveBeenCalledWith({
+      expect(attemptRepo.findOne).toHaveBeenCalledWith({
         where: { id: 'attempt-1' },
         relations: ['answers', 'answers.question'],
       });
       expect(result).toEqual(attempt);
+    });
+
+    it('returns null when attempt does not exist', async () => {
+      attemptRepo.findOne.mockResolvedValue(null);
+      expect(await service.getResults('unknown')).toBeNull();
     });
   });
 });
