@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -9,6 +9,7 @@ import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ShardingModule } from './sharding/sharding.module';
 
+import { EmailModule } from './email-marketing/email.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -20,6 +21,7 @@ import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
 import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { I18nModule as AppI18nModule } from './i18n/i18n.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
 import { IdempotencyModule } from './common/modules/idempotency.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
@@ -80,6 +82,8 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
+    // i18n support
+    AppI18nModule,
 
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
@@ -98,11 +102,8 @@ const featureFlags = loadFeatureFlags();
     GamificationModule,
   ],
   controllers: [AppController],
-  providers: [
-    SlackService,
-    ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
-    { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
-    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
-  ],
+  providers: featureFlags.ENABLE_RATE_LIMITING
+    ? [{ provide: APP_GUARD, useClass: QuotaGuard }]
+    : [],
 })
 export class AppModule {}
