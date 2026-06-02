@@ -27,6 +27,7 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { PaymentMethodsModule } from './payments/payment-methods/payment-methods.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { PayoutsModule } from './payments/payouts/payouts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { ModerationModule } from './moderation/moderation.module';
@@ -68,6 +69,7 @@ const featureFlags = loadFeatureFlags();
     PaymentMethodsModule,
     NotificationsModule,
     ReportingModule,
+    PayoutsModule,
     HealthModule,
     ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
 

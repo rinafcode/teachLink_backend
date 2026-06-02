@@ -35,7 +35,6 @@ export class NotificationsQueueService {
    * Publish notification to SNS topic
    */
   async publishToTopic(notification: Notification, options?: { bypassBatch?: boolean }): Promise<void> {
-  async publishToTopic(notification: Notification): Promise<void> {
     if (!this.snsTopicArn || !this.queueUrl) {
       this.logger.warn(
         `AWS SNS/SQS not configured; marking notification ${notification.id} as sent (dev mode)`,

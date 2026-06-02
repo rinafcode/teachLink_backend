@@ -28,16 +28,8 @@ const BATCH_CONFIG: Record<NotificationType, { intervalMs: number; batchLabel: s
   [NotificationType.IN_APP]: { intervalMs: DEFAULT_BATCH_WINDOW_MS, batchLabel: 'In-App Summary' },
   [NotificationType.SMS]: { intervalMs: DEFAULT_BATCH_WINDOW_MS, batchLabel: 'SMS Digest' },
 };
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import {
-  Notification,
-  NotificationStatus,
-  NotificationType,
-} from './entities/notification.entity';
 import { CreateNotificationDto } from './dto/notification.dto';
 import { PreferencesService } from './preferences/preferences.service';
-import { NotificationsQueueService } from './notifications.queue';
 import { NotificationTemplateService } from './templates/notification-template.service';
 import { SendTemplatedNotificationDto } from './dto/preferences.dto';
 
@@ -50,7 +42,9 @@ export class NotificationsService {
     private readonly configService: ConfigService,
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
-    private readonly notificationsQueue: NotificationsQueueService,
+    private readonly queueService: NotificationsQueueService,
+    private readonly preferencesService: PreferencesService,
+    private readonly templateService: NotificationTemplateService,
   ) {
     const batchWindowSetting = this.configService.get<string | number>('NOTIFICATION_BATCH_WINDOW_MS', `${DEFAULT_BATCH_WINDOW_MS}`);
     this.batchWindowMs = Number(batchWindowSetting) || DEFAULT_BATCH_WINDOW_MS;
@@ -134,7 +128,7 @@ export class NotificationsService {
       deliveryAttempts: 0,
     });
 
-    await this.notificationsQueue.publishToTopic(batchNotification);
+    await this.queueService.publishToTopic(batchNotification);
     const ids = notifications.map((notification) => notification.id);
     await this.notificationRepository.update({ id: In(ids) }, { status: NotificationStatus.SENT, lastAttemptAt: new Date() });
     await this.notificationRepository.save(batchNotification);
@@ -143,7 +137,7 @@ export class NotificationsService {
   }
 
   private async publish(notification: Notification, bypassBatch = false): Promise<void> {
-    await this.notificationsQueue.publishToTopic(notification, { bypassBatch });
+    await this.queueService.publishToTopic(notification, { bypassBatch });
     await this.notificationRepository.update(notification.id, {
       status: NotificationStatus.SENT,
       lastAttemptAt: new Date(),
@@ -169,14 +163,7 @@ export class NotificationsService {
 
     const age = Date.now() - existing.createdAt.getTime();
     return age <= this.batchWindowMs ? existing : null;
-
-  constructor(
-    @InjectRepository(Notification)
-    private readonly notificationRepository: Repository<Notification>,
-    private readonly preferencesService: PreferencesService,
-    private readonly queueService: NotificationsQueueService,
-    private readonly templateService: NotificationTemplateService,
-  ) {}
+  }
 
   async findForUser(userId: string, limit = 50): Promise<Notification[]> {
     return this.notificationRepository.find({
