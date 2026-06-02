@@ -47,6 +47,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { GamificationModule } from './gamification/gamification.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -100,6 +101,7 @@ const featureFlags = loadFeatureFlags();
     MessagingModule,
     DashboardModule,
     GamificationModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
