@@ -31,6 +31,7 @@ import { PayoutsModule } from './payments/payouts/payouts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { ForumModule } from './forum/forum.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -72,6 +73,7 @@ const featureFlags = loadFeatureFlags();
     PayoutsModule,
     HealthModule,
     ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
+    ForumModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
