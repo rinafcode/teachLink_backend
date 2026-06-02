@@ -1,11 +1,5 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
+import { RateLimitExceededException } from '../../common/exceptions/app.exceptions';
 import { Reflector } from '@nestjs/core';
 import { Request, Response } from 'express';
 import { QuotaTrackingService } from '../services/quota-tracking.service';
@@ -63,20 +57,7 @@ export class QuotaGuard implements CanActivate {
         `Quota exceeded userId=${userId} tier=${tier} retryAfter=${result.retryAfter}s`,
       );
 
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          error: 'Quota Exceeded',
-          message: 'You have exceeded your API quota. Please wait before retrying.',
-          retryAfterSeconds: result.retryAfter,
-          quota: {
-            minuteRemaining: result.remaining.minute,
-            hourRemaining: result.remaining.hour,
-            dayRemaining: result.remaining.day,
-          },
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+      throw new RateLimitExceededException(result.retryAfter);
     }
 
     return true;

@@ -1,0 +1,31 @@
+import 'reflect-metadata';
+import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
+import { describe, it, expect } from 'vitest';
+import { SubmitAssessmentDto } from './submit-assessment.dto';
+
+describe('SubmitAssessmentDto', () => {
+  it('accepts a valid answers payload', async () => {
+    const errors = await validate(
+      plainToInstance(SubmitAssessmentDto, {
+        answers: [{ questionId: 'question-1', answer: 'A' }],
+      }),
+    );
+    expect(errors).toHaveLength(0);
+  });
+
+  it('rejects missing answers array', async () => {
+    const errors = await validate(plainToInstance(SubmitAssessmentDto, {}));
+    expect(errors.some((error) => error.property === 'answers')).toBe(true);
+  });
+
+  it('rejects invalid answer entries', async () => {
+    const errors = await validate(
+      plainToInstance(SubmitAssessmentDto, {
+        answers: [{ questionId: '', answer: null }],
+      }),
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0].children?.some((child) => child.property === 'questionId')).toBe(true);
+  });
+});

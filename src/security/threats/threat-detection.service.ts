@@ -1,4 +1,5 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
 
 /**
  * Provides threat Detection operations.
@@ -9,7 +10,7 @@ export class ThreatDetectionService {
   analyzeRequest(ip: string): void {
     const attempts = this.failedAttempts.get(ip) || 0;
     if (attempts > 10) {
-      throw new ForbiddenException('Suspicious activity detected');
+      throw new ForbiddenOperationException('Suspicious activity detected');
     }
   }
   recordFailure(ip: string): void {
