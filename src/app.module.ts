@@ -21,6 +21,8 @@ import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { I18nModule as AppI18nModule } from './i18n/i18n.module';
+import { AchievementsModule } from './achievements/achievements.module';
+
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
@@ -51,6 +53,7 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
     // i18n support
     AppI18nModule,
+    AchievementsModule,
   ],
   controllers: [AppController],
   providers: featureFlags.ENABLE_RATE_LIMITING
