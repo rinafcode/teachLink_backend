@@ -34,6 +34,8 @@ export class AutomatedDecisionService {
   ): Promise<Record<string, unknown>> {
     this.logger.log(`Auto-selecting winner for experiment: ${experimentId}`);
 
+    // Winner selection is based on duration, statistical significance,
+    // minimum sample size, and a minimum effect size threshold.
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
       relations: ['variants'],
@@ -49,8 +51,7 @@ export class AutomatedDecisionService {
 
     const defaultCriteria: IWinnerSelectionCriteria = {
       confidenceLevel: experiment.confidenceLevel ?? AB_TESTING_CONSTANTS.DEFAULT_CONFIDENCE_LEVEL,
-      minimumSampleSize:
-        experiment.minimumSampleSize ?? AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
+      minimumSampleSize: experiment.minimumSampleSize ?? AB_TESTING_CONSTANTS.MINIMUM_SAMPLE_SIZE,
       effectSizeThreshold: AB_TESTING_CONSTANTS.EFFECT_SIZE_THRESHOLD,
       durationThreshold: AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS,
     };
@@ -109,6 +110,9 @@ export class AutomatedDecisionService {
     statisticalResults: { variants: any[] },
     criteria: IWinnerSelectionCriteria,
   ): Promise<IExperimentVariant | null> {
+    // The winner selection algorithm compares each non-control variant to the
+    // control variant, filters by sample size and significance, then picks the
+    // variant with the strongest overall performance.
     const controlVariant = experiment.variants.find((v) => v.isControl);
     if (!controlVariant) return null;
 
@@ -263,14 +267,13 @@ export class AutomatedDecisionService {
         });
         if (winner) {
           recommendations.winnerCandidate = winner.id;
-          recommendations.recommendations.push(`Variant "${winner.name}" is the recommended winner`);
+          recommendations.recommendations.push(
+            `Variant "${winner.name}" is the recommended winner`,
+          );
         }
       }
     } else {
-      const remainingDays = Math.max(
-        0,
-        AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS - duration,
-      );
+      const remainingDays = Math.max(0, AB_TESTING_CONSTANTS.DURATION_THRESHOLD_DAYS - duration);
       recommendations.recommendations.push(
         `Wait ${remainingDays} more days before making decision`,
       );
@@ -300,8 +303,7 @@ export class AutomatedDecisionService {
     for (let i = 0; i < variants.length; i++) {
       const variant = variants[i];
       const score = performanceScores[i];
-      variant.trafficAllocation =
-        totalScore > 0 ? score.score / totalScore : 1 / variants.length;
+      variant.trafficAllocation = totalScore > 0 ? score.score / totalScore : 1 / variants.length;
       await this.variantRepository.save(variant);
     }
 

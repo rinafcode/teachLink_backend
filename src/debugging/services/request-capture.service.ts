@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { IDebugRecord } from '../interfaces/debug.interfaces';
 
 /**
@@ -20,6 +20,8 @@ const DEFAULT_CONFIG: CaptureConfig = {
   redactedHeaders: ['authorization', 'cookie', 'set-cookie', 'x-api-key'],
 };
 
+export const DEBUG_CAPTURE_CONFIG = 'DEBUG_CAPTURE_CONFIG';
+
 /**
  * Stores captured request/response exchanges in a bounded in-memory ring
  * buffer. This is the backing store for the inspection and replay endpoints.
@@ -32,7 +34,7 @@ export class RequestCaptureService {
   private readonly config: CaptureConfig;
   private readonly buffer: IDebugRecord[] = [];
 
-  constructor(config?: Partial<CaptureConfig>) {
+  constructor(@Optional() @Inject(DEBUG_CAPTURE_CONFIG) config?: Partial<CaptureConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -69,9 +71,7 @@ export class RequestCaptureService {
     const redactHeaders = (headers: Record<string, string>) => {
       const out: Record<string, string> = {};
       for (const [key, value] of Object.entries(headers)) {
-        out[key] = this.config.redactedHeaders.includes(key.toLowerCase())
-          ? '[REDACTED]'
-          : value;
+        out[key] = this.config.redactedHeaders.includes(key.toLowerCase()) ? '[REDACTED]' : value;
       }
       return out;
     };

@@ -1,6 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 
+/**
+ * Elasticsearch wrapper responsible for index creation and course indexing.
+ *
+ * The mapping is designed to support full-text search, autocomplete, and
+ * filterable keyword fields for the course search experience.
+ */
 @Injectable()
 export class ElasticsearchService implements OnModuleInit {
   private readonly logger = new Logger(ElasticsearchService.name);
@@ -23,6 +29,9 @@ export class ElasticsearchService implements OnModuleInit {
     });
 
     if (!exists) {
+      // Course index fields are chosen to support both relevance and
+      // structured filtering. `search_as_you_type` is specifically useful
+      // for autocomplete and "search as you type" experiences.
       await this.elasticsearch.indices.create({
         index: this.indices.courses,
         mappings: {
@@ -46,7 +55,13 @@ export class ElasticsearchService implements OnModuleInit {
             enrollments: { type: 'integer' },
             duration: { type: 'integer' },
             instructorId: { type: 'keyword' },
-            instructorName: { type: 'text' },
+            instructorName: {
+              type: 'text',
+              fields: {
+                keyword: { type: 'keyword' },
+                search: { type: 'search_as_you_type' },
+              },
+            },
             status: { type: 'keyword' },
             createdAt: { type: 'date' },
             updatedAt: { type: 'date' },

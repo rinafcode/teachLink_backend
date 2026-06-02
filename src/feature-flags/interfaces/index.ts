@@ -1,6 +1,28 @@
 export type FlagValueType = boolean | string | number;
-export type EvaluationReason = 'FLAG_DISABLED' | 'PREREQUISITE_FAILED' | 'TARGETING_MATCH' | 'ROLLOUT' | 'EXPERIMENT' | 'DEFAULT' | 'ERROR';
-export type ConditionOperator = 'equals' | 'notEquals' | 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'greaterThan' | 'greaterThanOrEqual' | 'lessThan' | 'lessThanOrEqual' | 'in' | 'notIn' | 'regex' | 'exists' | 'notExists';
+export type EvaluationReason =
+  | 'FLAG_DISABLED'
+  | 'PREREQUISITE_FAILED'
+  | 'TARGETING_MATCH'
+  | 'ROLLOUT'
+  | 'EXPERIMENT'
+  | 'DEFAULT'
+  | 'ERROR';
+export type ConditionOperator =
+  | 'equals'
+  | 'notEquals'
+  | 'contains'
+  | 'notContains'
+  | 'startsWith'
+  | 'endsWith'
+  | 'greaterThan'
+  | 'greaterThanOrEqual'
+  | 'lessThan'
+  | 'lessThanOrEqual'
+  | 'in'
+  | 'notIn'
+  | 'regex'
+  | 'exists'
+  | 'notExists';
 export type FlagType = 'boolean' | 'string' | 'number';
 export type ExperimentStatus = 'draft' | 'running' | 'paused' | 'completed';
 

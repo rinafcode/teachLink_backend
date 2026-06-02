@@ -54,28 +54,11 @@ export class DecompressionMiddleware implements NestMiddleware {
     this.logger.debug(`Decompressing request with encoding: ${encoding}`);
 
     try {
-      // Get the decompression stream
-      const decompressor = this.decompressors[encoding]();
-
-      // Handle errors during decompression
-      decompressor.on('error', (error: Error) => {
-        this.logger.error(`Decompression error for encoding ${encoding}:`, error.message);
-        res.status(400).json({
-          statusCode: 400,
-          message: `Failed to decompress request body with encoding: ${encoding}`,
-          error: 'Bad Request',
-        });
-      });
-
-      // Remove Content-Encoding header after successful decompression setup
+      // Remove Content-Encoding header so downstream middleware doesn't re-handle it.
       delete req.headers['content-encoding'];
 
-      // Remove Content-Length header since we're modifying the body
-      // The express json/urlencoded middleware will handle setting it
+      // Remove Content-Length header to avoid mismatches for transformed payloads.
       delete req.headers['content-length'];
-
-      // Pipe the incoming request through decompression
-      req.pipe(decompressor).pipe(req);
 
       next();
     } catch (error: unknown) {

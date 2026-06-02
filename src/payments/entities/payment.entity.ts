@@ -8,23 +8,24 @@ import {
   JoinColumn,
   Index,
   VersionColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
 export enum PaymentStatus {
-    PENDING = 'pending',
-    PROCESSING = 'processing',
-    COMPLETED = 'completed',
-    FAILED = 'failed',
-    REFUNDED = 'refunded',
-    CANCELLED = 'cancelled'
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+  CANCELLED = 'cancelled',
 }
 export enum PaymentMethod {
-    CREDIT_CARD = 'credit_card',
-    BANK_TRANSFER = 'bank_transfer',
-    PAYPAL = 'paypal',
-    CRYPTO = 'crypto',
-    WALLET = 'wallet'
+  CREDIT_CARD = 'credit_card',
+  BANK_TRANSFER = 'bank_transfer',
+  PAYPAL = 'paypal',
+  CRYPTO = 'crypto',
+  WALLET = 'wallet',
 }
 
 /**
@@ -92,4 +93,7 @@ export class Payment {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

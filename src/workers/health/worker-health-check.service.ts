@@ -93,10 +93,7 @@ export class WorkerHealthCheckService {
   /**
    * Generate alerts based on health data
    */
-  private generateAlerts(
-    healthChecks: IWorkerHealthCheck[],
-    metrics: IWorkerMetrics[],
-  ): string[] {
+  private generateAlerts(healthChecks: IWorkerHealthCheck[], metrics: IWorkerMetrics[]): string[] {
     const alerts: string[] = [];
 
     // Check for unhealthy workers
@@ -113,9 +110,7 @@ export class WorkerHealthCheckService {
       return failureRate > 0.2;
     });
     if (highFailureWorkers.length > 0) {
-      alerts.push(
-        `WARNING: ${highFailureWorkers.length} worker(s) with high failure rate (>20%)`,
-      );
+      alerts.push(`WARNING: ${highFailureWorkers.length} worker(s) with high failure rate (>20%)`);
     }
 
     // Check memory usage
@@ -184,8 +179,10 @@ export class WorkerHealthCheckService {
         : 0;
     const avgFailureRate =
       metrics.length > 0
-        ? metrics.reduce((sum, m) => (m.jobsProcessed > 0 ? m.jobsFailed / m.jobsProcessed : 0), 0) /
-          metrics.length
+        ? metrics.reduce(
+            (sum, m) => (m.jobsProcessed > 0 ? m.jobsFailed / m.jobsProcessed : 0),
+            0,
+          ) / metrics.length
         : 0;
 
     // Check for anomalies

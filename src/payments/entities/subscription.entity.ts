@@ -8,21 +8,22 @@ import {
   JoinColumn,
   Index,
   VersionColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 export enum SubscriptionStatus {
-    ACTIVE = 'active',
-    CANCELLED = 'cancelled',
-    PAST_DUE = 'past_due',
-    UNPAID = 'unpaid',
-    TRIALING = 'trialing',
-    INCOMPLETE = 'incomplete'
+  ACTIVE = 'active',
+  CANCELLED = 'cancelled',
+  PAST_DUE = 'past_due',
+  UNPAID = 'unpaid',
+  TRIALING = 'trialing',
+  INCOMPLETE = 'incomplete',
 }
 export enum SubscriptionInterval {
-    MONTHLY = 'monthly',
-    YEARLY = 'yearly',
-    QUARTERLY = 'quarterly',
-    WEEKLY = 'weekly'
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  QUARTERLY = 'quarterly',
+  WEEKLY = 'weekly',
 }
 
 /**
@@ -71,6 +72,9 @@ export class Subscription {
   @Column({ type: 'timestamp', nullable: true })
   trialEnd: Date;
 
+  @Column({ type: 'jsonb', nullable: true })
+  properties?: Record<string, any>;
+
   @ManyToOne(() => User, (user) => user.courses)
   @JoinColumn({ name: 'user_id' })
   user: User;
@@ -84,4 +88,7 @@ export class Subscription {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
