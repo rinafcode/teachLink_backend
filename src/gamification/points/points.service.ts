@@ -6,6 +6,11 @@ import { UserProgress } from '../entities/user-progress.entity';
 import { PointTransaction } from '../entities/point-transaction.entity';
 import { User } from '../../users/entities/user.entity';
 import { GAMIFICATION_EVENTS, PointsAwardedEvent } from '../events/gamification.events';
+import { TiersService } from '../tiers/tiers.service';
+import { PointActivityType, POINT_RULES } from '../enums/point-activity.enum';
+
+/** Points per XP level (level = floor(xp / XP_PER_LEVEL) + 1) */
+const XP_PER_LEVEL = 1000;
 
 @Injectable()
 export class PointsService {
@@ -18,6 +23,30 @@ export class PointsService {
   ) {}
 
   async addPoints(userId: string, points: number, activityType: string): Promise<UserProgress> {
+    private tiersService: TiersService,
+  ) {}
+
+  /**
+   * Award points for a known activity type using the defined point rules.
+   * Returns the updated progress and whether a tier promotion occurred.
+   */
+  async awardActivity(
+    userId: string,
+    activityType: PointActivityType,
+  ): Promise<{ progress: UserProgress; tierPromoted: boolean }> {
+    const points = POINT_RULES[activityType];
+    return this.addPoints(userId, points, activityType);
+  }
+
+  /**
+   * Award an arbitrary number of points for a custom activity string.
+   * Returns the updated progress and whether a tier promotion occurred.
+   */
+  async addPoints(
+    userId: string,
+    points: number,
+    activityType: string,
+  ): Promise<{ progress: UserProgress; tierPromoted: boolean }> {
     const transaction = this.pointTransactionRepository.create({
       user: { id: userId } as User,
       points,
@@ -56,6 +85,23 @@ export class PointsService {
 
   async getUserProgress(userId: string): Promise<UserProgress | null> {
     return this.userProgressRepository.findOne({ where: { user: { id: userId } } });
+    const previousTier = progress.tier;
+
+    progress.totalPoints += points;
+    progress.xp += points;
+    progress.level = Math.floor(progress.xp / XP_PER_LEVEL) + 1;
+    progress.tier = this.tiersService.getTierForPoints(progress.totalPoints);
+
+    const tierPromoted = progress.tier !== previousTier;
+
+    const saved = await this.userProgressRepository.save(progress);
+    return { progress: saved, tierPromoted };
+  }
+
+  async getUserProgress(userId: string): Promise<UserProgress | null> {
+    return this.userProgressRepository.findOne({
+      where: { user: { id: userId } },
+    });
   }
 
   async getPointHistory(userId: string): Promise<PointTransaction[]> {

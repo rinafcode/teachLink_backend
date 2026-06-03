@@ -8,13 +8,17 @@ import { Question } from './entities/question.entity';
 import { FeedbackGenerationService } from './feedback/feedback-generation.service';
 import { QuestionBankService } from './questions/question-bank.service';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
+import { GradingModule } from './grading/grading.module';
 import { Module } from '@nestjs/common';
 
 /**
  * Registers the assessments module.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Assessment, Question, AssessmentAttempt, Answer])],
+  imports: [
+    TypeOrmModule.forFeature([Assessment, Question, AssessmentAttempt, Answer]),
+    GradingModule,
+  ],
   controllers: [AssessmentsController],
   providers: [
     AssessmentsService,
@@ -22,6 +26,6 @@ import { Module } from '@nestjs/common';
     ScoreCalculationService,
     FeedbackGenerationService,
   ],
-  exports: [AssessmentsService],
+  exports: [AssessmentsService, GradingModule],
 })
 export class AssessmentsModule {}
