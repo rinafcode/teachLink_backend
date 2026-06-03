@@ -22,6 +22,8 @@ import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { I18nModule as AppI18nModule } from './i18n/i18n.module';
+import { AchievementsModule } from './achievements/achievements.module';
+
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
 import { IdempotencyModule } from './common/modules/idempotency.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
@@ -85,6 +87,7 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
     // i18n support
     AppI18nModule,
+    AchievementsModule,
 
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
