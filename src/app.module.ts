@@ -21,6 +21,7 @@ import { DataPipelineModule } from './data-pipeline/data-pipeline.module';
 import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { GamificationModule } from './gamification/gamification.module';
 import { I18nModule as AppI18nModule } from './i18n/i18n.module';
 import { AchievementsModule } from './achievements/achievements.module';
 
@@ -68,6 +69,7 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
+    GamificationModule,
     ShardingModule,
     IdempotencyModule,
     DeepLinkModule,
