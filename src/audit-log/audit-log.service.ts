@@ -20,13 +20,74 @@ export {
   IAuditReport,
 } from './interfaces/audit-log.interfaces';
 
+// ─── Option objects ────────────────────────────────────────────────────────────
+//
+// Positional argument lists longer than 3 parameters are error-prone: callers
+// must count positions and silently pass the wrong value if the order changes.
+// Option objects make call sites self-documenting and allow optional fields to
+// be omitted without placeholder `undefined` arguments.
+
+export interface LogAuthOptions {
+  action: AuditAction;
+  userId: string | null;
+  userEmail: string | null;
+  ipAddress: string;
+  userAgent: string;
+  metadata?: Record<string, unknown>;
+  severity?: AuditSeverity;
+}
+
+export interface LogDataChangeOptions {
+  action: AuditAction;
+  userId: string;
+  userEmail: string;
+  entityType: string;
+  entityId: string;
+  oldValues: Record<string, unknown>;
+  newValues: Record<string, unknown>;
+  ipAddress?: string;
+  description?: string;
+}
+
+export interface LogApiAccessOptions {
+  userId: string | null;
+  userEmail: string | null;
+  apiEndpoint: string;
+  httpMethod: string;
+  statusCode: number;
+  responseTimeMs: number;
+  ipAddress: string;
+  userAgent: string;
+  requestId?: string;
+}
+
+export interface LogSecurityEventOptions {
+  action: AuditAction;
+  userId: string | null;
+  userEmail: string | null;
+  ipAddress: string;
+  userAgent: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AuditStatistics {
+  totalLogs: number;
+  logsToday: number;
+  logsThisWeek: number;
+  logsThisMonth: number;
+  criticalEvents: number;
+  errorEvents: number;
+}
+
 /**
- * Provides audit logging operations.
- * Acts as a facade delegating to specialized services following Single Responsibility Principle.
- * - AuditLoggerService: Handles logging operations
- * - AuditQueryService: Handles search and query operations
- * - AuditReportingService: Handles report generation and statistics
- * - AuditExportService: Handles export to various formats
+ * Facade that routes audit operations to specialised sub-services.
+ *
+ * Responsibilities of sub-services:
+ *   AuditLoggerService    — write operations (log, retention)
+ *   AuditQueryService     — read operations (search, find*)
+ *   AuditReportingService — aggregations and statistics
+ *   AuditExportService    — serialisation (JSON, CSV)
  */
 @Injectable()
 export class AuditLogService {
@@ -37,194 +98,121 @@ export class AuditLogService {
     private readonly exportService: AuditExportService,
   ) {}
 
-  /**
-   * Log an audit event
-   */
-  async log(entry: IAuditLogEntry): Promise<AuditLog> {
+  // ── Write ──────────────────────────────────────────────────────────────────
+
+  log(entry: IAuditLogEntry): Promise<AuditLog> {
     return this.loggerService.log(entry);
   }
 
-  /**
-   * Log authentication event
-   */
-  async logAuth(
-    action: AuditAction,
-    userId: string | null,
-    userEmail: string | null,
-    ipAddress: string,
-    userAgent: string,
-    metadata?: Record<string, unknown>,
-    severity: AuditSeverity = AuditSeverity.INFO,
-  ): Promise<AuditLog> {
-    return this.loggerService.logAuth(action, userId, userEmail, ipAddress, userAgent, metadata, severity);
+  logAuth(options: LogAuthOptions): Promise<AuditLog> {
+    return this.loggerService.logAuth(
+      options.action,
+      options.userId,
+      options.userEmail,
+      options.ipAddress,
+      options.userAgent,
+      options.metadata,
+      options.severity ?? AuditSeverity.INFO,
+    );
   }
 
-  /**
-   * Log data modification
-   */
-  async logDataChange(
-    action: AuditAction,
-    userId: string,
-    userEmail: string,
-    entityType: string,
-    entityId: string,
-    oldValues: Record<string, unknown>,
-    newValues: Record<string, unknown>,
-    ipAddress?: string,
-    description?: string,
-  ): Promise<AuditLog> {
+  logDataChange(options: LogDataChangeOptions): Promise<AuditLog> {
     return this.loggerService.logDataChange(
-      action,
-      userId,
-      userEmail,
-      entityType,
-      entityId,
-      oldValues,
-      newValues,
-      ipAddress,
-      description,
+      options.action,
+      options.userId,
+      options.userEmail,
+      options.entityType,
+      options.entityId,
+      options.oldValues,
+      options.newValues,
+      options.ipAddress,
+      options.description,
     );
   }
 
-  /**
-   * Log API access
-   */
-  async logApiAccess(
-    userId: string | null,
-    userEmail: string | null,
-    apiEndpoint: string,
-    httpMethod: string,
-    statusCode: number,
-    responseTimeMs: number,
-    ipAddress: string,
-    userAgent: string,
-    requestId?: string,
-  ): Promise<AuditLog> {
+  logApiAccess(options: LogApiAccessOptions): Promise<AuditLog> {
     return this.loggerService.logApiAccess(
-      userId,
-      userEmail,
-      apiEndpoint,
-      httpMethod,
-      statusCode,
-      responseTimeMs,
-      ipAddress,
-      userAgent,
-      requestId,
+      options.userId,
+      options.userEmail,
+      options.apiEndpoint,
+      options.httpMethod,
+      options.statusCode,
+      options.responseTimeMs,
+      options.ipAddress,
+      options.userAgent,
+      options.requestId,
     );
   }
 
-  /**
-   * Log security event
-   */
-  async logSecurityEvent(
-    action: AuditAction,
-    userId: string | null,
-    userEmail: string | null,
-    ipAddress: string,
-    userAgent: string,
-    description: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<AuditLog> {
-    return this.loggerService.logSecurityEvent(action, userId, userEmail, ipAddress, userAgent, description, metadata);
+  logSecurityEvent(options: LogSecurityEventOptions): Promise<AuditLog> {
+    return this.loggerService.logSecurityEvent(
+      options.action,
+      options.userId,
+      options.userEmail,
+      options.ipAddress,
+      options.userAgent,
+      options.description,
+      options.metadata,
+    );
   }
 
-  /**
-   * Search audit logs with filters
-   */
-  async search(
+  // ── Query ──────────────────────────────────────────────────────────────────
+
+  search(
     filters: IAuditLogSearchFilters,
-    page: number = 1,
-    limit: number = 50,
+    page = 1,
+    limit = 50,
   ): Promise<IAuditLogSearchResult> {
     return this.queryService.search(filters, page, limit);
   }
 
-  /**
-   * Find all logs (with limit)
-   */
-  async findAll(limit: number = 100): Promise<AuditLog[]> {
+  findAll(limit = 100): Promise<AuditLog[]> {
     return this.queryService.findAll(limit);
   }
 
-  /**
-   * Find logs by user
-   */
-  async findByUser(userId: string, limit: number = 100): Promise<AuditLog[]> {
+  findByUser(userId: string, limit = 100): Promise<AuditLog[]> {
     return this.queryService.findByUser(userId, limit);
   }
 
-  /**
-   * Find logs by action
-   */
-  async findByAction(action: AuditAction, limit: number = 100): Promise<AuditLog[]> {
+  findByAction(action: AuditAction, limit = 100): Promise<AuditLog[]> {
     return this.queryService.findByAction(action, limit);
   }
 
-  /**
-   * Find logs by entity
-   */
-  async findByEntity(
-    entityType: string,
-    entityId: string,
-    limit: number = 100,
-  ): Promise<AuditLog[]> {
+  findByEntity(entityType: string, entityId: string, limit = 100): Promise<AuditLog[]> {
     return this.queryService.findByEntity(entityType, entityId, limit);
   }
 
-  /**
-   * Find logs by IP address
-   */
-  async findByIpAddress(ipAddress: string, limit: number = 100): Promise<AuditLog[]> {
+  findByIpAddress(ipAddress: string, limit = 100): Promise<AuditLog[]> {
     return this.queryService.findByIpAddress(ipAddress, limit);
   }
 
-  /**
-   * Find logs by date range
-   */
-  async findByDateRange(startDate: Date, endDate: Date, limit: number = 1000): Promise<AuditLog[]> {
+  findByDateRange(startDate: Date, endDate: Date, limit = 1000): Promise<AuditLog[]> {
     return this.queryService.findByDateRange(startDate, endDate, limit);
   }
 
-  /**
-   * Generate audit report
-   */
-  async generateReport(startDate: Date, endDate: Date): Promise<IAuditReport> {
+  // ── Reporting ──────────────────────────────────────────────────────────────
+
+  generateReport(startDate: Date, endDate: Date): Promise<IAuditReport> {
     return this.reportingService.generateReport(startDate, endDate);
   }
 
-  /**
-   * Apply retention policy - delete old logs
-   */
-  async applyRetentionPolicy(): Promise<number> {
+  getStatistics(): Promise<AuditStatistics> {
+    return this.reportingService.getStatistics();
+  }
+
+  // ── Maintenance ────────────────────────────────────────────────────────────
+
+  applyRetentionPolicy(): Promise<number> {
     return this.loggerService.applyRetentionPolicy();
   }
 
-  /**
-   * Export logs to JSON
-   */
-  async exportToJson(filters: IAuditLogSearchFilters): Promise<string> {
+  // ── Export ─────────────────────────────────────────────────────────────────
+
+  exportToJson(filters: IAuditLogSearchFilters): Promise<string> {
     return this.exportService.exportToJson(filters);
   }
 
-  /**
-   * Export logs to CSV
-   */
-  async exportToCsv(filters: IAuditLogSearchFilters): Promise<string> {
+  exportToCsv(filters: IAuditLogSearchFilters): Promise<string> {
     return this.exportService.exportToCsv(filters);
   }
-
-  /**
-   * Get statistics
-   */
-  async getStatistics(): Promise<{
-    totalLogs: number;
-    logsToday: number;
-    logsThisWeek: number;
-    logsThisMonth: number;
-    criticalEvents: number;
-    errorEvents: number;
-  }> {
-    return this.reportingService.getStatistics();
-  }
 }
-

@@ -13,6 +13,11 @@ RUN npm run build
 FROM node:18-alpine AS production
 
 ENV NODE_ENV=production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init \
+  && rm -rf /var/cache/apk/*
+
 WORKDIR /app
 
 RUN apk add --no-cache dumb-init curl
@@ -28,8 +33,9 @@ USER node
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
 
+# dumb-init ensures SIGTERM is forwarded to the Node process
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main.js"]

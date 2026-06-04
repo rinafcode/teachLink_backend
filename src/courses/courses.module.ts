@@ -1,15 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CoursesController } from './courses.controller';
 import { CoursesService } from './courses.service';
+import { EnrollmentsService } from './enrollments.service';
+import { CoursesController } from './courses.controller';
+import { EnrollmentsController } from './enrollments.controller';
 import { Course } from './entities/course.entity';
+import { Enrollment } from './entities/enrollment.entity';
 import { CourseReview } from './entities/course-review.entity';
-import { CourseVersion } from './entities/course-version.entity';
+import { CourseModule } from './entities/course-module.entity';
+import { BulkOperation } from './entities/bulk-operation.entity';
+import { CachingModule } from '../caching/caching.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Course, CourseReview, CourseVersion])],
-  controllers: [CoursesController],
-  providers: [CoursesService],
-  exports: [CoursesService],
+  imports: [
+    TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule, BulkOperation]),
+    CachingModule,
+  ],
+  providers: [CoursesService, EnrollmentsService],
+  controllers: [CoursesController, EnrollmentsController],
+  exports: [CoursesService, EnrollmentsService],
 })
 export class CoursesModule {}

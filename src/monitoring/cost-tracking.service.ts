@@ -14,7 +14,7 @@ export class CostTrackingService {
 
   constructor(private readonly metrics: MetricsCollectionService) {}
 
-  recordHourlyCost(amountUsd: number): void {
+  async recordHourlyCost(amountUsd: number): Promise<void> {
     // maintain a rolling window of last `windowHours` hourly costs
     this.hourlyCosts.push(amountUsd);
     if (this.hourlyCosts.length > this.windowHours) {
@@ -30,13 +30,12 @@ export class CostTrackingService {
       const existing = registry.getSingleMetric(gaugeName);
       const latest = amountUsd;
       if (existing) {
-        // @ts-ignore - prom-client Metric has set
+        // @ts-expect-error - prom-client Metric has set method but types are incomplete
         existing.set(latest);
       } else {
         // Create a new gauge
-        // Lazy require to avoid import ordering issues
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const prom = require('prom-client');
+        // Lazy import to avoid import ordering issues
+        const prom = await import('prom-client');
         const Gauge = prom.Gauge;
         new Gauge({
           name: gaugeName,
