@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Lesson } from '../entities/lesson.entity';
@@ -25,7 +26,7 @@ export class LessonsService {
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
     const module = await this.modulesRepository.findOneBy({ id: createLessonDto.moduleId });
     if (!module) {
-      throw new NotFoundException(`Module with ID ${createLessonDto.moduleId} not found`);
+      throw new ResourceNotFoundException('CourseModule', createLessonDto.moduleId);
     }
 
     const lesson = this.lessonsRepository.create({
@@ -43,7 +44,7 @@ export class LessonsService {
   async findOne(id: string): Promise<Lesson> {
     const lesson = await this.lessonsRepository.findOneBy({ id });
     if (!lesson) {
-      throw new NotFoundException(`Lesson with ID ${id} not found`);
+      throw new ResourceNotFoundException('Lesson', id);
     }
     return lesson;
   }

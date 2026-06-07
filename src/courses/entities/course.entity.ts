@@ -9,11 +9,13 @@ import {
   OneToMany,
   Index,
   VersionColumn,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
 import { CourseReview } from './course-review.entity';
+import { CourseVersion } from './course-version.entity';
 
 /** Lifecycle states a course can be in. */
 export enum CourseStatus {
@@ -57,6 +59,11 @@ export class Course {
   @Column({ nullable: true })
   thumbnailUrl: string;
 
+  /** Optional category/tag used for catalog grouping and bulk operations. */
+  @Column({ nullable: true })
+  @Index()
+  category?: string;
+
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
 
@@ -69,6 +76,13 @@ export class Course {
 
   @OneToMany(() => Enrollment, (enrollment) => enrollment.course)
   enrollments: Enrollment[];
+
+  @ManyToOne(() => Course, (course) => course.prerequisiteFor, { nullable: true })
+  @JoinColumn({ name: 'prerequisite_course_id' })
+  prerequisite?: Course;
+
+  @OneToMany(() => Course, (course) => course.prerequisite)
+  prerequisiteFor: Course[];
 
   @OneToMany(() => CourseReview, (review) => review.course, { eager: false })
   reviews: CourseReview[];

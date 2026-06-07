@@ -83,7 +83,7 @@ export class DataSyncWorker extends BaseWorker {
     job: Job,
     source: string,
     destination: string,
-    filters?: any,
+    _filters?: any,
   ): Promise<any> {
     await job.progress(40);
     this.logger.log(`Replicating data from ${source} to ${destination}`);

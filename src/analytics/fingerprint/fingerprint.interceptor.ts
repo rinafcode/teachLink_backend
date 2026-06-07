@@ -4,6 +4,8 @@ import {
   ExecutionContext,
   CallHandler,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Request } from 'express';
@@ -28,6 +30,7 @@ export class FingerprintInterceptor implements NestInterceptor {
 
   constructor(
     private readonly fingerprintService: FingerprintService,
+    @Inject(forwardRef(() => AnalyticsService))
     private readonly analyticsService: AnalyticsService,
   ) {}
 
