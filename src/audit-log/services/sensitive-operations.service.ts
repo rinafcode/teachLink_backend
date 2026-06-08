@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AuditLogService, IAuditLogEntry } from '../audit-log.service';
+import { AuditLogService } from '../audit-log.service';
+import { IAuditLogEntry } from '../interfaces/audit-log.interfaces';
 import { AuditAction, AuditSeverity, AuditCategory } from '../enums/audit-action.enum';
 
 export interface ISensitiveOperation {

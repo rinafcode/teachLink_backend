@@ -10,16 +10,16 @@ import {
 import { IExperimentVariant } from './experiment-variant.entity';
 import { ExperimentMetric } from './experiment-metric.entity';
 export enum ExperimentStatus {
-    DRAFT = 'draft',
-    RUNNING = 'running',
-    PAUSED = 'paused',
-    COMPLETED = 'completed',
-    ARCHIVED = 'archived'
+  DRAFT = 'draft',
+  RUNNING = 'running',
+  PAUSED = 'paused',
+  COMPLETED = 'completed',
+  ARCHIVED = 'archived',
 }
 export enum ExperimentType {
-    A_B_TEST = 'a_b_test',
-    MULTIVARIATE = 'multivariate',
-    MULTI_ARMED_BANDIT = 'multi_armed_bandit'
+  A_B_TEST = 'a_b_test',
+  MULTIVARIATE = 'multivariate',
+  MULTI_ARMED_BANDIT = 'multi_armed_bandit',
 }
 
 /**
@@ -79,6 +79,9 @@ export class Experiment {
 
   @Column({ type: 'json', nullable: true })
   exclusionCriteria: any;
+
+  @Column({ type: 'json', nullable: true })
+  properties?: Record<string, any>;
 
   @CreateDateColumn()
   createdAt: Date;

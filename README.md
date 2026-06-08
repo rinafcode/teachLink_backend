@@ -36,9 +36,11 @@ Or run the helper script:
 ```
 
 To stop the backend:
+
 ```bash
 kill $(lsof -ti:3000)
 ```
+
 # 🧠 TeachLink Backend
 
 [![CI](https://github.com/teachlink/backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teachlink/backend/actions/workflows/ci.yml)
@@ -173,6 +175,8 @@ src/
 └── main.ts                   # Application entry point
 ```
 
+- Algorithm documentation: [docs/complex-algorithms.md](docs/complex-algorithms.md)
+
 ## 🔧 Project Overview
 
 TeachLink Backend provides secure and scalable APIs to power features such as:
@@ -184,6 +188,7 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 - 🎖️ Gamified reputation and contribution tracking
 - 🔔 Real-time notifications via WebSockets
 - 📊 Analytics and activity insights
+- 🧭 User reporting and moderation queue processing for inappropriate content
 - 🧾 DAO integration for content moderation and governance
 
 ## 🔀 API Versioning
@@ -210,20 +215,21 @@ Read more in the API versioning documentation:
 
 ## ⚙️ Tech Stack
 
-| Layer         | Technology                 |
-| ------------- | -------------------------- |
-| Framework     | NestJS                     |
-| Database      | PostgreSQL + TypeORM       |
-| Blockchain    | Starknet + Starknet.js     |
-| Realtime      | WebSockets (Gateway)       |
-| Queues/Async  | BullMQ + Redis (optional)  |
-| File Uploads  | Cloudinary                 |
-| Config Mgmt   | @nestjs/config             |
-| Testing       | Jest + Supertest           |
-| Auth          | JWT + Wallet Sign-In       |
-| Deployment    | Docker, Railway, or Fly.io |
-| File Upload   | Cloudinary                 |
-| Security      | Helmet + bcrypt            | Security headers and password hashing |
+| Layer        | Technology                 |
+| ------------ | -------------------------- | ------------------------------------- |
+| Framework    | NestJS                     |
+| Database     | PostgreSQL + TypeORM       |
+| Blockchain   | Starknet + Starknet.js     |
+| Realtime     | WebSockets (Gateway)       |
+| Queues/Async | BullMQ + Redis (optional)  |
+| File Uploads | Cloudinary                 |
+| Config Mgmt  | @nestjs/config             |
+| Testing      | Jest + Supertest           |
+| Auth         | JWT + Wallet Sign-In       |
+| Deployment   | Docker, Railway, or Fly.io |
+| File Upload  | Cloudinary                 |
+| Security     | Helmet + bcrypt            | Security headers and password hashing |
+
 ### System Overview
 
 TeachLink Backend follows a **modular microservices architecture** built on NestJS, designed for scalability and maintainability. The system uses a layered approach with clear separation of concerns:
@@ -304,21 +310,23 @@ The application uses **bcrypt** for password hashing with configurable rounds vi
 
 #### Recommended Bcrypt Rounds by Environment
 
-| Environment | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
-| ----------- | ----------------- | -------------- | -------------- | ------------------ |
-| **Development** | 8-10 | 50-100 | Good | Low |
-| **Staging** | 10-12 | 100-300 | High | Medium |
-| **Production** | 12-14 | 300-1000 | Very High | High |
+| Environment     | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
+| --------------- | ------------------ | -------------- | -------------- | ------------------ |
+| **Development** | 8-10               | 50-100         | Good           | Low                |
+| **Staging**     | 10-12              | 100-300        | High           | Medium             |
+| **Production**  | 12-14              | 300-1000       | Very High      | High               |
 
 #### Security vs Performance Tradeoffs
 
 **Lower Rounds (4-8):**
+
 - ✅ Faster authentication
 - ✅ Lower CPU usage
 - ⚠️ Reduced security against brute force attacks
 - ⚠️ May be vulnerable to GPU-based cracking
 
 **Higher Rounds (12-15):**
+
 - ✅ Strong resistance against brute force attacks
 - ✅ Future-proof against computational advances
 - ❌ Slower authentication (may impact user experience)
@@ -345,6 +353,7 @@ BCRYPT_ROUNDS=12
 #### Migration Considerations
 
 When changing `BCRYPT_ROUNDS`:
+
 - Existing passwords remain valid until users change them
 - New passwords will use the configured rounds
 - Consider forcing password reset for sensitive accounts
@@ -410,6 +419,28 @@ Sizing rule:
 - Keep total active connections across workers below PostgreSQL capacity.
 - Formula: `DATABASE_POOL_MAX x app_instances x cluster_workers <= postgres_max_connections - reserved_connections`.
 - Reserve at least 20 to 30 connections for migrations, admin access, and background jobs.
+
+### Read Replicas (TypeORM + PostgreSQL)
+
+Read replicas can be enabled without changing the primary database settings. Add one or more replicas with `DATABASE_REPLICA_URLS`:
+
+```env
+DATABASE_REPLICA_URLS=postgres://teachlink_ro:secret@replica-1.db:5432/teachlink,postgres://teachlink_ro:secret@replica-2.db:5432/teachlink
+```
+
+Or use host-based configuration:
+
+```env
+DATABASE_REPLICA_HOSTS=replica-1.db,replica-2.db
+DATABASE_REPLICA_PORTS=5432,5432
+DATABASE_REPLICA_USER=teachlink_ro
+DATABASE_REPLICA_PASSWORD=secret
+DATABASE_REPLICA_NAME=teachlink
+```
+
+When replicas are configured, TypeORM replication routes writes to the primary and eligible reads to replicas. Use `ReadReplicaRoutingService.consistentRead()` for read-after-write, authorization, and workflow reads that must prefer the primary. Replica read failures are retried on the primary by default so read paths can fail over during a replica outage.
+
+See [docs/database-read-replicas.md](docs/database-read-replicas.md) for setup, routing behavior, consistent-read guidance, and failover operations.
 
 ## �🚀 Getting Started
 

@@ -33,14 +33,14 @@ export const CACHE_REDIS_CLIENT = 'CACHE_REDIS_CLIENT';
  * events after mutations; the CachingModule subscribes and deletes stale keys.
  */
 export const CACHE_TTL = {
-    USER_SESSION: 604800, // 7 days
-    COURSE_METADATA: 900, // 15 minutes
-    COURSE_DETAILS: 300, // 5 minutes
-    SEARCH_RESULTS: 120, // 2 minutes
-    USER_PROFILE: 600, // 10 minutes
-    STATIC_CONTENT: 3600, // 1 hour
-    POPULAR_COURSES: 1800, // 30 minutes
-    ENROLLMENT_DATA: 300, // 5 minutes
+  USER_SESSION: 604800, // 7 days
+  COURSE_METADATA: 900, // 15 minutes
+  COURSE_DETAILS: 300, // 5 minutes
+  SEARCH_RESULTS: 120, // 2 minutes
+  USER_PROFILE: 600, // 10 minutes
+  STATIC_CONTENT: 3600, // 1 hour
+  POPULAR_COURSES: 1800, // 30 minutes
+  ENROLLMENT_DATA: 300, // 5 minutes
 } as const;
 export const CACHE_PREFIXES = {
   COURSE: 'cache:course',
@@ -58,6 +58,12 @@ export const CACHE_PREFIXES = {
   LESSON: 'cache:lesson',
   QUIZ: 'cache:quiz',
 } as const;
+export const CACHE_WARMING = {
+  POPULAR_COURSES_LIMIT: 20,
+  USER_PROFILE_WARM_LIMIT: 50,
+  SEARCH_WARM_QUERIES: ['', 'programming', 'math', 'science'],
+} as const;
+
 export const CACHE_EVENTS = {
   COURSE_CREATED: 'cache.course.created',
   COURSE_UPDATED: 'cache.course.updated',
@@ -74,3 +80,22 @@ export const CACHE_EVENTS = {
   CACHE_INVALIDATED: 'cache.invalidated',
   CACHE_PURGED: 'cache.purged',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Computation cache TTLs — Issue #603
+//
+// These TTLs are tuned for expensive O(n) computations that run against the
+// full dataset on every request:
+//
+//  LEADERBOARD — top-players query: full table scan ordered by totalPoints.
+//                30 min is safe; leaderboard shifts slowly.
+//  USER_RANK   — getUserRank() loads ALL user progress into memory (O(n)
+//                linear search). 5 min balances freshness vs DB load.
+// ---------------------------------------------------------------------------
+export const COMPUTATION_TTL = {
+  LEADERBOARD: 1800, // 30 minutes — top players list
+  USER_RANK: 300,    // 5 minutes  — per-user rank lookup
+} as const;
+
+// Merge into CACHE_TTL for consistent access across the codebase
+//(CACHE_TTL as Record<string, unknown>)['COMPUTATION'] = COMPUTATION_TTL;

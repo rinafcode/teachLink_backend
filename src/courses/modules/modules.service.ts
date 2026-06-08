@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CourseModule } from '../entities/course-module.entity';
@@ -11,9 +12,9 @@ import { Lesson } from '../entities/lesson.entity';
  */
 @Injectable()
 export class ModulesService {
-    constructor(
+  constructor(
     @InjectRepository(CourseModule)
-    private modulesRepository: Repository<CourseModule>, 
+    private modulesRepository: Repository<CourseModule>,
     @InjectRepository(Course)
     private coursesRepository: Repository<Course>,
   ) {}
@@ -26,7 +27,7 @@ export class ModulesService {
   async create(createModuleDto: CreateModuleDto): Promise<CourseModule> {
     const course = await this.coursesRepository.findOneBy({ id: createModuleDto.courseId });
     if (!course) {
-      throw new NotFoundException(`Course with ID ${createModuleDto.courseId} not found`);
+      throw new ResourceNotFoundException('Course', createModuleDto.courseId);
     }
 
     const module = this.modulesRepository.create({
@@ -52,7 +53,7 @@ export class ModulesService {
       },
     });
     if (!module) {
-      throw new NotFoundException(`Module with ID ${id} not found`);
+      throw new ResourceNotFoundException('CourseModule', id);
     }
     return module;
   }

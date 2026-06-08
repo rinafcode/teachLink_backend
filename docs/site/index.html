@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TeachLink API Documentation</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Generated API Docs</p>
+      <h1>TeachLink API</h1>
+      <p>OpenAPI 3.0.3 documentation generated from the backend documentation source.</p>
+      <div class="actions">
+        <a href="./openapi-spec.json">Download OpenAPI JSON</a>
+        <a href="./examples.md">View Examples</a>
+      </div>
+    </section>
+    <section>
+      <h2>Endpoints</h2>
+      <table>
+        <thead>
+          <tr><th>Method</th><th>Path</th><th>Summary</th><th>Tags</th></tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/</code></td>
+          <td>Get app status</td>
+          <td>App</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/auth/register</code></td>
+          <td>Register a new user</td>
+          <td>Auth</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/auth/login</code></td>
+          <td>Log in with email and password</td>
+          <td>Auth</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/users</code></td>
+          <td>List users</td>
+          <td>Users</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/users</code></td>
+          <td>Create a user</td>
+          <td>Users</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/courses</code></td>
+          <td>List courses</td>
+          <td>Courses</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/courses</code></td>
+          <td>Create a course</td>
+          <td>Courses</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/payments/create-intent</code></td>
+          <td>Create a payment intent</td>
+          <td>Payments</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/search</code></td>
+          <td>Search courses and learning content</td>
+          <td>Search</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/search/autocomplete</code></td>
+          <td>Get search autocomplete suggestions</td>
+          <td>Search</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/debug/requests</code></td>
+          <td>List recently captured requests</td>
+          <td>Debugging</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td><code>/debug/requests</code></td>
+          <td>Clear the captured request buffer</td>
+          <td>Debugging</td>
+        </tr></tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Interactive Reference</h2>
+      <redoc spec-url="./openapi-spec.json"></redoc>
+    </section>
+  </main>
+  <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+</body>
+</html>

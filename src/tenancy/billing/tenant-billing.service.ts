@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
@@ -25,37 +26,41 @@ export interface IBillingRecord {
  */
 @Injectable()
 export class TenantBillingService {
-    constructor(
+  constructor(
     @InjectRepository(TenantBilling)
-    private readonly billingRepository: Repository<TenantBilling>, 
+    private readonly billingRepository: Repository<TenantBilling>,
     @InjectRepository(Tenant)
-    private readonly tenantRepository: Repository<Tenant>) { }
-    /**
-     * Get billing information for a tenant
-     */
-    async getBillingInfo(tenantId: string): Promise<TenantBilling> {
-        const billing = await this.billingRepository.findOne({ where: { tenantId } });
-        if (!billing) {
-            throw new NotFoundException(`Billing info not found for tenant ${tenantId}`);
-        }
-        return billing;
+    private readonly tenantRepository: Repository<Tenant>,
+  ) {}
+  /**
+   * Get billing information for a tenant
+   */
+  async getBillingInfo(tenantId: string): Promise<TenantBilling> {
+    const billing = await this.billingRepository.findOne({ where: { tenantId } });
+    if (!billing) {
+      throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
     }
-    /**
-     * Create billing record for a tenant
-     */
-    async createBillingRecord(tenantId: string, billingCycle: BillingCycle = BillingCycle.MONTHLY): Promise<TenantBilling> {
-        const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
-        if (!tenant) {
-            throw new NotFoundException(`Tenant ${tenantId} not found`);
-        }
-        const billing = this.billingRepository.create({
-            tenantId,
-            billingCycle,
-            monthlyFee: this.calculateMonthlyFee(tenant.plan),
-            nextBillingDate: this.calculateNextBillingDate(billingCycle),
-        });
-        return await this.billingRepository.save(billing);
+    return billing;
+  }
+  /**
+   * Create billing record for a tenant
+   */
+  async createBillingRecord(
+    tenantId: string,
+    billingCycle: BillingCycle = BillingCycle.MONTHLY,
+  ): Promise<TenantBilling> {
+    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+    if (!tenant) {
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
+    const billing = this.billingRepository.create({
+      tenantId,
+      billingCycle,
+      monthlyFee: this.calculateMonthlyFee(tenant.plan),
+      nextBillingDate: this.calculateNextBillingDate(billingCycle),
+    });
+    return await this.billingRepository.save(billing);
+  }
 
   /**
    * Update usage metrics
