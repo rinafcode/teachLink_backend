@@ -212,7 +212,9 @@ export class PayoutsService {
             content: `Hello ${instructor.firstName} ${instructor.lastName},\n\nWe are pleased to inform you that your payout of ${savedPayout.amount} ${savedPayout.currency} has been successfully processed via ${savedPayout.payoutMethod}.\n\nDetails: ${savedPayout.payoutDetails || 'N/A'}\n\nThank you for teaching on TeachLink!`,
             type: NotificationType.EMAIL,
           });
-          this.logger.log(`Direct fallback payout email sent successfully to instructor ${instructorId}`);
+          this.logger.log(
+            `Direct fallback payout email sent successfully to instructor ${instructorId}`,
+          );
         } catch (fallbackErr) {
           this.logger.error(
             `Failed to send direct fallback payout notification: ${fallbackErr.message}`,

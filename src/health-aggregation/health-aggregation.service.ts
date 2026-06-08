@@ -34,7 +34,7 @@ export class HealthAggregationService {
       this.checkExternalApis(),
     ]);
 
-    const allHealthy = [database, redis, externalApis].every(s => s.status === 'healthy');
+    const allHealthy = [database, redis, externalApis].every((s) => s.status === 'healthy');
 
     return {
       status: allHealthy ? 'healthy' : 'unhealthy',

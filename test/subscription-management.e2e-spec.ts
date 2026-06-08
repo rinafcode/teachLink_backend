@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../app.module';
-import { SubscriptionStatus, SubscriptionInterval } from '../../../payments/entities/subscription.entity';
+import {
+  SubscriptionStatus,
+  SubscriptionInterval,
+} from '../../../payments/entities/subscription.entity';
 
 describe('Subscription Management E2E Tests (Issue #554)', () => {
   let app: INestApplication;

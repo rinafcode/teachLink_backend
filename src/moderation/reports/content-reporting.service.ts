@@ -13,10 +13,7 @@ import { ContentReportReason } from './content-report-reason.enum';
 import { ContentReportStatus } from './content-report-status.enum';
 import { ContentReport } from './content-report.entity';
 import { CreateContentReportDto } from './dto/create-content-report.dto';
-import {
-  ContentReportDisposition,
-  ReviewContentReportDto,
-} from './dto/review-content-report.dto';
+import { ContentReportDisposition, ReviewContentReportDto } from './dto/review-content-report.dto';
 import { ListContentReportsQueryDto } from './dto/list-content-reports-query.dto';
 
 const REPORT_REASON_SCORES: Record<ContentReportReason, number> = {
@@ -122,7 +119,10 @@ export class ContentReportingService {
       throw new NotFoundException(`Content report ${id} not found`);
     }
 
-    if (report.status === ContentReportStatus.RESOLVED || report.status === ContentReportStatus.DISMISSED) {
+    if (
+      report.status === ContentReportStatus.RESOLVED ||
+      report.status === ContentReportStatus.DISMISSED
+    ) {
       throw new BadRequestException(`Content report ${id} has already been finalized.`);
     }
 
@@ -140,9 +140,7 @@ export class ContentReportingService {
       await this.manualReviewService.markReviewed(saved.moderationItemId);
     }
 
-    this.logger.log(
-      `Content report ${saved.id} finalized as ${saved.status} by ${reviewer.id}`,
-    );
+    this.logger.log(`Content report ${saved.id} finalized as ${saved.status} by ${reviewer.id}`);
 
     return saved;
   }
@@ -163,7 +161,7 @@ export class ContentReportingService {
 
   private buildQueueSummary(report: ContentReport): string {
     return [
-      `Content report`,
+      'Content report',
       `type=${report.contentType}`,
       `id=${report.contentId}`,
       `reason=${report.reason}`,

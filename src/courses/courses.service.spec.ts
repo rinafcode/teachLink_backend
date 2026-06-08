@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { CoursesService } from './courses.service';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview } from './entities/course-review.entity';
 import { CourseVersion, CourseVersionEventType } from './entities/course-version.entity';
+import { BulkOperation } from './entities/bulk-operation.entity';
 import { User, UserRole } from '../users/entities/user.entity';
 
 const mockCourseRepo = {
@@ -25,6 +27,17 @@ const mockVersionRepo = {
   save: jest.fn(),
   findOne: jest.fn(),
   find: jest.fn(),
+};
+
+const mockBulkOpRepo = {
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+};
+
+const mockEventEmitter = {
+  emit: jest.fn(),
 };
 
 const instructor: User = {
@@ -52,6 +65,8 @@ describe('CoursesService', () => {
         { provide: getRepositoryToken(Course), useValue: mockCourseRepo },
         { provide: getRepositoryToken(CourseReview), useValue: mockReviewRepo },
         { provide: getRepositoryToken(CourseVersion), useValue: mockVersionRepo },
+        { provide: getRepositoryToken(BulkOperation), useValue: mockBulkOpRepo },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
@@ -81,20 +96,28 @@ describe('CoursesService', () => {
         ...dto,
         instructorId: instructor.id,
         status: CourseStatus.DRAFT,
+        thumbnailUrl: undefined,
+        prerequisite: null,
       });
       expect(mockCourseRepo.save).toHaveBeenCalledWith(savedCourse);
-      expect(mockVersionRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-        courseId: savedCourse.id,
-        versionNumber: 1,
-        eventType: CourseVersionEventType.CREATED,
-      }));
+      expect(mockVersionRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          courseId: savedCourse.id,
+          versionNumber: 1,
+          eventType: CourseVersionEventType.CREATED,
+        }),
+      );
       expect(result).toEqual(savedCourse);
     });
   });
 
   describe('update', () => {
     it('should update a course and create a version snapshot when content changes', async () => {
-      const existingCourse = { ...baseCourse, title: 'Original title', description: 'Original description' };
+      const existingCourse = {
+        ...baseCourse,
+        title: 'Original title',
+        description: 'Original description',
+      };
       const updatedCourse = { ...existingCourse, title: 'Updated title' };
       const previousVersion = { ...existingCourse, versionNumber: 1 } as CourseVersion;
 
@@ -104,20 +127,30 @@ describe('CoursesService', () => {
       mockVersionRepo.create.mockReturnValue({});
       mockVersionRepo.save.mockResolvedValue({ ...updatedCourse, versionNumber: 2 });
 
-      const result = await service.update('course-1', { title: 'Updated title' } as any, instructor);
+      const result = await service.update(
+        'course-1',
+        { title: 'Updated title' } as any,
+        instructor,
+      );
 
       expect(result).toEqual(updatedCourse);
-      expect(mockVersionRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-        courseId: existingCourse.id,
-        versionNumber: 2,
-        eventType: CourseVersionEventType.UPDATED,
-      }));
+      expect(mockVersionRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          courseId: existingCourse.id,
+          versionNumber: 2,
+          eventType: CourseVersionEventType.UPDATED,
+        }),
+      );
     });
   });
 
   describe('rollbackToVersion', () => {
     it('should rollback to a previous version and create a rollback snapshot', async () => {
-      const currentCourse = { ...baseCourse, title: 'Latest title', status: CourseStatus.PUBLISHED };
+      const currentCourse = {
+        ...baseCourse,
+        title: 'Latest title',
+        status: CourseStatus.PUBLISHED,
+      };
       const versionEntry = {
         courseId: 'course-1',
         versionNumber: 1,
@@ -128,7 +161,11 @@ describe('CoursesService', () => {
         status: CourseStatus.DRAFT,
         submissionNote: null,
       } as CourseVersion;
-      const rolledBackCourse = { ...currentCourse, title: versionEntry.title, status: versionEntry.status };
+      const rolledBackCourse = {
+        ...currentCourse,
+        title: versionEntry.title,
+        status: versionEntry.status,
+      };
 
       mockCourseRepo.findOne.mockResolvedValue(currentCourse);
       mockVersionRepo.findOne.mockResolvedValue(versionEntry);
@@ -140,10 +177,12 @@ describe('CoursesService', () => {
 
       expect(result.title).toBe('Original title');
       expect(result.status).toBe(CourseStatus.DRAFT);
-      expect(mockVersionRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-        courseId: currentCourse.id,
-        eventType: CourseVersionEventType.ROLLEDBACK,
-      }));
+      expect(mockVersionRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          courseId: currentCourse.id,
+          eventType: CourseVersionEventType.ROLLEDBACK,
+        }),
+      );
     });
   });
 });

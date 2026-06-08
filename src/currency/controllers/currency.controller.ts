@@ -6,7 +6,6 @@ import { CurrencyDetectionService } from '../services/currency-detection.service
 import {
   ConvertCurrencyDto,
   ConvertCurrencyResponseDto,
-  LocalizedPriceDto,
   MultiCurrencyConversionDto,
   MultiCurrencyConversionResponseDto,
   CurrencyDetailsDto,
@@ -39,9 +38,7 @@ export class CurrencyController {
     description: 'Conversion successful',
     type: ConvertCurrencyResponseDto,
   })
-  async convertCurrency(
-    @Body() dto: ConvertCurrencyDto,
-  ): Promise<ConvertCurrencyResponseDto> {
+  async convertCurrency(@Body() dto: ConvertCurrencyDto): Promise<ConvertCurrencyResponseDto> {
     const convertedAmount = await this.currencyService.convertCurrency(
       dto.amount,
       dto.fromCurrency,
@@ -78,14 +75,7 @@ export class CurrencyController {
   async convertToMultiple(
     @Body() dto: MultiCurrencyConversionDto,
   ): Promise<MultiCurrencyConversionResponseDto> {
-    const toCurrencies = dto.toCurrencies || [
-      'EUR',
-      'GBP',
-      'JPY',
-      'INR',
-      'CAD',
-      'AUD',
-    ];
+    const toCurrencies = dto.toCurrencies || ['EUR', 'GBP', 'JPY', 'INR', 'CAD', 'AUD'];
 
     const conversions = await this.currencyService.convertToMultipleCurrencies(
       dto.amount,
@@ -128,18 +118,14 @@ export class CurrencyController {
     description: 'Currency detected',
     type: DetectCurrencyResponseDto,
   })
-  detectCurrency(
-    @Body() dto: DetectCurrencyDto,
-  ): DetectCurrencyResponseDto {
+  detectCurrency(@Body() dto: DetectCurrencyDto): DetectCurrencyResponseDto {
     const detectedCurrency = this.currencyDetectionService.detectCurrency({
       country: dto.country,
       countryCode: dto.countryCode,
       timezone: dto.timezone,
     });
 
-    const currencyDetails = this.currencyService.getCurrencyDetails(
-      detectedCurrency,
-    );
+    const currencyDetails = this.currencyService.getCurrencyDetails(detectedCurrency);
 
     let confidence: 'high' | 'medium' | 'low' = 'medium';
     let detectionMethod = 'location';
@@ -205,9 +191,9 @@ export class CurrencyController {
   @Post('format-price')
   @HttpCode(200)
   @ApiOperation({ summary: 'Format price for display' })
-  formatPrice(
-    @Body() body: { amount: number; currency: string; locale?: string },
-  ): { formattedPrice: string } {
+  formatPrice(@Body() body: { amount: number; currency: string; locale?: string }): {
+    formattedPrice: string;
+  } {
     const formattedPrice = this.currencyService.formatPrice(
       body.amount,
       body.currency,

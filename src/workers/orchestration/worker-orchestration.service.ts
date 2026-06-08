@@ -49,11 +49,11 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
    */
   async requeueIncompleteJobs(): Promise<number> {
     this.logger.log('Requeuing incomplete jobs...');
-    let requeuedCount = 0;
-    
+    const requeuedCount = 0;
+
     // Implementation would iterate through active jobs and requeue them
     // This is a placeholder for the actual requeue logic
-    
+
     return requeuedCount;
   }
 
@@ -63,8 +63,8 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   async terminateAllWorkers(timeoutMs: number): Promise<number> {
     this.logger.log(`Terminating all workers with ${timeoutMs}ms timeout...`);
     let terminatedCount = 0;
-    
-    for (const [workerId, worker] of this.activeWorkers) {
+
+    for (const [workerId, _worker] of this.activeWorkers) {
       try {
         // Graceful worker termination logic
         terminatedCount++;
@@ -73,7 +73,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
         this.logger.error(`Error terminating worker ${workerId}:`, error);
       }
     }
-    
+
     return terminatedCount;
   }
 
@@ -82,8 +82,8 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
    */
   async emergencyStopAll(): Promise<void> {
     this.logger.warn('Emergency stopping all workers...');
-    
-    for (const [workerId, worker] of this.activeWorkers) {
+
+    for (const [workerId, _worker] of this.activeWorkers) {
       try {
         // Force termination logic
         this.activeWorkers.delete(workerId);
@@ -91,7 +91,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
         this.logger.error(`Error emergency stopping worker ${workerId}:`, error);
       }
     }
-    
+
     this.workerPool.clear();
   }
 
@@ -107,7 +107,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   }> {
     const totalWorkers = this.activeWorkers.size;
     const healthyWorkers = Array.from(this.activeWorkers.values()).filter(
-      worker => worker !== null
+      (worker) => worker !== null,
     ).length;
 
     return {
@@ -131,7 +131,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
     queueDepth: number;
   }> {
     const workers = Array.from(this.activeWorkers.values());
-    
+
     return {
       totalWorkers: workers.length,
       activeJobs: 0, // Would be calculated from actual job queues

@@ -21,7 +21,7 @@ export class RubricCriterion {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Rubric, rubric => rubric.criteria, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Rubric, (rubric) => rubric.criteria, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'rubric_id' })
   rubric: Rubric;
 
@@ -54,6 +54,6 @@ export class RubricCriterion {
   @Column({ name: 'default_level_id', type: 'uuid', nullable: true })
   defaultLevelId?: string;
 
-  @OneToMany(() => RubricLevel, level => level.criterion, { cascade: true })
+  @OneToMany(() => RubricLevel, (level) => level.criterion, { cascade: true })
   levels: RubricLevel[];
 }

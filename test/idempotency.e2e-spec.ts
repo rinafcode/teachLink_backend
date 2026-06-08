@@ -1,6 +1,5 @@
-import { Controller, Post, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Idempotent } from '../src/common/decorators/idempotency.decorator';
@@ -175,7 +174,9 @@ describe('Idempotency deduplication (e2e)', () => {
   });
 
   it('rejects requests that omit the idempotency header', async () => {
-    const response = await request(app.getHttpServer()).post('/idempotency/missing-header').send({});
+    const response = await request(app.getHttpServer())
+      .post('/idempotency/missing-header')
+      .send({});
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('Idempotency-Key header is required');

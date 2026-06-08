@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AchievementsService } from '../achievements.service';
-import { Achievement, AchievementType, AchievementDifficulty } from '../entities/achievement.entity';
+import {
+  Achievement,
+  AchievementType,
+  AchievementDifficulty,
+} from '../entities/achievement.entity';
 import { AchievementProgress } from '../entities/achievement-progress.entity';
 import { UserAchievement } from '../entities/user-achievement.entity';
 import { AchievementStatistics } from '../entities/achievement-statistics.entity';
@@ -235,11 +239,11 @@ describe('AchievementsService', () => {
       } as AchievementProgress;
 
       jest.spyOn(progressRepo, 'findOne').mockResolvedValue(mockProgress);
-      jest.spyOn(progressRepo, 'save').mockImplementation((progress) => {
+      jest.spyOn(progressRepo, 'save').mockImplementation(((progress: any) => {
         progress.currentProgress = 50;
         progress.percentageComplete = 50;
         return Promise.resolve(progress);
-      });
+      }) as any);
 
       const result = await service.updateProgress('user-123', 'ach-123', {
         currentProgress: 50,
@@ -325,11 +329,11 @@ describe('AchievementsService', () => {
       } as AchievementProgress;
 
       jest.spyOn(progressRepo, 'findOne').mockResolvedValue(mockProgress);
-      jest.spyOn(progressRepo, 'save').mockImplementation((progress) => {
+      jest.spyOn(progressRepo, 'save').mockImplementation(((progress: any) => {
         progress.currentProgress = 1;
         progress.percentageComplete = 10;
         return Promise.resolve(progress);
-      });
+      }) as any);
 
       const result = await service.incrementProgress('user-123', 'ach-123', 1);
 

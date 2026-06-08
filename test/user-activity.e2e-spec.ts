@@ -45,7 +45,7 @@ describe('User Activity Timeline (e2e)', () => {
   describe('GET /users/me/activities', () => {
     it('should return a paginated activity timeline for the authenticated user', async () => {
       const response = await httpClient.get('/users/me/activities');
-      
+
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('logs');
       expect(response.body).toHaveProperty('total');
@@ -57,24 +57,24 @@ describe('User Activity Timeline (e2e)', () => {
     it('should respect the limit query parameter', async () => {
       const limit = 5;
       const response = await httpClient.get(`/users/me/activities?limit=${limit}`);
-      
+
       expect(response.status).toBe(200);
       expect(response.body.limit).toBe(limit);
     });
 
     it('should cap the limit at 100', async () => {
       const response = await httpClient.get('/users/me/activities?limit=500');
-      
+
       expect(response.status).toBe(200);
       expect(response.body.limit).toBe(100);
     });
 
     it('should filter by activity type when provided', async () => {
       const response = await httpClient.get('/users/me/activities?type=LOGIN');
-      
+
       expect(response.status).toBe(200);
       // All returned logs should be of type LOGIN (if any exist)
-      response.body.logs.forEach(log => {
+      response.body.logs.forEach((log) => {
         expect(log.action).toBe('LOGIN');
       });
     });
@@ -83,21 +83,23 @@ describe('User Activity Timeline (e2e)', () => {
   describe('GET /users/me/activities/export', () => {
     it('should return a CSV file containing the user activity history', async () => {
       const response = await httpClient.get('/users/me/activities/export');
-      
+
       expect(response.status).toBe(200);
       expect(response.header['content-type']).toContain('text/csv');
-      expect(response.header['content-disposition']).toContain('attachment; filename=activity-history.csv');
-      
+      expect(response.header['content-disposition']).toContain(
+        'attachment; filename=activity-history.csv',
+      );
+
       // Verify CSV headers are present
       expect(response.text).toContain('timestamp,userId,userEmail,action,category,severity');
     });
 
     it('should apply filters to the export', async () => {
       const response = await httpClient.get('/users/me/activities/export?type=DATA_CREATED');
-      
+
       expect(response.status).toBe(200);
       expect(response.header['content-type']).toContain('text/csv');
-      
+
       // If there are rows, they should contain DATA_CREATED (hard to test text-based CSV reliably without parsing)
       if (response.text.split('\n').length > 1) {
         expect(response.text).toContain('DATA_CREATED');

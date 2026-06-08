@@ -62,7 +62,10 @@ export class CacheWarmingScheduler implements OnModuleInit {
         );
       }
     } catch (error) {
-      this.logger.error(`Cache warm-up [${label}] failed`, error instanceof Error ? error.stack : error);
+      this.logger.error(
+        `Cache warm-up [${label}] failed`,
+        error instanceof Error ? error.stack : error,
+      );
     }
   }
 }

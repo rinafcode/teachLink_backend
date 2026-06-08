@@ -11,7 +11,7 @@ import { User } from '../../users/entities/user.entity';
  * @param message Optional custom error message
  * @returns The guaranteed non-null user object
  */
-export function ensureUserExists(user: User | null | undefined, message = 'User not found'): User {
+export function ensureUserExists(user: User | null | undefined, _message = 'User not found'): User {
   if (!user) {
     throw new ResourceNotFoundException('User');
   }
@@ -37,9 +37,9 @@ export function ensureValidCredentials(
  * @param user The user object to check
  * @param message Optional custom error message
  */
-export function ensureUserIsActive(user: User, message = 'Account is not active'): void {
+export function ensureUserIsActive(user: User, _message = 'Account is not active'): void {
   if (user.status !== 'active') {
-    throw new InvalidCredentialsException(message);
+    throw new InvalidCredentialsException(_message);
   }
 }
 /**
@@ -73,7 +73,7 @@ export function ensureValidUserToken(
  */
 export function ensureUserDoesNotExist(
   user: User | null | undefined,
-  message = 'User already exists',
+  _message = 'User already exists',
 ): void {
   if (user) {
     throw new ResourceConflictException('User');

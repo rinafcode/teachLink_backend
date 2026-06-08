@@ -1,10 +1,7 @@
-import { Controller, Get, Post, Body, Query, Param, HttpCode } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PricingService } from '../services/pricing.service';
-import {
-  LocalizedPriceDto,
-  PricingDto,
-} from '../../currency/dtos/currency.dto';
+import { LocalizedPriceDto, PricingDto } from '../../currency/dtos/currency.dto';
 
 /**
  * Pricing Controller for Payments
@@ -23,8 +20,7 @@ export class PricingController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Get localized pricing for a product',
-    description:
-      'Converts base price to user currency and formats for display',
+    description: 'Converts base price to user currency and formats for display',
   })
   @ApiResponse({
     status: 200,
@@ -56,8 +52,7 @@ export class PricingController {
   @HttpCode(200)
   @ApiOperation({
     summary: 'Get pricing ready for payment processing',
-    description:
-      'Prepares pricing info including rounding and exchange rates',
+    description: 'Prepares pricing info including rounding and exchange rates',
   })
   @ApiResponse({
     status: 200,
@@ -120,10 +115,7 @@ export class PricingController {
       discountPercent: number;
     },
   ): PricingDto {
-    return this.pricingService.applyDiscount(
-      body.pricing,
-      body.discountPercent,
-    );
+    return this.pricingService.applyDiscount(body.pricing, body.discountPercent);
   }
 
   /**

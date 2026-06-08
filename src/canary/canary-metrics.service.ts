@@ -21,16 +21,9 @@ export class CanaryMetricsService {
   private readonly logger = new Logger(CanaryMetricsService.name);
   private readonly results: MirrorResult[] = [];
 
-  private readonly promoteThreshold = parseFloat(
-    process.env.CANARY_PROMOTE_THRESHOLD || '0.95',
-  );
-  private readonly rollbackThreshold = parseFloat(
-    process.env.CANARY_ROLLBACK_THRESHOLD || '0.70',
-  );
-  private readonly minSampleSize = parseInt(
-    process.env.CANARY_MIN_SAMPLE_SIZE || '20',
-    10,
-  );
+  private readonly promoteThreshold = parseFloat(process.env.CANARY_PROMOTE_THRESHOLD || '0.95');
+  private readonly rollbackThreshold = parseFloat(process.env.CANARY_ROLLBACK_THRESHOLD || '0.70');
+  private readonly minSampleSize = parseInt(process.env.CANARY_MIN_SAMPLE_SIZE || '20', 10);
 
   recordMirrorResult(result: MirrorResult): void {
     this.results.push(result);
@@ -54,8 +47,7 @@ export class CanaryMetricsService {
 
     const successCount = this.results.filter((r) => r.success).length;
     const failureCount = total - successCount;
-    const averageDurationMs =
-      this.results.reduce((sum, r) => sum + r.durationMs, 0) / total;
+    const averageDurationMs = this.results.reduce((sum, r) => sum + r.durationMs, 0) / total;
     const successRate = successCount / total;
 
     return {

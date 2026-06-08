@@ -32,7 +32,13 @@ export class AddGamificationTiers1748800000000 implements MigrationInterface {
       new Table({
         name: 'tier_rewards',
         columns: [
-          { name: 'id', type: 'uuid', isPrimary: true, generationStrategy: 'uuid', default: 'uuid_generate_v4()' },
+          {
+            name: 'id',
+            type: 'uuid',
+            isPrimary: true,
+            generationStrategy: 'uuid',
+            default: 'uuid_generate_v4()',
+          },
           { name: 'version', type: 'integer', default: 1 },
           { name: 'tier', type: 'tier_enum', isUnique: true },
           { name: 'title', type: 'varchar' },
@@ -53,8 +59,8 @@ export class AddGamificationTiers1748800000000 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('tier_rewards', true);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_user_progress_tier";`);
-    await queryRunner.query(`ALTER TABLE "user_progress" DROP COLUMN IF EXISTS "tier";`);
-    await queryRunner.query(`DROP TYPE IF EXISTS "tier_enum";`);
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_user_progress_tier";');
+    await queryRunner.query('ALTER TABLE "user_progress" DROP COLUMN IF EXISTS "tier";');
+    await queryRunner.query('DROP TYPE IF EXISTS "tier_enum";');
   }
 }

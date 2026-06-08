@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
 import { User } from '../users/entities/user.entity';
 import { Enrollment } from '../courses/entities/enrollment.entity';
@@ -35,17 +35,20 @@ export class DashboardService {
       this.getCoursePerformanceMetrics(),
       this.getConversionFunnel(),
     ]);
-    return { revenue, userGrowth, coursePerformance, funnel, generatedAt: new Date().toISOString() };
+    return {
+      revenue,
+      userGrowth,
+      coursePerformance,
+      funnel,
+      generatedAt: new Date().toISOString(),
+    };
   }
 
   async getRevenueMetrics(period: RevenuePeriod) {
     const buckets = await this.bucketRevenue(period);
     const now = new Date();
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const report = await this.reportingService.generateRevenueRecognitionReport(
-      startOfMonth,
-      now,
-    );
+    const report = await this.reportingService.generateRevenueRecognitionReport(startOfMonth, now);
     return {
       period,
       buckets,
@@ -111,9 +114,7 @@ export class DashboardService {
       conversionRates: {
         signupToEnrollment: totalUsers ? enrollments / totalUsers : 0,
         enrollmentToPayment: enrollments ? completedPayments / enrollments : 0,
-        paymentToCompletion: completedPayments
-          ? completedEnrollments / completedPayments
-          : 0,
+        paymentToCompletion: completedPayments ? completedEnrollments / completedPayments : 0,
       },
     };
   }
@@ -224,7 +225,9 @@ export class DashboardService {
   private calculateCompletionRate(courses: Course[]) {
     const enrollments = courses.flatMap((course) => course.enrollments ?? []);
     const totalEnrollments = enrollments.length;
-    const completedEnrollments = enrollments.filter((enrollment) => enrollment.status === 'completed').length;
+    const completedEnrollments = enrollments.filter(
+      (enrollment) => enrollment.status === 'completed',
+    ).length;
 
     const monthlyBuckets = new Map<string, { total: number; completed: number }>();
     const now = new Date();
@@ -268,8 +271,8 @@ export class DashboardService {
           .createQueryBuilder('event')
           .select("event.properties->>'courseId'", 'courseId')
           .addSelect('SUM(COALESCE(event.value, 0))', 'watchSeconds')
-          .where("event.category = :category", { category: 'video' })
-          .andWhere("event.action = :action", { action: 'watch' })
+          .where('event.category = :category', { category: 'video' })
+          .andWhere('event.action = :action', { action: 'watch' })
           .andWhere("event.properties->>'courseId' IN (:...courseIds)", { courseIds })
           .groupBy("event.properties->>'courseId'")
           .getRawMany()
@@ -281,14 +284,19 @@ export class DashboardService {
 
     const courseStats = courses.map((course) => {
       const totalVideoSeconds = (course.modules ?? []).reduce((courseSum, module) => {
-        return courseSum + (module.lessons ?? []).reduce((lessonSum, lesson) => {
-          return lessonSum + (lesson.videoUrl ? Number(lesson.durationSeconds || 0) : 0);
-        }, 0);
+        return (
+          courseSum +
+          (module.lessons ?? []).reduce((lessonSum, lesson) => {
+            return lessonSum + (lesson.videoUrl ? Number(lesson.durationSeconds || 0) : 0);
+          }, 0)
+        );
       }, 0);
 
       const enrollmentCount = course.enrollments?.length ?? 0;
       const progressSeconds = (course.enrollments ?? []).reduce((sum, enrollment) => {
-        return sum + (Math.min(Math.max(enrollment.progress ?? 0, 0), 100) / 100) * totalVideoSeconds;
+        return (
+          sum + (Math.min(Math.max(enrollment.progress ?? 0, 0), 100) / 100) * totalVideoSeconds
+        );
       }, 0);
 
       const recordedSeconds = recordedWatchMap.get(course.id) ?? 0;
@@ -306,7 +314,10 @@ export class DashboardService {
     });
 
     const totalWatchSeconds = courseStats.reduce((sum, item) => sum + item.watchSeconds, 0);
-    const totalVideoSeconds = courseStats.reduce((sum, item) => sum + item.totalVideoSeconds * item.enrollmentCount, 0);
+    const totalVideoSeconds = courseStats.reduce(
+      (sum, item) => sum + item.totalVideoSeconds * item.enrollmentCount,
+      0,
+    );
     const totalEnrollments = courseStats.reduce((sum, item) => sum + item.enrollmentCount, 0);
 
     return {
@@ -328,7 +339,7 @@ export class DashboardService {
       return str;
     };
 
-    const rows: string[][] = [
+    const rows: (string | number)[][] = [
       ['section', 'metric', 'value'],
       ['revenue', 'gross', overview.revenue.summary.grossRevenue],
       ['revenue', 'net', overview.revenue.summary.netRevenue],

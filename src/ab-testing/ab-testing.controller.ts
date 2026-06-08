@@ -203,9 +203,12 @@ export class ABTestingController {
   @Put('experiments/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async updateExperiment(@Param('id') id: string, @Body() updateData: UpdateExperimentDto): Promise<any> {
+  async updateExperiment(
+    @Param('id') id: string,
+    @Body() updateData: UpdateExperimentDto,
+  ): Promise<any> {
     this.logger.log(`Updating experiment: ${id}`);
-    return await this.experimentService.updateExperiment(id, updateData);
+    return await this.experimentService.updateExperiment(id, updateData as any);
   }
 
   /**
@@ -321,7 +324,13 @@ export class ABTestingController {
     @Body() criteria?: AutoSelectWinnerDto,
   ): Promise<any> {
     this.logger.log(`Auto-selecting winner for experiment: ${id}`);
-    return await this.automatedDecisionService.autoSelectWinner(id, criteria);
+    const mappedCriteria = criteria
+      ? ({
+          minimumSampleSize: criteria.minimumVotes,
+          durationThreshold: criteria.minimumDurationDays,
+        } as any)
+      : undefined;
+    return await this.automatedDecisionService.autoSelectWinner(id, mappedCriteria);
   }
 
   /**

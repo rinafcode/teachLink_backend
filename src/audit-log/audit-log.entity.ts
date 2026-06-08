@@ -1,11 +1,12 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  Index,
-} from 'typeorm';
-import { AuditAction, AuditSeverity, AuditCategory, HttpMethod } from './enums/audit-action.enum';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
+export enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+  PATCH = 'PATCH',
+}
 
 /**
  * Immutable audit log record.
@@ -28,7 +29,7 @@ import { AuditAction, AuditSeverity, AuditCategory, HttpMethod } from './enums/a
 @Index(['entityType', 'entityId'])
 @Index(['ipAddress', 'timestamp'])
 @Index(['timestamp'])
-@Index(['retentionUntil'])  // required for efficient retention policy deletes
+@Index(['retentionUntil']) // required for efficient retention policy deletes
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;

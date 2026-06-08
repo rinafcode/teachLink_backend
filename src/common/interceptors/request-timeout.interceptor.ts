@@ -49,7 +49,12 @@ export class RequestTimeoutInterceptor implements NestInterceptor {
 
         if (error instanceof TimeoutError) {
           // Record timeout metric
-          this.metricsService.requestTimeouts.inc({ route });
+          if (
+            this.metricsService &&
+            typeof (this.metricsService as any).requestTimeouts !== 'undefined'
+          ) {
+            (this.metricsService as any).requestTimeouts.inc({ route });
+          }
           this.metricsService.httpRequestDuration.observe(
             { method, route, status_code: HttpStatus.GATEWAY_TIMEOUT },
             elapsedTime,

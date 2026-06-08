@@ -8,10 +8,7 @@ import { ForumVote } from './entities/forum-vote.entity';
 import { ModerationModule } from '../moderation/moderation.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ForumThread, ForumComment, ForumVote]),
-    ModerationModule,
-  ],
+  imports: [TypeOrmModule.forFeature([ForumThread, ForumComment, ForumVote]), ModerationModule],
   controllers: [ForumController],
   providers: [ForumService],
   exports: [ForumService],

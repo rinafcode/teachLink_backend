@@ -82,7 +82,7 @@ export class InvoicesService {
           <hr/>
           <h3>Items</h3>
           <ul>
-            ${invoice.items.map(i => `<li>${i.description} - ${i.amount} x ${i.quantity}</li>`).join('')}
+            ${invoice.items.map((i) => `<li>${i.description} - ${i.amount} x ${i.quantity}</li>`).join('')}
           </ul>
         </body>
       </html>

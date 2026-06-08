@@ -3,4 +3,3 @@ export enum ContentReportReason {
   ABUSE = 'abuse',
   INAPPROPRIATE = 'inappropriate',
 }
-

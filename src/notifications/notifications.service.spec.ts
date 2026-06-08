@@ -4,7 +4,14 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { NotificationsQueueService } from './notifications.queue';
-import { Notification, NotificationPriority, NotificationStatus, NotificationType } from './entities/notification.entity';
+import { PreferencesService } from './preferences/preferences.service';
+import { NotificationTemplateService } from './templates/notification-template.service';
+import {
+  Notification,
+  NotificationPriority,
+  NotificationStatus,
+  NotificationType,
+} from './entities/notification.entity';
 
 const mockRepository = {
   findOne: jest.fn(),
@@ -46,7 +53,15 @@ describe('NotificationsService', () => {
   afterEach(() => jest.clearAllMocks());
 
   it('should deduplicate identical pending notifications within the batch window', async () => {
-    const existing = { id: 'n1', userId: 'user1', title: 'New course', content: 'New content', type: NotificationType.EMAIL, status: NotificationStatus.PENDING, createdAt: new Date() };
+    const existing = {
+      id: 'n1',
+      userId: 'user1',
+      title: 'New course',
+      content: 'New content',
+      type: NotificationType.EMAIL,
+      status: NotificationStatus.PENDING,
+      createdAt: new Date(),
+    };
     mockRepository.findOne.mockResolvedValue(existing);
 
     const result = await service.send({
@@ -63,7 +78,17 @@ describe('NotificationsService', () => {
 
   it('should publish urgent notifications immediately', async () => {
     mockRepository.findOne.mockResolvedValue(null);
-    const saved = { id: 'n2', userId: 'user1', title: 'Urgent', content: 'Please respond', type: NotificationType.SMS, priority: NotificationPriority.URGENT, status: NotificationStatus.SENT, deliveryAttempts: 0, createdAt: new Date() };
+    const saved = {
+      id: 'n2',
+      userId: 'user1',
+      title: 'Urgent',
+      content: 'Please respond',
+      type: NotificationType.SMS,
+      priority: NotificationPriority.URGENT,
+      status: NotificationStatus.SENT,
+      deliveryAttempts: 0,
+      createdAt: new Date(),
+    };
     mockRepository.save.mockResolvedValue(saved);
 
     const result = await service.send({
@@ -77,13 +102,8 @@ describe('NotificationsService', () => {
     expect(mockQueue.publishToTopic).toHaveBeenCalledWith(saved, { bypassBatch: true });
     expect(mockRepository.update).toHaveBeenCalledWith(saved.id, expect.any(Object));
     expect(result).toEqual(saved);
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Notification } from './entities/notification.entity';
-import { NotificationsService } from './notifications.service';
-import { NotificationTemplateService } from './templates/notification-template.service';
-import { PreferencesService } from './preferences/preferences.service';
-import { NotificationsQueueService } from './notifications.queue';
-import { NotificationType } from './entities/notification.entity';
+  });
+});
 
 describe('NotificationsService', () => {
   let service: NotificationsService;

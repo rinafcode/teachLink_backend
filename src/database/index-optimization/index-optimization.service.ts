@@ -47,10 +47,7 @@ export class IndexOptimizationService {
     const recommendations = await this.analysis.analyze();
 
     const createDryRun = force ? false : this.config.dryRun || !this.config.autoCreate;
-    const created = await this.creation.createFromRecommendations(
-      recommendations,
-      createDryRun,
-    );
+    const created = await this.creation.createFromRecommendations(recommendations, createDryRun);
 
     await this.usageMonitor.sample();
 

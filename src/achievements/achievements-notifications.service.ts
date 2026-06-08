@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserAchievement } from './entities/user-achievement.entity';
-import { Achievement } from './entities/achievement.entity';
 
 /**
  * Achievements Notifications Service
@@ -21,17 +20,15 @@ export class AchievementsNotificationsService {
    * Send achievement unlocked notification to a user
    * In a real implementation, this would integrate with the NotificationsService
    */
-  async sendAchievementUnlockedNotification(
-    userAchievement: UserAchievement,
-  ): Promise<void> {
+  async sendAchievementUnlockedNotification(userAchievement: UserAchievement): Promise<void> {
     try {
       const achievement = userAchievement.achievement;
       const userId = userAchievement.user.id;
 
       // Build notification message
-      const title = `🎉 Achievement Unlocked!`;
-      const message = `You've unlocked "${achievement.name}"! Earned ${achievement.pointsReward} points and ${achievement.experienceReward} XP.`;
-      const description = achievement.description;
+      const _title = '🎉 Achievement Unlocked!';
+      const _message = `You've unlocked "${achievement.name}"! Earned ${achievement.pointsReward} points and ${achievement.experienceReward} XP.`;
+      const _description = achievement.description;
 
       // In a real implementation, you would call the NotificationsService here
       // Example:
@@ -59,10 +56,7 @@ export class AchievementsNotificationsService {
         { notificationSent: true },
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to send achievement notification: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to send achievement notification: ${error.message}`, error.stack);
     }
   }
 
@@ -120,10 +114,7 @@ export class AchievementsNotificationsService {
       this.logger.log(`Resent ${resendCount} failed achievement notifications`);
       return resendCount;
     } catch (error) {
-      this.logger.error(
-        `Failed to resend notifications: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to resend notifications: ${error.message}`, error.stack);
       return 0;
     }
   }

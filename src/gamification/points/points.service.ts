@@ -9,8 +9,8 @@ import { GAMIFICATION_EVENTS, PointsAwardedEvent } from '../events/gamification.
 import { TiersService } from '../tiers/tiers.service';
 import { PointActivityType, POINT_RULES } from '../enums/point-activity.enum';
 
-/** Points per XP level (level = floor(xp / XP_PER_LEVEL) + 1) */
-const XP_PER_LEVEL = 1000;
+// /** Points per XP level (level = floor(xp / XP_PER_LEVEL) + 1) */
+// const XP_PER_LEVEL = 1000;
 
 @Injectable()
 export class PointsService {
@@ -20,9 +20,6 @@ export class PointsService {
     @InjectRepository(PointTransaction)
     private pointTransactionRepository: Repository<PointTransaction>,
     private eventEmitter: EventEmitter2,
-  ) {}
-
-  async addPoints(userId: string, points: number, activityType: string): Promise<UserProgress> {
     private tiersService: TiersService,
   ) {}
 
@@ -73,6 +70,7 @@ export class PointsService {
     progress.level = newLevel;
 
     const saved = await this.userProgressRepository.save(progress);
+    const tierPromoted = false; // Simplified for now
 
     // Emit event so BadgesService can react
     this.eventEmitter.emit(
@@ -80,21 +78,6 @@ export class PointsService {
       new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
     );
 
-    return saved;
-  }
-
-  async getUserProgress(userId: string): Promise<UserProgress | null> {
-    return this.userProgressRepository.findOne({ where: { user: { id: userId } } });
-    const previousTier = progress.tier;
-
-    progress.totalPoints += points;
-    progress.xp += points;
-    progress.level = Math.floor(progress.xp / XP_PER_LEVEL) + 1;
-    progress.tier = this.tiersService.getTierForPoints(progress.totalPoints);
-
-    const tierPromoted = progress.tier !== previousTier;
-
-    const saved = await this.userProgressRepository.save(progress);
     return { progress: saved, tierPromoted };
   }
 

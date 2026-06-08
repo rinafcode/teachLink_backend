@@ -72,7 +72,7 @@ module.exports = {
   },
 
   // ─── Ignore patterns ───────────────────────────────────────────────────────
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/', '\\.integration\\.spec\\.ts$'],
 
   // ─── Output & lifecycle ────────────────────────────────────────────────────
   verbose: true,

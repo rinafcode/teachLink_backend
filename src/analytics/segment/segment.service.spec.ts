@@ -51,9 +51,7 @@ describe('SegmentService', () => {
 
     it('should include anonymousId in track when provided', () => {
       service.track({ userId: 'u1', event: 'Page Viewed', anonymousId: 'anon-1' });
-      expect(mockTrack).toHaveBeenCalledWith(
-        expect.objectContaining({ anonymousId: 'anon-1' }),
-      );
+      expect(mockTrack).toHaveBeenCalledWith(expect.objectContaining({ anonymousId: 'anon-1' }));
     });
 
     it('should call client.identify with correct payload', () => {
@@ -66,9 +64,7 @@ describe('SegmentService', () => {
 
     it('should include anonymousId in identify when provided', () => {
       service.identify({ userId: 'u1', anonymousId: 'anon-1' });
-      expect(mockIdentify).toHaveBeenCalledWith(
-        expect.objectContaining({ anonymousId: 'anon-1' }),
-      );
+      expect(mockIdentify).toHaveBeenCalledWith(expect.objectContaining({ anonymousId: 'anon-1' }));
     });
 
     it('should flush on module destroy', async () => {

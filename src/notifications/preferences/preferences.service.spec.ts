@@ -15,6 +15,8 @@ describe('PreferencesService', () => {
     repository.findOne.mockReset();
     repository.create.mockReset();
     repository.save.mockReset();
+    repository.create.mockImplementation((dto: any) => dto);
+    repository.save.mockImplementation((prefs: any) => Promise.resolve(prefs));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

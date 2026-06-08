@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { PreferencesService } from './preferences/preferences.service';
@@ -85,10 +76,7 @@ export class NotificationsController {
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
-  markRead(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Query('userId', ParseUUIDPipe) userId: string,
-  ) {
+  markRead(@Param('id', ParseUUIDPipe) id: string, @Query('userId', ParseUUIDPipe) userId: string) {
     return this.notificationsService.markRead(id, userId);
   }
 

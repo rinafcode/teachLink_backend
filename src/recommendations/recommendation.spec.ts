@@ -18,7 +18,7 @@ const mockCourse = (id: string, category = 'math', price = 50): Partial<Course> 
 });
 
 const mockEnrollment = (userId: string, courseId: string, status = 'active'): Partial<Enrollment> =>
-  ({ userId, courseId, status } as Enrollment);
+  ({ userId, courseId, status }) as Enrollment;
 
 describe('RecommendationEngineService', () => {
   let service: RecommendationEngineService;
@@ -43,7 +43,7 @@ describe('RecommendationEngineService', () => {
         { provide: getRepositoryToken(Enrollment), useValue: enrollmentRepo },
         { provide: CachingService, useValue: caching },
         {
-          provide: getRepositoryToken(Enrollment) + '_collab',
+          provide: `${getRepositoryToken(Enrollment)}_collab`,
           useValue: enrollmentRepo,
         },
       ],

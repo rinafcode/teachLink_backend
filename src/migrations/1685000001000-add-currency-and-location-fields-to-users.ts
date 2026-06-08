@@ -1,12 +1,10 @@
-import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableColumn, TableIndex } from 'typeorm';
 
 /**
  * Migration: Add currency and location fields to users table
  * For supporting localized currency and pricing
  */
-export class AddCurrencyAndLocationFieldsToUsers1685000001000
-  implements MigrationInterface
-{
+export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('users');
 
@@ -40,10 +38,10 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000
       // Add index
       await queryRunner.createIndex(
         'users',
-        {
+        new TableIndex({
           columnNames: ['country_code'],
           name: 'IDX_users_country_code',
-        },
+        }),
       );
     }
 
@@ -86,10 +84,10 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000
       // Add index
       await queryRunner.createIndex(
         'users',
-        {
+        new TableIndex({
           columnNames: ['preferred_currency'],
           name: 'IDX_users_preferred_currency',
-        },
+        }),
       );
     }
   }
@@ -102,9 +100,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000
     }
 
     // Drop indices first
-    const countryCodeIndex = table.indices.find(
-      (i) => i.name === 'IDX_users_country_code',
-    );
+    const countryCodeIndex = table.indices.find((i) => i.name === 'IDX_users_country_code');
     if (countryCodeIndex) {
       await queryRunner.dropIndex('users', countryCodeIndex);
     }

@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { IncidentDetectionService, INCIDENT_DETECTION_RULES } from '../services/incident-detection.service';
+import {
+  IncidentDetectionService,
+  INCIDENT_DETECTION_RULES,
+} from '../services/incident-detection.service';
 import { Incident, IncidentStatus, IncidentSeverity } from '../entities/incident.entity';
 import { IAlertEvent } from '../../monitoring/alerting/alerting.service';
 
@@ -58,6 +61,9 @@ describe('IncidentDetectionService', () => {
         updatedAt: new Date(),
         runbookId: 'database-failure',
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       jest.spyOn(repository, 'create').mockReturnValue(mockIncident);
@@ -93,6 +99,9 @@ describe('IncidentDetectionService', () => {
         updatedAt: new Date(),
         runbookId: 'error-rate-investigation',
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       jest.spyOn(repository, 'create').mockReturnValue(mockIncident);

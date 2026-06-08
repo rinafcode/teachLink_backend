@@ -35,11 +35,7 @@ export class CachingService {
     await this.cacheManager.set(key, value, ttlMs);
   }
 
-  async getOrSet<T>(
-    key: string,
-    factory: () => Promise<T>,
-    ttlSeconds?: number,
-  ): Promise<T> {
+  async getOrSet<T>(key: string, factory: () => Promise<T>, ttlSeconds?: number): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached !== undefined) {
       return cached;

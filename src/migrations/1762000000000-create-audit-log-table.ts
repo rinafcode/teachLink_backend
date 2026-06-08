@@ -104,7 +104,7 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
             name: 'severity',
             type: 'audit_logs_severity_enum',
             isNullable: false,
-            default: `'INFO'`,
+            default: "'INFO'",
           },
           { name: 'entity_type', type: 'varchar', isNullable: true },
           { name: 'entity_id', type: 'varchar', isNullable: true },
@@ -129,10 +129,22 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
     );
 
     await queryRunner.createIndices('audit_logs', [
-      new TableIndex({ name: 'IDX_audit_logs_user_timestamp', columnNames: ['user_id', 'timestamp'] }),
-      new TableIndex({ name: 'IDX_audit_logs_action_timestamp', columnNames: ['action', 'timestamp'] }),
-      new TableIndex({ name: 'IDX_audit_logs_category_timestamp', columnNames: ['category', 'timestamp'] }),
-      new TableIndex({ name: 'IDX_audit_logs_severity_timestamp', columnNames: ['severity', 'timestamp'] }),
+      new TableIndex({
+        name: 'IDX_audit_logs_user_timestamp',
+        columnNames: ['user_id', 'timestamp'],
+      }),
+      new TableIndex({
+        name: 'IDX_audit_logs_action_timestamp',
+        columnNames: ['action', 'timestamp'],
+      }),
+      new TableIndex({
+        name: 'IDX_audit_logs_category_timestamp',
+        columnNames: ['category', 'timestamp'],
+      }),
+      new TableIndex({
+        name: 'IDX_audit_logs_severity_timestamp',
+        columnNames: ['severity', 'timestamp'],
+      }),
       new TableIndex({ name: 'IDX_audit_logs_entity', columnNames: ['entity_type', 'entity_id'] }),
       new TableIndex({ name: 'IDX_audit_logs_ip_address', columnNames: ['ip_address'] }),
       new TableIndex({ name: 'IDX_audit_logs_timestamp', columnNames: ['timestamp'] }),
@@ -156,11 +168,11 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TRIGGER IF EXISTS trg_audit_logs_block_update ON audit_logs;`);
-    await queryRunner.query(`DROP FUNCTION IF EXISTS audit_logs_block_mutation();`);
+    await queryRunner.query('DROP TRIGGER IF EXISTS trg_audit_logs_block_update ON audit_logs;');
+    await queryRunner.query('DROP FUNCTION IF EXISTS audit_logs_block_mutation();');
     await queryRunner.dropTable('audit_logs', true);
-    await queryRunner.query(`DROP TYPE IF EXISTS "audit_logs_severity_enum"`);
-    await queryRunner.query(`DROP TYPE IF EXISTS "audit_logs_category_enum"`);
-    await queryRunner.query(`DROP TYPE IF EXISTS "audit_logs_action_enum"`);
+    await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_severity_enum"');
+    await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_category_enum"');
+    await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_action_enum"');
   }
 }

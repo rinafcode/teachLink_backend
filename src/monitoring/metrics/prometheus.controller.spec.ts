@@ -52,9 +52,7 @@ describe('PrometheusController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PrometheusController],
-      providers: [
-        { provide: MetricsCollectionService, useValue: mockMetricsCollectionService },
-      ],
+      providers: [{ provide: MetricsCollectionService, useValue: mockMetricsCollectionService }],
     }).compile();
 
     controller = module.get<PrometheusController>(PrometheusController);
@@ -124,9 +122,7 @@ describe('PrometheusController', () => {
       // Re-create the module so the controller reads the updated env var
       const module: TestingModule = await Test.createTestingModule({
         controllers: [PrometheusController],
-        providers: [
-          { provide: MetricsCollectionService, useValue: mockMetricsCollectionService },
-        ],
+        providers: [{ provide: MetricsCollectionService, useValue: mockMetricsCollectionService }],
       }).compile();
 
       controller = module.get<PrometheusController>(PrometheusController);

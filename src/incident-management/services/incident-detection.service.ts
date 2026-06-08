@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Incident, IncidentStatus, IncidentSeverity } from '../entities/incident.entity';
-import { AlertSeverity, IAlertEvent } from '../../monitoring/alerting/alerting.service';
+import { IAlertEvent } from '../../monitoring/alerting/alerting.service';
 
 export interface IncidentDetectionRule {
   name: string;
@@ -19,7 +19,8 @@ export const INCIDENT_DETECTION_RULES: IncidentDetectionRule[] = [
     name: 'database_failure_detection',
     alertPattern: /db_query_duration_ms|active_connections|database/i,
     incidentTitle: 'Database Performance Degradation Detected',
-    incidentDescription: 'Database query duration or active connections exceeded critical threshold',
+    incidentDescription:
+      'Database query duration or active connections exceeded critical threshold',
     runbookId: 'database-failure',
     requiredConsecutiveAlerts: 2,
   },
@@ -108,11 +109,7 @@ export class IncidentDetectionService {
     }
 
     // Create new incident
-    const incident = await this.createIncident(
-      detectionRule,
-      alert,
-      consecutiveCount,
-    );
+    const incident = await this.createIncident(detectionRule, alert, consecutiveCount);
 
     this.logger.warn(
       `Incident detected: ${incident.title} (ID: ${incident.id}, Severity: ${incident.severity})`,
@@ -175,9 +172,7 @@ export class IncidentDetectionService {
   /**
    * Find active incident matching a detection pattern
    */
-  private async findActiveIncidentByPattern(
-    patternName: string,
-  ): Promise<Incident | null> {
+  private async findActiveIncidentByPattern(patternName: string): Promise<Incident | null> {
     return this.incidentRepository.findOne({
       where: {
         runbookId: patternName,

@@ -125,7 +125,9 @@ export class ABTestingService {
     if (createExperimentDto.templateName) {
       const template = this.experimentTemplates.get(createExperimentDto.templateName);
       if (!template) {
-        throw new BadRequestException(`Unknown experiment template: ${createExperimentDto.templateName}`);
+        throw new BadRequestException(
+          `Unknown experiment template: ${createExperimentDto.templateName}`,
+        );
       }
       Object.assign(createExperimentDto, {
         trafficAllocation: template.trafficAllocation,
@@ -268,7 +270,8 @@ export class ABTestingService {
 
     // Check if any variant shows significant difference
     const hasSignificance = results.some(
-      (r) => r.isSignificant && r.confidence >= (experiment.properties?.significanceThreshold || 0.95),
+      (r) =>
+        r.isSignificant && r.confidence >= (experiment.properties?.significanceThreshold || 0.95),
     );
 
     let shouldStop = false;
@@ -276,7 +279,9 @@ export class ABTestingService {
 
     // Auto-stop logic
     if (experiment.properties?.autoStopOnSignificance && hasSignificance) {
-      const allMetMinSampleSize = results.every((r) => r.sampleSize >= experiment.minimumSampleSize);
+      const allMetMinSampleSize = results.every(
+        (r) => r.sampleSize >= experiment.minimumSampleSize,
+      );
 
       if (allMetMinSampleSize) {
         shouldStop = true;
@@ -299,11 +304,13 @@ export class ABTestingService {
   /**
    * Calculate statistical metrics for a variant
    */
-  private async calculateVariantStatistics(variant: IExperimentVariant): Promise<StatisticalResult> {
+  private async calculateVariantStatistics(
+    variant: IExperimentVariant,
+  ): Promise<StatisticalResult> {
     // Build stable experiment statistics from variant metadata.
     const hash = this.hashString(variant.id ?? variant.name ?? 'variant');
     const sampleSize = 1000 + (hash % 4000);
-    const conversionRate = Number(((0.05 + ((hash % 100) / 1000)) * 100).toFixed(4));
+    const conversionRate = Number(((0.05 + (hash % 100) / 1000) * 100).toFixed(4));
     const pValue = Number(((hash % 80) / 400).toFixed(4));
     const isSignificant = pValue < 0.05;
     const confidence = Number((1 - pValue).toFixed(4));
@@ -367,9 +374,12 @@ export class ABTestingService {
     }
 
     // Calculate average metrics
-    const avgConfidence = variantResults.reduce((sum, r) => sum + r.confidence, 0) / variantResults.length;
+    const avgConfidence =
+      variantResults.reduce((sum, r) => sum + r.confidence, 0) / variantResults.length;
     const avgUplift = variantResults.reduce((sum, r) => sum + r.uplift, 0) / variantResults.length;
-    const sampleSizeReached = variantResults.every((r) => r.sampleSize >= experiment.minimumSampleSize);
+    const sampleSizeReached = variantResults.every(
+      (r) => r.sampleSize >= experiment.minimumSampleSize,
+    );
 
     return {
       experiment,
@@ -397,7 +407,8 @@ export class ABTestingService {
       throw new BadRequestException('Experiment has no variants');
     }
 
-    const assignedVariant = experiment.variants[this.hashUserIdToVariant(userId, experiment.variants.length)];
+    const assignedVariant =
+      experiment.variants[this.hashUserIdToVariant(userId, experiment.variants.length)];
 
     this.logger.log(`User ${userId} assigned to variant ${assignedVariant.id}`);
 

@@ -44,7 +44,7 @@ export class ProcessPayoutDto {
 
   @ApiProperty({
     description: 'Payout amount',
-    example: 100.00,
+    example: 100.0,
   })
   @IsNumber()
   @IsPositive()

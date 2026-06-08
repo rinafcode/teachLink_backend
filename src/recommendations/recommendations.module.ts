@@ -9,10 +9,7 @@ import { ContentBasedFilteringService } from './content-based-filtering.service'
 import { RecommendationsController } from './recommendations.controller';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Course, Enrollment]),
-    CachingModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Course, Enrollment]), CachingModule],
   providers: [
     RecommendationEngineService,
     CollaborativeFilteringService,

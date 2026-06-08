@@ -56,9 +56,7 @@ describe('ModerationService', () => {
     });
 
     it('flags 3 or more URLs', async () => {
-      const result = await service.moderate(
-        'Visit http://a.com and http://b.com and http://c.com',
-      );
+      const result = await service.moderate('Visit http://a.com and http://b.com and http://c.com');
       expect(result.flags).toContain('spam');
     });
 
@@ -93,9 +91,7 @@ describe('ModerationService', () => {
 
     it('flags content when OpenAI returns flagged=true', async () => {
       const svc = await makeServiceWithKey('sk-test-key');
-      mockHttpService.post.mockReturnValue(
-        of({ data: { results: [{ flagged: true }] } }),
-      );
+      mockHttpService.post.mockReturnValue(of({ data: { results: [{ flagged: true }] } }));
       const result = await svc.moderate('some harmful content');
       expect(result.flags).toContain('openai_violation');
       expect(result.allowed).toBe(false);
@@ -103,9 +99,7 @@ describe('ModerationService', () => {
 
     it('allows content when OpenAI returns flagged=false', async () => {
       const svc = await makeServiceWithKey('sk-test-key');
-      mockHttpService.post.mockReturnValue(
-        of({ data: { results: [{ flagged: false }] } }),
-      );
+      mockHttpService.post.mockReturnValue(of({ data: { results: [{ flagged: false }] } }));
       const result = await svc.moderate('normal content here');
       expect(result.flags).not.toContain('openai_violation');
       expect(result.allowed).toBe(true);

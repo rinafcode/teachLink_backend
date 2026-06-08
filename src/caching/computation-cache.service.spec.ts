@@ -114,17 +114,13 @@ describe('ComputationCacheService', () => {
   it('deletes the correct cache key on invalidation', async () => {
     await service.invalidate('leaderboard:top-players', '10');
 
-    expect(caching.delete).toHaveBeenCalledWith(
-      expect.stringContaining('leaderboard:top-players'),
-    );
+    expect(caching.delete).toHaveBeenCalledWith(expect.stringContaining('leaderboard:top-players'));
   });
 
   // ── Performance metrics ────────────────────────────────────────────────────
 
   it('calculates hit rate correctly after mixed hits and misses', async () => {
-    caching.get
-      .mockResolvedValueOnce([{ id: 'user-1' }])
-      .mockResolvedValueOnce(undefined);
+    caching.get.mockResolvedValueOnce([{ id: 'user-1' }]).mockResolvedValueOnce(undefined);
 
     const factory = jest.fn().mockResolvedValue([]);
 

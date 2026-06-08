@@ -1,47 +1,47 @@
-describe(
-  "EmailTemplateService",
-  () => {
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { EmailTemplateService } from './email-template.service';
+import { EmailTemplate } from './email-template/email-template.entity';
 
-    it(
-      "renders variables correctly",
-      async () => {
+const mockTemplate = {
+  id: 'template-id',
+  subject: 'Hello {{firstName}}! Coupon: {{coupon}}',
+  body: 'Dear {{firstName}}, your coupon is {{coupon}}',
+};
 
-        const result =
-          await service.preview(
-            "template-id",
-            {
-              firstName:
-                "Muhammad",
-            },
-          );
+const mockRepository = {
+  findOne: jest.fn().mockResolvedValue(mockTemplate),
+  save: jest.fn(),
+  update: jest.fn(),
+};
 
-        expect(
-          result.body,
-        ).toContain(
-          "Muhammad",
-        );
-      },
-    );
+describe('EmailTemplateService', () => {
+  let service: EmailTemplateService;
 
-    it(
-      "returns rendered subject",
-      async () => {
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EmailTemplateService,
+        { provide: getRepositoryToken(EmailTemplate), useValue: mockRepository },
+      ],
+    }).compile();
 
-        const result =
-          await service.preview(
-            "template-id",
-            {
-              coupon:
-                "SAVE20",
-            },
-          );
+    service = module.get<EmailTemplateService>(EmailTemplateService);
+  });
 
-        expect(
-          result.subject,
-        ).not.toContain(
-          "{{coupon}}",
-        );
-      },
-    );
-  },
-);
+  it('renders variables correctly', async () => {
+    const result = await service.preview('template-id', {
+      firstName: 'Muhammad',
+    });
+
+    expect(result.body).toContain('Muhammad');
+  });
+
+  it('returns rendered subject', async () => {
+    const result = await service.preview('template-id', {
+      coupon: 'SAVE20',
+    });
+
+    expect(result.subject).not.toContain('{{coupon}}');
+  });
+});

@@ -1,21 +1,21 @@
 /**
  * Event Tracking SDK for TeachLink
- * 
+ *
  * This SDK provides a simple interface for tracking user events throughout the application.
  * Events are validated against schemas and batched for performance.
- * 
+ *
  * Usage:
  * ```typescript
  * import { EventTrackingSDK } from '@/analytics/sdk/event-tracking.sdk';
- * 
+ *
  * const sdk = new EventTrackingSDK(trackingService);
- * 
+ *
  * // Track a user signup
  * await sdk.trackSignup(userId, { source: 'organic' });
- * 
+ *
  * // Track a course purchase
  * await sdk.trackPurchase(userId, courseId, amount);
- * 
+ *
  * // Track a custom event
  * await sdk.trackCustom('engagement', 'button_click', { buttonId: 'hero-cta' });
  * ```
@@ -34,15 +34,27 @@ export interface IEventTracker {
     amount: number,
     metadata?: Record<string, any>,
   ): Promise<void>;
-  trackCourseEnroll(userId: string, courseId: string, metadata?: Record<string, any>): Promise<void>;
-  trackLessonComplete(userId: string, lessonId: string, metadata?: Record<string, any>): Promise<void>;
+  trackCourseEnroll(
+    userId: string,
+    courseId: string,
+    metadata?: Record<string, any>,
+  ): Promise<void>;
+  trackLessonComplete(
+    userId: string,
+    lessonId: string,
+    metadata?: Record<string, any>,
+  ): Promise<void>;
   trackQuizAttempt(
     userId: string,
     quizId: string,
     score: number,
     metadata?: Record<string, any>,
   ): Promise<void>;
-  trackCourseComplete(userId: string, courseId: string, metadata?: Record<string, any>): Promise<void>;
+  trackCourseComplete(
+    userId: string,
+    courseId: string,
+    metadata?: Record<string, any>,
+  ): Promise<void>;
   trackSearch(query: string, userId?: string, resultCount?: number): Promise<void>;
   trackWishlistAdd(userId: string, courseId: string): Promise<void>;
   trackReview(userId: string, courseId: string, rating: number): Promise<void>;

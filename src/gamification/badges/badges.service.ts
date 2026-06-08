@@ -156,11 +156,7 @@ export class BadgesService {
   @OnEvent(GAMIFICATION_EVENTS.ASSESSMENT_SUBMITTED)
   async onAssessmentSubmitted(event: AssessmentSubmittedEvent): Promise<void> {
     if (event.score === 100) {
-      await this.checkAndAwardBadges(
-        event.userId,
-        BadgeCriteriaType.ASSESSMENT_PERFECT_SCORE,
-        1,
-      );
+      await this.checkAndAwardBadges(event.userId, BadgeCriteriaType.ASSESSMENT_PERFECT_SCORE, 1);
     }
     await this.checkAndAwardBadges(
       event.userId,
@@ -176,11 +172,7 @@ export class BadgesService {
       BadgeCriteriaType.POINTS_REACHED,
       event.totalPoints,
     );
-    await this.checkAndAwardBadges(
-      event.userId,
-      BadgeCriteriaType.LEVEL_REACHED,
-      event.level,
-    );
+    await this.checkAndAwardBadges(event.userId, BadgeCriteriaType.LEVEL_REACHED, event.level);
   }
 
   @OnEvent(GAMIFICATION_EVENTS.REVIEW_WRITTEN)

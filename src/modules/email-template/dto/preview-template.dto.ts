@@ -1,11 +1,6 @@
-import {
-  IsObject,
-} from "class-validator";
+import { IsObject } from 'class-validator';
 
 export class PreviewTemplateDto {
   @IsObject()
-  variables: Record<
-    string,
-    string
-  >;
+  variables: Record<string, string>;
 }

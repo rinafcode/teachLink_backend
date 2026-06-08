@@ -1,9 +1,4 @@
-import {
-  DataSource,
-  EntitySubscriberInterface,
-  EventSubscriber,
-  QueryEvent,
-} from 'typeorm';
+import { DataSource, EntitySubscriberInterface, QueryEvent } from 'typeorm';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { MetricsCollectionService } from './metrics-collection.service';
@@ -45,7 +40,7 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
    * Called before a query is executed.
    * Records the high-resolution start timestamp.
    */
-  beforeQuery(event: QueryEvent): void {
+  beforeQuery(event: QueryEvent<any>): void {
     if (!event.query) return;
     const key = this.queryKey(event);
     this.queryStartTimes.set(key, process.hrtime.bigint());
@@ -55,7 +50,7 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
    * Called after a query completes (whether successful or not).
    * Computes elapsed time and records it as a Prometheus observation.
    */
-  afterQuery(event: QueryEvent): void {
+  afterQuery(event: QueryEvent<any>): void {
     if (!event.query) return;
     const key = this.queryKey(event);
     const start = this.queryStartTimes.get(key);
@@ -85,7 +80,7 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
    * events.  TypeORM does not guarantee a stable query ID, so we derive one
    * from the query text + parameter count.
    */
-  private queryKey(event: QueryEvent): string {
+  private queryKey(event: QueryEvent<any>): string {
     const paramCount = Array.isArray(event.parameters) ? event.parameters.length : 0;
     return `${event.query.slice(0, 120)}|${paramCount}|${process.hrtime.bigint()}`;
   }
@@ -113,10 +108,7 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
     // Strip TypeORM-style quoted identifiers
     const normalised = query.replace(/"/g, '').replace(/`/g, '');
 
-    const patterns = [
-      /(?:FROM|JOIN)\s+(\w+)/i,
-      /(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(\w+)/i,
-    ];
+    const patterns = [/(?:FROM|JOIN)\s+(\w+)/i, /(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(\w+)/i];
 
     for (const pattern of patterns) {
       const match = normalised.match(pattern);

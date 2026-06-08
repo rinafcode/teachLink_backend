@@ -22,19 +22,12 @@ export class CurrencyService {
    * @param toCurrency The target currency code (ISO 4217)
    * @returns The converted amount
    */
-  async convertCurrency(
-    amount: number,
-    fromCurrency: string,
-    toCurrency: string,
-  ): Promise<number> {
+  async convertCurrency(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
     if (fromCurrency === toCurrency) {
       return amount;
     }
 
-    const exchangeRate = await this.exchangeRateService.getExchangeRate(
-      fromCurrency,
-      toCurrency,
-    );
+    const exchangeRate = await this.exchangeRateService.getExchangeRate(fromCurrency, toCurrency);
 
     return Number((amount * exchangeRate).toFixed(2));
   }
@@ -54,11 +47,7 @@ export class CurrencyService {
     const conversions: Record<string, number> = {};
 
     for (const currency of toCurrencies) {
-      conversions[currency] = await this.convertCurrency(
-        amount,
-        fromCurrency,
-        currency,
-      );
+      conversions[currency] = await this.convertCurrency(amount, fromCurrency, currency);
     }
 
     return conversions;
@@ -71,20 +60,16 @@ export class CurrencyService {
    * @param locale The locale for formatting
    * @returns Formatted price string
    */
-  formatPrice(
-    amount: number,
-    currency: string,
-    locale: string = 'en-US',
-  ): string {
+  formatPrice(amount: number, currency: string, locale: string = 'en-US'): string {
     try {
       const formatter = new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: currency,
+        currency,
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
       return formatter.format(amount);
-    } catch (error) {
+    } catch (_error) {
       return `${currency} ${amount.toFixed(2)}`;
     }
   }
@@ -102,7 +87,7 @@ export class CurrencyService {
     const currencyMap: Record<string, { symbol: string; name: string }> = {
       USD: { symbol: '$', name: 'US Dollar' },
       EUR: { symbol: '€', name: 'Euro' },
-      GBP: { symbol: '£', name:'British Pound' },
+      GBP: { symbol: '£', name: 'British Pound' },
       JPY: { symbol: '¥', name: 'Japanese Yen' },
       INR: { symbol: '₹', name: 'Indian Rupee' },
       CAD: { symbol: 'C$', name: 'Canadian Dollar' },
@@ -139,9 +124,7 @@ export class CurrencyService {
   roundAmount(amount: number, currency: string = 'USD'): number {
     // Most currencies use 2 decimal places, except JPY, KRW, etc. which use 0
     const zeroDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP'];
-    const decimals = zeroDecimalCurrencies.includes(currency.toUpperCase())
-      ? 0
-      : 2;
+    const decimals = zeroDecimalCurrencies.includes(currency.toUpperCase()) ? 0 : 2;
 
     return Number(amount.toFixed(decimals));
   }

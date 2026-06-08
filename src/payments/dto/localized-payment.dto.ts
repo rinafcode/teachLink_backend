@@ -1,4 +1,13 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsPositive, IsUUID, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsPositive,
+  IsUUID,
+  Min,
+  Max,
+} from 'class-validator';
 import { PaymentMethod } from '../entities/payment.entity';
 
 /**

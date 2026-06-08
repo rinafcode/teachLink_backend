@@ -39,4 +39,3 @@ export class ListContentReportsQueryDto {
   @IsOptional()
   limit?: number;
 }
-

@@ -46,7 +46,10 @@ export class NotificationsService {
     private readonly preferencesService: PreferencesService,
     private readonly templateService: NotificationTemplateService,
   ) {
-    const batchWindowSetting = this.configService.get<string | number>('NOTIFICATION_BATCH_WINDOW_MS', `${DEFAULT_BATCH_WINDOW_MS}`);
+    const batchWindowSetting = this.configService.get<string | number>(
+      'NOTIFICATION_BATCH_WINDOW_MS',
+      `${DEFAULT_BATCH_WINDOW_MS}`,
+    );
     this.batchWindowMs = Number(batchWindowSetting) || DEFAULT_BATCH_WINDOW_MS;
   }
 
@@ -97,7 +100,7 @@ export class NotificationsService {
       groups.set(key, group);
     });
 
-    for (const [key, notifications] of groups) {
+    for (const [, notifications] of groups) {
       const type = notifications[0].type;
       const { intervalMs } = BATCH_CONFIG[type];
       const oldest = notifications[0];
@@ -130,10 +133,15 @@ export class NotificationsService {
 
     await this.queueService.publishToTopic(batchNotification);
     const ids = notifications.map((notification) => notification.id);
-    await this.notificationRepository.update({ id: In(ids) }, { status: NotificationStatus.SENT, lastAttemptAt: new Date() });
+    await this.notificationRepository.update(
+      { id: In(ids) },
+      { status: NotificationStatus.SENT, lastAttemptAt: new Date() },
+    );
     await this.notificationRepository.save(batchNotification);
 
-    this.logger.log(`Flushed ${notifications.length} notifications into a batch for user ${first.userId}`);
+    this.logger.log(
+      `Flushed ${notifications.length} notifications into a batch for user ${first.userId}`,
+    );
   }
 
   private async publish(notification: Notification, bypassBatch = false): Promise<void> {
@@ -192,7 +200,11 @@ export class NotificationsService {
 
   async create(dto: CreateNotificationDto): Promise<Notification | null> {
     const eventType = (dto.metadata?.eventType as string) || 'general';
-    const allowed = await this.shouldDeliver(dto.userId, dto.type ?? NotificationType.IN_APP, eventType);
+    const allowed = await this.shouldDeliver(
+      dto.userId,
+      dto.type ?? NotificationType.IN_APP,
+      eventType,
+    );
     if (!allowed) {
       this.logger.debug(`Notification suppressed for user ${dto.userId} event ${eventType}`);
       return null;
@@ -315,7 +327,10 @@ export class NotificationsService {
   private channelPreferenceKey(
     type: NotificationType,
   ): 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled' {
-    const map: Record<NotificationType, 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled'> = {
+    const map: Record<
+      NotificationType,
+      'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled'
+    > = {
       [NotificationType.EMAIL]: 'emailEnabled',
       [NotificationType.PUSH]: 'pushEnabled',
       [NotificationType.IN_APP]: 'inAppEnabled',

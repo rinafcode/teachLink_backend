@@ -1,55 +1,54 @@
-describe(
-  "GdprService",
-  () => {
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { GdprService } from '../gdpr.service';
+import { UserConsent } from '../entities/user-consent.entity';
 
-    it(
-      "exports user data",
-      async () => {
+const mockUsersService = {
+  findById: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
+  update: jest.fn().mockResolvedValue(undefined),
+};
 
-        const result =
-          await service.exportUserData(
-            "user-1",
-          );
+const mockAuditService = {
+  log: jest.fn().mockResolvedValue(undefined),
+};
 
-        expect(
-          result.profile,
-        ).toBeDefined();
-      },
-    );
+const mockConsentRepository = {
+  find: jest.fn().mockResolvedValue([]),
+  create: jest.fn((dto) => ({ ...dto, id: 'consent-1' })),
+  save: jest.fn((consent) => Promise.resolve(consent)),
+};
 
-    it(
-      "erases user data",
-      async () => {
+describe('GdprService', () => {
+  let service: GdprService;
 
-        const result =
-          await service.eraseUserData(
-            "user-1",
-          );
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        GdprService,
+        { provide: 'UsersService', useValue: mockUsersService },
+        { provide: 'AuditService', useValue: mockAuditService },
+        { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepository },
+      ],
+    }).compile();
 
-        expect(
-          result.success,
-        ).toBe(true);
-      },
-    );
+    service = module.get<GdprService>(GdprService);
+  });
 
-    it(
-      "stores consent changes",
-      async () => {
+  it('exports user data', async () => {
+    const result = await service.exportUserData('user-1');
+    expect(result.profile).toBeDefined();
+  });
 
-        const result =
-          await service.updateConsent(
-            "user-1",
-            {
-              consentType:
-                "MARKETING",
-              granted: true,
-            },
-          );
+  it('erases user data', async () => {
+    const result = await service.eraseUserData('user-1');
+    expect(result.success).toBe(true);
+  });
 
-        expect(
-          result.granted,
-        ).toBe(true);
-      },
-    );
-  },
-);
+  it('stores consent changes', async () => {
+    const result = await service.updateConsent('user-1', {
+      consentType: 'MARKETING',
+      granted: true,
+    });
+    expect(result.granted).toBe(true);
+  });
+});
