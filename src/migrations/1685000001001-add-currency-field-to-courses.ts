@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableColumn, TableIndex } from 'typeorm';
 
 /**
  * Migration: Add currency field to courses table
@@ -27,10 +27,10 @@ export class AddCurrencyFieldToCourses1685000001001 implements MigrationInterfac
       // Add index
       await queryRunner.createIndex(
         'course',
-        {
+        new TableIndex({
           columnNames: ['currency'],
           name: 'IDX_course_currency',
-        },
+        }),
       );
     }
   }
@@ -43,9 +43,7 @@ export class AddCurrencyFieldToCourses1685000001001 implements MigrationInterfac
     }
 
     // Drop index first
-    const currencyIndex = table.indices.find(
-      (i) => i.name === 'IDX_course_currency',
-    );
+    const currencyIndex = table.indices.find((i) => i.name === 'IDX_course_currency');
     if (currencyIndex) {
       await queryRunner.dropIndex('course', currencyIndex);
     }

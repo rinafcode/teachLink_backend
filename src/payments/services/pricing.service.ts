@@ -34,10 +34,7 @@ export class PricingService {
       userCurrency,
     );
 
-    const exchangeRate = await this.exchangeRateService.getExchangeRate(
-      baseCurrency,
-      userCurrency,
-    );
+    const exchangeRate = await this.exchangeRateService.getExchangeRate(baseCurrency, userCurrency);
 
     const formattedPrice = this.currencyService.formatPrice(
       convertedAmount,
@@ -82,16 +79,10 @@ export class PricingService {
       paymentCurrency,
     );
 
-    const formattedPrice = this.currencyService.formatPrice(
-      convertedAmount,
-      paymentCurrency,
-    );
+    const formattedPrice = this.currencyService.formatPrice(convertedAmount, paymentCurrency);
 
     // Round to currency precision
-    const roundedPrice = this.currencyService.roundAmount(
-      convertedAmount,
-      paymentCurrency,
-    );
+    const roundedPrice = this.currencyService.roundAmount(convertedAmount, paymentCurrency);
 
     return {
       basePrice,
@@ -118,11 +109,7 @@ export class PricingService {
     const pricingMap: Record<string, PricingDto> = {};
 
     for (const currency of targetCurrencies) {
-      pricingMap[currency] = await this.getPricingForPayment(
-        basePrice,
-        baseCurrency,
-        currency,
-      );
+      pricingMap[currency] = await this.getPricingForPayment(basePrice, baseCurrency, currency);
     }
 
     return pricingMap;

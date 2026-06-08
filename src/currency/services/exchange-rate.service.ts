@@ -57,10 +57,7 @@ export class ExchangeRateService implements OnModuleInit {
    * @param toCurrency Target currency code
    * @returns Exchange rate
    */
-  async getExchangeRate(
-    fromCurrency: string,
-    toCurrency: string,
-  ): Promise<number> {
+  async getExchangeRate(fromCurrency: string, toCurrency: string): Promise<number> {
     const from = fromCurrency.toUpperCase();
     const to = toCurrency.toUpperCase();
 
@@ -93,7 +90,7 @@ export class ExchangeRateService implements OnModuleInit {
    */
   async refreshExchangeRates(): Promise<void> {
     try {
-      const apiKey = this.configService.get<string>(
+      const _apiKey = this.configService.get<string>(
         'EXCHANGE_RATE_API_KEY',
         'fixer', // Default to fixer.io free tier
       );
@@ -115,10 +112,7 @@ export class ExchangeRateService implements OnModuleInit {
           this.logger.log('Exchange rates updated successfully');
         }
       } catch (apiError) {
-        this.logger.warn(
-          'Failed to fetch exchange rates from API, using fallback rates',
-          apiError,
-        );
+        this.logger.warn('Failed to fetch exchange rates from API, using fallback rates', apiError);
         this.exchangeRates = this.fallbackRates;
         this.lastUpdated = new Date();
       }
@@ -151,7 +145,7 @@ export class ExchangeRateService implements OnModuleInit {
    * @param date The date for historical rates
    * @returns Exchange rates for that date
    */
-  async getHistoricalRates(date: Date): Promise<ExchangeRates> {
+  async getHistoricalRates(_date: Date): Promise<ExchangeRates> {
     // For production, integrate with a service that supports historical rates
     // For now, return current rates
     return this.getAvailableRates();

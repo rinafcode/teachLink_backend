@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ResourceNotFoundException, ForbiddenOperationException } from '../common/exceptions/app.exceptions';
+import {
+  ResourceNotFoundException,
+  ForbiddenOperationException,
+} from '../common/exceptions/app.exceptions';
 
 import { CoursesService } from './courses.service';
 import { Course, CourseStatus } from './entities/course.entity';
@@ -183,7 +186,9 @@ describe('CoursesService - Bulk Operations', () => {
     it('should throw when operation does not exist', async () => {
       bulkOpRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.undoBulkOperation('missing', owner)).rejects.toThrow(ResourceNotFoundException);
+      await expect(service.undoBulkOperation('missing', owner)).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
     it('should reject unauthorized users', async () => {

@@ -272,14 +272,18 @@ describe('AssessmentsService', () => {
   describe('submitAssessment', () => {
     it('throws NotFoundException when attempt is not found', async () => {
       attemptRepo.findOne.mockResolvedValue(null);
-      await expect(service.submitAssessment('missing', [])).rejects.toThrow(ResourceNotFoundException);
+      await expect(service.submitAssessment('missing', [])).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
     it('throws NotFoundException when attempt has no questions', async () => {
       attemptRepo.findOne.mockResolvedValue(
         makeAttempt({ assessment: { ...makeAssessment(), questions: undefined } }),
       );
-      await expect(service.submitAssessment('attempt-1', [])).rejects.toThrow(ResourceNotFoundException);
+      await expect(service.submitAssessment('attempt-1', [])).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
     it('marks attempt TIMED_OUT and fires timeout analytics when past deadline', async () => {

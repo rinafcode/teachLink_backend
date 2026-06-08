@@ -50,7 +50,7 @@ describe('RunbookExecutionService', () => {
       const mockExecution: RunbookExecution = {
         id: 'execution-1',
         incidentId: 'incident-1',
-        incident: incident,
+        incident,
         runbookName: 'database-failure',
         runbookPath: '/path/to/database-failure.md',
         status: RunbookExecutionStatus.COMPLETED,
@@ -111,7 +111,7 @@ describe('RunbookExecutionService', () => {
       const mockExecution: RunbookExecution = {
         id: 'execution-2',
         incidentId: 'incident-1',
-        incident: incident,
+        incident,
         runbookName: 'unknown-runbook',
         runbookPath: '/path/to/unknown-runbook.md',
         status: RunbookExecutionStatus.FAILED,

@@ -9,10 +9,7 @@ import { PricingService } from './services/pricing.service';
 import { PricingController } from './controllers/pricing.controller';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund]),
-    CurrencyModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund]), CurrencyModule],
   providers: [PricingService],
   controllers: [PricingController],
   exports: [PricingService, CurrencyModule],

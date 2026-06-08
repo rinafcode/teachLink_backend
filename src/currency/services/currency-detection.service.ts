@@ -187,7 +187,7 @@ export class CurrencyDetectionService {
       'united states': 'US',
       'united states of america': 'US',
       'united kingdom': 'GB',
-      'england': 'GB',
+      england: 'GB',
       canada: 'CA',
       mexico: 'MX',
       germany: 'DE',
@@ -249,10 +249,7 @@ export class CurrencyDetectionService {
    * @returns True if location can be mapped to currency
    */
   isSupportedLocation(location: UserLocation): boolean {
-    if (
-      location.countryCode &&
-      this.countryToCurrencyMap[location.countryCode]
-    ) {
+    if (location.countryCode && this.countryToCurrencyMap[location.countryCode]) {
       return true;
     }
 

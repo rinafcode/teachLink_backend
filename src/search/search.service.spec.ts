@@ -65,9 +65,7 @@ describe('SearchService', () => {
 
   it('should build query with filters and return results', async () => {
     mockCache.get.mockResolvedValue(undefined);
-    const mockCourses = [
-      { id: '1', title: 'Test Course', price: 50 },
-    ];
+    const mockCourses = [{ id: '1', title: 'Test Course', price: 50 }];
     mockQueryBuilder.getManyAndCount.mockResolvedValue([mockCourses, 1]);
 
     const result = await service.search(

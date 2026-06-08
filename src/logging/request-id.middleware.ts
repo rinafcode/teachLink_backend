@@ -15,7 +15,13 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
   const started = Date.now();
   const remoteAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  console.info({ event: 'request_start', method: req.method, url: req.originalUrl || req.url, requestId, remoteAddr });
+  console.info({
+    event: 'request_start',
+    method: req.method,
+    url: req.originalUrl || req.url,
+    requestId,
+    remoteAddr,
+  });
 
   res.on('finish', () => {
     const duration = Date.now() - started;

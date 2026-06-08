@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CurrencyService } from '../../currency/services/currency.service';
 import { CurrencyDetectionService } from '../../currency/services/currency-detection.service';
-import { PricingService } from '../services/pricing.service';
+import { PricingService } from '../../payments/services/pricing.service';
 import { LocalizedPriceDto } from '../../currency/dtos/currency.dto';
 
 export interface CourseWithLocalizedPricing {
@@ -79,9 +79,7 @@ export class LocalizedCourseService {
     userLocale: string = 'en-US',
   ): Promise<CourseWithLocalizedPricing[]> {
     return Promise.all(
-      courses.map((course) =>
-        this.getLocalizedCoursePrice(course, userCurrency, userLocale),
-      ),
+      courses.map((course) => this.getLocalizedCoursePrice(course, userCurrency, userLocale)),
     );
   }
 
@@ -101,9 +99,7 @@ export class LocalizedCourseService {
     },
     userLocale: string = 'en-US',
   ): Promise<CourseWithLocalizedPricing> {
-    const userCurrency = this.currencyDetectionService.detectCurrency(
-      userLocation,
-    );
+    const userCurrency = this.currencyDetectionService.detectCurrency(userLocation);
     return this.getLocalizedCoursePrice(course, userCurrency, userLocale);
   }
 
@@ -143,17 +139,13 @@ export class LocalizedCourseService {
    * @param regions Array of country codes
    * @returns Pricing for each region
    */
-  async getPricingByRegion(
-    course: any,
-    regions: string[],
-  ): Promise<Record<string, any>> {
+  async getPricingByRegion(course: any, regions: string[]): Promise<Record<string, any>> {
     const baseCurrency = course.currency || 'USD';
     const regionalCurrencies: Record<string, string> = {};
 
     // Map regions to currencies
     for (const region of regions) {
-      const currency =
-        this.currencyDetectionService.getSupportedCountries()[region];
+      const currency = this.currencyDetectionService.getSupportedCountries()[region];
       if (currency) {
         regionalCurrencies[region] = currency;
       }
