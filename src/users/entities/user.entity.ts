@@ -8,18 +8,25 @@ import {
   Index,
   OneToMany,
   VersionColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
+import { Role } from '../../rbac/entities/role.entity';
+
 export enum UserRole {
-    STUDENT = 'student',
-    TEACHER = 'teacher',
-    ADMIN = 'admin'
+  STUDENT = 'student',
+  TEACHER = 'teacher',
+  INSTRUCTOR = 'instructor',
+  MODERATOR = 'moderator',
+  ADMIN = 'admin',
 }
+
 export enum UserStatus {
-    ACTIVE = 'active',
-    INACTIVE = 'inactive',
-    SUSPENDED = 'suspended'
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
 }
 
 /**
@@ -49,13 +56,6 @@ export class User {
 
   @Column()
   lastName: string;
-
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.STUDENT,
-  })
-  role: UserRole;
 
   @Column({
     type: 'enum',
@@ -95,24 +95,16 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
-  // Location and Currency Fields
-  @Column({ nullable: true })
-  @Index()
-  country?: string; // Country name or full name
+  @ManyToMany(() => Role, (role) => role.users)
+  @JoinTable()
+  roles: Role[];
 
-  @Column({ nullable: true, length: 2 })
-  @Index()
-  countryCode?: string; // ISO 3166-1 alpha-2 country code
-
-  @Column({ nullable: true })
-  timezone?: string; // IANA timezone identifier
-
-  @Column({ nullable: true })
-  city?: string;
-
-  @Column({ nullable: true, length: 3, default: 'USD' })
-  @Index()
-  preferredCurrency?: string; // ISO 4217 currency code
+  get role(): UserRole {
+    if (this.roles && this.roles.length > 0) {
+      return this.roles[0].name as UserRole;
+    }
+    return UserRole.STUDENT;
+  }
 
   @OneToMany(() => Course, (course) => course.instructor)
   courses: Course[];

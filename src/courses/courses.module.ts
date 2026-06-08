@@ -1,19 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CoursesService } from './courses.service';
+import { EnrollmentsService } from './enrollments.service';
+import { CoursesController } from './courses.controller';
+import { EnrollmentsController } from './enrollments.controller';
 import { Course } from './entities/course.entity';
-import { CourseModule as CourseModuleEntity } from './entities/course-module.entity';
 import { Enrollment } from './entities/enrollment.entity';
-import { LocalizedCourseService } from './services/localized-course.service';
-import { CurrencyModule } from '../currency/currency.module';
-import { PaymentsModule } from '../payments/payments.module';
+import { CourseReview } from './entities/course-review.entity';
+import { CourseModule } from './entities/course-module.entity';
+import { BulkOperation } from './entities/bulk-operation.entity';
+import { CachingModule } from '../caching/caching.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Course, CourseModuleEntity, Enrollment]),
-    CurrencyModule,
-    PaymentsModule,
+    TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule, BulkOperation]),
+    CachingModule,
   ],
-  providers: [LocalizedCourseService],
-  exports: [LocalizedCourseService],
+  providers: [CoursesService, EnrollmentsService],
+  controllers: [CoursesController, EnrollmentsController],
+  exports: [CoursesService, EnrollmentsService],
 })
 export class CoursesModule {}

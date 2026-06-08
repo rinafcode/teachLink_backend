@@ -2,88 +2,224 @@ import { ConfigService } from '@nestjs/config';
 import Redis, { RedisOptions } from 'ioredis';
 import { redisStore } from 'cache-manager-redis-store';
 
-let sharedRedisClient: Redis | null = null;
+/**
+ * =====================================================
+ * 🔧 CORE TYPES
+ * =====================================================
+ */
 
-const parseNumber = (value: string | undefined, fallback: number): number => {
-  const parsed = parseInt(value || '', 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
+type NumericConfig = {
+  key: string;
+  fallback: number;
 };
 
-const getConfigValue = (key: string, fallback: string, configService?: ConfigService): string => {
-  if (configService) {
-    return configService.get<string>(key) || fallback;
+type StringConfig = {
+  key: string;
+  fallback: string;
+};
+
+/**
+ * =====================================================
+ * 🧠 CONFIG UTILITY CLASS (centralized logic)
+ * =====================================================
+ */
+class EnvReader {
+  constructor(private readonly configService?: ConfigService) {}
+
+  getString({ key, fallback }: StringConfig): string {
+    if (this.configService) {
+      return this.configService.get<string>(key) || fallback;
+    }
+    return process.env[key] || fallback;
   }
 
-  return process.env[key] || fallback;
+  getNumber({ key, fallback }: NumericConfig): number {
+    const value = this.getString({ key, fallback: String(fallback) });
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? fallback : parsed;
+  }
+
+  getBoolean(key: string, fallback: boolean): boolean {
+    const value = this.getString({ key, fallback: String(fallback) });
+    return value.toLowerCase() === 'true';
+  }
+}
+
+/**
+ * =====================================================
+ * 🧱 REDIS CLIENT SINGLETON MANAGER
+ * =====================================================
+ */
+
+class RedisClientManager {
+  private static instance: Redis | null = null;
+
+  static get(config: ConfigService | undefined): Redis {
+    if (this.instance && this.instance.status !== 'end') {
+      return this.instance;
+    }
+
+    const env = new EnvReader(config);
+
+    const retryBase = env.getNumber({
+      key: 'REDIS_RETRY_BASE_DELAY_MS',
+      fallback: 100,
+    });
+
+    const retryMax = env.getNumber({
+      key: 'REDIS_RETRY_MAX_DELAY_MS',
+      fallback: 2000,
+    });
+
+    const retryAttempts = env.getNumber({
+      key: 'REDIS_RETRY_ATTEMPTS',
+      fallback: 10,
+    });
+
+    const options: RedisOptions = {
+      host: env.getString({ key: 'REDIS_HOST', fallback: 'localhost' }),
+      port: env.getNumber({ key: 'REDIS_PORT', fallback: 6379 }),
+
+      maxRetriesPerRequest: env.getNumber({
+        key: 'REDIS_MAX_RETRIES_PER_REQUEST',
+        fallback: 3,
+      }),
+
+      enableReadyCheck: true,
+      lazyConnect: false,
+      enableAutoPipelining: true,
+
+      connectTimeout: env.getNumber({
+        key: 'REDIS_CONNECT_TIMEOUT_MS',
+        fallback: 10000,
+      }),
+
+      keepAlive: env.getNumber({
+        key: 'REDIS_KEEPALIVE_MS',
+        fallback: 30000,
+      }),
+
+      retryStrategy: (attempt: number) => {
+        if (attempt > retryAttempts) return null;
+
+        const delay = Math.min(attempt * retryBase, retryMax);
+        return delay;
+      },
+    };
+
+    this.instance = new Redis(options);
+
+    this.instance.on('error', (err) => {
+      // centralized safe error handling
+      // could plug in logger here
+    });
+
+    return this.instance;
+  }
+}
+
+/**
+ * =====================================================
+ * 🔴 PUBLIC API (Redis)
+ * =====================================================
+ */
+
+export const getSharedRedisClient = (
+  configService?: ConfigService,
+): Redis => {
+  return RedisClientManager.get(configService);
 };
 
-export const getRedisOptions = (configService?: ConfigService): RedisOptions => {
-  const retryBaseDelayMs = parseNumber(
-    getConfigValue('REDIS_RETRY_BASE_DELAY_MS', '100', configService),
-    100,
-  );
-  const retryMaxDelayMs = parseNumber(
-    getConfigValue('REDIS_RETRY_MAX_DELAY_MS', '2000', configService),
-    2000,
-  );
+/**
+ * =====================================================
+ * 📦 CACHE CONFIG (STRUCTURED)
+ * =====================================================
+ */
+
+export const createCacheConfig = (configService?: ConfigService) => {
+  const env = new EnvReader(configService);
 
   return {
-    host: getConfigValue('REDIS_HOST', 'localhost', configService),
-    port: parseNumber(getConfigValue('REDIS_PORT', '6379', configService), 6379),
-    maxRetriesPerRequest: parseNumber(
-      getConfigValue('REDIS_MAX_RETRIES_PER_REQUEST', '3', configService),
-      3,
-    ),
-    enableReadyCheck: true,
-    lazyConnect: false,
-    enableAutoPipelining: true,
-    connectTimeout: parseNumber(
-      getConfigValue('REDIS_CONNECT_TIMEOUT_MS', '10000', configService),
-      10000,
-    ),
-    keepAlive: parseNumber(getConfigValue('REDIS_KEEPALIVE_MS', '30000', configService), 30000),
-    retryStrategy: (attempt): number | null => {
-      if (attempt > parseNumber(getConfigValue('REDIS_RETRY_ATTEMPTS', '10', configService), 10)) {
-        return null;
-      }
+    isGlobal: true,
+    store: redisStore,
 
-      return Math.min(attempt * retryBaseDelayMs, retryMaxDelayMs);
-    },
+    host: env.getString({ key: 'REDIS_HOST', fallback: 'localhost' }),
+    port: env.getNumber({ key: 'REDIS_PORT', fallback: 6379 }),
+
+    ttl: env.getNumber({ key: 'REDIS_TTL', fallback: 60 }),
   };
 };
 
-export const getSharedRedisClient = (configService?: ConfigService): Redis => {
-  if (sharedRedisClient && sharedRedisClient.status !== 'end') {
-    return sharedRedisClient;
-  }
+/**
+ * =====================================================
+ * 🔐 SESSION CONFIG (CLEAN STRUCTURE)
+ * =====================================================
+ */
 
-  sharedRedisClient = new Redis(getRedisOptions(configService));
-  sharedRedisClient.on('error', () => {
-    // Prevent unhandled error events when Redis is temporarily unavailable.
-  });
+export const createSessionConfig = (configService?: ConfigService) => {
+  const env = new EnvReader(configService);
 
-  return sharedRedisClient;
+  return {
+    secret: env.getString({
+      key: 'SESSION_SECRET',
+      fallback: 'teachlink-session-secret',
+    }),
+
+    name: env.getString({
+      key: 'SESSION_COOKIE_NAME',
+      fallback: 'teachlink.sid',
+    }),
+
+    prefix: env.getString({
+      key: 'SESSION_PREFIX',
+      fallback: 'sess:',
+    }),
+
+    ttlSeconds: env.getNumber({
+      key: 'SESSION_TTL_SECONDS',
+      fallback: 604800,
+    }),
+
+    cookieMaxAgeMs: env.getNumber({
+      key: 'SESSION_COOKIE_MAX_AGE_MS',
+      fallback: 604800000,
+    }),
+
+    secureCookies:
+      process.env.NODE_ENV === 'production',
+
+    stickySessionsRequired: env.getBoolean(
+      'STICKY_SESSIONS_REQUIRED',
+      true,
+    ),
+
+    trustProxy: env.getBoolean('TRUST_PROXY', true),
+  };
 };
 
-export const cacheConfig = {
-  isGlobal: true,
-  store: redisStore,
-  host: getConfigValue('REDIS_HOST', 'localhost'),
-  port: parseNumber(getConfigValue('REDIS_PORT', '6379'), 6379),
-  ttl: parseInt(process.env.REDIS_TTL || '60', 10),
-};
-export const sessionConfig = {
-    secret: process.env.SESSION_SECRET || 'teachlink-session-secret',
-    name: process.env.SESSION_COOKIE_NAME || 'teachlink.sid',
-    prefix: process.env.SESSION_PREFIX || 'sess:',
-    ttlSeconds: parseInt(process.env.SESSION_TTL_SECONDS || '604800', 10),
-    cookieMaxAgeMs: parseInt(process.env.SESSION_COOKIE_MAX_AGE_MS || '604800000', 10),
-    secureCookies: process.env.NODE_ENV === 'production',
-    stickySessionsRequired: (process.env.STICKY_SESSIONS_REQUIRED || 'true') === 'true',
-    trustProxy: (process.env.TRUST_PROXY || 'true') === 'true',
-};
-export const distributedLockConfig = {
-    ttlMs: parseInt(process.env.SESSION_LOCK_TTL_MS || '5000', 10),
-    maxRetries: parseInt(process.env.SESSION_LOCK_MAX_RETRIES || '5', 10),
-    retryDelayMs: parseInt(process.env.SESSION_LOCK_RETRY_DELAY_MS || '120', 10),
+/**
+ * =====================================================
+ * 🔒 DISTRIBUTED LOCK CONFIG
+ * =====================================================
+ */
+
+export const createDistributedLockConfig = (configService?: ConfigService) => {
+  const env = new EnvReader(configService);
+
+  return {
+    ttlMs: env.getNumber({
+      key: 'SESSION_LOCK_TTL_MS',
+      fallback: 5000,
+    }),
+
+    maxRetries: env.getNumber({
+      key: 'SESSION_LOCK_MAX_RETRIES',
+      fallback: 5,
+    }),
+
+    retryDelayMs: env.getNumber({
+      key: 'SESSION_LOCK_RETRY_DELAY_MS',
+      fallback: 120,
+    }),
+  };
 };

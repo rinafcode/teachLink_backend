@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseUUIDPipe, HttpCode, HttpStatus, } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { TemplateManagementService } from './template-management.service';
 import { CreateTemplateDto } from '../dto/create-template.dto';
@@ -10,6 +22,7 @@ import { EmailTemplate } from '../entities/email-template.entity';
  */
 @ApiTags('Email Marketing - Templates')
 @ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
 @Controller('email-marketing/templates')
 export class TemplateController {
   constructor(private readonly templateService: TemplateManagementService) {}
@@ -36,6 +49,7 @@ export class TemplateController {
   @ApiOperation({ summary: 'Get all email templates' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({ status: 200, description: 'List of email templates' })
   async findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
     return this.templateService.findAll(page, limit);
   }
@@ -60,6 +74,8 @@ export class TemplateController {
    */
   @Put(':id')
   @ApiOperation({ summary: 'Update a template' })
+  @ApiResponse({ status: 200, description: 'Template updated successfully' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
@@ -74,6 +90,8 @@ export class TemplateController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a template' })
+  @ApiResponse({ status: 204, description: 'Template deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.templateService.remove(id);
   }
@@ -85,6 +103,8 @@ export class TemplateController {
    */
   @Post(':id/duplicate')
   @ApiOperation({ summary: 'Duplicate a template' })
+  @ApiResponse({ status: 201, description: 'Template duplicated successfully' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async duplicate(@Param('id', ParseUUIDPipe) id: string): Promise<EmailTemplate> {
     return this.templateService.duplicate(id);
   }
@@ -97,6 +117,8 @@ export class TemplateController {
    */
   @Post(':id/preview')
   @ApiOperation({ summary: 'Preview a template with sample data' })
+  @ApiResponse({ status: 201, description: 'Rendered template preview' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async preview(@Param('id', ParseUUIDPipe) id: string, @Body() sampleData?: Record<string, any>) {
     return this.templateService.previewTemplate(id, sampleData);
   }
@@ -109,6 +131,8 @@ export class TemplateController {
    */
   @Post(':id/render')
   @ApiOperation({ summary: 'Render a template with provided variables' })
+  @ApiResponse({ status: 201, description: 'Rendered template output' })
+  @ApiResponse({ status: 404, description: 'Template not found' })
   async render(@Param('id', ParseUUIDPipe) id: string, @Body() variables: Record<string, any>) {
     return this.templateService.renderTemplate(id, variables);
   }

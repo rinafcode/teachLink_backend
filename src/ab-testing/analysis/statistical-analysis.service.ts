@@ -40,6 +40,8 @@ export class StatisticalAnalysisService {
   async calculateStatisticalSignificance(experimentId: string): Promise<ISignificanceResults> {
     this.logger.log(`Calculating statistical significance for experiment: ${experimentId}`);
 
+    // Calculate whether any variant differs from the control by a statistically
+    // significant margin based on confidence level and metric variance.
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
       relations: ['variants', 'variants.metrics'],
@@ -245,7 +247,10 @@ export class StatisticalAnalysisService {
     return Math.max(0, Math.min(1, 1 / (1 + Math.exp(-zScore + 2))));
   }
 
-  private calculateCohensD(controlMetrics: VariantMetric[], variantMetrics: VariantMetric[]): number {
+  private calculateCohensD(
+    controlMetrics: VariantMetric[],
+    variantMetrics: VariantMetric[],
+  ): number {
     if (controlMetrics.length === 0 || variantMetrics.length === 0) return 0;
 
     const controlMean =
@@ -257,12 +262,16 @@ export class StatisticalAnalysisService {
     const denomV = Math.max(variantMetrics.length - 1, 1);
 
     const controlVar =
-      controlMetrics.reduce((sum, m) => sum + Math.pow(Number(m.value) - controlMean, 2), 0) / denomC;
+      controlMetrics.reduce((sum, m) => sum + Math.pow(Number(m.value) - controlMean, 2), 0) /
+      denomC;
     const variantVar =
-      variantMetrics.reduce((sum, m) => sum + Math.pow(Number(m.value) - variantMean, 2), 0) / denomV;
+      variantMetrics.reduce((sum, m) => sum + Math.pow(Number(m.value) - variantMean, 2), 0) /
+      denomV;
 
-    const pooledStdDev = Math.sqrt(((controlMetrics.length - 1) * controlVar + (variantMetrics.length - 1) * variantVar) /
-      Math.max(controlMetrics.length + variantMetrics.length - 2, 1));
+    const pooledStdDev = Math.sqrt(
+      ((controlMetrics.length - 1) * controlVar + (variantMetrics.length - 1) * variantVar) /
+        Math.max(controlMetrics.length + variantMetrics.length - 2, 1),
+    );
 
     return pooledStdDev > 0 ? Math.abs(variantMean - controlMean) / pooledStdDev : 0;
   }

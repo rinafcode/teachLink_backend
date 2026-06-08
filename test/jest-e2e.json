@@ -1,12 +1,15 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": ["ts", "js", "json"],
   "rootDir": ".",
-  "testEnvironment": "./test/utils/test-environment.js",
+  "testEnvironment": "./utils/test-environment.js",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/../test/mocks/uuid.ts"
+  },
   "testTimeout": 60000,
   "forceExit": true,
   "verbose": true,
@@ -16,7 +19,7 @@
   "bail": false,
   "reporters": [
     "default",
-    "./test/utils/flaky-test-detector.ts"
+    "./utils/flakiness-reporter.js"
   ],
   "globals": {
     "ts-jest": {
@@ -40,5 +43,5 @@
       }
     }
   },
-  "testSequencer": "./test/utils/test-sequencer.js"
+  "testSequencer": "./utils/test-sequencer.js"
 }

@@ -5,9 +5,9 @@ import { SetMetadata } from '@nestjs/common';
  * Extend this enum as the platform grows (e.g. MODERATOR, DAO_MEMBER, etc.).
  */
 export enum Role {
-    USER = 'user',
-    MODERATOR = 'moderator',
-    ADMIN = 'admin'
+  USER = 'user',
+  MODERATOR = 'moderator',
+  ADMIN = 'admin',
 }
 export const ROLES_KEY = 'roles';
 /**

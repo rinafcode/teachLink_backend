@@ -8,21 +8,23 @@ import {
   JoinColumn,
   Index,
   VersionColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
 import { User } from '../../users/entities/user.entity';
+
 export enum InvoiceStatus {
-    DRAFT = 'draft',
-    SENT = 'sent',
-    PAID = 'paid',
-    OVERDUE = 'overdue',
-    CANCELLED = 'cancelled'
+  PENDING = 'pending',
+  SENT = 'sent',
+  PAID = 'paid',
+  VOID = 'void',
+  REFUNDED = 'refunded',
 }
-interface InvoiceItem {
-    description: string;
-    amount: number;
-    quantity: number;
-    taxRate?: number;
+
+export interface InvoiceItem {
+  description: string;
+  amount: number;
+  quantity: number;
 }
 
 /**
@@ -36,19 +38,17 @@ export class Invoice {
   @VersionColumn()
   version: number;
 
-  @Column({ type: 'varchar', unique: true })
+  @Column({ unique: true })
   @Index()
   invoiceNumber: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  @Index()
   amount: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   taxAmount: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  @Index()
   totalAmount: number;
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })
@@ -57,29 +57,17 @@ export class Invoice {
   @Column({ type: 'jsonb' })
   items: InvoiceItem[];
 
-  @Column({
-    type: 'enum',
-    enum: InvoiceStatus,
-    default: InvoiceStatus.DRAFT,
-  })
+  @Column({ type: 'enum', enum: InvoiceStatus, default: InvoiceStatus.PENDING })
   @Index()
   status: InvoiceStatus;
 
-  @Column({ type: 'date', nullable: true })
-  @Index()
+  @Column({ type: 'timestamp' })
   issuedDate: Date;
 
-  @Column({ type: 'date', nullable: true })
-  @Index()
-  dueDate: Date;
+  @Column({ nullable: true })
+  fileUrl: string;
 
-  @Column({ type: 'text', nullable: true })
-  notes: string;
-
-  @Column({ type: 'text', nullable: true })
-  terms: string;
-
-  @ManyToOne(() => Payment, (payment) => payment.id)
+  @ManyToOne(() => Payment)
   @JoinColumn({ name: 'payment_id' })
   payment: Payment;
 
@@ -87,7 +75,7 @@ export class Invoice {
   @Index()
   paymentId: string;
 
-  @ManyToOne(() => User, (user) => user.id)
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'user_id' })
   user: User;
 
@@ -100,4 +88,7 @@ export class Invoice {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

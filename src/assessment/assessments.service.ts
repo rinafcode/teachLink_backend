@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AssessmentStatus } from './enums/assessment-status.enum';
@@ -8,28 +9,27 @@ import { FeedbackGenerationService } from './feedback/feedback-generation.servic
 import { Answer } from './entities/answer.entity';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { Question } from './entities/question.entity';
+import { AnalyticsService } from '../analytics/analytics.service';
 
 /**
  * Provides assessment operations.
  */
 @Injectable()
 export class AssessmentsService {
-    constructor(
+  constructor(
     @InjectRepository(Assessment)
-    private readonly assessmentRepo: Repository<Assessment>, 
+    private readonly assessmentRepo: Repository<Assessment>,
     @InjectRepository(AssessmentAttempt)
-    private readonly attemptRepo: Repository<AssessmentAttempt>, 
+    private readonly attemptRepo: Repository<AssessmentAttempt>,
     @InjectRepository(Answer)
     private readonly answerRepo: Repository<Answer>,
     private readonly scoringService: ScoreCalculationService,
     private readonly feedbackService: FeedbackGenerationService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   /**
    * Starts assessment.
-   * @param studentId The student identifier.
-   * @param assessmentId The assessment identifier.
-   * @returns The operation result.
    */
   async startAssessment(studentId: string, assessmentId: string) {
     const assessment = await this.assessmentRepo.findOne({
@@ -37,50 +37,47 @@ export class AssessmentsService {
       relations: ['questions'],
     });
 
+    const attempt = await this.attemptRepo.save({
+    if (!assessment) {
+      throw new ResourceNotFoundException('Assessment', assessmentId);
+    }
+
     return this.attemptRepo.save({
       studentId,
       assessment,
       status: AssessmentStatus.IN_PROGRESS,
       startedAt: new Date(),
     });
+
+    this.analytics.recordAssessmentStarted(assessmentId);
+
+    return attempt;
   }
 
   /**
-   * Retrieves all matching results.
-   * @returns The matching results.
+   * Retrieves all assessments.
    */
   async findAll(): Promise<Assessment[]> {
-    return await this.assessmentRepo.find({
-      relations: ['questions'],
-    });
+    return this.assessmentRepo.find({ relations: ['questions'] });
   }
 
   /**
-   * Retrieves the requested record.
-   * @param id The identifier.
-   * @returns The resulting assessment.
+   * Retrieves an assessment by id.
    */
   async findOne(id: string): Promise<Assessment> {
-    return await this.assessmentRepo.findOne({
-      where: { id },
-      relations: ['questions'],
-    });
+    return this.assessmentRepo.findOne({ where: { id }, relations: ['questions'] });
   }
 
   /**
-   * Retrieves records by their identifiers.
-   * @param ids The identifiers.
-   * @returns The matching results.
+   * Retrieves assessments by ids.
    */
   async findByIds(ids: string[]): Promise<Assessment[]> {
     if (ids.length === 0) return [];
-    return await this.assessmentRepo.findByIds(ids);
+    return this.assessmentRepo.findByIds(ids);
   }
 
   /**
-   * Creates a new record.
-   * @param data The data to process.
-   * @returns The resulting assessment.
+   * Creates a new assessment.
    */
   async create(data: any): Promise<Assessment> {
     const assessment = this.assessmentRepo.create(data);
@@ -89,10 +86,7 @@ export class AssessmentsService {
   }
 
   /**
-   * Updates the requested record.
-   * @param id The identifier.
-   * @param data The data to process.
-   * @returns The resulting assessment.
+   * Updates an assessment.
    */
   async update(id: string, data: any): Promise<Assessment> {
     await this.assessmentRepo.update(id, data);
@@ -100,14 +94,11 @@ export class AssessmentsService {
   }
 
   /**
-   * Removes the requested record.
-   * @param id The identifier.
+   * Soft-deletes an assessment and its questions.
    */
   async remove(id: string): Promise<void> {
     const assessment = await this.findOne(id);
-    if (!assessment) {
-      return;
-    }
+    if (!assessment) return;
 
     await this.assessmentRepo.manager.transaction(async (manager) => {
       await manager
@@ -121,10 +112,7 @@ export class AssessmentsService {
   }
 
   /**
-   * Submits assessment.
-   * @param attemptId The attempt identifier.
-   * @param answers The answers.
-   * @returns The operation result.
+   * Submits an assessment attempt, grades answers, and generates feedback.
    */
   async submitAssessment(attemptId: string, answers: any[]) {
     const attempt = await this.attemptRepo.findOne({
@@ -133,7 +121,7 @@ export class AssessmentsService {
     });
 
     if (!attempt?.assessment?.questions) {
-      throw new NotFoundException(`Attempt ${attemptId} not found`);
+      throw new ResourceNotFoundException('AssessmentAttempt', attemptId);
     }
 
     const endTime =
@@ -141,27 +129,27 @@ export class AssessmentsService {
 
     if (Date.now() > endTime) {
       attempt.status = AssessmentStatus.TIMED_OUT;
+      this.analytics.recordAssessmentTimedOut(attempt.assessment.id, attempt.startedAt);
       return this.attemptRepo.save(attempt);
     }
 
     let totalScore = 0;
     let maxScore = 0;
+
     for (const question of attempt.assessment.questions) {
       const response = answers.find((a) => a.questionId === question.id)?.response;
       const score = this.scoringService.calculate(question, response);
       maxScore += question.points;
       totalScore += score;
-      await this.answerRepo.save({
-        attempt,
-        question,
-        response,
-        awardedPoints: score,
-      });
+      await this.answerRepo.save({ attempt, question, response, awardedPoints: score });
     }
 
     attempt.score = totalScore;
     attempt.status = AssessmentStatus.GRADED;
     attempt.submittedAt = new Date();
+
+    this.analytics.recordAssessmentSubmitted(attempt.assessment.id, attempt.startedAt);
+    this.analytics.recordAssessmentScore(totalScore, maxScore);
 
     const feedback = this.feedbackService.generate(totalScore, maxScore);
 
@@ -172,9 +160,7 @@ export class AssessmentsService {
   }
 
   /**
-   * Retrieves results.
-   * @param attemptId The attempt identifier.
-   * @returns The operation result.
+   * Retrieves attempt results with answers.
    */
   getResults(attemptId: string) {
     return this.attemptRepo.findOne({

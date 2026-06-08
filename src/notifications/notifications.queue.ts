@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
+import {
+  SQSClient,
+  SendMessageCommand,
+  ReceiveMessageCommand,
+  DeleteMessageCommand,
+} from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-import { NotificationStatus } from './entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification } from './entities/notification.entity';
+import { Notification, NotificationStatus } from './entities/notification.entity';
 
 @Injectable()
 export class NotificationsQueueService {
@@ -30,35 +34,50 @@ export class NotificationsQueueService {
   /**
    * Publish notification to SNS topic
    */
-  async publishToTopic(notification: Notification): Promise<void> {
+  async publishToTopic(notification: Notification, options?: { bypassBatch?: boolean }): Promise<void> {
+    if (!this.snsTopicArn || !this.queueUrl) {
+      this.logger.warn(
+        `AWS SNS/SQS not configured; marking notification ${notification.id} as sent (dev mode)`,
+      );
+      await this.notificationRepository.update(notification.id, {
+        status: NotificationStatus.SENT,
+        lastAttemptAt: new Date(),
+      });
+      return;
+    }
     try {
+      const payload = {
+        id: notification.id,
+        userId: notification.userId,
+        title: notification.title,
+        content: notification.content,
+        type: notification.type,
+        metadata: notification.metadata,
+        bypassBatch: options?.bypassBatch ?? false,
+      };
       const command = new PublishCommand({
         TopicArn: this.snsTopicArn,
-        Message: JSON.stringify({
-          id: notification.id,
-          userId: notification.userId,
-          title: notification.title,
-          content: notification.content,
-          type: notification.type,
-          metadata: notification.metadata,
-        }),
+        Message: JSON.stringify(payload),
         MessageAttributes: {
           type: { DataType: 'String', StringValue: notification.type },
           priority: { DataType: 'String', StringValue: notification.priority },
+          batch: { DataType: 'String', StringValue: String(payload.bypassBatch ? 'false' : Boolean(notification.metadata?.batched)) },
         },
       });
 
       await this.snsClient.send(command);
       this.logger.log(`Notification ${notification.id} published to SNS topic`);
-      
+
       await this.notificationRepository.update(notification.id, {
         status: NotificationStatus.SENT,
         lastAttemptAt: new Date(),
         deliveryAttempts: notification.deliveryAttempts + 1,
       });
     } catch (error) {
-      this.logger.error(`Failed to publish notification ${notification.id} to SNS`, error.stack);
-      await this.handleFailure(notification, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to publish notification ${notification.id} to SNS`, errorStack);
+      await this.handleFailure(notification, errorMessage);
     }
   }
 
@@ -75,11 +94,13 @@ export class NotificationsQueueService {
         failureReason: `Max attempts reached. Last error: ${reason}`,
         lastAttemptAt: new Date(),
       });
-      this.logger.error(`Notification ${notification.id} permanently failed after ${maxAttempts} attempts`);
+      this.logger.error(
+        `Notification ${notification.id} permanently failed after ${maxAttempts} attempts`,
+      );
     } else {
       // Calculate backoff: 2^attempt * 1000ms
       const delaySeconds = Math.pow(2, nextAttempt);
-      
+
       await this.notificationRepository.update(notification.id, {
         status: NotificationStatus.RETRYING,
         failureReason: reason,
@@ -89,8 +110,10 @@ export class NotificationsQueueService {
 
       // In a real SQS setup, we would send this back to the queue with a delay
       await this.enqueueWithDelay(notification, delaySeconds);
-      
-      this.logger.warn(`Notification ${notification.id} scheduled for retry in ${delaySeconds}s (Attempt ${nextAttempt})`);
+
+      this.logger.warn(
+        `Notification ${notification.id} scheduled for retry in ${delaySeconds}s (Attempt ${nextAttempt})`,
+      );
     }
   }
 
