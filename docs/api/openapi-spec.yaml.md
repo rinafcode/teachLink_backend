@@ -489,10 +489,20 @@ The interactive documentation provides:
 
 Current API version: **v1.0.0**
 
-All API endpoints are versioned. The version is included in the base URL:
+TeachLink uses header-based API versioning. Include the `X-API-Version` header with every versioned request:
+
 ```
-https://api.teachlink.com/v1/{endpoint}
+X-API-Version: 1
 ```
+
+Deprecated versions are communicated with response headers:
+
+- `Deprecation`
+- `Sunset`
+- `Link`
+- `X-API-Deprecation-Notice`
+
+Requests to missing or invalid API version headers return a client error before reaching the controller.
 
 ## Rate Limiting
 

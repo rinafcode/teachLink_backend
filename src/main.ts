@@ -45,6 +45,7 @@ type SessionRequest = Request & {
 };
 
 async function bootstrapWorker(): Promise<void> {
+  initStructuredLogging(process.env.SERVICE_NAME || 'teachlink-backend');
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
 
@@ -192,6 +193,8 @@ async function bootstrapWorker(): Promise<void> {
     expressApp.set('trust proxy', 1);
   }
 
+  // attach request id and basic HTTP access logs
+  app.use(requestIdMiddleware);
   app.use(correlationMiddleware);
 
   const auditLogService = app.get(AuditLogService);
