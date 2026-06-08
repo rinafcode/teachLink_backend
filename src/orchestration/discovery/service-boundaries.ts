@@ -104,8 +104,8 @@ export function findBoundaryByRoute(
 
     return (
       methodMatches &&
-      boundary.routePrefixes.some((prefix) =>
-        normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`),
+      boundary.routePrefixes.some(
+        (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`),
       )
     );
   });

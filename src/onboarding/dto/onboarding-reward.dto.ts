@@ -33,6 +33,7 @@ export class CreateOnboardingRewardDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: { discountPercentage: 20, expiryDate: '2025-12-31' },
   })
   @IsOptional()
@@ -88,6 +89,7 @@ export class UpdateOnboardingRewardDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: { discountPercentage: 20, expiryDate: '2025-12-31' },
   })
   @IsOptional()

@@ -1,4 +1,3 @@
-import { TestResult } from '@jest/types';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -20,7 +19,7 @@ export class FlakyTestDetector {
   private readonly failureThreshold = 0.1; // 10% failure rate
   private readonly minRunsThreshold = 3; // Need at least 3 runs to detect flakiness
 
-  recordTestResult(testResult: TestResult.AssertionResult, testPath: string): void {
+  recordTestResult(testResult: any, testPath: string): void {
     const testKey = `${testPath}:${testResult.title}`;
 
     const existing = this.testResults.get(testKey) || {

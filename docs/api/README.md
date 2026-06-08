@@ -32,6 +32,17 @@ Welcome to the comprehensive API documentation for the TeachLink platform. This 
 **Interactive Documentation**: 
 - Swagger UI: http://localhost:3000/api/docs
 
+**Generated Artifacts**:
+- OpenAPI JSON: [openapi-spec.json](./openapi-spec.json)
+- Example requests/responses: [examples.md](./examples.md)
+- Static docs site source: [../site/index.html](../site/index.html)
+
+Regenerate all API documentation artifacts with:
+
+```bash
+npm run docs:generate
+```
+
 ## Authentication
 
 Most API endpoints require authentication using JWT (JSON Web Tokens).

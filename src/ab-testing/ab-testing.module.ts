@@ -34,5 +34,4 @@ import { ABTestingController } from './ab-testing.controller';
     ABTestingReportsService,
   ],
 })
-export class ABTestingModule {
-}
+export class ABTestingModule {}

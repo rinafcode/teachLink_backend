@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CostTrackingService } from '../cost-tracking.service';
 
@@ -8,20 +8,25 @@ import { CostTrackingService } from '../cost-tracking.service';
  * - If the SDK or credentials aren't available, the service logs and no-ops.
  */
 @Injectable()
-export class AwsCostCollectorService {
+export class AwsCostCollectorService implements OnModuleInit {
   private readonly logger = new Logger(AwsCostCollectorService.name);
   private enabled = false;
   private client: any;
 
-  constructor(private readonly costService: CostTrackingService) {
+  constructor(private readonly costService: CostTrackingService) {}
+
+  async onModuleInit() {
     // Try to lazily load the AWS Cost Explorer client
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { CostExplorerClient, GetCostAndUsageCommand } = require('@aws-sdk/client-cost-explorer');
+      const {
+        CostExplorerClient,
+        GetCostAndUsageCommand,
+      } = require('@aws-sdk/client-cost-explorer');
       const region = process.env.AWS_REGION || 'us-east-1';
       this.client = new CostExplorerClient({ region });
       this.enabled = true;
-    } catch (err) {
+    } catch (_err) {
       this.logger.warn('AWS Cost Explorer client not available — AWS cost collection disabled');
       this.enabled = false;
     }
@@ -36,16 +41,17 @@ export class AwsCostCollectorService {
       const end = new Date(now.getTime());
       const start = new Date(now.getTime() - 1000 * 60 * 60); // last hour
 
+      const { GetCostAndUsageCommand, Granularity } = await import('@aws-sdk/client-cost-explorer');
+
       const params = {
         TimePeriod: {
           Start: start.toISOString().slice(0, 10),
           End: end.toISOString().slice(0, 10),
         },
-        Granularity: 'HOURLY',
+        Granularity: Granularity.HOURLY,
         Metrics: ['UnblendedCost'],
       };
 
-      const { GetCostAndUsageCommand } = require('@aws-sdk/client-cost-explorer');
       const cmd = new GetCostAndUsageCommand(params);
       const resp = await this.client.send(cmd);
 

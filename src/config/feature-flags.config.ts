@@ -258,7 +258,10 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
       'ENABLE_NOTIFICATIONS',
       defaultFeatureFlags.ENABLE_NOTIFICATIONS,
     ),
-    ENABLE_ANALYTICS: getBooleanEnv('ENABLE_ANALYTICS', defaultFeatureFlags.ENABLE_ANALYTICS ?? true),
+    ENABLE_ANALYTICS: getBooleanEnv(
+      'ENABLE_ANALYTICS',
+      defaultFeatureFlags.ENABLE_ANALYTICS ?? true,
+    ),
     ENABLE_EMAIL_MARKETING: getBooleanEnv(
       'ENABLE_EMAIL_MARKETING',
       defaultFeatureFlags.ENABLE_EMAIL_MARKETING,
@@ -291,11 +294,11 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
  * Helper function to parse boolean environment variables
  */
 function getBooleanEnv(key: string, defaultValue: boolean): boolean {
-    const value = process.env[key];
-    if (value === undefined) {
-        return defaultValue;
-    }
-    return value.toLowerCase() === 'true' || value === '1';
+  const value = process.env[key];
+  if (value === undefined) {
+    return defaultValue;
+  }
+  return value.toLowerCase() === 'true' || value === '1';
 }
 /**
  * Get list of enabled modules based on feature flags

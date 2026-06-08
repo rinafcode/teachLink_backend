@@ -1,7 +1,11 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
-import { IWorkerPoolConfig, IWorkerHealthCheck, IWorkerMetrics } from '../interfaces/worker.interfaces';
+import {
+  IWorkerPoolConfig,
+  IWorkerHealthCheck,
+  IWorkerMetrics,
+} from '../interfaces/worker.interfaces';
 import {
   EmailWorker,
   MediaProcessingWorker,
@@ -32,10 +36,117 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   }
 
   /**
+   * Pause all queues to stop accepting new jobs
+   */
+  async pauseAllQueues(): Promise<void> {
+    this.logger.log('Pausing all worker queues...');
+    // Implementation would depend on your queue system (BullMQ, etc.)
+    // This is a placeholder for the actual queue pausing logic
+  }
+
+  /**
+   * Requeue incomplete jobs for processing after restart
+   */
+  async requeueIncompleteJobs(): Promise<number> {
+    this.logger.log('Requeuing incomplete jobs...');
+    let requeuedCount = 0;
+    
+    // Implementation would iterate through active jobs and requeue them
+    // This is a placeholder for the actual requeue logic
+    
+    return requeuedCount;
+  }
+
+  /**
+   * Terminate all worker processes
+   */
+  async terminateAllWorkers(timeoutMs: number): Promise<number> {
+    this.logger.log(`Terminating all workers with ${timeoutMs}ms timeout...`);
+    let terminatedCount = 0;
+    
+    for (const [workerId, worker] of this.activeWorkers) {
+      try {
+        // Graceful worker termination logic
+        terminatedCount++;
+        this.activeWorkers.delete(workerId);
+      } catch (error) {
+        this.logger.error(`Error terminating worker ${workerId}:`, error);
+      }
+    }
+    
+    return terminatedCount;
+  }
+
+  /**
+   * Emergency stop all workers immediately
+   */
+  async emergencyStopAll(): Promise<void> {
+    this.logger.warn('Emergency stopping all workers...');
+    
+    for (const [workerId, worker] of this.activeWorkers) {
+      try {
+        // Force termination logic
+        this.activeWorkers.delete(workerId);
+      } catch (error) {
+        this.logger.error(`Error emergency stopping worker ${workerId}:`, error);
+      }
+    }
+    
+    this.workerPool.clear();
+  }
+
+  /**
+   * Get health check information
+   */
+  async getHealthCheck(): Promise<{
+    totalWorkers: number;
+    healthyWorkers: number;
+    unhealthyWorkers: number;
+    status: string;
+    lastCheck: Date;
+  }> {
+    const totalWorkers = this.activeWorkers.size;
+    const healthyWorkers = Array.from(this.activeWorkers.values()).filter(
+      worker => worker !== null
+    ).length;
+
+    return {
+      totalWorkers,
+      healthyWorkers,
+      unhealthyWorkers: totalWorkers - healthyWorkers,
+      status: healthyWorkers === totalWorkers ? 'healthy' : 'degraded',
+      lastCheck: new Date(),
+    };
+  }
+
+  /**
+   * Get worker metrics
+   */
+  async getMetrics(): Promise<{
+    totalWorkers: number;
+    activeJobs: number;
+    completedJobs: number;
+    failedJobs: number;
+    averageExecutionTime: number;
+    queueDepth: number;
+  }> {
+    const workers = Array.from(this.activeWorkers.values());
+    
+    return {
+      totalWorkers: workers.length,
+      activeJobs: 0, // Would be calculated from actual job queues
+      completedJobs: workers.reduce((sum, worker) => sum + (worker as any)?.jobsProcessed || 0, 0),
+      failedJobs: workers.reduce((sum, worker) => sum + (worker as any)?.jobsFailed || 0, 0),
+      averageExecutionTime: 0, // Would be calculated from actual metrics
+      queueDepth: 0, // Would be calculated from actual queue
+    };
+  }
+
+  /**
    * Initialize worker registry with all available workers
    */
   private initializeWorkerRegistry(): void {
-    this.workerRegistry.set('email', EmailWorker as WorkerConstructor);
+    this.workerRegistry.set('email', EmailWorker as unknown as WorkerConstructor);
     this.workerRegistry.set('media-processing', MediaProcessingWorker as WorkerConstructor);
     this.workerRegistry.set('data-sync', DataSyncWorker as WorkerConstructor);
     this.workerRegistry.set('backup-processing', BackupProcessingWorker as WorkerConstructor);
@@ -141,10 +252,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   /**
    * Initialize worker pool for a specific worker type
    */
-  private async initializeWorkerPool(
-    workerType: string,
-    config: IWorkerPoolConfig,
-  ): Promise<void> {
+  private async initializeWorkerPool(workerType: string, config: IWorkerPoolConfig): Promise<void> {
     const workerClass = this.workerRegistry.get(workerType);
     if (!workerClass) {
       throw new Error(`Unknown worker type: ${workerType}`);
@@ -339,7 +447,9 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
       for (const worker of workersToRemove) {
         this.activeWorkers.delete(worker.getId());
       }
-      this.logger.log(`Scaled down ${workerType} workers from ${currentCount} to ${newWorkerCount}`);
+      this.logger.log(
+        `Scaled down ${workerType} workers from ${currentCount} to ${newWorkerCount}`,
+      );
     }
   }
 

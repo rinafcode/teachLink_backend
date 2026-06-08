@@ -17,6 +17,15 @@ export class ReviewItem {
   @Column('float')
   safetyScore: number;
 
+  @Column({ nullable: true })
+  sourceType?: string;
+
+  @Column({ nullable: true })
+  sourceId?: string;
+
+  @Column({ nullable: true })
+  reportId?: string;
+
   @Column({ default: 'pending' })
   status: 'pending' | 'reviewed';
 
