@@ -22,7 +22,11 @@ export class ForumController {
   }
 
   @Post('threads/:id/comments')
-  addComment(@Param('id') threadId: string, @Body() body: { content: string; parentId?: string }, @Req() req: any) {
+  addComment(
+    @Param('id') threadId: string,
+    @Body() body: { content: string; parentId?: string },
+    @Req() req: any,
+  ) {
     const authorId = req.user?.id || 'anonymous';
     return this.forumService.addComment(threadId, body.content, authorId, body.parentId);
   }

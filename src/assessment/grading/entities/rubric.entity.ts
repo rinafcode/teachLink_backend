@@ -56,7 +56,7 @@ export class Rubric {
   @Column({ default: false })
   autoGradeEnabled: boolean;
 
-  @OneToMany(() => RubricCriterion, criterion => criterion.rubric, {
+  @OneToMany(() => RubricCriterion, (criterion) => criterion.rubric, {
     cascade: true,
   })
   criteria: RubricCriterion[];

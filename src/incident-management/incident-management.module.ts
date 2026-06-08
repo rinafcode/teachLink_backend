@@ -3,11 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { IncidentManagementController } from './incident-management.controller';
 import { IncidentManagementService } from './incident-management.service';
-import {
-  Incident,
-  RemediationAction,
-  RunbookExecution,
-} from './entities';
+import { Incident, RemediationAction, RunbookExecution } from './entities';
 import {
   IncidentDetectionService,
   AutoRemediationService,
@@ -18,11 +14,7 @@ import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Incident,
-      RemediationAction,
-      RunbookExecution,
-    ]),
+    TypeOrmModule.forFeature([Incident, RemediationAction, RunbookExecution]),
     ConfigModule,
     CommonModule,
   ],

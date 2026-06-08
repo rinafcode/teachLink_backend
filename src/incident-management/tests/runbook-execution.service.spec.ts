@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { RunbookExecutionService } from '../services/runbook-execution.service';
 import { RunbookExecution, RunbookExecutionStatus } from '../entities/runbook-execution.entity';
-import { Incident, IncidentSeverity } from '../entities/incident.entity';
+import { Incident, IncidentSeverity, IncidentStatus } from '../entities/incident.entity';
 
 describe('RunbookExecutionService', () => {
   let service: RunbookExecutionService;
@@ -26,9 +26,7 @@ describe('RunbookExecutionService', () => {
     }).compile();
 
     service = module.get<RunbookExecutionService>(RunbookExecutionService);
-    repository = module.get<Repository<RunbookExecution>>(
-      getRepositoryToken(RunbookExecution),
-    );
+    repository = module.get<Repository<RunbookExecution>>(getRepositoryToken(RunbookExecution));
   });
 
   describe('executeRunbook', () => {
@@ -38,17 +36,21 @@ describe('RunbookExecutionService', () => {
         title: 'Database Failure',
         description: 'Database is down',
         severity: IncidentSeverity.CRITICAL,
-        status: 'detected',
+        status: IncidentStatus.DETECTED,
         triggerMetrics: {},
         detectedAt: new Date(),
         updatedAt: new Date(),
         runbookId: 'database-failure',
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       const mockExecution: RunbookExecution = {
         id: 'execution-1',
         incidentId: 'incident-1',
+        incident: incident,
         runbookName: 'database-failure',
         runbookPath: '/path/to/database-failure.md',
         status: RunbookExecutionStatus.COMPLETED,
@@ -95,17 +97,21 @@ describe('RunbookExecutionService', () => {
         title: 'Unknown Incident',
         description: 'Unknown incident type',
         severity: IncidentSeverity.WARNING,
-        status: 'detected',
+        status: IncidentStatus.DETECTED,
         triggerMetrics: {},
         detectedAt: new Date(),
         updatedAt: new Date(),
         runbookId: 'unknown-runbook',
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       const mockExecution: RunbookExecution = {
         id: 'execution-2',
         incidentId: 'incident-1',
+        incident: incident,
         runbookName: 'unknown-runbook',
         runbookPath: '/path/to/unknown-runbook.md',
         status: RunbookExecutionStatus.FAILED,
@@ -144,6 +150,7 @@ describe('RunbookExecutionService', () => {
         {
           id: 'execution-1',
           incidentId: 'incident-1',
+          incident: null,
           runbookName: 'database-failure',
           runbookPath: '/path/to/database-failure.md',
           status: RunbookExecutionStatus.COMPLETED,

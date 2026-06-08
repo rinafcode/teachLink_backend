@@ -28,7 +28,11 @@ export class PaymentMethodsController {
   @ApiOperation({ summary: 'Update an existing payment method' })
   @ApiQuery({ name: 'userId', required: true, description: 'User identifier' })
   @ApiResponse({ status: 200, description: 'Payment method updated' })
-  async update(@Param('id') id: string, @Query('userId') userId: string, @Body() dto: UpdatePaymentMethodDto) {
+  async update(
+    @Param('id') id: string,
+    @Query('userId') userId: string,
+    @Body() dto: UpdatePaymentMethodDto,
+  ) {
     return this.paymentMethodsService.updateMethod(userId, id, dto);
   }
 

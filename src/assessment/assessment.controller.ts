@@ -44,7 +44,11 @@ export class AssessmentsController {
   @ApiOperation({ summary: 'Submit assessment answers' })
   @ApiResponse({ status: 201, description: 'Assessment submitted and scored' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
-  async submit(@Request() req: any, @Param('id') id: string, @Body() submitAssessmentDto: SubmitAssessmentDto): any {
+  async submit(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() submitAssessmentDto: SubmitAssessmentDto,
+  ): Promise<any> {
     return this.service.submitAssessment(id, submitAssessmentDto.answers);
   }
 

@@ -118,7 +118,8 @@ export class CoursesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Bulk update price across courses',
-    description: 'Apply a single new price value to many courses owned by the caller in one request.',
+    description:
+      'Apply a single new price value to many courses owned by the caller in one request.',
   })
   @ApiResponse({ status: 200, description: 'Bulk price update recorded' })
   async bulkUpdatePrice(@Body() dto: BulkPriceUpdateDto, @Request() req) {

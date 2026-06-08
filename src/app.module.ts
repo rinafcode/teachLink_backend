@@ -7,7 +7,6 @@ import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ShardingModule } from './sharding/sharding.module';
-import { EmailModule } from './email-marketing/email.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
@@ -32,8 +31,6 @@ import { ForumModule } from './forum/forum.module';
 
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
-
-import { SlackService } from './slack.service';
 
 import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';

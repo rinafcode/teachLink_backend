@@ -17,11 +17,17 @@ describe('DashboardService', () => {
         DashboardService,
         {
           provide: getRepositoryToken(Payment),
-          useValue: { find: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(0),
+          },
         },
         {
           provide: getRepositoryToken(User),
-          useValue: { find: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(10) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(10),
+          },
         },
         {
           provide: getRepositoryToken(Enrollment),
@@ -77,9 +83,7 @@ describe('DashboardService', () => {
       getRawMany: jest
         .fn()
         .mockResolvedValueOnce([{ totalRevenue: '120', currency: 'USD' }])
-        .mockResolvedValueOnce([
-          { courseId: 'course-1', courseTitle: 'Course 1', revenue: '100' },
-        ])
+        .mockResolvedValueOnce([{ courseId: 'course-1', courseTitle: 'Course 1', revenue: '100' }])
         .mockResolvedValueOnce([{ paymentMethod: 'credit_card', revenue: '120' }]),
     };
 
@@ -97,11 +101,18 @@ describe('DashboardService', () => {
         DashboardService,
         {
           provide: getRepositoryToken(Payment),
-          useValue: { find: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0), createQueryBuilder: jest.fn().mockReturnValue(paymentQueryBuilder) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(0),
+            createQueryBuilder: jest.fn().mockReturnValue(paymentQueryBuilder),
+          },
         },
         {
           provide: getRepositoryToken(User),
-          useValue: { find: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(10) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(10),
+          },
         },
         {
           provide: getRepositoryToken(Enrollment),
@@ -127,9 +138,7 @@ describe('DashboardService', () => {
                 ],
                 modules: [
                   {
-                    lessons: [
-                      { videoUrl: 'https://video.example.com/1', durationSeconds: 600 },
-                    ],
+                    lessons: [{ videoUrl: 'https://video.example.com/1', durationSeconds: 600 }],
                   },
                 ],
               },

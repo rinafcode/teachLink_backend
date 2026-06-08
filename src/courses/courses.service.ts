@@ -5,6 +5,7 @@ import { In, Repository } from 'typeorm';
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview, ReviewDecision } from './entities/course-review.entity';
+import { CourseVersion, CourseVersionEventType } from './entities/course-version.entity';
 import {
   BulkCourseSnapshot,
   BulkOperation,
@@ -46,6 +47,8 @@ export class CoursesService {
     private readonly courseRepo: Repository<Course>,
     @InjectRepository(CourseReview)
     private readonly reviewRepo: Repository<CourseReview>,
+    @InjectRepository(CourseVersion)
+    private readonly versionRepo: Repository<CourseVersion>,
     @InjectRepository(BulkOperation)
     private readonly bulkOpRepo: Repository<BulkOperation>,
     private readonly eventEmitter: EventEmitter2,
@@ -160,7 +163,7 @@ export class CoursesService {
     if (course.status !== CourseStatus.DRAFT && course.status !== CourseStatus.CHANGES_REQUESTED) {
       throw new BusinessValidationException(
         `Cannot submit a course with status "${course.status}" for review. ` +
-          `Only DRAFT or CHANGES_REQUESTED courses may be submitted.`,
+          'Only DRAFT or CHANGES_REQUESTED courses may be submitted.',
       );
     }
 
@@ -258,17 +261,12 @@ export class CoursesService {
     return rolledBackCourse;
   }
 
-  private async findVersion(
-    courseId: string,
-    versionNumber: number,
-  ): Promise<CourseVersion> {
+  private async findVersion(courseId: string, versionNumber: number): Promise<CourseVersion> {
     const version = await this.versionRepo.findOne({
       where: { courseId, versionNumber },
     });
     if (!version) {
-      throw new NotFoundException(
-        `Version ${versionNumber} not found for course ${courseId}`,
-      );
+      throw new ResourceNotFoundException('Course Version', `${versionNumber}`);
     }
     return version;
   }
@@ -388,7 +386,7 @@ export class CoursesService {
       payload: { publish: dto.publish, targetStatus },
       courseIds: dto.courseIds,
       user,
-      apply: course => {
+      apply: (course) => {
         const previous: BulkCourseSnapshot['previous'] = { status: course.status };
         course.status = targetStatus;
         return previous;
@@ -405,7 +403,7 @@ export class CoursesService {
       payload: { price: dto.price },
       courseIds: dto.courseIds,
       user,
-      apply: course => {
+      apply: (course) => {
         const previous: BulkCourseSnapshot['previous'] = { price: Number(course.price) };
         course.price = dto.price;
         return previous;
@@ -424,7 +422,7 @@ export class CoursesService {
       payload: { category: nextCategory },
       courseIds: dto.courseIds,
       user,
-      apply: course => {
+      apply: (course) => {
         const previous: BulkCourseSnapshot['previous'] = {
           category: course.category ?? null,
         };
@@ -458,25 +456,27 @@ export class CoursesService {
     }
 
     const isInitiator = op.initiatedById === user.id;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
+    const isPrivileged = user.roles.some((role) => ['admin', 'moderator'].includes(role.name));
     if (!isInitiator && !isPrivileged) {
-      throw new ForbiddenOperationException('Only the initiator or an admin/moderator may undo this operation.');
+      throw new ForbiddenOperationException(
+        'Only the initiator or an admin/moderator may undo this operation.',
+      );
     }
 
     if (op.status === BulkOperationStatus.UNDONE) {
       throw new BusinessValidationException('This bulk operation has already been undone.');
     }
 
-    const appliedSnapshots = (op.snapshots ?? []).filter(s => s.applied);
+    const appliedSnapshots = (op.snapshots ?? []).filter((s) => s.applied);
     if (appliedSnapshots.length === 0) {
       op.status = BulkOperationStatus.UNDONE;
       op.undoneAt = new Date();
       return this.bulkOpRepo.save(op);
     }
 
-    const courseIds = appliedSnapshots.map(s => s.courseId);
+    const courseIds = appliedSnapshots.map((s) => s.courseId);
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
-    const courseById = new Map(courses.map(c => [c.id, c]));
+    const courseById = new Map(courses.map((c) => [c.id, c]));
 
     const restored: Course[] = [];
     for (const snap of appliedSnapshots) {
@@ -497,9 +497,7 @@ export class CoursesService {
 
     if (restored.length > 0) {
       await this.courseRepo.save(restored);
-      restored.forEach(c =>
-        this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }),
-      );
+      restored.forEach((c) => this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }));
     }
 
     op.status = BulkOperationStatus.UNDONE;
@@ -520,10 +518,10 @@ export class CoursesService {
     apply: (course: Course) => BulkCourseSnapshot['previous'];
   }): Promise<BulkOperation> {
     const { type, payload, courseIds, user, apply } = args;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
+    const isPrivileged = user.roles.some((role) => ['admin', 'moderator'].includes(role.name));
 
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
-    const found = new Map(courses.map(c => [c.id, c]));
+    const found = new Map(courses.map((c) => [c.id, c]));
 
     const snapshots: BulkCourseSnapshot[] = [];
     const toSave: Course[] = [];
@@ -555,12 +553,10 @@ export class CoursesService {
 
     if (toSave.length > 0) {
       await this.courseRepo.save(toSave);
-      toSave.forEach(c =>
-        this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }),
-      );
+      toSave.forEach((c) => this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }));
     }
 
-    const successCount = snapshots.filter(s => s.applied).length;
+    const successCount = snapshots.filter((s) => s.applied).length;
     const failureCount = snapshots.length - successCount;
     let status: BulkOperationStatus;
     if (successCount === 0) {

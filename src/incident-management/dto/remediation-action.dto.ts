@@ -1,13 +1,5 @@
-import {
-  IsString,
-  IsEnum,
-  IsOptional,
-  IsObject,
-  IsUUID,
-} from 'class-validator';
-import {
-  RemediationStatus,
-} from '../entities/remediation-action.entity';
+import { IsString, IsEnum, IsOptional, IsObject, IsUUID } from 'class-validator';
+import { RemediationStatus } from '../entities/remediation-action.entity';
 
 export class CreateRemediationActionDto {
   @IsUUID()

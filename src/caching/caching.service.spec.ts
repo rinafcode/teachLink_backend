@@ -19,7 +19,10 @@ describe('CachingService', () => {
       clear: jest.fn().mockResolvedValue(undefined),
     };
     metrics = { updateCacheHitRate: jest.fn() };
-    service = new CachingService(cacheManager as never, metrics as unknown as MetricsCollectionService);
+    service = new CachingService(
+      cacheManager as never,
+      metrics as unknown as MetricsCollectionService,
+    );
   });
 
   describe('getOrSet', () => {

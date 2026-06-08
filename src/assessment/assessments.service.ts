@@ -37,12 +37,11 @@ export class AssessmentsService {
       relations: ['questions'],
     });
 
-    const attempt = await this.attemptRepo.save({
     if (!assessment) {
       throw new ResourceNotFoundException('Assessment', assessmentId);
     }
 
-    return this.attemptRepo.save({
+    const attempt = await this.attemptRepo.save({
       studentId,
       assessment,
       status: AssessmentStatus.IN_PROGRESS,

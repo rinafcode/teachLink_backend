@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { AssessmentAttempt } from '../entities/assessment-attempt.entity';
@@ -10,20 +6,10 @@ import { AssessmentStatus } from '../enums/assessment-status.enum';
 import { CriterionGrade } from './entities/criterion-grade.entity';
 import { RubricCriterion } from './entities/rubric-criterion.entity';
 import { RubricLevel } from './entities/rubric-level.entity';
-import {
-  SubmissionGrade,
-  SubmissionGradeStatus,
-} from './entities/submission-grade.entity';
+import { SubmissionGrade, SubmissionGradeStatus } from './entities/submission-grade.entity';
 import { RubricsService } from './rubrics.service';
-import {
-  FeedbackRenderContext,
-  FeedbackTemplatesService,
-} from './feedback-templates.service';
-import {
-  AutoGradeSubmissionDto,
-  CriterionScoreDto,
-  GradeSubmissionDto,
-} from './dto/grading.dto';
+import { FeedbackRenderContext, FeedbackTemplatesService } from './feedback-templates.service';
+import { AutoGradeSubmissionDto, CriterionScoreDto, GradeSubmissionDto } from './dto/grading.dto';
 
 /**
  * Orchestrates rubric-based grading of assessment submissions.
@@ -56,14 +42,11 @@ export class GradingService {
    * capped at the criterion's maxPoints. Re-grading the same attempt
    * mutates the existing record.
    */
-  async gradeSubmission(
-    dto: GradeSubmissionDto,
-    graderId?: string,
-  ): Promise<SubmissionGrade> {
+  async gradeSubmission(dto: GradeSubmissionDto, graderId?: string): Promise<SubmissionGrade> {
     const rubric = await this.rubricsService.findOne(dto.rubricId);
     const attempt = await this.loadAttempt(dto.attemptId);
 
-    const criterionMap = new Map(rubric.criteria.map(c => [c.id, c]));
+    const criterionMap = new Map(rubric.criteria.map((c) => [c.id, c]));
     const levelMap = new Map<string, RubricLevel>();
     for (const c of rubric.criteria) {
       for (const lvl of c.levels ?? []) levelMap.set(lvl.id, lvl);
@@ -76,7 +59,7 @@ export class GradingService {
     }
 
     const seenCriteria = new Set<string>();
-    const resolvedScores = dto.scores.map(score =>
+    const resolvedScores = dto.scores.map((score) =>
       this.resolveScore(score, criterionMap, levelMap, seenCriteria),
     );
 
@@ -110,7 +93,7 @@ export class GradingService {
       for (const lvl of c.levels ?? []) levelMap.set(lvl.id, lvl);
     }
 
-    const resolvedScores = rubric.criteria.map(criterion => {
+    const resolvedScores = rubric.criteria.map((criterion) => {
       if (!criterion.defaultLevelId) {
         throw new BadRequestException(
           `Criterion "${criterion.title}" has no default level set; cannot auto-grade.`,
@@ -184,9 +167,7 @@ export class GradingService {
       );
     }
     if (seen.has(criterion.id)) {
-      throw new BadRequestException(
-        `Criterion ${criterion.title} was scored more than once.`,
-      );
+      throw new BadRequestException(`Criterion ${criterion.title} was scored more than once.`);
     }
     seen.add(criterion.id);
 
@@ -241,13 +222,8 @@ export class GradingService {
       args;
 
     const totalScore = scores.reduce((sum, s) => sum + s.points, 0);
-    const maxScore = rubric.criteria.reduce(
-      (sum, c) => sum + Number(c.maxPoints),
-      0,
-    );
-    const percentage = maxScore === 0
-      ? 0
-      : Math.round((totalScore / maxScore) * 10000) / 100;
+    const maxScore = rubric.criteria.reduce((sum, c) => sum + Number(c.maxPoints), 0);
+    const percentage = maxScore === 0 ? 0 : Math.round((totalScore / maxScore) * 10000) / 100;
 
     // Decide which template to render — explicit > default per owner > none.
     let feedback: string | undefined = feedbackOverride;
@@ -263,7 +239,7 @@ export class GradingService {
       }
     }
 
-    return this.dataSource.transaction(async manager => {
+    return this.dataSource.transaction(async (manager) => {
       const gradeRepo = manager.getRepository(SubmissionGrade);
       const criterionGradeRepo = manager.getRepository(CriterionGrade);
       const attemptRepo = manager.getRepository(AssessmentAttempt);
@@ -284,7 +260,7 @@ export class GradingService {
 
       // Wipe and re-insert criterion grades so re-grading is consistent.
       await criterionGradeRepo.delete({ gradeId: grade.id });
-      const criterionGrades = scores.map(s =>
+      const criterionGrades = scores.map((s) =>
         criterionGradeRepo.create({
           gradeId: grade!.id,
           criterionId: s.criterion.id,
@@ -330,11 +306,11 @@ export class GradingService {
       maxScore,
       rubric: {
         name: rubric.name,
-        criteria: scores.map(s => ({
+        criteria: scores.map((s) => ({
           id: s.criterion.id,
           title: s.criterion.title,
           awardedPoints: s.points,
-          selectedLevel: s.levelId ? levelById.get(s.levelId) ?? null : null,
+          selectedLevel: s.levelId ? (levelById.get(s.levelId) ?? null) : null,
         })),
       },
     };

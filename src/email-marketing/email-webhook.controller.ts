@@ -1,7 +1,6 @@
 import { Controller, Post, Body, Headers, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { EmailTrackingService } from './services/email-tracking.service';
 import { ConfigService } from '@nestjs/config';
-import { EmailEventType } from './enums/email-event-type.enum';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { SendGridWebhookEventDto } from './dto/sendgrid-webhook-event.dto';
@@ -21,10 +20,7 @@ export class EmailWebhookController {
   ) {}
 
   @Post('webhook')
-  async handleWebhook(
-    @Headers('authorization') authHeader: string,
-    @Body() events: unknown[],
-  ) {
+  async handleWebhook(@Headers('authorization') authHeader: string, @Body() events: unknown[]) {
     const expectedToken = this.configService.get<string>('SENDGRID_WEBHOOK_TOKEN');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       this.logger.warn('Missing Authorization header on webhook');
@@ -62,27 +58,32 @@ export class EmailWebhookController {
       try {
         const baseData = {
           to: event.email,
-          campaignId: event.asm?.group_id ?? null,
+          campaignId: (event.asm?.group_id ?? null) as string,
           recipientId: event.email,
           metadata: event.custom_args ?? {},
         };
-        switch (event.event) {
-          case EmailEventType.PROCESSED:
+        switch (event.event as string) {
+          case 'processed':
+          case 'sent':
             await this.emailTrackingService.recordSent(baseData);
             break;
-          case EmailEventType.DELIVERED:
+          case 'delivered':
             await this.emailTrackingService.recordDelivered(baseData);
             break;
-          case EmailEventType.OPEN:
+          case 'open':
+          case 'opened':
             await this.emailTrackingService.recordOpen(baseData);
             break;
-          case EmailEventType.CLICK:
+          case 'click':
+          case 'clicked':
             await this.emailTrackingService.recordClick(baseData);
             break;
-          case EmailEventType.BOUNCE:
+          case 'bounce':
+          case 'bounced':
             await this.emailTrackingService.recordBounce(baseData, event.reason);
             break;
-          case EmailEventType.SPAMREPORT:
+          case 'spamreport':
+          case 'complained':
             await this.emailTrackingService.recordComplaint(baseData, 'spamreport');
             break;
           default:

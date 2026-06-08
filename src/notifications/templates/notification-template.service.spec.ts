@@ -61,12 +61,21 @@ describe('NotificationTemplateService', () => {
     });
 
     it('should select channel-specific templates by channel', async () => {
-      const channelTemplate = { ...mockTemplate, channel: NotificationType.IN_APP, subjectTemplate: null };
+      const channelTemplate = {
+        ...mockTemplate,
+        channel: NotificationType.IN_APP,
+        subjectTemplate: null,
+      };
       (service as any).templateRepository = {
         findOne: jest.fn().mockResolvedValue(channelTemplate),
       } as any;
 
-      const result = await service.renderByName('welcome', { name: 'Bob' }, undefined, NotificationType.IN_APP);
+      const result = await service.renderByName(
+        'welcome',
+        { name: 'Bob' },
+        undefined,
+        NotificationType.IN_APP,
+      );
       expect(result.body).toContain('Bob');
       expect(result.subject).toBeUndefined();
     });

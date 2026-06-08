@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
 import { EmailTrackingService } from '../../email-marketing/services/email-tracking.service';

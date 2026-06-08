@@ -87,6 +87,9 @@ export class Course {
   @OneToMany(() => CourseReview, (review) => review.course, { eager: false })
   reviews: CourseReview[];
 
+  @OneToMany(() => CourseVersion, (version) => version.course)
+  versions: CourseVersion[];
+
   /** The submission note provided by the instructor when submitting for review. */
   @Column({ type: 'text', nullable: true })
   submissionNote?: string;
@@ -100,4 +103,3 @@ export class Course {
   @DeleteDateColumn()
   deletedAt?: Date;
 }
-

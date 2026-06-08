@@ -47,12 +47,16 @@ export class I18nWrapperService {
 
   private loadBundles() {
     try {
-      const localeDirs = readdirSync(this.localesPath, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+      const localeDirs = readdirSync(this.localesPath, { withFileTypes: true }).filter((entry) =>
+        entry.isDirectory(),
+      );
       for (const localeDir of localeDirs) {
         const locale = localeDir.name;
         const bundle: Record<string, unknown> = {};
         const localeFolder = join(this.localesPath, locale);
-        const files = readdirSync(localeFolder, { withFileTypes: true }).filter((entry) => entry.isFile());
+        const files = readdirSync(localeFolder, { withFileTypes: true }).filter((entry) =>
+          entry.isFile(),
+        );
 
         for (const file of files) {
           if (extname(file.name).toLowerCase() !== '.json') continue;

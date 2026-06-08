@@ -73,9 +73,7 @@ export class SegmentController {
   @Get('destinations/:id')
   @ApiOperation({ summary: 'Get a destination configuration' })
   @ApiResponse({ status: 200, type: SegmentDestinationConfig })
-  getDestination(
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<SegmentDestinationConfig | null> {
+  getDestination(@Param('id', ParseUUIDPipe) id: string): Promise<SegmentDestinationConfig | null> {
     return this.destRepo.findOneBy({ id });
   }
 

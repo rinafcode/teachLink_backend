@@ -158,11 +158,7 @@ export class AuditLogService {
 
   // ── Query ──────────────────────────────────────────────────────────────────
 
-  search(
-    filters: IAuditLogSearchFilters,
-    page = 1,
-    limit = 50,
-  ): Promise<IAuditLogSearchResult> {
+  search(filters: IAuditLogSearchFilters, page = 1, limit = 50): Promise<IAuditLogSearchResult> {
     return this.queryService.search(filters, page, limit);
   }
 

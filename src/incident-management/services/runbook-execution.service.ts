@@ -3,10 +3,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  RunbookExecution,
-  RunbookExecutionStatus,
-} from '../entities/runbook-execution.entity';
+import { RunbookExecution, RunbookExecutionStatus } from '../entities/runbook-execution.entity';
 import { Incident } from '../entities/incident.entity';
 
 export interface RunbookStep {
@@ -38,10 +35,7 @@ export class RunbookExecutionService {
   /**
    * Execute a runbook for an incident
    */
-  async executeRunbook(
-    incident: Incident,
-    runbookName: string,
-  ): Promise<RunbookExecution> {
+  async executeRunbook(incident: Incident, runbookName: string): Promise<RunbookExecution> {
     this.logger.log(`Starting runbook execution: ${runbookName} for incident ${incident.id}`);
 
     // Create runbook execution record
@@ -81,9 +75,7 @@ export class RunbookExecutionService {
         };
 
         try {
-          this.logger.log(
-            `Executing step ${step.stepNumber}: ${step.stepName}`,
-          );
+          this.logger.log(`Executing step ${step.stepNumber}: ${step.stepName}`);
 
           const result = await this.executeStep(step);
 
@@ -94,9 +86,7 @@ export class RunbookExecutionService {
             allSuccess = false;
           }
 
-          this.logger.log(
-            `Step ${step.stepNumber} completed: ${stepExecution.status}`,
-          );
+          this.logger.log(`Step ${step.stepNumber} completed: ${stepExecution.status}`);
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
           stepExecution['status'] = 'in_progress' as any;
@@ -116,9 +106,7 @@ export class RunbookExecutionService {
       execution.completedAt = new Date();
       execution.executionSummary = `Executed ${stepExecutions.length} steps: ${allSuccess ? 'All successful' : 'Some failed'}`;
 
-      this.logger.log(
-        `Runbook execution completed: ${execution.status}`,
-      );
+      this.logger.log(`Runbook execution completed: ${execution.status}`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       execution.status = RunbookExecutionStatus.FAILED;
@@ -146,7 +134,7 @@ export class RunbookExecutionService {
       const errorMsg = error instanceof Error ? error.message : String(error);
       return {
         success: false,
-        output: `Step execution failed`,
+        output: 'Step execution failed',
         error: errorMsg,
       };
     }
@@ -230,10 +218,7 @@ export class RunbookExecutionService {
   /**
    * Parse markdown runbook content
    */
-  private parseMarkdownRunbook(
-    content: string,
-    runbookName: string,
-  ): RunbookDefinition {
+  private parseMarkdownRunbook(content: string, runbookName: string): RunbookDefinition {
     const lines = content.split('\n');
     const steps: RunbookStep[] = [];
     let stepNumber = 1;
@@ -281,14 +266,9 @@ export class RunbookExecutionService {
     if (lowerDesc.includes('scale')) return 'scale_replicas';
     if (lowerDesc.includes('connectivity') || lowerDesc.includes('connect'))
       return 'verify_connectivity';
-    if (
-      lowerDesc.includes('query') ||
-      lowerDesc.includes('database') ||
-      lowerDesc.includes('run')
-    )
+    if (lowerDesc.includes('query') || lowerDesc.includes('database') || lowerDesc.includes('run'))
       return 'run_query';
-    if (lowerDesc.includes('notify') || lowerDesc.includes('alert'))
-      return 'notify_team';
+    if (lowerDesc.includes('notify') || lowerDesc.includes('alert')) return 'notify_team';
 
     return 'check_status';
   }
@@ -399,9 +379,7 @@ export class RunbookExecutionService {
   /**
    * Get default runbook definition
    */
-  private getDefaultRunbookDefinition(
-    runbookName: string,
-  ): RunbookDefinition {
+  private getDefaultRunbookDefinition(runbookName: string): RunbookDefinition {
     return {
       name: runbookName,
       title: `${runbookName.replace(/-/g, ' ')} Runbook`,
@@ -421,9 +399,7 @@ export class RunbookExecutionService {
   /**
    * Get runbook executions for an incident
    */
-  async getRunbookExecutionsForIncident(
-    incidentId: string,
-  ): Promise<RunbookExecution[]> {
+  async getRunbookExecutionsForIncident(incidentId: string): Promise<RunbookExecution[]> {
     return this.runbookExecutionRepository.find({
       where: { incidentId },
       order: { startedAt: 'DESC' },
@@ -437,17 +413,11 @@ export class RunbookExecutionService {
     try {
       if (!fs.existsSync(this.runbooksPath)) {
         this.logger.warn(`Runbooks directory not found: ${this.runbooksPath}`);
-        return [
-          'database-failure',
-          'region-outage',
-          'data-corruption',
-        ];
+        return ['database-failure', 'region-outage', 'data-corruption'];
       }
 
       const files = fs.readdirSync(this.runbooksPath);
-      return files
-        .filter((f) => f.endsWith('.md'))
-        .map((f) => f.replace('.md', ''));
+      return files.filter((f) => f.endsWith('.md')).map((f) => f.replace('.md', ''));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error listing runbooks: ${errorMsg}`);

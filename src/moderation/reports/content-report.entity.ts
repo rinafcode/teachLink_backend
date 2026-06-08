@@ -77,4 +77,3 @@ export class ContentReport {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-

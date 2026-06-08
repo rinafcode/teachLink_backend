@@ -10,15 +10,33 @@ export class GatewayRoutingService {
   private readonly routes = new Map<string, RouteConfig>([
     [
       'courses',
-      { service: 'courses', upstream: 'http://localhost:3000', weight: 1, cacheTtlSeconds: 60, rateLimitPerMinute: 100 },
+      {
+        service: 'courses',
+        upstream: 'http://localhost:3000',
+        weight: 1,
+        cacheTtlSeconds: 60,
+        rateLimitPerMinute: 100,
+      },
     ],
     [
       'users',
-      { service: 'users', upstream: 'http://localhost:3000', weight: 1, cacheTtlSeconds: 30, rateLimitPerMinute: 200 },
+      {
+        service: 'users',
+        upstream: 'http://localhost:3000',
+        weight: 1,
+        cacheTtlSeconds: 30,
+        rateLimitPerMinute: 200,
+      },
     ],
     [
       'analytics',
-      { service: 'analytics', upstream: 'http://localhost:3000', weight: 1, cacheTtlSeconds: 120, rateLimitPerMinute: 50 },
+      {
+        service: 'analytics',
+        upstream: 'http://localhost:3000',
+        weight: 1,
+        cacheTtlSeconds: 120,
+        rateLimitPerMinute: 50,
+      },
     ],
   ]);
 

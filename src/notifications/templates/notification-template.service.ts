@@ -100,7 +100,8 @@ export class NotificationTemplateService {
         templateVersion: 1,
         channel: NotificationType.EMAIL,
         subjectTemplate: 'Your payout of {{amount}} {{currency}} has been processed!',
-        bodyTemplate: '<p>Hello {{instructorName}},</p><p>We are pleased to inform you that your payout of <strong>{{amount}} {{currency}}</strong> has been successfully processed via {{payoutMethod}}.</p><p>Details: {{payoutDetails}}</p><p>Thank you for teaching on TeachLink!</p>',
+        bodyTemplate:
+          '<p>Hello {{instructorName}},</p><p>We are pleased to inform you that your payout of <strong>{{amount}} {{currency}}</strong> has been successfully processed via {{payoutMethod}}.</p><p>Details: {{payoutDetails}}</p><p>Thank you for teaching on TeachLink!</p>',
       },
     ];
 

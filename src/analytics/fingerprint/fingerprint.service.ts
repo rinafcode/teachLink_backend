@@ -60,7 +60,7 @@ export class FingerprintService {
   private toSubnet(ip: string): string {
     if (ip.includes(':')) {
       // IPv6 → keep first 3 groups (/48)
-      return ip.split(':').slice(0, 3).join(':') + '::/48';
+      return `${ip.split(':').slice(0, 3).join(':')}::/48`;
     }
     // IPv4 → keep first 3 octets (/24)
     const parts = ip.split('.');

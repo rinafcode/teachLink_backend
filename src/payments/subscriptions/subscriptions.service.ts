@@ -1,7 +1,11 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Subscription, SubscriptionStatus, SubscriptionInterval } from '../entities/subscription.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+  SubscriptionInterval,
+} from '../entities/subscription.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   PauseSubscriptionDto,
@@ -52,7 +56,10 @@ export class SubscriptionsService {
   /**
    * Pause a subscription
    */
-  async pauseSubscription(subscriptionId: string, dto: PauseSubscriptionDto): Promise<Subscription> {
+  async pauseSubscription(
+    subscriptionId: string,
+    dto: PauseSubscriptionDto,
+  ): Promise<Subscription> {
     const subscription = await this.getSubscription(subscriptionId);
 
     if (subscription.status !== SubscriptionStatus.ACTIVE) {
@@ -88,7 +95,10 @@ export class SubscriptionsService {
   /**
    * Resume a paused subscription
    */
-  async resumeSubscription(subscriptionId: string, dto: ResumeSubscriptionDto): Promise<Subscription> {
+  async resumeSubscription(
+    subscriptionId: string,
+    dto: ResumeSubscriptionDto,
+  ): Promise<Subscription> {
     const subscription = await this.getSubscription(subscriptionId);
 
     if (!subscription.properties?.isPaused) {
@@ -152,7 +162,9 @@ export class SubscriptionsService {
 
     // Update subscription
     subscription.amount = newAmount;
-    subscription.interval = dto.billingCycle ? (dto.billingCycle as SubscriptionInterval) : subscription.interval;
+    subscription.interval = dto.billingCycle
+      ? (dto.billingCycle as SubscriptionInterval)
+      : subscription.interval;
     subscription.properties = {
       ...subscription.properties,
       upgradedFrom: { planId: subscription.properties?.planId, amount: oldAmount },
@@ -215,7 +227,9 @@ export class SubscriptionsService {
 
     // Update subscription
     subscription.amount = newAmount;
-    subscription.interval = dto.billingCycle ? (dto.billingCycle as SubscriptionInterval) : subscription.interval;
+    subscription.interval = dto.billingCycle
+      ? (dto.billingCycle as SubscriptionInterval)
+      : subscription.interval;
     subscription.properties = {
       ...subscription.properties,
       downgradedFrom: { planId: subscription.properties?.planId, amount: oldAmount },
@@ -278,14 +292,21 @@ export class SubscriptionsService {
   async processRenewal(subscriptionId: string, maxRetries = 3): Promise<boolean> {
     const subscription = await this.getSubscription(subscriptionId);
 
-    if (subscription.status !== SubscriptionStatus.ACTIVE && subscription.status !== SubscriptionStatus.PAST_DUE) {
-      this.logger.warn(`Cannot renew subscription ${subscriptionId} with status: ${subscription.status}`);
+    if (
+      subscription.status !== SubscriptionStatus.ACTIVE &&
+      subscription.status !== SubscriptionStatus.PAST_DUE
+    ) {
+      this.logger.warn(
+        `Cannot renew subscription ${subscriptionId} with status: ${subscription.status}`,
+      );
       return false;
     }
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        this.logger.log(`Attempting renewal for subscription ${subscriptionId} (attempt ${attempt}/${maxRetries})`);
+        this.logger.log(
+          `Attempting renewal for subscription ${subscriptionId} (attempt ${attempt}/${maxRetries})`,
+        );
 
         // Emit event for payment processor to handle
         this.eventEmitter.emit('subscription.renewal_attempt', {
@@ -314,7 +335,9 @@ export class SubscriptionsService {
           userId: subscription.userId,
         });
 
-        this.logger.log(`Subscription ${subscriptionId} renewed successfully on attempt ${attempt}`);
+        this.logger.log(
+          `Subscription ${subscriptionId} renewed successfully on attempt ${attempt}`,
+        );
         return true;
       } catch (err) {
         this.logger.warn(

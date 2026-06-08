@@ -1,7 +1,7 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
-import { Achievement, AchievementType, AchievementDifficulty } from './entities/achievement.entity';
+import { Repository, MoreThan } from 'typeorm';
+import { Achievement, AchievementType } from './entities/achievement.entity';
 import { AchievementProgress } from './entities/achievement-progress.entity';
 import { UserAchievement } from './entities/user-achievement.entity';
 import { AchievementStatistics } from './entities/achievement-statistics.entity';
@@ -11,7 +11,10 @@ import {
   UpdateAchievementDto,
   AchievementResponseDto,
 } from './dto/achievement.dto';
-import { AchievementProgressDto, UpdateAchievementProgressDto } from './dto/achievement-progress.dto';
+import {
+  AchievementProgressDto,
+  UpdateAchievementProgressDto,
+} from './dto/achievement-progress.dto';
 import { UserAchievementDto, AchievementUnlockedEventDto } from './dto/user-achievement.dto';
 import {
   AchievementStatisticsDto,
@@ -57,9 +60,7 @@ export class AchievementsService {
   /**
    * Get all achievements
    */
-  async getAllAchievements(
-    includeHidden: boolean = false,
-  ): Promise<AchievementResponseDto[]> {
+  async getAllAchievements(includeHidden: boolean = false): Promise<AchievementResponseDto[]> {
     const query = this.achievementRepository.createQueryBuilder('achievement');
 
     if (!includeHidden) {
@@ -128,10 +129,7 @@ export class AchievementsService {
    * Delete achievement (soft delete via isActive flag)
    */
   async deactivateAchievement(achievementId: string): Promise<void> {
-    await this.achievementRepository.update(
-      { id: achievementId },
-      { isActive: false },
-    );
+    await this.achievementRepository.update({ id: achievementId }, { isActive: false });
 
     this.logger.log(`Achievement deactivated: ${achievementId}`);
   }
@@ -143,10 +141,7 @@ export class AchievementsService {
   /**
    * Initialize progress tracking for a user toward an achievement
    */
-  async initializeProgress(
-    userId: string,
-    achievementId: string,
-  ): Promise<AchievementProgressDto> {
+  async initializeProgress(userId: string, achievementId: string): Promise<AchievementProgress> {
     const achievement = await this.achievementRepository.findOne({
       where: { id: achievementId },
     });
@@ -165,7 +160,7 @@ export class AchievementsService {
     });
 
     if (progress) {
-      return this.toAchievementProgressDto(progress);
+      return progress;
     }
 
     // Initialize new progress
@@ -181,11 +176,9 @@ export class AchievementsService {
     });
 
     const saved = await this.progressRepository.save(progress);
-    this.logger.log(
-      `Progress initialized for user ${userId} toward achievement ${achievementId}`,
-    );
+    this.logger.log(`Progress initialized for user ${userId} toward achievement ${achievementId}`);
 
-    return this.toAchievementProgressDto(saved);
+    return saved;
   }
 
   /**
@@ -226,10 +219,7 @@ export class AchievementsService {
     );
 
     // Check if achievement should be unlocked
-    if (
-      !progress.isUnlocked &&
-      progress.currentProgress >= progress.targetProgress
-    ) {
+    if (!progress.isUnlocked && progress.currentProgress >= progress.targetProgress) {
       await this.unlockAchievement(userId, achievementId);
     }
 
@@ -294,10 +284,7 @@ export class AchievementsService {
       progress = await this.initializeProgress(userId, achievementId);
     }
 
-    const newProgress = Math.min(
-      progress.currentProgress + incrementBy,
-      progress.targetProgress,
-    );
+    const newProgress = Math.min(progress.currentProgress + incrementBy, progress.targetProgress);
 
     return this.updateProgress(userId, achievementId, {
       currentProgress: newProgress,
@@ -360,11 +347,7 @@ export class AchievementsService {
     );
 
     // Increment unlocked count
-    await this.achievementRepository.increment(
-      { id: achievementId },
-      'unlockedBy',
-      1,
-    );
+    await this.achievementRepository.increment({ id: achievementId }, 'unlockedBy', 1);
 
     this.logger.log(
       `Achievement unlocked for user ${userId}: ${achievementId} - earned ${achievement.pointsReward} points, ${achievement.experienceReward} XP`,
@@ -456,8 +439,7 @@ export class AchievementsService {
 
     const averageProgress =
       progresses.length > 0
-        ? progresses.reduce((sum, p) => sum + p.percentageComplete, 0) /
-          progresses.length
+        ? progresses.reduce((sum, p) => sum + p.percentageComplete, 0) / progresses.length
         : 0;
 
     // Estimate total users (for percentage calculation)
@@ -496,10 +478,7 @@ export class AchievementsService {
     });
 
     const totalPoints = userAchievements.reduce((sum, a) => sum + a.pointsEarned, 0);
-    const totalExperience = userAchievements.reduce(
-      (sum, a) => sum + a.experienceEarned,
-      0,
-    );
+    const totalExperience = userAchievements.reduce((sum, a) => sum + a.experienceEarned, 0);
 
     // Get rank (users with more achievements ranked higher)
     const rank = await this.userAchievementRepository

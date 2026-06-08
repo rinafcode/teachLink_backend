@@ -8,11 +8,7 @@ export interface DeprecatedOptions {
 }
 
 export function Deprecated(options: DeprecatedOptions) {
-  return (
-    target: any,
-    propertyKey?: string,
-    descriptor?: PropertyDescriptor,
-  ) => {
+  return (target: any, propertyKey?: string, descriptor?: PropertyDescriptor) => {
     const originalMethod = descriptor?.value;
 
     if (originalMethod) {

@@ -44,11 +44,7 @@ export class FingerprintInterceptor implements NestInterceptor {
 
     if (!seen.has(dedupKey)) {
       seen.set(dedupKey, Date.now());
-      this.analyticsService.recordEvent(
-        'request',
-        'fingerprint',
-        fingerprint.meta.path,
-      );
+      this.analyticsService.recordEvent('request', 'fingerprint', fingerprint.meta.path);
       this.logger.debug(`New fingerprint: ${fingerprint.hash} path=${fingerprint.meta.path}`);
     }
 

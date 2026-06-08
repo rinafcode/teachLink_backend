@@ -41,7 +41,14 @@ export class CreateAchievementsSchema1700000000000 implements MigrationInterface
           {
             name: 'type',
             type: 'enum',
-            enum: ['milestone', 'challenge', 'streaks', 'skill_based', 'engagement', 'contribution'],
+            enum: [
+              'milestone',
+              'challenge',
+              'streaks',
+              'skill_based',
+              'engagement',
+              'contribution',
+            ],
             isNullable: false,
           },
           {

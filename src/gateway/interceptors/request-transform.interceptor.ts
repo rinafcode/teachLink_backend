@@ -1,10 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  Logger,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
 import type { Request } from 'express';
 import { Observable } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
@@ -48,9 +42,7 @@ export class RequestTransformInterceptor implements NestInterceptor {
     // Tag the request as coming through the gateway
     req.headers['x-gateway-version'] = '1';
 
-    this.logger.debug(
-      `[${req.headers['x-correlation-id']}] ${req.method} ${req.path}`,
-    );
+    this.logger.debug(`[${req.headers['x-correlation-id']}] ${req.method} ${req.path}`);
 
     return next.handle();
   }

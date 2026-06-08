@@ -9,10 +9,7 @@ import { AuditLogModule } from '../audit-log/audit-log.module';
  * Currently focuses on providing user activity timeline and history.
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User]),
-    AuditLogModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User]), AuditLogModule],
   controllers: [UserActivityController],
 })
 export class UsersModule {}

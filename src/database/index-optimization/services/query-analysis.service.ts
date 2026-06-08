@@ -72,9 +72,7 @@ export class QueryAnalysisService {
       recommendations.push({
         table: fk.table,
         columns: fk.columns,
-        reason: isHotTable
-          ? RecommendationReason.HIGH_SEQ_SCAN
-          : RecommendationReason.SLOW_QUERY,
+        reason: isHotTable ? RecommendationReason.HIGH_SEQ_SCAN : RecommendationReason.SLOW_QUERY,
         suggestedName: this.indexName(fk.table, fk.columns),
         ddl: this.createIndexDdl(fk.table, fk.columns),
         score,
@@ -154,11 +152,7 @@ export class QueryAnalysisService {
     return Boolean(rows[0]?.exists);
   }
 
-  private hasCoveringIndex(
-    indexes: ExistingIndex[],
-    table: string,
-    columns: string[],
-  ): boolean {
+  private hasCoveringIndex(indexes: ExistingIndex[], table: string, columns: string[]): boolean {
     return indexes
       .filter((ix) => ix.table === table)
       .some((ix) => this.startsWith(ix.columns, columns));
@@ -171,12 +165,8 @@ export class QueryAnalysisService {
 
   private isSeqScanHeavy(stat?: TableScanStat): boolean {
     if (!stat) return false;
-    const ratio =
-      stat.idx_scan === 0 ? Infinity : stat.seq_scan / stat.idx_scan;
-    return (
-      stat.seq_scan >= this.config.seqScanThreshold &&
-      ratio >= this.config.seqScanRatio
-    );
+    const ratio = stat.idx_scan === 0 ? Infinity : stat.seq_scan / stat.idx_scan;
+    return stat.seq_scan >= this.config.seqScanThreshold && ratio >= this.config.seqScanRatio;
   }
 
   private scoreRecommendation(stat?: TableScanStat): number {

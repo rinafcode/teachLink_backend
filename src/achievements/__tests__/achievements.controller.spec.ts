@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AchievementsController } from '../achievements.controller';
 import { AchievementsService } from '../achievements.service';
-import { Achievement, AchievementType, AchievementDifficulty } from '../entities/achievement.entity';
+import {
+  Achievement,
+  AchievementType,
+  AchievementDifficulty,
+} from '../entities/achievement.entity';
 import { AchievementProgress } from '../entities/achievement-progress.entity';
 import { UserAchievement } from '../entities/user-achievement.entity';
 import { AchievementStatistics } from '../entities/achievement-statistics.entity';

@@ -1,9 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import {
-  ValidationPipe,
-  Logger,
-  VersioningType,
-} from '@nestjs/common';
+import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -15,7 +11,7 @@ import Redis from 'ioredis';
 import { AppModule } from './app.module';
 
 import { correlationMiddleware } from './common/utils/correlation.utils';
-import { sessionConfig } from './config/cache.config';
+import { createSessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
@@ -28,8 +24,6 @@ import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
 import { SlackService } from './slack.service';
 import compression from 'compression';
-import { FieldFilterInterceptor } from './common/interceptors/field-filter.interceptor';
-import { ImageOptimizationInterceptor } from './common/interceptors/image-optimization.interceptor';
 import { AuditLogService } from './audit-log/audit-log.service';
 import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 
@@ -38,7 +32,7 @@ import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
-const SUPPORTED_API_VERSIONS = ['1'];
+// const SUPPORTED_API_VERSIONS = ['1'];
 
 type SessionRequest = Request & {
   session?: Session & Partial<SessionData> & { userAgent?: string };
@@ -56,7 +50,7 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  
+
   // Get shutdown services
   const shutdownState = app.get(ShutdownStateService);
   const gracefulShutdown = app.get(GracefulShutdownService);
@@ -160,8 +154,7 @@ async function bootstrapWorker(): Promise<void> {
     const contentLengthHeader = req.headers['content-length'];
 
     const isMultipart =
-      typeof contentType === 'string' &&
-      contentType.toLowerCase().includes('multipart/form-data');
+      typeof contentType === 'string' && contentType.toLowerCase().includes('multipart/form-data');
 
     if (!isMultipart) return next();
 
@@ -186,6 +179,7 @@ async function bootstrapWorker(): Promise<void> {
   // REDIS SESSION
   // =========================
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
+  const sessionConfig = createSessionConfig();
 
   if (sessionConfig.trustProxy) {
     const expressApp = app.getHttpAdapter().getInstance();
@@ -266,9 +260,7 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
-  app.useGlobalInterceptors(
-    new LocaleInterceptor(),
-  );
+  app.useGlobalInterceptors(new LocaleInterceptor());
 
   // =========================
   // SWAGGER
@@ -308,7 +300,10 @@ async function bootstrapWorker(): Promise<void> {
 
   app.enableShutdownHooks();
   const slackService = app.get(SlackService);
-  await slackService.sendAlert('TeachLink Backend has successfully started up on local system! 🚀', 'low');
+  await slackService.sendAlert(
+    'TeachLink Backend has successfully started up on local system! 🚀',
+    'low',
+  );
   await app.listen(port);
 
   const startupTime = Date.now() - bootstrapStartTime;
@@ -357,10 +352,7 @@ async function bootstrap(): Promise<void> {
   const clusterModeEnabled = (process.env.CLUSTER_MODE || 'false') === 'true';
 
   if (clusterModeEnabled && cluster.isPrimary) {
-    const workerCount = parseInt(
-      process.env.CLUSTER_WORKERS || `${cpus().length}`,
-      10,
-    );
+    const workerCount = parseInt(process.env.CLUSTER_WORKERS || `${cpus().length}`, 10);
 
     logger.log(`Cluster mode enabled with ${workerCount} workers`);
 

@@ -24,7 +24,11 @@ export class CreatePaymentMethodDto {
   @Length(1, 4)
   last4?: string;
 
-  @ApiPropertyOptional({ description: 'Expiration month for card-based methods', minimum: 1, maximum: 12 })
+  @ApiPropertyOptional({
+    description: 'Expiration month for card-based methods',
+    minimum: 1,
+    maximum: 12,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -70,7 +74,11 @@ export class UpdatePaymentMethodDto {
   @Length(1, 4)
   last4?: string;
 
-  @ApiPropertyOptional({ description: 'Expiration month for card-based methods', minimum: 1, maximum: 12 })
+  @ApiPropertyOptional({
+    description: 'Expiration month for card-based methods',
+    minimum: 1,
+    maximum: 12,
+  })
   @IsOptional()
   @IsInt()
   @Min(1)

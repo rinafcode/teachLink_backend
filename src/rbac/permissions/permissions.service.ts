@@ -10,7 +10,11 @@ export class PermissionsService {
     private readonly permissionRepository: Repository<Permission>,
   ) {}
 
-  async createPermission(resource: string, action: string, description?: string): Promise<Permission> {
+  async createPermission(
+    resource: string,
+    action: string,
+    description?: string,
+  ): Promise<Permission> {
     const permission = this.permissionRepository.create({
       resource,
       action,
@@ -31,7 +35,12 @@ export class PermissionsService {
     return permission;
   }
 
-  async updatePermission(id: string, resource: string, action: string, description?: string): Promise<Permission> {
+  async updatePermission(
+    id: string,
+    resource: string,
+    action: string,
+    description?: string,
+  ): Promise<Permission> {
     await this.permissionRepository.update(id, { resource, action, description });
     const updated = await this.permissionRepository.findOneBy({ id });
     if (!updated) {

@@ -74,7 +74,7 @@ export class DatabaseShutdownService implements OnModuleDestroy {
     try {
       // Get the underlying connection pool
       const pool = this.getConnectionPool();
-      
+
       if (!pool) {
         this.logger.warn('No connection pool found, skipping drain phase');
         return;
@@ -82,7 +82,7 @@ export class DatabaseShutdownService implements OnModuleDestroy {
 
       // Wait for connections to be returned to the pool or timeout
       await this.waitForConnectionDrain(pool);
-      
+
       const duration = Date.now() - startTime;
       this.logger.log(`Connection drain completed in ${duration}ms`);
     } catch (error) {
@@ -110,7 +110,7 @@ export class DatabaseShutdownService implements OnModuleDestroy {
       const checkQueries = async () => {
         try {
           const activeQueries = await this.getActiveQueryCount();
-          
+
           if (activeQueries === 0) {
             clearTimeout(timeoutTimer);
             const duration = Date.now() - startTime;
@@ -157,7 +157,7 @@ export class DatabaseShutdownService implements OnModuleDestroy {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(`Error closing database connections after ${duration}ms:`, error);
-      
+
       // Force close if graceful close fails
       try {
         await this.forceCloseConnections();
@@ -173,13 +173,13 @@ export class DatabaseShutdownService implements OnModuleDestroy {
    */
   private async forceCloseConnections(): Promise<void> {
     this.logger.warn('Force closing database connections...');
-    
+
     try {
       const pool = this.getConnectionPool();
       if (pool && typeof pool.end === 'function') {
         await pool.end();
       }
-      
+
       this.logger.log('Force close completed');
     } catch (error) {
       this.logger.error('Force close failed:', error);
@@ -218,14 +218,14 @@ export class DatabaseShutdownService implements OnModuleDestroy {
           const totalConnections = pool.totalCount || 0;
           const idleConnections = pool.idleCount || 0;
           const waitingClients = pool.waitingCount || 0;
-          
+
           // Consider drained when all connections are idle and no clients waiting
           if (totalConnections === idleConnections && waitingClients === 0) {
             clearTimeout(timeoutTimer);
             resolve();
           } else {
             this.logger.debug(
-              `Draining: ${totalConnections} total, ${idleConnections} idle, ${waitingClients} waiting`
+              `Draining: ${totalConnections} total, ${idleConnections} idle, ${waitingClients} waiting`,
             );
             setTimeout(checkDrain, checkInterval);
           }
@@ -254,7 +254,7 @@ export class DatabaseShutdownService implements OnModuleDestroy {
         AND datname = current_database()
         AND pid != pg_backend_pid()
       `);
-      
+
       return parseInt(result[0]?.active_count || '0', 10);
     } catch (error) {
       this.logger.debug('Could not query active connections:', error);
@@ -273,11 +273,11 @@ export class DatabaseShutdownService implements OnModuleDestroy {
     try {
       const snapshot = this.poolMonitor.snapshot;
       const activeQueries = await this.getActiveQueryCount();
-      
+
       this.logger.log(
         `Pool status ${phase}: total=${snapshot.total}, idle=${snapshot.idle}, ` +
-        `waiting=${snapshot.waiting}, utilization=${snapshot.utilizationPct}%, ` +
-        `active_queries=${activeQueries}`
+          `waiting=${snapshot.waiting}, utilization=${snapshot.utilizationPct}%, ` +
+          `active_queries=${activeQueries}`,
       );
     } catch (error) {
       this.logger.debug(`Could not log pool status ${phase}:`, error);

@@ -34,6 +34,19 @@ export class UpdateIncidentDto {
   resolutionNotes?: string;
 }
 
+export class ResolveIncidentDto {
+  @IsString()
+  resolutionNotes: string;
+}
+
+export class EscalateIncidentDto {
+  @IsString()
+  escalatedTo: string;
+
+  @IsString()
+  reason: string;
+}
+
 export class IncidentResponseDto {
   id: string;
   title: string;

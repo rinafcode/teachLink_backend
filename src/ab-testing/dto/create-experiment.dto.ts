@@ -24,12 +24,18 @@ export class CreateVariantDto implements ICreateVariantDto {
   @IsNotEmpty({ message: 'Variant name is required' })
   name: string;
 
-  @ApiProperty({ description: 'Description of the variant.', example: 'Control variant with baseline UI.' })
+  @ApiProperty({
+    description: 'Description of the variant.',
+    example: 'Control variant with baseline UI.',
+  })
   @IsString({ message: 'Variant description must be a string' })
   @IsNotEmpty({ message: 'Variant description is required' })
   description: string;
 
-  @ApiProperty({ description: 'Configuration payload for the variant.', example: { buttonColor: 'blue' } })
+  @ApiProperty({
+    description: 'Configuration payload for the variant.',
+    example: { buttonColor: 'blue' },
+  })
   @IsObject({ message: 'Variant configuration must be an object' })
   configuration: Record<string, unknown>;
 
@@ -47,7 +53,10 @@ export class CreateMetricDto implements ICreateMetricDto {
   @IsNotEmpty({ message: 'Metric name is required' })
   name: string;
 
-  @ApiProperty({ description: 'Metric description.', example: 'Track how many users click the CTA.' })
+  @ApiProperty({
+    description: 'Metric description.',
+    example: 'Track how many users click the CTA.',
+  })
   @IsString({ message: 'Metric description must be a string' })
   @IsNotEmpty({ message: 'Metric description is required' })
   description: string;
@@ -100,9 +109,22 @@ export class CreateExperimentDto implements ICreateExperimentDto {
   @IsNumber({}, { message: 'Traffic allocation must be a number' })
   trafficAllocation: number;
 
-  @ApiProperty({ description: 'Whether the experiment may automatically reallocate traffic.', example: false })
+  @ApiProperty({
+    description: 'Whether the experiment may automatically reallocate traffic.',
+    example: false,
+  })
   @IsBoolean({ message: 'autoAllocateTraffic must be a boolean' })
   autoAllocateTraffic: boolean;
+
+  @ApiPropertyOptional({ description: 'Auto stop on statistical significance' })
+  @IsOptional()
+  @IsBoolean()
+  autoStopOnSignificance: boolean;
+
+  @ApiPropertyOptional({ description: 'Significance threshold for statistical tests' })
+  @IsOptional()
+  @IsNumber()
+  significanceThreshold: number;
 
   @ApiProperty({ description: 'Confidence threshold target for the experiment.', example: 95 })
   @IsNumber({}, { message: 'Confidence level must be a number' })
@@ -112,7 +134,10 @@ export class CreateExperimentDto implements ICreateExperimentDto {
   @IsNumber({}, { message: 'Minimum sample size must be a number' })
   minimumSampleSize: number;
 
-  @ApiProperty({ description: 'Hypothesis statement for the experiment.', example: 'Changing the CTA text increases conversions.' })
+  @ApiProperty({
+    description: 'Hypothesis statement for the experiment.',
+    example: 'Changing the CTA text increases conversions.',
+  })
   @IsString({ message: 'Hypothesis must be a string' })
   @IsNotEmpty({ message: 'Hypothesis is required' })
   hypothesis: string;

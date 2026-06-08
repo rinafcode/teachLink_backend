@@ -10,13 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse, 
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
 import { TenancyService } from './tenancy.service';
 import { TenantAdminService } from './admin/tenant-admin.service';

@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { describe, it, expect } from 'vitest';
 import { SubmitAssessmentDto } from './submit-assessment.dto';
 
 describe('SubmitAssessmentDto', () => {

@@ -25,4 +25,3 @@ export class ReviewContentReportDto {
   @MaxLength(5000)
   resolutionNote?: string;
 }
-

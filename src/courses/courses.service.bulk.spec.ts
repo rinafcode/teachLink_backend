@@ -1,20 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ResourceNotFoundException, ForbiddenOperationException } from '../common/exceptions/app.exceptions';
 
 import { CoursesService } from './courses.service';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview } from './entities/course-review.entity';
+import { CourseVersion } from './entities/course-version.entity';
 import {
   BulkOperation,
   BulkOperationStatus,
   BulkOperationType,
 } from './entities/bulk-operation.entity';
+import { User } from '../users/entities/user.entity';
 
 describe('CoursesService - Bulk Operations', () => {
   let service: CoursesService;
@@ -38,16 +37,14 @@ describe('CoursesService - Bulk Operations', () => {
   const owner = {
     id: 'instructor-1',
     roles: [],
-  };
+  } as unknown as User;
 
   const admin = {
     id: 'admin-1',
     roles: ['admin'],
-  };
+  } as unknown as User;
 
-  const createCourse = (
-    overrides: Partial<Course> = {},
-  ): Course =>
+  const createCourse = (overrides: Partial<Course> = {}): Course =>
     ({
       id: 'course-1',
       title: 'Test Course',
@@ -82,6 +79,10 @@ describe('CoursesService - Bulk Operations', () => {
           useValue: {},
         },
         {
+          provide: getRepositoryToken(CourseVersion),
+          useValue: {},
+        },
+        {
           provide: getRepositoryToken(BulkOperation),
           useValue: bulkOpRepo,
         },
@@ -97,10 +98,7 @@ describe('CoursesService - Bulk Operations', () => {
 
   describe('bulkPublish', () => {
     it('should publish all eligible courses', async () => {
-      const courses = [
-        createCourse({ id: 'c1' }),
-        createCourse({ id: 'c2' }),
-      ];
+      const courses = [createCourse({ id: 'c1' }), createCourse({ id: 'c2' })];
 
       courseRepo.find.mockResolvedValue(courses);
 
@@ -121,11 +119,7 @@ describe('CoursesService - Bulk Operations', () => {
         failureCount: 0,
       });
 
-      expect(
-        courses.every(
-          (course) => course.status === CourseStatus.PUBLISHED,
-        ),
-      ).toBe(true);
+      expect(courses.every((course) => course.status === CourseStatus.PUBLISHED)).toBe(true);
 
       expect(eventEmitter.emit).toHaveBeenCalledTimes(2);
     });
@@ -141,9 +135,7 @@ describe('CoursesService - Bulk Operations', () => {
         owner,
       );
 
-      expect(result.status).toBe(
-        BulkOperationStatus.FAILED,
-      );
+      expect(result.status).toBe(BulkOperationStatus.FAILED);
 
       expect(courseRepo.save).not.toHaveBeenCalled();
     });
@@ -177,32 +169,21 @@ describe('CoursesService - Bulk Operations', () => {
 
       courseRepo.find.mockResolvedValue([course]);
 
-      const result = await service.undoBulkOperation(
-        'op-1',
-        owner,
-      );
+      const result = await service.undoBulkOperation('op-1', owner);
 
-      expect(course.status).toBe(
-        CourseStatus.DRAFT,
-      );
+      expect(course.status).toBe(CourseStatus.DRAFT);
       expect(course.price).toBe(10);
       expect(course.category).toBe('old');
 
-      expect(courseRepo.save).toHaveBeenCalledWith([
-        course,
-      ]);
+      expect(courseRepo.save).toHaveBeenCalledWith([course]);
 
-      expect(result.status).toBe(
-        BulkOperationStatus.UNDONE,
-      );
+      expect(result.status).toBe(BulkOperationStatus.UNDONE);
     });
 
     it('should throw when operation does not exist', async () => {
       bulkOpRepo.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.undoBulkOperation('missing', owner),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.undoBulkOperation('missing', owner)).rejects.toThrow(ResourceNotFoundException);
     });
 
     it('should reject unauthorized users', async () => {
@@ -217,8 +198,8 @@ describe('CoursesService - Bulk Operations', () => {
         service.undoBulkOperation('op-1', {
           id: 'other-user',
           roles: [],
-        }),
-      ).rejects.toThrow(ForbiddenException);
+        } as unknown as User),
+      ).rejects.toThrow(ForbiddenOperationException);
     });
 
     it('should allow admins to undo operations', async () => {
@@ -244,14 +225,9 @@ describe('CoursesService - Bulk Operations', () => {
 
       courseRepo.find.mockResolvedValue([course]);
 
-      const result = await service.undoBulkOperation(
-        'op-1',
-        admin,
-      );
+      const result = await service.undoBulkOperation('op-1', admin);
 
-      expect(result.status).toBe(
-        BulkOperationStatus.UNDONE,
-      );
+      expect(result.status).toBe(BulkOperationStatus.UNDONE);
     });
   });
 });

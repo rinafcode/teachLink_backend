@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   Query,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -17,7 +16,10 @@ import {
   UpdateAchievementDto,
   AchievementResponseDto,
 } from './dto/achievement.dto';
-import { AchievementProgressDto, UpdateAchievementProgressDto } from './dto/achievement-progress.dto';
+import {
+  AchievementProgressDto,
+  UpdateAchievementProgressDto,
+} from './dto/achievement-progress.dto';
 import { UserAchievementDto, AchievementUnlockedEventDto } from './dto/user-achievement.dto';
 import {
   AchievementStatisticsDto,
@@ -48,9 +50,7 @@ export class AchievementsController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createAchievement(
-    @Body() dto: CreateAchievementDto,
-  ): Promise<AchievementResponseDto> {
+  async createAchievement(@Body() dto: CreateAchievementDto): Promise<AchievementResponseDto> {
     return this.achievementsService.createAchievement(dto);
   }
 
@@ -123,7 +123,8 @@ export class AchievementsController {
     @Param('achievementId') achievementId: string,
     @Param('userId') userId: string,
   ): Promise<AchievementProgressDto> {
-    return this.achievementsService.initializeProgress(userId, achievementId);
+    const progress = await this.achievementsService.initializeProgress(userId, achievementId);
+    return this.achievementsService['toAchievementProgressDto'](progress);
   }
 
   /**
@@ -201,9 +202,7 @@ export class AchievementsController {
    * GET /achievements/user/:userId/unlocked
    */
   @Get('user/:userId/unlocked')
-  async getUserAchievements(
-    @Param('userId') userId: string,
-  ): Promise<UserAchievementDto[]> {
+  async getUserAchievements(@Param('userId') userId: string): Promise<UserAchievementDto[]> {
     return this.achievementsService.getUserAchievements(userId);
   }
 

@@ -8,8 +8,6 @@ import { TrafficMirrorMiddleware } from '../common/middleware/traffic-mirror.mid
 })
 export class CanaryModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer
-      .apply(TrafficMirrorMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
+    consumer.apply(TrafficMirrorMiddleware).forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

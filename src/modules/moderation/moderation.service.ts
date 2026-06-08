@@ -17,8 +17,8 @@ const PROFANITY_PATTERNS = [
 
 // Spam signals: excessive caps, repeated chars, URL spam, all-caps shouting
 const SPAM_PATTERNS = [
-  /(.)\1{9,}/,                          // 10+ repeated characters
-  /https?:\/\/\S+/gi,                   // URLs (flag if 3+)
+  /(.)\1{9,}/, // 10+ repeated characters
+  /https?:\/\/\S+/gi, // URLs (flag if 3+)
   /\b(buy now|click here|free money|make money fast|earn \$|limited offer|act now)\b/i,
 ];
 

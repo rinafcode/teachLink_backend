@@ -1,19 +1,5 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ContentReportingService } from './content-reporting.service';
 import { CreateContentReportDto } from './dto/create-content-report.dto';
@@ -61,12 +47,7 @@ export class ContentReportsController {
   @ApiResponse({ status: 200, description: 'Report reviewed successfully' })
   @ApiResponse({ status: 400, description: 'Report already finalized' })
   @ApiResponse({ status: 404, description: 'Report not found' })
-  async reviewReport(
-    @Param('id') id: string,
-    @Body() dto: ReviewContentReportDto,
-    @Request() req,
-  ) {
+  async reviewReport(@Param('id') id: string, @Body() dto: ReviewContentReportDto, @Request() req) {
     return this.reportingService.reviewReport(id, dto, req.user);
   }
 }
-

@@ -3,13 +3,15 @@
  * This file demonstrates how to integrate the achievement system with other modules
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AchievementsService } from './achievements.service';
 import { AchievementsNotificationsService } from './achievements-notifications.service';
 import { AchievementType, AchievementDifficulty } from './entities/achievement.entity';
 
 @Injectable()
 export class AchievementsIntegrationExample {
+  private readonly logger = new Logger(AchievementsIntegrationExample.name);
+
   constructor(
     private achievementsService: AchievementsService,
     private notificationsService: AchievementsNotificationsService,
@@ -30,8 +32,7 @@ export class AchievementsIntegrationExample {
     });
 
     // 3. Check if user earned any new achievements
-    const userAchievements = await this.achievementsService.getUserAchievements(userId);
-    console.log(`User has ${userAchievements.length} achievements`);
+    await this.achievementsService.getUserAchievements(userId);
   }
 
   /**
@@ -42,19 +43,10 @@ export class AchievementsIntegrationExample {
     const courseCompletionAchievement = 'courses-completed-achievement-id';
 
     // Increment progress
-    const progress = await this.achievementsService.incrementProgress(
-      userId,
-      courseCompletionAchievement,
-      1,
-      {
-        courseId,
-        completedAt: new Date(),
-      },
-    );
-
-    console.log(
-      `User progress: ${progress.currentProgress}/${progress.targetProgress} (${progress.percentageComplete}%)`,
-    );
+    await this.achievementsService.incrementProgress(userId, courseCompletionAchievement, 1, {
+      courseId,
+      completedAt: new Date(),
+    });
   }
 
   /**
@@ -65,10 +57,11 @@ export class AchievementsIntegrationExample {
     const streakAchievementId = 'week-warrior-achievement-id';
 
     // Get current streak
-    const progress = await this.achievementsService.getUserProgressForAchievement(
+    const _progress = await this.achievementsService.getUserProgressForAchievement(
       userId,
       streakAchievementId,
     );
+    void _progress;
 
     // Check if user has completed a lesson today
     const completedTodayInProgress = true; // Check via lesson service
@@ -84,7 +77,7 @@ export class AchievementsIntegrationExample {
         },
       );
 
-      console.log(`Streak updated: ${updated.currentProgress} days`);
+      this.logger.log(`Streak updated: ${updated.currentProgress} days`);
     }
   }
 
@@ -98,23 +91,15 @@ export class AchievementsIntegrationExample {
     const achievement = achievements.find((a) => a.name === achievementName);
 
     if (!achievement) {
-      console.error(`Achievement not found: ${achievementName}`);
+      // console.error(`Achievement not found: ${achievementName}`);
       return;
     }
 
     // 2. Unlock achievement
-    const unlockedEvent = await this.achievementsService.unlockAchievement(
-      userId,
-      achievement.id,
-      {
-        reason: 'manual_award',
-        adminId: 'admin-user-id',
-      },
-    );
-
-    console.log(`Achievement unlocked: ${achievement.name}`);
-    console.log(`Points earned: ${unlockedEvent.pointsEarned}`);
-    console.log(`Experience earned: ${unlockedEvent.experienceEarned}`);
+    await this.achievementsService.unlockAchievement(userId, achievement.id, {
+      reason: 'manual_award',
+      adminId: 'admin-user-id',
+    });
   }
 
   /**
@@ -126,7 +111,8 @@ export class AchievementsIntegrationExample {
     const overview = await this.achievementsService.getUserAchievementOverview(userId);
 
     // Get all achievements with progress
-    const allAchievements = await this.achievementsService.getAllAchievements();
+    const _allAchievements = await this.achievementsService.getAllAchievements();
+    void _allAchievements;
     const userProgress = await this.achievementsService.getUserAllProgress(userId);
     const userUnlocked = await this.achievementsService.getUserAchievements(userId);
 
@@ -197,7 +183,7 @@ export class AchievementsIntegrationExample {
       },
     });
 
-    console.log(`Achievement created: ${newAchievement.id}`);
+    this.logger.log(`Achievement created: ${newAchievement.id}`);
   }
 
   /**
@@ -228,7 +214,7 @@ export class AchievementsIntegrationExample {
 
     await this.achievementsService.batchUnlockAchievements(userId, achievementsToUnlock);
 
-    console.log(`Unlocked ${achievementsToUnlock.length} achievements for user ${userId}`);
+    this.logger.log(`Unlocked ${achievementsToUnlock.length} achievements for user ${userId}`);
   }
 
   /**
@@ -242,7 +228,7 @@ export class AchievementsIntegrationExample {
     const notificationData = {
       userId,
       type: 'ACHIEVEMENT_UNLOCKED',
-      title: `🎉 Achievement Unlocked!`,
+      title: '🎉 Achievement Unlocked!',
       message: `You've unlocked "${achievement.name}"!`,
       data: {
         achievementId,
@@ -252,7 +238,7 @@ export class AchievementsIntegrationExample {
     };
 
     // await this.notificationsService.sendNotification(notificationData);
-    console.log('Notification would be sent:', notificationData);
+    this.logger.log(`Notification would be sent: ${JSON.stringify(notificationData)}`);
   }
 }
 

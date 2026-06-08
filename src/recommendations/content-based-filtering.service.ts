@@ -53,10 +53,7 @@ export class ContentBasedFilteringService {
     const scores: Array<{ courseId: string; score: number }> = [];
 
     for (const course of allCourses) {
-      if (
-        enrolledCourseIds.includes(course.id) ||
-        excludeCourseIds.has(course.id)
-      ) continue;
+      if (enrolledCourseIds.includes(course.id) || excludeCourseIds.has(course.id)) continue;
 
       let score = 0;
 

@@ -6,10 +6,7 @@ import {
   IndexOptimizationConfig,
 } from '../index-optimization.config';
 import { IndexUsageMonitorService } from './index-usage-monitor.service';
-import {
-  IStaleIndex,
-  IStaleIndexRemovalResult,
-} from '../interfaces/index-optimization.interfaces';
+import { IStaleIndex, IStaleIndexRemovalResult } from '../interfaces/index-optimization.interfaces';
 
 /**
  * Detects and (optionally) removes stale indexes.
@@ -45,13 +42,11 @@ export class StaleIndexService {
         scans: idx.scans,
         sizeBytes: idx.sizeBytes,
         ddl: `DROP INDEX CONCURRENTLY IF EXISTS "${idx.schema}"."${idx.indexName}"`,
-        reason: `Unused index.`,
+        reason: 'Unused index.',
       }));
   }
 
-  async removeStaleIndexes(
-    dryRun = this.config.dryRun,
-  ): Promise<IStaleIndexRemovalResult[]> {
+  async removeStaleIndexes(dryRun = this.config.dryRun): Promise<IStaleIndexRemovalResult[]> {
     const stale = await this.findStaleIndexes();
     const results: IStaleIndexRemovalResult[] = [];
 

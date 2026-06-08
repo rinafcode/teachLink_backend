@@ -27,7 +27,9 @@ export class AnalyticsService implements OnModuleInit {
       const prom = await import('prom-client');
 
       this.featureEventsCounter =
-        (registry.getSingleMetric('feature_events_total') as Counter<'category' | 'action' | 'eventType'>) ??
+        (registry.getSingleMetric('feature_events_total') as Counter<
+          'category' | 'action' | 'eventType'
+        >) ??
         new prom.Counter({
           name: 'feature_events_total',
           help: 'Feature analytics events',
@@ -92,19 +94,13 @@ export class AnalyticsService implements OnModuleInit {
     }
   }
 
-  recordEvent(category: string, action: string, label = '', value = 1): void {
+  recordEvent(category: string, action: string, _label = '', value = 1): void {
     try {
       if (this.featureEventsCounter) {
-        this.featureEventsCounter.inc(
-          { category, action, eventType: EventType.CUSTOM },
-          value,
-        );
+        this.featureEventsCounter.inc({ category, action, eventType: EventType.CUSTOM }, value);
       }
     } catch (err) {
-      this.logger.error(
-        `Failed to record analytics event: ${category}.${action}`,
-        err as Error,
-      );
+      this.logger.error(`Failed to record analytics event: ${category}.${action}`, err as Error);
     }
   }
 

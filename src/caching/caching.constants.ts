@@ -94,7 +94,7 @@ export const CACHE_EVENTS = {
 // ---------------------------------------------------------------------------
 export const COMPUTATION_TTL = {
   LEADERBOARD: 1800, // 30 minutes — top players list
-  USER_RANK: 300,    // 5 minutes  — per-user rank lookup
+  USER_RANK: 300, // 5 minutes  — per-user rank lookup
 } as const;
 
 // Merge into CACHE_TTL for consistent access across the codebase

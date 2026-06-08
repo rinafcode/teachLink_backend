@@ -228,7 +228,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
           {
             name: 'status',
             type: 'submission_grades_status_enum',
-            default: `'pending'`,
+            default: "'pending'",
           },
           {
             name: 'totalScore',
@@ -358,8 +358,6 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     await queryRunner.dropTable('rubric_levels', true);
     await queryRunner.dropTable('rubric_criteria', true);
     await queryRunner.dropTable('rubrics', true);
-    await queryRunner.query(
-      `DROP TYPE IF EXISTS "submission_grades_status_enum"`,
-    );
+    await queryRunner.query('DROP TYPE IF EXISTS "submission_grades_status_enum"');
   }
 }
