@@ -2,7 +2,6 @@
 .git
 .gitignore
 .gitattributes
-
 # ── Secrets & credentials ──────────────────────────────────────────────────────
 .env
 .env.*
