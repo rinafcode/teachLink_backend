@@ -1,35 +1,57 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { Request, Response, NextFunction } from 'express';
-export const CORRELATION_ID_HEADER = 'x-request-id';
+
+/**
+ * Canonical outbound header for the correlation ID.
+ * Downstream services should forward this header to propagate the ID.
+ */
+export const CORRELATION_ID_HEADER = 'x-correlation-id';
+
+/**
+ * Alternate inbound header accepted for backwards compatibility with clients
+ * that send `x-request-id` instead of `x-correlation-id`.
+ */
+export const REQUEST_ID_HEADER_ALIAS = 'x-request-id';
 
 export interface ICorrelationContext {
   correlationId: string;
+  /** Epoch milliseconds when the request entered the middleware. */
+  requestStartMs: number;
 }
 
 const correlationStorage = new AsyncLocalStorage<ICorrelationContext>();
 
+// ---------------------------------------------------------------------------
+// Core helpers
+// ---------------------------------------------------------------------------
+
 /**
- * Generates correlation Id.
- * @returns The resulting string value.
+ * Generates a lexicographically sortable, human-readable correlation ID.
+ * Format: `cid-<base36-timestamp>-<random>` (e.g. `cid-lzxj5b-a3f9k2m1`)
  */
 export function generateCorrelationId(): string {
   return `cid-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /**
- * Retrieves correlation Id.
- * @returns The operation result.
+ * Returns the correlation ID bound to the current async context, or
+ * `undefined` when called outside a correlated scope.
  */
 export function getCorrelationId(): string | undefined {
-  const store = correlationStorage.getStore();
-  return store?.correlationId;
+  return correlationStorage.getStore()?.correlationId;
 }
 
 /**
- * Sets correlation Id.
- * @param req The req.
- * @param res The res.
- * @param correlationId The correlation identifier.
+ * Returns the epoch-ms timestamp recorded when the correlated request
+ * entered the middleware, or `undefined` when outside a correlated scope.
+ */
+export function getRequestStartMs(): number | undefined {
+  return correlationStorage.getStore()?.requestStartMs;
+}
+
+/**
+ * Attaches the correlation ID to the request object (for downstream
+ * NestJS handlers) and echoes it on the response via the canonical header.
  */
 export function setCorrelationId(req: Request, res: Response, correlationId: string): void {
   (
@@ -40,38 +62,57 @@ export function setCorrelationId(req: Request, res: Response, correlationId: str
   res.setHeader(CORRELATION_ID_HEADER, correlationId);
 }
 
+// ---------------------------------------------------------------------------
+// Express middleware
+// ---------------------------------------------------------------------------
+
 /**
- * Executes correlation Middleware.
- * @param req The req.
- * @param res The res.
- * @param next The next.
+ * Express middleware that:
+ * 1. Reads an inbound `x-correlation-id` (or `x-request-id` as alias).
+ * 2. Generates a fresh ID when none is provided.
+ * 3. Runs subsequent handlers inside an `AsyncLocalStorage` context so that
+ *    `getCorrelationId()` works anywhere in the call stack without explicit
+ *    parameter threading.
+ * 4. Sets the canonical `x-correlation-id` response header.
+ *
+ * This middleware is already wired in `main.ts`. The NestJS class-based
+ * version (`CorrelationIdMiddleware`) delegates to this function so there is
+ * exactly one implementation.
  */
 export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
   const incoming =
-    (req.headers[CORRELATION_ID_HEADER] as string) || (req.headers['x-correlation-id'] as string);
+    (req.headers[CORRELATION_ID_HEADER] as string | undefined) ||
+    (req.headers[REQUEST_ID_HEADER_ALIAS] as string | undefined);
   const correlationId = incoming || generateCorrelationId();
-  correlationStorage.run({ correlationId }, () => {
+  const requestStartMs = Date.now();
+
+  correlationStorage.run({ correlationId, requestStartMs }, () => {
     setCorrelationId(req, res, correlationId);
     next();
   });
 }
 
+// ---------------------------------------------------------------------------
+// Utilities for outbound calls
+// ---------------------------------------------------------------------------
+
 /**
- * Executes run With Correlation Id.
- * @param callback The callback.
- * @param correlationId The correlation identifier.
- * @returns The resulting t.
+ * Executes `callback` within a new (or supplied) correlated async context.
+ * Useful for background jobs and queue workers that run outside an HTTP
+ * request lifecycle.
  */
 export function runWithCorrelationId<T>(callback: () => T, correlationId?: string): T {
   const id = correlationId || generateCorrelationId();
-  return correlationStorage.run({ correlationId: id }, callback);
+  return correlationStorage.run({ correlationId: id, requestStartMs: Date.now() }, callback);
 }
 
 /**
- * Executes inject Correlation Id To Headers.
- * @param headers The headers.
- * @param correlationId The correlation identifier.
- * @returns The resulting record<string, any>.
+ * Returns a copy of `headers` with the correlation ID injected under the
+ * canonical header name.  Pass this to `axios`, `fetch`, or any HTTP client
+ * when making calls to downstream microservices.
+ *
+ * @example
+ * await axios.get(url, { headers: injectCorrelationIdToHeaders() });
  */
 export function injectCorrelationIdToHeaders(
   headers: Record<string, any> = {},

@@ -1,3 +1,5 @@
+import { getCorrelationId } from '../common/utils/correlation.utils';
+
 export type LogMeta = Record<string, unknown>;
 
 function timestamp(): string {
@@ -16,11 +18,17 @@ function formatStructured(level: string, service: string, args: unknown[], meta:
   const message = typeof msgParts[0] === 'string' ? msgParts.shift() : undefined;
   const extra = msgParts.length === 1 ? safeSerialize(msgParts[0]) : msgParts.map(safeSerialize);
 
+  // Automatically inject the correlation ID from AsyncLocalStorage when
+  // available so that every log line emitted during a request is traceable
+  // without manual wiring.
+  const correlationId = getCorrelationId();
+
   const out: Record<string, unknown> = {
     timestamp: timestamp(),
     level,
     service,
     pid: process.pid,
+    ...(correlationId ? { correlationId } : {}),
   };
 
   if (message) out.message = message;

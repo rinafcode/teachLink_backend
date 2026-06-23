@@ -20,6 +20,7 @@ import { IncidentManagementModule } from './incident-management/incident-managem
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { ModerationModule } from './moderation/moderation.module';
 import { IdempotencyModule } from './common/modules/idempotency.module';
+import { CorrelationModule } from './common/modules/correlation.module';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { PaymentMethodsModule } from './payments/payment-methods/payment-methods.module';
@@ -66,6 +67,7 @@ const featureFlags = loadFeatureFlags();
     MonitoringModule,
     ShardingModule,
 
+    CorrelationModule,
     IdempotencyModule,
     DeepLinkModule,
 
