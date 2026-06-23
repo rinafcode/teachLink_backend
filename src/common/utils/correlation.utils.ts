@@ -1,5 +1,10 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { Request, Response, NextFunction } from 'express';
+
+/** Canonical correlation header used across services. */
+export const X_CORRELATION_ID_HEADER = 'x-correlation-id';
+
+/** Legacy alias kept for backward compatibility with existing clients. */
 export const CORRELATION_ID_HEADER = 'x-request-id';
 
 export interface ICorrelationContext {
@@ -26,17 +31,31 @@ export function getCorrelationId(): string | undefined {
 }
 
 /**
- * Sets correlation Id.
+ * Extracts an inbound correlation ID from request headers.
+ * Accepts both canonical and legacy header names.
+ */
+export function extractCorrelationIdFromRequest(req: Request): string | undefined {
+  const canonical = req.headers[X_CORRELATION_ID_HEADER] as string | undefined;
+  const legacy = req.headers[CORRELATION_ID_HEADER] as string | undefined;
+  const incoming = (canonical || legacy)?.trim();
+  return incoming && incoming.length > 0 ? incoming : undefined;
+}
+
+/**
+ * Sets correlation Id on the request and response headers.
  * @param req The req.
  * @param res The res.
  * @param correlationId The correlation identifier.
  */
 export function setCorrelationId(req: Request, res: Response, correlationId: string): void {
-  (
-    req as Request & {
-      correlationId?: string;
-    }
-  ).correlationId = correlationId;
+  const extendedReq = req as Request & { correlationId?: string; requestId?: string };
+  extendedReq.correlationId = correlationId;
+  extendedReq.requestId = correlationId;
+
+  req.headers[X_CORRELATION_ID_HEADER] = correlationId;
+  req.headers[CORRELATION_ID_HEADER] = correlationId;
+
+  res.setHeader(X_CORRELATION_ID_HEADER, correlationId);
   res.setHeader(CORRELATION_ID_HEADER, correlationId);
 }
 
@@ -47,9 +66,7 @@ export function setCorrelationId(req: Request, res: Response, correlationId: str
  * @param next The next.
  */
 export function correlationMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const incoming =
-    (req.headers[CORRELATION_ID_HEADER] as string) || (req.headers['x-correlation-id'] as string);
-  const correlationId = incoming || generateCorrelationId();
+  const correlationId = extractCorrelationIdFromRequest(req) || generateCorrelationId();
   correlationStorage.run({ correlationId }, () => {
     setCorrelationId(req, res, correlationId);
     next();
@@ -68,18 +85,19 @@ export function runWithCorrelationId<T>(callback: () => T, correlationId?: strin
 }
 
 /**
- * Executes inject Correlation Id To Headers.
+ * Injects the active correlation ID into outbound HTTP headers.
  * @param headers The headers.
  * @param correlationId The correlation identifier.
  * @returns The resulting record<string, any>.
  */
 export function injectCorrelationIdToHeaders(
-  headers: Record<string, any> = {},
+  headers: Record<string, unknown> = {},
   correlationId?: string,
-): Record<string, any> {
+): Record<string, unknown> {
   const id = correlationId || getCorrelationId() || generateCorrelationId();
   return {
     ...headers,
+    [X_CORRELATION_ID_HEADER]: id,
     [CORRELATION_ID_HEADER]: id,
   };
 }

@@ -43,6 +43,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
 import { GamificationModule } from './gamification/gamification.module';
 import { I18nModule as AppI18nModule } from './i18n/i18n.module';
 import { AchievementsModule } from './achievements/achievements.module';
+import { CorrelationIdModule } from './middleware/correlation-id';
 
 const featureFlags = loadFeatureFlags();
 
@@ -51,6 +52,7 @@ const featureFlags = loadFeatureFlags();
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
+    CorrelationIdModule,
 
     SessionModule,
     SearchModule,

@@ -10,7 +10,7 @@ import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
 
-import { correlationMiddleware } from './common/utils/correlation.utils';
+import { CorrelationIdMiddleware } from './middleware/correlation-id';
 import { createSessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
@@ -189,9 +189,9 @@ async function bootstrapWorker(): Promise<void> {
     expressApp.set('trust proxy', 1);
   }
 
-  // attach request id and basic HTTP access logs
+  const correlationIdMiddleware = new CorrelationIdMiddleware();
+  app.use(correlationIdMiddleware.use.bind(correlationIdMiddleware));
   app.use(requestIdMiddleware);
-  app.use(correlationMiddleware);
 
   const auditLogService = app.get(AuditLogService);
   app.use(createAuditLoggerMiddleware(auditLogService));
