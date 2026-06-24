@@ -110,6 +110,8 @@
     "@types/handlebars": "^4.0.40",
     "@types/multer": "^1.4.12",
     "@types/nodemailer": "^7.0.5",
+    "@types/passport-github2": "^1.2.9",
+    "@types/passport-google-oauth20": "^2.0.17",
     "@types/stripe": "^8.0.416",
     "@xenova/transformers": "^2.0.1",
     "axios": "^1.13.5",
@@ -142,6 +144,8 @@
     "nodemailer": "^8.0.9",
     "opossum": "^9.0.0",
     "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "pdf-parse": "^1.1.1",
     "pg": "^8.17.2",
@@ -207,8 +211,7 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-    ,
+    "npm": ">=9.0.0",
     "demo:event": "node scripts/demo-event.js",
     "demo:ab": "node scripts/demo-ab.js",
     "demo:autocomplete": "node scripts/demo-autocomplete.js",

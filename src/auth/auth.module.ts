@@ -4,13 +4,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { GitHubStrategy } from './strategies/github.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { SocialAuthService } from './services/social-auth.service';
+import { SocialAuthController } from './controllers/social-auth.controller';
 
-/**
- * Registers the authentication module with Passport and Auth0 JWT support.
- * Bundles PassportModule and registers the dynamic Auth0 JWKS JWT strategy.
- */
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -20,7 +20,22 @@ import { PermissionsGuard } from './guards/permissions.guard';
     }),
     TypeOrmModule.forFeature([User]),
   ],
-  providers: [JwtStrategy, RolesGuard, PermissionsGuard],
-  exports: [PassportModule, JwtModule, JwtStrategy, RolesGuard, PermissionsGuard],
+  controllers: [SocialAuthController],
+  providers: [
+    JwtStrategy,
+    GoogleStrategy,
+    GitHubStrategy,
+    SocialAuthService,
+    RolesGuard,
+    PermissionsGuard,
+  ],
+  exports: [
+    PassportModule,
+    JwtModule,
+    JwtStrategy,
+    RolesGuard,
+    PermissionsGuard,
+    SocialAuthService,
+  ],
 })
 export class AuthModule {}

@@ -48,8 +48,21 @@ export class User {
   @Index()
   username?: string;
 
-  @Column()
+  @Column({ nullable: true })
   password: string;
+
+  @Column({ nullable: true })
+  provider: string | null;
+
+  @Column({ nullable: true })
+  @Index()
+  providerId: string | null;
+
+  @Column({ nullable: true })
+  providerAccessToken: string | null;
+
+  @Column({ nullable: true })
+  providerRefreshToken: string | null;
 
   @Column()
   firstName: string;
