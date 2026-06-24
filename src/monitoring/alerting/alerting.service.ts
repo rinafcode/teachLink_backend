@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import axios from 'axios';
-import { EnhancedCircuitBreakerService } from '../../common/services/circuit-breaker.service';
 
 export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
@@ -99,6 +98,15 @@ export const ALERT_RULES: IAlertRule[] = [
     alertWhenAbove: true,
     cooldownMs: 5 * 60 * 1000,
   },
+  {
+    metricName: 'payment_failure_rate',
+    description: 'Payment Failure Rate',
+    warningThreshold: 2,
+    criticalThreshold: 5,
+    unit: '%',
+    alertWhenAbove: true,
+    cooldownMs: 3 * 60 * 1000,
+  },
 ];
 
 /**
@@ -117,15 +125,14 @@ export class AlertingService {
 
   private readonly emailEnabled: boolean;
   private readonly slackEnabled: boolean;
+  private readonly pagerDutyEnabled: boolean;
   private readonly alertEmailRecipients: string[];
   private readonly slackWebhookUrl: string | undefined;
+  private readonly pagerDutyRoutingKey: string | undefined;
   private readonly emailFrom: string;
   private mailerTransport: nodemailer.Transporter | null = null;
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly circuitBreakerService: EnhancedCircuitBreakerService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     this.emailFrom = this.configService.get<string>('EMAIL_FROM', 'noreply@teachlink.io');
     const recipientRaw = this.configService.get<string>('ALERT_EMAIL_RECIPIENTS', '');
     this.alertEmailRecipients = recipientRaw
@@ -138,6 +145,9 @@ export class AlertingService {
 
     this.slackWebhookUrl = this.configService.get<string>('ALERT_SLACK_WEBHOOK_URL');
     this.slackEnabled = !!this.slackWebhookUrl;
+
+    this.pagerDutyRoutingKey = this.configService.get<string>('PAGERDUTY_ROUTING_KEY');
+    this.pagerDutyEnabled = !!this.pagerDutyRoutingKey;
 
     if (this.emailEnabled) {
       this.mailerTransport = nodemailer.createTransport({
@@ -266,6 +276,12 @@ export class AlertingService {
         this.logger.error(`Slack alert delivery failed: ${err.message}`),
       );
     }
+
+    if (this.pagerDutyEnabled && event.severity === 'CRITICAL') {
+      this.sendPagerDutyAlert(event).catch((err) =>
+        this.logger.error(`PagerDuty alert delivery failed: ${err.message}`),
+      );
+    }
   }
 
   private logAlert(event: IAlertEvent): void {
@@ -373,18 +389,27 @@ export class AlertingService {
       ],
     };
 
-    await this.circuitBreakerService.execute(
-      'alerting-slack',
-      () => axios.post(this.slackWebhookUrl, body),
-      {
-        timeout: 5000,
-        errorThresholdPercentage: 50,
-        resetTimeout: 30000,
-        fallback: (error: Error) => {
-          this.logger.warn(`Alerting Slack fallback triggered: ${error.message}`);
-          return null;
-        },
+    await axios.post(this.slackWebhookUrl, body);
+  }
+
+  private async sendPagerDutyAlert(event: IAlertEvent): Promise<void> {
+    if (!this.pagerDutyRoutingKey) {
+      return;
+    }
+
+    const payload = {
+      routing_key: this.pagerDutyRoutingKey,
+      event_action: 'trigger',
+      dedup_key: event.id,
+      payload: {
+        summary: `[${event.severity}] ${event.type} - ${event.message}`,
+        source: 'teachLink_backend',
+        severity: 'critical',
+        timestamp: event.firedAt.toISOString(),
+        custom_details: event.metadata || {},
       },
-    );
+    };
+
+    await axios.post('https://events.pagerduty.com/v2/enqueue', payload);
   }
 }
