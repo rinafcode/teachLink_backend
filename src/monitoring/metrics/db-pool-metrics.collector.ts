@@ -3,11 +3,12 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { MetricsCollectionService } from './metrics-collection.service';
+import { resolvePoolConfig } from '../../database/pool';
 
 /**
  * Database Pool Metrics Collector
  *
- * Runs on a 15-second cron schedule and pushes TypeORM / pg connection pool
+ * Runs on a 10-second cron schedule and pushes TypeORM / pg connection pool
  * statistics into Prometheus gauges and counters defined in
  * `MetricsCollectionService`.
  *
@@ -27,6 +28,7 @@ import { MetricsCollectionService } from './metrics-collection.service';
 @Injectable()
 export class DbPoolMetricsCollector implements OnModuleInit {
   private readonly logger = new Logger(DbPoolMetricsCollector.name);
+  private readonly config = resolvePoolConfig();
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
@@ -34,9 +36,88 @@ export class DbPoolMetricsCollector implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.logger.log('DbPoolMetricsCollector initialised – will poll pool stats every 15 s');
+    this.logger.log('DbPoolMetricsCollector initialised – will poll pool stats every 10 s');
     // Collect an initial snapshot immediately
     this.collectPoolMetrics();
+    this.setupPoolEventListeners();
+  }
+
+  private setupPoolEventListeners(): void {
+    const pool = this.getPool();
+    if (!pool) {
+      this.logger.warn('Could not attach pool event listeners: pg Pool not accessible');
+      return;
+    }
+
+    const pgPool = pool as any;
+
+    pgPool.on('connect', (client: any) => {
+      client.createdAt = Date.now();
+      client.lastReleasedAt = Date.now();
+    });
+
+    pgPool.on('acquire', () => {
+      this.metricsCollectionService.dbPoolConnectionsAcquired.inc();
+    });
+
+    pgPool.on('release', (err: any, client: any) => {
+      this.metricsCollectionService.dbPoolConnectionsReleased.inc();
+      if (client) {
+        client.lastReleasedAt = Date.now();
+      }
+    });
+
+    pgPool.on('remove', (client: any) => {
+      if (!client) return;
+      const now = Date.now();
+      const age = client.createdAt ? now - client.createdAt : 0;
+      const idleDuration = client.lastReleasedAt ? now - client.lastReleasedAt : 0;
+
+      const maxLifetimeMs = this.config.maxLifetimeSeconds * 1000;
+      const idleTimeoutMs = this.config.idleTimeoutMs;
+
+      if (maxLifetimeMs > 0 && age >= maxLifetimeMs - 500) {
+        this.metricsCollectionService.dbPoolMaxLifetimeClosed.inc();
+        this.logger.debug(`Connection closed due to max lifetime: age=${age}ms`);
+      } else if (idleTimeoutMs > 0 && idleDuration >= idleTimeoutMs - 500) {
+        this.metricsCollectionService.dbPoolMaxIdleClosed.inc();
+        this.logger.debug(`Connection closed due to idle timeout: idleDuration=${idleDuration}ms`);
+      }
+    });
+
+    const originalConnect = pgPool.connect;
+    if (typeof originalConnect === 'function') {
+      pgPool.connect = (...args: any[]) => {
+        const start = process.hrtime.bigint();
+        const wasWaiting = (pgPool.waitingCount ?? 0) > 0 || (pgPool.idleCount ?? 0) === 0;
+
+        if (wasWaiting) {
+          this.metricsCollectionService.dbPoolWaitCount.inc();
+        }
+
+        if (args.length > 0 && typeof args[0] === 'function') {
+          const cb = args[0];
+          return originalConnect.call(pgPool, (err: any, client: any, release: any) => {
+            const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+            this.metricsCollectionService.dbPoolWaitDuration.observe(durationSeconds);
+            cb(err, client, release);
+          });
+        } else {
+          return originalConnect.apply(pgPool, args).then(
+            (client: any) => {
+              const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+              this.metricsCollectionService.dbPoolWaitDuration.observe(durationSeconds);
+              return client;
+            },
+            (err: any) => {
+              const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+              this.metricsCollectionService.dbPoolWaitDuration.observe(durationSeconds);
+              throw err;
+            },
+          );
+        }
+      };
+    }
   }
 
   /**

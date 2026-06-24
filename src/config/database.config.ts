@@ -79,6 +79,8 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
       min: pool.min,
       connectionTimeoutMillis: pool.acquireTimeoutMs,
       idleTimeoutMillis: pool.idleTimeoutMs,
+      maxLifetimeSeconds: pool.maxLifetimeSeconds,
+      statement_timeout: pool.queryTimeoutMs,
     },
   };
 

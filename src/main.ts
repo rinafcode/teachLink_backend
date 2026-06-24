@@ -10,7 +10,7 @@ import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
 
-import { correlationMiddleware } from './common/utils/correlation.utils';
+import { CorrelationIdMiddleware } from './middleware/correlation-id';
 import { createSessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
@@ -22,6 +22,7 @@ import { DatabaseShutdownService } from './database/services/database-shutdown.s
 import { WorkerShutdownService } from './workers/services/worker-shutdown.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
+import { csrfMiddleware } from './middleware/csrf/csrf.middleware';
 import { SlackService } from './slack.service';
 import compression from 'compression';
 import { AuditLogService } from './audit-log/audit-log.service';
@@ -189,9 +190,9 @@ async function bootstrapWorker(): Promise<void> {
     expressApp.set('trust proxy', 1);
   }
 
-  // attach request id and basic HTTP access logs
+  const correlationIdMiddleware = new CorrelationIdMiddleware();
+  app.use(correlationIdMiddleware.use.bind(correlationIdMiddleware));
   app.use(requestIdMiddleware);
-  app.use(correlationMiddleware);
 
   const auditLogService = app.get(AuditLogService);
   app.use(createAuditLoggerMiddleware(auditLogService));
@@ -239,6 +240,11 @@ async function bootstrapWorker(): Promise<void> {
 
     next();
   });
+
+  // =========================
+  // CSRF PROTECTION
+  // =========================
+  app.use(csrfMiddleware);
 
   // =========================
   // CORS

@@ -31,6 +31,8 @@ export enum CourseStatus {
  * Represents the course entity.
  */
 @Entity()
+@Index(['status', 'createdAt'])
+@Index(['instructorId', 'createdAt'])
 export class Course {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -95,6 +97,7 @@ export class Course {
   submissionNote?: string;
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

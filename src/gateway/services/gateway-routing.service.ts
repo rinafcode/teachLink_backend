@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { injectCorrelationIdToHeaders } from '../../common/utils/correlation.utils';
 import type { RouteConfig, ProxyResponse } from '../interfaces/gateway.interfaces';
 
 @Injectable()
@@ -66,7 +67,12 @@ export class GatewayRoutingService {
     this.logger.debug(`Proxying ${method} ${url}`);
 
     const response = await firstValueFrom(
-      this.http.request<T>({ method, url, headers, data: body }),
+      this.http.request<T>({
+        method,
+        url,
+        headers: injectCorrelationIdToHeaders(headers) as Record<string, string>,
+        data: body,
+      }),
     );
 
     return {
