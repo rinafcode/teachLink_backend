@@ -31,6 +31,7 @@ import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
 import { CoursesModule } from './courses/courses.module';
 import { AuthModule } from './auth/auth.module';
+import { CohortsModule } from './cohorts/cohorts.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -65,6 +66,7 @@ const featureFlags = loadFeatureFlags();
 
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
+    CohortsModule,
   ],
   controllers: [AppController],
   providers: [
