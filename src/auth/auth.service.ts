@@ -110,16 +110,16 @@ export class AuthService {
     const refreshJti = uuidv4();
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
+      this.jwtService.signAsync(payload as any, {
         secret: process.env.JWT_SECRET || 'default-jwt-secret',
-        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-      }),
+        expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+      } as any),
       this.jwtService.signAsync(
-        { ...payload, jti: refreshJti },
+        { ...payload, jti: refreshJti } as any,
         {
           secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
-          expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-        },
+          expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
+        } as any,
       ),
     ]);
 
