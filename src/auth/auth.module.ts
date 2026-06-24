@@ -4,6 +4,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ServiceAuthGuard } from './guards/service-auth.guard';
+import { GlobalAuthGuard } from './guards/global-auth.guard';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { TokenBlacklistService } from './services/token-blacklist.service';
@@ -21,7 +24,14 @@ import { TokenBlacklistService } from './services/token-blacklist.service';
     TypeOrmModule.forFeature([User]),
   ],
   controllers: [AuthController],
-  providers: [JwtStrategy, AuthService, TokenBlacklistService],
-  exports: [PassportModule, JwtModule, AuthService],
+  providers: [
+    JwtStrategy,
+    AuthService,
+    TokenBlacklistService,
+    JwtAuthGuard,
+    ServiceAuthGuard,
+    GlobalAuthGuard,
+  ],
+  exports: [PassportModule, JwtModule, AuthService, JwtAuthGuard, ServiceAuthGuard, GlobalAuthGuard],
 })
 export class AuthModule {}

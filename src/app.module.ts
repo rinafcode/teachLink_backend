@@ -71,6 +71,15 @@ const featureFlags = loadFeatureFlags();
   controllers: [AppController],
   providers: [
     ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
+    // Global auth guard: enforces JWT or service tokens for all non-public routes
+    ...(featureFlags.ENABLE_AUTH
+      ? [
+          {
+            provide: APP_GUARD,
+            useClass: require('./auth/guards/global-auth.guard').GlobalAuthGuard,
+          },
+        ]
+      : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
   ],
 })

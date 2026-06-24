@@ -142,6 +142,19 @@ async function bootstrapWorker(): Promise<void> {
   app.use(new DecompressionMiddleware());
   app.use(compression());
 
+  // Enforce TLS in front of the app when configured (useful behind proxies/load-balancers)
+  if ((process.env.ENFORCE_TLS || 'false') === 'true') {
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const forwardedProto = (req.headers['x-forwarded-proto'] || '').toString();
+      const isSecure = req.secure || forwardedProto === 'https';
+      if (!isSecure) {
+        res.status(426).json({ message: 'TLS Required' });
+        return;
+      }
+      next();
+    });
+  }
+
   // =========================
   // BODY PARSING
   // =========================

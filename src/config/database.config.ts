@@ -92,6 +92,10 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
         slaves: replicas,
       },
       ...commonOptions,
+      // Optionally enable SSL for encryption in transit to the database
+      ...(process.env.DATABASE_SSL === 'true'
+        ? { ssl: { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' } }
+        : {}),
     };
   }
 
@@ -99,5 +103,8 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
     type: 'postgres',
     ...primary,
     ...commonOptions,
+    ...(process.env.DATABASE_SSL === 'true'
+      ? { ssl: { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' } }
+      : {}),
   };
 }
