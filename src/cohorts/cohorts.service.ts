@@ -194,7 +194,11 @@ export class CohortsService {
     return this.assignmentRepo.find({ where: { cohortId }, order: { createdAt: 'DESC' } });
   }
 
-  async getAssignment(cohortId: string, assignmentId: string, userId: string): Promise<CohortAssignment> {
+  async getAssignment(
+    cohortId: string,
+    assignmentId: string,
+    userId: string,
+  ): Promise<CohortAssignment> {
     await this.requireMembership(cohortId, userId);
     const assignment = await this.assignmentRepo.findOne({ where: { id: assignmentId, cohortId } });
     if (!assignment) {

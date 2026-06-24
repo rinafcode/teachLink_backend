@@ -10,13 +10,7 @@ import { CohortAssignment } from './entities/cohort-assignment.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Cohort,
-      CohortMember,
-      CohortThread,
-      CohortComment,
-      CohortAssignment,
-    ]),
+    TypeOrmModule.forFeature([Cohort, CohortMember, CohortThread, CohortComment, CohortAssignment]),
   ],
   controllers: [CohortsController],
   providers: [CohortsService],

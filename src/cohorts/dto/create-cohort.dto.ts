@@ -13,12 +13,12 @@ export class CreateCohortDto {
   description?: string;
 
   @ApiPropertyOptional({ example: 'https://example.com/images/js-cohort.png' })
-    @IsString()
-    @IsOptional()
-    imageUrl?: string;
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 
-    @ApiPropertyOptional({ example: 'https://example.com/images/js-cohort-banner.png' })
-    @IsString()
-    @IsOptional()
-    bannerUrl?: string;
+  @ApiPropertyOptional({ example: 'https://example.com/images/js-cohort-banner.png' })
+  @IsString()
+  @IsOptional()
+  bannerUrl?: string;
 }

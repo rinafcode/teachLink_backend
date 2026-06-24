@@ -40,7 +40,7 @@ export class AuthService {
       decoded = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
       });
-    } catch (e) {
+    } catch (_e) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
@@ -112,13 +112,13 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_SECRET || 'default-jwt-secret',
-        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+        expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
       }),
       this.jwtService.signAsync(
         { ...payload, jti: refreshJti },
         {
           secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
-          expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+          expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
         },
       ),
     ]);

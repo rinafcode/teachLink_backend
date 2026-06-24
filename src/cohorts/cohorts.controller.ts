@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  Req,
-  UseGuards,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Req, UseGuards, Delete } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CohortsService } from './cohorts.service';
@@ -45,11 +36,7 @@ export class CohortsController {
 
   @Post(':id/members')
   @ApiOperation({ summary: 'Add a member to a cohort' })
-  addCohortMember(
-    @Param('id') id: string,
-    @Body() dto: AddCohortMemberDto,
-    @Req() req: any,
-  ) {
+  addCohortMember(@Param('id') id: string, @Body() dto: AddCohortMemberDto, @Req() req: any) {
     return this.cohortsService.addMember(id, req.user.id, dto);
   }
 
@@ -71,11 +58,7 @@ export class CohortsController {
 
   @Post(':id/threads')
   @ApiOperation({ summary: 'Create a discussion thread inside a cohort' })
-  createThread(
-    @Param('id') id: string,
-    @Body() dto: CreateCohortThreadDto,
-    @Req() req: any,
-  ) {
+  createThread(@Param('id') id: string, @Body() dto: CreateCohortThreadDto, @Req() req: any) {
     return this.cohortsService.createThread(id, req.user.id, dto);
   }
 

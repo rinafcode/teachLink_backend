@@ -92,7 +92,7 @@ export class QuotaGuard implements CanActivate {
     if (ADMIN_ROLES.has(role)) return true;
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
     return roles.some((r) => {
-      const name = typeof r === 'string' ? r : (r as { name?: string })?.name ?? '';
+      const name = typeof r === 'string' ? r : ((r as { name?: string })?.name ?? '');
       return ADMIN_ROLES.has(name);
     });
   }

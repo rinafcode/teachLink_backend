@@ -8,7 +8,6 @@ import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 
-import { MessagingModule } from './messaging/messaging.module';
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
