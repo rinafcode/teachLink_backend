@@ -22,6 +22,7 @@ import { DatabaseShutdownService } from './database/services/database-shutdown.s
 import { WorkerShutdownService } from './workers/services/worker-shutdown.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
+import { csrfMiddleware } from './middleware/csrf/csrf.middleware';
 import { SlackService } from './slack.service';
 import compression from 'compression';
 import { AuditLogService } from './audit-log/audit-log.service';
@@ -239,6 +240,11 @@ async function bootstrapWorker(): Promise<void> {
 
     next();
   });
+
+  // =========================
+  // CSRF PROTECTION
+  // =========================
+  app.use(csrfMiddleware);
 
   // =========================
   // CORS
