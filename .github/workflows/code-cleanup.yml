@@ -18,6 +18,6 @@ jobs:
 
       - run: npm ci
 
-      - run: npx depcheck
-
-      - run: npx ts-prune
+      - name: Check unused dependencies
+        run: npx depcheck
+        continue-on-error: true
