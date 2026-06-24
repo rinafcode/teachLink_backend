@@ -45,9 +45,7 @@ export class RequestTransformInterceptor implements NestInterceptor {
     // Tag the request as coming through the gateway
     req.headers['x-gateway-version'] = '1';
 
-    this.logger.debug(
-      `[${req.headers[X_CORRELATION_ID_HEADER]}] ${req.method} ${req.path}`,
-    );
+    this.logger.debug(`[${req.headers[X_CORRELATION_ID_HEADER]}] ${req.method} ${req.path}`);
 
     return next.handle();
   }
