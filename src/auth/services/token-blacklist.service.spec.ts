@@ -12,10 +12,7 @@ describe('TokenBlacklistService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TokenBlacklistService,
-        { provide: CachingService, useValue: mockCachingService },
-      ],
+      providers: [TokenBlacklistService, { provide: CachingService, useValue: mockCachingService }],
     }).compile();
 
     service = module.get<TokenBlacklistService>(TokenBlacklistService);

@@ -25,9 +25,9 @@ describe('N1QueryDetectorService', () => {
 
     it('returns an empty array when all queries are structurally unique', () => {
       const queries = [
-        `SELECT * FROM "users" WHERE "id" = $1`,
-        `SELECT * FROM "courses" WHERE "id" = $2`,
-        `SELECT * FROM "enrollments" WHERE "userId" = $3`,
+        'SELECT * FROM "users" WHERE "id" = $1',
+        'SELECT * FROM "courses" WHERE "id" = $2',
+        'SELECT * FROM "enrollments" WHERE "userId" = $3',
       ];
 
       expect(service.detectPatterns(queries)).toEqual([]);
@@ -35,9 +35,9 @@ describe('N1QueryDetectorService', () => {
 
     it('detects repeated structural queries as an N+1 pattern', () => {
       const queries = [
-        `SELECT * FROM "users" WHERE "id" = $1`,
-        `SELECT * FROM "users" WHERE "id" = $2`,
-        `SELECT * FROM "users" WHERE "id" = $3`,
+        'SELECT * FROM "users" WHERE "id" = $1',
+        'SELECT * FROM "users" WHERE "id" = $2',
+        'SELECT * FROM "users" WHERE "id" = $3',
       ];
 
       const reports = service.detectPatterns(queries);
@@ -75,10 +75,10 @@ describe('N1QueryDetectorService', () => {
 
     it('groups mixed query types and reports each N+1 pattern separately', () => {
       const queries = [
-        `SELECT * FROM "users" WHERE "id" = $1`,
-        `SELECT * FROM "users" WHERE "id" = $2`,
-        `SELECT * FROM "courses" WHERE "id" = $3`,
-        `SELECT * FROM "courses" WHERE "id" = $4`,
+        'SELECT * FROM "users" WHERE "id" = $1',
+        'SELECT * FROM "users" WHERE "id" = $2',
+        'SELECT * FROM "courses" WHERE "id" = $3',
+        'SELECT * FROM "courses" WHERE "id" = $4',
       ];
 
       const reports = service.detectPatterns(queries);
