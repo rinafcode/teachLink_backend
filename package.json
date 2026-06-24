@@ -55,7 +55,8 @@
     "sdk:generate:python": "openapi-generator-cli generate -i openapi-spec.json -g python -o sdk/python",
     "sdk:generate": "npm run sdk:generate:spec && npm run sdk:generate:ts && npm run sdk:generate:python",
     "audit": "npm audit --audit-level=high",
-    "audit:fix": "npm audit fix",
+    "audit:scan": "pnpm audit --audit-level=high --json > audit-report.json || (cat audit-report.json && exit 1)",
+    "audit:fix": "pnpm audit --fix",
     "deps:update": "npx npm-check-updates -u '/.*/' && npm install",
     "load:test:health": "k6 run tests/load/scenarios/health.scenario.ts",
     "load:test:auth": "k6 run tests/load/scenarios/auth.scenario.ts",
@@ -212,10 +213,6 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=9.0.0",
-    "demo:event": "node scripts/demo-event.js",
-    "demo:ab": "node scripts/demo-ab.js",
-    "demo:autocomplete": "node scripts/demo-autocomplete.js",
-    "demo:subscription": "node scripts/demo-subscription.js"
+    "npm": ">=9.0.0"
   }
 }
