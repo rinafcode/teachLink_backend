@@ -1,7 +1,11 @@
 import { CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor } from '@nestjs/common';
 import type { Request } from 'express';
 import { Observable } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  extractCorrelationIdFromRequest,
+  generateCorrelationId,
+  X_CORRELATION_ID_HEADER,
+} from '../../common/utils/correlation.utils';
 
 /**
  * Normalises inbound requests before they reach the gateway controller:
@@ -27,9 +31,8 @@ export class RequestTransformInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest<Request>();
 
-    // Assign correlation id
-    if (!req.headers['x-correlation-id']) {
-      req.headers['x-correlation-id'] = uuidv4();
+    if (!extractCorrelationIdFromRequest(req)) {
+      req.headers[X_CORRELATION_ID_HEADER] = generateCorrelationId();
     }
 
     // Remove hop-by-hop headers
@@ -42,7 +45,9 @@ export class RequestTransformInterceptor implements NestInterceptor {
     // Tag the request as coming through the gateway
     req.headers['x-gateway-version'] = '1';
 
-    this.logger.debug(`[${req.headers['x-correlation-id']}] ${req.method} ${req.path}`);
+    this.logger.debug(
+      `[${req.headers[X_CORRELATION_ID_HEADER]}] ${req.method} ${req.path}`,
+    );
 
     return next.handle();
   }
