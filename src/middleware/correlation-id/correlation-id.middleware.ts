@@ -1,9 +1,6 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import {
-  correlationMiddleware,
-  getCorrelationId,
-} from '../../common/utils/correlation.utils';
+import { correlationMiddleware, getCorrelationId } from '../../common/utils/correlation.utils';
 
 /**
  * Propagates correlation IDs for every inbound HTTP request.

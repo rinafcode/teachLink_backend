@@ -3,24 +3,25 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { RolesGuard } from './guards/roles.guard';
-import { PermissionsGuard } from './guards/permissions.guard';
+import { JwtStrategy } from './jwt.strategy';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { TokenBlacklistService } from './services/token-blacklist.service';
 
 /**
- * Registers the authentication module with Passport and Auth0 JWT support.
- * Bundles PassportModule and registers the dynamic Auth0 JWKS JWT strategy.
+ * Registers the authentication module with Passport and JWT support.
  */
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default-jwt-secret',
-      signOptions: { expiresIn: parseInt(process.env.JWT_EXPIRES_IN ?? '900', 10) },
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '15m' },
     }),
     TypeOrmModule.forFeature([User]),
   ],
-  providers: [JwtStrategy, RolesGuard, PermissionsGuard],
-  exports: [PassportModule, JwtModule, JwtStrategy, RolesGuard, PermissionsGuard],
+  controllers: [AuthController],
+  providers: [JwtStrategy, AuthService, TokenBlacklistService],
+  exports: [PassportModule, JwtModule, AuthService],
 })
 export class AuthModule {}
