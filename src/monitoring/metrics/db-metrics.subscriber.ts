@@ -2,6 +2,8 @@ import { DataSource, EntitySubscriberInterface, QueryEvent } from 'typeorm';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { MetricsCollectionService } from './metrics-collection.service';
+import { getCorrelationId } from '../../common/utils/correlation.utils';
+import { resolvePoolConfig } from '../../database/pool';
 
 /**
  * TypeORM Database Metrics Subscriber
@@ -22,9 +24,10 @@ import { MetricsCollectionService } from './metrics-collection.service';
 @Injectable()
 export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleInit {
   private readonly logger = new Logger(DbMetricsSubscriber.name);
+  private readonly config = resolvePoolConfig();
 
-  /** In-flight query start times keyed by a unique query identifier. */
-  private readonly queryStartTimes = new Map<string, bigint>();
+  /** In-flight query start times keyed by a unique query identifier or query runner. */
+  private readonly queryStartTimes = new Map<any, bigint>();
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
@@ -36,13 +39,9 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
     this.logger.log('DbMetricsSubscriber registered with TypeORM DataSource');
   }
 
-  /**
-   * Called before a query is executed.
-   * Records the high-resolution start timestamp.
-   */
   beforeQuery(event: QueryEvent<any>): void {
     if (!event.query) return;
-    const key = this.queryKey(event);
+    const key = event.queryRunner ?? this.queryKey(event);
     this.queryStartTimes.set(key, process.hrtime.bigint());
   }
 
@@ -52,7 +51,7 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
    */
   afterQuery(event: QueryEvent<any>): void {
     if (!event.query) return;
-    const key = this.queryKey(event);
+    const key = event.queryRunner ?? this.queryKey(event);
     const start = this.queryStartTimes.get(key);
     if (!start) return;
 
@@ -65,6 +64,28 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
       const table = this.extractTable(event.query);
 
       this.metricsCollectionService.recordDbQuery(queryType, table, durationSeconds);
+
+      // Slow query detection
+      const thresholdSeconds = this.config.slowQueryThresholdMs / 1000;
+      if (durationSeconds >= thresholdSeconds) {
+        const correlationId = getCorrelationId();
+        const operationName = `${queryType} ${table}`;
+        this.logger.warn(
+          `Slow query detected: operation="${operationName}" duration=${durationSeconds.toFixed(3)}s (threshold=${thresholdSeconds}s) [Request ID: ${correlationId ?? 'N/A'}]`,
+          {
+            query: event.query,
+            parameters: event.parameters,
+            durationSeconds,
+            operationName,
+            correlationId,
+          },
+        );
+
+        this.metricsCollectionService.dbSlowQueriesCount.inc({
+          query_type: queryType,
+          table,
+        });
+      }
     } catch (err) {
       // Never let metric recording break query handling
       this.logger.warn(
@@ -82,7 +103,7 @@ export class DbMetricsSubscriber implements EntitySubscriberInterface, OnModuleI
    */
   private queryKey(event: QueryEvent<any>): string {
     const paramCount = Array.isArray(event.parameters) ? event.parameters.length : 0;
-    return `${event.query.slice(0, 120)}|${paramCount}|${process.hrtime.bigint()}`;
+    return `${event.query.slice(0, 120)}|${paramCount}`;
   }
 
   /**

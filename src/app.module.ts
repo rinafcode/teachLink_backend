@@ -31,6 +31,7 @@ import { ForumModule } from './forum/forum.module';
 
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
+import { DatabasePoolModule } from './database/database-pool.module';
 
 import { CoursesModule } from './courses/courses.module';
 import { DataRetentionModule } from './data-retention/data-retention.module';
@@ -82,6 +83,7 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
 
     // database + infra
+    DatabasePoolModule,
     ReadReplicaModule,
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
 

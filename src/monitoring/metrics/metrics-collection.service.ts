@@ -37,6 +37,16 @@ export class MetricsCollectionService implements OnModuleInit {
   public dbPoolIdleConnections: Gauge;
   /** Requests queued waiting for a free pool slot */
   public dbPoolPendingRequests: Gauge;
+  /** Total number of DB pool connections that had to wait since startup */
+  public dbPoolWaitCount: Counter;
+  /** Duration of database connection checkout waiting in seconds */
+  public dbPoolWaitDuration: Histogram;
+  /** Total number of DB pool connections closed due to idle timeout */
+  public dbPoolMaxIdleClosed: Counter;
+  /** Total number of DB pool connections closed due to max lifetime */
+  public dbPoolMaxLifetimeClosed: Counter;
+  /** Total number of database queries that exceeded the slow query threshold */
+  public dbSlowQueriesCount: Counter;
 
   // ── Business Metrics – Users ───────────────────────────────────────────────
 
@@ -272,6 +282,38 @@ export class MetricsCollectionService implements OnModuleInit {
     this.dbPoolPendingRequests = new Gauge({
       name: 'db_pool_pending_requests',
       help: 'Number of requests waiting for a free DB pool connection',
+      registers: [this.registry],
+    });
+
+    this.dbPoolWaitCount = new Counter({
+      name: 'db_pool_waits_total',
+      help: 'Total number of DB pool connections that had to wait since startup',
+      registers: [this.registry],
+    });
+
+    this.dbPoolWaitDuration = new Histogram({
+      name: 'db_pool_wait_duration_seconds',
+      help: 'Duration of database connection checkout waiting in seconds',
+      buckets: [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
+      registers: [this.registry],
+    });
+
+    this.dbPoolMaxIdleClosed = new Counter({
+      name: 'db_pool_max_idle_closed_total',
+      help: 'Total number of DB pool connections closed due to idle timeout',
+      registers: [this.registry],
+    });
+
+    this.dbPoolMaxLifetimeClosed = new Counter({
+      name: 'db_pool_max_lifetime_closed_total',
+      help: 'Total number of DB pool connections closed due to max lifetime',
+      registers: [this.registry],
+    });
+
+    this.dbSlowQueriesCount = new Counter({
+      name: 'db_slow_queries_total',
+      help: 'Total number of database queries that exceeded the slow query threshold',
+      labelNames: ['query_type', 'table'],
       registers: [this.registry],
     });
 

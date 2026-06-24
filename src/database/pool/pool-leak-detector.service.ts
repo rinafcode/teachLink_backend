@@ -39,11 +39,15 @@ export class PoolLeakDetectorService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    pgPool.on('connect', (client: object) => {
+    pgPool.on('acquire', (client: object) => {
       this.leases.set(client, {
         acquiredAt: Date.now(),
         stack: new Error().stack ?? '',
       });
+    });
+
+    pgPool.on('release', (err: any, client: object) => {
+      this.leases.delete(client);
     });
 
     pgPool.on('remove', (client: object) => {
