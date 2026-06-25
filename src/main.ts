@@ -140,7 +140,17 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   app.use(new DecompressionMiddleware());
-  app.use(compression());
+  app.use(
+    compression({
+      threshold: 1024, // Only compress responses >1KB (1024 bytes)
+      level: 6, // Default gzip compression level (balance between speed and compression)
+      filter: (req: Request, _res: Response) => {
+        // Only compress if the client accepts gzip encoding
+        const acceptEncoding = req.headers['accept-encoding'] || '';
+        return acceptEncoding.includes('gzip');
+      },
+    }),
+  );
 
   // =========================
   // BODY PARSING
