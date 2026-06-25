@@ -32,11 +32,13 @@ import { CachingModule } from './caching/caching.module';
 import { CoursesModule } from './courses/courses.module';
 import { AuthModule } from './auth/auth.module';
 import { CohortsModule } from './cohorts/cohorts.module';
+import { LoggingModule } from './logging/logging.module';
 
 const featureFlags = loadFeatureFlags();
 
 @Module({
   imports: [
+    LoggingModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
