@@ -1,10 +1,11 @@
-﻿import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 import type { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from '../courses/entities/course.entity';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 
 export interface SearchFilters {
   category?: string | string[];
@@ -44,8 +45,14 @@ export class SearchService {
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
     private readonly elasticsearch: NestElasticsearchService,
+    private readonly isolationService: IsolationService,
     @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache,
   ) {}
+
+  /** Returns an Elasticsearch-style term filter for the current tenant. */
+  buildTenantFilter(tenantId: string): { term: { tenantId: string } } {
+    return { term: { tenantId } };
+  }
 
   async search(
     query: string,
@@ -55,7 +62,8 @@ export class SearchService {
     limit: number = 20,
   ): Promise<any> {
     const safeQuery = query?.trim() ?? '';
-    const cacheKey = `search:${safeQuery}:${JSON.stringify(filters)}:${sort}:${page}`;
+    const tenantId = this.isolationService.getTenantId();
+    const cacheKey = `search:${tenantId}:${safeQuery}:${JSON.stringify(filters)}:${sort}:${page}`;
 
     if (this.cacheManager) {
       const cached = await this.cacheManager.get<any>(cacheKey);
@@ -64,8 +72,14 @@ export class SearchService {
 
     try {
       const qb = this.courseRepository.createQueryBuilder('course');
+
+      // Tenant isolation: always filter by tenantId when context is available
+      if (tenantId) {
+        qb.where('course.tenantId = :tenantId', { tenantId });
+      }
+
       if (safeQuery) {
-        qb.where('course.title ILIKE :query OR course.description ILIKE :query', {
+        qb.andWhere('course.title ILIKE :query OR course.description ILIKE :query', {
           query: `%${safeQuery}%`,
         });
       }
@@ -101,13 +115,22 @@ export class SearchService {
   async getAutoComplete(query: string): Promise<AutocompleteResult[]> {
     if (!query || query.length < 2) return [];
 
-    const cached = this.autocompleteCache.get(query);
+    const tenantId = this.isolationService.getTenantId();
+    const cacheKey = `${tenantId ?? 'global'}:${query}`;
+    const cached = this.autocompleteCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) return cached.results;
 
     try {
-      const courses = await this.courseRepository
+      const qb = this.courseRepository
         .createQueryBuilder('course')
-        .where('course.title ILIKE :query', { query: `${query}%` })
+        .where('course.title ILIKE :query', { query: `${query}%` });
+
+      // Tenant isolation: filter autocomplete by current tenant
+      if (tenantId) {
+        qb.andWhere('course.tenantId = :tenantId', { tenantId });
+      }
+
+      const courses = await qb
         .orderBy('course.enrollmentCount', 'DESC')
         .take(10)
         .select(['course.id', 'course.title'])
@@ -119,7 +142,7 @@ export class SearchService {
         metadata: { courseId: course.id },
       }));
 
-      this.autocompleteCache.set(query, { results, timestamp: Date.now() });
+      this.autocompleteCache.set(cacheKey, { results, timestamp: Date.now() });
       return results;
     } catch (err) {
       this.logger.error(`Autocomplete failed: ${(err as Error).message}`);
