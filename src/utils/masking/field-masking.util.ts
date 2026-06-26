@@ -36,7 +36,7 @@ export function maskName(name: string): string {
  * Fully redacts a value.
  */
 export function maskFull(_value: unknown): string {
-  return '[REDACTED]';
+  return '[REDACTED]'; 
 }
 
 /**
