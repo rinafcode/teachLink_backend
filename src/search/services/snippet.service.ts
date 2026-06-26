@@ -11,8 +11,8 @@ export class SnippetService {
     const end = Math.min(text.length, idx + query.length + 150);
     let snippet = text.substring(start, end);
 
-    const escaped = query.replace(/[.*+?${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp('(' + escaped + ')', 'gi');
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp('(' + escapedQuery + ')', 'gi');
     snippet = snippet.replace(regex, '<mark>$1</mark>');
 
     if (start > 0) snippet = '...' + snippet;
