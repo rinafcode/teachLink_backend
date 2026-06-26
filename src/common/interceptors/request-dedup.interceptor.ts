@@ -27,10 +27,7 @@ export class RequestDedupInterceptor implements NestInterceptor {
   }
 
   private fingerprint(req: any): string {
-    const method = req.method;
-    const path = req.path;
-    const body = JSON.stringify(req.body);
-    const userId = req.user ? req.user.id : 'anon';
-    return method + ':' + path + ':' + body + ':' + userId;
+    const id = req.user ? req.user.id : 'anon';
+    return `${req.method}:${req.path}:${JSON.stringify(req.body)}:${id}`;
   }
 }
