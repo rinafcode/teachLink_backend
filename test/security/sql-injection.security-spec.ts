@@ -95,7 +95,9 @@ describe('SQL Injection Prevention Security Tests', () => {
     });
 
     it('should allow valid transaction lock timeouts', async () => {
-      await expect(transactionHelper.setTransactionTimeout(mockManager, 1000)).resolves.not.toThrow();
+      await expect(
+        transactionHelper.setTransactionTimeout(mockManager, 1000),
+      ).resolves.not.toThrow();
       expect(mockManager.query).toHaveBeenCalledWith('SET LOCK_TIMEOUT 1000');
     });
   });
@@ -143,9 +145,7 @@ describe('SQL Injection Prevention Security Tests', () => {
         estimatedRowCount: 100,
       };
 
-      await expect(migrationService.startMigration(badPlan)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(migrationService.startMigration(badPlan)).rejects.toThrow(BadRequestException);
     });
 
     it('should reject column names containing SQL injection payloads during bulk insert', async () => {
@@ -224,7 +224,10 @@ describe('SQL Injection Prevention Security Tests', () => {
           SearchService,
           { provide: getRepositoryToken(Course), useValue: mockCourseRepo },
           { provide: NestElasticsearchService, useValue: {} },
-          { provide: CACHE_MANAGER, useValue: { get: jest.fn().mockResolvedValue(null), set: jest.fn() } },
+          {
+            provide: CACHE_MANAGER,
+            useValue: { get: jest.fn().mockResolvedValue(null), set: jest.fn() },
+          },
         ],
       }).compile();
 
@@ -235,7 +238,9 @@ describe('SQL Injection Prevention Security Tests', () => {
       // Verify SQL template contains placeholders, not the raw query string
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'course.title ILIKE :query OR course.description ILIKE :query',
-        expect.objectContaining({ query: expect.stringContaining("javascript'; DROP TABLE courses;--") }),
+        expect.objectContaining({
+          query: expect.stringContaining("javascript'; DROP TABLE courses;--"),
+        }),
       );
     });
   });
