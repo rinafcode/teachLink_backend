@@ -19,7 +19,7 @@ export class TenantQuotaGuard implements CanActivate {
     if (limit === -1) return true;
 
     const now = Date.now();
-    const key = 	enant:;
+    const key = tenantId;
     const entry = this.counters.get(key);
 
     if (!entry || now > entry.resetAt) {
