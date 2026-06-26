@@ -43,10 +43,7 @@ describe('SocialAuthService – name fallback', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SocialAuthService,
-        { provide: getRepositoryToken(User), useValue: mockRepo },
-      ],
+      providers: [SocialAuthService, { provide: getRepositoryToken(User), useValue: mockRepo }],
     }).compile();
 
     service = module.get<SocialAuthService>(SocialAuthService);
