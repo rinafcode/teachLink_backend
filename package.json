@@ -109,6 +109,7 @@
     "@opentelemetry/propagator-jaeger": "^2.0.1",
     "@opentelemetry/resources": "^2.7.1",
     "@opentelemetry/sdk-node": "^0.203.0",
+    "@opentelemetry/semantic-conventions": "^1.41.1",
     "@segment/analytics-node": "^2.1.2",
     "@types/csurf": "^1.11.5",
     "@types/express-session": "^1.18.2",
