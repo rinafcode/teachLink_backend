@@ -20,10 +20,8 @@ export class PaymentEnrollmentValidatorService {
   }
 
   async findOrphanedPayments(): Promise<Payment[]> {
-    return this.paymentRepo.query(`
-      SELECT p.* FROM payments p
-      LEFT JOIN enrollments e ON e.id = p."enrollmentId"
-      WHERE p."enrollmentId" IS NOT NULL AND e.id IS NULL
-    `);
+    return this.paymentRepo.query(
+      'SELECT p.* FROM payments p LEFT JOIN enrollments e ON e.id = p."enrollmentId" WHERE p."enrollmentId" IS NOT NULL AND e.id IS NULL',
+    );
   }
 }
