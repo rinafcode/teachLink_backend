@@ -2,13 +2,21 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class HealthIndicatorsService {
-  async checkPostgres(): Promise<boolean> { return true; }
+  async checkPostgres(): Promise<boolean> {
+    return true;
+  }
 
-  async checkRedis(): Promise<boolean> { return true; }
+  async checkRedis(): Promise<boolean> {
+    return true;
+  }
 
-  async checkElasticsearch(): Promise<boolean> { return true; }
+  async checkElasticsearch(): Promise<boolean> {
+    return true;
+  }
 
-  async checkQueueDepth(): Promise<boolean> { return true; }
+  async checkQueueDepth(): Promise<boolean> {
+    return true;
+  }
 
   async readiness(): Promise<Record<string, string>> {
     const results = {
