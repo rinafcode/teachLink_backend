@@ -12,7 +12,10 @@ export class PaymentEnrollmentValidatorService {
 
   async validateEnrollmentExists(enrollmentId: string): Promise<boolean> {
     if (!enrollmentId) return true;
-    const result = await this.paymentRepo.query('SELECT id FROM enrollments WHERE id = $1', [enrollmentId]);
+    const result = await this.paymentRepo.query(
+      'SELECT id FROM enrollments WHERE id = $1',
+      [enrollmentId],
+    );
     return result.length > 0;
   }
 
