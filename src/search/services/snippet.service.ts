@@ -12,11 +12,11 @@ export class SnippetService {
     let snippet = text.substring(start, end);
 
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp('(' + escapedQuery + ')', 'gi');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
     snippet = snippet.replace(regex, '<mark>$1</mark>');
 
-    if (start > 0) snippet = '...' + snippet;
-    if (end < text.length) snippet = snippet + '...';
+    if (start > 0) snippet = `...${snippet}`;
+    if (end < text.length) snippet = `${snippet}...`;
     return snippet;
   }
 }
