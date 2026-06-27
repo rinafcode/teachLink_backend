@@ -54,7 +54,33 @@ async function bootstrapWorker(): Promise<void> {
     10,
   );
 
+  const wsMaxPayloadBytes = parseInt(
+    process.env.WS_MAX_PAYLOAD_BYTES || `${BYTES.SIXTY_FOUR_KB}`,
+    10,
+  );
+
   const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  // =========================
+  // WEBSOCKET PAYLOAD SIZE LIMIT
+  // =========================
+  // Configure Socket.IO maxHttpBufferSize at the transport layer.
+  // Messages exceeding this limit are rejected before reaching any handler.
+  const { IoAdapter } = await import('@nestjs/platform-socket.io');
+
+  class SizeLimitedIoAdapter extends IoAdapter {
+    createIOServer(port: number, options?: any): any {
+      return super.createIOServer(port, {
+        ...options,
+        maxHttpBufferSize: wsMaxPayloadBytes,
+      });
+    }
+  }
+
+  app.useWebSocketAdapter(new SizeLimitedIoAdapter(app));
+  logger.log(
+    `WebSocket maxHttpBufferSize set to ${wsMaxPayloadBytes} bytes (${Math.round(wsMaxPayloadBytes / 1024)}KB)`,
+  );
 
   // Get shutdown services
   const shutdownState = app.get(ShutdownStateService);
