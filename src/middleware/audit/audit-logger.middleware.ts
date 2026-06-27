@@ -44,8 +44,8 @@ export function createAuditLoggerMiddleware(auditLogService: AuditLogService) {
 
       void auditLogService
         .log({
-          userId: req.user?.id,
-          userEmail: req.user?.email,
+          userId: req.user?.id || (req as any).serviceIdentity?.name || undefined,
+          userEmail: req.user?.email || undefined,
           action: userAction.action,
           category: userAction.category,
           severity,

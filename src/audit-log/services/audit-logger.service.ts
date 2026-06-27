@@ -11,6 +11,7 @@ import {
   resolveRetentionDays,
 } from '../../middleware/audit/log-retention.policy';
 import { IAuditLogEntry } from '../interfaces/audit-log.interfaces';
+import { encryptString } from '../../common/utils/encryption.utils';
 
 /**
  * Provides audit logging operations.
@@ -38,8 +39,22 @@ export class AuditLoggerService {
   async log(entry: IAuditLogEntry): Promise<AuditLog> {
     const retentionUntil = buildRetentionUntil(this.retentionDays);
 
+    // Optionally encrypt metadata at rest when a key is provided
+    const encryptionKey = this.configService.get<string>('DATA_ENCRYPTION_KEY');
+    let metadata = entry.metadata;
+    if (metadata && encryptionKey) {
+      try {
+        const plain = JSON.stringify(metadata);
+        const encrypted = encryptString(plain, encryptionKey);
+        metadata = { __encrypted: true, value: encrypted } as any;
+      } catch (err) {
+        this.logger.error('Failed to encrypt audit metadata', err as Error);
+      }
+    }
+
     const log = this.auditRepo.create({
       ...entry,
+      metadata,
       severity: (entry.severity || AuditSeverity.INFO) as any,
       retentionUntil,
       httpMethod: entry.httpMethod as any,
