@@ -9,6 +9,7 @@ import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
+import './tracing/opentelemetry';
 
 import { CorrelationIdMiddleware } from './middleware/correlation-id';
 import { createSessionConfig } from './config/cache.config';
