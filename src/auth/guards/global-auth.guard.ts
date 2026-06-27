@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { CanActivate } from '@nestjs/common/interfaces';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -29,7 +29,7 @@ export class GlobalAuthGuard implements CanActivate {
     try {
       const result = (await this.jwtGuard.canActivate(context)) as boolean;
       if (result) return true;
-    } catch (e) {
+    } catch {
       // continue to try service guard
     }
 
@@ -37,7 +37,7 @@ export class GlobalAuthGuard implements CanActivate {
     try {
       const result = (await this.serviceGuard.canActivate(context)) as boolean;
       if (result) return true;
-    } catch (e) {
+    } catch {
       // both failed
     }
 

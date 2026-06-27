@@ -12,6 +12,7 @@ import { IndexOptimizationModule } from './database/index-optimization/index-opt
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
 import { getDatabaseConfig } from './config/database.config';
+import { GlobalAuthGuard } from './auth/guards/global-auth.guard';
 import { loadFeatureFlags } from './config/feature-flags.config';
 import { SessionModule } from './session/session.module';
 import { DebuggingModule } from './debugging/debugging.module';
@@ -76,7 +77,7 @@ const featureFlags = loadFeatureFlags();
       ? [
           {
             provide: APP_GUARD,
-            useClass: require('./auth/guards/global-auth.guard').GlobalAuthGuard,
+            useClass: GlobalAuthGuard,
           },
         ]
       : []),

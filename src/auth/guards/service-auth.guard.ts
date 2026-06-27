@@ -27,7 +27,10 @@ export class ServiceAuthGuard implements CanActivate {
 
       // Basic validation: service claim and allowed list
       const serviceName = (payload as any).service as string | undefined;
-      const allowed = (process.env.SERVICE_ALLOW_LIST || '').split(',').map((s) => s.trim()).filter(Boolean);
+      const allowed = (process.env.SERVICE_ALLOW_LIST || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
 
       if (!serviceName) throw new UnauthorizedException('Invalid service token');
       if (allowed.length > 0 && !allowed.includes(serviceName)) {
@@ -37,7 +40,7 @@ export class ServiceAuthGuard implements CanActivate {
       // attach service identity for downstream usage
       (req as any).serviceIdentity = { name: serviceName, claims: payload };
       return true;
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Invalid service token');
     }
   }
