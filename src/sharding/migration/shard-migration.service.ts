@@ -194,7 +194,17 @@ export class ShardMigrationService {
   ): Promise<void> {
     if (rows.length === 0) return;
 
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
+      throw new BadRequestException(`Invalid table name: ${table}`);
+    }
+
     const columns = Object.keys(rows[0]);
+    for (const col of columns) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col)) {
+        throw new BadRequestException(`Invalid column name: ${col}`);
+      }
+    }
+
     const values: unknown[] = [];
     const rowPlaceholders: string[] = [];
 
@@ -232,6 +242,10 @@ export class ShardMigrationService {
 
     if (plan.batchSize <= 0 || plan.batchSize > 10_000) {
       throw new BadRequestException('batchSize must be between 1 and 10,000');
+    }
+
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(plan.entityType)) {
+      throw new BadRequestException(`Invalid table name: ${plan.entityType}`);
     }
   }
 }
