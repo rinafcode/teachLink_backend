@@ -32,6 +32,7 @@ import { CachingModule } from './caching/caching.module';
 import { CoursesModule } from './courses/courses.module';
 import { AuthModule } from './auth/auth.module';
 import { CohortsModule } from './cohorts/cohorts.module';
+import { FeatureFlagAuditModule } from './config/feature-flag-audit.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -67,6 +68,9 @@ const featureFlags = loadFeatureFlags();
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
     CohortsModule,
+
+    // Feature flag audit trail and admin management endpoints
+    FeatureFlagAuditModule,
   ],
   controllers: [AppController],
   providers: [
