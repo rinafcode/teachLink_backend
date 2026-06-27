@@ -8,17 +8,15 @@ import { resolvePoolConfig } from '../../database/pool';
 /**
  * Database Pool Metrics Collector
  *
- * Runs on a 10-second cron schedule and pushes TypeORM / pg connection pool
- * statistics into Prometheus gauges and counters defined in
- * `MetricsCollectionService`.
+ * Polls the TypeORM / pg connection pool every 15 seconds and pushes
+ * statistics into Prometheus gauges defined in `MetricsCollectionService`.
  *
- * Exposed metrics:
- *   - `db_pool_size`                       – Total pool slots (active + idle)
- *   - `db_pool_active_connections`         – Currently checked-out connections
- *   - `db_pool_idle_connections`           – Idle / available connections
- *   - `db_pool_pending_requests`           – Requests waiting for a free slot
- *   - `db_pool_connections_acquired_total` – Monotonically increasing acquire counter
- *   - `db_pool_connections_released_total` – Monotonically increasing release counter
+ * Exposed metrics (per spec for issue #883):
+ *   - `db_pool_active_connections` – Currently checked-out connections
+ *   - `db_pool_idle_connections`   – Idle / available connections
+ *   - `db_pool_waiting_requests`   – Requests waiting for a free slot
+ *   - `db_pool_max_connections`    – Configured maximum pool capacity
+ *   - `db_pool_utilization`        – Ratio active/max in [0, 1] (for alerting)
  *
  * The underlying `pg` driver exposes pool internals via the non-standard
  * `driver.pool` property on the TypeORM DataSource. We access it through a
@@ -36,7 +34,7 @@ export class DbPoolMetricsCollector implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.logger.log('DbPoolMetricsCollector initialised – will poll pool stats every 10 s');
+    this.logger.log('DbPoolMetricsCollector initialised – will poll pool stats every 15 s');
     // Collect an initial snapshot immediately
     this.collectPoolMetrics();
     this.setupPoolEventListeners();
@@ -123,27 +121,34 @@ export class DbPoolMetricsCollector implements OnModuleInit {
   /**
    * Scheduled job – polls pool statistics every 15 seconds.
    */
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron('*/15 * * * * *')
   collectPoolMetrics(): void {
     try {
       const pool = this.getPool();
       if (!pool) {
-        return; // DataSource not yet initialised or using an unsupported driver
+        // Even when pool is unavailable, expose the configured max so dashboards
+        // do not show a stale or missing value.
+        this.metricsCollectionService.dbPoolMaxConnections.set(this.config.max);
+        return;
       }
 
       const totalCount: number = pool.totalCount ?? 0;
       const idleCount: number = pool.idleCount ?? 0;
       const waitingCount: number = pool.waitingCount ?? 0;
       const activeCount = totalCount - idleCount;
+      const max = this.config.max;
+      const utilization = max > 0 ? activeCount / max : 0;
 
       // Update gauges
       this.metricsCollectionService.dbPoolSize.set(totalCount);
-      this.metricsCollectionService.activeConnections.set(activeCount);
+      this.metricsCollectionService.dbPoolActiveConnections.set(activeCount);
       this.metricsCollectionService.dbPoolIdleConnections.set(idleCount);
-      this.metricsCollectionService.dbPoolPendingRequests.set(waitingCount);
+      this.metricsCollectionService.dbPoolWaitingRequests.set(waitingCount);
+      this.metricsCollectionService.dbPoolMaxConnections.set(max);
+      this.metricsCollectionService.dbPoolUtilization.set(utilization);
 
       this.logger.debug(
-        `Pool snapshot – total=${totalCount} active=${activeCount} idle=${idleCount} waiting=${waitingCount}`,
+        `Pool snapshot – total=${totalCount} active=${activeCount} idle=${idleCount} waiting=${waitingCount} util=${(utilization * 100).toFixed(1)}%`,
       );
     } catch (err) {
       this.logger.warn(
