@@ -25,12 +25,7 @@ export class ThreatDetectionService {
   private readonly failedAttempts: LRUCache<string, number>;
   private lastEvictionWarnAt = 0;
 
-  constructor(
-    @Optional() options?: {
-      max?: number;
-      ttlMs?: number;
-    },
-  ) {
+  constructor(@Optional() options?: { max?: number; ttlMs?: number }) {
     const max = options?.max ?? ThreatDetectionService.MAX_ENTRIES;
     const ttl = options?.ttlMs ?? ThreatDetectionService.TTL_MS;
 
@@ -49,8 +44,8 @@ export class ThreatDetectionService {
         this.lastEvictionWarnAt = now;
         this.logger.warn(
           `LRU eviction triggered on failedAttempts cache (cap=${max}). ` +
-            `Sustained pressure indicates a potential IP-rotation attack; ` +
-            `consider raising MAX_ENTRIES or migrating to a distributed store.`,
+            'Sustained pressure indicates a potential IP-rotation attack; ' +
+            'consider raising MAX_ENTRIES or migrating to a distributed store.',
         );
       },
     });
