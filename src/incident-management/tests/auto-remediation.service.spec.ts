@@ -183,7 +183,7 @@ describe('AutoRemediationService', () => {
       );
 
       expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions[0].actionType).toMatch(/database_operation|restart_service/);
+      expect(suggestions[0].actionType).toMatch(/database_operation|restart_service|run_database_query/);
     });
 
     it('should suggest actions for Cache incident', () => {

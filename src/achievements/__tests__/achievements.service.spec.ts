@@ -134,6 +134,7 @@ describe('AchievementsService', () => {
         id: mockAchievement.id,
         name: mockAchievement.name,
         description: mockAchievement.description,
+        longDescription: mockAchievement.longDescription,
         iconUrl: mockAchievement.iconUrl,
         type: mockAchievement.type,
         difficulty: mockAchievement.difficulty,
