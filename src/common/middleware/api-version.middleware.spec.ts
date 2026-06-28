@@ -3,9 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiVersionMiddleware } from './api-version.middleware';
 import { Request, Response } from 'express';
 
-function buildConfigService(
-  overrides: Record<string, string> = {},
-): jest.Mocked<ConfigService> {
+function buildConfigService(overrides: Record<string, string> = {}): jest.Mocked<ConfigService> {
   const defaults: Record<string, string> = {
     SUNSET_VERSIONS: 'v1:2024-01-01',
     DEPRECATED_VERSIONS: 'v2:2025-06-01',
@@ -31,10 +29,7 @@ describe('ApiVersionMiddleware', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ApiVersionMiddleware,
-        { provide: ConfigService, useValue: buildConfigService() },
-      ],
+      providers: [ApiVersionMiddleware, { provide: ConfigService, useValue: buildConfigService() }],
     }).compile();
 
     middleware = module.get(ApiVersionMiddleware);
@@ -131,7 +126,10 @@ describe('ApiVersionMiddleware', () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           ApiVersionMiddleware,
-          { provide: ConfigService, useValue: buildConfigService({ SUNSET_VERSIONS: '', DEPRECATED_VERSIONS: '' }) },
+          {
+            provide: ConfigService,
+            useValue: buildConfigService({ SUNSET_VERSIONS: '', DEPRECATED_VERSIONS: '' }),
+          },
         ],
       }).compile();
 

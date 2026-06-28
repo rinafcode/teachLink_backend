@@ -78,8 +78,6 @@ const featureFlags = loadFeatureFlags();
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer
-      .apply(ApiVersionMiddleware)
-      .forRoutes({ path: 'v*', method: RequestMethod.ALL });
+    consumer.apply(ApiVersionMiddleware).forRoutes({ path: 'v*', method: RequestMethod.ALL });
   }
 }
