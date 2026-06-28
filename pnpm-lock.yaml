@@ -233,6 +233,9 @@ importers:
       jwks-rsa:
         specifier: ^4.0.1
         version: 4.0.1
+      lru-cache:
+        specifier: ^11.0.0
+        version: 11.5.1
       multer:
         specifier: ^2.0.1
         version: 2.1.1

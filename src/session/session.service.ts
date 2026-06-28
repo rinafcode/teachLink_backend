@@ -81,6 +81,7 @@ export class SessionService implements OnModuleDestroy {
       'EX',
       this.sessionTtlSeconds,
     );
+    await this.addSessionToUserIndex(userId, sid);
     return sid;
   }
 
@@ -131,7 +132,23 @@ export class SessionService implements OnModuleDestroy {
    * @param sid The sid.
    */
   async removeSession(sid: string): Promise<void> {
+    const session = await this.getSession(sid);
     await this.redis.del(this.sessionKey(sid));
+    if (session) {
+      await this.removeSessionFromUserIndex(session.userId, sid);
+    }
+  }
+
+  async addSessionToUserIndex(userId: string, sid: string): Promise<void> {
+    await this.redis.zadd(`user:sessions:${userId}`, Date.now(), sid);
+  }
+
+  async removeSessionFromUserIndex(userId: string, sid: string): Promise<void> {
+    await this.redis.zrem(`user:sessions:${userId}`, sid);
+  }
+
+  async getUserSessionIds(userId: string): Promise<string[]> {
+    return this.redis.zrange(`user:sessions:${userId}`, 0, -1);
   }
 
   /**
