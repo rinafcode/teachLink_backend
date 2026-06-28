@@ -1,8 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { plainToInstance, instanceToPlain } from 'class-transformer';
 import { UserConsent } from './entities/user-consent.entity';
 import { ConsentDto } from './dto/consent.dto';
+import { GdprExportDto } from './dto/gdpr-export.dto';
 
 @Injectable()
 export class GdprService {
@@ -32,8 +34,11 @@ export class GdprService {
 
     await this.auditService.log('GDPR_EXPORT', userId);
 
+    const gdprExportUserInstance = plainToInstance(GdprExportDto, user);
+    const cleanProfile = instanceToPlain(gdprExportUserInstance);
+
     return {
-      profile: user,
+      profile: cleanProfile,
       consents,
     };
   }
