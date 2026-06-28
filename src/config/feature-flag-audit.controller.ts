@@ -7,7 +7,6 @@ import {
   Param,
   Patch,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { IFeatureFlagsConfig } from './feature-flags.config';
@@ -78,15 +77,12 @@ export class FeatureFlagAuditController {
     this.assertAdmin(req);
 
     const user = req.user!;
-    const entry = await this.auditService.setFlag(
-      key as keyof IFeatureFlagsConfig,
-      body.value,
-      { id: user.userId, email: user.email },
-    );
+    const entry = await this.auditService.setFlag(key as keyof IFeatureFlagsConfig, body.value, {
+      id: user.userId,
+      email: user.email,
+    });
 
-    this.logger.log(
-      `Admin ${user.email} toggled ${key} → ${String(body.value)}`,
-    );
+    this.logger.log(`Admin ${user.email} toggled ${key} → ${String(body.value)}`);
 
     return entry;
   }

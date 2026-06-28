@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AuditLogService } from '../audit-log/audit-log.service';
-import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
+import { AuditAction } from '../audit-log/enums/audit-action.enum';
 import { IFeatureFlagsConfig, loadFeatureFlags } from './feature-flags.config';
 
 /** A single recorded change to a feature flag. */
