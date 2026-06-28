@@ -24,7 +24,9 @@ export class SchemaMigrationService {
   }
 
   /** Runs pending migrations inside a transaction for zero-downtime apply. */
-  async runPending(migrations: Array<{ version: number; name: string; sql: string }>): Promise<void> {
+  async runPending(
+    migrations: Array<{ version: number; name: string; sql: string }>,
+  ): Promise<void> {
     const applied = await this.getApplied();
     const appliedVersions = new Set(applied.map((m) => m.version));
 
@@ -39,7 +41,7 @@ export class SchemaMigrationService {
         this.logger.log(`Applying migration v${migration.version}: ${migration.name}`);
         await em.query(migration.sql);
         await em.query(
-          `INSERT INTO schema_migrations (version, name, applied_at) VALUES ($1, $2, NOW())`,
+          'INSERT INTO schema_migrations (version, name, applied_at) VALUES ($1, $2, NOW())',
           [migration.version, migration.name],
         );
       }
@@ -50,7 +52,9 @@ export class SchemaMigrationService {
   async rollbackLast(rollbackSql: string): Promise<void> {
     await this.dataSource.transaction(async (em) => {
       await em.query(rollbackSql);
-      await em.query(`DELETE FROM schema_migrations WHERE version = (SELECT MAX(version) FROM schema_migrations)`);
+      await em.query(
+        'DELETE FROM schema_migrations WHERE version = (SELECT MAX(version) FROM schema_migrations)',
+      );
     });
     this.logger.log('Rolled back last migration.');
   }

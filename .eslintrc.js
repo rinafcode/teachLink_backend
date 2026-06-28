@@ -89,6 +89,10 @@ module.exports = {
         selector: 'variable',
         modifiers: ['const'],
         format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+        filter: {
+          regex: '^_',
+          match: false,
+        },
       },
     ],
 

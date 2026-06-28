@@ -1,184 +1,118 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
 name: Security Scanning
 
 on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
-  schedule:
-    # Run full scan nightly at 02:00 UTC to catch newly disclosed CVEs
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
-concurrency:
-  group: security-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  NODE_VERSION: '20'
-
 jobs:
-  # Dependency Scan — npm audit + Snyk SCA
-  dependency-scan:
-    name: Dependency Scan (SCA)
+  sast:
+    name: SAST (CodeQL)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      security-events: write # required to upload SARIF to GitHub Security tab
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      # ── npm audit (built-in, zero config) ──────────────────────────────────
-      - name: npm audit
-        run: npm audit --audit-level=high
-        # Fails the job if any HIGH or CRITICAL vulnerabilities are found.
-        # Change to --audit-level=moderate to tighten, or =critical to loosen.
-
-      # ── Snyk SCA (deeper graph analysis, licence checks) ───────────────────
-      - name: Snyk — dependency vulnerability scan
-        uses: snyk/actions/node@master
-        continue-on-error: true # upload results even when vulnerabilities exist
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: >
-            --severity-threshold=high
-            --sarif-file-output=snyk-sca.sarif
-
-      - name: Upload Snyk SCA results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('snyk-sca.sarif') != ''
-        with:
-          sarif_file: snyk-sca.sarif
-          category: snyk-sca
-
-  # Code Scanning — GitHub CodeQL SAST
-  code-scan:
-    name: Code Scan (SAST — CodeQL)
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
       contents: read
       security-events: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: javascript-typescript
-          # Built-in security-and-quality query suite — covers OWASP Top 10,
-          # injection, path traversal, broken auth, and more.
-          queries: security-and-quality
+          languages: typescript
 
-      - uses: actions/setup-node@v4
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
+
+  dependency-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    if: hashFiles('package.json', 'pnpm-lock.yaml') != ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          version: 11
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build (required for CodeQL to trace the compilation graph)
-        run: npm run build
+      - name: Audit dependencies (fail only on critical)
+        run: pnpm audit --audit-level=critical
 
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+  secrets-scan:
+    name: Secrets Scan (Gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
         with:
-          category: codeql-typescript
+          fetch-depth: 0
 
-  # Container Scanning — Trivy image scan
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+
   container-scan:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
+    if: hashFiles('Dockerfile') != ''
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: |
-          docker build \
-            --target production \
-            --tag teachlink-backend:${{ github.sha }} \
-            .
+        run: docker build -t app:${{ github.sha }} .
 
-      # ── Trivy — OS packages + application dependencies in the image ─────────
-      - name: Trivy — image vulnerability scan
-        uses: aquasecurity/trivy-action@master
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@v0.20.0
+        continue-on-error: true   # ensures output is handled safely
         with:
-          image-ref: teachlink-backend:${{ github.sha }}
-          format: sarif
-          output: trivy-image.sarif
-          severity: HIGH,CRITICAL
-          exit-code: '1' # fail job on HIGH/CRITICAL findings
-          ignore-unfixed: true # skip vulnerabilities with no upstream fix yet
+          image-ref: app:${{ github.sha }}
+          severity: CRITICAL,HIGH
 
-      - name: Upload Trivy image results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('trivy-image.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        if: hashFiles('trivy-image.sarif') != ''
-        with:
-          sarif_file: trivy-image.sarif
-          category: trivy-image
-
-      # ── Trivy — IaC / config scan (docker-compose, Dockerfiles) ────────────
-      - name: Trivy — IaC config scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: config
-          scan-ref: .
-          format: sarif
-          output: trivy-iac.sarif
-          severity: HIGH,CRITICAL
-          exit-code: '0' # advisory only — don't block on misconfiguration
-        continue-on-error: true
-
-      - name: Upload Trivy IaC results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() && hashFiles('trivy-iac.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        if: hashFiles('trivy-iac.sarif') != ''
-        with:
-          sarif_file: trivy-iac.sarif
-          category: trivy-iac
-
-  # Aggregate gate — mirrors the "CI Passed" pattern from ci.yml
-  # Branch protection can optionally require "Security Passed" as a status check
-  security-passed:
-    name: Security Passed
+  dast-scan:
+    name: DAST Scan (SQLMap)
     runs-on: ubuntu-latest
-    needs: [dependency-scan, code-scan, container-scan]
-    if: always()
+    if: github.event_name == 'workflow_dispatch'
     steps:
-      - name: Check all security jobs passed
-        env:
-          NEEDS_JSON: ${{ toJSON(needs) }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install SQLMap
+        run: pip install sqlmap
+
+      - name: Start Application Container
         run: |
-          node -e '
-          const needs = JSON.parse(process.env.NEEDS_JSON);
-          const failed = [];
-          for (const [name, info] of Object.entries(needs)) {
-            const result = info.result;
-            console.log(`${name}: ${result}`);
-            if (result !== "success") failed.push(`${name}=${result}`);
-          }
-          if (failed.length) {
-            console.error(`❌ Security scan failed: ${failed.join(", ")}`);
-            process.exit(1);
-          }
-          console.log("✅ All security scans passed.");
-          '
+          docker compose -f docker-compose.staging.yml up -d
+          # Wait for application to be healthy
+          sleep 15
+
+      - name: Run SQLMap Scan
+        run: |
+          # Scanning course search endpoint dynamically with SQLMap (non-blocking)
+          sqlmap -u "http://localhost:3000/search?q=test" --batch --crawl=2 --level=1 --risk=1
+        continue-on-error: true

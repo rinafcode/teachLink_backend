@@ -34,17 +34,29 @@ describe('ScoreCalculationService', () => {
 
   describe('calculate — MULTIPLE_CHOICE', () => {
     it('should award full points for correct answer', () => {
-      const q = makeQuestion({ type: QuestionType.MULTIPLE_CHOICE, correctAnswer: '4', points: 10 });
+      const q = makeQuestion({
+        type: QuestionType.MULTIPLE_CHOICE,
+        correctAnswer: '4',
+        points: 10,
+      });
       expect(service.calculate(q, '4')).toBe(10);
     });
 
     it('should award 0 for wrong answer', () => {
-      const q = makeQuestion({ type: QuestionType.MULTIPLE_CHOICE, correctAnswer: '4', points: 10 });
+      const q = makeQuestion({
+        type: QuestionType.MULTIPLE_CHOICE,
+        correctAnswer: '4',
+        points: 10,
+      });
       expect(service.calculate(q, '3')).toBe(0);
     });
 
     it('should award 0 for null response', () => {
-      const q = makeQuestion({ type: QuestionType.MULTIPLE_CHOICE, correctAnswer: '4', points: 10 });
+      const q = makeQuestion({
+        type: QuestionType.MULTIPLE_CHOICE,
+        correctAnswer: '4',
+        points: 10,
+      });
       expect(service.calculate(q, null)).toBe(0);
     });
   });

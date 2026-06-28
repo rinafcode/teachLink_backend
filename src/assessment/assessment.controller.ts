@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards, Request } from '@nestjs/
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AssessmentsService } from './assessments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubmitAssessmentDto } from './dto/submit-assessment.dto';
 
 /**
  * Exposes assessments endpoints.
@@ -43,8 +44,12 @@ export class AssessmentsController {
   @ApiOperation({ summary: 'Submit assessment answers' })
   @ApiResponse({ status: 201, description: 'Assessment submitted and scored' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
-  submit(@Request() req: any, @Param('id') id: string, @Body('answers') answers: any[]): any {
-    return this.service.submitAssessment(id, answers);
+  async submit(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() submitAssessmentDto: SubmitAssessmentDto,
+  ): Promise<any> {
+    return this.service.submitAssessment(id, submitAssessmentDto.answers);
   }
 
   /**

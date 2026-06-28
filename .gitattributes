@@ -1,0 +1,3 @@
+# Force LF for files that must use LF on all platforms
+.github/workflows/*.yml text eol=lf
+.github/workflows/*.yaml text eol=lf

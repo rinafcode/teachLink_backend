@@ -83,22 +83,7 @@ export class SessionService implements OnModuleDestroy {
       'EX',
       this.sessionTtlSeconds,
     );
-    // Add session ID to user's sorted set for LRU eviction
-    await this.redis.zadd(this.userSessionKey(userId), now, sid);
-    // Trim sorted set to max size and evict oldest if necessary
-    const setSize = await this.redis.zcard(this.userSessionKey(userId));
-    if (setSize > this.maxSessionsPerUser) {
-      const excess = setSize - this.maxSessionsPerUser;
-      const evicted = await this.redis.zrange(this.userSessionKey(userId), 0, excess - 1);
-      if (evicted.length) {
-        const multi = this.redis.multi();
-        evicted.forEach(eid => {
-          multi.del(this.sessionKey(eid));
-          multi.zrem(this.userSessionKey(userId), eid);
-        });
-        await multi.exec();
-      }
-    }
+await this.addSessionToUserIndex(userId, sid);
     return sid;
   }
 
@@ -151,9 +136,9 @@ export class SessionService implements OnModuleDestroy {
   async removeSession(sid: string): Promise<void> {
     const session = await this.getSession(sid);
     await this.redis.del(this.sessionKey(sid));
-    if (session?.userId) {
-      await this.redis.zrem(this.userSessionKey(session.userId), sid);
-    }
+if (session) {
+  await this.removeSessionFromUserIndex(session.userId, sid);
+}
   }
 
   /**

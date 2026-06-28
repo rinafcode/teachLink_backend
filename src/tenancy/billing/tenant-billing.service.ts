@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
@@ -37,7 +38,7 @@ export class TenantBillingService {
   async getBillingInfo(tenantId: string): Promise<TenantBilling> {
     const billing = await this.billingRepository.findOne({ where: { tenantId } });
     if (!billing) {
-      throw new NotFoundException(`Billing info not found for tenant ${tenantId}`);
+      throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
     }
     return billing;
   }
@@ -50,7 +51,7 @@ export class TenantBillingService {
   ): Promise<TenantBilling> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
     const billing = this.billingRepository.create({
       tenantId,

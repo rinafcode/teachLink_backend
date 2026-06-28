@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuditLoggerService } from '../audit-logger.service';
-import { AuditLog } from '../../audit-log.entity';
-import { AuditAction, AuditSeverity, AuditCategory } from '../../enums/audit-action.enum';
+import { AuditLoggerService } from './audit-logger.service';
+import { AuditLog } from '../audit-log.entity';
+import { AuditAction, AuditSeverity, AuditCategory } from '../enums/audit-action.enum';
 import { ConfigService } from '@nestjs/config';
 
 describe('AuditLoggerService', () => {
@@ -88,7 +88,7 @@ describe('AuditLoggerService', () => {
       jest.spyOn(repository, 'save').mockResolvedValue(mockLog);
 
       await service.logAuth(
-        AuditAction.LOGIN_SUCCESS,
+        AuditAction.LOGIN,
         'user-123',
         'user@example.com',
         '192.168.1.1',
@@ -97,7 +97,7 @@ describe('AuditLoggerService', () => {
 
       expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: AuditAction.LOGIN_SUCCESS,
+          action: AuditAction.LOGIN,
           category: AuditCategory.AUTHENTICATION,
           userId: 'user-123',
           userEmail: 'user@example.com',
@@ -220,7 +220,7 @@ describe('AuditLoggerService', () => {
       jest.spyOn(repository, 'save').mockResolvedValue(mockLog);
 
       await service.logSecurityEvent(
-        AuditAction.FAILED_LOGIN_ATTEMPT,
+        AuditAction.LOGIN_FAILED,
         'user-123',
         'user@example.com',
         '192.168.1.1',
@@ -230,7 +230,7 @@ describe('AuditLoggerService', () => {
 
       expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: AuditAction.FAILED_LOGIN_ATTEMPT,
+          action: AuditAction.LOGIN_FAILED,
           category: AuditCategory.SECURITY,
           severity: AuditSeverity.WARNING,
         }),

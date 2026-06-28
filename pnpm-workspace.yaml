@@ -1,0 +1,9 @@
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@nestjs/core': true
+  '@openapitools/openapi-generator-cli': true
+  '@scarf/scarf': true
+  bcrypt: true
+  msgpackr-extract: true
+  protobufjs: true
+  sharp: true

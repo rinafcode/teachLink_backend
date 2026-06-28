@@ -1,14 +1,8 @@
-import {
-  Module,
-} from "@nestjs/common";
+import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [
-    GdprController,
-  ],
+  controllers: [GdprController],
 
-  providers: [
-    GdprService,
-  ],
+  providers: [GdprService],
 })
 export class GdprModule {}

@@ -11,8 +11,7 @@ export class StackTraceService {
   // Matches the two common V8 frame shapes:
   //   "at fnName (/path/file.ts:12:34)"
   //   "at /path/file.ts:12:34"
-  private static readonly FRAME_WITH_FN =
-    /^\s*at\s+(.+?)\s+\((.*?):(\d+):(\d+)\)$/;
+  private static readonly FRAME_WITH_FN = /^\s*at\s+(.+?)\s+\((.*?):(\d+):(\d+)\)$/;
   private static readonly FRAME_BARE = /^\s*at\s+(.*?):(\d+):(\d+)$/;
 
   /**

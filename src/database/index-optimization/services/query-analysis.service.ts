@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import {
@@ -36,15 +36,6 @@ interface SlowStatement {
 
 /**
  * Analyses PostgreSQL catalog and statistics to recommend indexes.
- *
- * Two evidence sources are combined:
- *  1. Foreign-key columns lacking a supporting index — Postgres does not index
- *     FK columns automatically, a very common cause of slow joins/cascades.
- *     These give concrete, safe column recommendations.
- *  2. pg_stat_user_tables sequential-scan activity — used to score and
- *     prioritise the above, and to flag heavily seq-scanned tables.
- *
- * pg_stat_statements (when installed) is surfaced for slow-query context.
  */
 @Injectable()
 export class QueryAnalysisService {
@@ -53,7 +44,7 @@ export class QueryAnalysisService {
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    config?: IndexOptimizationConfig,
+    @Optional() config?: IndexOptimizationConfig,
   ) {
     this.config = config ?? resolveIndexOptimizationConfig();
   }
@@ -70,7 +61,6 @@ export class QueryAnalysisService {
     const recommendations: IIndexRecommendation[] = [];
 
     for (const fk of fkColumns) {
-      // Skip when an existing index already leads with these columns.
       if (this.hasCoveringIndex(existingIndexes, fk.table, fk.columns)) {
         continue;
       }
@@ -82,9 +72,7 @@ export class QueryAnalysisService {
       recommendations.push({
         table: fk.table,
         columns: fk.columns,
-        reason: isHotTable
-          ? RecommendationReason.HIGH_SEQ_SCAN
-          : RecommendationReason.SLOW_QUERY,
+        reason: isHotTable ? RecommendationReason.HIGH_SEQ_SCAN : RecommendationReason.SLOW_QUERY,
         suggestedName: this.indexName(fk.table, fk.columns),
         ddl: this.createIndexDdl(fk.table, fk.columns),
         score,
@@ -92,21 +80,12 @@ export class QueryAnalysisService {
       });
     }
 
-    // Highest impact first.
     recommendations.sort((a, b) => b.score - a.score);
-    this.logger.debug(
-      `Index analysis produced ${recommendations.length} recommendation(s)`,
-    );
     return recommendations;
   }
 
-  /**
-   * Return slow statements from pg_stat_statements for diagnostic context.
-   * Returns an empty array when the extension is not installed.
-   */
   async getSlowStatements(limit = 20): Promise<SlowStatement[]> {
     if (!(await this.hasPgStatStatements())) {
-      this.logger.debug('pg_stat_statements not available; skipping slow-query analysis');
       return [];
     }
     const rows = await this.query<SlowStatement>(
@@ -119,8 +98,6 @@ export class QueryAnalysisService {
     );
     return rows;
   }
-
-  // ─── Catalog / stats queries ────────────────────────────────────────────
 
   private getTableScanStats(): Promise<TableScanStat[]> {
     return this.query<TableScanStat>(
@@ -175,14 +152,7 @@ export class QueryAnalysisService {
     return Boolean(rows[0]?.exists);
   }
 
-  // ─── Heuristics ─────────────────────────────────────────────────────────
-
-  /** True when an index already starts with exactly the FK column prefix. */
-  private hasCoveringIndex(
-    indexes: ExistingIndex[],
-    table: string,
-    columns: string[],
-  ): boolean {
+  private hasCoveringIndex(indexes: ExistingIndex[], table: string, columns: string[]): boolean {
     return indexes
       .filter((ix) => ix.table === table)
       .some((ix) => this.startsWith(ix.columns, columns));
@@ -195,15 +165,10 @@ export class QueryAnalysisService {
 
   private isSeqScanHeavy(stat?: TableScanStat): boolean {
     if (!stat) return false;
-    const ratio =
-      stat.idx_scan === 0 ? Infinity : stat.seq_scan / stat.idx_scan;
-    return (
-      stat.seq_scan >= this.config.seqScanThreshold &&
-      ratio >= this.config.seqScanRatio
-    );
+    const ratio = stat.idx_scan === 0 ? Infinity : stat.seq_scan / stat.idx_scan;
+    return stat.seq_scan >= this.config.seqScanThreshold && ratio >= this.config.seqScanRatio;
   }
 
-  /** Score 0-100 weighted by seq-scan volume and table size. */
   private scoreRecommendation(stat?: TableScanStat): number {
     if (!stat) return 25;
     const scanComponent = Math.min(
@@ -224,9 +189,6 @@ export class QueryAnalysisService {
     );
   }
 
-  // ─── DDL helpers ──────────────────────────────────────────────────────────
-
-  /** Deterministic, collision-resistant index name capped to Postgres' 63 chars. */
   indexName(table: string, columns: string[]): string {
     const raw = `idx_${table}_${columns.join('_')}`;
     return raw.length <= 63 ? raw : raw.slice(0, 63);

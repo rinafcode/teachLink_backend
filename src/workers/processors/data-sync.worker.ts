@@ -56,7 +56,7 @@ export class DataSyncWorker extends BaseWorker {
   /**
    * Perform data consistency check
    */
-  private async performConsistencyCheck(job: Job, source: string, filters?: any): Promise<any> {
+  private async performConsistencyCheck(job: Job, source: string, _filters?: any): Promise<any> {
     await job.progress(40);
     this.logger.log(`Checking data consistency in ${source}`);
 
@@ -83,7 +83,7 @@ export class DataSyncWorker extends BaseWorker {
     job: Job,
     source: string,
     destination: string,
-    filters?: any,
+    _filters?: any,
   ): Promise<any> {
     await job.progress(40);
     this.logger.log(`Replicating data from ${source} to ${destination}`);

@@ -1,4 +1,5 @@
-import { Injectable, Scope, NotFoundException } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Tenant, TenantStatus } from '../entities/tenant.entity';
@@ -20,7 +21,7 @@ export class IsolationService {
   async setTenant(tenantId: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
     this.currentTenantId = tenantId;
     this.currentTenant = tenant;
@@ -31,7 +32,7 @@ export class IsolationService {
   async setTenantBySlug(slug: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { slug } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with slug ${slug} not found`);
+      throw new ResourceNotFoundException(`Tenant with slug '${slug}'`);
     }
     this.currentTenantId = tenant.id;
     this.currentTenant = tenant;
@@ -42,7 +43,7 @@ export class IsolationService {
   async setTenantByDomain(domain: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { domain } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with domain ${domain} not found`);
+      throw new ResourceNotFoundException(`Tenant with domain '${domain}'`);
     }
     this.currentTenantId = tenant.id;
     this.currentTenant = tenant;

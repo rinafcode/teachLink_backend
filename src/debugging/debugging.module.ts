@@ -1,9 +1,4 @@
-import {
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-  RequestMethod,
-} from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { DebugController } from './debug.controller';
 import { RequestCaptureService } from './services/request-capture.service';
 import { RequestReplayService } from './services/request-replay.service';
@@ -30,11 +25,7 @@ import { DebugCaptureMiddleware } from './middleware/debug-capture.middleware';
     PerformanceTimelineService,
     StackTraceService,
   ],
-  exports: [
-    RequestCaptureService,
-    PerformanceTimelineService,
-    StackTraceService,
-  ],
+  exports: [RequestCaptureService, PerformanceTimelineService, StackTraceService],
 })
 export class DebuggingModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

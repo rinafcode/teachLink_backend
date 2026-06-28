@@ -157,10 +157,22 @@ export const envValidationSchema = Joi.object({
   // Idempotency Configuration
   IDEMPOTENCY_TTL_SECONDS: Joi.number().integer().min(60).default(86400),
 
+  // Segment Analytics
+  SEGMENT_WRITE_KEY: Joi.string().optional(),
+
   // Circuit Breaker Configuration
   CIRCUIT_BREAKER_TIMEOUT_MS: Joi.number().integer().min(100).default(3000),
   CIRCUIT_BREAKER_ERROR_THRESHOLD: Joi.number().integer().min(1).max(100).default(50),
   CIRCUIT_BREAKER_RESET_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
   CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT: Joi.number().integer().min(1000).default(60000),
   CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS: Joi.number().integer().min(1).default(10),
+
+  // ── Database Sharding (#602) ──────────────────────────────────────────────
+  // Number of shards. Set to 0 or omit to run in single-shard fallback mode.
+  SHARD_COUNT: Joi.number().integer().min(0).default(0),
+
+  // Rebalance thresholds (pool utilisation %)
+  SHARD_REBALANCE_HIGH_WATERMARK: Joi.number().integer().min(1).max(100).default(80),
+  SHARD_REBALANCE_LOW_WATERMARK: Joi.number().integer().min(0).max(99).default(20),
+  SHARD_REBALANCE_BATCH_SIZE: Joi.number().integer().min(1).max(10000).default(500),
 });

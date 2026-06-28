@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThan } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { AuditLog } from '../audit-log.entity';
-import { AuditAction, AuditSeverity, AuditCategory } from '../enums/audit-action.enum';
-import {
-  IAuditLogSearchFilters,
-  IAuditLogSearchResult,
-} from '../interfaces/audit-log.interfaces';
+import { AuditAction } from '../enums/audit-action.enum';
+import { IAuditLogSearchFilters, IAuditLogSearchResult } from '../interfaces/audit-log.interfaces';
 
 /**
  * Provides audit log query operations.
@@ -177,11 +174,7 @@ export class AuditQueryService {
   /**
    * Find logs by date range
    */
-  async findByDateRange(
-    startDate: Date,
-    endDate: Date,
-    limit: number = 1000,
-  ): Promise<AuditLog[]> {
+  async findByDateRange(startDate: Date, endDate: Date, limit: number = 1000): Promise<AuditLog[]> {
     return this.auditRepo.find({
       where: {
         timestamp: Between(startDate, endDate),

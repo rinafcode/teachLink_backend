@@ -1,9 +1,9 @@
 import { Controller, Post, Body, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { MessagingService } from './messaging.service';
-import { CreateMessageDto, MarkReadDto } from './message.dto';
-import { AuthGuard } from '../auth/auth.guard'; // Adjust path if auth guard location differs
+import { CreateMessageDto } from './message.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('messages')
 export class MessagingController {
   constructor(private readonly messagingService: MessagingService) {}
@@ -15,7 +15,10 @@ export class MessagingController {
   }
 
   @Get('conversation/:otherUserId')
-  async getConversation(@Param('otherUserId') otherUserId: string, @Param('userId') userId: string) {
+  async getConversation(
+    @Param('otherUserId') otherUserId: string,
+    @Param('userId') userId: string,
+  ) {
     // Assuming userId is retrieved from auth token via a custom decorator; placeholder for now
     const conversation = await this.messagingService.getConversation(userId, otherUserId);
     return { success: true, conversation };
