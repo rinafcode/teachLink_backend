@@ -55,8 +55,8 @@ export const ALLOWED_EXTENSIONS = {
   ARCHIVES: ['.zip'],
 } as const;
 export const FILE_SIZE_LIMITS = {
-  // Images: 20MB
-  IMAGE_MAX_SIZE: 20 * 1024 * 1024,
+  // Images: 10MB
+  IMAGE_MAX_SIZE: 10 * 1024 * 1024,
   // Videos: 500MB
   VIDEO_MAX_SIZE: 500 * 1024 * 1024,
   // Documents: 50MB
