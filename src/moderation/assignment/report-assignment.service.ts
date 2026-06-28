@@ -128,9 +128,7 @@ export class ReportAssignmentService {
       return;
     }
 
-    this.logger.warn(
-      `Escalating ${overdueReports.length} overdue report(s) (SLA: ${slaHours}h)`,
-    );
+    this.logger.warn(`Escalating ${overdueReports.length} overdue report(s) (SLA: ${slaHours}h)`);
 
     for (const report of overdueReports) {
       await this.escalateReport(report);
@@ -157,10 +155,7 @@ export class ReportAssignmentService {
       .getMany();
   }
 
-  private async sendAssignmentNotification(
-    moderator: User,
-    report: ContentReport,
-  ): Promise<void> {
+  private async sendAssignmentNotification(moderator: User, report: ContentReport): Promise<void> {
     try {
       await this.notificationsService.send({
         userId: moderator.id,
@@ -171,10 +166,7 @@ export class ReportAssignmentService {
         metadata: { reportId: report.id, contentType: report.contentType, reason: report.reason },
       });
     } catch (err) {
-      this.logger.error(
-        `Failed to send assignment notification to moderator ${moderator.id}`,
-        err,
-      );
+      this.logger.error(`Failed to send assignment notification to moderator ${moderator.id}`, err);
     }
   }
 
