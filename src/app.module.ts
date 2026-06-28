@@ -24,6 +24,7 @@ import { GlobalExceptionFilter } from './common/interceptors/global-exception.fi
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { PaymentsModule } from './payments/payments.module';
 import { HealthModule } from './health/health.module';
 
 // ✅ keep BOTH modules
@@ -53,6 +54,7 @@ const featureFlags = loadFeatureFlags();
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
+    PaymentsModule,
     HealthModule,
 
     // ✅ always include read replicas (or wrap if needed)
