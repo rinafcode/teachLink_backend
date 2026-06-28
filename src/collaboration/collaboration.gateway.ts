@@ -13,6 +13,7 @@ import { JoinSessionDto, CollaborativeOperationDto, SyncRequestDto } from './dto
 import { OtCrdtService, Operation } from './ot-crdt.service';
 import { PresenceService } from './presence.service';
 import { ChangeHistoryService } from './change-history.service';
+import { WsPayloadSizeGuardService } from './guards/ws-payload-size-guard.service';
 
 @WebSocketGateway({ namespace: '/collaboration', cors: { origin: '*' } })
 export class CollaborationGateway implements OnGatewayDisconnect {
@@ -27,6 +28,7 @@ export class CollaborationGateway implements OnGatewayDisconnect {
     private readonly otCrdt: OtCrdtService,
     private readonly presence: PresenceService,
     private readonly history: ChangeHistoryService,
+    private readonly payloadSizeGuard: WsPayloadSizeGuardService,
   ) {}
 
   handleDisconnect(client: Socket): void {
@@ -44,6 +46,8 @@ export class CollaborationGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(COLLABORATION_EVENTS.JOIN_SESSION)
   handleJoin(@MessageBody() dto: JoinSessionDto, @ConnectedSocket() client: Socket) {
+    this.payloadSizeGuard.validate(dto);
+
     client.join(dto.sessionId);
     this.socketMap.set(client.id, { sessionId: dto.sessionId, userId: dto.userId });
     const presenceInfo = this.presence.join(dto.sessionId, dto.userId);
@@ -70,6 +74,8 @@ export class CollaborationGateway implements OnGatewayDisconnect {
     @MessageBody() dto: CollaborativeOperationDto,
     @ConnectedSocket() client: Socket,
   ) {
+    this.payloadSizeGuard.validate(dto);
+
     const incomingOp = dto.operation as Operation;
     const revision = this.otCrdt.nextRevision(dto.sessionId);
     const op: Operation = { ...incomingOp, sessionId: dto.sessionId, userId: dto.userId, revision };
@@ -101,6 +107,8 @@ export class CollaborationGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(COLLABORATION_EVENTS.REQUEST_SYNC)
   handleSync(@MessageBody() dto: SyncRequestDto) {
+    this.payloadSizeGuard.validate(dto);
+
     const revision = this.otCrdt.currentRevision(dto.sessionId);
     const history = this.history.getLatest(dto.sessionId);
 
@@ -112,6 +120,8 @@ export class CollaborationGateway implements OnGatewayDisconnect {
 
   @SubscribeMessage(COLLABORATION_EVENTS.RESOLVE_CONFLICT)
   handleConflict(@MessageBody() body: { op1: Operation; op2: Operation; sessionId: string }) {
+    this.payloadSizeGuard.validate(body);
+
     const resolved = this.otCrdt.resolveConflict(body.op1, body.op2);
     this.server.to(body.sessionId).emit(COLLABORATION_EVENTS.CONFLICT_RESOLVED, { resolved });
     return { event: COLLABORATION_EVENTS.CONFLICT_RESOLVED, data: { resolved } };
