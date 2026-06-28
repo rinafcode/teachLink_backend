@@ -64,9 +64,7 @@ describe('ExchangeRateService', () => {
     });
 
     it('returns stale cache value and triggers background refresh', async () => {
-      cachingService.get
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(0.92);
+      cachingService.get.mockResolvedValueOnce(undefined).mockResolvedValueOnce(0.92);
       httpService.get.mockReturnValue(of({ data: { rates: { EUR: 0.93 } } }));
 
       const result = await service.getExchangeRate('USD', 'EUR');
@@ -82,10 +80,10 @@ describe('ExchangeRateService', () => {
     });
 
     it('fetches from API on complete miss and caches result', async () => {
-      cachingService.get
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined);
-      cachingService.getOrSet.mockImplementationOnce(async (_key: string, factory: () => Promise<number>) => factory());
+      cachingService.get.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
+      cachingService.getOrSet.mockImplementationOnce(
+        async (_key: string, factory: () => Promise<number>) => factory(),
+      );
       httpService.get.mockReturnValue(of({ data: { rates: { EUR: 0.92 } } }));
 
       const result = await service.getExchangeRate('USD', 'EUR');
@@ -100,9 +98,7 @@ describe('ExchangeRateService', () => {
     });
 
     it('falls back to stale cache when API fails on complete miss', async () => {
-      cachingService.get
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(0.85);
+      cachingService.get.mockResolvedValueOnce(undefined).mockResolvedValueOnce(0.85);
       cachingService.getOrSet.mockRejectedValueOnce(new Error('API error'));
 
       const result = await service.getExchangeRate('GBP', 'EUR');
@@ -111,9 +107,7 @@ describe('ExchangeRateService', () => {
     });
 
     it('falls back to hardcoded rates when all caches miss and API fails', async () => {
-      cachingService.get
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined);
+      cachingService.get.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
       cachingService.getOrSet.mockRejectedValueOnce(new Error('API error'));
 
       const result = await service.getExchangeRate('USD', 'EUR');
@@ -122,13 +116,11 @@ describe('ExchangeRateService', () => {
     });
 
     it('calculates cross-currency rate correctly for non-base currencies', async () => {
-      cachingService.get
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(undefined);
-      cachingService.getOrSet.mockImplementationOnce(async (_key: string, factory: () => Promise<number>) => factory());
-      httpService.get.mockReturnValue(
-        of({ data: { rates: { GBP: 0.79, EUR: 0.92 } } }),
+      cachingService.get.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
+      cachingService.getOrSet.mockImplementationOnce(
+        async (_key: string, factory: () => Promise<number>) => factory(),
       );
+      httpService.get.mockReturnValue(of({ data: { rates: { GBP: 0.79, EUR: 0.92 } } }));
 
       const result = await service.getExchangeRate('GBP', 'EUR');
 

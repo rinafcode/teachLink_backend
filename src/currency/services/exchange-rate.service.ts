@@ -86,9 +86,7 @@ export class ExchangeRateService {
       'https://api.exchangerate-api.com/v4/latest/USD',
     );
 
-    const response = await firstValueFrom(
-      this.httpService.get(apiUrl, { timeout: 5000 }),
-    );
+    const response = await firstValueFrom(this.httpService.get(apiUrl, { timeout: 5000 }));
 
     if (!response.data?.rates) {
       throw new Error('Invalid API response: missing rates');
