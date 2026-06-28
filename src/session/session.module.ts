@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getSharedRedisClient } from '../config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session.constants';
 import { SessionService } from './session.service';
+import { SessionCleanupTask } from './tasks/session-cleanup.task';
 
 /**
  * Registers the session module.
@@ -18,6 +19,7 @@ import { SessionService } from './session.service';
         getSharedRedisClient(configService),
     },
     SessionService,
+    SessionCleanupTask,
   ],
   exports: [SESSION_REDIS_CLIENT, SessionService],
 })

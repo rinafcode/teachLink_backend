@@ -4,7 +4,17 @@ import { GdprService } from '../gdpr.service';
 import { UserConsent } from '../entities/user-consent.entity';
 
 const mockUsersService = {
-  findById: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
+  findById: jest.fn().mockResolvedValue({
+    id: 'user-1',
+    email: 'test@test.com',
+    firstName: 'John',
+    lastName: 'Doe',
+    password: '$2a$10$bcryptencryptedhashplaceholder',
+    refreshToken: 'some-refresh-token-value',
+    passwordHistory: ['$2a$10$oldhash1', '$2a$10$oldhash2'],
+    totpSecret: 'supersecretotpvalue',
+    token: 'active-session-token-or-verification-token',
+  }),
   update: jest.fn().mockResolvedValue(undefined),
 };
 
@@ -34,9 +44,22 @@ describe('GdprService', () => {
     service = module.get<GdprService>(GdprService);
   });
 
-  it('exports user data', async () => {
+  it('exports user data and excludes sensitive credential fields', async () => {
     const result = await service.exportUserData('user-1');
     expect(result.profile).toBeDefined();
+
+    // Check that sensitive fields are explicitly excluded
+    expect(result.profile.password).toBeUndefined();
+    expect(result.profile.refreshToken).toBeUndefined();
+    expect(result.profile.passwordHistory).toBeUndefined();
+    expect(result.profile.totpSecret).toBeUndefined();
+    expect(result.profile.token).toBeUndefined();
+
+    // Check that PII fields are preserved
+    expect(result.profile.id).toBe('user-1');
+    expect(result.profile.email).toBe('test@test.com');
+    expect(result.profile.firstName).toBe('John');
+    expect(result.profile.lastName).toBe('Doe');
   });
 
   it('erases user data', async () => {
