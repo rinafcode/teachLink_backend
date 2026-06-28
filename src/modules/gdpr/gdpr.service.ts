@@ -5,6 +5,7 @@ import { plainToInstance, instanceToPlain } from 'class-transformer';
 import { UserConsent } from './entities/user-consent.entity';
 import { ConsentDto } from './dto/consent.dto';
 import { GdprExportDto } from './dto/gdpr-export.dto';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class GdprService {
@@ -50,16 +51,43 @@ export class GdprService {
       throw new NotFoundException('User not found');
     }
 
-    await this.usersService.update(userId, {
-      email: null,
-      firstName: '[DELETED]',
-      lastName: '[DELETED]',
-      phone: null,
-      address: null,
-      deletedAt: new Date(),
-    });
+    if (user.deletedAt) {
+      return {
+        success: true,
+        alreadyErased: true,
+      };
+    }
 
-    await this.auditService.log('GDPR_ERASURE', userId);
+    await this.consentRepository.manager.transaction(async (manager) => {
+      // Wrap all DB writes in a transaction with ON CONFLICT DO NOTHING or upsert semantics.
+      await manager
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({
+          id: userId,
+          email: null as any,
+          firstName: '[DELETED]',
+          lastName: '[DELETED]',
+          deletedAt: new Date(),
+        })
+        .orUpdate(
+          ['email', 'firstName', 'lastName', 'deletedAt'],
+          ['id'],
+        )
+        .execute();
+
+      await this.usersService.update(userId, {
+        email: null,
+        firstName: '[DELETED]',
+        lastName: '[DELETED]',
+        phone: null,
+        address: null,
+        deletedAt: new Date(),
+      });
+
+      await this.auditService.log('GDPR_ERASURE', userId);
+    });
 
     return {
       success: true,
