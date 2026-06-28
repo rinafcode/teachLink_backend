@@ -22,7 +22,8 @@ export class KpiService {
     @InjectRepository(Course) private readonly courseRepository: Repository<Course>,
     @InjectRepository(Enrollment) private readonly enrollmentRepository: Repository<Enrollment>,
     @InjectRepository(Payment) private readonly paymentRepository: Repository<Payment>,
-    @InjectRepository(UserActivity) private readonly userActivityRepository: Repository<UserActivity>,
+    @InjectRepository(UserActivity)
+    private readonly userActivityRepository: Repository<UserActivity>,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -135,7 +136,9 @@ export class KpiService {
       // Check retention for subsequent months
       for (let j = 1; j < i; j++) {
         const retentionMonthStart = startOfMonth(subDays(now, (i - j) * 30));
-        const retentionMonthEnd = endOfDay(subDays(startOfMonth(subDays(now, (i - j - 1) * 30)), 1));
+        const retentionMonthEnd = endOfDay(
+          subDays(startOfMonth(subDays(now, (i - j - 1) * 30)), 1),
+        );
 
         if (retentionMonthStart > now) continue;
 

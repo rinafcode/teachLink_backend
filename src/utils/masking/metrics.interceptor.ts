@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
@@ -26,11 +21,7 @@ export class MetricsInterceptor implements NestInterceptor {
         const route = request.route?.path ?? request.path;
 
         this.metricsService.apiLatencyHistogram
-          .labels(
-            request.method,
-            route,
-            String(response.statusCode),
-          )
+          .labels(request.method, route, String(response.statusCode))
           .observe(durationSeconds);
       }),
     );

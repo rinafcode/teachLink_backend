@@ -1,11 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Registry,
-  collectDefaultMetrics,
-  Gauge,
-  Counter,
-  Histogram,
-} from 'prom-client';
+import { Registry, collectDefaultMetrics, Gauge, Counter, Histogram } from 'prom-client';
 
 @Injectable()
 export class MetricsService {

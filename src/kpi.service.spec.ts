@@ -52,7 +52,11 @@ describe('KpiService', () => {
 
   describe('calculateActiveUsers', () => {
     it('should set active user gauges', async () => {
-      jest.spyOn(mockRepo, 'count').mockResolvedValueOnce(10).mockResolvedValueOnce(50).mockResolvedValueOnce(200);
+      jest
+        .spyOn(mockRepo, 'count')
+        .mockResolvedValueOnce(10)
+        .mockResolvedValueOnce(50)
+        .mockResolvedValueOnce(200);
       const dauSpy = jest.spyOn(metricsService.activeUsersGauge, 'set');
       const wauSpy = jest.spyOn(metricsService.activeUsersGauge, 'set');
       const mauSpy = jest.spyOn(metricsService.activeUsersGauge, 'set');
@@ -68,19 +72,18 @@ describe('KpiService', () => {
   describe('calculatePaymentSuccessRate', () => {
     it('should set payment success rate gauge', async () => {
       const gaugeSpy = jest.spyOn(metricsService.paymentSuccessRateGauge, 'set');
-      jest.spyOn(mockRepo, 'count')
-        .mockImplementation((options: any) => {
-          if (options.where.status === PaymentStatus.SUCCEEDED) return Promise.resolve(95);
-          if (options.where.status === PaymentStatus.FAILED) return Promise.resolve(5);
-          return Promise.resolve(0);
-        });
+      jest.spyOn(mockRepo, 'count').mockImplementation((options: any) => {
+        if (options.where.status === PaymentStatus.SUCCEEDED) return Promise.resolve(95);
+        if (options.where.status === PaymentStatus.FAILED) return Promise.resolve(5);
+        return Promise.resolve(0);
+      });
 
       await kpiService.calculatePaymentSuccessRate();
 
       expect(gaugeSpy).toHaveBeenCalledWith(95);
     });
 
-     it('should handle zero total payments', async () => {
+    it('should handle zero total payments', async () => {
       const gaugeSpy = jest.spyOn(metricsService.paymentSuccessRateGauge, 'set');
       jest.spyOn(mockRepo, 'count').mockResolvedValue(0);
 
@@ -112,7 +115,9 @@ describe('KpiService', () => {
       const activeUsersSpy = jest.spyOn(kpiService, 'calculateActiveUsers').mockResolvedValue();
       const paymentSpy = jest.spyOn(kpiService, 'calculatePaymentSuccessRate').mockResolvedValue();
       const revenueSpy = jest.spyOn(kpiService, 'calculateRevenuePerCourse').mockResolvedValue();
-      const enrollmentSpy = jest.spyOn(kpiService, 'calculateEnrollmentConversionRate').mockResolvedValue();
+      const enrollmentSpy = jest
+        .spyOn(kpiService, 'calculateEnrollmentConversionRate')
+        .mockResolvedValue();
       const retentionSpy = jest.spyOn(kpiService, 'calculateUserRetention').mockResolvedValue();
 
       await kpiService.handleCron();
