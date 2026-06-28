@@ -155,6 +155,16 @@ groups:
           summary: 'DB connection pool >90% utilised for 5m'
           description: 'Pool utilisation is {{ $value | humanizePercentage }}. New requests may queue or fail.'
 
+      - alert: DBPoolUtilizationHigh
+        expr: db_pool_utilization > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: teachlink-backend
+        annotations:
+          summary: 'DB connection pool utilization above 80% for 5m'
+          description: 'Pool utilization is {{ $value | humanizePercentage }}. Consider raising DATABASE_POOL_MAX or investigating slow queries.'
+
       - alert: DBQueryLatencyHigh
         expr: |
           histogram_quantile(
