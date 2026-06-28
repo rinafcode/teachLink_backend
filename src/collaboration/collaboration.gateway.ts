@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -7,6 +7,7 @@ import {
   ConnectedSocket,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 import { Server, Socket } from 'socket.io';
 import { COLLABORATION_EVENTS } from './constants/collaboration-events.constants';
 import { JoinSessionDto, CollaborativeOperationDto, SyncRequestDto } from './dto/websocket.dto';
@@ -15,6 +16,7 @@ import { PresenceService } from './presence.service';
 import { ChangeHistoryService } from './change-history.service';
 import { WsPayloadSizeGuardService } from './guards/ws-payload-size-guard.service';
 
+@UseGuards(WsJwtAuthGuard)
 @WebSocketGateway({ namespace: '/collaboration', cors: { origin: '*' } })
 export class CollaborationGateway implements OnGatewayDisconnect {
   @WebSocketServer()

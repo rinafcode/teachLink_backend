@@ -10,6 +10,9 @@ const mockRedis = {
   expire: jest.fn(),
   eval: jest.fn(),
   multi: jest.fn(),
+  zadd: jest.fn().mockResolvedValue(1),
+  zrem: jest.fn().mockResolvedValue(1),
+  zrange: jest.fn().mockResolvedValue([]),
   status: 'ready',
   quit: jest.fn(),
 };
