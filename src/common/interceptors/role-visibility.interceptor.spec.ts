@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
-import { of } from 'rxjs';
-import { lastValueFrom } from 'rxjs';
+import { of, lastValueFrom } from 'rxjs';
 import { RoleVisibilityInterceptor } from './role-visibility.interceptor';
 import { VisibleTo } from '../decorators/visible-to.decorator';
 import { UserRole } from '../../users/entities/user.entity';
