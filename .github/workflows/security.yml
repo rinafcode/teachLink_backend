@@ -34,7 +34,6 @@ jobs:
   dependency-scan:
     name: Dependency Scan
     runs-on: ubuntu-latest
-    if: hashFiles('package.json', 'pnpm-lock.yaml') != ''
 
     steps:
       - name: Checkout code
@@ -73,7 +72,6 @@ jobs:
   container-scan:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
-    if: hashFiles('Dockerfile') != ''
 
     steps:
       - name: Checkout code
