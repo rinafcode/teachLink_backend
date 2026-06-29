@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { resolveCdnConfig, resolveCacheHeaderConfig } from './cdn.config';
+import { RetryPolicy } from '../common/utils/retry-policy';
 
 export interface CacheHeaders {
   'Cache-Control': string;
@@ -17,6 +18,7 @@ export class CdnService {
   private readonly logger = new Logger(CdnService.name);
   private readonly cdn = resolveCdnConfig();
   private readonly cacheHeaders = resolveCacheHeaderConfig();
+  private readonly retryPolicy = new RetryPolicy({ service: 'cdn' });
 
   /**
    * Returns optimised Cache-Control headers for a given asset path.
@@ -56,19 +58,30 @@ export class CdnService {
       `Invalidating ${paths.length} path(s) on distribution ${this.cdn.distributionId}: ${paths.join(', ')}`,
     );
 
-    // Placeholder: wire up AWS SDK CloudFront.createInvalidation here when credentials are available.
-    // Example:
-    //   const cf = new CloudFrontClient({});
-    //   await cf.send(new CreateInvalidationCommand({
-    //     DistributionId: this.cdn.distributionId,
-    //     InvalidationBatch: { Paths: { Quantity: paths.length, Items: paths }, CallerReference: Date.now().toString() },
-    //   }));
+    await this.retryPolicy.execute(() => this.callInvalidationProvider(paths));
 
     return {
       success: true,
       paths,
       message: `Invalidation queued for distribution ${this.cdn.distributionId}`,
     };
+  }
+
+  /**
+   * Calls the CDN provider's invalidation API. Wrapped by RetryPolicy in
+   * `invalidate()` since this network call can fail transiently (5xx,
+   * connection resets).
+   *
+   * Placeholder: wire up AWS SDK CloudFront.createInvalidation here when
+   * credentials are available, e.g.:
+   *   const cf = new CloudFrontClient({});
+   *   await cf.send(new CreateInvalidationCommand({
+   *     DistributionId: this.cdn.distributionId,
+   *     InvalidationBatch: { Paths: { Quantity: paths.length, Items: paths }, CallerReference: Date.now().toString() },
+   *   }));
+   */
+  protected async callInvalidationProvider(_paths: string[]): Promise<void> {
+    // No-op until the CloudFront SDK call is wired up.
   }
 
   /** Returns the CDN URL for a given asset path. */
