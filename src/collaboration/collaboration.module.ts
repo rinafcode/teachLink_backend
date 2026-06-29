@@ -1,37 +1,30 @@
-import {
-  WebSocketGateway,
-  WebSocketServer,
-  SubscribeMessage,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  ConnectedSocket,
-  MessageBody,
-  UseGuards,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
-import { WsAuthGuard, AuthenticatedSocket } from '../auth/guards/ws-auth.guard';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { OtCrdtService } from './ot-crdt.service';
+import { PresenceService } from './presence.service';
+import { ChangeHistoryService } from './change-history.service';
+import { CollaborationGateway } from './collaboration.gateway';
+import { WsPayloadSizeGuardService } from './guards/ws-payload-size-guard.service';
+import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 
-function resolveAllowedOrigins(config: ConfigService): string[] {
-  const raw = config.get<string>('WS_ALLOWED_ORIGINS', '');
-  return raw
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-}
-
-@WebSocketGateway({
-  namespace: '/collaboration',
-  cors: {
-    // Origin callback evaluated per-connection (#795)
-    origin(requestOrigin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-      // This function is replaced at runtime by CollaborationGateway.configureOrigin
-      // The static decorator value is overridden in the constructor via server options.
-      callback(null, false);
-    },
-    credentials: true,
-  },
+@Module({
+  imports: [
+    ConfigModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'default-jwt-secret',
+      signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any },
+    }),
+  ],
+  providers: [
+    OtCrdtService,
+    PresenceService,
+    ChangeHistoryService,
+    CollaborationGateway,
+    WsPayloadSizeGuardService,
+    WsJwtAuthGuard,
+  ],
+  exports: [OtCrdtService, PresenceService, ChangeHistoryService],
 })
 @UseGuards(WsAuthGuard) // #796 — rejects unauthenticated connections
 export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisconnect {
