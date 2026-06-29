@@ -103,7 +103,6 @@ export class GdprService {
       throw new NotFoundException('User not found');
     }
 
-    await this.userRepository.update(userId, {
     await this.sessionService.deleteAllSessionsForUser(userId);
 
     await this.usersService.update(userId, {
