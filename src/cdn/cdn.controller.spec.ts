@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CdnController } from './cdn.controller';
 import { PayloadTooLargeException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { FILE_SIZE_LIMITS } from '../media/validation/file-validation.constants';
+import { UploadedFile } from '../common/types/file.types';
 
 describe('CdnController', () => {
   let controller: CdnController;
@@ -39,7 +40,7 @@ describe('CdnController', () => {
         mimetype: 'image/png',
         size: FILE_SIZE_LIMITS.IMAGE_MAX_SIZE + 1,
         buffer: oversizedBuffer,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       await expect(controller.uploadContent(file)).rejects.toThrow(PayloadTooLargeException);
     });
@@ -64,7 +65,7 @@ describe('CdnController', () => {
         mimetype: 'video/mp4',
         size: FILE_SIZE_LIMITS.VIDEO_MAX_SIZE + 1,
         buffer: oversizedBuffer,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       await expect(controller.uploadContent(file)).rejects.toThrow(PayloadTooLargeException);
     });
@@ -83,7 +84,7 @@ describe('CdnController', () => {
         mimetype: 'image/png', // Declared as PNG
         size: 100,
         buffer: jpegBuffer, // But actually JPEG
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       await expect(controller.uploadContent(file)).rejects.toThrow(UnsupportedMediaTypeException);
     });
@@ -98,7 +99,7 @@ describe('CdnController', () => {
         mimetype: 'video/mp4',
         size: phpContent.length,
         buffer: phpContent,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       await expect(controller.uploadContent(file)).rejects.toThrow(UnsupportedMediaTypeException);
     });
@@ -122,7 +123,7 @@ describe('CdnController', () => {
         mimetype: 'image/png',
         size: 1000,
         buffer: pngBuffer,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       const result = await controller.uploadContent(file);
       expect(result.success).toBe(true);
@@ -144,7 +145,7 @@ describe('CdnController', () => {
         mimetype: 'image/jpeg',
         size: 1000,
         buffer: jpegBuffer,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       const result = await controller.uploadContent(file);
       expect(result.success).toBe(true);
@@ -171,7 +172,7 @@ describe('CdnController', () => {
         mimetype: 'video/mp4',
         size: 1000,
         buffer: mp4Buffer,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       const result = await controller.uploadContent(file);
       expect(result.success).toBe(true);
@@ -190,7 +191,7 @@ describe('CdnController', () => {
         mimetype: 'application/octet-stream',
         size: 100,
         buffer: invalidBuffer,
-      } as Express.Multer.File;
+      } as UploadedFile;
 
       await expect(controller.uploadContent(file)).rejects.toThrow(UnsupportedMediaTypeException);
     });

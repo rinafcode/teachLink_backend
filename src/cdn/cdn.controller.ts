@@ -15,6 +15,7 @@ import {
   FILE_SIZE_LIMITS,
   ALL_ALLOWED_FILE_TYPES,
 } from '../media/validation/file-validation.constants';
+import { UploadedFile } from '../common/types/file.types';
 
 @ApiTags('cdn')
 @Controller('cdn')
@@ -34,7 +35,7 @@ export class CdnController {
       },
     }),
   )
-  async uploadContent(@UploadedFile() file: Express.Multer.File) {
+  async uploadContent(@UploadedFile() file: UploadedFile) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -63,7 +64,7 @@ export class CdnController {
     const detectedMimeType = detectedType.mime.toLowerCase();
 
     // Check if detected MIME type is in allowed list
-    if (!ALL_ALLOWED_FILE_TYPES.includes(detectedMimeType)) {
+    if (!ALL_ALLOWED_FILE_TYPES.includes(detectedMimeType as any)) {
       throw new UnsupportedMediaTypeException(
         `Detected file type "${detectedMimeType}" is not allowed. Allowed types: ${ALL_ALLOWED_FILE_TYPES.join(', ')}`,
       );

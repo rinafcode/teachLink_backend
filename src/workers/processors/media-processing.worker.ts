@@ -54,7 +54,7 @@ export class MediaProcessingWorker extends BaseWorker {
 
         const detectedMimeType = detectedType.mime.toLowerCase();
         // Check if detected MIME type is in allowed list
-        if (!ALL_ALLOWED_FILE_TYPES.includes(detectedMimeType)) {
+        if (!ALL_ALLOWED_FILE_TYPES.includes(detectedMimeType as any)) {
           throw new Error(
             `Detected file type "${detectedMimeType}" is not allowed. Allowed types: ${ALL_ALLOWED_FILE_TYPES.join(', ')}`,
           );
