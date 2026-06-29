@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
+import { fileTypeFromBuffer } from 'file-type';
+import {
+  FILE_SIZE_LIMITS,
+  ALL_ALLOWED_FILE_TYPES,
+} from '../../media/validation/file-validation.constants';
 
 /**
  * Media Processing Worker
@@ -16,13 +21,71 @@ export class MediaProcessingWorker extends BaseWorker {
    * Execute media processing job
    */
   async execute(job: Job): Promise<any> {
-    const { mediaType, fileUrl, format, options } = job.data;
+    const { mediaType, fileUrl, format, options, fileBuffer, declaredMimeType } = job.data;
 
     await job.progress(20);
 
     // Validate media data
     if (!fileUrl || !mediaType) {
       throw new Error('Missing required media fields: fileUrl, mediaType');
+    }
+
+    // Validate file size if buffer is provided
+    if (fileBuffer && Buffer.isBuffer(fileBuffer)) {
+      const maxSize = this.getMaxSizeForType(mediaType);
+      if (fileBuffer.length > maxSize) {
+        this.logger.error(
+          `File size ${fileBuffer.length} exceeds limit ${maxSize} for type ${mediaType}`,
+        );
+        throw new Error(
+          `File size ${Math.round(fileBuffer.length / 1024 / 1024)}MB exceeds maximum allowed size of ${Math.round(maxSize / 1024 / 1024)}MB for ${mediaType}`,
+        );
+      }
+
+      // Validate MIME type using magic bytes
+      if (fileBuffer.length >= 4) {
+        const detectedType = await fileTypeFromBuffer(fileBuffer);
+
+        if (!detectedType) {
+          throw new Error(
+            'Could not determine file type from content. File may be corrupted or format not supported.',
+          );
+        }
+
+        const detectedMimeType = detectedType.mime.toLowerCase();
+        // Check if detected MIME type is in allowed list
+        if (!ALL_ALLOWED_FILE_TYPES.includes(detectedMimeType as any)) {
+          throw new Error(
+            `Detected file type "${detectedMimeType}" is not allowed. Allowed types: ${ALL_ALLOWED_FILE_TYPES.join(', ')}`,
+          );
+        }
+
+        // Compare declared vs detected MIME type if declared
+        if (declaredMimeType) {
+          const declared = declaredMimeType.toLowerCase();
+          if (declared !== detectedMimeType) {
+            this.logger.warn(
+              `MIME type mismatch: declared="${declared}", detected="${detectedMimeType}"`,
+            );
+            throw new Error(
+              `Declared MIME type "${declared}" does not match actual file content "${detectedMimeType}"`,
+            );
+          }
+        }
+
+        // Validate that detected type matches expected media type category
+        const expectedCategory = mediaType.toLowerCase();
+        const detectedCategory = detectedMimeType.split('/')[0];
+        if (expectedCategory !== detectedCategory) {
+          throw new Error(
+            `Expected ${expectedCategory} file but detected ${detectedCategory} (${detectedMimeType})`,
+          );
+        }
+
+        this.logger.log(
+          `File validation passed: ${fileUrl}, size: ${fileBuffer.length}, type: ${detectedMimeType}`,
+        );
+      }
     }
 
     await job.progress(40);
@@ -52,6 +115,28 @@ export class MediaProcessingWorker extends BaseWorker {
       this.logger.error(`Failed to process media ${fileUrl}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Get maximum file size for a given media type
+   */
+  private getMaxSizeForType(mediaType: string): number {
+    const type = mediaType.toLowerCase();
+
+    if (type === 'image') {
+      return FILE_SIZE_LIMITS.IMAGE_MAX_SIZE;
+    }
+    if (type === 'video') {
+      return FILE_SIZE_LIMITS.VIDEO_MAX_SIZE;
+    }
+    if (type === 'audio') {
+      return FILE_SIZE_LIMITS.AUDIO_MAX_SIZE;
+    }
+    if (type === 'document') {
+      return FILE_SIZE_LIMITS.DOCUMENT_MAX_SIZE;
+    }
+
+    return FILE_SIZE_LIMITS.DEFAULT_MAX_SIZE;
   }
 
   /**

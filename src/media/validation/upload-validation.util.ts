@@ -31,6 +31,9 @@ export const MEDIA_UPLOAD_INTERCEPTOR_OPTIONS = {
     const allowedMimeTypes = ALL_ALLOWED_FILE_TYPES as readonly string[];
     const normalizedMimeType = file.mimetype?.toLowerCase().trim() || '';
 
+    // Check if declared MIME type is in allowed list
+    // Note: Magic bytes validation is handled at the controller/worker level
+    // where async operations are supported (see cdn.controller.ts and media-processing.worker.ts)
     if (!allowedMimeTypes.includes(normalizedMimeType)) {
       req.uploadValidationError = {
         message: `File type "${file.mimetype || 'unknown'}" is not allowed`,
