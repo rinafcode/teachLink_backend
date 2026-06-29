@@ -25,12 +25,14 @@ export class SessionService implements OnModuleDestroy {
   private readonly lockTtlMs: number;
   private readonly lockRetries: number;
   private readonly lockRetryDelayMs: number;
+  private readonly maxSessionsPerUser: number;
 
   constructor(
     @Inject(SESSION_REDIS_CLIENT) private readonly redis: Redis,
     private readonly configService: ConfigService,
   ) {
     this.sessionPrefix = this.configService.get<string>('AUTH_SESSION_PREFIX') || 'auth:sess:';
+    this.maxSessionsPerUser = parseInt(this.configService.get<string>('MAX_SESSIONS_PER_USER') || '5', 10);
     this.legacySessionPrefix =
       this.configService.get<string>('AUTH_SESSION_LEGACY_PREFIX') || 'session:';
     this.sessionTtlSeconds = parseInt(
@@ -81,7 +83,7 @@ export class SessionService implements OnModuleDestroy {
       'EX',
       this.sessionTtlSeconds,
     );
-    await this.addSessionToUserIndex(userId, sid);
+await this.addSessionToUserIndex(userId, sid);
     return sid;
   }
 
@@ -134,21 +136,9 @@ export class SessionService implements OnModuleDestroy {
   async removeSession(sid: string): Promise<void> {
     const session = await this.getSession(sid);
     await this.redis.del(this.sessionKey(sid));
-    if (session) {
-      await this.removeSessionFromUserIndex(session.userId, sid);
-    }
-  }
-
-  async addSessionToUserIndex(userId: string, sid: string): Promise<void> {
-    await this.redis.zadd(`user:sessions:${userId}`, Date.now(), sid);
-  }
-
-  async removeSessionFromUserIndex(userId: string, sid: string): Promise<void> {
-    await this.redis.zrem(`user:sessions:${userId}`, sid);
-  }
-
-  async getUserSessionIds(userId: string): Promise<string[]> {
-    return this.redis.zrange(`user:sessions:${userId}`, 0, -1);
+if (session) {
+  await this.removeSessionFromUserIndex(session.userId, sid);
+}
   }
 
   /**
@@ -171,10 +161,18 @@ export class SessionService implements OnModuleDestroy {
     };
 
     await this.redis
-      .multi()
-      .set(this.sessionKey(newSid), JSON.stringify(migrated), 'EX', this.sessionTtlSeconds)
-      .del(this.sessionKey(oldSid))
-      .exec();
+        .multi()
+        .set(this.sessionKey(newSid), JSON.stringify(migrated), 'EX', this.sessionTtlSeconds)
+        .del(this.sessionKey(oldSid))
+        .exec();
+      // Update user's session sorted set
+      if (existing) {
+        const userKey = this.userSessionKey(existing.userId);
+        await this.redis.multi()
+          .zrem(userKey, oldSid)
+          .zadd(userKey, Date.now(), newSid)
+          .exec();
+      }
 
     return newSid;
   }
@@ -257,6 +255,10 @@ export class SessionService implements OnModuleDestroy {
       return 0
     `;
     await this.redis.eval(releaseScript, 1, lockKey, lockToken);
+  }
+
+  private userSessionKey(userId: string): string {
+    return `user:sessions:${userId}`;
   }
 
   private sessionKey(sid: string): string {

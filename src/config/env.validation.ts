@@ -94,6 +94,8 @@ export const envValidationSchema = Joi.object({
   SESSION_LOCK_TTL_MS: Joi.number().integer().default(5000),
   SESSION_LOCK_MAX_RETRIES: Joi.number().integer().default(5),
   SESSION_LOCK_RETRY_DELAY_MS: Joi.number().integer().default(120),
+  // Maximum concurrent sessions per user (default 5)
+  MAX_SESSIONS_PER_USER: Joi.number().integer().min(0).default(5),
   STICKY_SESSIONS_REQUIRED: Joi.boolean().default(true),
   TRUST_PROXY: Joi.boolean().default(true),
 
