@@ -5,6 +5,7 @@ import type { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from '../courses/entities/course.entity';
+import { LRUCache } from 'lru-cache';
 
 export interface SearchFilters {
   category?: string | string[];
@@ -37,15 +38,20 @@ export class SearchService {
   private readonly logger = new Logger(SearchService.name);
   private readonly AUTOCOMPLETE_LIMIT = 10;
   private readonly CACHE_TTL_MS = 300000; // 5 minutes
-  private autocompleteCache: Map<string, { results: AutocompleteResult[]; timestamp: number }> =
-    new Map();
+  private readonly AUTOCOMPLETE_CACHE_MAX_SIZE = 1000;
+  private autocompleteCache: LRUCache<string, AutocompleteResult[]>;
 
   constructor(
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
     private readonly elasticsearch: NestElasticsearchService,
     @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache,
-  ) {}
+  ) {
+    this.autocompleteCache = new LRUCache<string, AutocompleteResult[]>({
+      max: this.AUTOCOMPLETE_CACHE_MAX_SIZE,
+      ttl: this.CACHE_TTL_MS,
+    });
+  }
 
   async search(
     query: string,
@@ -102,7 +108,7 @@ export class SearchService {
     if (!query || query.length < 2) return [];
 
     const cached = this.autocompleteCache.get(query);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) return cached.results;
+    if (cached) return cached;
 
     try {
       const courses = await this.courseRepository
@@ -119,7 +125,7 @@ export class SearchService {
         metadata: { courseId: course.id },
       }));
 
-      this.autocompleteCache.set(query, { results, timestamp: Date.now() });
+      this.autocompleteCache.set(query, results);
       return results;
     } catch (err) {
       this.logger.error(`Autocomplete failed: ${(err as Error).message}`);
