@@ -14,10 +14,7 @@ describe('JwtStrategy', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        JwtStrategy,
-        { provide: getRepositoryToken(User), useValue: mockUserRepo },
-      ],
+      providers: [JwtStrategy, { provide: getRepositoryToken(User), useValue: mockUserRepo }],
     }).compile();
 
     strategy = module.get<JwtStrategy>(JwtStrategy);
@@ -48,9 +45,7 @@ describe('JwtStrategy', () => {
       roles: [
         {
           name: 'student',
-          permissions: [
-            { resource: 'course', action: 'read' },
-          ],
+          permissions: [{ resource: 'course', action: 'read' }],
         },
       ],
     };
