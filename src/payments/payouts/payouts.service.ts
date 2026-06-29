@@ -34,71 +34,55 @@ export class PayoutsService {
   /**
    * Generates the revenue breakdown for an instructor, course-by-course.
    */
-  async getRevenueBreakdown(instructorId: string) {
-    const courses = await this.courseRepository.find({
-      where: { instructorId },
-    });
+  async getRevenueBreakdown(instructorId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
 
-    if (courses.length === 0) {
+    const qb = this.courseRepository.createQueryBuilder('course')
+      .leftJoin(Payment, 'payment', 'payment.courseId = course.id AND payment.status = :paymentStatus', { paymentStatus: PaymentStatus.COMPLETED })
+      .leftJoin(Refund, 'refund', 'refund.paymentId = payment.id AND refund.status = :refundStatus', { refundStatus: RefundStatus.PROCESSED })
+      .where('course.instructorId = :instructorId', { instructorId })
+      .select([
+        'course.id AS "courseId"',
+        'course.title AS "title"',
+      ])
+      .addSelect('COUNT(DISTINCT payment.id)', 'salesCount')
+      .addSelect('COALESCE(SUM(payment.amount), 0)', 'grossRevenue')
+      .addSelect('COALESCE(SUM(refund.amount), 0)', 'refunds')
+      .groupBy('course.id')
+      .addGroupBy('course.title')
+      .orderBy('course.id', 'ASC')
+      .offset(skip)
+      .limit(limit);
+
+    const summaryQb = this.courseRepository.createQueryBuilder('course')
+      .leftJoin(Payment, 'payment', 'payment.courseId = course.id AND payment.status = :paymentStatus', { paymentStatus: PaymentStatus.COMPLETED })
+      .leftJoin(Refund, 'refund', 'refund.paymentId = payment.id AND refund.status = :refundStatus', { refundStatus: RefundStatus.PROCESSED })
+      .where('course.instructorId = :instructorId', { instructorId })
+      .select([
+        'COALESCE(SUM(payment.amount), 0) AS "totalGrossRevenue"',
+        'COALESCE(SUM(refund.amount), 0) AS "totalRefunds"'
+      ]);
+
+    const [rawCourses, summaryRaw] = await Promise.all([
+      qb.getRawMany(),
+      summaryQb.getRawOne()
+    ]);
+
+    const coursesBreakdown = rawCourses.map((raw) => {
+      const gross = Number(raw.grossRevenue);
+      const refunded = Number(raw.refunds);
       return {
-        summary: {
-          totalGrossRevenue: 0.0,
-          totalRefunds: 0.0,
-          totalNetRevenue: 0.0,
-          currency: 'USD',
-        },
-        courses: [],
-      };
-    }
-
-    const courseIds = courses.map((c) => c.id);
-
-    // Fetch all completed payments for instructor's courses
-    const payments = await this.paymentRepository.find({
-      where: {
-        courseId: In(courseIds),
-        status: PaymentStatus.COMPLETED,
-      },
-    });
-
-    const paymentIds = payments.map((p) => p.id);
-
-    // Fetch all processed refunds for those payments
-    const refunds =
-      paymentIds.length > 0
-        ? await this.refundRepository.find({
-            where: {
-              paymentId: In(paymentIds),
-              status: RefundStatus.PROCESSED,
-            },
-          })
-        : [];
-
-    // Map payments and refunds to courses
-    let totalGrossRevenue = 0;
-    let totalRefunds = 0;
-
-    const coursesBreakdown = courses.map((course) => {
-      const coursePayments = payments.filter((p) => p.courseId === course.id);
-      const coursePaymentIds = coursePayments.map((p) => p.id);
-      const courseRefunds = refunds.filter((r) => coursePaymentIds.includes(r.paymentId));
-
-      const gross = coursePayments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const refunded = courseRefunds.reduce((sum, r) => sum + Number(r.amount), 0);
-      const net = gross - refunded;
-
-      totalGrossRevenue += gross;
-      totalRefunds += refunded;
-
-      return {
-        courseId: course.id,
-        title: course.title,
+        courseId: raw.courseId,
+        title: raw.title,
         grossRevenue: Number(gross.toFixed(2)),
         refunds: Number(refunded.toFixed(2)),
-        netRevenue: Number(net.toFixed(2)),
-        salesCount: coursePayments.length,
+        netRevenue: Number((gross - refunded).toFixed(2)),
+        salesCount: Number(raw.salesCount),
       };
     });
+
+    const totalGrossRevenue = summaryRaw ? Number(summaryRaw.totalGrossRevenue) : 0;
+    const totalRefunds = summaryRaw ? Number(summaryRaw.totalRefunds) : 0;
 
     return {
       summary: {
