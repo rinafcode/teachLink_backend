@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import sanitizeHtml from 'sanitize-html';
 import { EmailTemplate } from './email-template/email-template.entity';
 import { CreateEmailTemplateDto } from './email-template/dto/create-email-template.dto';
 import { UpdateEmailTemplateDto } from './email-template/dto/update-email-template.dto';
