@@ -40,12 +40,10 @@ describe('CdnService', () => {
   describe('invalidate', () => {
     it('should call CloudFront CreateInvalidationCommand with correct paths', async () => {
       const paths = ['/course/123/video.mp4', '/course/123/notes.pdf'];
-      
       const result = await service.invalidate(paths);
-      
       expect(result.success).toBe(true);
       expect(cfClientSendMock).toHaveBeenCalledTimes(1);
-      
+
       // Verify the correct command was passed to the send method
       const commandCalled = cfClientSendMock.mock.calls[0][0];
       expect(commandCalled).toBeInstanceOf(CreateInvalidationCommand);
@@ -56,7 +54,7 @@ describe('CdnService', () => {
 
     it('should handle CDN disabled gracefully', async () => {
       process.env.CDN_ENABLED = 'false';
-      
+
       // Need to re-instantiate service to pick up new env var if cdn config is resolved on init
       const module: TestingModule = await Test.createTestingModule({
         providers: [CdnService],
@@ -65,7 +63,6 @@ describe('CdnService', () => {
 
       const paths = ['/test/path'];
       const result = await disabledService.invalidate(paths);
-      
       expect(result.success).toBe(false);
       expect(result.message).toBe('CDN not configured');
       expect(cfClientSendMock).not.toHaveBeenCalled();
@@ -73,10 +70,8 @@ describe('CdnService', () => {
 
     it('should open circuit breaker or handle error when CloudFront fails', async () => {
       cfClientSendMock.mockRejectedValue(new Error('CloudFront error'));
-      
       const paths = ['/test/path'];
       const result = await service.invalidate(paths);
-      
       expect(result.success).toBe(false);
       expect(result.message).toBe('CDN invalidation failed');
     });

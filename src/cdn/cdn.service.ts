@@ -38,7 +38,7 @@ export class CdnService {
         timeout: 5000,
         errorThresholdPercentage: 50,
         resetTimeout: 30000,
-      }
+      },
     );
   }
 
