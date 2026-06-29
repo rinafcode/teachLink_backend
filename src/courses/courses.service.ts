@@ -83,6 +83,17 @@ export class CoursesService {
       prerequisite,
     });
     const saved = await this.courseRepo.save(course);
+    const version = this.versionRepo.create({
+      courseId: saved.id,
+      versionNumber: 1,
+      eventType: CourseVersionEventType.CREATED,
+      title: saved.title,
+      description: saved.description,
+      price: saved.price,
+      thumbnailUrl: saved.thumbnailUrl,
+      status: saved.status,
+    });
+    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
     return saved;
   }
@@ -147,6 +158,22 @@ export class CoursesService {
 
     Object.assign(course, dto, { prerequisite: course.prerequisite });
     const saved = await this.courseRepo.save(course);
+    const previousVersion = await this.versionRepo.findOne({
+      where: { courseId: saved.id },
+      order: { versionNumber: 'DESC' },
+    });
+    const nextVersionNumber = previousVersion ? previousVersion.versionNumber + 1 : 1;
+    const version = this.versionRepo.create({
+      courseId: saved.id,
+      versionNumber: nextVersionNumber,
+      eventType: CourseVersionEventType.UPDATED,
+      title: saved.title,
+      description: saved.description,
+      price: saved.price,
+      thumbnailUrl: saved.thumbnailUrl,
+      status: saved.status,
+    });
+    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
     return saved;
   }
