@@ -73,7 +73,9 @@ jobs:
           sudo mv gitleaks /usr/local/bin/gitleaks
 
       - name: Run Gitleaks
-        run: gitleaks detect --source=. --exit-code 1
+        run: |
+          gitleaks detect --source=. --exit-code 1 \
+            --log-opts="origin/${{ github.base_ref }}..HEAD"
 
   container-scan:
     name: Container Scan (Trivy)
