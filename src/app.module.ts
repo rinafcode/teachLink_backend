@@ -3,6 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { envValidationSchema } from './config/env.validation';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
@@ -37,7 +38,11 @@ const featureFlags = loadFeatureFlags();
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: false },
+    }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
     SessionModule,
