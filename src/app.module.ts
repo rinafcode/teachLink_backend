@@ -21,6 +21,7 @@ import { IncidentManagementModule } from './incident-management/incident-managem
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
 import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
+import { RoleVisibilityInterceptor } from './common/interceptors/role-visibility.interceptor';
 import { ApiVersionMiddleware } from './common/middleware/api-version.middleware';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
@@ -77,6 +78,7 @@ const featureFlags = loadFeatureFlags();
   providers: [
     ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: RoleVisibilityInterceptor },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
