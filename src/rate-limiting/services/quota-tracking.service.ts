@@ -31,10 +31,15 @@ export class QuotaTrackingService {
    */
   async checkAndIncrement(userId: string, tier: UserTier): Promise<QuotaCheckResult> {
     const baseLimits = await this.definitionService.resolveForUser(userId, tier);
+    const [requestsPerMinute, requestsPerHour, requestsPerDay] = await Promise.all([
+      this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
+      this.adaptive.adjustLimit(baseLimits.requestsPerHour),
+      this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+    ]);
     const limits = {
-      requestsPerMinute: this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
-      requestsPerHour: this.adaptive.adjustLimit(baseLimits.requestsPerHour),
-      requestsPerDay: this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+      requestsPerMinute,
+      requestsPerHour,
+      requestsPerDay,
     };
     const now = new Date();
 
@@ -86,10 +91,15 @@ export class QuotaTrackingService {
   /** Get quota status without incrementing (for status endpoint). */
   async getStatus(userId: string, tier: UserTier): Promise<QuotaStatusDto> {
     const baseLimits = await this.definitionService.resolveForUser(userId, tier);
+    const [requestsPerMinute, requestsPerHour, requestsPerDay] = await Promise.all([
+      this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
+      this.adaptive.adjustLimit(baseLimits.requestsPerHour),
+      this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+    ]);
     const limits = {
-      requestsPerMinute: this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
-      requestsPerHour: this.adaptive.adjustLimit(baseLimits.requestsPerHour),
-      requestsPerDay: this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+      requestsPerMinute,
+      requestsPerHour,
+      requestsPerDay,
     };
     const now = new Date();
 
