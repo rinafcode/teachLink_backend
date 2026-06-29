@@ -1,5 +1,6 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { resolvePoolConfig } from '../database/pool';
+import { SlowQueryLogger } from '../database/logging/slow-query.logger';
 
 interface DatabaseConnectionSettings {
   host: string;
@@ -71,9 +72,12 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
   const primary = readPrimarySettings();
   const replicas = getReadReplicaConnections(primary);
   const pool = resolvePoolConfig();
+  const isTestEnv = process.env.NODE_ENV === 'test';
   const commonOptions = {
     autoLoadEntities: true,
     synchronize: process.env.NODE_ENV !== 'production',
+    maxQueryExecutionTime: parseInt(process.env.DB_SLOW_QUERY_THRESHOLD_MS ?? '500', 10),
+    logger: isTestEnv ? undefined : new SlowQueryLogger(),
     extra: {
       max: pool.max,
       min: pool.min,
