@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { NotificationTemplateService } from './templates/notification-template.service';
@@ -9,6 +9,9 @@ import {
   UnsubscribeDto,
   SendTemplatedNotificationDto,
 } from './dto/preferences.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { Notification } from './entities/notification.entity';
+import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
 
 @ApiTags('notifications')
 @Controller('notifications')
@@ -57,9 +60,14 @@ export class NotificationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List in-app notifications for user' })
-  list(@Query('userId', ParseUUIDPipe) userId: string) {
-    return this.notificationsService.findForUser(userId);
+  @ApiOperation({ summary: 'List in-app notifications for user with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of notifications',
+    type: PaginatedSwaggerDto(Notification),
+  })
+  list(@Query('userId', ParseUUIDPipe) userId: string, @Query() query?: PaginationQueryDto) {
+    return this.notificationsService.findForUser(userId, query);
   }
 
   @Post()

@@ -27,6 +27,9 @@ import {
   BulkPriceUpdateDto,
   BulkPublishDto,
 } from './dto/bulk-operations.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 /**
  * Maps a ReviewDecision to the resulting CourseStatus after the decision.
@@ -85,19 +88,26 @@ export class CoursesService {
   }
 
   /**
-   * Returns all courses. Admins/moderators see every status; others see only published.
+   * Returns all courses with pagination. Admins/moderators see every status; others see only published.
    */
-  async findAll(requestingUser?: User): Promise<Course[]> {
+  async findAll(
+    requestingUser?: User,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Course>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
     const isPrivileged =
       requestingUser && [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
 
-    if (isPrivileged) {
-      return this.courseRepo.find({ order: { createdAt: 'DESC' } });
-    }
-    return this.courseRepo.find({
-      where: { status: CourseStatus.PUBLISHED },
+    const where = isPrivileged ? {} : { status: CourseStatus.PUBLISHED };
+    const [data, total] = await this.courseRepo.findAndCount({
+      where,
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   /**
