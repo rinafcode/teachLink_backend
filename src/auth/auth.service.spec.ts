@@ -134,6 +134,20 @@ describe('AuthService', () => {
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
     });
 
+    it('throws UnauthorizedException when the user status is SUSPENDED', async () => {
+      mockJwtService.verify.mockReturnValue(validDecoded);
+      mockUserRepo.findOneBy.mockResolvedValue(makeUser({ status: UserStatus.SUSPENDED }));
+
+      await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('throws UnauthorizedException when the user status is INACTIVE', async () => {
+      mockJwtService.verify.mockReturnValue(validDecoded);
+      mockUserRepo.findOneBy.mockResolvedValue(makeUser({ status: UserStatus.INACTIVE }));
+
+      await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
+    });
+
     it('issues new tokens when the refresh token is valid and not blacklisted', async () => {
       mockJwtService.verify.mockReturnValue(validDecoded);
       mockUserRepo.findOneBy.mockResolvedValue(makeUser());
