@@ -47,7 +47,9 @@ export class MediaProcessingWorker extends BaseWorker {
         const detectedType = await fileTypeFromBuffer(fileBuffer);
 
         if (!detectedType) {
-          throw new Error('Could not determine file type from content. File may be corrupted or format not supported.');
+          throw new Error(
+            'Could not determine file type from content. File may be corrupted or format not supported.',
+          );
         }
 
         const detectedMimeType = detectedType.mime.toLowerCase();
