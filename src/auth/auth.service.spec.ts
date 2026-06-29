@@ -34,6 +34,7 @@ const mockUserRepo = {
 const mockJwtService = {
   signAsync: jest.fn(),
   verify: jest.fn(),
+  decode: jest.fn(),
 };
 
 const mockBlacklistService = {
@@ -90,6 +91,32 @@ describe('AuthService', () => {
 
       await service.logout('user-1');
 
+      expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
+    });
+
+    it('blacklists the access token JTI when a valid access token is provided', async () => {
+      const jti = 'access-jti-xyz';
+      const exp = Math.floor(Date.now() / 1000) + 900; // 15 min from now
+      mockJwtService.decode = jest.fn().mockReturnValue({ jti, exp });
+      mockBlacklistService.addToBlacklist.mockResolvedValue(undefined);
+      mockUserRepo.update.mockResolvedValue(undefined);
+
+      await service.logout('user-1', 'fake.access.token');
+
+      expect(mockBlacklistService.addToBlacklist).toHaveBeenCalledWith(
+        jti,
+        expect.any(Number),
+      );
+      expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
+    });
+
+    it('still revokes refresh token when access token has no jti', async () => {
+      mockJwtService.decode = jest.fn().mockReturnValue({ sub: 'user-1' });
+      mockUserRepo.update.mockResolvedValue(undefined);
+
+      await service.logout('user-1', 'token.without.jti');
+
+      expect(mockBlacklistService.addToBlacklist).not.toHaveBeenCalled();
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
     });
   });

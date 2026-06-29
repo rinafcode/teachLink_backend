@@ -91,7 +91,20 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, accessToken?: string) {
+    if (accessToken) {
+      try {
+        const decoded = this.jwtService.decode(accessToken) as any;
+        if (decoded?.jti) {
+          const remainingMs = decoded.exp * 1000 - Date.now();
+          if (remainingMs > 0) {
+            await this.tokenBlacklistService.addToBlacklist(decoded.jti, remainingMs);
+          }
+        }
+      } catch {
+        // malformed token — still revoke refresh token below
+      }
+    }
     await this.revokeUserTokens(userId);
   }
 
@@ -107,13 +120,17 @@ export class AuthService {
 
   private async generateTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessJti = uuidv4();
     const refreshJti = uuidv4();
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET || 'default-jwt-secret',
-        expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
-      }),
+      this.jwtService.signAsync(
+        { ...payload, jti: accessJti },
+        {
+          secret: process.env.JWT_SECRET || 'default-jwt-secret',
+          expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+        },
+      ),
       this.jwtService.signAsync(
         { ...payload, jti: refreshJti },
         {

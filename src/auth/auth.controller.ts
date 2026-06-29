@@ -67,7 +67,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log out and invalidate refresh token' })
   async logout(@Req() req: any) {
-    await this.authService.logout(req.user.id);
+    const authHeader: string | undefined = req.headers?.authorization;
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    await this.authService.logout(req.user.id, accessToken);
     return { message: 'Logged out successfully' };
   }
 }

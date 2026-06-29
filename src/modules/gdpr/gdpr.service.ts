@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { plainToInstance, instanceToPlain } from 'class-transformer';
 import { UserConsent } from './entities/user-consent.entity';
 import { ConsentDto } from './dto/consent.dto';
@@ -20,6 +21,9 @@ export class GdprService {
     private readonly consentRepository: Repository<UserConsent>,
 
     private readonly sessionService: SessionService,
+
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   async exportUserData(userId: string) {
@@ -53,23 +57,62 @@ export class GdprService {
       throw new NotFoundException('User not found');
     }
 
+    // Revoke all active sessions immediately (outside transaction — fast path)
     await this.sessionService.deleteAllSessionsForUser(userId);
 
-    await this.usersService.update(userId, {
-      email: null,
-      firstName: '[DELETED]',
-      lastName: '[DELETED]',
-      phone: null,
-      address: null,
-      deletedAt: new Date(),
-      refreshToken: null,
+    await this.dataSource.transaction(async (manager) => {
+      // Anonymize payments
+      await manager
+        .createQueryBuilder()
+        .update('payments')
+        .set({ userId: null, metadata: null } as any)
+        .where('user_id = :userId', { userId })
+        .execute();
+
+      // Anonymize enrollments — soft-delete so course analytics remain intact
+      await manager
+        .createQueryBuilder()
+        .update('enrollment')
+        .set({ deletedAt: new Date() } as any)
+        .where('user_id = :userId AND deleted_at IS NULL', { userId })
+        .execute();
+
+      // Anonymize audit logs (null out PII fields, keep the log entry for compliance)
+      await manager
+        .createQueryBuilder()
+        .update('audit_logs')
+        .set({ userId: null, userEmail: null, ipAddress: null } as any)
+        .where('user_id = :userId', { userId })
+        .execute();
+
+      // Soft-delete notifications
+      await manager
+        .createQueryBuilder()
+        .update('notifications')
+        .set({ deletedAt: new Date() } as any)
+        .where('userId = :userId AND deleted_at IS NULL', { userId })
+        .execute();
+
+      // Null out user profile PII
+      await manager
+        .createQueryBuilder()
+        .update('users')
+        .set({
+          email: null,
+          firstName: '[DELETED]',
+          lastName: '[DELETED]',
+          phone: null,
+          address: null,
+          refreshToken: null,
+          deletedAt: new Date(),
+        } as any)
+        .where('id = :userId', { userId })
+        .execute();
     });
 
     await this.auditService.log('GDPR_ERASURE', userId);
 
-    return {
-      success: true,
-    };
+    return { success: true };
   }
 
   async updateConsent(userId: string, dto: ConsentDto) {

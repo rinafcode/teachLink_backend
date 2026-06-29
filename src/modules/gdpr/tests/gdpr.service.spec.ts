@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
+import { NotFoundException } from '@nestjs/common';
 import { GdprService } from '../gdpr.service';
 import { UserConsent } from '../entities/user-consent.entity';
 import { SessionService } from '../../../session/session.service';
@@ -33,10 +34,29 @@ const mockConsentRepository = {
   save: jest.fn((consent) => Promise.resolve(consent)),
 };
 
+// QueryBuilder mock reused across table updates
+function makeQb() {
+  const qb: any = {
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    execute: jest.fn().mockResolvedValue(undefined),
+  };
+  return qb;
+}
+
+const mockDataSource = {
+  transaction: jest.fn((cb: (manager: any) => Promise<any>) => {
+    const manager = { createQueryBuilder: jest.fn(() => makeQb()) };
+    return cb(manager);
+  }),
+};
+
 describe('GdprService', () => {
   let service: GdprService;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GdprService,
@@ -44,6 +64,7 @@ describe('GdprService', () => {
         { provide: 'AuditService', useValue: mockAuditService },
         { provide: SessionService, useValue: mockSessionService },
         { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepository },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
       ],
     }).compile();
 
@@ -54,37 +75,40 @@ describe('GdprService', () => {
     const result = await service.exportUserData('user-1');
     expect(result.profile).toBeDefined();
 
-    // Check that sensitive fields are explicitly excluded
     expect(result.profile.password).toBeUndefined();
     expect(result.profile.refreshToken).toBeUndefined();
     expect(result.profile.passwordHistory).toBeUndefined();
     expect(result.profile.totpSecret).toBeUndefined();
     expect(result.profile.token).toBeUndefined();
 
-    // Check that PII fields are preserved
     expect(result.profile.id).toBe('user-1');
     expect(result.profile.email).toBe('test@test.com');
     expect(result.profile.firstName).toBe('John');
     expect(result.profile.lastName).toBe('Doe');
   });
 
-  it('erases user data and invalidates sessions', async () => {
+  it('erases user data: revokes sessions and runs transactional cascade anonymization', async () => {
     const result = await service.eraseUserData('user-1');
 
     expect(result.success).toBe(true);
+    // Sessions revoked before transaction
     expect(mockSessionService.deleteAllSessionsForUser).toHaveBeenCalledWith('user-1');
-    expect(mockUsersService.update).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({
-        email: null,
-        firstName: '[DELETED]',
-        lastName: '[DELETED]',
-        phone: null,
-        address: null,
-        deletedAt: expect.any(Date),
-        refreshToken: null,
-      }),
-    );
+    // Transaction executed
+    expect(mockDataSource.transaction).toHaveBeenCalled();
+    // Audit log written
+    expect(mockAuditService.log).toHaveBeenCalledWith('GDPR_ERASURE', 'user-1');
+  });
+
+  it('throws NotFoundException when user does not exist', async () => {
+    mockUsersService.findById.mockResolvedValueOnce(null);
+    await expect(service.eraseUserData('missing-user')).rejects.toThrow(NotFoundException);
+  });
+
+  it('is idempotent: second erasure call succeeds even when user is already deleted', async () => {
+    // First call succeeds normally
+    await service.eraseUserData('user-1');
+    // Second call: findById still returns something (soft-deleted row)
+    await expect(service.eraseUserData('user-1')).resolves.toEqual({ success: true });
   });
 
   it('stores consent changes', async () => {

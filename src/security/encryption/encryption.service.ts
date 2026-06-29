@@ -9,6 +9,13 @@ export interface IEncryptedPayload {
 
 /**
  * Provides encryption operations.
+ *
+ * Key derivation uses scrypt (a memory-hard KDF) instead of a plain SHA-256
+ * hash, making brute-force attacks significantly more expensive.
+ *
+ * Migration note: data encrypted with the old SHA-256-derived key must be
+ * re-encrypted once using the old key before rotating to the new key.
+ * Run the one-time migration script: `npm run migrate:reencrypt` (see docs/).
  */
 @Injectable()
 export class EncryptionService {
@@ -16,15 +23,18 @@ export class EncryptionService {
   private readonly key: Buffer;
 
   constructor() {
-    this.key = crypto.createHash('sha256').update(this.getEncryptionSecret()).digest();
-  }
-
-  private getEncryptionSecret(): string {
     const secret = process.env.ENCRYPTION_SECRET;
+    const salt = process.env.ENCRYPTION_SALT;
+
     if (!secret) {
       throw new Error('ENCRYPTION_SECRET is required to initialize EncryptionService');
     }
-    return secret;
+    if (!salt) {
+      throw new Error('ENCRYPTION_SALT is required to initialize EncryptionService');
+    }
+
+    // scrypt: N=16384, r=8, p=1 → 32-byte AES-256 key
+    this.key = crypto.scryptSync(secret, salt, 32, { N: 16384, r: 8, p: 1 });
   }
 
   encrypt(text: string): IEncryptedPayload {
