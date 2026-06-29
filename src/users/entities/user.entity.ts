@@ -118,6 +118,9 @@ export class User {
   roles: Role[];
 
   get role(): UserRole {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
     if (this.roles && this.roles.length > 0) {
       return this.roles[0].name as UserRole;
     }

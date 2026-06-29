@@ -45,7 +45,10 @@ export class AuthService {
     }
 
     const userId = decoded.sub;
-    const user = await this.userRepository.findOneBy({ id: userId });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
+    });
 
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access Denied');
