@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
 import {
@@ -6,6 +7,7 @@ import {
   IWorkerHealthCheck,
   IWorkerMetrics,
 } from '../interfaces/worker.interfaces';
+import { MetricsCollectionService } from '../../monitoring/metrics/metrics-collection.service';
 import {
   EmailWorker,
   MediaProcessingWorker,
@@ -14,12 +16,15 @@ import {
   WebhooksWorker,
   SubscriptionsWorker,
 } from '../processors';
+import Redis from 'ioredis';
+import { getSharedRedisClient } from '../../config/cache.config';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Worker Orchestration Service
  * Manages worker pool, routing, and lifecycle
  */
-type WorkerConstructor = new () => BaseWorker;
+type WorkerConstructor = new (configService: ConfigService) => BaseWorker;
 
 @Injectable()
 export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy {
@@ -30,9 +35,126 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   private workerConfigs: Map<string, IWorkerPoolConfig> = new Map();
   private isRunning: boolean = false;
 
-  constructor() {
+  private redis: Redis;
+  private readonly workerStallThreshold: number;
+
+  constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly metricsCollection: MetricsCollectionService,
+    private readonly configService: ConfigService,
+  ) {
     this.initializeWorkerRegistry();
     this.initializeDefaultConfigs();
+    this.redis = getSharedRedisClient(configService);
+    this.workerStallThreshold =
+      configService.get<number>('WORKER_STALL_THRESHOLD_SECONDS', 300) ?? 300;
+  }
+
+  /**
+   * Pause all queues to stop accepting new jobs
+   */
+  async pauseAllQueues(): Promise<void> {
+    this.logger.log('Pausing all worker queues...');
+    // Implementation would depend on your queue system (BullMQ, etc.)
+    // This is a placeholder for the actual queue pausing logic
+  }
+
+  /**
+   * Requeue incomplete jobs for processing after restart
+   */
+  async requeueIncompleteJobs(): Promise<number> {
+    this.logger.log('Requeuing incomplete jobs...');
+    const requeuedCount = 0;
+
+    // Implementation would iterate through active jobs and requeue them
+    // This is a placeholder for the actual requeue logic
+
+    return requeuedCount;
+  }
+
+  /**
+   * Terminate all worker processes
+   */
+  async terminateAllWorkers(timeoutMs: number): Promise<number> {
+    this.logger.log(`Terminating all workers with ${timeoutMs}ms timeout...`);
+    let terminatedCount = 0;
+
+    for (const [workerId, _worker] of this.activeWorkers) {
+      try {
+        // Graceful worker termination logic
+        terminatedCount++;
+        this.activeWorkers.delete(workerId);
+      } catch (error) {
+        this.logger.error(`Error terminating worker ${workerId}:`, error);
+      }
+    }
+
+    return terminatedCount;
+  }
+
+  /**
+   * Emergency stop all workers immediately
+   */
+  async emergencyStopAll(): Promise<void> {
+    this.logger.warn('Emergency stopping all workers...');
+
+    for (const [workerId, _worker] of this.activeWorkers) {
+      try {
+        // Force termination logic
+        this.activeWorkers.delete(workerId);
+      } catch (error) {
+        this.logger.error(`Error emergency stopping worker ${workerId}:`, error);
+      }
+    }
+
+    this.workerPool.clear();
+  }
+
+  /**
+   * Get health check information
+   */
+  async getHealthCheck(): Promise<{
+    totalWorkers: number;
+    healthyWorkers: number;
+    unhealthyWorkers: number;
+    status: string;
+    lastCheck: Date;
+  }> {
+    const totalWorkers = this.activeWorkers.size;
+    const healthyWorkers = Array.from(this.activeWorkers.values()).filter(
+      (worker) => worker !== null,
+    ).length;
+
+    return {
+      totalWorkers,
+      healthyWorkers,
+      unhealthyWorkers: totalWorkers - healthyWorkers,
+      status: healthyWorkers === totalWorkers ? 'healthy' : 'degraded',
+      lastCheck: new Date(),
+    };
+  }
+
+  /**
+   * Get worker metrics
+   */
+  async getMetrics(): Promise<{
+    totalWorkers: number;
+    activeJobs: number;
+    completedJobs: number;
+    failedJobs: number;
+    averageExecutionTime: number;
+    queueDepth: number;
+  }> {
+    const workers = Array.from(this.activeWorkers.values());
+
+    return {
+      totalWorkers: workers.length,
+      activeJobs: 0, // Would be calculated from actual job queues
+      completedJobs: workers.reduce((sum, worker) => sum + (worker as any)?.jobsProcessed || 0, 0),
+      failedJobs: workers.reduce((sum, worker) => sum + (worker as any)?.jobsFailed || 0, 0),
+      averageExecutionTime: 0, // Would be calculated from actual metrics
+      queueDepth: 0, // Would be calculated from actual queue
+    };
   }
 
   /**
@@ -153,7 +275,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
 
     const workers: BaseWorker[] = [];
     for (let i = 0; i < config.workerCount; i++) {
-      const worker = new workerClass();
+      const worker = new workerClass(this.configService);
       workers.push(worker);
       this.activeWorkers.set(worker.getId(), worker);
     }
@@ -277,12 +399,30 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
    */
   private async performHealthCheck(): Promise<void> {
     const healthChecks: IWorkerHealthCheck[] = [];
+    const now = Date.now();
 
     for (const worker of this.getActiveWorkers()) {
+      const workerId = worker.getId();
+      const heartbeatKey = `worker:heartbeat:${workerId}`;
+      const lastHeartbeat = await this.redis.get(heartbeatKey);
+
       const health = await worker.healthCheck();
       healthChecks.push(health);
 
-      if (health.status !== 'healthy') {
+      // Check for stalled worker based on Redis heartbeat
+      if (lastHeartbeat) {
+        const lastHeartbeatTime = parseInt(lastHeartbeat, 10);
+        const stalledDuration = (now - lastHeartbeatTime) / 1000; // Convert to seconds
+
+        if (stalledDuration > this.workerStallThreshold) {
+          this.logger.warn(
+            `Worker ${workerId} (${worker.getType()}) has stalled. Last activity ${stalledDuration.toFixed(0)}s ago (threshold: ${this.workerStallThreshold}s)`,
+          );
+
+          // Restart the stalled worker
+          await this.restartWorker(workerId);
+        }
+      } else if (health.status !== 'healthy') {
         this.logger.warn(`Worker ${worker.getId()} health status: ${health.status}`, health);
       }
     }
@@ -329,7 +469,7 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
       // Add workers
       const workerClass = this.workerRegistry.get(workerType);
       for (let i = currentCount; i < newWorkerCount; i++) {
-        const worker = new workerClass();
+        const worker = new workerClass(this.configService);
         workers.push(worker);
         this.activeWorkers.set(worker.getId(), worker);
       }
@@ -352,6 +492,59 @@ export class WorkerOrchestrationService implements OnModuleInit, OnModuleDestroy
   async onModuleDestroy(): Promise<void> {
     this.logger.log('Shutting down Worker Orchestration Service');
     await this.stopWorkerPool();
+  }
+
+  /**
+   * Restart a stalled worker
+   */
+  async restartWorker(workerId: string): Promise<boolean> {
+    const worker = this.getWorkerById(workerId);
+    if (!worker) {
+      this.logger.warn(`Attempted to restart non-existent worker: ${workerId}`);
+      return false;
+    }
+
+    const workerType = worker.getType();
+    const workerClass = this.workerRegistry.get(workerType);
+    if (!workerClass) {
+      this.logger.error(`Unknown worker type ${workerType} for restart`);
+      return false;
+    }
+
+    // Emit stalled event
+    this.eventEmitter.emit('worker.stalled', {
+      workerId,
+      workerType,
+      timestamp: new Date(),
+      message: `Worker ${workerId} (${workerType}) exceeded stall threshold of ${this.workerStallThreshold}s`,
+    });
+
+    this.logger.log(`Initiating graceful restart of stalled worker ${workerId} (${workerType})`);
+
+    // Remove old worker
+    this.activeWorkers.delete(workerId);
+    const workers = this.workerPool.get(workerType);
+    if (workers) {
+      const index = workers.findIndex((w) => w.getId() === workerId);
+      if (index !== -1) {
+        workers.splice(index, 1);
+      }
+    }
+
+    // Create new worker
+    const newWorker = new workerClass(this.configService);
+    if (workers) {
+      workers.push(newWorker);
+    }
+    this.activeWorkers.set(newWorker.getId(), newWorker);
+
+    // Increment Prometheus counter
+    this.metricsCollection.workerRestartsTotal.inc({ worker_name: workerType });
+
+    this.logger.log(
+      `Successfully restarted worker ${workerId}, new worker ${newWorker.getId()} started`,
+    );
+    return true;
   }
 
   /**

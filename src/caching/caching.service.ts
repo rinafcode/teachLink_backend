@@ -35,11 +35,7 @@ export class CachingService {
     await this.cacheManager.set(key, value, ttlMs);
   }
 
-  async getOrSet<T>(
-    key: string,
-    factory: () => Promise<T>,
-    ttlSeconds?: number,
-  ): Promise<T> {
+  async getOrSet<T>(key: string, factory: () => Promise<T>, ttlSeconds?: number): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached !== undefined) {
       return cached;
@@ -61,6 +57,39 @@ export class CachingService {
   async clear(): Promise<void> {
     if (typeof this.cacheManager.clear === 'function') {
       await this.cacheManager.clear();
+    }
+  }
+
+  async deleteByPattern(pattern: string): Promise<void> {
+    try {
+      const store = (this.cacheManager as any).store;
+
+      if (store && store.client && typeof store.client.scan === 'function') {
+        let cursor = '0';
+        do {
+          const result = await store.client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+          cursor = result[0];
+          const keys = result[1];
+          if (keys && keys.length > 0) {
+            await store.client.del(...keys);
+          }
+        } while (cursor !== '0');
+        return;
+      }
+
+      if (store && typeof store.keys === 'function') {
+        const keys = await store.keys(pattern);
+        if (keys && keys.length > 0) {
+          await this.deleteMany(keys);
+        }
+        return;
+      }
+
+      this.logger.warn(
+        `Pattern deletion not supported by current cache store for pattern: ${pattern}`,
+      );
+    } catch (error: any) {
+      this.logger.error(`Failed to delete by pattern ${pattern}: ${error.message}`, error.stack);
     }
   }
 

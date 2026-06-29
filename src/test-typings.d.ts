@@ -1,4 +1,4 @@
-declare var jest: any;
-declare function afterEach(fn: () => void): void;
-declare function afterAll(fn: () => void): void;
+declare let _jest: any;
+declare function _afterEach(fn: () => void): void;
+declare function _afterAll(fn: () => void): void;
 export {};

@@ -14,6 +14,9 @@ export interface PoolConfig {
   acquireTimeoutMs: number;
   idleTimeoutMs: number;
   leakThresholdMs: number;
+  maxLifetimeSeconds: number;
+  queryTimeoutMs: number;
+  slowQueryThresholdMs: number;
 }
 
 export function resolvePoolConfig(): PoolConfig {
@@ -23,5 +26,8 @@ export function resolvePoolConfig(): PoolConfig {
     acquireTimeoutMs: parseInt(process.env.DATABASE_POOL_ACQUIRE_TIMEOUT_MS ?? '10000', 10),
     idleTimeoutMs: parseInt(process.env.DATABASE_POOL_IDLE_TIMEOUT_MS ?? '30000', 10),
     leakThresholdMs: parseInt(process.env.DATABASE_POOL_LEAK_THRESHOLD_MS ?? '60000', 10),
+    maxLifetimeSeconds: parseInt(process.env.DATABASE_POOL_MAX_LIFETIME_SEC ?? '1800', 10),
+    queryTimeoutMs: parseInt(process.env.DATABASE_POOL_QUERY_TIMEOUT_MS ?? '30000', 10),
+    slowQueryThresholdMs: parseInt(process.env.DATABASE_POOL_SLOW_QUERY_THRESHOLD_MS ?? '1000', 10),
   };
 }

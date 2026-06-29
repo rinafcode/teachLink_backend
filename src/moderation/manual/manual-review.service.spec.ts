@@ -36,7 +36,7 @@ describe('ManualReviewService', () => {
       mockRepo.create.mockReturnValue(item);
       mockRepo.save.mockResolvedValue({ id: 1, ...item });
 
-      await service.enqueue('bad content', 0.9);
+      const result = await service.enqueue('bad content', 0.9);
 
       expect(mockRepo.create).toHaveBeenCalledWith({
         content: 'bad content',
@@ -44,6 +44,35 @@ describe('ManualReviewService', () => {
         status: 'pending',
       });
       expect(mockRepo.save).toHaveBeenCalledWith(item);
+      expect(result).toEqual({ id: 1, ...item });
+    });
+
+    it('should persist source metadata when provided', async () => {
+      const item = {
+        content: 'reported content',
+        safetyScore: 1,
+        status: 'pending',
+        sourceType: 'content-report',
+        sourceId: 'report-1',
+        reportId: 'report-1',
+      };
+      mockRepo.create.mockReturnValue(item);
+      mockRepo.save.mockResolvedValue(item);
+
+      await service.enqueue('reported content', 1, {
+        sourceType: 'content-report',
+        sourceId: 'report-1',
+        reportId: 'report-1',
+      });
+
+      expect(mockRepo.create).toHaveBeenCalledWith({
+        content: 'reported content',
+        safetyScore: 1,
+        status: 'pending',
+        sourceType: 'content-report',
+        sourceId: 'report-1',
+        reportId: 'report-1',
+      });
     });
   });
 

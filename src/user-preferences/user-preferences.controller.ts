@@ -19,10 +19,7 @@ export class UserPreferencesController {
 
   @Patch()
   @ApiOperation({ summary: 'Update user preferences' })
-  updatePreferences(
-    @Param('userId') userId: string,
-    @Body() dto: UpdateUserPreferenceDto,
-  ) {
+  updatePreferences(@Param('userId') userId: string, @Body() dto: UpdateUserPreferenceDto) {
     return this.userPreferencesService.updatePreferences(userId, dto);
   }
 

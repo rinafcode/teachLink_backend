@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Headers, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { EmailTrackingService } from './services/email-tracking.service';
 import { ConfigService } from '@nestjs/config';
-import { EmailEventType } from './enums/email-event-type.enum';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { SendGridWebhookEventDto } from './dto/sendgrid-webhook-event.dto';
 
 /**
  * Controller to receive SendGrid webhook events for email deliverability tracking.
@@ -18,10 +20,7 @@ export class EmailWebhookController {
   ) {}
 
   @Post('webhook')
-  async handleWebhook(
-    @Headers('authorization') authHeader: string,
-    @Body() events: any[],
-  ) {
+  async handleWebhook(@Headers('authorization') authHeader: string, @Body() events: unknown[]) {
     const expectedToken = this.configService.get<string>('SENDGRID_WEBHOOK_TOKEN');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       this.logger.warn('Missing Authorization header on webhook');
@@ -38,33 +37,53 @@ export class EmailWebhookController {
       throw new HttpException('Bad Request', HttpStatus.BAD_REQUEST);
     }
 
-    for (const event of events) {
+    const eventInstances = plainToInstance(SendGridWebhookEventDto, events as object[]);
+    const validationResults = await Promise.all(
+      eventInstances.map((event) =>
+        validate(event, {
+          whitelist: true,
+          forbidNonWhitelisted: false,
+          stopAtFirstError: false,
+        }),
+      ),
+    );
+    const validationErrors = validationResults.flat();
+
+    if (validationErrors.length > 0) {
+      this.logger.warn('SendGrid webhook payload failed validation');
+      throw new HttpException('Invalid webhook event payload', HttpStatus.BAD_REQUEST);
+    }
+
+    for (const event of eventInstances) {
       try {
         const baseData = {
           to: event.email,
-          campaignId: event.asm?.group_id ?? null,
+          campaignId: (event.asm?.group_id ?? null) as string,
           recipientId: event.email,
           metadata: event.custom_args ?? {},
         };
-        switch (event.event) {
+        switch (event.event as string) {
           case 'processed':
-            // email has been accepted for delivery – could be recorded as sent if desired
+          case 'sent':
             await this.emailTrackingService.recordSent(baseData);
             break;
           case 'delivered':
             await this.emailTrackingService.recordDelivered(baseData);
             break;
           case 'open':
+          case 'opened':
             await this.emailTrackingService.recordOpen(baseData);
             break;
           case 'click':
+          case 'clicked':
             await this.emailTrackingService.recordClick(baseData);
             break;
           case 'bounce':
+          case 'bounced':
             await this.emailTrackingService.recordBounce(baseData, event.reason);
             break;
           case 'spamreport':
-            // SendGrid uses 'spamreport' for complaints
+          case 'complained':
             await this.emailTrackingService.recordComplaint(baseData, 'spamreport');
             break;
           default:

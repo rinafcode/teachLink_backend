@@ -10,6 +10,10 @@ const mockRedis = {
   expire: jest.fn(),
   eval: jest.fn(),
   multi: jest.fn(),
+  zadd: jest.fn().mockResolvedValue(1),
+  zrem: jest.fn().mockResolvedValue(1),
+  zrange: jest.fn().mockResolvedValue([]),
+  scan: jest.fn(),
   status: 'ready',
   quit: jest.fn(),
 };
@@ -167,6 +171,22 @@ describe('SessionService', () => {
     });
   });
 
+  describe('deleteAllSessionsForUser', () => {
+    it('should remove all Redis sessions for a user', async () => {
+      mockRedis.scan.mockResolvedValueOnce(['0', ['auth:sess:one', 'auth:sess:two']]);
+      mockRedis.get
+        .mockResolvedValueOnce(JSON.stringify({ sid: 'one', userId: 'user-123' }))
+        .mockResolvedValueOnce(JSON.stringify({ sid: 'two', userId: 'user-999' }));
+      mockRedis.del.mockResolvedValue(1);
+
+      const deletedCount = await service.deleteAllSessionsForUser('user-123');
+
+      expect(deletedCount).toBe(1);
+      expect(mockRedis.del).toHaveBeenCalledWith('auth:sess:one');
+      expect(mockRedis.zrem).toHaveBeenCalledWith('user:sessions:user-123', 'one');
+    });
+  });
+
   describe('migrateSession', () => {
     it('should migrate session to new sid and delete old one', async () => {
       const sessionData = {
@@ -179,8 +199,11 @@ describe('SessionService', () => {
       };
       mockRedis.get.mockResolvedValue(JSON.stringify(sessionData));
 
-      const newSid = await service.migrateSession('old-sid', '00000000-0000-0000-0000-000000000001');
-      
+      const newSid = await service.migrateSession(
+        'old-sid',
+        '00000000-0000-0000-0000-000000000001',
+      );
+
       expect(newSid).toBe('00000000-0000-0000-0000-000000000001');
       expect(mockMulti.set).toHaveBeenCalled();
       expect(mockMulti.del).toHaveBeenCalled();
@@ -190,8 +213,11 @@ describe('SessionService', () => {
     it('should return newSid unchanged when old session does not exist', async () => {
       mockRedis.get.mockResolvedValue(null);
 
-      const newSid = await service.migrateSession('nonexistent-sid', '00000000-0000-0000-0000-000000000001');
-      
+      const newSid = await service.migrateSession(
+        'nonexistent-sid',
+        '00000000-0000-0000-0000-000000000001',
+      );
+
       expect(newSid).toBe('00000000-0000-0000-0000-000000000001');
       expect(mockMulti.exec).not.toHaveBeenCalled();
     });
@@ -212,9 +238,9 @@ describe('SessionService', () => {
     it('should throw when lock cannot be acquired', async () => {
       mockRedis.set.mockResolvedValue(null);
 
-      await expect(
-        service.withLock('busy-lock', jest.fn()),
-      ).rejects.toThrow('Could not acquire lock: busy-lock');
+      await expect(service.withLock('busy-lock', jest.fn())).rejects.toThrow(
+        'Could not acquire lock: busy-lock',
+      );
     });
   });
 });

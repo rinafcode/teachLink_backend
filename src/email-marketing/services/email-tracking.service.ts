@@ -32,9 +32,7 @@ export class EmailTrackingService {
     });
 
     await this.emailEventRepo.save(event);
-    this.logger.warn(
-      `Email bounce recorded for ${event.recipientId}: ${bounceReason}`,
-    );
+    this.logger.warn(`Email bounce recorded for ${event.recipientId}: ${bounceReason}`);
 
     return event;
   }
@@ -47,9 +45,7 @@ export class EmailTrackingService {
     });
 
     await this.emailEventRepo.save(event);
-    this.logger.warn(
-      `Email complaint recorded for ${event.recipientId}: ${complaintType}`,
-    );
+    this.logger.warn(`Email complaint recorded for ${event.recipientId}: ${complaintType}`);
 
     return event;
   }

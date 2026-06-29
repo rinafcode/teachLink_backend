@@ -1,13 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  IsEnum,
-  IsBoolean,
-  IsObject,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsBoolean, IsObject, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OnboardingStepType, OnboardingStepStatus } from '../entities/onboarding-step.entity';
 
@@ -35,6 +26,7 @@ export class CreateOnboardingStepDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: {
       videoUrl: 'https://example.com/tutorial.mp4',
       steps: ['Step 1', 'Step 2'],
@@ -106,6 +98,7 @@ export class UpdateOnboardingStepDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: {
       videoUrl: 'https://example.com/tutorial.mp4',
       steps: ['Step 1', 'Step 2'],
