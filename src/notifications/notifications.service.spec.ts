@@ -44,8 +44,22 @@ describe('NotificationsService', () => {
         { provide: ConfigService, useValue: mockConfig },
         { provide: getRepositoryToken(Notification), useValue: mockRepository },
         { provide: NotificationsQueueService, useValue: mockQueue },
-        { provide: PreferencesService, useValue: { getPreferences: jest.fn().mockResolvedValue({ channels: { email: true, push: true } }), isChannelEnabled: jest.fn().mockResolvedValue(true), updatePreferences: jest.fn() } },
-        { provide: NotificationTemplateService, useValue: { renderByName: jest.fn().mockResolvedValue({ subject: 'Test', body: 'Test', templateVersion: 1 }) } },
+        {
+          provide: PreferencesService,
+          useValue: {
+            getPreferences: jest.fn().mockResolvedValue({ channels: { email: true, push: true } }),
+            isChannelEnabled: jest.fn().mockResolvedValue(true),
+            updatePreferences: jest.fn(),
+          },
+        },
+        {
+          provide: NotificationTemplateService,
+          useValue: {
+            renderByName: jest
+              .fn()
+              .mockResolvedValue({ subject: 'Test', body: 'Test', templateVersion: 1 }),
+          },
+        },
       ],
     }).compile();
 
