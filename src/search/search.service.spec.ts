@@ -3,7 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { SearchService } from './search.service';
-import { SEARCH_CONSTANTS } from './search.constants';
 import { Course } from '../courses/entities/course.entity';
 
 const mockQueryBuilder = {
