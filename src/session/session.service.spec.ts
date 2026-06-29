@@ -13,6 +13,7 @@ const mockRedis = {
   zadd: jest.fn().mockResolvedValue(1),
   zrem: jest.fn().mockResolvedValue(1),
   zrange: jest.fn().mockResolvedValue([]),
+  scan: jest.fn(),
   status: 'ready',
   quit: jest.fn(),
 };
@@ -167,6 +168,22 @@ describe('SessionService', () => {
       await service.removeSession('test-sid');
 
       expect(mockRedis.del).toHaveBeenCalledWith('auth:sess:test-sid');
+    });
+  });
+
+  describe('deleteAllSessionsForUser', () => {
+    it('should remove all Redis sessions for a user', async () => {
+      mockRedis.scan.mockResolvedValueOnce(['0', ['auth:sess:one', 'auth:sess:two']]);
+      mockRedis.get
+        .mockResolvedValueOnce(JSON.stringify({ sid: 'one', userId: 'user-123' }))
+        .mockResolvedValueOnce(JSON.stringify({ sid: 'two', userId: 'user-999' }));
+      mockRedis.del.mockResolvedValue(1);
+
+      const deletedCount = await service.deleteAllSessionsForUser('user-123');
+
+      expect(deletedCount).toBe(1);
+      expect(mockRedis.del).toHaveBeenCalledWith('auth:sess:one');
+      expect(mockRedis.zrem).toHaveBeenCalledWith('user:sessions:user-123', 'one');
     });
   });
 
