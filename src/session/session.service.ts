@@ -81,6 +81,7 @@ export class SessionService implements OnModuleDestroy {
       'EX',
       this.sessionTtlSeconds,
     );
+    await this.addSessionToUserIndex(userId, sid);
     return sid;
   }
 
@@ -131,7 +132,54 @@ export class SessionService implements OnModuleDestroy {
    * @param sid The sid.
    */
   async removeSession(sid: string): Promise<void> {
+    const session = await this.getSession(sid);
     await this.redis.del(this.sessionKey(sid));
+    if (session) {
+      await this.removeSessionFromUserIndex(session.userId, sid);
+    }
+  }
+
+  async deleteAllSessionsForUser(userId: string): Promise<number> {
+    const pattern = `${this.sessionPrefix}*`;
+    let cursor = '0';
+    let deletedCount = 0;
+
+    do {
+      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+
+      for (const key of keys) {
+        const sessionData = await this.redis.get(key);
+        if (!sessionData) {
+          continue;
+        }
+
+        try {
+          const session = JSON.parse(sessionData) as ISessionRecord;
+          if (session.userId === userId) {
+            await this.redis.del(key);
+            await this.removeSessionFromUserIndex(userId, session.sid);
+            deletedCount += 1;
+          }
+        } catch {
+          this.logger.warn(`Invalid session payload for key=${key}`);
+        }
+      }
+    } while (cursor !== '0');
+
+    return deletedCount;
+  }
+
+  async addSessionToUserIndex(userId: string, sid: string): Promise<void> {
+    await this.redis.zadd(`user:sessions:${userId}`, Date.now(), sid);
+  }
+
+  async removeSessionFromUserIndex(userId: string, sid: string): Promise<void> {
+    await this.redis.zrem(`user:sessions:${userId}`, sid);
+  }
+
+  async getUserSessionIds(userId: string): Promise<string[]> {
+    return this.redis.zrange(`user:sessions:${userId}`, 0, -1);
   }
 
   /**
