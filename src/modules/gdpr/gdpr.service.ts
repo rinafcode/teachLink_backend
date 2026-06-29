@@ -5,6 +5,7 @@ import { plainToInstance, instanceToPlain } from 'class-transformer';
 import { UserConsent } from './entities/user-consent.entity';
 import { ConsentDto } from './dto/consent.dto';
 import { GdprExportDto } from './dto/gdpr-export.dto';
+import { SessionService } from '../../session/session.service';
 
 @Injectable()
 export class GdprService {
@@ -17,6 +18,8 @@ export class GdprService {
 
     @InjectRepository(UserConsent)
     private readonly consentRepository: Repository<UserConsent>,
+
+    private readonly sessionService: SessionService,
   ) {}
 
   async exportUserData(userId: string) {
@@ -50,6 +53,8 @@ export class GdprService {
       throw new NotFoundException('User not found');
     }
 
+    await this.sessionService.deleteAllSessionsForUser(userId);
+
     await this.usersService.update(userId, {
       email: null,
       firstName: '[DELETED]',
@@ -57,6 +62,7 @@ export class GdprService {
       phone: null,
       address: null,
       deletedAt: new Date(),
+      refreshToken: null,
     });
 
     await this.auditService.log('GDPR_ERASURE', userId);
