@@ -1,47 +1,4 @@
-## 🚦 Local Validation: Analytics & Cost Tracking
-
-To quickly validate feature analytics and cost tracking end-to-end:
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start backend (in background)
-npm run start:dev &
-
-# 3. Start infra monitoring stack
-cd infra/monitoring
-cp -n .env.example .env || true
-docker compose up -d
-cd ../../
-
-# 4. Send test analytics event
-curl -X POST http://localhost:3000/analytics/event \
-    -H 'Content-Type: application/json' \
-    -d '{"category":"feature","action":"launch_button_clicked"}'
-
-# 5. Send test cost event
-curl -X POST http://localhost:3000/metrics/cost \
-    -H 'Content-Type: application/json' \
-    -d '{"amountUsd": 5}'
-
-# 6. Open Prometheus: http://localhost:9090 and search for feature_events_total and infrastructure_hourly_cost_usd
-# 7. Open Grafana:   http://localhost:3001 (admin/admin) and view the TeachLink Overview dashboard
-```
-
-Or run the helper script:
-
-```bash
-./setup-local.sh
-```
-
-To stop the backend:
-
-```bash
-kill $(lsof -ti:3000)
-```
-
-# 🧠 TeachLink Backend
+# TeachLink Backend
 
 [![CI](https://github.com/teachlink/backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teachlink/backend/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-70%25%20threshold-brightgreen)](#-ci--testing)
@@ -50,11 +7,148 @@ kill $(lsof -ti:3000)
 
 > **Replace** `teachlink/backend` in the badge URLs above with your actual `org/repo` slug once the repository is on GitHub.
 
-**TeachLink** is a decentralized platform built to enable technocrats to **share, analyze, and monetize knowledge, skills, and ideas**. This repository contains the **backend API** built with **NestJS**, **TypeORM**, and powered by **Starknet** and **PostgreSQL**, serving as the core of the TeachLink ecosystem.
+**TeachLink** is a decentralized platform for sharing, analyzing, and monetizing knowledge. This is the **NestJS backend API** — the core service powering the TeachLink ecosystem.
 
-This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features.
+---
 
-- Pagination is limited to a maximum page size of **100** items per request.
+## Quick Start (5 minutes)
+
+```bash
+# 1. Clone and install
+git clone https://github.com/teachlink/backend.git
+cd teachlink_backend
+pnpm install
+
+# 2. Configure environment
+cp .env.example .env
+# (edit .env with your settings, defaults work for local dev)
+
+# 3. Start databases
+docker compose up -d postgres redis
+
+# 4. Start the server
+pnpm start:dev
+
+# 5. Verify it works
+curl http://localhost:3000/health
+```
+
+Open http://localhost:3000/api/docs for the interactive API documentation.
+
+> **New developer?** See the full [setup guide](docs/setup.md) for detailed instructions, prerequisites, and troubleshooting.
+
+---
+
+## Prerequisites
+
+| Tool | Version | Install |
+|------|---------|---------|
+| Node.js | >= 18 | [nodejs.org](https://nodejs.org/) |
+| pnpm | >= 8 | `npm install -g pnpm` |
+| Docker | >= 24 | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| Docker Compose | >= 2.24 | Included with Docker Desktop |
+| Git | >= 2 | [git-scm.com](https://git-scm.com/) |
+
+---
+
+## Onboarding Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Setup guide](docs/setup.md) | Step-by-step setup from scratch |
+| [Troubleshooting guide](docs/troubleshooting.md) | Common issues and fixes |
+| [Developer runbook](docs/runbook.md) | Day-to-day operational commands |
+| [Migrations guide](docs/migrations.md) | Database migration commands |
+| [API documentation](http://localhost:3000/api/docs) | Swagger UI (requires running server) |
+
+---
+
+## Setup Video Tutorial
+
+A video walkthrough for visual learners. Covers installation, configuration, and first API call.
+
+**Video link:** https://example.com/setup-video *(placeholder — to be recorded)*
+
+**What the video covers:**
+
+1. Installing prerequisites (Node.js, pnpm, Docker)
+2. Cloning the repo and installing dependencies
+3. Environment variable configuration explained
+4. Starting PostgreSQL and Redis with Docker
+5. Running database migrations
+6. Starting the development server
+7. Making your first API request
+8. Running the verification script
+
+---
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm start:dev` | Start dev server with hot-reload |
+| `pnpm build` | Compile TypeScript to `dist/` |
+| `pnpm lint` | Lint and auto-fix |
+| `pnpm typecheck` | TypeScript type checking |
+| `pnpm test` | Run unit tests |
+| `pnpm test:e2e` | Run end-to-end tests |
+| `pnpm validate:env` | Validate environment variables |
+| `pnpm migrate:run` | Run pending migrations |
+| `pnpm migrate:status` | Check migration status |
+| `pnpm verify` | Run setup verification |
+
+---
+
+## CI / Testing
+
+Every pull request and every push to `main` / `develop` runs an automated pipeline defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+### Pipeline stages
+
+| Stage          | Tool             | Fails on                                  |
+| -------------- | ---------------- | ----------------------------------------- |
+| **Install**    | `pnpm install`   | Dependency resolution error               |
+| **Lint**       | ESLint           | Any warning or error (`--max-warnings 0`) |
+| **Format**     | Prettier         | Any file that would be reformatted        |
+| **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
+| **Build**      | NestJS CLI       | Compilation failure                       |
+| **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
+| **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
+
+### Running checks locally
+
+```bash
+# Lint (auto-fix)
+pnpm lint
+
+# Lint (CI-strict, no auto-fix)
+pnpm lint:ci
+
+# Format check (no rewrite)
+pnpm format:check
+
+# TypeScript type check only
+pnpm typecheck
+
+# Unit tests with coverage report
+pnpm test:ci
+
+# E2E tests (requires Postgres + Redis running locally)
+pnpm test:e2e
+```
+
+### Coverage thresholds
+
+Configured in `jest.config.js`. The pipeline fails if **any** global metric falls below:
+
+| Metric     | Threshold |
+| ---------- | --------- |
+| Statements | 70 %      |
+| Branches   | 70 %      |
+| Functions  | 70 %      |
+| Lines      | 70 %      |
+
+Coverage HTML report is uploaded as a GitHub Actions artifact (`coverage-report`) on every run.
 
 ---
 
@@ -442,106 +536,47 @@ When replicas are configured, TypeORM replication routes writes to the primary a
 
 See [docs/database-read-replicas.md](docs/database-read-replicas.md) for setup, routing behavior, consistent-read guidance, and failover operations.
 
-## �🚀 Getting Started
+## Getting Started
 
-### Prerequisites
+Detailed setup instructions are available in the [setup guide](docs/setup.md).
 
-- **Node.js** 18+ with npm
-- **PostgreSQL** 14+ (or Docker)
-- **Redis** 6+ (for caching and queues)
-- **Git** for version control
-
-### Quick Start
-
-1. **Clone the repository**
+**Quick reference:**
 
 ```bash
-git clone https://github.com/teachlink/backend.git
-cd teachlink_backend
+pnpm install                    # Install dependencies
+cp .env.example .env            # Configure environment
+docker compose up -d postgres redis  # Start databases
+pnpm start:dev                  # Start dev server
+pnpm verify                     # Verify setup
 ```
 
-2. **Install dependencies**
+### Access the API
+
+| Endpoint | URL |
+|----------|-----|
+| REST API | http://localhost:3000 |
+| API Documentation | http://localhost:3000/api/docs |
+| Health Check | http://localhost:3000/health |
+
+### Docker Compose
+
+A development `docker-compose.yml` is provided at the project root:
 
 ```bash
-npm install
-```
+# Start all infrastructure services
+docker compose up -d
 
-3. **Set up environment variables**
-
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-4. **Start PostgreSQL and Redis**
-
-```bash
-# Using Docker (recommended)
-docker-compose up -d postgres redis
-
-# Or install locally and start services
-# PostgreSQL: sudo systemctl start postgresql
-# Redis: sudo systemctl start redis
-```
-
-5. **Run database migrations**
-
-```bash
-npm run typeorm migration:run
-```
-
-6. **Start the development server**
-
-```bash
-npm run start:dev
-```
-
-7. **Access the API**
-
-- **REST API**: http://localhost:3000
-- **API Documentation**: http://localhost:3000/api
-- **Health Check**: http://localhost:3000/health
-
-### Environment Configuration
-
-Key environment variables to configure:
-
-```env
-# Database
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_USER=postgres
-DATABASE_PASSWORD=yourpassword
-DATABASE_NAME=teachlink
-
-# Authentication
-JWT_SECRET=your-super-secret-jwt-key
-ENCRYPTION_SECRET=your-32-char-encryption-key
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# External Services (Optional)
-STRIPE_SECRET_KEY=your_stripe_key
-AWS_ACCESS_KEY_ID=your_aws_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret
-```
-
-### Docker Setup
-
-For complete development environment with Docker:
-
-```bash
-# Start all services
-docker-compose up -d
+# Start only database services (for local dev)
+docker compose up -d postgres redis
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
-# Stop services
-docker-compose down
+# Stop everything
+docker compose down
 ```
+
+For the full monitoring stack (Prometheus, Grafana, Elasticsearch, Kibana), see `infra/monitoring/docker-compose.yml`.
 
 ## 🤝 Contributing
 

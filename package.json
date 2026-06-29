@@ -20,6 +20,7 @@
     "lint:typed": "eslint \"{src,apps,libs,test}/**/*.ts\" --parser-options=project:tsconfig.json --max-warnings 0",
     "typecheck": "tsc --project tsconfig.build.json --noEmit",
     "validate:env": "node scripts/validate-env.js",
+    "verify": "node scripts/verify-setup.js",
     "prepare": "husky",
     "test": "jest",
     "test:watch": "jest --watch",
