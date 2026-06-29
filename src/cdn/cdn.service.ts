@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { resolveCdnConfig, resolveCacheHeaderConfig } from './cdn.config';
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import CircuitBreaker from 'opossum';
 
 export interface CacheHeaders {
   'Cache-Control': string;
@@ -17,6 +19,28 @@ export class CdnService {
   private readonly logger = new Logger(CdnService.name);
   private readonly cdn = resolveCdnConfig();
   private readonly cacheHeaders = resolveCacheHeaderConfig();
+  private readonly cfClient = new CloudFrontClient({});
+  private readonly invalidationBreaker: CircuitBreaker<[string[]], any>;
+
+  constructor() {
+    this.invalidationBreaker = new CircuitBreaker(
+      async (paths: string[]) => {
+        const command = new CreateInvalidationCommand({
+          DistributionId: this.cdn.distributionId,
+          InvalidationBatch: {
+            Paths: { Quantity: paths.length, Items: paths },
+            CallerReference: Date.now().toString(),
+          },
+        });
+        return this.cfClient.send(command);
+      },
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+      }
+    );
+  }
 
   /**
    * Returns optimised Cache-Control headers for a given asset path.
@@ -52,15 +76,14 @@ export class CdnService {
 
     this.logger.log(`Invalidating ${paths.length} path(s) on distribution ${this.cdn.distributionId}: ${paths.join(', ')}`);
 
-    // Placeholder: wire up AWS SDK CloudFront.createInvalidation here when credentials are available.
-    // Example:
-    //   const cf = new CloudFrontClient({});
-    //   await cf.send(new CreateInvalidationCommand({
-    //     DistributionId: this.cdn.distributionId,
-    //     InvalidationBatch: { Paths: { Quantity: paths.length, Items: paths }, CallerReference: Date.now().toString() },
-    //   }));
-
-    return { success: true, paths, message: `Invalidation queued for distribution ${this.cdn.distributionId}` };
+    try {
+      await this.invalidationBreaker.fire(paths);
+      return { success: true, paths, message: `Invalidation queued for distribution ${this.cdn.distributionId}` };
+    } catch (error) {
+      const errMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to invalidate CDN cache: ${errMessage}`);
+      return { success: false, paths, message: 'CDN invalidation failed' };
+    }
   }
 
   /** Returns the CDN URL for a given asset path. */
