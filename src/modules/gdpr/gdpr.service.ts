@@ -9,6 +9,7 @@ import { User } from '../../users/entities/user.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { Notification } from '../../notifications/entities/notification.entity';
+import { SessionService } from '../../session/session.service';
 
 @Injectable()
 export class GdprService {
@@ -33,6 +34,7 @@ export class GdprService {
 
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
+    private readonly sessionService: SessionService,
   ) {}
 
   async exportUserData(userId: string): Promise<any> {
@@ -102,10 +104,14 @@ export class GdprService {
     }
 
     await this.userRepository.update(userId, {
+    await this.sessionService.deleteAllSessionsForUser(userId);
+
+    await this.usersService.update(userId, {
       email: null,
       firstName: '[DELETED]',
       lastName: '[DELETED]',
       deletedAt: new Date(),
+      refreshToken: null,
     });
 
     await this.auditService.log('GDPR_ERASURE', userId);

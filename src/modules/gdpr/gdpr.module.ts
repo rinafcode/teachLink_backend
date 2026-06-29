@@ -8,6 +8,10 @@ import { UserConsent } from './entities/user-consent.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Enrollment, Payment, Notification, UserConsent])],
+import { SessionModule } from '../../session/session.module';
+
+@Module({
+  imports: [SessionModule],
   controllers: [GdprController],
   providers: [GdprService],
 })

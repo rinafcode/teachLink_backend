@@ -6,6 +6,7 @@ import { User } from '../../../users/entities/user.entity';
 import { Enrollment } from '../../../courses/entities/enrollment.entity';
 import { Payment } from '../../../payments/entities/payment.entity';
 import { Notification } from '../../../notifications/entities/notification.entity';
+import { SessionService } from '../../../session/session.service';
 
 const mockUserRepository = {
   findOne: jest.fn().mockResolvedValue({
@@ -45,6 +46,10 @@ const mockNotificationRepository = {
     ]),
 };
 
+const mockSessionService = {
+  deleteAllSessionsForUser: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockConsentRepository = {
   find: jest.fn().mockResolvedValue([]),
   create: jest.fn((dto) => ({ ...dto, id: 'consent-1' })),
@@ -66,6 +71,9 @@ describe('GdprService', () => {
         { provide: getRepositoryToken(Enrollment), useValue: mockEnrollmentRepository },
         { provide: getRepositoryToken(Payment), useValue: mockPaymentRepository },
         { provide: getRepositoryToken(Notification), useValue: mockNotificationRepository },
+        { provide: 'UsersService', useValue: mockUsersService },
+        { provide: 'AuditService', useValue: mockAuditService },
+        { provide: SessionService, useValue: mockSessionService },
         { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepository },
         { provide: 'AuditService', useValue: mockAuditService },
         { provide: 'UsersService', useValue: {} },
@@ -130,9 +138,23 @@ describe('GdprService', () => {
     expect((result.notifications[0] as any)._deletedAt).toEqual(deletedDate);
   });
 
-  it('erases user data', async () => {
+  it('erases user data and invalidates sessions', async () => {
     const result = await service.eraseUserData('user-1');
+
     expect(result.success).toBe(true);
+    expect(mockSessionService.deleteAllSessionsForUser).toHaveBeenCalledWith('user-1');
+    expect(mockUsersService.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        email: null,
+        firstName: '[DELETED]',
+        lastName: '[DELETED]',
+        phone: null,
+        address: null,
+        deletedAt: expect.any(Date),
+        refreshToken: null,
+      }),
+    );
   });
 
   it('stores consent changes', async () => {
