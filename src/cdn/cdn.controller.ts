@@ -2,7 +2,7 @@ import {
   Controller,
   Post,
   UseInterceptors,
-  UploadedFile,
+  UploadedFile as UploadedFileDecorator,
   BadRequestException,
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
@@ -35,7 +35,7 @@ export class CdnController {
       },
     }),
   )
-  async uploadContent(@UploadedFile() file: UploadedFile) {
+  async uploadContent(@UploadedFileDecorator() file: UploadedFile) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
