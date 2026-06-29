@@ -2,6 +2,72 @@
 
 TeachLink API uses **JWT (JSON Web Tokens)** for authentication, validated via Passport strategies.
 
+## Signing Algorithms
+
+The API supports two JWT signing algorithms:
+
+| Algorithm | Type | Configuration |
+|-----------|------|---------------|
+| **HS256** (default) | Symmetric (HMAC + SHA-256) | `JWT_SECRET` — single shared secret |
+| **RS256** | Asymmetric (RSA + SHA-256) | `JWT_PRIVATE_KEY` + `JWT_PUBLIC_KEY` — PEM key pair |
+
+### HS256 (Symmetric)
+
+HS256 uses a single shared secret to both sign and verify tokens. Simple to set up but any service that verifies tokens must also possess the signing secret.
+
+```env
+JWT_SECRET=your-super-secret-key-min-32-chars
+```
+
+### RS256 (Asymmetric)
+
+RS256 uses a private key to sign tokens and a separate public key to verify them. This allows verification services to use a public key without access to the private signing key.
+
+```env
+JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\n...
+JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...
+```
+
+PEM values can be provided inline (as shown above) or as file paths pointing to `.pem` files.
+
+### Key Generation
+
+Generate an RS256 key pair for development:
+
+```bash
+# Generate a 2048-bit RSA private key
+openssl genrsa -out private.pem 2048
+
+# Extract the corresponding public key
+openssl rsa -in private.pem -pubout -out public.pem
+```
+
+Then reference the files in your `.env`:
+
+```env
+JWT_PRIVATE_KEY=./private.pem
+JWT_PUBLIC_KEY=./public.pem
+```
+
+Or use the raw PEM content directly (for `.env` files, replace newlines with `\n`):
+
+```env
+JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...
+JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0B...
+```
+
+> **Production recommendation:** Use a key management service (AWS KMS, HashiCorp Vault) to store private keys. Set `SECRET_PROVIDER=aws` or `SECRET_PROVIDER=vault` to load secrets from external providers.
+
+### Key Rotation
+
+The `JwtStrategy` uses `secretOrKeyProvider` (a callback invoked on every request) rather than a static `secretOrKey`. This design allows key rotation without restarting services:
+
+1. Deploy the new public key to all verification services.
+2. Update the signing service to use the new private key.
+3. Tokens signed with the old key remain valid until expiration.
+
+For HS256 key rotation, use the `JWT_SECRETS` (comma-separated) and `JWT_SECRET_CURRENT_VERSION` environment variables (legacy support).
+
 ## Authentication Flow
 
 ### 1. Obtain a Token

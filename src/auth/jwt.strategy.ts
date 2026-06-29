@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
 
 export interface JwtPayload {
   sub: string;
@@ -14,9 +15,13 @@ export interface JwtPayload {
 
 /**
  * Passport JWT strategy for validating Bearer tokens.
+ * Supports HS256 (symmetric) and RS256 (asymmetric) key verification
+ * via secretOrKeyProvider for runtime key rotation.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -24,7 +29,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'default-jwt-secret',
+      secretOrKeyProvider: (_request, _rawJwtToken, done) => {
+        try {
+          if (isRS256Configured()) {
+            const pubKey = process.env.JWT_PUBLIC_KEY || '';
+            const resolved = loadPEMKey(pubKey) || pubKey;
+            done(null, resolved);
+          } else {
+            done(null, process.env.JWT_SECRET || 'default-jwt-secret');
+          }
+        } catch (err) {
+          this.logger.error('Failed to resolve JWT verification key', err);
+          done(err, undefined);
+        }
+      },
     });
   }
 

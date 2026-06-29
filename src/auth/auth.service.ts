@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
 
 @Injectable()
 export class AuthService {
@@ -110,10 +111,16 @@ export class AuthService {
     const refreshJti = uuidv4();
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET || 'default-jwt-secret',
-        expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
-      }),
+      isRS256Configured()
+        ? this.jwtService.signAsync(payload, {
+            privateKey: this.getPrivateKey(),
+            algorithm: 'RS256',
+            expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+          })
+        : this.jwtService.signAsync(payload, {
+            secret: process.env.JWT_SECRET || 'default-jwt-secret',
+            expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+          }),
       this.jwtService.signAsync(
         { ...payload, jti: refreshJti },
         {
@@ -127,5 +134,10 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  private getPrivateKey(): string | Buffer {
+    const key = process.env.JWT_PRIVATE_KEY || '';
+    return loadPEMKey(key) || key;
   }
 }
