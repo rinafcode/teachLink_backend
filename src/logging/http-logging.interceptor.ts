@@ -9,7 +9,7 @@ const MAX_BODY_LENGTH = 4096;
 
 function truncate(value: unknown): unknown {
   if (typeof value === 'string' && value.length > MAX_BODY_LENGTH) {
-    return value.slice(0, MAX_BODY_LENGTH) + '...[truncated]';
+    return `${value.slice(0, MAX_BODY_LENGTH)}...[truncated]`;
   }
   return value;
 }
@@ -77,10 +77,7 @@ export class HttpLoggingInterceptor implements NestInterceptor {
               url: req.originalUrl || req.url,
               statusCode,
               durationMs,
-              error:
-                err instanceof Error
-                  ? { message: err.message, name: err.name }
-                  : String(err),
+              error: err instanceof Error ? { message: err.message, name: err.name } : String(err),
             }),
           );
         },

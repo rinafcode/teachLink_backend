@@ -4,12 +4,14 @@ import { of, throwError } from 'rxjs';
 import { HttpLoggingInterceptor } from './http-logging.interceptor';
 import { runWithCorrelationId } from '../common/utils/correlation.utils';
 
-function buildContext(overrides: Partial<{
-  method: string;
-  url: string;
-  body: Record<string, unknown>;
-  headers: Record<string, unknown>;
-}> = {}): ExecutionContext {
+function buildContext(
+  overrides: Partial<{
+    method: string;
+    url: string;
+    body: Record<string, unknown>;
+    headers: Record<string, unknown>;
+  }> = {},
+): ExecutionContext {
   const { method = 'GET', url = '/test', body = {}, headers = {} } = overrides;
   return {
     getType: () => 'http',
@@ -48,8 +50,12 @@ describe('HttpLoggingInterceptor', () => {
     }).compile();
 
     interceptor = module.get(HttpLoggingInterceptor);
-    logSpy = jest.spyOn((interceptor as unknown as { logger: { log: jest.Mock } }).logger, 'log').mockImplementation(() => undefined);
-    errorSpy = jest.spyOn((interceptor as unknown as { logger: { error: jest.Mock } }).logger, 'error').mockImplementation(() => undefined);
+    logSpy = jest
+      .spyOn((interceptor as unknown as { logger: { log: jest.Mock } }).logger, 'log')
+      .mockImplementation(() => undefined);
+    errorSpy = jest
+      .spyOn((interceptor as unknown as { logger: { error: jest.Mock } }).logger, 'error')
+      .mockImplementation(() => undefined);
   });
 
   it('should be defined', () => {

@@ -5,10 +5,7 @@ import { HttpLoggingInterceptor } from './http-logging.interceptor';
 
 @Global()
 @Module({
-  providers: [
-    AppLoggerService,
-    { provide: APP_INTERCEPTOR, useClass: HttpLoggingInterceptor },
-  ],
+  providers: [AppLoggerService, { provide: APP_INTERCEPTOR, useClass: HttpLoggingInterceptor }],
   exports: [AppLoggerService],
 })
 export class LoggingModule {}

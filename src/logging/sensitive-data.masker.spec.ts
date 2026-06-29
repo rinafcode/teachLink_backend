@@ -86,7 +86,10 @@ describe('maskSensitiveData', () => {
 
 describe('maskHeaders', () => {
   it('masks authorization header', () => {
-    const result = maskHeaders({ authorization: 'Bearer token123', 'content-type': 'application/json' });
+    const result = maskHeaders({
+      authorization: 'Bearer token123',
+      'content-type': 'application/json',
+    });
     expect(result.authorization).toBe(MASKED);
     expect(result['content-type']).toBe('application/json');
   });
