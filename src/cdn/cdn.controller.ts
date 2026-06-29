@@ -11,7 +11,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiResponse } from '@nestjs/swagger';
 import { fileTypeFromBuffer } from 'file-type';
-import { UploadContentDto } from './dto/upload-content.dto';
 import {
   FILE_SIZE_LIMITS,
   ALL_ALLOWED_FILE_TYPES,
@@ -35,9 +34,7 @@ export class CdnController {
       },
     }),
   )
-  async uploadContent(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
+  async uploadContent(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -127,7 +124,12 @@ export class CdnController {
     if (mime.startsWith('audio/')) {
       return FILE_SIZE_LIMITS.AUDIO_MAX_SIZE;
     }
-    if (mime.includes('pdf') || mime.includes('document') || mime.includes('sheet') || mime.includes('presentation')) {
+    if (
+      mime.includes('pdf') ||
+      mime.includes('document') ||
+      mime.includes('sheet') ||
+      mime.includes('presentation')
+    ) {
       return FILE_SIZE_LIMITS.DOCUMENT_MAX_SIZE;
     }
     if (mime.includes('zip') || mime.includes('archive')) {

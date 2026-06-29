@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MediaProcessingWorker } from './media-processing.worker';
 import { Job } from 'bull';
-import { FILE_SIZE_LIMITS, ALL_ALLOWED_FILE_TYPES } from '../../media/validation/file-validation.constants';
+import {
+  FILE_SIZE_LIMITS,
+  ALL_ALLOWED_FILE_TYPES,
+} from '../../media/validation/file-validation.constants';
 
 describe('MediaProcessingWorker', () => {
   let worker: MediaProcessingWorker;
@@ -37,9 +40,7 @@ describe('MediaProcessingWorker', () => {
         progress: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      await expect(worker.execute(job)).rejects.toThrow(
-        /File size.*exceeds maximum allowed size/,
-      );
+      await expect(worker.execute(job)).rejects.toThrow(/File size.*exceeds maximum allowed size/);
     });
 
     it('should reject oversized video files', async () => {
@@ -64,9 +65,7 @@ describe('MediaProcessingWorker', () => {
         progress: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      await expect(worker.execute(job)).rejects.toThrow(
-        /File size.*exceeds maximum allowed size/,
-      );
+      await expect(worker.execute(job)).rejects.toThrow(/File size.*exceeds maximum allowed size/);
     });
 
     it('should reject files with MIME type mismatch', async () => {
@@ -104,9 +103,7 @@ describe('MediaProcessingWorker', () => {
         progress: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      await expect(worker.execute(job)).rejects.toThrow(
-        /Could not determine file type/,
-      );
+      await expect(worker.execute(job)).rejects.toThrow(/Could not determine file type/);
     });
 
     it('should reject files with unsupported MIME types', async () => {
@@ -156,9 +153,7 @@ describe('MediaProcessingWorker', () => {
         progress: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      await expect(worker.execute(job)).rejects.toThrow(
-        /Expected video file but detected image/,
-      );
+      await expect(worker.execute(job)).rejects.toThrow(/Expected video file but detected image/);
     });
 
     it('should accept valid image file within size limit', async () => {
@@ -259,9 +254,7 @@ describe('MediaProcessingWorker', () => {
         progress: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      await expect(worker.execute(job)).rejects.toThrow(
-        /Missing required media fields/,
-      );
+      await expect(worker.execute(job)).rejects.toThrow(/Missing required media fields/);
     });
 
     it('should reject when buffer is too small for magic byte detection', async () => {
@@ -313,7 +306,6 @@ describe('MediaProcessingWorker', () => {
       const maxSize1 = (worker as any).getMaxSizeForType('IMAGE');
       const maxSize2 = (worker as any).getMaxSizeForType('Image');
       const maxSize3 = (worker as any).getMaxSizeForType('image');
-      
       expect(maxSize1).toBe(maxSize2);
       expect(maxSize2).toBe(maxSize3);
     });

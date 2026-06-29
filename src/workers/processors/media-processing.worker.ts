@@ -45,13 +45,12 @@ export class MediaProcessingWorker extends BaseWorker {
       // Validate MIME type using magic bytes
       if (fileBuffer.length >= 4) {
         const detectedType = await fileTypeFromBuffer(fileBuffer);
-        
+
         if (!detectedType) {
           throw new Error('Could not determine file type from content. File may be corrupted or format not supported.');
         }
 
         const detectedMimeType = detectedType.mime.toLowerCase();
-        
         // Check if detected MIME type is in allowed list
         if (!ALL_ALLOWED_FILE_TYPES.includes(detectedMimeType)) {
           throw new Error(
@@ -75,7 +74,6 @@ export class MediaProcessingWorker extends BaseWorker {
         // Validate that detected type matches expected media type category
         const expectedCategory = mediaType.toLowerCase();
         const detectedCategory = detectedMimeType.split('/')[0];
-        
         if (expectedCategory !== detectedCategory) {
           throw new Error(
             `Expected ${expectedCategory} file but detected ${detectedCategory} (${detectedMimeType})`,

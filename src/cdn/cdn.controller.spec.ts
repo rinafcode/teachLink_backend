@@ -22,7 +22,6 @@ describe('CdnController', () => {
     it('should reject files exceeding image size limit', async () => {
       // Create a buffer larger than IMAGE_MAX_SIZE (20MB)
       const oversizedBuffer = Buffer.alloc(FILE_SIZE_LIMITS.IMAGE_MAX_SIZE + 1);
-      
       // Add PNG magic bytes
       oversizedBuffer[0] = 0x89;
       oversizedBuffer[1] = 0x50;
@@ -48,7 +47,6 @@ describe('CdnController', () => {
     it('should reject files exceeding video size limit', async () => {
       // Create a buffer larger than VIDEO_MAX_SIZE (500MB)
       const oversizedBuffer = Buffer.alloc(FILE_SIZE_LIMITS.VIDEO_MAX_SIZE + 1);
-      
       // Add MP4 magic bytes (ftyp)
       oversizedBuffer[0] = 0x00;
       oversizedBuffer[1] = 0x00;
@@ -93,7 +91,6 @@ describe('CdnController', () => {
     it('should reject PHP script disguised as video', async () => {
       // Create a PHP script with video.mp4 name
       const phpContent = Buffer.from('<?php echo "hacked"; ?>');
-      
       const file = {
         fieldname: 'file',
         originalname: 'video.mp4',
