@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GdprService } from '../gdpr.service';
 import { UserConsent } from '../entities/user-consent.entity';
+import { SessionService } from '../../../session/session.service';
 
 const mockUsersService = {
   findById: jest.fn().mockResolvedValue({
@@ -22,6 +23,10 @@ const mockAuditService = {
   log: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockSessionService = {
+  deleteAllSessionsForUser: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockConsentRepository = {
   find: jest.fn().mockResolvedValue([]),
   create: jest.fn((dto) => ({ ...dto, id: 'consent-1' })),
@@ -37,6 +42,7 @@ describe('GdprService', () => {
         GdprService,
         { provide: 'UsersService', useValue: mockUsersService },
         { provide: 'AuditService', useValue: mockAuditService },
+        { provide: SessionService, useValue: mockSessionService },
         { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepository },
       ],
     }).compile();
@@ -62,9 +68,23 @@ describe('GdprService', () => {
     expect(result.profile.lastName).toBe('Doe');
   });
 
-  it('erases user data', async () => {
+  it('erases user data and invalidates sessions', async () => {
     const result = await service.eraseUserData('user-1');
+
     expect(result.success).toBe(true);
+    expect(mockSessionService.deleteAllSessionsForUser).toHaveBeenCalledWith('user-1');
+    expect(mockUsersService.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        email: null,
+        firstName: '[DELETED]',
+        lastName: '[DELETED]',
+        phone: null,
+        address: null,
+        deletedAt: expect.any(Date),
+        refreshToken: null,
+      }),
+    );
   });
 
   it('stores consent changes', async () => {

@@ -139,6 +139,37 @@ export class SessionService implements OnModuleDestroy {
     }
   }
 
+  async deleteAllSessionsForUser(userId: string): Promise<number> {
+    const pattern = `${this.sessionPrefix}*`;
+    let cursor = '0';
+    let deletedCount = 0;
+
+    do {
+      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+
+      for (const key of keys) {
+        const sessionData = await this.redis.get(key);
+        if (!sessionData) {
+          continue;
+        }
+
+        try {
+          const session = JSON.parse(sessionData) as ISessionRecord;
+          if (session.userId === userId) {
+            await this.redis.del(key);
+            await this.removeSessionFromUserIndex(userId, session.sid);
+            deletedCount += 1;
+          }
+        } catch {
+          this.logger.warn(`Invalid session payload for key=${key}`);
+        }
+      }
+    } while (cursor !== '0');
+
+    return deletedCount;
+  }
+
   async addSessionToUserIndex(userId: string, sid: string): Promise<void> {
     await this.redis.zadd(`user:sessions:${userId}`, Date.now(), sid);
   }
