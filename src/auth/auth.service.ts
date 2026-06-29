@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
-import { User } from '../users/entities/user.entity';
+import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 
 @Injectable()
@@ -49,6 +49,10 @@ export class AuthService {
 
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access Denied');
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('User is not active');
     }
 
     const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
