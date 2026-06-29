@@ -6,6 +6,7 @@ import { UserConsent } from './entities/user-consent.entity';
 import { ConsentDto } from './dto/consent.dto';
 import { GdprExportDto } from './dto/gdpr-export.dto';
 import { User } from '../../users/entities/user.entity';
+import { SessionService } from '../../session/session.service';
 
 @Injectable()
 export class GdprService {
@@ -18,6 +19,8 @@ export class GdprService {
 
     @InjectRepository(UserConsent)
     private readonly consentRepository: Repository<UserConsent>,
+
+    private readonly sessionService: SessionService,
   ) {}
 
   async exportUserData(userId: string) {
@@ -57,6 +60,17 @@ export class GdprService {
         alreadyErased: true,
       };
     }
+    await this.sessionService.deleteAllSessionsForUser(userId);
+
+    await this.usersService.update(userId, {
+      email: null,
+      firstName: '[DELETED]',
+      lastName: '[DELETED]',
+      phone: null,
+      address: null,
+      deletedAt: new Date(),
+      refreshToken: null,
+    });
 
     await this.consentRepository.manager.transaction(async (manager) => {
       // Wrap all DB writes in a transaction with ON CONFLICT DO NOTHING or upsert semantics.
