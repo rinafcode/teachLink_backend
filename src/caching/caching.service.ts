@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
+import { DistributedLockService } from '../orchestration/locks/distributed-lock.service';
 
 export interface CacheStats {
   hits: number;
@@ -18,6 +19,7 @@ export class CachingService {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Optional() private readonly metrics?: MetricsCollectionService,
+    @Optional() private readonly lockService?: DistributedLockService,
   ) {}
 
   async get<T>(key: string): Promise<T | undefined> {
@@ -35,15 +37,58 @@ export class CachingService {
     await this.cacheManager.set(key, value, ttlMs);
   }
 
-  async getOrSet<T>(key: string, factory: () => Promise<T>, ttlSeconds?: number): Promise<T> {
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async getOrSet<T>(
+    key: string,
+    factory: () => Promise<T>,
+    ttlSeconds?: number,
+    lockTimeoutMs = 5000,
+    pollIntervalMs = 100,
+    maxWaitMs = 30000,
+  ): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached !== undefined) {
       return cached;
     }
 
-    const value = await factory();
-    await this.set(key, value, ttlSeconds);
-    return value;
+    if (!this.lockService) {
+      this.logger.warn('DistributedLockService not available, proceeding without lock');
+      const value = await factory();
+      await this.set(key, value, ttlSeconds);
+      return value;
+    }
+
+    const lockKey = `lock:cache:${key}`;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitMs) {
+      const acquired = await this.lockService.acquireLock(lockKey, lockTimeoutMs);
+      if (acquired) {
+        try {
+          let value = await this.get<T>(key);
+          if (value !== undefined) {
+            return value;
+          }
+          value = await factory();
+          await this.set(key, value, ttlSeconds);
+          return value;
+        } finally {
+          await this.lockService.releaseLock(lockKey);
+        }
+      } else {
+        const value = await this.get<T>(key);
+        if (value !== undefined) {
+          return value;
+        }
+        const jitter = Math.random() * pollIntervalMs;
+        await this.sleep(pollIntervalMs + jitter);
+      }
+    }
+
+    throw new Error(`Timeout waiting for cache key: ${key}`);
   }
 
   async delete(key: string): Promise<void> {
