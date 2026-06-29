@@ -30,7 +30,7 @@ export class NotificationsService {
     const notification = this.notificationRepository.create({
       userId,
       type,
-      title: 'Notification', // required field
+      title: 'Notification',
       content,
       status: NotificationStatus.SENT,
     });

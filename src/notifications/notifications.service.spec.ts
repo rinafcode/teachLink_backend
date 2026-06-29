@@ -8,8 +8,8 @@ describe('NotificationsService', () => {
   beforeEach(() => {
     mockRepository = {
       findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockImplementation((data) => data),
-      save: jest.fn().mockImplementation((data) => Promise.resolve(data)),
+      create: jest.fn((dto) => dto),
+      save: jest.fn(async (data) => ({ id: 'notif-1', ...data })),
     };
 
     service = new NotificationsService(mockRepository);
