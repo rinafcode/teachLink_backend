@@ -14,9 +14,7 @@ describe('CacheInvalidationListener', () => {
 
   beforeEach(() => {
     invalidation = makeMockInvalidation();
-    listener = new CacheInvalidationListener(
-      invalidation as unknown as CacheInvalidationService,
-    );
+    listener = new CacheInvalidationListener(invalidation as unknown as CacheInvalidationService);
   });
 
   // ── CACHE_EVENTS constants ─────────────────────────────────────────────────
@@ -25,8 +23,8 @@ describe('CacheInvalidationListener', () => {
     it('defines all expected event name values', () => {
       expect(CACHE_EVENTS.COURSE_UPDATED).toBe('cache.course.updated');
       expect(CACHE_EVENTS.USER_UPDATED).toBe('cache.user.updated');
-      expect(CACHE_EVENTS.ENROLLMENT_CHANGED).toBe('cache.enrollment.changed');
-      expect(CACHE_EVENTS.SEARCH_INDEX_UPDATED).toBe('cache.search.index.updated');
+      expect(CACHE_EVENTS.ENROLLMENT_CREATED).toBe('cache.enrollment.created');
+      expect(CACHE_EVENTS.SEARCH_INDEX_UPDATED).toBe('cache.search.updated');
     });
   });
 

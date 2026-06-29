@@ -28,18 +28,13 @@ const BATCH_CONFIG: Record<NotificationType, { intervalMs: number; batchLabel: s
   [NotificationType.IN_APP]: { intervalMs: DEFAULT_BATCH_WINDOW_MS, batchLabel: 'In-App Summary' },
   [NotificationType.SMS]: { intervalMs: DEFAULT_BATCH_WINDOW_MS, batchLabel: 'SMS Digest' },
 };
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import {
-  Notification,
-  NotificationStatus,
-  NotificationType,
-} from './entities/notification.entity';
 import { CreateNotificationDto } from './dto/notification.dto';
 import { PreferencesService } from './preferences/preferences.service';
-import { NotificationsQueueService } from './notifications.queue';
 import { NotificationTemplateService } from './templates/notification-template.service';
 import { SendTemplatedNotificationDto } from './dto/preferences.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 @Injectable()
 export class NotificationsService {
@@ -50,9 +45,14 @@ export class NotificationsService {
     private readonly configService: ConfigService,
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
-    private readonly notificationsQueue: NotificationsQueueService,
+    private readonly queueService: NotificationsQueueService,
+    private readonly preferencesService: PreferencesService,
+    private readonly templateService: NotificationTemplateService,
   ) {
-    const batchWindowSetting = this.configService.get<string | number>('NOTIFICATION_BATCH_WINDOW_MS', `${DEFAULT_BATCH_WINDOW_MS}`);
+    const batchWindowSetting = this.configService.get<string | number>(
+      'NOTIFICATION_BATCH_WINDOW_MS',
+      `${DEFAULT_BATCH_WINDOW_MS}`,
+    );
     this.batchWindowMs = Number(batchWindowSetting) || DEFAULT_BATCH_WINDOW_MS;
   }
 
@@ -103,7 +103,7 @@ export class NotificationsService {
       groups.set(key, group);
     });
 
-    for (const [key, notifications] of groups) {
+    for (const [, notifications] of groups) {
       const type = notifications[0].type;
       const { intervalMs } = BATCH_CONFIG[type];
       const oldest = notifications[0];
@@ -134,16 +134,21 @@ export class NotificationsService {
       deliveryAttempts: 0,
     });
 
-    await this.notificationsQueue.publishToTopic(batchNotification);
+    await this.queueService.publishToTopic(batchNotification);
     const ids = notifications.map((notification) => notification.id);
-    await this.notificationRepository.update({ id: In(ids) }, { status: NotificationStatus.SENT, lastAttemptAt: new Date() });
+    await this.notificationRepository.update(
+      { id: In(ids) },
+      { status: NotificationStatus.SENT, lastAttemptAt: new Date() },
+    );
     await this.notificationRepository.save(batchNotification);
 
-    this.logger.log(`Flushed ${notifications.length} notifications into a batch for user ${first.userId}`);
+    this.logger.log(
+      `Flushed ${notifications.length} notifications into a batch for user ${first.userId}`,
+    );
   }
 
   private async publish(notification: Notification, bypassBatch = false): Promise<void> {
-    await this.notificationsQueue.publishToTopic(notification, { bypassBatch });
+    await this.queueService.publishToTopic(notification, { bypassBatch });
     await this.notificationRepository.update(notification.id, {
       status: NotificationStatus.SENT,
       lastAttemptAt: new Date(),
@@ -169,21 +174,22 @@ export class NotificationsService {
 
     const age = Date.now() - existing.createdAt.getTime();
     return age <= this.batchWindowMs ? existing : null;
+  }
 
-  constructor(
-    @InjectRepository(Notification)
-    private readonly notificationRepository: Repository<Notification>,
-    private readonly preferencesService: PreferencesService,
-    private readonly queueService: NotificationsQueueService,
-    private readonly templateService: NotificationTemplateService,
-  ) {}
-
-  async findForUser(userId: string, limit = 50): Promise<Notification[]> {
-    return this.notificationRepository.find({
+  async findForUser(
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Notification>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 50;
+    const [data, total] = await this.notificationRepository.findAndCount({
       where: { userId },
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
       take: limit,
     });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async markRead(id: string, userId: string): Promise<Notification> {
@@ -205,7 +211,11 @@ export class NotificationsService {
 
   async create(dto: CreateNotificationDto): Promise<Notification | null> {
     const eventType = (dto.metadata?.eventType as string) || 'general';
-    const allowed = await this.shouldDeliver(dto.userId, dto.type ?? NotificationType.IN_APP, eventType);
+    const allowed = await this.shouldDeliver(
+      dto.userId,
+      dto.type ?? NotificationType.IN_APP,
+      eventType,
+    );
     if (!allowed) {
       this.logger.debug(`Notification suppressed for user ${dto.userId} event ${eventType}`);
       return null;
@@ -328,7 +338,10 @@ export class NotificationsService {
   private channelPreferenceKey(
     type: NotificationType,
   ): 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled' {
-    const map: Record<NotificationType, 'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled'> = {
+    const map: Record<
+      NotificationType,
+      'emailEnabled' | 'pushEnabled' | 'inAppEnabled' | 'smsEnabled'
+    > = {
       [NotificationType.EMAIL]: 'emailEnabled',
       [NotificationType.PUSH]: 'pushEnabled',
       [NotificationType.IN_APP]: 'inAppEnabled',

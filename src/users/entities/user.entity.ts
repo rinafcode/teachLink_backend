@@ -14,6 +14,7 @@ import {
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
 import { Role } from '../../rbac/entities/role.entity';
+import { VisibleTo } from '../../common/decorators/visible-to.decorator';
 
 export enum UserRole {
   STUDENT = 'student',
@@ -48,8 +49,23 @@ export class User {
   @Index()
   username?: string;
 
-  @Column()
+  @Column({ nullable: true })
   password: string;
+
+  @Column({ nullable: true })
+  provider: string | null;
+
+  @Column({ nullable: true })
+  @Index()
+  providerId: string | null;
+
+  @VisibleTo(UserRole.ADMIN)
+  @Column({ nullable: true })
+  providerAccessToken: string | null;
+
+  @VisibleTo(UserRole.ADMIN)
+  @Column({ nullable: true })
+  providerRefreshToken: string | null;
 
   @Column()
   firstName: string;
@@ -86,9 +102,11 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpires?: Date;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column({ nullable: true })
   refreshToken?: string;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column('text', { array: true, default: [] })
   passwordHistory: string[];
 
@@ -100,6 +118,9 @@ export class User {
   roles: Role[];
 
   get role(): UserRole {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
     if (this.roles && this.roles.length > 0) {
       return this.roles[0].name as UserRole;
     }

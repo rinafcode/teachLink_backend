@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PointsService } from './points.service';
 import { UserProgress } from '../entities/user-progress.entity';
 import { PointTransaction } from '../entities/point-transaction.entity';
@@ -30,6 +31,7 @@ describe('PointsService', () => {
         PointsService,
         { provide: getRepositoryToken(UserProgress), useFactory: mockRepo },
         { provide: getRepositoryToken(PointTransaction), useFactory: mockRepo },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         { provide: TiersService, useFactory: mockTiersService },
       ],
     }).compile();

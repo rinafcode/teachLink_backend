@@ -40,7 +40,7 @@ export class ReportingService {
       totalTransactions,
       totalRevenue,
       currency: 'USD',
-      transactions: payments.map(p => ({
+      transactions: payments.map((p) => ({
         id: p.id,
         amount: p.amount,
         provider: p.provider,
@@ -66,7 +66,7 @@ export class ReportingService {
       totalRefunded,
       refundCount,
       currency: 'USD',
-      refunds: refunds.map(r => ({
+      refunds: refunds.map((r) => ({
         id: r.id,
         paymentId: r.paymentId,
         amount: r.amount,
@@ -96,9 +96,9 @@ export class ReportingService {
     const netRevenue = grossRevenue - totalRefunds;
 
     const subscriptionRevenue = payments
-      .filter(p => p.isSubscription)
+      .filter((p) => p.isSubscription)
       .reduce((sum, p) => sum + Number(p.amount), 0);
-      
+
     const oneOffRevenue = grossRevenue - subscriptionRevenue;
 
     return {

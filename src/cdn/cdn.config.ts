@@ -24,7 +24,7 @@ export function resolveCdnConfig(): CdnConfig {
 export function resolveCacheHeaderConfig(): CacheHeaderConfig {
   return {
     immutableMaxAge: parseInt(process.env.CDN_IMMUTABLE_MAX_AGE ?? '31536000', 10), // 1 year
-    htmlMaxAge: parseInt(process.env.CDN_HTML_MAX_AGE ?? '300', 10),                // 5 min
+    htmlMaxAge: parseInt(process.env.CDN_HTML_MAX_AGE ?? '300', 10), // 5 min
     staleWhileRevalidate: parseInt(process.env.CDN_SWR ?? '60', 10),
   };
 }

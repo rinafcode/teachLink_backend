@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 
 /**
@@ -8,8 +9,8 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class DataSyncWorker extends BaseWorker {
-  constructor() {
-    super('data-sync');
+  constructor(configService: ConfigService) {
+    super('data-sync', configService);
   }
 
   /**
@@ -56,7 +57,7 @@ export class DataSyncWorker extends BaseWorker {
   /**
    * Perform data consistency check
    */
-  private async performConsistencyCheck(job: Job, source: string, filters?: any): Promise<any> {
+  private async performConsistencyCheck(job: Job, source: string, _filters?: any): Promise<any> {
     await job.progress(40);
     this.logger.log(`Checking data consistency in ${source}`);
 

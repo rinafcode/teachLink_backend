@@ -109,7 +109,7 @@ class RedisClientManager {
 
     this.instance = new Redis(options);
 
-    this.instance.on('error', (err) => {
+    this.instance.on('error', (_err) => {
       // centralized safe error handling
       // could plug in logger here
     });
@@ -124,10 +124,16 @@ class RedisClientManager {
  * =====================================================
  */
 
-export const getSharedRedisClient = (
-  configService?: ConfigService,
-): Redis => {
+export const getSharedRedisClient = (configService?: ConfigService): Redis => {
   return RedisClientManager.get(configService);
+};
+
+export const getRedisOptions = (configService?: ConfigService): RedisOptions => {
+  const env = new EnvReader(configService);
+  return {
+    host: env.getString({ key: 'REDIS_HOST', fallback: 'localhost' }),
+    port: env.getNumber({ key: 'REDIS_PORT', fallback: 6379 }),
+  };
 };
 
 /**
@@ -185,13 +191,9 @@ export const createSessionConfig = (configService?: ConfigService) => {
       fallback: 604800000,
     }),
 
-    secureCookies:
-      process.env.NODE_ENV === 'production',
+    secureCookies: process.env.NODE_ENV === 'production',
 
-    stickySessionsRequired: env.getBoolean(
-      'STICKY_SESSIONS_REQUIRED',
-      true,
-    ),
+    stickySessionsRequired: env.getBoolean('STICKY_SESSIONS_REQUIRED', true),
 
     trustProxy: env.getBoolean('TRUST_PROXY', true),
   };

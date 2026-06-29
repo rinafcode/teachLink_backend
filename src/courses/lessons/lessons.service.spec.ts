@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 
 import { LessonsService } from './lessons.service';
 import { Lesson } from '../entities/lesson.entity';
@@ -100,7 +101,7 @@ describe('LessonsService', () => {
           title: 'Test',
           moduleId: 'missing-module',
         } as any),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      ).rejects.toBeInstanceOf(ResourceNotFoundException);
     });
 
     it('should propagate repository save errors', async () => {
@@ -108,9 +109,7 @@ describe('LessonsService', () => {
 
       moduleRepo.findOneBy.mockResolvedValue(module);
       lessonRepo.create.mockReturnValue(createLesson());
-      lessonRepo.save.mockRejectedValue(
-        new Error('Database write failed'),
-      );
+      lessonRepo.save.mockRejectedValue(new Error('Database write failed'));
 
       await expect(
         service.create({
@@ -139,9 +138,7 @@ describe('LessonsService', () => {
     it('should throw NotFoundException when lesson does not exist', async () => {
       lessonRepo.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        service.findOne('missing-id'),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.findOne('missing-id')).rejects.toBeInstanceOf(ResourceNotFoundException);
     });
   });
 
@@ -172,15 +169,13 @@ describe('LessonsService', () => {
         service.update('missing-id', {
           title: 'Updated',
         }),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      ).rejects.toBeInstanceOf(ResourceNotFoundException);
     });
 
     it('should propagate save failures during update', async () => {
       lessonRepo.findOneBy.mockResolvedValue(createLesson());
 
-      lessonRepo.save.mockRejectedValue(
-        new Error('Update failed'),
-      );
+      lessonRepo.save.mockRejectedValue(new Error('Update failed'));
 
       await expect(
         service.update('lesson-1', {
@@ -200,29 +195,21 @@ describe('LessonsService', () => {
 
       await service.remove('lesson-1');
 
-      expect(lessonRepo.softDelete).toHaveBeenCalledWith(
-        'lesson-1',
-      );
+      expect(lessonRepo.softDelete).toHaveBeenCalledWith('lesson-1');
     });
 
     it('should throw NotFoundException when lesson does not exist', async () => {
       lessonRepo.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        service.remove('missing-id'),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.remove('missing-id')).rejects.toBeInstanceOf(ResourceNotFoundException);
     });
 
     it('should propagate soft delete errors', async () => {
       lessonRepo.findOneBy.mockResolvedValue(createLesson());
 
-      lessonRepo.softDelete.mockRejectedValue(
-        new Error('Delete failed'),
-      );
+      lessonRepo.softDelete.mockRejectedValue(new Error('Delete failed'));
 
-      await expect(
-        service.remove('lesson-1'),
-      ).rejects.toThrow('Delete failed');
+      await expect(service.remove('lesson-1')).rejects.toThrow('Delete failed');
     });
   });
 });

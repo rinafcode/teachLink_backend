@@ -21,9 +21,9 @@ export class ForumService {
   ) {}
 
   async createThread(title: string, content: string, authorId: string): Promise<ForumThread> {
-    const analysis = await this.autoModService.analyze(title + ' ' + content);
+    const analysis = await this.autoModService.analyze(`${title} ${content}`);
     let status = 'active';
-    
+
     if (analysis.flagged) {
       status = 'flagged';
     }
@@ -34,17 +34,16 @@ export class ForumService {
       authorId,
       status,
     });
-    
+
     const saved = await this.threadRepo.save(thread);
 
     if (analysis.flagged) {
-      await this.manualReviewService.enqueue(
-        title + '\n' + content, 
-        analysis.score, 
-        { sourceType: 'forum_thread', sourceId: saved.id }
-      );
+      await this.manualReviewService.enqueue(`${title}\n${content}`, analysis.score, {
+        sourceType: 'forum_thread',
+        sourceId: saved.id,
+      });
     }
-    
+
     return saved;
   }
 
@@ -53,12 +52,20 @@ export class ForumService {
   }
 
   async getThread(id: string): Promise<ForumThread> {
-    const thread = await this.threadRepo.findOne({ where: { id, status: 'active' }, relations: ['comments'] });
+    const thread = await this.threadRepo.findOne({
+      where: { id, status: 'active' },
+      relations: ['comments'],
+    });
     if (!thread) throw new NotFoundException('Thread not found');
     return thread;
   }
 
-  async addComment(threadId: string, content: string, authorId: string, parentId?: string): Promise<ForumComment> {
+  async addComment(
+    threadId: string,
+    content: string,
+    authorId: string,
+    parentId?: string,
+  ): Promise<ForumComment> {
     const thread = await this.threadRepo.findOne({ where: { id: threadId, status: 'active' } });
     if (!thread) throw new NotFoundException('Thread not found');
 
@@ -79,11 +86,10 @@ export class ForumService {
     const saved = await this.commentRepo.save(comment);
 
     if (analysis.flagged) {
-      await this.manualReviewService.enqueue(
-        content,
-        analysis.score,
-        { sourceType: 'forum_comment', sourceId: saved.id }
-      );
+      await this.manualReviewService.enqueue(content, analysis.score, {
+        sourceType: 'forum_comment',
+        sourceId: saved.id,
+      });
     }
 
     return saved;
@@ -91,16 +97,16 @@ export class ForumService {
 
   async vote(entityType: 'thread' | 'comment', entityId: string, authorId: string, value: number) {
     if (value !== 1 && value !== -1) throw new BadRequestException('Vote value must be 1 or -1');
-    
+
     const existing = await this.voteRepo.findOne({ where: { entityType, entityId, authorId } });
     if (existing) {
       if (existing.value === value) {
         return;
       }
-      
+
       existing.value = value;
       await this.voteRepo.save(existing);
-      
+
       await this.updateVoteTotals(entityType, entityId);
       return;
     }

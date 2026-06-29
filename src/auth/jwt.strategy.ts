@@ -1,10 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InvalidCredentialsException } from '../common/exceptions/app.exceptions';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+import { User, UserStatus } from '../users/entities/user.entity';
 
 export interface JwtPayload {
   sub: string;
@@ -37,7 +36,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: JwtPayload): Promise<any> {
     const user = await this.userRepository.findOneBy({ id: payload.sub });
     if (!user) {
-      throw new InvalidCredentialsException('User not found');
+      throw new Error('User not found');
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('User is not active');
     }
 
     // Fetch roles and permissions for the user
@@ -49,14 +52,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       .getOne();
 
     if (!userWithRolesAndPermissions) {
-      throw new UnauthorizedException('User not found');
+      throw new Error('User not found');
     }
 
-    const roles = userWithRolesAndPermissions.roles.map(role => role.name);
-    const permissions = userWithRolesAndPermissions.roles
-      .reduce((acc, role) => {
-        return acc.concat(role.permissions.map(p => `${p.resource}:${p.action}`));
-      }, [] as string[]);
+    const roles = userWithRolesAndPermissions.roles.map((role) => role.name);
+    const permissions = userWithRolesAndPermissions.roles.reduce((acc, role) => {
+      return acc.concat(role.permissions.map((p) => `${p.resource}:${p.action}`));
+    }, [] as string[]);
 
     return {
       ...payload,

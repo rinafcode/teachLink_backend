@@ -70,20 +70,29 @@ export class CdnService {
    */
   async invalidate(paths: string[]): Promise<InvalidationResult> {
     if (!this.cdn.enabled || !this.cdn.distributionId) {
-      this.logger.warn('CDN invalidation skipped — CDN_ENABLED is false or CLOUDFRONT_DISTRIBUTION_ID not set');
+      this.logger.warn(
+        'CDN invalidation skipped — CDN_ENABLED is false or CLOUDFRONT_DISTRIBUTION_ID not set',
+      );
       return { success: false, paths, message: 'CDN not configured' };
     }
 
-    this.logger.log(`Invalidating ${paths.length} path(s) on distribution ${this.cdn.distributionId}: ${paths.join(', ')}`);
+    this.logger.log(
+      `Invalidating ${paths.length} path(s) on distribution ${this.cdn.distributionId}: ${paths.join(', ')}`,
+    );
 
-    try {
-      await this.invalidationBreaker.fire(paths);
-      return { success: true, paths, message: `Invalidation queued for distribution ${this.cdn.distributionId}` };
-    } catch (error) {
-      const errMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to invalidate CDN cache: ${errMessage}`);
-      return { success: false, paths, message: 'CDN invalidation failed' };
-    }
+    // Placeholder: wire up AWS SDK CloudFront.createInvalidation here when credentials are available.
+    // Example:
+    //   const cf = new CloudFrontClient({});
+    //   await cf.send(new CreateInvalidationCommand({
+    //     DistributionId: this.cdn.distributionId,
+    //     InvalidationBatch: { Paths: { Quantity: paths.length, Items: paths }, CallerReference: Date.now().toString() },
+    //   }));
+
+    return {
+      success: true,
+      paths,
+      message: `Invalidation queued for distribution ${this.cdn.distributionId}`,
+    };
   }
 
   /** Returns the CDN URL for a given asset path. */

@@ -18,7 +18,10 @@ export class AnalyticsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Track an analytics event' })
   @ApiResponse({ status: 201, description: 'Event tracked successfully' })
-  async trackEvent(@Body() dto: CreateEventDto, @Request() req: any): Promise<{ success: boolean }> {
+  async trackEvent(
+    @Body() dto: CreateEventDto,
+    @Request() req: any,
+  ): Promise<{ success: boolean }> {
     await this.analyticsService.trackEvent({
       ...dto,
       eventType: (dto as any).eventType || EventType.CUSTOM,
@@ -33,7 +36,10 @@ export class AnalyticsController {
   @Post('event')
   @ApiOperation({ summary: 'Track a feature event (compatibility endpoint)' })
   @ApiResponse({ status: 201, description: 'Feature event tracked successfully' })
-  async trackEventCompatibility(@Body() dto: CreateEventDto, @Request() req: any): Promise<{ success: boolean }> {
+  async trackEventCompatibility(
+    @Body() dto: CreateEventDto,
+    @Request() req: any,
+  ): Promise<{ success: boolean }> {
     await this.analyticsService.trackEvent({
       ...dto,
       eventType: EventType.CUSTOM,
@@ -66,7 +72,9 @@ export class AnalyticsController {
     @Query('offset') offset?: string,
   ): Promise<{ events: AnalyticsEvent[]; total: number }> {
     return this.analyticsService.getEvents({
-      eventType: eventType ? (EventType[eventType as keyof typeof EventType] as EventType) : undefined,
+      eventType: eventType
+        ? (EventType[eventType as keyof typeof EventType] as EventType)
+        : undefined,
       category,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,

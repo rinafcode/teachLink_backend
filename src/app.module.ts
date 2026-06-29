@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { envValidationSchema } from './config/env.validation';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
 import { AnalyticsModule } from './analytics/analytics.module';
-import { ShardingModule } from './sharding/sharding.module';
 
 import { IndexOptimizationModule } from './database/index-optimization/index-optimization.module';
 import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
@@ -21,35 +21,31 @@ import { CanaryModule } from './canary/canary.module';
 import { IncidentManagementModule } from './incident-management/incident-management.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { RequestTimeoutInterceptor } from './common/interceptors/request-timeout.interceptor';
-import { IdempotencyModule } from './common/modules/idempotency.module';
-import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
+import { GlobalExceptionFilter } from './common/interceptors/global-exception.filter';
+import { RoleVisibilityInterceptor } from './common/interceptors/role-visibility.interceptor';
+import { ApiVersionMiddleware } from './common/middleware/api-version.middleware';
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
-import { PaymentMethodsModule } from './payments/payment-methods/payment-methods.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
-import { ModerationModule } from './moderation/moderation.module';
-import { ForumModule } from './forum/forum.module';
 
 // ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
-import { SlackService } from './slack.service';
 import { CoursesModule } from './courses/courses.module';
-import { DataRetentionModule } from './data-retention/data-retention.module';
-import { GatewayModule } from './gateway/gateway.module';
-import { UsersModule } from './users/users.module';
-import { NotificationsModule } from './notifications/notifications.module';
-import { MessagingModule } from './messaging/messaging.module';
-import { DashboardModule } from './dashboard/dashboard.module';
-import { GamificationModule } from './gamification/gamification.module';
+import { AuthModule } from './auth/auth.module';
+import { CohortsModule } from './cohorts/cohorts.module';
+import { FeatureFlagAuditModule } from './config/feature-flag-audit.module';
 
 const featureFlags = loadFeatureFlags();
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: false },
+    }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
     SessionModule,
@@ -62,16 +58,10 @@ const featureFlags = loadFeatureFlags();
     CanaryModule,
     IncidentManagementModule,
     MonitoringModule,
-    ShardingModule,
-    IdempotencyModule,
     DeepLinkModule,
     InvoicesModule,
-    PaymentMethodsModule,
-    NotificationsModule,
     ReportingModule,
     HealthModule,
-    ...(featureFlags.ENABLE_MODERATION ? [ModerationModule] : []),
-    ForumModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
@@ -79,28 +69,26 @@ const featureFlags = loadFeatureFlags();
     // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
 
+    // ✅ feature-flagged auth
+    ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
+
     // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
+    CohortsModule,
 
-    // ✅ data retention: archiving and purging
-    DataRetentionModule,
-
-    // ✅ API gateway: routing, rate limiting, transformation, caching
-    GatewayModule,
-
-    // ✅ Users module for profile and activity management
-    UsersModule,
-    NotificationsModule,
-    MessagingModule,
-    DashboardModule,
-    GamificationModule,
+    // Feature flag audit trail and admin management endpoints
+    FeatureFlagAuditModule,
   ],
   controllers: [AppController],
   providers: [
-    SlackService,
     ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
-    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: RoleVisibilityInterceptor },
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(ApiVersionMiddleware).forRoutes({ path: 'v*', method: RequestMethod.ALL });
+  }
+}

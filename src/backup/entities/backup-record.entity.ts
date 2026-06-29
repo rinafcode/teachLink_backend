@@ -148,10 +148,7 @@ export class BackupRecord {
    * Check if backup is still running
    */
   isActive(): boolean {
-    return (
-      this.status === BackupStatus.PENDING ||
-      this.status === BackupStatus.IN_PROGRESS
-    );
+    return this.status === BackupStatus.PENDING || this.status === BackupStatus.IN_PROGRESS;
   }
 
   /**

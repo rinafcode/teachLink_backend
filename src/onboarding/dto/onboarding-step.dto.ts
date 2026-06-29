@@ -1,13 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  IsEnum,
-  IsBoolean,
-  IsObject,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsBoolean, IsObject, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OnboardingStepType, OnboardingStepStatus } from '../entities/onboarding-step.entity';
 

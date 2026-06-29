@@ -76,7 +76,7 @@ export class CapacityPlanningService implements OnModuleInit, OnModuleDestroy {
         });
       }
     } catch (err) {
-      this.logger.error('Capacity planning failed: ' + (err as Error).message);
+      this.logger.error(`Capacity planning failed: ${(err as Error).message}`);
     }
   }
 
@@ -94,9 +94,13 @@ export class CapacityPlanningService implements OnModuleInit, OnModuleDestroy {
       // Not enough data — return conservative flat forecast
       const latest = this.samples[this.samples.length - 1];
       const util = latest
-        ? (latest.totalJobsProcessed * latest.averageExecutionTimeMs) / (latest.totalWorkers * 60_000)
+        ? (latest.totalJobsProcessed * latest.averageExecutionTimeMs) /
+          (latest.totalWorkers * 60_000)
         : 0;
-      return Array.from({ length: minutes }, (_, i) => ({ minutesAhead: i + 1, utilization: util }));
+      return Array.from({ length: minutes }, (_, i) => ({
+        minutesAhead: i + 1,
+        utilization: util,
+      }));
     }
 
     // Build time series for jobs per minute
@@ -184,7 +188,12 @@ export class CapacityPlanningService implements OnModuleInit, OnModuleDestroy {
 
       const utilization = (jobsPerMinute * avgExec) / (Math.max(1, currentWorkers) * 60000);
       const recommendedWorkers = this.recommendWorkers(utilization, currentWorkers);
-      const reason = utilization >= 0.9 ? 'projected high utilization' : utilization >= 0.6 ? 'above target' : 'within target';
+      const reason =
+        utilization >= 0.9
+          ? 'projected high utilization'
+          : utilization >= 0.6
+            ? 'above target'
+            : 'within target';
 
       results.push({
         workerType,

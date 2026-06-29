@@ -9,11 +9,9 @@ import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } f
 export class AddCourseBulkOperations1748600000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. category column on course
+    await queryRunner.query('ALTER TABLE "course" ADD COLUMN IF NOT EXISTS "category" varchar');
     await queryRunner.query(
-      `ALTER TABLE "course" ADD COLUMN IF NOT EXISTS "category" varchar`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_course_category" ON "course" ("category")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_course_category" ON "course" ("category")',
     );
 
     // 2. enums for the new table
@@ -50,10 +48,10 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
             name: 'status',
             type: 'course_bulk_operations_status_enum',
             isNullable: false,
-            default: `'completed'`,
+            default: "'completed'",
           },
           { name: 'payload', type: 'jsonb', isNullable: false },
-          { name: 'snapshots', type: 'jsonb', isNullable: false, default: `'[]'::jsonb` },
+          { name: 'snapshots', type: 'jsonb', isNullable: false, default: "'[]'::jsonb" },
           { name: 'totalCount', type: 'int', isNullable: false, default: 0 },
           { name: 'successCount', type: 'int', isNullable: false, default: 0 },
           { name: 'failureCount', type: 'int', isNullable: false, default: 0 },
@@ -90,9 +88,9 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('course_bulk_operations', true);
-    await queryRunner.query(`DROP TYPE IF EXISTS "course_bulk_operations_type_enum"`);
-    await queryRunner.query(`DROP TYPE IF EXISTS "course_bulk_operations_status_enum"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_course_category"`);
-    await queryRunner.query(`ALTER TABLE "course" DROP COLUMN IF EXISTS "category"`);
+    await queryRunner.query('DROP TYPE IF EXISTS "course_bulk_operations_type_enum"');
+    await queryRunner.query('DROP TYPE IF EXISTS "course_bulk_operations_status_enum"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_course_category"');
+    await queryRunner.query('ALTER TABLE "course" DROP COLUMN IF EXISTS "category"');
   }
 }

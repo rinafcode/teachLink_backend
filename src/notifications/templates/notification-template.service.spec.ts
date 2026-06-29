@@ -52,6 +52,23 @@ describe('NotificationTemplateService', () => {
       expect(result.subject).toBeUndefined();
       expect(result.body).toContain('Ada');
     });
+
+    it('should sanitize XSS payloads in template variables', () => {
+      const xssTemplate = {
+        ...mockTemplate,
+        bodyTemplate: '<p>Hello {{userName}}, your course is {{courseName}}</p>',
+      };
+      const result = service.render(xssTemplate, {
+        userName: '<script>alert("xss")</script>',
+        courseName: '<img src=x onerror=alert(1)>',
+      });
+      // Verify that the malicious scripts are escaped/sanitized
+      expect(result.body).not.toContain('<script>');
+      expect(result.body).not.toContain('onerror=alert(1)');
+      // Verify the content is still present but escaped
+      expect(result.body).toContain('alert(&quot;xss&quot;)');
+      expect(result.body).toContain('&lt;img src=x');
+    });
   });
 
   describe('renderByName', () => {
@@ -61,12 +78,21 @@ describe('NotificationTemplateService', () => {
     });
 
     it('should select channel-specific templates by channel', async () => {
-      const channelTemplate = { ...mockTemplate, channel: NotificationType.IN_APP, subjectTemplate: null };
+      const channelTemplate = {
+        ...mockTemplate,
+        channel: NotificationType.IN_APP,
+        subjectTemplate: null,
+      };
       (service as any).templateRepository = {
         findOne: jest.fn().mockResolvedValue(channelTemplate),
       } as any;
 
-      const result = await service.renderByName('welcome', { name: 'Bob' }, undefined, NotificationType.IN_APP);
+      const result = await service.renderByName(
+        'welcome',
+        { name: 'Bob' },
+        undefined,
+        NotificationType.IN_APP,
+      );
       expect(result.body).toContain('Bob');
       expect(result.subject).toBeUndefined();
     });

@@ -17,8 +17,8 @@ import { CourseModule } from './course-module.entity';
  * Represents an individual lesson within a course module.
  */
 @Entity('lessons')
-@Check(`"order" >= 0`)
-@Check(`"duration_seconds" >= 0`)
+@Check('"order" >= 0')
+@Check('"duration_seconds" >= 0')
 export class Lesson {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -82,14 +82,10 @@ export class Lesson {
   /**
    * Parent module relationship.
    */
-  @ManyToOne(
-    () => CourseModule,
-    (module) => module.lessons,
-    {
-      nullable: false,
-      onDelete: 'CASCADE',
-    },
-  )
+  @ManyToOne(() => CourseModule, (module) => module.lessons, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'module_id' })
   module: CourseModule;
 

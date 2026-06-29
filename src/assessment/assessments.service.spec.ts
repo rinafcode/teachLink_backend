@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { AssessmentsService } from './assessments.service';
 import { Assessment } from './entities/assessment.entity';
 import { AssessmentAttempt } from './entities/assessment-attempt.entity';
@@ -271,14 +272,18 @@ describe('AssessmentsService', () => {
   describe('submitAssessment', () => {
     it('throws NotFoundException when attempt is not found', async () => {
       attemptRepo.findOne.mockResolvedValue(null);
-      await expect(service.submitAssessment('missing', [])).rejects.toThrow(NotFoundException);
+      await expect(service.submitAssessment('missing', [])).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
     it('throws NotFoundException when attempt has no questions', async () => {
       attemptRepo.findOne.mockResolvedValue(
         makeAttempt({ assessment: { ...makeAssessment(), questions: undefined } }),
       );
-      await expect(service.submitAssessment('attempt-1', [])).rejects.toThrow(NotFoundException);
+      await expect(service.submitAssessment('attempt-1', [])).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
     it('marks attempt TIMED_OUT and fires timeout analytics when past deadline', async () => {
@@ -287,7 +292,10 @@ describe('AssessmentsService', () => {
         assessment: makeAssessment({ durationMinutes: 1 }),
       });
       attemptRepo.findOne.mockResolvedValue(timedOutAttempt);
-      attemptRepo.save.mockResolvedValue({ ...timedOutAttempt, status: AssessmentStatus.TIMED_OUT });
+      attemptRepo.save.mockResolvedValue({
+        ...timedOutAttempt,
+        status: AssessmentStatus.TIMED_OUT,
+      });
 
       await service.submitAssessment('attempt-1', []);
 
@@ -323,7 +331,11 @@ describe('AssessmentsService', () => {
       // One saved answer per question
       expect(answerRepo.save).toHaveBeenCalledTimes(2);
       expect(answerRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ question: activeAttempt.assessment.questions[0], response: 'A', awardedPoints: 10 }),
+        expect.objectContaining({
+          question: activeAttempt.assessment.questions[0],
+          response: 'A',
+          awardedPoints: 10,
+        }),
       );
 
       expect(attemptRepo.save).toHaveBeenCalledWith(
@@ -338,12 +350,14 @@ describe('AssessmentsService', () => {
       });
       attemptRepo.findOne.mockResolvedValue(activeAttempt);
       // q-1 = 10pts correct, q-2 = 0pts wrong → score 10 out of 15
-      scoringService.calculate
-        .mockReturnValueOnce(10)
-        .mockReturnValueOnce(0);
+      scoringService.calculate.mockReturnValueOnce(10).mockReturnValueOnce(0);
       feedbackService.generate.mockReturnValue('Good job');
       answerRepo.save.mockResolvedValue({});
-      attemptRepo.save.mockResolvedValue({ ...activeAttempt, score: 10, status: AssessmentStatus.GRADED });
+      attemptRepo.save.mockResolvedValue({
+        ...activeAttempt,
+        score: 10,
+        status: AssessmentStatus.GRADED,
+      });
 
       await service.submitAssessment('attempt-1', []);
 
@@ -362,9 +376,16 @@ describe('AssessmentsService', () => {
       scoringService.calculate.mockReturnValue(0);
       feedbackService.generate.mockReturnValue('Keep practising');
       answerRepo.save.mockResolvedValue({});
-      attemptRepo.save.mockResolvedValue({ ...activeAttempt, score: 0, status: AssessmentStatus.GRADED });
+      attemptRepo.save.mockResolvedValue({
+        ...activeAttempt,
+        score: 0,
+        status: AssessmentStatus.GRADED,
+      });
 
-      const result = (await service.submitAssessment('attempt-1', [])) as { attempt: any; feedback: string };
+      const result = (await service.submitAssessment('attempt-1', [])) as {
+        attempt: any;
+        feedback: string;
+      };
 
       expect(attemptRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({ score: 0, status: AssessmentStatus.GRADED }),

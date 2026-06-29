@@ -1,0 +1,8 @@
+*.tgz
+*.bak
+*.swp
+.DS_Store
+.git
+.gitignore
+node_modules
+README.md

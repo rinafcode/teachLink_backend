@@ -18,11 +18,7 @@ export interface PendingWsMessage {
 /**
  * Exponential backoff delay in ms: base * 2^attempt, capped at maxMs.
  */
-export function calculateReconnectDelay(
-  attempt: number,
-  baseMs = 1000,
-  maxMs = 30_000,
-): number {
+export function calculateReconnectDelay(attempt: number, baseMs = 1000, maxMs = 30_000): number {
   const delay = baseMs * Math.pow(2, Math.min(attempt, 10));
   return Math.min(delay, maxMs);
 }
@@ -30,6 +26,9 @@ export function calculateReconnectDelay(
 /**
  * Returns true when pending queue exceeds backpressure threshold.
  */
-export function isBackpressureActive(pendingCount: number, maxPending = WS_MAX_PENDING_MESSAGES): boolean {
+export function isBackpressureActive(
+  pendingCount: number,
+  maxPending = WS_MAX_PENDING_MESSAGES,
+): boolean {
   return pendingCount >= maxPending * 0.9;
 }

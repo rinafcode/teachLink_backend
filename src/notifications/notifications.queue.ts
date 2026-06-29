@@ -1,11 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  SQSClient,
-  SendMessageCommand,
-  ReceiveMessageCommand,
-  DeleteMessageCommand,
-} from '@aws-sdk/client-sqs';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -34,8 +29,10 @@ export class NotificationsQueueService {
   /**
    * Publish notification to SNS topic
    */
-  async publishToTopic(notification: Notification, options?: { bypassBatch?: boolean }): Promise<void> {
-  async publishToTopic(notification: Notification): Promise<void> {
+  async publishToTopic(
+    notification: Notification,
+    options?: { bypassBatch?: boolean },
+  ): Promise<void> {
     if (!this.snsTopicArn || !this.queueUrl) {
       this.logger.warn(
         `AWS SNS/SQS not configured; marking notification ${notification.id} as sent (dev mode)`,
@@ -62,7 +59,12 @@ export class NotificationsQueueService {
         MessageAttributes: {
           type: { DataType: 'String', StringValue: notification.type },
           priority: { DataType: 'String', StringValue: notification.priority },
-          batch: { DataType: 'String', StringValue: String(payload.bypassBatch ? 'false' : Boolean(notification.metadata?.batched)) },
+          batch: {
+            DataType: 'String',
+            StringValue: String(
+              payload.bypassBatch ? 'false' : Boolean(notification.metadata?.batched),
+            ),
+          },
         },
       });
 

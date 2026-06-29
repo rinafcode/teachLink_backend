@@ -1,13 +1,14 @@
 import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { describe, it, expect } from 'vitest';
 import { EscalateIncidentDto, ResolveIncidentDto } from './incident-resolution.dto';
 
 describe('ResolveIncidentDto', () => {
   it('accepts valid resolution notes', async () => {
     const errors = await validate(
-      plainToInstance(ResolveIncidentDto, { resolutionNotes: 'Restarted the service successfully.' }),
+      plainToInstance(ResolveIncidentDto, {
+        resolutionNotes: 'Restarted the service successfully.',
+      }),
     );
     expect(errors).toHaveLength(0);
   });

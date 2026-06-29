@@ -9,11 +9,7 @@ import { DataSource, Repository } from 'typeorm';
 import { Rubric } from './entities/rubric.entity';
 import { RubricCriterion } from './entities/rubric-criterion.entity';
 import { RubricLevel } from './entities/rubric-level.entity';
-import {
-  CreateRubricCriterionDto,
-  CreateRubricDto,
-  UpdateRubricDto,
-} from './dto/rubric.dto';
+import { CreateRubricCriterionDto, CreateRubricDto, UpdateRubricDto } from './dto/rubric.dto';
 
 /**
  * Manages rubric definitions: a `Rubric` is the parent record, holding
@@ -45,7 +41,7 @@ export class RubricsService {
   async create(dto: CreateRubricDto, ownerId?: string): Promise<Rubric> {
     this.validateCriteria(dto.criteria, dto.autoGradeEnabled === true);
 
-    return this.dataSource.transaction(async manager => {
+    return this.dataSource.transaction(async (manager) => {
       const rubricRepo = manager.getRepository(Rubric);
       const criterionRepo = manager.getRepository(RubricCriterion);
       const levelRepo = manager.getRepository(RubricLevel);
@@ -140,7 +136,7 @@ export class RubricsService {
 
     if (dto.autoGradeEnabled !== undefined) {
       if (dto.autoGradeEnabled) {
-        const missing = (rubric.criteria ?? []).filter(c => !c.defaultLevelId);
+        const missing = (rubric.criteria ?? []).filter((c) => !c.defaultLevelId);
         if (missing.length > 0) {
           throw new BadRequestException(
             'Cannot enable auto-grading: some criteria have no default level set.',
@@ -173,7 +169,7 @@ export class RubricsService {
     }
     // Sort criteria and their levels by orderIndex for a stable scoring UI.
     rubric.criteria?.sort((a, b) => a.orderIndex - b.orderIndex);
-    rubric.criteria?.forEach(c => c.levels?.sort((a, b) => a.orderIndex - b.orderIndex));
+    rubric.criteria?.forEach((c) => c.levels?.sort((a, b) => a.orderIndex - b.orderIndex));
     return rubric;
   }
 
@@ -185,7 +181,7 @@ export class RubricsService {
       if (!c.levels || c.levels.length === 0) {
         throw new BadRequestException(`Criterion "${c.title}" must have at least one level.`);
       }
-      const maxLevelPoints = Math.max(...c.levels.map(l => l.points));
+      const maxLevelPoints = Math.max(...c.levels.map((l) => l.points));
       if (Number(c.maxPoints) < maxLevelPoints) {
         throw new BadRequestException(
           `Criterion "${c.title}" maxPoints (${c.maxPoints}) is less than its top level points (${maxLevelPoints}).`,

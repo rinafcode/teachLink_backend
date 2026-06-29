@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { describe, it, expect } from 'vitest';
 import { SubmitAssessmentDto } from './submit-assessment.dto';
 
 describe('SubmitAssessmentDto', () => {
@@ -26,6 +25,7 @@ describe('SubmitAssessmentDto', () => {
       }),
     );
     expect(errors).toHaveLength(1);
-    expect(errors[0].children?.some((child) => child.property === 'questionId')).toBe(true);
+    const itemChildren = errors[0].children?.[0]?.children ?? [];
+    expect(itemChildren.some((child) => child.property === 'questionId')).toBe(true);
   });
 });

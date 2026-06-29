@@ -15,7 +15,8 @@ export class AssessmentAnswerDto {
   questionId: string;
 
   @ApiProperty({
-    description: 'Answer payload for the question. This can be text, choice IDs or structured data depending on question type.',
+    description:
+      'Answer payload for the question. This can be text, choice IDs or structured data depending on question type.',
     example: 'B',
   })
   @IsNotEmpty({ message: 'Answer is required' })

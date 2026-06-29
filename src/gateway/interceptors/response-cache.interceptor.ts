@@ -26,10 +26,7 @@ export class ResponseCacheInterceptor implements NestInterceptor {
     private readonly routing: GatewayRoutingService,
   ) {}
 
-  async intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Promise<Observable<unknown>> {
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     if (!this.cache) return next.handle();
 
     const req = context.switchToHttp().getRequest<Request>();

@@ -1,12 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, type ExecutionContext, type CallHandler } from '@nestjs/common';
 import { of } from 'rxjs';
 import { GatewayRoutingService } from './services/gateway-routing.service';
 import { GatewayRateLimitGuard } from './guards/gateway-rate-limit.guard';
 import { RequestTransformInterceptor } from './interceptors/request-transform.interceptor';
 import { ResponseCacheInterceptor } from './interceptors/response-cache.interceptor';
-import type { ExecutionContext, CallHandler } from '@nestjs/common';
 
 // ─── GatewayRoutingService ────────────────────────────────────────────────────
 
@@ -140,7 +139,10 @@ describe('RequestTransformInterceptor', () => {
   });
 
   it('strips hop-by-hop headers', () => {
-    const headers: Record<string, string> = { connection: 'keep-alive', 'transfer-encoding': 'chunked' };
+    const headers: Record<string, string> = {
+      connection: 'keep-alive',
+      'transfer-encoding': 'chunked',
+    };
     interceptor.intercept(makeCtx(headers), makeHandler());
     expect(headers['connection']).toBeUndefined();
     expect(headers['transfer-encoding']).toBeUndefined();

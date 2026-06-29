@@ -1,11 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  Index,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { RubricCriterion } from './rubric-criterion.entity';
 
 /**
@@ -19,7 +12,7 @@ export class RubricLevel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => RubricCriterion, criterion => criterion.levels, {
+  @ManyToOne(() => RubricCriterion, (criterion) => criterion.levels, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'criterion_id' })

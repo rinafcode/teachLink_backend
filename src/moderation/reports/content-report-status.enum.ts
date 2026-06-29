@@ -4,4 +4,3 @@ export enum ContentReportStatus {
   RESOLVED = 'resolved',
   DISMISSED = 'dismissed',
 }
-

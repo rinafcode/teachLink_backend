@@ -12,7 +12,10 @@ export class PaymentMethodsService {
   ) {}
 
   async listMethods(userId: string): Promise<PaymentMethod[]> {
-    return this.paymentMethodRepository.find({ where: { userId }, order: { isDefault: 'DESC', createdAt: 'DESC' } });
+    return this.paymentMethodRepository.find({
+      where: { userId },
+      order: { isDefault: 'DESC', createdAt: 'DESC' },
+    });
   }
 
   async addMethod(userId: string, dto: CreatePaymentMethodDto): Promise<PaymentMethod> {
@@ -33,7 +36,11 @@ export class PaymentMethodsService {
     return this.paymentMethodRepository.save(paymentMethod);
   }
 
-  async updateMethod(userId: string, id: string, dto: UpdatePaymentMethodDto): Promise<PaymentMethod> {
+  async updateMethod(
+    userId: string,
+    id: string,
+    dto: UpdatePaymentMethodDto,
+  ): Promise<PaymentMethod> {
     const method = await this.requireOwnedMethod(userId, id);
 
     if (dto.isDefault) {

@@ -14,10 +14,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { SubscriptionsService } from './subscriptions.service';
-import { SubscriptionResponseDto } from './dto/subscription-action.dto';
 import {
+  SubscriptionResponseDto,
   PauseSubscriptionDto,
   ResumeSubscriptionDto,
   UpgradeSubscriptionDto,

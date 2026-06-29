@@ -5,13 +5,14 @@ import { In, Repository } from 'typeorm';
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview, ReviewDecision } from './entities/course-review.entity';
+import { CourseVersion, CourseVersionEventType } from './entities/course-version.entity';
 import {
   BulkCourseSnapshot,
   BulkOperation,
   BulkOperationStatus,
   BulkOperationType,
 } from './entities/bulk-operation.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
@@ -26,6 +27,9 @@ import {
   BulkPriceUpdateDto,
   BulkPublishDto,
 } from './dto/bulk-operations.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 /**
  * Maps a ReviewDecision to the resulting CourseStatus after the decision.
@@ -46,6 +50,8 @@ export class CoursesService {
     private readonly courseRepo: Repository<Course>,
     @InjectRepository(CourseReview)
     private readonly reviewRepo: Repository<CourseReview>,
+    @InjectRepository(CourseVersion)
+    private readonly versionRepo: Repository<CourseVersion>,
     @InjectRepository(BulkOperation)
     private readonly bulkOpRepo: Repository<BulkOperation>,
     private readonly eventEmitter: EventEmitter2,
@@ -77,24 +83,45 @@ export class CoursesService {
       prerequisite,
     });
     const saved = await this.courseRepo.save(course);
+    const version = this.versionRepo.create({
+      courseId: saved.id,
+      versionNumber: 1,
+      eventType: CourseVersionEventType.CREATED,
+      title: saved.title,
+      description: saved.description,
+      price: saved.price,
+      thumbnailUrl: saved.thumbnailUrl,
+      status: saved.status,
+    });
+    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
     return saved;
   }
 
   /**
-   * Returns all courses. Admins/moderators see every status; others see only published.
+   * Returns all courses with pagination. Admins/moderators see every status; others see only published.
    */
-  async findAll(requestingUser?: User): Promise<Course[]> {
+  async findAll(
+    requestingUser?: User,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Course>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
     const isPrivileged =
-      requestingUser && [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
+      requestingUser &&
+      requestingUser.roles?.some((role) =>
+        ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+      );
 
-    if (isPrivileged) {
-      return this.courseRepo.find({ order: { createdAt: 'DESC' } });
-    }
-    return this.courseRepo.find({
-      where: { status: CourseStatus.PUBLISHED },
+    const where = isPrivileged ? {} : { status: CourseStatus.PUBLISHED };
+    const [data, total] = await this.courseRepo.findAndCount({
+      where,
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   /**
@@ -134,6 +161,22 @@ export class CoursesService {
 
     Object.assign(course, dto, { prerequisite: course.prerequisite });
     const saved = await this.courseRepo.save(course);
+    const previousVersion = await this.versionRepo.findOne({
+      where: { courseId: saved.id },
+      order: { versionNumber: 'DESC' },
+    });
+    const nextVersionNumber = previousVersion ? previousVersion.versionNumber + 1 : 1;
+    const version = this.versionRepo.create({
+      courseId: saved.id,
+      versionNumber: nextVersionNumber,
+      eventType: CourseVersionEventType.UPDATED,
+      title: saved.title,
+      description: saved.description,
+      price: saved.price,
+      thumbnailUrl: saved.thumbnailUrl,
+      status: saved.status,
+    });
+    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
     return saved;
   }
@@ -160,7 +203,7 @@ export class CoursesService {
     if (course.status !== CourseStatus.DRAFT && course.status !== CourseStatus.CHANGES_REQUESTED) {
       throw new BusinessValidationException(
         `Cannot submit a course with status "${course.status}" for review. ` +
-          `Only DRAFT or CHANGES_REQUESTED courses may be submitted.`,
+          'Only DRAFT or CHANGES_REQUESTED courses may be submitted.',
       );
     }
 
@@ -212,6 +255,121 @@ export class CoursesService {
   }
 
   /**
+   * Returns the full version history for a course.
+   */
+  async getVersionHistory(id: string): Promise<CourseVersion[]> {
+    await this.findOne(id);
+    return this.versionRepo.find({
+      where: { courseId: id },
+      relations: ['changedBy'],
+      order: { versionNumber: 'DESC' },
+    });
+  }
+
+  async getVersionDiff(id: string, versionNumber: number) {
+    const currentCourse = await this.findOne(id);
+    const version = await this.findVersion(id, versionNumber);
+    return this.computeCourseChanges(version, currentCourse);
+  }
+
+  async rollbackToVersion(
+    id: string,
+    versionNumber: number,
+    requestingUser?: User,
+  ): Promise<Course> {
+    const course = await this.findOne(id);
+    if (requestingUser) {
+      this.assertOwnerOrPrivileged(course, requestingUser);
+    }
+    const version = await this.findVersion(id, versionNumber);
+
+    Object.assign(course, {
+      title: version.title,
+      description: version.description,
+      price: Number(version.price),
+      thumbnailUrl: version.thumbnailUrl,
+      status: version.status,
+      submissionNote: version.submissionNote,
+    });
+
+    const rolledBackCourse = await this.courseRepo.save(course);
+    await this.createVersionSnapshot(
+      rolledBackCourse,
+      requestingUser?.id,
+      CourseVersionEventType.ROLLEDBACK,
+    );
+    return rolledBackCourse;
+  }
+
+  private async findVersion(courseId: string, versionNumber: number): Promise<CourseVersion> {
+    const version = await this.versionRepo.findOne({
+      where: { courseId, versionNumber },
+    });
+    if (!version) {
+      throw new ResourceNotFoundException('Course Version', `${versionNumber}`);
+    }
+    return version;
+  }
+
+  private async createVersionSnapshot(
+    course: Course,
+    changedByUserId?: string,
+    eventType: CourseVersionEventType = CourseVersionEventType.UPDATED,
+  ): Promise<CourseVersion> {
+    const previousVersion = await this.versionRepo.findOne({
+      where: { courseId: course.id },
+      order: { versionNumber: 'DESC' },
+    });
+
+    const versionNumber = previousVersion ? previousVersion.versionNumber + 1 : 1;
+    const changes = this.computeCourseChanges(previousVersion, course);
+
+    const courseVersion = this.versionRepo.create({
+      courseId: course.id,
+      versionNumber,
+      eventType,
+      changedByUserId,
+      title: course.title,
+      description: course.description,
+      price: course.price,
+      thumbnailUrl: course.thumbnailUrl,
+      status: course.status,
+      submissionNote: course.submissionNote,
+      changes: Object.keys(changes).length ? changes : null,
+    });
+
+    return this.versionRepo.save(courseVersion);
+  }
+
+  private computeCourseChanges(
+    previous: Partial<CourseVersion> | null,
+    current: Partial<Course>,
+  ): Record<string, { previous: unknown; next: unknown }> {
+    const trackedFields: Array<keyof Course> = [
+      'title',
+      'description',
+      'price',
+      'thumbnailUrl',
+      'status',
+      'submissionNote',
+    ];
+    const changes: Record<string, { previous: unknown; next: unknown }> = {};
+
+    trackedFields.forEach((field) => {
+      const previousValue = previous ? previous[field] : undefined;
+      const currentValue = current[field];
+      if (previousValue !== currentValue) {
+        changes[field as string] = {
+          previous: previousValue ?? null,
+          next: currentValue ?? null,
+        };
+      }
+    });
+
+    return changes;
+  }
+
+  /**
    * Returns all courses currently awaiting moderation.
    */
   async getPendingQueue(requestingUser: User): Promise<Course[]> {
@@ -232,14 +390,19 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
+    const isPrivileged = user.roles?.some((role) =>
+      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+    );
+    if (!isPrivileged) {
       throw new ForbiddenOperationException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles?.some((role) =>
+      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+    );
     if (!isOwner && !isPrivileged) {
       throw new ForbiddenOperationException('Insufficient permissions.');
     }
@@ -268,7 +431,7 @@ export class CoursesService {
       payload: { publish: dto.publish, targetStatus },
       courseIds: dto.courseIds,
       user,
-      apply: course => {
+      apply: (course) => {
         const previous: BulkCourseSnapshot['previous'] = { status: course.status };
         course.status = targetStatus;
         return previous;
@@ -285,7 +448,7 @@ export class CoursesService {
       payload: { price: dto.price },
       courseIds: dto.courseIds,
       user,
-      apply: course => {
+      apply: (course) => {
         const previous: BulkCourseSnapshot['previous'] = { price: Number(course.price) };
         course.price = dto.price;
         return previous;
@@ -304,7 +467,7 @@ export class CoursesService {
       payload: { category: nextCategory },
       courseIds: dto.courseIds,
       user,
-      apply: course => {
+      apply: (course) => {
         const previous: BulkCourseSnapshot['previous'] = {
           category: course.category ?? null,
         };
@@ -338,25 +501,27 @@ export class CoursesService {
     }
 
     const isInitiator = op.initiatedById === user.id;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
+    const isPrivileged = user.roles.some((role) => ['admin', 'moderator'].includes(role.name));
     if (!isInitiator && !isPrivileged) {
-      throw new ForbiddenOperationException('Only the initiator or an admin/moderator may undo this operation.');
+      throw new ForbiddenOperationException(
+        'Only the initiator or an admin/moderator may undo this operation.',
+      );
     }
 
     if (op.status === BulkOperationStatus.UNDONE) {
       throw new BusinessValidationException('This bulk operation has already been undone.');
     }
 
-    const appliedSnapshots = (op.snapshots ?? []).filter(s => s.applied);
+    const appliedSnapshots = (op.snapshots ?? []).filter((s) => s.applied);
     if (appliedSnapshots.length === 0) {
       op.status = BulkOperationStatus.UNDONE;
       op.undoneAt = new Date();
       return this.bulkOpRepo.save(op);
     }
 
-    const courseIds = appliedSnapshots.map(s => s.courseId);
+    const courseIds = appliedSnapshots.map((s) => s.courseId);
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
-    const courseById = new Map(courses.map(c => [c.id, c]));
+    const courseById = new Map(courses.map((c) => [c.id, c]));
 
     const restored: Course[] = [];
     for (const snap of appliedSnapshots) {
@@ -377,9 +542,7 @@ export class CoursesService {
 
     if (restored.length > 0) {
       await this.courseRepo.save(restored);
-      restored.forEach(c =>
-        this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }),
-      );
+      restored.forEach((c) => this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }));
     }
 
     op.status = BulkOperationStatus.UNDONE;
@@ -400,10 +563,10 @@ export class CoursesService {
     apply: (course: Course) => BulkCourseSnapshot['previous'];
   }): Promise<BulkOperation> {
     const { type, payload, courseIds, user, apply } = args;
-    const isPrivileged = user.roles.some(role => ['admin', 'moderator'].includes(role.name));
+    const isPrivileged = user.roles.some((role) => ['admin', 'moderator'].includes(role.name));
 
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
-    const found = new Map(courses.map(c => [c.id, c]));
+    const found = new Map(courses.map((c) => [c.id, c]));
 
     const snapshots: BulkCourseSnapshot[] = [];
     const toSave: Course[] = [];
@@ -435,12 +598,10 @@ export class CoursesService {
 
     if (toSave.length > 0) {
       await this.courseRepo.save(toSave);
-      toSave.forEach(c =>
-        this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }),
-      );
+      toSave.forEach((c) => this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }));
     }
 
-    const successCount = snapshots.filter(s => s.applied).length;
+    const successCount = snapshots.filter((s) => s.applied).length;
     const failureCount = snapshots.length - successCount;
     let status: BulkOperationStatus;
     if (successCount === 0) {

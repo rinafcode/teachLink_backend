@@ -18,10 +18,7 @@ describe('TiersService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TiersService,
-        { provide: getRepositoryToken(TierReward), useFactory: mockRepo },
-      ],
+      providers: [TiersService, { provide: getRepositoryToken(TierReward), useFactory: mockRepo }],
     }).compile();
 
     service = module.get(TiersService);
@@ -46,7 +43,8 @@ describe('TiersService', () => {
   });
 
   describe('getNextTier', () => {
-    it('returns SILVER for BRONZE', () => expect(service.getNextTier(Tier.BRONZE)).toBe(Tier.SILVER));
+    it('returns SILVER for BRONZE', () =>
+      expect(service.getNextTier(Tier.BRONZE)).toBe(Tier.SILVER));
     it('returns GOLD for SILVER', () => expect(service.getNextTier(Tier.SILVER)).toBe(Tier.GOLD));
     it('returns null for DIAMOND', () => expect(service.getNextTier(Tier.DIAMOND)).toBeNull());
   });

@@ -4,7 +4,14 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { NotificationsQueueService } from './notifications.queue';
-import { Notification, NotificationPriority, NotificationStatus, NotificationType } from './entities/notification.entity';
+import { PreferencesService } from './preferences/preferences.service';
+import { NotificationTemplateService } from './templates/notification-template.service';
+import {
+  Notification,
+  NotificationPriority,
+  NotificationStatus,
+  NotificationType,
+} from './entities/notification.entity';
 
 const mockRepository = {
   findOne: jest.fn(),
@@ -37,6 +44,22 @@ describe('NotificationsService', () => {
         { provide: ConfigService, useValue: mockConfig },
         { provide: getRepositoryToken(Notification), useValue: mockRepository },
         { provide: NotificationsQueueService, useValue: mockQueue },
+        {
+          provide: PreferencesService,
+          useValue: {
+            getPreferences: jest.fn().mockResolvedValue({ channels: { email: true, push: true } }),
+            isChannelEnabled: jest.fn().mockResolvedValue(true),
+            updatePreferences: jest.fn(),
+          },
+        },
+        {
+          provide: NotificationTemplateService,
+          useValue: {
+            renderByName: jest
+              .fn()
+              .mockResolvedValue({ subject: 'Test', body: 'Test', templateVersion: 1 }),
+          },
+        },
       ],
     }).compile();
 
@@ -46,7 +69,15 @@ describe('NotificationsService', () => {
   afterEach(() => jest.clearAllMocks());
 
   it('should deduplicate identical pending notifications within the batch window', async () => {
-    const existing = { id: 'n1', userId: 'user1', title: 'New course', content: 'New content', type: NotificationType.EMAIL, status: NotificationStatus.PENDING, createdAt: new Date() };
+    const existing = {
+      id: 'n1',
+      userId: 'user1',
+      title: 'New course',
+      content: 'New content',
+      type: NotificationType.EMAIL,
+      status: NotificationStatus.PENDING,
+      createdAt: new Date(),
+    };
     mockRepository.findOne.mockResolvedValue(existing);
 
     const result = await service.send({
@@ -63,7 +94,17 @@ describe('NotificationsService', () => {
 
   it('should publish urgent notifications immediately', async () => {
     mockRepository.findOne.mockResolvedValue(null);
-    const saved = { id: 'n2', userId: 'user1', title: 'Urgent', content: 'Please respond', type: NotificationType.SMS, priority: NotificationPriority.URGENT, status: NotificationStatus.SENT, deliveryAttempts: 0, createdAt: new Date() };
+    const saved = {
+      id: 'n2',
+      userId: 'user1',
+      title: 'Urgent',
+      content: 'Please respond',
+      type: NotificationType.SMS,
+      priority: NotificationPriority.URGENT,
+      status: NotificationStatus.SENT,
+      deliveryAttempts: 0,
+      createdAt: new Date(),
+    };
     mockRepository.save.mockResolvedValue(saved);
 
     const result = await service.send({
@@ -77,13 +118,8 @@ describe('NotificationsService', () => {
     expect(mockQueue.publishToTopic).toHaveBeenCalledWith(saved, { bypassBatch: true });
     expect(mockRepository.update).toHaveBeenCalledWith(saved.id, expect.any(Object));
     expect(result).toEqual(saved);
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Notification } from './entities/notification.entity';
-import { NotificationsService } from './notifications.service';
-import { NotificationTemplateService } from './templates/notification-template.service';
-import { PreferencesService } from './preferences/preferences.service';
-import { NotificationsQueueService } from './notifications.queue';
-import { NotificationType } from './entities/notification.entity';
+  });
+});
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -107,7 +143,7 @@ describe('NotificationsService', () => {
       topicSubscriptions: {},
       eventFrequency: {},
       quietTimeStart: '00:00',
-      quietTimeEnd: '23:59',
+      quietTimeEnd: '00:01',
     });
     preferencesService.isChannelEnabled.mockResolvedValue(true);
     templateService.renderByName.mockResolvedValue({
@@ -126,6 +162,7 @@ describe('NotificationsService', () => {
         { provide: PreferencesService, useValue: preferencesService },
         { provide: NotificationsQueueService, useValue: queueService },
         { provide: NotificationTemplateService, useValue: templateService },
+        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue(null) } },
       ],
     }).compile();
 

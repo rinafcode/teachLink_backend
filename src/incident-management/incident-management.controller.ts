@@ -14,14 +14,14 @@ import { IncidentManagementService } from './incident-management.service';
 import {
   CreateIncidentDto,
   UpdateIncidentDto,
+  ResolveIncidentDto,
+  EscalateIncidentDto,
   GetIncidentsQueryDto,
   IncidentResponseDto,
   CreateRemediationActionDto,
   RemediationActionResponseDto,
   CreateRunbookExecutionDto,
   RunbookExecutionResponseDto,
-  ResolveIncidentDto,
-  EscalateIncidentDto,
 } from './dto';
 import { Incident } from './entities/incident.entity';
 import { RemediationAction } from './entities/remediation-action.entity';
@@ -38,13 +38,9 @@ export class IncidentManagementController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createIncident(
-    @Body() createIncidentDto: CreateIncidentDto,
-  ): Promise<IncidentResponseDto> {
+  async createIncident(@Body() createIncidentDto: CreateIncidentDto): Promise<IncidentResponseDto> {
     this.logger.log(`Creating incident: ${createIncidentDto.title}`);
-    const incident = await this.incidentManagementService.createIncident(
-      createIncidentDto,
-    );
+    const incident = await this.incidentManagementService.createIncident(createIncidentDto);
     return this.mapIncidentToDto(incident);
   }
 
@@ -66,12 +62,8 @@ export class IncidentManagementController {
    * Get incident by ID
    */
   @Get(':incidentId')
-  async getIncidentById(
-    @Param('incidentId') incidentId: string,
-  ): Promise<IncidentResponseDto> {
-    const incident = await this.incidentManagementService.getIncidentById(
-      incidentId,
-    );
+  async getIncidentById(@Param('incidentId') incidentId: string): Promise<IncidentResponseDto> {
+    const incident = await this.incidentManagementService.getIncidentById(incidentId);
     if (!incident) {
       throw new Error(`Incident not found: ${incidentId}`);
     }
@@ -136,11 +128,10 @@ export class IncidentManagementController {
     @Body() createDto: CreateRemediationActionDto,
   ): Promise<RemediationActionResponseDto> {
     this.logger.log(`Creating remediation action for incident: ${incidentId}`);
-    const remediationAction =
-      await this.incidentManagementService.createRemediationAction({
-        ...createDto,
-        incidentId,
-      });
+    const remediationAction = await this.incidentManagementService.createRemediationAction({
+      ...createDto,
+      incidentId,
+    });
     return this.mapRemediationActionToDto(remediationAction);
   }
 
@@ -152,9 +143,7 @@ export class IncidentManagementController {
     @Param('incidentId') incidentId: string,
   ): Promise<RemediationActionResponseDto[]> {
     const actions =
-      await this.incidentManagementService.getRemediationActionsForIncident(
-        incidentId,
-      );
+      await this.incidentManagementService.getRemediationActionsForIncident(incidentId);
     return actions.map((action) => this.mapRemediationActionToDto(action));
   }
 
@@ -183,9 +172,7 @@ export class IncidentManagementController {
     @Param('incidentId') incidentId: string,
   ): Promise<RunbookExecutionResponseDto[]> {
     const executions =
-      await this.incidentManagementService.getRunbookExecutionsForIncident(
-        incidentId,
-      );
+      await this.incidentManagementService.getRunbookExecutionsForIncident(incidentId);
     return executions.map((execution) => this.mapRunbookExecutionToDto(execution));
   }
 
@@ -226,9 +213,7 @@ export class IncidentManagementController {
     };
   }
 
-  private mapRemediationActionToDto(
-    action: RemediationAction,
-  ): RemediationActionResponseDto {
+  private mapRemediationActionToDto(action: RemediationAction): RemediationActionResponseDto {
     return {
       id: action.id,
       incidentId: action.incidentId,
@@ -246,9 +231,7 @@ export class IncidentManagementController {
     };
   }
 
-  private mapRunbookExecutionToDto(
-    execution: RunbookExecution,
-  ): RunbookExecutionResponseDto {
+  private mapRunbookExecutionToDto(execution: RunbookExecution): RunbookExecutionResponseDto {
     return {
       id: execution.id,
       incidentId: execution.incidentId,

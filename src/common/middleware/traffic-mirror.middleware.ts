@@ -56,9 +56,7 @@ export class TrafficMirrorMiddleware implements NestMiddleware {
 
     mirrorReq.on('error', (err) => {
       const duration = Date.now() - startTime;
-      this.logger.warn(
-        `Canary mirror failed [${req.method} ${req.originalUrl}]: ${err.message}`,
-      );
+      this.logger.warn(`Canary mirror failed [${req.method} ${req.originalUrl}]: ${err.message}`);
       this.metrics.recordMirrorResult({
         path: req.originalUrl,
         method: req.method,

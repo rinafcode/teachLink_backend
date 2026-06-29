@@ -46,9 +46,9 @@ export interface BulkOperationPayload {
 }
 
 @Entity('course_bulk_operations')
-@Check(`"totalCount" >= 0`)
-@Check(`"successCount" >= 0`)
-@Check(`"failureCount" >= 0`)
+@Check('"totalCount" >= 0')
+@Check('"successCount" >= 0')
+@Check('"failureCount" >= 0')
 export class BulkOperation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -66,7 +66,7 @@ export class BulkOperation {
     type: 'uuid',
     nullable: true,
   })
-  initiatedBy?: string;
+  initiatedById?: string;
 
   /**
    * User who executed the undo operation.
@@ -179,10 +179,7 @@ export class BulkOperation {
    * Derived helpers
    */
   get isSuccessful(): boolean {
-    return (
-      this.status === BulkOperationStatus.COMPLETED &&
-      this.failureCount === 0
-    );
+    return this.status === BulkOperationStatus.COMPLETED && this.failureCount === 0;
   }
 
   get isPartiallySuccessful(): boolean {
@@ -190,10 +187,7 @@ export class BulkOperation {
   }
 
   get canUndo(): boolean {
-    return (
-      this.status !== BulkOperationStatus.UNDONE &&
-      this.successCount > 0
-    );
+    return this.status !== BulkOperationStatus.UNDONE && this.successCount > 0;
   }
 
   get successRate(): number {

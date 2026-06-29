@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, DataSource, IsNull, Not } from 'typeorm';
+import { Repository, LessThan, DataSource } from 'typeorm';
 import { ArchivedData } from './entities/archived-data.entity';
 import { AuditLog } from '../audit-log/audit-log.entity';
 import { Notification } from '../notifications/entities/notification.entity';
@@ -25,10 +25,12 @@ export class DataRetentionService {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
 
-    this.logger.log(`Purging soft-deleted ${entityName} records older than ${cutoff.toISOString()}`);
+    this.logger.log(
+      `Purging soft-deleted ${entityName} records older than ${cutoff.toISOString()}`,
+    );
 
     const repository = this.dataSource.getRepository(entityClass);
-    
+
     // Find records to purge
     const records = await repository.find({
       where: {
@@ -49,8 +51,8 @@ export class DataRetentionService {
     }
 
     // Hard delete
-    const result = await repository.delete(records.map(r => r.id));
-    
+    const result = await repository.delete(records.map((r) => r.id));
+
     this.logger.log(`Hard deleted ${result.affected} ${entityName} records.`);
     return result.affected || 0;
   }
@@ -66,7 +68,7 @@ export class DataRetentionService {
     this.logger.log(`Purging audit logs older than ${cutoff.toISOString()}`);
 
     const repository = this.dataSource.getRepository(AuditLog);
-    
+
     const records = await repository.find({
       where: {
         timestamp: LessThan(cutoff),
@@ -83,7 +85,7 @@ export class DataRetentionService {
       await this.archiveRecords(records, 'AuditLog');
     }
 
-    const result = await repository.delete(records.map(r => r.id));
+    const result = await repository.delete(records.map((r) => r.id));
     return result.affected || 0;
   }
 
@@ -98,7 +100,7 @@ export class DataRetentionService {
     this.logger.log(`Purging notifications older than ${cutoff.toISOString()}`);
 
     const repository = this.dataSource.getRepository(Notification);
-    
+
     const records = await repository.find({
       where: {
         createdAt: LessThan(cutoff),
@@ -115,7 +117,7 @@ export class DataRetentionService {
       await this.archiveRecords(records, 'Notification');
     }
 
-    const result = await repository.delete(records.map(r => r.id));
+    const result = await repository.delete(records.map((r) => r.id));
     return result.affected || 0;
   }
 
@@ -123,7 +125,7 @@ export class DataRetentionService {
    * Helper to archive records into the ArchivedData table.
    */
   private async archiveRecords(records: any[], entityType: string): Promise<void> {
-    const archives = records.map(record => ({
+    const archives = records.map((record) => ({
       entityType,
       originalId: record.id,
       data: record,

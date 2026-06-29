@@ -34,7 +34,9 @@ export class IndexCreationService {
 
     for (const rec of recommendations) {
       if (createdCount >= this.config.maxCreatePerRun) {
-        results.push(this.skip(rec, `per-run create limit (${this.config.maxCreatePerRun}) reached`));
+        results.push(
+          this.skip(rec, `per-run create limit (${this.config.maxCreatePerRun}) reached`),
+        );
         continue;
       }
 

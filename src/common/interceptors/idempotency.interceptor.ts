@@ -7,15 +7,11 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { ResourceConflictException } from '../exceptions/app.exceptions';
 import { Reflector } from '@nestjs/core';
 import { Observable, of, from } from 'rxjs';
 import { finalize, map, mergeMap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import {
-  IdempotencyRecord,
-  IdempotencyService,
-} from '../services/idempotency.service';
+import { IdempotencyRecord, IdempotencyService } from '../services/idempotency.service';
 import {
   IDEMPOTENCY_DEFAULT_HEADER_NAME,
   IDEMPOTENCY_DEFAULT_LOCK_TTL_MS,
@@ -158,13 +154,16 @@ export class IdempotencyInterceptor implements NestInterceptor {
         : `x-${normalizedHeaderName}`,
     ]);
 
-    const headerValue = [...candidates].reduce<string | string[] | undefined>((value, candidate) => {
-      if (value !== undefined) {
-        return value;
-      }
+    const headerValue = [...candidates].reduce<string | string[] | undefined>(
+      (value, candidate) => {
+        if (value !== undefined) {
+          return value;
+        }
 
-      return request.headers[candidate];
-    }, undefined);
+        return request.headers[candidate];
+      },
+      undefined,
+    );
 
     if (Array.isArray(headerValue)) {
       return headerValue[0];
