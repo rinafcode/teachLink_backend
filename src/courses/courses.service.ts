@@ -12,7 +12,7 @@ import {
   BulkOperationStatus,
   BulkOperationType,
 } from './entities/bulk-operation.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
@@ -108,7 +108,10 @@ export class CoursesService {
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 20;
     const isPrivileged =
-      requestingUser && [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
+      requestingUser &&
+      requestingUser.roles?.some((role) =>
+        ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+      );
 
     const where = isPrivileged ? {} : { status: CourseStatus.PUBLISHED };
     const [data, total] = await this.courseRepo.findAndCount({
@@ -387,14 +390,19 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
+    const isPrivileged = user.roles?.some((role) =>
+      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+    );
+    if (!isPrivileged) {
       throw new ForbiddenOperationException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles?.some((role) =>
+      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+    );
     if (!isOwner && !isPrivileged) {
       throw new ForbiddenOperationException('Insufficient permissions.');
     }
