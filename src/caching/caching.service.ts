@@ -63,7 +63,7 @@ export class CachingService {
   async deleteByPattern(pattern: string): Promise<void> {
     try {
       const store = (this.cacheManager as any).store;
-      
+
       if (store && store.client && typeof store.client.scan === 'function') {
         let cursor = '0';
         do {
@@ -85,7 +85,9 @@ export class CachingService {
         return;
       }
 
-      this.logger.warn(`Pattern deletion not supported by current cache store for pattern: ${pattern}`);
+      this.logger.warn(
+        `Pattern deletion not supported by current cache store for pattern: ${pattern}`,
+      );
     } catch (error: any) {
       this.logger.error(`Failed to delete by pattern ${pattern}: ${error.message}`, error.stack);
     }

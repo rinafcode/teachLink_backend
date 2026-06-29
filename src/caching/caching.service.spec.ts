@@ -20,7 +20,7 @@ describe('CachingService', () => {
     };
     metrics = { updateCacheHitRate: jest.fn() };
     (cacheManager as any).store = {
-      keys: jest.fn().mockResolvedValue(['cache:test:1', 'cache:test:2'])
+      keys: jest.fn().mockResolvedValue(['cache:test:1', 'cache:test:2']),
     };
     service = new CachingService(
       cacheManager as never,
