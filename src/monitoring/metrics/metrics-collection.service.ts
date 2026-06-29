@@ -91,6 +91,15 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Queue job processing duration, labelled by queue_name and job_type */
   public queueProcessingTime: Histogram;
 
+  /** Current number of waiting jobs per queue */
+  public queueWaitingJobs: Gauge;
+
+  /** Current number of active jobs per queue */
+  public queueActiveJobs: Gauge;
+
+  /** Total number of failed jobs per queue */
+  public queueFailedJobs: Gauge;
+
   // ── Business Metrics – Email ───────────────────────────────────────────────
 
   /** Total email campaigns sent, labelled by campaign_type and status */
@@ -211,6 +220,18 @@ export class MetricsCollectionService implements OnModuleInit {
 
   recordQueueProcessingTime(queueName: string, jobType: string, duration: number): void {
     this.queueProcessingTime.observe({ queue_name: queueName, job_type: jobType }, duration);
+  }
+
+  updateQueueWaitingJobs(queueName: string, count: number): void {
+    this.queueWaitingJobs.set({ queue_name: queueName }, count);
+  }
+
+  updateQueueActiveJobs(queueName: string, count: number): void {
+    this.queueActiveJobs.set({ queue_name: queueName }, count);
+  }
+
+  updateQueueFailedJobs(queueName: string, count: number): void {
+    this.queueFailedJobs.set({ queue_name: queueName }, count);
   }
 
   // ── Recording helpers – Email ─────────────────────────────────────────────
@@ -401,6 +422,27 @@ export class MetricsCollectionService implements OnModuleInit {
       help: 'Duration of queue job processing in seconds',
       labelNames: ['queue_name', 'job_type'],
       buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
+      registers: [this.registry],
+    });
+
+    this.queueWaitingJobs = new Gauge({
+      name: 'queue_waiting_jobs',
+      help: 'Current number of waiting jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
+    this.queueActiveJobs = new Gauge({
+      name: 'queue_active_jobs',
+      help: 'Current number of active jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
+    this.queueFailedJobs = new Gauge({
+      name: 'queue_failed_jobs_total',
+      help: 'Total number of failed jobs per queue',
+      labelNames: ['queue_name'],
       registers: [this.registry],
     });
 
