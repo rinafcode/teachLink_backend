@@ -65,9 +65,10 @@ export class SearchService {
     try {
       const qb = this.courseRepository.createQueryBuilder('course');
       if (safeQuery) {
-        qb.where('course.title ILIKE :query OR course.description ILIKE :query', {
-          query: `%${safeQuery}%`,
-        });
+        qb.where(
+          `course.search_vector @@ plainto_tsquery('english', :query)`,
+          { query: safeQuery },
+        );
       }
 
       if (filters?.category) {
@@ -83,6 +84,8 @@ export class SearchService {
       if (sort === 'price_asc') qb.orderBy('course.price', 'ASC');
       else if (sort === 'price_desc') qb.orderBy('course.price', 'DESC');
       else if (sort === 'newest') qb.orderBy('course.createdAt', 'DESC');
+      else if (sort === 'relevance') qb.orderBy('ts_rank(course.search_vector, plainto_tsquery(\'english\', :query))', 'DESC');
+      else if (safeQuery) qb.orderBy('ts_rank(course.search_vector, plainto_tsquery(\'english\', :query))', 'DESC');
       else qb.orderBy('course.createdAt', 'DESC');
 
       const skip = (page - 1) * limit;
