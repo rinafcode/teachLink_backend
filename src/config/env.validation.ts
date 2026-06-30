@@ -41,13 +41,12 @@ export const envValidationSchema = Joi.object({
       }),
     }),
   JWT_PRIVATE_KEY: Joi.string().optional(),
-  JWT_PUBLIC_KEY: Joi.string()
-    .optional()
+  JWT_PUBLIC_KEY: Joi.string().optional()
     .when('JWT_PRIVATE_KEY', {
-      is: Joi.exist(),
-      then: Joi.required(),
-      otherwise: Joi.optional(),
-    }),
+    is: Joi.exist(),
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().min(10).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
