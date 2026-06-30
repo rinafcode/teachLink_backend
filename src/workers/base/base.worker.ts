@@ -1,4 +1,4 @@
-import { Logger, Inject } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import Redis from 'ioredis';
 import { getSharedRedisClient } from '../../config/cache.config';
