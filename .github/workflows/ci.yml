@@ -12,6 +12,31 @@ jobs:
   validate:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: teachlink_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:6
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,8 +57,25 @@ jobs:
       - name: Run lint
         run: pnpm run lint:ci
 
+      - name: Check format
+        run: pnpm run format:check
+
       - name: Check TypeScript errors
         run: pnpm run typecheck
 
       - name: Build application
         run: pnpm run build
+
+      - name: Run unit tests
+        run: pnpm run test:ci
+
+      - name: Run E2E tests
+        run: pnpm run test:e2e
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_NAME: teachlink_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
