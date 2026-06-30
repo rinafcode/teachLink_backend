@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as Handlebars from 'handlebars';
+import sanitizeHtml from 'sanitize-html';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { NotificationType } from '../entities/notification.entity';
 
@@ -36,12 +37,41 @@ export class NotificationTemplateService {
     return template;
   }
 
+  private sanitizeContext(context: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+    const sanitizeOptions: any = {
+      allowedTags: [], // Disallow all HTML tags for most user input
+      allowedAttributes: {},
+    };
+
+    for (const [key, value] of Object.entries(context)) {
+      if (typeof value === 'string') {
+        // URLs are an exception - we need to allow them to work properly
+        if (key.includes('url') || key.includes('link') || key.includes('href')) {
+          sanitized[key] = sanitizeHtml(value, {
+            allowedTags: [],
+            allowedAttributes: {},
+            allowedSchemes: ['http', 'https', 'mailto'],
+          });
+        } else {
+          sanitized[key] = sanitizeHtml(value, sanitizeOptions);
+        }
+      } else if (value && typeof value === 'object') {
+        sanitized[key] = this.sanitizeContext(value as Record<string, unknown>);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    return sanitized;
+  }
+
   render(template: NotificationTemplate, context: Record<string, unknown>): RenderedTemplate {
+    const sanitizedContext = this.sanitizeContext(context);
     const bodyCompiler = Handlebars.compile(template.bodyTemplate);
-    const body = bodyCompiler(context);
+    const body = bodyCompiler(sanitizedContext);
     let subject: string | undefined;
     if (template.subjectTemplate) {
-      subject = Handlebars.compile(template.subjectTemplate)(context);
+      subject = Handlebars.compile(template.subjectTemplate)(sanitizedContext);
     }
     return {
       subject,

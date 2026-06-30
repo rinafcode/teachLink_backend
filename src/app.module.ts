@@ -3,6 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { envValidationSchema } from './config/env.validation';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
@@ -28,7 +29,6 @@ import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
 
-// ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
 import { CoursesModule } from './courses/courses.module';
@@ -42,7 +42,11 @@ const featureFlags = loadFeatureFlags();
 @Module({
   imports: [
     LoggingModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: false },
+    }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
     SessionModule,
@@ -59,21 +63,11 @@ const featureFlags = loadFeatureFlags();
     InvoicesModule,
     ReportingModule,
     HealthModule,
-
-    // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
-
-    // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
-
-    // ✅ feature-flagged auth
     ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
-
-    // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
     CohortsModule,
-
-    // Feature flag audit trail and admin management endpoints
     FeatureFlagAuditModule,
   ],
   controllers: [AppController],

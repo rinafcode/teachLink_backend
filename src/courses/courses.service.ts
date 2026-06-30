@@ -12,7 +12,7 @@ import {
   BulkOperationStatus,
   BulkOperationType,
 } from './entities/bulk-operation.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
@@ -27,6 +27,9 @@ import {
   BulkPriceUpdateDto,
   BulkPublishDto,
 } from './dto/bulk-operations.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 /**
  * Maps a ReviewDecision to the resulting CourseStatus after the decision.
@@ -80,24 +83,45 @@ export class CoursesService {
       prerequisite,
     });
     const saved = await this.courseRepo.save(course);
+    const version = this.versionRepo.create({
+      courseId: saved.id,
+      versionNumber: 1,
+      eventType: CourseVersionEventType.CREATED,
+      title: saved.title,
+      description: saved.description,
+      price: saved.price,
+      thumbnailUrl: saved.thumbnailUrl,
+      status: saved.status,
+    });
+    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
     return saved;
   }
 
   /**
-   * Returns all courses. Admins/moderators see every status; others see only published.
+   * Returns all courses with pagination. Admins/moderators see every status; others see only published.
    */
-  async findAll(requestingUser?: User): Promise<Course[]> {
+  async findAll(
+    requestingUser?: User,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Course>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
     const isPrivileged =
-      requestingUser && [UserRole.ADMIN, UserRole.MODERATOR].includes(requestingUser.role);
+      requestingUser &&
+      requestingUser.roles?.some((role) =>
+        ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+      );
 
-    if (isPrivileged) {
-      return this.courseRepo.find({ order: { createdAt: 'DESC' } });
-    }
-    return this.courseRepo.find({
-      where: { status: CourseStatus.PUBLISHED },
+    const where = isPrivileged ? {} : { status: CourseStatus.PUBLISHED };
+    const [data, total] = await this.courseRepo.findAndCount({
+      where,
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   /**
@@ -137,6 +161,22 @@ export class CoursesService {
 
     Object.assign(course, dto, { prerequisite: course.prerequisite });
     const saved = await this.courseRepo.save(course);
+    const previousVersion = await this.versionRepo.findOne({
+      where: { courseId: saved.id },
+      order: { versionNumber: 'DESC' },
+    });
+    const nextVersionNumber = previousVersion ? previousVersion.versionNumber + 1 : 1;
+    const version = this.versionRepo.create({
+      courseId: saved.id,
+      versionNumber: nextVersionNumber,
+      eventType: CourseVersionEventType.UPDATED,
+      title: saved.title,
+      description: saved.description,
+      price: saved.price,
+      thumbnailUrl: saved.thumbnailUrl,
+      status: saved.status,
+    });
+    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
     return saved;
   }
@@ -350,14 +390,19 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    if (![UserRole.ADMIN, UserRole.MODERATOR].includes(user.role)) {
+    const isPrivileged = user.roles?.some((role) =>
+      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+    );
+    if (!isPrivileged) {
       throw new ForbiddenOperationException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
     const isOwner = course.instructorId === user.id;
-    const isPrivileged = [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    const isPrivileged = user.roles?.some((role) =>
+      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+    );
     if (!isOwner && !isPrivileged) {
       throw new ForbiddenOperationException('Insufficient permissions.');
     }

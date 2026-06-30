@@ -66,6 +66,6 @@ export function buildOffsetResponse<T>(
     limit: clampedLimit,
     totalPages,
     hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
+    hasPrevPage: page > 1,
   };
 }

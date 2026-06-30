@@ -33,6 +33,7 @@ import { requestIdMiddleware } from './logging/request-id.middleware';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
+import { PaginationInterceptor } from './common/interceptors/pagination.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
@@ -308,7 +309,7 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
-  app.useGlobalInterceptors(new LocaleInterceptor());
+  app.useGlobalInterceptors(new LocaleInterceptor(), new PaginationInterceptor());
 
   // =========================
   // SWAGGER
