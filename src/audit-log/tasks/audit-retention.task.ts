@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeleteResult } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { Counter } from 'prom-client';
 import { AuditLog } from '../audit-log.entity';
 import { AuditLogService } from '../audit-log.service';
@@ -24,10 +24,9 @@ export class AuditRetentionTask {
   ) {
     this.retentionDays = this.configService.get<number>('AUDIT_LOG_RETENTION_DAYS', 730);
     const registry = this.metrics.getRegistry();
-    const prom = require('prom-client');
     this.deletedCounter =
       (registry.getSingleMetric('deleted_count') as Counter<'table'>) ??
-      new prom.Counter({
+      new Counter({
         name: 'deleted_count',
         help: 'Number of rows deleted by data retention policies',
         labelNames: ['table'] as const,
@@ -45,12 +44,23 @@ export class AuditRetentionTask {
 
       let deleted = 0;
       do {
-        const result: DeleteResult = await this.auditLogRepo
+        const logsToDelete = await this.auditLogRepo.find({
+          select: ['id'],
+          where: { timestamp: LessThan(cutoff) },
+          take: this.batchSize,
+        });
+
+        if (logsToDelete.length === 0) {
+          deleted = 0;
+          break;
+        }
+
+        const idValues = logsToDelete.map((l) => l.id);
+        const result = await this.auditLogRepo
           .createQueryBuilder()
           .delete()
           .from(AuditLog)
-          .where('timestamp < :cutoff', { cutoff })
-          .limit(this.batchSize)
+          .whereInIds(idValues)
           .execute();
         deleted = result.affected || 0;
         totalDeleted += deleted;

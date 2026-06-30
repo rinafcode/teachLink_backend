@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeleteResult } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { Counter } from 'prom-client';
 import { AnalyticsEvent } from '../entities/event.entity';
 import { MetricsCollectionService } from '../../monitoring/metrics/metrics-collection.service';
@@ -22,10 +22,9 @@ export class AnalyticsRetentionTask {
   ) {
     this.retentionDays = this.configService.get<number>('ANALYTICS_RETENTION_DAYS', 365);
     const registry = this.metrics.getRegistry();
-    const prom = require('prom-client');
     this.deletedCounter =
       (registry.getSingleMetric('deleted_count') as Counter<'table'>) ??
-      new prom.Counter({
+      new Counter({
         name: 'deleted_count',
         help: 'Number of rows deleted by data retention policies',
         labelNames: ['table'] as const,
@@ -43,12 +42,23 @@ export class AnalyticsRetentionTask {
 
       let deleted = 0;
       do {
-        const result: DeleteResult = await this.eventRepository
+        const eventsToDelete = await this.eventRepository.find({
+          select: ['id'],
+          where: { timestamp: LessThan(cutoff) },
+          take: this.batchSize,
+        });
+
+        if (eventsToDelete.length === 0) {
+          deleted = 0;
+          break;
+        }
+
+        const idValues = eventsToDelete.map((e) => e.id);
+        const result = await this.eventRepository
           .createQueryBuilder()
           .delete()
           .from(AnalyticsEvent)
-          .where('timestamp < :cutoff', { cutoff })
-          .limit(this.batchSize)
+          .whereInIds(idValues)
           .execute();
         deleted = result.affected || 0;
         totalDeleted += deleted;
