@@ -1,106 +1,144 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
 import { ThreatDetectionService } from './threat-detection.service';
+import { THREAT_REDIS_CLIENT } from './threat-detection.constants';
+import { createMockRedisClient } from '../../../test/utils/mock-factories';
 
 /**
- * Helper: build a string IP for index `n` so we can deterministically
- * know which entry should be the "oldest" (first inserted).
+ * Helper: build a Test module that wires the service with the supplied
+ * Redis mock + ConfigService. Centralised because every test in the suite
+ * builds this module the same way.
  */
-function ipFor(index: number): string {
-  return `10.0.${Math.floor(index / 256) % 256}.${index % 256}`;
+async function buildModule(redis: ReturnType<typeof createMockRedisClient>) {
+  const moduleRef: TestingModule = await Test.createTestingModule({
+    providers: [
+      ThreatDetectionService,
+      { provide: THREAT_REDIS_CLIENT, useValue: redis },
+      {
+        provide: ConfigService,
+        useValue: {
+          get: jest.fn((key: string, fallback?: unknown) => {
+            // Use the documented defaults; tests can override via direct injection.
+            if (key === 'THREAT_FAILED_ATTEMPT_THRESHOLD') return 10;
+            if (key === 'THREAT_FAILED_ATTEMPT_WINDOW_SECONDS') return 15 * 60;
+            if (key === 'THREAT_FAILED_ATTEMPT_KEY_PREFIX')
+              return 'threat:failed-attempts:';
+            return fallback;
+          }),
+        },
+      },
+    ],
+  }).compile();
+  return moduleRef.get(ThreatDetectionService);
 }
 
-describe('ThreatDetectionService', () => {
-  describe('behaviour (preserves existing semantics)', () => {
-    it('does not throw before the failure threshold is reached', () => {
-      const svc = new ThreatDetectionService({ max: 100, ttlMs: 60_000 });
-      const ip = '192.168.0.1';
+describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => {
+  let service: ThreatDetectionService;
+  let redis: ReturnType<typeof createMockRedisClient>;
 
-      // 11 attempts is still allowed (attempts > 10 means 11+ throws)
-      for (let i = 0; i < 10; i++) svc.recordFailure(ip);
-      expect(() => svc.analyzeRequest(ip)).not.toThrow();
+  beforeEach(async () => {
+    redis = createMockRedisClient();
+    service = await buildModule(redis);
+  });
+
+  describe('recordFailure — INCR + first-call EXPIRE', () => {
+    it('calls INCR with the per-IP key', async () => {
+      redis.incr.mockResolvedValueOnce(1);
+
+      await service.recordFailure('192.168.0.1');
+
+      expect(redis.incr).toHaveBeenCalledWith('threat:failed-attempts:192.168.0.1');
     });
 
-    it('throws ForbiddenOperationException once attempts exceed 10', () => {
-      const svc = new ThreatDetectionService({ max: 100, ttlMs: 60_000 });
-      const ip = '192.168.0.2';
+    it('sets EXPIRE on the first failure (INCR returned 1)', async () => {
+      redis.incr.mockResolvedValueOnce(1);
 
-      for (let i = 0; i < 11; i++) svc.recordFailure(ip);
-      expect(() => svc.analyzeRequest(ip)).toThrow(/Suspicious activity detected/);
+      await service.recordFailure('192.168.0.1');
+
+      expect(redis.expire).toHaveBeenCalledWith(
+        'threat:failed-attempts:192.168.0.1',
+        15 * 60,
+      );
     });
 
-    it('clears the failure counter on reset()', () => {
-      const svc = new ThreatDetectionService({ max: 100, ttlMs: 60_000 });
-      const ip = '192.168.0.3';
+    it('does NOT set EXPIRE on subsequent calls in the same window', async () => {
+      redis.incr.mockResolvedValueOnce(2).mockResolvedValueOnce(3);
+      await service.recordFailure('192.168.0.1');
+      await service.recordFailure('192.168.0.1');
+      expect(redis.expire).not.toHaveBeenCalled();
+    });
 
-      for (let i = 0; i < 11; i++) svc.recordFailure(ip);
-      expect(() => svc.analyzeRequest(ip)).toThrow();
-
-      svc.reset(ip);
-      expect(() => svc.analyzeRequest(ip)).not.toThrow();
-      expect(svc.has(ip)).toBe(false);
+    it('does not throw when Redis INCR fails (fails open for tracking)', async () => {
+      redis.incr.mockRejectedValueOnce(new Error('connection lost'));
+      await expect(service.recordFailure('192.168.0.1')).resolves.toBeUndefined();
     });
   });
 
-  describe('bounded cap (issue #882 acceptance criterion: 50k max)', () => {
-    it('caps the cache at the configured maximum entries', () => {
-      const cap = 50_000;
-      const svc = new ThreatDetectionService({ max: cap, ttlMs: 60 * 60 * 1000 });
-
-      for (let i = 0; i < cap + 1; i++) {
-        svc.recordFailure(ipFor(i));
-      }
-
-      // Bounded at exactly the cap (spec: "Map size is bounded at 50,000 entries")
-      expect(svc.getCacheSize()).toBe(cap);
+  describe('analyzeRequest — GET + threshold check', () => {
+    it('does not throw when no failure counter is stored', async () => {
+      redis.get.mockResolvedValueOnce(null);
+      await expect(service.analyzeRequest('192.168.0.2')).resolves.toBeUndefined();
     });
 
-    it('evicts the oldest entry when inserting the (cap+1)-th entry', () => {
-      const cap = 50_000;
-      const svc = new ThreatDetectionService({ max: cap, ttlMs: 60 * 60 * 1000 });
-
-      const firstIp = ipFor(0);
-
-      // Fill to capacity
-      for (let i = 0; i < cap; i++) {
-        svc.recordFailure(ipFor(i));
-      }
-      expect(svc.has(firstIp)).toBe(true);
-
-      // The (cap+1)-th insertion triggers LRU eviction; the oldest entry
-      // (the first one we inserted) should be gone.
-      svc.recordFailure(ipFor(cap));
-
-      expect(svc.has(firstIp)).toBe(false);
-      expect(svc.getCacheSize()).toBe(cap);
+    it('does not throw while count is at or below the threshold', async () => {
+      redis.get.mockResolvedValueOnce('10');
+      await expect(service.analyzeRequest('192.168.0.2')).resolves.toBeUndefined();
     });
 
-    it('uses the documented 50,000 entry cap when no options are provided', () => {
-      const svc = new ThreatDetectionService();
-      expect(svc.getCacheSize()).toBe(0);
-      // Sanity: the default must match the documented value.
-      expect(ThreatDetectionService.MAX_ENTRIES).toBe(50_000);
+    it('throws ForbiddenOperationException when count exceeds the threshold', async () => {
+      redis.get.mockResolvedValueOnce('11');
+      await expect(service.analyzeRequest('192.168.0.2')).rejects.toBeInstanceOf(
+        ForbiddenOperationException,
+      );
+    });
+
+    it('fails open when Redis GET errors (does not block legitimate traffic)', async () => {
+      redis.get.mockRejectedValueOnce(new Error('connection lost'));
+      await expect(service.analyzeRequest('192.168.0.2')).resolves.toBeUndefined();
     });
   });
 
-  describe('TTL (issue #882 acceptance criterion: 15-minute expiry)', () => {
-    it('expires entries after the configured TTL has elapsed', async () => {
-      // Tiny TTL keeps the test fast while still exercising the same code path.
-      const ttlMs = 30;
-      const svc = new ThreatDetectionService({ max: 100, ttlMs });
-
-      const ip = '192.168.0.42';
-      for (let i = 0; i < 11; i++) svc.recordFailure(ip);
-      expect(() => svc.analyzeRequest(ip)).toThrow();
-
-      // Wait past the TTL so the entry is reaped.
-      await new Promise((resolve) => setTimeout(resolve, ttlMs + 50));
-
-      // After expiry the entry is gone — analyseRequest should not throw.
-      expect(() => svc.analyzeRequest(ip)).not.toThrow();
-      expect(svc.has(ip)).toBe(false);
+  describe('reset', () => {
+    it('DELs the per-IP key', async () => {
+      redis.del.mockResolvedValueOnce(1);
+      await service.reset('192.168.0.3');
+      expect(redis.del).toHaveBeenCalledWith('threat:failed-attempts:192.168.0.3');
     });
 
-    it('uses a 15-minute TTL by default', () => {
-      expect(ThreatDetectionService.TTL_MS).toBe(15 * 60 * 1000);
+    it('does not throw when Redis DEL fails', async () => {
+      redis.del.mockRejectedValueOnce(new Error('connection lost'));
+      await expect(service.reset('192.168.0.3')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('expiry semantics (Issue #798 acceptance)', () => {
+    it('a failure counter that has expired no longer triggers analyseRequest', async () => {
+      // Simulate an empty store: Redis returned null after the previous key
+      // expired — meaning the failure window cleared correctly.
+      redis.get.mockResolvedValue(null);
+      await expect(service.analyzeRequest('192.168.0.4')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('introspection helpers', () => {
+    it('resolveKey returns the prefixed Redis key', () => {
+      expect(service.resolveKey('10.0.0.1')).toBe('threat:failed-attempts:10.0.0.1');
+    });
+
+    it('has() returns true when EXISTS returns > 0', async () => {
+      redis.exists.mockResolvedValueOnce(1);
+      expect(await service.has('10.0.0.1')).toBe(true);
+    });
+
+    it('has() returns false when EXISTS returns 0', async () => {
+      redis.exists.mockResolvedValueOnce(0);
+      expect(await service.has('10.0.0.1')).toBe(false);
+    });
+
+    it('has() degrades to false on Redis error', async () => {
+      redis.exists.mockRejectedValueOnce(new Error('boom'));
+      expect(await service.has('10.0.0.1')).toBe(false);
     });
   });
 });
