@@ -1,25 +1,20 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { CachingService } from '../../caching/caching.service';
 
 interface ExchangeRates {
   [currency: string]: number;
 }
 
-/**
- * Exchange Rate Service
- * Fetches and caches exchange rates for currency conversion
- */
 @Injectable()
-export class ExchangeRateService implements OnModuleInit {
+export class ExchangeRateService {
   private readonly logger = new Logger(ExchangeRateService.name);
-  private exchangeRates: ExchangeRates = {};
-  private lastUpdated: Date = new Date(0);
-  private readonly updateIntervalMs = 24 * 60 * 60 * 1000; // 24 hours
   private readonly baseCurrency = 'USD';
+  private readonly cacheTtlSeconds = 3600;
+  private readonly staleTtlSeconds = 7200;
 
-  // Fallback exchange rates if API is unavailable (as of 2026)
   private readonly fallbackRates: ExchangeRates = {
     EUR: 0.92,
     GBP: 0.79,
@@ -45,18 +40,9 @@ export class ExchangeRateService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly cachingService: CachingService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    await this.refreshExchangeRates();
-  }
-
-  /**
-   * Get exchange rate between two currencies
-   * @param fromCurrency Source currency code
-   * @param toCurrency Target currency code
-   * @returns Exchange rate
-   */
   async getExchangeRate(fromCurrency: string, toCurrency: string): Promise<number> {
     const from = fromCurrency.toUpperCase();
     const to = toCurrency.toUpperCase();
@@ -65,14 +51,50 @@ export class ExchangeRateService implements OnModuleInit {
       return 1;
     }
 
-    // Refresh rates if needed
-    if (this.shouldRefreshRates()) {
-      await this.refreshExchangeRates();
+    const cacheKey = `exchange-rate:${from}:${to}`;
+    const staleKey = `exchange-rate:${from}:${to}:stale`;
+
+    const fresh = await this.cachingService.get<number>(cacheKey);
+    if (fresh !== undefined) {
+      return fresh;
     }
 
-    // If either currency is not base, calculate indirect rate
-    const fromRate = this.exchangeRates[from] || 1;
-    const toRate = this.exchangeRates[to] || 1;
+    const stale = await this.cachingService.get<number>(staleKey);
+    if (stale !== undefined) {
+      this.refreshInBackground(from, to, cacheKey, staleKey);
+      return stale;
+    }
+
+    try {
+      return await this.cachingService.getOrSet(
+        cacheKey,
+        async () => {
+          const rate = await this.fetchRateFromApi(from, to);
+          await this.cachingService.set(staleKey, rate, this.staleTtlSeconds);
+          return rate;
+        },
+        this.cacheTtlSeconds,
+      );
+    } catch {
+      return this.computeFromFallback(from, to);
+    }
+  }
+
+  private async fetchRateFromApi(from: string, to: string): Promise<number> {
+    const apiUrl = this.configService.get<string>(
+      'EXCHANGE_RATE_API_URL',
+      'https://api.exchangerate-api.com/v4/latest/USD',
+    );
+
+    const response = await firstValueFrom(this.httpService.get(apiUrl, { timeout: 5000 }));
+
+    if (!response.data?.rates) {
+      throw new Error('Invalid API response: missing rates');
+    }
+
+    const rates: ExchangeRates = response.data.rates;
+    const fromRate = rates[from] || 1;
+    const toRate = rates[to] || 1;
 
     if (from === this.baseCurrency) {
       return toRate;
@@ -85,69 +107,47 @@ export class ExchangeRateService implements OnModuleInit {
     return toRate / fromRate;
   }
 
-  /**
-   * Refresh exchange rates from external API
-   */
-  async refreshExchangeRates(): Promise<void> {
+  private async refreshInBackground(
+    from: string,
+    to: string,
+    cacheKey: string,
+    staleKey: string,
+  ): Promise<void> {
     try {
-      const _apiKey = this.configService.get<string>(
-        'EXCHANGE_RATE_API_KEY',
-        'fixer', // Default to fixer.io free tier
-      );
-      const apiUrl = this.configService.get<string>(
-        'EXCHANGE_RATE_API_URL',
-        'https://api.exchangerate-api.com/v4/latest/USD',
-      );
-
-      try {
-        const response = await firstValueFrom(
-          this.httpService.get(apiUrl, {
-            timeout: 5000,
-          }),
-        );
-
-        if (response.data?.rates) {
-          this.exchangeRates = response.data.rates;
-          this.lastUpdated = new Date();
-          this.logger.log('Exchange rates updated successfully');
-        }
-      } catch (apiError) {
-        this.logger.warn('Failed to fetch exchange rates from API, using fallback rates', apiError);
-        this.exchangeRates = this.fallbackRates;
-        this.lastUpdated = new Date();
-      }
+      const rate = await this.fetchRateFromApi(from, to);
+      await Promise.all([
+        this.cachingService.set(cacheKey, rate, this.cacheTtlSeconds),
+        this.cachingService.set(staleKey, rate, this.staleTtlSeconds),
+      ]);
     } catch (error) {
-      this.logger.error('Error refreshing exchange rates', error);
-      if (Object.keys(this.exchangeRates).length === 0) {
-        this.exchangeRates = this.fallbackRates;
-      }
+      this.logger.warn(`Background refresh failed for ${from}:${to}`, error);
     }
   }
 
-  /**
-   * Check if exchange rates should be refreshed
-   */
-  private shouldRefreshRates(): boolean {
-    const now = new Date();
-    return now.getTime() - this.lastUpdated.getTime() > this.updateIntervalMs;
+  private computeFromFallback(from: string, to: string): number {
+    const fromRate = this.fallbackRates[from] || 1;
+    const toRate = this.fallbackRates[to] || 1;
+
+    if (from === this.baseCurrency) {
+      return toRate;
+    }
+
+    if (to === this.baseCurrency) {
+      return 1 / fromRate;
+    }
+
+    return toRate / fromRate;
   }
 
-  /**
-   * Get all available exchange rates
-   * @returns Object with all exchange rates
-   */
   getAvailableRates(): ExchangeRates {
-    return { ...this.exchangeRates };
+    return { ...this.fallbackRates };
   }
 
-  /**
-   * Get exchange rates as of a specific date (not implemented in free tier)
-   * @param date The date for historical rates
-   * @returns Exchange rates for that date
-   */
+  async refreshExchangeRates(): Promise<void> {
+    this.logger.log('Exchange rate caches will refresh on next request via stale-while-revalidate');
+  }
+
   async getHistoricalRates(_date: Date): Promise<ExchangeRates> {
-    // For production, integrate with a service that supports historical rates
-    // For now, return current rates
     return this.getAvailableRates();
   }
 }

@@ -18,5 +18,5 @@ export interface OffsetPaginatedResponse<T> {
   limit: number;
   totalPages: number;
   hasNextPage: boolean;
-  hasPreviousPage: boolean;
+  hasPrevPage: boolean;
 }

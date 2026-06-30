@@ -22,11 +22,13 @@ function makeUser(overrides: Partial<User> = {}): User {
     status: UserStatus.ACTIVE,
     refreshToken: 'old-hash',
     passwordHistory: [],
+    roles: [{ name: 'student' }],
     ...overrides,
   } as User;
 }
 
 const mockUserRepo = {
+  findOne: jest.fn(),
   findOneBy: jest.fn(),
   update: jest.fn(),
 };
@@ -112,21 +114,21 @@ describe('AuthService', () => {
 
     it('throws UnauthorizedException when the user does not exist', async () => {
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOneBy.mockResolvedValue(null);
+      mockUserRepo.findOne.mockResolvedValue(null);
 
       await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
     });
 
     it('throws UnauthorizedException when user has no stored refresh token', async () => {
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOneBy.mockResolvedValue(makeUser({ refreshToken: undefined }));
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ refreshToken: undefined }));
 
       await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
     });
 
     it('revokes all tokens and throws when a blacklisted token is reused', async () => {
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOneBy.mockResolvedValue(makeUser());
+      mockUserRepo.findOne.mockResolvedValue(makeUser());
       mockBlacklistService.isBlacklisted.mockResolvedValue(true);
       mockUserRepo.update.mockResolvedValue(undefined);
 
@@ -134,9 +136,23 @@ describe('AuthService', () => {
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
     });
 
+    it('throws UnauthorizedException when the user status is SUSPENDED', async () => {
+      mockJwtService.verify.mockReturnValue(validDecoded);
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ status: UserStatus.SUSPENDED }));
+
+      await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('throws UnauthorizedException when the user status is INACTIVE', async () => {
+      mockJwtService.verify.mockReturnValue(validDecoded);
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ status: UserStatus.INACTIVE }));
+
+      await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
+    });
+
     it('issues new tokens when the refresh token is valid and not blacklisted', async () => {
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOneBy.mockResolvedValue(makeUser());
+      mockUserRepo.findOne.mockResolvedValue(makeUser());
       mockBlacklistService.isBlacklisted.mockResolvedValue(false);
       mockBlacklistService.addToBlacklist.mockResolvedValue(undefined);
       mockJwtService.signAsync
