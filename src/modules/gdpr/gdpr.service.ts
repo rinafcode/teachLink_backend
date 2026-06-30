@@ -35,7 +35,7 @@ export class GdprService {
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
     private readonly sessionService: SessionService,
-  ) { }
+  ) {}
 
   async exportUserData(userId: string): Promise<any> {
     const user = await this.userRepository.findOne({
@@ -132,10 +132,7 @@ export class GdprService {
           lastName: '[DELETED]',
           deletedAt: new Date(),
         })
-        .orUpdate(
-          ['email', 'firstName', 'lastName', 'deletedAt'],
-          ['id'],
-        )
+        .orUpdate(['email', 'firstName', 'lastName', 'deletedAt'], ['id'])
         .execute();
 
       await this.usersService.update(userId, {
