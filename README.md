@@ -2,6 +2,8 @@
 
 To quickly validate feature analytics and cost tracking end-to-end:
 
+
+
 ```bash
 # 1. Install dependencies
 npm install
@@ -75,6 +77,7 @@ Every pull request and every push to `main` / `develop` runs an automated pipeli
 | **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
 
 ### Running checks locally
+
 
 ```bash
 # Lint (auto-fix)
