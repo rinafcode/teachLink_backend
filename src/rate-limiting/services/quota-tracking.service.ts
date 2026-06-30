@@ -60,7 +60,7 @@ export class QuotaTrackingService {
     } else {
       await this.markOverage({ minute, hour, day }, { withinMinute, withinHour, withinDay });
       this.logger.warn(
-        `Quota exceeded userId=${userId} tier=${tier} ` +
+        `Quota exceeded identifier=${userId} tier=${tier} ` +
           `min=${minute.count}/${limits.requestsPerMinute} ` +
           `hr=${hour.count}/${limits.requestsPerHour} ` +
           `day=${day.count}/${limits.requestsPerDay}`,
@@ -115,7 +115,7 @@ export class QuotaTrackingService {
   async resetUser(userId: string, period?: QuotaResetPeriod): Promise<void> {
     const where = period ? { userId, period } : { userId };
     await this.usageRepo.delete(where);
-    this.logger.log(`Quota reset for userId=${userId} period=${period ?? 'ALL'}`);
+    this.logger.log(`Quota reset for identifier=${userId} period=${period ?? 'ALL'}`);
   }
 
   /** Called by the scheduler — deletes expired windows so they're recreated fresh. */

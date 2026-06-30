@@ -32,6 +32,7 @@ describe('RecommendationEngineService', () => {
     caching = {
       getOrSet: jest.fn((_, factory) => factory()),
       deleteMany: jest.fn(),
+      deleteByPattern: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -84,14 +85,9 @@ describe('RecommendationEngineService', () => {
     );
   });
 
-  it('invalidate deletes cache keys for common limits', async () => {
+  it('invalidate deletes cache keys by pattern', async () => {
     await service.invalidate('user-1');
-    expect(caching.deleteMany).toHaveBeenCalledWith([
-      'recommendations:user-1:5',
-      'recommendations:user-1:10',
-      'recommendations:user-1:20',
-      'recommendations:user-1:50',
-    ]);
+    expect(caching.deleteByPattern).toHaveBeenCalledWith('recommendations:user-1:*');
   });
 });
 

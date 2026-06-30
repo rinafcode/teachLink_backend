@@ -106,6 +106,11 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Total API errors (≥ 400), labelled by route and error_code */
   public apiErrors: Counter;
 
+  // ── Business Metrics – Workers ────────────────────────────────────────────
+
+  /** Total worker restarts, labelled by worker_name */
+  public workerRestartsTotal: Counter;
+
   // ── Constructor ───────────────────────────────────────────────────────────
 
   constructor() {
@@ -229,6 +234,12 @@ export class MetricsCollectionService implements OnModuleInit {
 
   recordApiError(route: string, errorCode: string): void {
     this.apiErrors.inc({ route, error_code: errorCode });
+  }
+
+  // ── Recording helpers – Workers ──────────────────────────────────────────
+
+  recordWorkerRestart(workerName: string): void {
+    this.workerRestartsTotal.inc({ worker_name: workerName });
   }
 
   // ── Private – metric registration ─────────────────────────────────────────
@@ -425,6 +436,14 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'api_errors_total',
       help: 'Total number of API errors (HTTP 4xx/5xx)',
       labelNames: ['route', 'error_code'],
+      registers: [this.registry],
+    });
+
+    // Workers
+    this.workerRestartsTotal = new Counter({
+      name: 'worker_restarts_total',
+      help: 'Total number of worker restarts due to stalling',
+      labelNames: ['worker_name'],
       registers: [this.registry],
     });
   }

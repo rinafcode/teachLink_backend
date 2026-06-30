@@ -379,7 +379,15 @@ export class RunbookExecutionService {
   /**
    * Get default runbook definition
    */
-  private getDefaultRunbookDefinition(runbookName: string): RunbookDefinition {
+  private getDefaultRunbookDefinition(runbookName: string): RunbookDefinition | null {
+    const knownRunbooks = Object.keys({
+      'database-failure': true,
+      'region-outage': true,
+      'data-corruption': true,
+    });
+    if (!knownRunbooks.includes(runbookName)) {
+      return null;
+    }
     return {
       name: runbookName,
       title: `${runbookName.replace(/-/g, ' ')} Runbook`,
