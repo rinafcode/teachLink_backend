@@ -42,10 +42,19 @@
  */
 
 export interface IFeatureFlagsConfig {
+  /**
+   * Explicit opt-out switch for rate limiting.
+   *
+   * Rate limiting is enabled by default and only disabled when
+   * DISABLE_RATE_LIMITING=true.
+   */
+  DISABLE_RATE_LIMITING?: boolean;
+
   /** Gates the AuthModule — controls user authentication and authorization.
    *  `true`: AuthModule is loaded at startup.
    *  `false`: AuthModule is skipped; all auth-gated endpoints become unavailable. */
   ENABLE_AUTH: boolean;
+
 
   /** Gates the PaymentsModule — controls Stripe-based payment processing.
    *  `true`: PaymentsModule is loaded, payment endpoints available.
@@ -95,10 +104,14 @@ export interface IFeatureFlagsConfig {
    *  `false`: MigrationModule is skipped. */
   ENABLE_MIGRATIONS: boolean;
 
-  /** Gates the RateLimitingModule — controls per-route request throttling.
-   *  `true`: RateLimitingModule is loaded, advanced rate-limit rules active.
-   *  `false`: RateLimitingModule is skipped (basic ThrottlerModule still active). */
+  /**
+   * Gates the RateLimitingModule — controls per-route request throttling.
+   *
+   * Rate limiting is enabled by default.
+   * Only disabled when DISABLE_RATE_LIMITING=true.
+   */
   ENABLE_RATE_LIMITING: boolean;
+
 
   /** Gates the ObservabilityModule — controls distributed tracing and metrics.
    *  `true`: ObservabilityModule is loaded, traces and custom metrics exported.
@@ -187,6 +200,10 @@ export interface IFeatureFlagsConfig {
  * except AB_TESTING, DATA_WAREHOUSE, and GRAPHQL which are not yet GA
  */
 export const defaultFeatureFlags: IFeatureFlagsConfig = {
+  // Rate limiting is enabled by default.
+  // It can only be disabled by explicitly setting DISABLE_RATE_LIMITING=true.
+  DISABLE_RATE_LIMITING: undefined,
+
   ENABLE_AUTH: true,
   ENABLE_PAYMENTS: true,
   ENABLE_AB_TESTING: false,
@@ -216,12 +233,23 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_LOCALIZATION: true,
   ENABLE_ONBOARDING: true,
 };
+
 /**
  * Load feature flags from environment variables
  */
 export function loadFeatureFlags(): IFeatureFlagsConfig {
+  const disableRateLimiting = getBooleanEnv(
+    'DISABLE_RATE_LIMITING',
+    defaultFeatureFlags.DISABLE_RATE_LIMITING ?? false,
+  );
+
   return {
+    // Explicit opt-out only (default: enabled)
+    DISABLE_RATE_LIMITING: disableRateLimiting,
+
+    // Legacy flag kept for compatibility, but not used for wiring below.
     ENABLE_AUTH: getBooleanEnv('ENABLE_AUTH', defaultFeatureFlags.ENABLE_AUTH),
+
     ENABLE_PAYMENTS: getBooleanEnv('ENABLE_PAYMENTS', defaultFeatureFlags.ENABLE_PAYMENTS),
     ENABLE_AB_TESTING: getBooleanEnv('ENABLE_AB_TESTING', defaultFeatureFlags.ENABLE_AB_TESTING),
     ENABLE_DATA_WAREHOUSE: getBooleanEnv(
@@ -240,10 +268,13 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
     ENABLE_GRAPHQL: getBooleanEnv('ENABLE_GRAPHQL', defaultFeatureFlags.ENABLE_GRAPHQL),
     ENABLE_SYNC: getBooleanEnv('ENABLE_SYNC', defaultFeatureFlags.ENABLE_SYNC),
     ENABLE_MIGRATIONS: getBooleanEnv('ENABLE_MIGRATIONS', defaultFeatureFlags.ENABLE_MIGRATIONS),
+    // Legacy flag kept for compatibility; rate limiting wiring is now controlled by
+    // DISABLE_RATE_LIMITING.
     ENABLE_RATE_LIMITING: getBooleanEnv(
       'ENABLE_RATE_LIMITING',
       defaultFeatureFlags.ENABLE_RATE_LIMITING,
     ),
+
     ENABLE_OBSERVABILITY: getBooleanEnv(
       'ENABLE_OBSERVABILITY',
       defaultFeatureFlags.ENABLE_OBSERVABILITY,
@@ -290,6 +321,8 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
     ENABLE_ONBOARDING: getBooleanEnv('ENABLE_ONBOARDING', defaultFeatureFlags.ENABLE_ONBOARDING),
   };
 }
+
+
 /**
  * Helper function to parse boolean environment variables
  */
@@ -316,7 +349,7 @@ export function getEnabledModules(flags: IFeatureFlagsConfig): string[] {
   if (flags.ENABLE_GRAPHQL) modules.push('GraphQLModule');
   if (flags.ENABLE_SYNC) modules.push('SyncModule');
   if (flags.ENABLE_MIGRATIONS) modules.push('MigrationModule');
-  if (flags.ENABLE_RATE_LIMITING) modules.push('RateLimitingModule');
+  if (!flags.DISABLE_RATE_LIMITING) modules.push('RateLimitingModule');
   if (flags.ENABLE_OBSERVABILITY) modules.push('ObservabilityModule');
   if (flags.ENABLE_CACHING) modules.push('CachingModule');
   if (flags.ENABLE_FEATURE_FLAGS) modules.push('FeatureFlagsModule');

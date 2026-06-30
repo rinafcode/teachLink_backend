@@ -10,6 +10,7 @@ import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
 import './tracing/opentelemetry';
+import { loadFeatureFlags } from './config/feature-flags.config';
 
 import { CorrelationIdMiddleware } from './middleware/correlation-id';
 import { createSessionConfig } from './config/cache.config';
@@ -47,6 +48,14 @@ async function bootstrapWorker(): Promise<void> {
   initStructuredLogging(process.env.SERVICE_NAME || 'teachlink-backend');
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
+
+  const flags = loadFeatureFlags();
+  if (flags.DISABLE_RATE_LIMITING) {
+    logger.warn(
+      'Rate limiting is DISABLED. This exposes the API to potential DoS and credential-stuffing attacks. ' +
+        'Set DISABLE_RATE_LIMITING=false or remove the variable to enable rate limiting.',
+    );
+  }
 
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || '1mb';
 
