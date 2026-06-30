@@ -14,6 +14,8 @@ import { CreateTenantDto, UpdateTenantDto, UpdateTenantConfigDto } from './dto/t
 import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
 import { TENANT_DEFAULTS } from './tenancy.constants';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 /**
  * Provides tenancy operations.
@@ -62,19 +64,14 @@ export class TenancyService {
   async findAll(
     page: number = 1,
     limit: number = TENANT_DEFAULTS.DEFAULT_PAGE_SIZE,
-  ): Promise<{ tenants: Tenant[]; total: number; page: number; totalPages: number }> {
+  ): Promise<OffsetPaginatedResponse<Tenant>> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
     });
 
-    return {
-      tenants,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return buildOffsetResponse(tenants, total, page, limit);
   }
 
   async findOne(id: string): Promise<Tenant> {

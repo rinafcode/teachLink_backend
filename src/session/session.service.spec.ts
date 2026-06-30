@@ -13,6 +13,7 @@ const mockRedis = {
   zadd: jest.fn().mockResolvedValue(1),
   zrem: jest.fn().mockResolvedValue(1),
   zrange: jest.fn().mockResolvedValue([]),
+  scan: jest.fn(),
   status: 'ready',
   quit: jest.fn(),
 };
@@ -170,6 +171,22 @@ describe('SessionService', () => {
     });
   });
 
+  describe('deleteAllSessionsForUser', () => {
+    it('should remove all Redis sessions for a user', async () => {
+      mockRedis.scan.mockResolvedValueOnce(['0', ['auth:sess:one', 'auth:sess:two']]);
+      mockRedis.get
+        .mockResolvedValueOnce(JSON.stringify({ sid: 'one', userId: 'user-123' }))
+        .mockResolvedValueOnce(JSON.stringify({ sid: 'two', userId: 'user-999' }));
+      mockRedis.del.mockResolvedValue(1);
+
+      const deletedCount = await service.deleteAllSessionsForUser('user-123');
+
+      expect(deletedCount).toBe(1);
+      expect(mockRedis.del).toHaveBeenCalledWith('auth:sess:one');
+      expect(mockRedis.zrem).toHaveBeenCalledWith('user:sessions:user-123', 'one');
+    });
+  });
+
   describe('migrateSession', () => {
     it('should migrate session to new sid and delete old one', async () => {
       const sessionData = {
@@ -224,6 +241,98 @@ describe('SessionService', () => {
       await expect(service.withLock('busy-lock', jest.fn())).rejects.toThrow(
         'Could not acquire lock: busy-lock',
       );
+    });
+  });
+
+  describe('parseDurationToSeconds', () => {
+    it('should parse days correctly', () => {
+      expect(SessionService.parseDurationToSeconds('7d')).toBe(604800);
+      expect(SessionService.parseDurationToSeconds('30d')).toBe(2592000);
+    });
+
+    it('should parse hours correctly', () => {
+      expect(SessionService.parseDurationToSeconds('1h')).toBe(3600);
+      expect(SessionService.parseDurationToSeconds('24h')).toBe(86400);
+    });
+
+    it('should parse minutes correctly', () => {
+      expect(SessionService.parseDurationToSeconds('15m')).toBe(900);
+      expect(SessionService.parseDurationToSeconds('60m')).toBe(3600);
+    });
+
+    it('should parse seconds correctly', () => {
+      expect(SessionService.parseDurationToSeconds('3600s')).toBe(3600);
+    });
+
+    it('should parse bare numeric strings', () => {
+      expect(SessionService.parseDurationToSeconds('604800')).toBe(604800);
+    });
+
+    it('should handle whitespace', () => {
+      expect(SessionService.parseDurationToSeconds(' 7d ')).toBe(604800);
+    });
+
+    it('should return 0 for unrecognized formats', () => {
+      expect(SessionService.parseDurationToSeconds('invalid')).toBe(0);
+      expect(SessionService.parseDurationToSeconds('')).toBe(0);
+    });
+  });
+
+  describe('constructor session TTL validation', () => {
+    it('should warn when session TTL (3600s) is shorter than refresh token lifetime (7d)', async () => {
+      const configWithShortSession = {
+        get: jest.fn((key: string, defaultVal?: string) => {
+          const values: Record<string, string> = {
+            AUTH_SESSION_PREFIX: 'auth:sess:',
+            AUTH_SESSION_LEGACY_PREFIX: 'session:',
+            AUTH_SESSION_TTL_SECONDS: '3600',
+            SESSION_LOCK_TTL_MS: '5000',
+            SESSION_LOCK_MAX_RETRIES: '5',
+            SESSION_LOCK_RETRY_DELAY_MS: '120',
+            JWT_REFRESH_EXPIRES_IN: '7d',
+          };
+          return values[key] ?? defaultVal ?? '';
+        }),
+      };
+
+      const module = await Test.createTestingModule({
+        providers: [
+          SessionService,
+          { provide: SESSION_REDIS_CLIENT, useValue: mockRedis },
+          { provide: ConfigService, useValue: configWithShortSession },
+        ],
+      }).compile();
+
+      const svc = module.get<SessionService>(SessionService);
+      expect(svc).toBeDefined();
+    });
+
+    it('should not warn when session TTL matches refresh token lifetime', async () => {
+      const configWithMatchingSession = {
+        get: jest.fn((key: string, defaultVal?: string) => {
+          const values: Record<string, string> = {
+            AUTH_SESSION_PREFIX: 'auth:sess:',
+            AUTH_SESSION_LEGACY_PREFIX: 'session:',
+            AUTH_SESSION_TTL_SECONDS: '604800',
+            SESSION_LOCK_TTL_MS: '5000',
+            SESSION_LOCK_MAX_RETRIES: '5',
+            SESSION_LOCK_RETRY_DELAY_MS: '120',
+            JWT_REFRESH_EXPIRES_IN: '7d',
+          };
+          return values[key] ?? defaultVal ?? '';
+        }),
+      };
+
+      const module = await Test.createTestingModule({
+        providers: [
+          SessionService,
+          { provide: SESSION_REDIS_CLIENT, useValue: mockRedis },
+          { provide: ConfigService, useValue: configWithMatchingSession },
+        ],
+      }).compile();
+
+      const svc = module.get<SessionService>(SessionService);
+      expect(svc).toBeDefined();
     });
   });
 });

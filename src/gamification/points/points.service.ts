@@ -69,8 +69,11 @@ export class PointsService {
     const newLevel = Math.floor(progress.xp / 1000) + 1;
     progress.level = newLevel;
 
+    const previousTier = progress.tier;
     const saved = await this.userProgressRepository.save(progress);
-    const tierPromoted = false; // Simplified for now
+    const newTier = this.tiersService.getTierForPoints(saved.totalPoints);
+    saved.tier = newTier;
+    const tierPromoted = newTier !== previousTier;
 
     // Emit event so BadgesService can react
     this.eventEmitter.emit(
