@@ -11,6 +11,8 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      DISABLE_RATE_LIMITING: false
 
     steps:
       - name: Checkout code

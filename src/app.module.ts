@@ -52,7 +52,7 @@ const featureFlags = loadFeatureFlags();
     SearchModule,
     AnalyticsModule,
     IndexOptimizationModule,
-    ...(featureFlags.ENABLE_RATE_LIMITING ? [RateLimitingModule] : []),
+    ...(!featureFlags.DISABLE_RATE_LIMITING ? [RateLimitingModule] : []),
     DebuggingModule,
     DataPipelineModule,
     CanaryModule,
@@ -81,7 +81,7 @@ const featureFlags = loadFeatureFlags();
   ],
   controllers: [AppController],
   providers: [
-    ...(featureFlags.ENABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
+    ...(!featureFlags.DISABLE_RATE_LIMITING ? [{ provide: APP_GUARD, useClass: QuotaGuard }] : []),
     { provide: APP_INTERCEPTOR, useClass: RequestTimeoutInterceptor },
     { provide: APP_INTERCEPTOR, useClass: RoleVisibilityInterceptor },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

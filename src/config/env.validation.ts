@@ -79,11 +79,13 @@ export const envValidationSchema = Joi.object({
   ELASTICSEARCH_API_KEY: Joi.string().optional(),
   ELASTICSEARCH_CA_FINGERPRINT: Joi.string().optional(),
   ELASTICSEARCH_REQUEST_TIMEOUT: Joi.number().integer().default(30000),
-  ELASTICSEARCH_MAX_RETRIES: Joi.number().integer().default(3),
+ELASTICSEARCH_MAX_RETRIES: Joi.number().integer().default(3),
 
   // Rate Limiting
   THROTTLE_TTL: Joi.number().default(60),
   THROTTLE_LIMIT: Joi.number().default(10),
+  // DISABLE_RATE_LIMITING: Set to true to disable rate limiting (opt-out, not recommended)
+  DISABLE_RATE_LIMITING: Joi.boolean().default(false),
 
   // Session Configuration
   SESSION_SECRET: Joi.string().min(10).required(),
