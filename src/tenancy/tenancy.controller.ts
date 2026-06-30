@@ -26,7 +26,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
-import { TenantPlan } from './entities/tenant.entity';
+import { Tenant, TenantPlan } from './entities/tenant.entity';
+import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
 
 /**
  * Exposes tenancy endpoints.
@@ -57,6 +58,11 @@ export class TenancyController {
   @ApiOperation({ summary: 'Get all tenants (Admin only)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of tenants',
+    type: PaginatedSwaggerDto(Tenant),
+  })
   findAll(@Query('page') page?: number, @Query('limit') limit?: number) {
     return this.tenancyService.findAll(page, limit);
   }

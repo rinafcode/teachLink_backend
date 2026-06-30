@@ -43,9 +43,8 @@ export class RecommendationEngineService {
 
   /** Invalidate cached recommendations for a user (e.g., after a new enrollment). */
   async invalidate(userId: string): Promise<void> {
-    // Pattern-style deletion: remove all limit variants by trying the common ones
-    const keys = [5, 10, 20, 50].map((l) => `recommendations:${userId}:${l}`);
-    await this.caching.deleteMany(keys);
+    // Delete all variants (any limit) matching the namespace prefix
+    await this.caching.deleteByPattern(`recommendations:${userId}:*`);
   }
 
   private async computeRecommendations(

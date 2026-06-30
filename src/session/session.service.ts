@@ -46,6 +46,44 @@ export class SessionService implements OnModuleDestroy {
       this.configService.get<string>('SESSION_LOCK_RETRY_DELAY_MS') || '120',
       10,
     );
+
+    const jwtRefreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
+    const jwtRefreshExpirySeconds = SessionService.parseDurationToSeconds(jwtRefreshExpiresIn);
+
+    if (this.sessionTtlSeconds < jwtRefreshExpirySeconds) {
+      this.logger.warn(
+        `Session TTL (${this.sessionTtlSeconds}s from AUTH_SESSION_TTL_SECONDS) is shorter ` +
+          `than refresh token lifetime (${jwtRefreshExpirySeconds}s from JWT_REFRESH_EXPIRES_IN="${jwtRefreshExpiresIn}"). ` +
+          'Sessions may expire while refresh tokens are still valid, causing authentication state inconsistencies.',
+      );
+    }
+  }
+
+  /**
+   * Parses a duration string (e.g. "7d", "30d", "1h", "60m", "3600s") into seconds.
+   * Falls back to parseInt for bare numeric strings.
+   */
+  static parseDurationToSeconds(duration: string): number {
+    const trimmed = duration.trim().toLowerCase();
+    const match = trimmed.match(/^(\d+)\s*(d|h|m|s)$/);
+    if (match) {
+      const value = parseInt(match[1], 10);
+      switch (match[2]) {
+        case 'd':
+          return value * 86400;
+        case 'h':
+          return value * 3600;
+        case 'm':
+          return value * 60;
+        case 's':
+          return value;
+      }
+    }
+    const numeric = parseInt(trimmed, 10);
+    if (!Number.isNaN(numeric)) {
+      return numeric;
+    }
+    return 0;
   }
 
   /**
@@ -137,6 +175,37 @@ export class SessionService implements OnModuleDestroy {
     if (session) {
       await this.removeSessionFromUserIndex(session.userId, sid);
     }
+  }
+
+  async deleteAllSessionsForUser(userId: string): Promise<number> {
+    const pattern = `${this.sessionPrefix}*`;
+    let cursor = '0';
+    let deletedCount = 0;
+
+    do {
+      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+
+      for (const key of keys) {
+        const sessionData = await this.redis.get(key);
+        if (!sessionData) {
+          continue;
+        }
+
+        try {
+          const session = JSON.parse(sessionData) as ISessionRecord;
+          if (session.userId === userId) {
+            await this.redis.del(key);
+            await this.removeSessionFromUserIndex(userId, session.sid);
+            deletedCount += 1;
+          }
+        } catch {
+          this.logger.warn(`Invalid session payload for key=${key}`);
+        }
+      }
+    } while (cursor !== '0');
+
+    return deletedCount;
   }
 
   async addSessionToUserIndex(userId: string, sid: string): Promise<void> {

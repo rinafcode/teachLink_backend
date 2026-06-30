@@ -49,6 +49,8 @@ describe('RegisterDto', () => {
     username: 'technocrat42',
     email: 'user@teachlink.xyz',
     password: 'Secure@123',
+    firstName: 'John',
+    lastName: 'Doe',
   };
 
   it('accepts a minimal valid registration', async () => {

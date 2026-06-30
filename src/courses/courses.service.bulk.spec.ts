@@ -44,7 +44,7 @@ describe('CoursesService - Bulk Operations', () => {
 
   const admin = {
     id: 'admin-1',
-    roles: ['admin'],
+    roles: [{ name: 'admin' }],
   } as unknown as User;
 
   const createCourse = (overrides: Partial<Course> = {}): Course =>

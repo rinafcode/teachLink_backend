@@ -11,7 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Course, CourseStatus } from './entities/course.entity';
 import { Enrollment } from './entities/enrollment.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { APP_EVENTS } from '../common/constants/event.constants';
@@ -272,7 +272,11 @@ export class EnrollmentsService {
    * Check admin/moderator role.
    */
   private isPrivileged(user: User): boolean {
-    return [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    return (
+      user.roles?.some((role) =>
+        ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+      ) ?? false
+    );
   }
 
   /**
