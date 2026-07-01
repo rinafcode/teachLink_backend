@@ -35,5 +35,8 @@ jobs:
       - name: Check TypeScript errors
         run: pnpm run typecheck
 
+      - name: Run unit tests
+        run: pnpm run test --forceExit --runInBand
+
       - name: Build application
         run: pnpm run build
