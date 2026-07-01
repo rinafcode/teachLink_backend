@@ -24,6 +24,8 @@ import {
   DowngradeSubscriptionDto,
 } from './dto/subscription-action.dto';
 import { Subscription } from '../entities/subscription.entity';
+import { Idempotent } from '../../common/decorators/idempotency.decorator';
+
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
@@ -121,7 +123,9 @@ export class SubscriptionsController {
    * Upgrade a subscription
    */
   @Post(':subscriptionId/upgrade')
+  @Idempotent({ ttl: 86400 })
   @ApiOperation({ summary: 'Upgrade subscription to a higher plan' })
+
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
   @ApiResponse({
     status: 200,
@@ -148,7 +152,9 @@ export class SubscriptionsController {
    * Downgrade a subscription
    */
   @Post(':subscriptionId/downgrade')
+  @Idempotent({ ttl: 86400 })
   @ApiOperation({ summary: 'Downgrade subscription to a lower plan' })
+
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
   @ApiResponse({
     status: 200,
