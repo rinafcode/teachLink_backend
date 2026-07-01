@@ -39,6 +39,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { LoggingModule } from './logging/logging.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -47,6 +48,7 @@ const featureFlags = loadFeatureFlags();
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
+    LoggingModule,
     SessionModule,
     SearchModule,
     AnalyticsModule,
