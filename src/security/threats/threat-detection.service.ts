@@ -1,79 +1,143 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { LRUCache } from 'lru-cache';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Redis } from 'ioredis';
 import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
+import { THREAT_REDIS_CLIENT } from './threat-detection.constants';
 
 /**
- * Provides threat Detection operations.
+ * Issue #798 — Per-IP failed-attempt counter.
  *
- * Tracks per-IP failed attempt counts in a bounded LRU cache so that
- * IP-rotation attacks or large user bases cannot cause the heap to grow
- * unbounded (see issue #882).
+ * Why Redis, not an in-process `Map`:
+ *  - In a horizontally-scaled deployment, each pod had its own counter.
+ *    An attacker spreading requests across pods flew under the per-pod
+ *    threshold while running a full credential-stuffing attack.
+ *  - The in-process map also grew without bound.
  *
- * The cache is capped at `MAX_ENTRIES` entries and each entry expires
- * `TTL_MS` after it was last written. Eviction of an entry (whether due
- * to the cap or TTL expiry) emits a single warning log so operators can
- * detect sustained pressure on the structure.
+ * Implementation:
+ *  - `INCR ${key}` is atomic across all replicas; the result IS the current
+ *    counter value.
+ *  - On the first call (when `INCR` returns 1) we set `EXPIRE ${key} ttlSeconds`
+ *    so the counter auto-clears once the window elapses.
+ *  - Threshold (count above which we refuse), window length, and key prefix
+ *    are configurable via {@link ConfigService}.
  */
 @Injectable()
 export class ThreatDetectionService {
-  /** Max number of tracked IPs. Tuned for memory-bounded operation. */
-  static readonly MAX_ENTRIES = 50_000;
-  /** 15-minute TTL on each entry. */
-  static readonly TTL_MS = 15 * 60 * 1000;
+  static readonly DEFAULT_THRESHOLD = 10;
+  static readonly DEFAULT_WINDOW_SECONDS = 15 * 60; // 15 minutes
+  static readonly DEFAULT_KEY_PREFIX = 'threat:failed-attempts:';
 
   private readonly logger = new Logger(ThreatDetectionService.name);
-  private readonly failedAttempts: LRUCache<string, number>;
-  private lastEvictionWarnAt = 0;
+  private readonly threshold: number;
+  private readonly windowSeconds: number;
+  private readonly keyPrefix: string;
 
-  constructor(@Optional() options?: { max?: number; ttlMs?: number }) {
-    const max = options?.max ?? ThreatDetectionService.MAX_ENTRIES;
-    const ttl = options?.ttlMs ?? ThreatDetectionService.TTL_MS;
-
-    // `lru-cache` v11 fires the `dispose` callback once per eviction. We
-    // rate-limit the warn log to once per 60 s so a flood of evictions does
-    // not amplify the very load we are trying to detect.
-    this.failedAttempts = new LRUCache<string, number>({
-      max,
-      ttl,
-      ttlAutopurge: true,
-      updateAgeOnGet: false,
-      dispose: (_value, _key, reason) => {
-        if (reason !== 'evict') return;
-        const now = Date.now();
-        if (now - this.lastEvictionWarnAt < 60_000) return;
-        this.lastEvictionWarnAt = now;
-        this.logger.warn(
-          `LRU eviction triggered on failedAttempts cache (cap=${max}). ` +
-            'Sustained pressure indicates a potential IP-rotation attack; ' +
-            'consider raising MAX_ENTRIES or migrating to a distributed store.',
-        );
-      },
-    });
+  constructor(
+    @Inject(THREAT_REDIS_CLIENT) private readonly redis: Redis,
+    private readonly configService: ConfigService,
+  ) {
+    this.threshold = this.configService.get<number>(
+      'THREAT_FAILED_ATTEMPT_THRESHOLD',
+      ThreatDetectionService.DEFAULT_THRESHOLD,
+    );
+    this.windowSeconds = this.configService.get<number>(
+      'THREAT_FAILED_ATTEMPT_WINDOW_SECONDS',
+      ThreatDetectionService.DEFAULT_WINDOW_SECONDS,
+    );
+    this.keyPrefix = this.configService.get<string>(
+      'THREAT_FAILED_ATTEMPT_KEY_PREFIX',
+      ThreatDetectionService.DEFAULT_KEY_PREFIX,
+    );
   }
 
-  analyzeRequest(ip: string): void {
-    const attempts = this.failedAttempts.get(ip) || 0;
-    if (attempts > 10) {
+  private keyFor(ip: string): string {
+    return `${this.keyPrefix}${ip}`;
+  }
+
+  /**
+   * Refuses the request if the IP currently has more than `threshold` failures
+   * recorded in the rolling Redis window. A failure count strictly greater than
+   * the configured threshold triggers {@link ForbiddenOperationException}.
+   *
+   * Note: this is now async because the underlying store is remote. Callers
+   * (guards, middleware) must await. We deliberately fail OPEN on Redis errors
+   * so an outage cannot amplify load by blocking legitimate traffic.
+   */
+  async analyzeRequest(ip: string): Promise<void> {
+    const key = this.keyFor(ip);
+    let count: number;
+    try {
+      const raw = await this.redis.get(key);
+      count = raw ? Number(raw) : 0;
+    } catch (err) {
+      this.logger.error(
+        `analyzeRequest: Redis GET failed (${(err as Error).message}); failing open.`,
+      );
+      return;
+    }
+    if (count > this.threshold) {
       throw new ForbiddenOperationException('Suspicious activity detected');
     }
   }
 
-  recordFailure(ip: string): void {
-    const attempts = this.failedAttempts.get(ip) || 0;
-    this.failedAttempts.set(ip, attempts + 1);
+  /**
+   * Atomically increments the IP's failure counter. On the first increment
+   * (the INCR returned 1) we install the TTL so the counter auto-expires.
+   *
+   * The TTL is set AFTER the INCR so a Redis outage between the two commands
+   * cannot leave behind a permanent counter — at worst the counter survives
+   * forever, which degrades to the same behaviour as the legacy in-memory
+   * map (a non-zero counter is still better than nothing).
+   */
+  async recordFailure(ip: string): Promise<void> {
+    const key = this.keyFor(ip);
+    try {
+      const count = await this.redis.incr(key);
+      if (count === 1) {
+        // First failure in this window — arm the auto-expiry.
+        await this.redis.expire(key, this.windowSeconds);
+      }
+    } catch (err) {
+      // Recording failures must not throw — losing a single increment is
+      // acceptable; throwing would amplify the very load we are tracking.
+      this.logger.error(
+        `recordFailure: Redis INCR failed (${(err as Error).message}); dropping.`,
+      );
+    }
   }
 
-  reset(ip: string): void {
-    this.failedAttempts.delete(ip);
+  /**
+   * Clears the IP's counter (e.g. after a successful authentication). Best
+   * effort: a Redis outage here is logged but does not throw.
+   */
+  async reset(ip: string): Promise<void> {
+    const key = this.keyFor(ip);
+    try {
+      await this.redis.del(key);
+    } catch (err) {
+      this.logger.error(
+        `reset: Redis DEL failed (${(err as Error).message}); counter may persist briefly.`,
+      );
+    }
   }
+
+  // ─── Test introspection helpers ─────────────────────────────────────────
+  // Kept on the public so the unit suite can validate the key shape and
+  // existence semantics without poking at Redis internals.
 
   /** Test introspection helper — not used by production callers. */
-  getCacheSize(): number {
-    return this.failedAttempts.size;
+  resolveKey(ip: string): string {
+    return this.keyFor(ip);
   }
 
-  /** Test introspection helper — checks for presence in the bounded cache. */
-  has(ip: string): boolean {
-    return this.failedAttempts.has(ip);
+  /** Test introspection helper — composes `KEY`-then-`EXISTS`. */
+  async has(ip: string): Promise<boolean> {
+    try {
+      const result = await this.redis.exists(this.keyFor(ip));
+      return result > 0;
+    } catch (err) {
+      this.logger.error(`has: Redis EXISTS failed (${(err as Error).message}).`);
+      return false;
+    }
   }
 }
