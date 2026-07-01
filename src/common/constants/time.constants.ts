@@ -31,6 +31,7 @@ export const TIME = {
  */
 export const BYTES = {
   ONE_KB: 1_024,
+  SIXTY_FOUR_KB: 65_536, // 64 * 1024
   ONE_MB_BYTES: 1_048_576, // 1024 * 1024
   TEN_MB_BYTES: 10_485_760, // 10 * 1024 * 1024
 } as const;

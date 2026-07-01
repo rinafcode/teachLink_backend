@@ -5,7 +5,7 @@ import type { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from '../courses/entities/course.entity';
-import { IsolationService } from '../tenancy/isolation/isolation.service';
+import { LRUCache } from 'lru-cache';
 
 export interface SearchFilters {
   category?: string | string[];
@@ -38,8 +38,8 @@ export class SearchService {
   private readonly logger = new Logger(SearchService.name);
   private readonly AUTOCOMPLETE_LIMIT = 10;
   private readonly CACHE_TTL_MS = 300000; // 5 minutes
-  private autocompleteCache: Map<string, { results: AutocompleteResult[]; timestamp: number }> =
-    new Map();
+  private readonly AUTOCOMPLETE_CACHE_MAX_SIZE = 1000;
+  private autocompleteCache: LRUCache<string, AutocompleteResult[]>;
 
   constructor(
     @InjectRepository(Course)
@@ -47,7 +47,12 @@ export class SearchService {
     private readonly elasticsearch: NestElasticsearchService,
     private readonly isolationService: IsolationService,
     @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache,
-  ) {}
+  ) {
+    this.autocompleteCache = new LRUCache<string, AutocompleteResult[]>({
+      max: this.AUTOCOMPLETE_CACHE_MAX_SIZE,
+      ttl: this.CACHE_TTL_MS,
+    });
+  }
 
   /** Returns an Elasticsearch-style term filter for the current tenant. */
   buildTenantFilter(tenantId: string): { term: { tenantId: string } } {
@@ -115,10 +120,8 @@ export class SearchService {
   async getAutoComplete(query: string): Promise<AutocompleteResult[]> {
     if (!query || query.length < 2) return [];
 
-    const tenantId = this.isolationService.getTenantId();
-    const cacheKey = `${tenantId ?? 'global'}:${query}`;
-    const cached = this.autocompleteCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) return cached.results;
+    const cached = this.autocompleteCache.get(query);
+    if (cached) return cached;
 
     try {
       const qb = this.courseRepository
@@ -142,7 +145,7 @@ export class SearchService {
         metadata: { courseId: course.id },
       }));
 
-      this.autocompleteCache.set(cacheKey, { results, timestamp: Date.now() });
+      this.autocompleteCache.set(query, results);
       return results;
     } catch (err) {
       this.logger.error(`Autocomplete failed: ${(err as Error).message}`);

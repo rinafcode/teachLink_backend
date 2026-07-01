@@ -32,6 +32,9 @@ import { CreateNotificationDto } from './dto/notification.dto';
 import { PreferencesService } from './preferences/preferences.service';
 import { NotificationTemplateService } from './templates/notification-template.service';
 import { SendTemplatedNotificationDto } from './dto/preferences.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 @Injectable()
 export class NotificationsService {
@@ -173,12 +176,20 @@ export class NotificationsService {
     return age <= this.batchWindowMs ? existing : null;
   }
 
-  async findForUser(userId: string, limit = 50): Promise<Notification[]> {
-    return this.notificationRepository.find({
+  async findForUser(
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Notification>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 50;
+    const [data, total] = await this.notificationRepository.findAndCount({
       where: { userId },
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
       take: limit,
     });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async markRead(id: string, userId: string): Promise<Notification> {

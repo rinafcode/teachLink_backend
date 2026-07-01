@@ -60,9 +60,30 @@ describe('DbPoolMetricsCollector', () => {
     const metricsStr = await metricsService.getMetrics();
 
     expect(metricsStr).toContain('db_pool_size 10');
-    expect(metricsStr).toContain('db_active_connections 6'); // totalCount(10) - idleCount(4)
+    expect(metricsStr).toContain('db_pool_active_connections 6'); // totalCount(10) - idleCount(4)
     expect(metricsStr).toContain('db_pool_idle_connections 4');
-    expect(metricsStr).toContain('db_pool_pending_requests 2');
+    expect(metricsStr).toContain('db_pool_waiting_requests 2');
+  });
+
+  it('should expose the configured max connections as a gauge', async () => {
+    collector.collectPoolMetrics();
+    const metricsStr = await metricsService.getMetrics();
+    // Default DATABASE_POOL_MAX is 30 per pool.config.ts
+    expect(metricsStr).toMatch(/db_pool_max_connections 30/);
+  });
+
+  it('should expose pool utilisation as a ratio in [0, 1]', async () => {
+    // With totalCount=10 and default max=30: util = 10/30 ≈ 0.3333
+    collector.collectPoolMetrics();
+    let metricsStr = await metricsService.getMetrics();
+    expect(metricsStr).toMatch(/db_pool_utilization 0.2/);
+
+    // Saturate the pool: totalCount=30, max=30 => util=1
+    mockPgPool.totalCount = 30;
+    mockPgPool.idleCount = 0;
+    collector.collectPoolMetrics();
+    metricsStr = await metricsService.getMetrics();
+    expect(metricsStr).toMatch(/db_pool_utilization 1/);
   });
 
   it('should wrap pgPool.connect and track wait metrics', async () => {

@@ -18,6 +18,20 @@ import { Transform } from 'class-transformer';
  * digit, and special character) to meet the platform's security policy.
  */
 export class RegisterDto {
+  @ApiProperty({ example: 'Jane', description: 'First name (max 50 chars)' })
+  @IsString({ message: 'First name must be a string' })
+  @IsNotEmpty({ message: 'First name is required' })
+  @MaxLength(50, { message: 'First name cannot exceed 50 characters' })
+  @Transform(({ value }) => value?.trim())
+  firstName: string;
+
+  @ApiProperty({ example: 'Doe', description: 'Last name (max 50 chars)' })
+  @IsString({ message: 'Last name must be a string' })
+  @IsNotEmpty({ message: 'Last name is required' })
+  @MaxLength(50, { message: 'Last name cannot exceed 50 characters' })
+  @Transform(({ value }) => value?.trim())
+  lastName: string;
+
   /**
    * Unique username displayed across the platform.
    * Only letters, numbers, underscores, and hyphens are allowed.

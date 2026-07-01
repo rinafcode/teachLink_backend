@@ -9,6 +9,7 @@ import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
+import './tracing/opentelemetry';
 
 import { CorrelationIdMiddleware } from './middleware/correlation-id';
 import { createSessionConfig } from './config/cache.config';
@@ -32,6 +33,7 @@ import { requestIdMiddleware } from './logging/request-id.middleware';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
+import { PaginationInterceptor } from './common/interceptors/pagination.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
@@ -53,7 +55,33 @@ async function bootstrapWorker(): Promise<void> {
     10,
   );
 
+  const wsMaxPayloadBytes = parseInt(
+    process.env.WS_MAX_PAYLOAD_BYTES || `${BYTES.SIXTY_FOUR_KB}`,
+    10,
+  );
+
   const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  // =========================
+  // WEBSOCKET PAYLOAD SIZE LIMIT
+  // =========================
+  // Configure Socket.IO maxHttpBufferSize at the transport layer.
+  // Messages exceeding this limit are rejected before reaching any handler.
+  const { IoAdapter } = await import('@nestjs/platform-socket.io');
+
+  class SizeLimitedIoAdapter extends IoAdapter {
+    createIOServer(port: number, options?: any): any {
+      return super.createIOServer(port, {
+        ...options,
+        maxHttpBufferSize: wsMaxPayloadBytes,
+      });
+    }
+  }
+
+  app.useWebSocketAdapter(new SizeLimitedIoAdapter(app));
+  logger.log(
+    `WebSocket maxHttpBufferSize set to ${wsMaxPayloadBytes} bytes (${Math.round(wsMaxPayloadBytes / 1024)}KB)`,
+  );
 
   // Get shutdown services
   const shutdownState = app.get(ShutdownStateService);
@@ -281,7 +309,7 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
-  app.useGlobalInterceptors(new LocaleInterceptor());
+  app.useGlobalInterceptors(new LocaleInterceptor(), new PaginationInterceptor());
 
   // =========================
   // SWAGGER

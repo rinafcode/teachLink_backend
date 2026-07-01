@@ -86,6 +86,9 @@ export class TransactionHelperService {
    * Create savepoint for nested transactions
    */
   async createSavepoint(manager: EntityManager, savepointName: string): Promise<void> {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(savepointName)) {
+      throw new Error(`Invalid savepoint name: ${savepointName}`);
+    }
     await manager.query(`SAVEPOINT ${savepointName}`);
     this.logger.debug(`Created savepoint: ${savepointName}`);
   }
@@ -93,6 +96,9 @@ export class TransactionHelperService {
    * Rollback to savepoint
    */
   async rollbackToSavepoint(manager: EntityManager, savepointName: string): Promise<void> {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(savepointName)) {
+      throw new Error(`Invalid savepoint name: ${savepointName}`);
+    }
     await manager.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
     this.logger.debug(`Rolled back to savepoint: ${savepointName}`);
   }
@@ -100,6 +106,9 @@ export class TransactionHelperService {
    * Release savepoint
    */
   async releaseSavepoint(manager: EntityManager, savepointName: string): Promise<void> {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(savepointName)) {
+      throw new Error(`Invalid savepoint name: ${savepointName}`);
+    }
     await manager.query(`RELEASE SAVEPOINT ${savepointName}`);
     this.logger.debug(`Released savepoint: ${savepointName}`);
   }
@@ -124,6 +133,9 @@ export class TransactionHelperService {
    * Set transaction timeout
    */
   async setTransactionTimeout(manager: EntityManager, timeoutMs: number): Promise<void> {
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
+      throw new Error(`Invalid timeout value: ${timeoutMs}`);
+    }
     await manager.query(`SET LOCK_TIMEOUT ${timeoutMs}`);
   }
 }

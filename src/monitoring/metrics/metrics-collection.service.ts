@@ -25,7 +25,7 @@ export class MetricsCollectionService implements OnModuleInit {
   // ── Infrastructure – Database ─────────────────────────────────────────────
 
   public dbQueryDuration: Histogram;
-  public activeConnections: Gauge;
+  public dbPoolActiveConnections: Gauge;
 
   /** Total DB pool connections acquired since startup */
   public dbPoolConnectionsAcquired: Counter;
@@ -33,10 +33,14 @@ export class MetricsCollectionService implements OnModuleInit {
   public dbPoolConnectionsReleased: Counter;
   /** Current DB connection pool size (active + idle) */
   public dbPoolSize: Gauge;
+  /** Configured maximum DB connection pool capacity */
+  public dbPoolMaxConnections: Gauge;
+  /** Current pool utilisation as a ratio in [0, 1] */
+  public dbPoolUtilization: Gauge;
   /** Currently idle / available pool connections */
   public dbPoolIdleConnections: Gauge;
   /** Requests queued waiting for a free pool slot */
-  public dbPoolPendingRequests: Gauge;
+  public dbPoolWaitingRequests: Gauge;
   /** Total number of DB pool connections that had to wait since startup */
   public dbPoolWaitCount: Counter;
   /** Duration of database connection checkout waiting in seconds */
@@ -101,6 +105,11 @@ export class MetricsCollectionService implements OnModuleInit {
 
   /** Total API errors (≥ 400), labelled by route and error_code */
   public apiErrors: Counter;
+
+  // ── Business Metrics – Workers ────────────────────────────────────────────
+
+  /** Total worker restarts, labelled by worker_name */
+  public workerRestartsTotal: Counter;
 
   // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -227,6 +236,12 @@ export class MetricsCollectionService implements OnModuleInit {
     this.apiErrors.inc({ route, error_code: errorCode });
   }
 
+  // ── Recording helpers – Workers ──────────────────────────────────────────
+
+  recordWorkerRestart(workerName: string): void {
+    this.workerRestartsTotal.inc({ worker_name: workerName });
+  }
+
   // ── Private – metric registration ─────────────────────────────────────────
 
   private initialiseMetrics(): void {
@@ -249,9 +264,9 @@ export class MetricsCollectionService implements OnModuleInit {
     });
 
     // Database – connections
-    this.activeConnections = new Gauge({
-      name: 'db_active_connections',
-      help: 'Number of currently active database connections',
+    this.dbPoolActiveConnections = new Gauge({
+      name: 'db_pool_active_connections',
+      help: 'Number of currently active (checked-out) connections in the DB pool',
       registers: [this.registry],
     });
 
@@ -273,14 +288,26 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
+    this.dbPoolMaxConnections = new Gauge({
+      name: 'db_pool_max_connections',
+      help: 'Configured maximum DB connection pool capacity',
+      registers: [this.registry],
+    });
+
+    this.dbPoolUtilization = new Gauge({
+      name: 'db_pool_utilization',
+      help: 'Current DB pool utilisation as a ratio in [0, 1] (active / max)',
+      registers: [this.registry],
+    });
+
     this.dbPoolIdleConnections = new Gauge({
       name: 'db_pool_idle_connections',
       help: 'Number of idle (available) connections in the DB pool',
       registers: [this.registry],
     });
 
-    this.dbPoolPendingRequests = new Gauge({
-      name: 'db_pool_pending_requests',
+    this.dbPoolWaitingRequests = new Gauge({
+      name: 'db_pool_waiting_requests',
       help: 'Number of requests waiting for a free DB pool connection',
       registers: [this.registry],
     });
@@ -409,6 +436,14 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'api_errors_total',
       help: 'Total number of API errors (HTTP 4xx/5xx)',
       labelNames: ['route', 'error_code'],
+      registers: [this.registry],
+    });
+
+    // Workers
+    this.workerRestartsTotal = new Counter({
+      name: 'worker_restarts_total',
+      help: 'Total number of worker restarts due to stalling',
+      labelNames: ['worker_name'],
       registers: [this.registry],
     });
   }
