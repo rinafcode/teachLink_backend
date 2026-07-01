@@ -30,6 +30,7 @@ import { AuditLogService } from './audit-log/audit-log.service';
 import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 import { initStructuredLogging } from './logging/structured-logging';
 import { requestIdMiddleware } from './logging/request-id.middleware';
+import { MetricsInterceptor } from './metrics/metrics.interceptor';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
@@ -310,6 +311,11 @@ async function bootstrapWorker(): Promise<void> {
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
   app.useGlobalInterceptors(new LocaleInterceptor(), new PaginationInterceptor());
+
+  // =========================
+  // GLOBAL METRICS INTERCEPTOR
+  // =========================
+  app.useGlobalInterceptors(app.get(MetricsInterceptor));
 
   // =========================
   // SWAGGER
