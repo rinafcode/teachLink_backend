@@ -109,8 +109,10 @@ export class ContainerCpuMetricsService {
         return null;
       }
 
-      const elapsedSeconds = (current.timestampMs - this.previousProcessCpuSnapshot.timestampMs) / 1000;
-      const deltaCpuSeconds = current.cpuSecondsTotal - this.previousProcessCpuSnapshot.cpuSecondsTotal;
+      const elapsedSeconds =
+        (current.timestampMs - this.previousProcessCpuSnapshot.timestampMs) / 1000;
+      const deltaCpuSeconds =
+        current.cpuSecondsTotal - this.previousProcessCpuSnapshot.cpuSecondsTotal;
       this.previousProcessCpuSnapshot = current;
 
       if (elapsedSeconds <= 0 || deltaCpuSeconds < 0) {
