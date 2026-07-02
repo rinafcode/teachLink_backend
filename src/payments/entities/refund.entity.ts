@@ -56,6 +56,7 @@ export class Refund {
   payment: Payment;
 
   @Column({ name: 'payment_id' })
+  @Index()
   paymentId: string;
 
   @CreateDateColumn()

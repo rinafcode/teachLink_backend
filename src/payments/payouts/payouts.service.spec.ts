@@ -13,8 +13,23 @@ import { NotificationsService } from '../../notifications/notifications.service'
 describe('PayoutsService', () => {
   let service: PayoutsService;
 
+  const mockQueryBuilder = {
+    leftJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    groupBy: jest.fn().mockReturnThis(),
+    addGroupBy: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    offset: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn(),
+    getRawOne: jest.fn(),
+  };
+
   const mockCourseRepository = {
     find: jest.fn(),
+    createQueryBuilder: jest.fn(() => mockQueryBuilder),
   };
 
   const mockPaymentRepository = {
@@ -92,7 +107,8 @@ describe('PayoutsService', () => {
 
   describe('getRevenueBreakdown', () => {
     it('should return empty summary if instructor has no courses', async () => {
-      mockCourseRepository.find.mockResolvedValue([]);
+      mockQueryBuilder.getRawMany.mockResolvedValueOnce([]);
+      mockQueryBuilder.getRawOne.mockResolvedValueOnce(null);
 
       const result = await service.getRevenueBreakdown('inst-1');
 
@@ -105,29 +121,18 @@ describe('PayoutsService', () => {
         },
         courses: [],
       });
-      expect(mockCourseRepository.find).toHaveBeenCalledWith({
-        where: { instructorId: 'inst-1' },
-      });
+      expect(mockCourseRepository.createQueryBuilder).toHaveBeenCalledWith('course');
     });
 
     it('should compute gross, refunds, and net revenue correctly per course', async () => {
-      const mockCourses = [
-        { id: 'course-1', title: 'Course One', instructorId: 'inst-1' },
-        { id: 'course-2', title: 'Course Two', instructorId: 'inst-1' },
+      const mockRawCourses = [
+        { courseId: 'course-1', title: 'Course One', grossRevenue: '250.00', refunds: '25.00', salesCount: '2' },
+        { courseId: 'course-2', title: 'Course Two', grossRevenue: '200.00', refunds: '0.00', salesCount: '1' },
       ];
-      mockCourseRepository.find.mockResolvedValue(mockCourses);
+      const mockSummary = { totalGrossRevenue: '450.00', totalRefunds: '25.00' };
 
-      const mockPayments = [
-        { id: 'pay-1', courseId: 'course-1', amount: 100.0, status: PaymentStatus.COMPLETED },
-        { id: 'pay-2', courseId: 'course-1', amount: 150.0, status: PaymentStatus.COMPLETED },
-        { id: 'pay-3', courseId: 'course-2', amount: 200.0, status: PaymentStatus.COMPLETED },
-      ];
-      mockPaymentRepository.find.mockResolvedValue(mockPayments);
-
-      const mockRefunds = [
-        { id: 'ref-1', paymentId: 'pay-1', amount: 25.0, status: RefundStatus.PROCESSED },
-      ];
-      mockRefundRepository.find.mockResolvedValue(mockRefunds);
+      mockQueryBuilder.getRawMany.mockResolvedValueOnce(mockRawCourses);
+      mockQueryBuilder.getRawOne.mockResolvedValueOnce(mockSummary);
 
       const result = await service.getRevenueBreakdown('inst-1');
 
