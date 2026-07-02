@@ -23,7 +23,8 @@ export class ReconciliationController {
   @Roles('admin')
   @ApiOperation({
     summary: 'Get last reconciliation report',
-    description: 'Returns the results of the most recent payment reconciliation run. Admin-only endpoint.',
+    description:
+      'Returns the results of the most recent payment reconciliation run. Admin-only endpoint.',
   })
   @ApiResponse({
     status: 200,

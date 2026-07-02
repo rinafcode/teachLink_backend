@@ -79,7 +79,8 @@ export class ReconciliationService {
           totalProviderTransactions: report.totalProviderTransactions,
           totalLocalPayments: report.totalLocalPayments,
           matchedTransactions: report.matchedTransactions,
-          unmatchedCount: report.unmatchedProviderTransactions.length + report.unmatchedLocalPayments.length,
+          unmatchedCount:
+            report.unmatchedProviderTransactions.length + report.unmatchedLocalPayments.length,
           mismatchCount: report.mismatches.length,
         },
         severity: report.mismatches.length > 0 ? AuditSeverity.WARNING : AuditSeverity.INFO,
@@ -211,7 +212,10 @@ export class ReconciliationService {
    * Fetch transactions from payment provider for the given date range
    * This is a mock implementation - in production, this would call the actual provider API (Stripe, PayPal, etc.)
    */
-  private async fetchProviderTransactions(startDate: Date, endDate: Date): Promise<ProviderTransaction[]> {
+  private async fetchProviderTransactions(
+    _startDate: Date,
+    _endDate: Date,
+  ): Promise<ProviderTransaction[]> {
     // TODO: Implement actual provider API call
     // For now, return empty array as this needs to be integrated with the actual payment provider
     // Example implementation for Stripe:
@@ -238,7 +242,10 @@ export class ReconciliationService {
   /**
    * Detect mismatches between provider transaction and local payment
    */
-  private detectMismatch(providerTx: ProviderTransaction, localPayment: Payment): ReconciliationReport['mismatches'][0] | null {
+  private detectMismatch(
+    providerTx: ProviderTransaction,
+    localPayment: Payment,
+  ): ReconciliationReport['mismatches'][0] | null {
     // Check amount mismatch
     if (Math.abs(providerTx.amount - Number(localPayment.amount)) > 0.01) {
       return {
