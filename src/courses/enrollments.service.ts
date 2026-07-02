@@ -97,7 +97,9 @@ export class EnrollmentsService {
   /**
    * Bulk enroll users.
    */
-  async bulkEnroll(enrollments: { userId: string; courseId: string }[]): Promise<{ enrolled: number; skipped: number; failed: number; errors: any[] }> {
+  async bulkEnroll(
+    enrollments: { userId: string; courseId: string }[],
+  ): Promise<{ enrolled: number; skipped: number; failed: number; errors: any[] }> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -128,7 +130,11 @@ export class EnrollmentsService {
 
           if (course.status !== CourseStatus.PUBLISHED) {
             failedCount++;
-            errors.push({ userId, courseId, error: `Cannot enroll in course with status "${course.status}".` });
+            errors.push({
+              userId,
+              courseId,
+              error: `Cannot enroll in course with status "${course.status}".`,
+            });
             continue;
           }
 
@@ -154,10 +160,13 @@ export class EnrollmentsService {
           const saved = await enrollmentRepo.save(enrollment);
           enrolledCount++;
           successfulEnrollments.push(saved);
-
         } catch (error) {
           failedCount++;
-          errors.push({ userId, courseId, error: error instanceof Error ? error.message : 'Unknown error' });
+          errors.push({
+            userId,
+            courseId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
       }
 
@@ -166,7 +175,7 @@ export class EnrollmentsService {
         enrolledCount = 0;
       } else {
         await queryRunner.commitTransaction();
-        
+
         // Emit events for successful enrollments after commit
         for (const saved of successfulEnrollments) {
           this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
