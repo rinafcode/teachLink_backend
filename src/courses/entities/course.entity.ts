@@ -73,6 +73,10 @@ export class Course {
   @Index()
   instructorId: string;
 
+  @Column({ name: 'tenant_id', nullable: true })
+  @Index()
+  tenantId?: string;
+
   @OneToMany(() => CourseModule, (module) => module.course)
   modules: CourseModule[];
 
