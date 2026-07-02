@@ -14,9 +14,13 @@ export interface JwtPayload {
 
 /**
  * Passport JWT strategy for validating Bearer tokens.
+ * Supports HS256 (symmetric) and RS256 (asymmetric) key verification
+ * via secretOrKeyProvider for runtime key rotation.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  private readonly logger = new Logger(JwtStrategy.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -24,7 +28,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'default-jwt-secret',
+      secretOrKeyProvider: (_request, _rawJwtToken, done) => {
+        try {
+          if (isRS256Configured()) {
+            const pubKey = process.env.JWT_PUBLIC_KEY || '';
+            const resolved = loadPEMKey(pubKey) || pubKey;
+            done(null, resolved);
+          } else {
+            done(null, process.env.JWT_SECRET || 'default-jwt-secret');
+          }
+        } catch (err) {
+          this.logger.error('Failed to resolve JWT verification key', err);
+          done(err, undefined);
+        }
+      },
     });
   }
 
