@@ -337,7 +337,12 @@ async function bootstrapWorker(): Promise<void> {
         })),
       });
     }
-    if (err.status === 500 && err.errors && typeof err.message === 'string' && err.message.toLowerCase().includes('response')) {
+    if (
+      err.status === 500 &&
+      err.errors &&
+      typeof err.message === 'string' &&
+      err.message.toLowerCase().includes('response')
+    ) {
       logger.warn(`Response validation deviation: ${JSON.stringify(err.errors)}`);
       return res.status(500).json({
         success: false,
