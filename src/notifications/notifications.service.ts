@@ -43,11 +43,25 @@ export class NotificationsService {
   }
 
   // Stubs for other methods (to satisfy typecheck)
-  async send(dto: any) { return null; }
-  async sendTemplated(dto: any) { return []; }
-  async unsubscribe(userId: string, eventType: string) { return; }
-  async findForUser(userId: string, query?: any) { return { data: [], total: 0 }; }
-  async create(dto: any) { return null; }
-  async markRead(id: string, userId: string) { return null; }
-  async markManyRead(ids: string[], userId: string) { return; }
+  async send(_dto: any) {
+    return null;
+  }
+  async sendTemplated(_dto: any) {
+    return [];
+  }
+  async unsubscribe(_userId: string, _eventType: string) {
+    return;
+  }
+  async findForUser(_userId: string, _query?: any) {
+    return { data: [], total: 0 };
+  }
+  async create(_dto: any) {
+    return null;
+  }
+  async markRead(_id: string, _userId: string) {
+    return null;
+  }
+  async markManyRead(_ids: string[], _userId: string) {
+    return;
+  }
 }
