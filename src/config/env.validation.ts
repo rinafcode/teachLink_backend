@@ -41,8 +41,7 @@ export const envValidationSchema = Joi.object({
       }),
     }),
   JWT_PRIVATE_KEY: Joi.string().optional(),
-  JWT_PUBLIC_KEY: Joi.string().optional()
-    .when('JWT_PRIVATE_KEY', {
+  JWT_PUBLIC_KEY: Joi.string().optional().when('JWT_PRIVATE_KEY', {
     is: Joi.exist(),
     then: Joi.required(),
     otherwise: Joi.optional(),
