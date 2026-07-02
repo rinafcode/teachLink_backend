@@ -14,6 +14,8 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { EnrollmentsService } from './enrollments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Throttle } from '@nestjs/throttler';
+import { BulkEnrollmentDto } from './dto/bulk-enrollment.dto';
 
 @ApiTags('enrollments')
 @Controller('enrollments')
@@ -21,6 +23,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiBearerAuth()
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
+
+  @Post('bulk')
+  @Throttle({ default: { limit: 1, ttl: 60000 } })
+  @ApiOperation({ summary: 'Bulk enroll users into courses' })
+  @ApiResponse({ status: 201, description: 'Bulk enrollment processed' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  async bulkEnroll(@Body() bulkDto: BulkEnrollmentDto) {
+    return this.enrollmentsService.bulkEnroll(bulkDto.enrollments);
+  }
 
   @Post(':courseId')
   @ApiOperation({ summary: 'Enroll in a course' })
