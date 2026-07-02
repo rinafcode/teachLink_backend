@@ -19,6 +19,10 @@ export class AppController {
     },
   })
   getStatus() {
-    return { message: 'TeachLink API is running', timestamp: new Date().toISOString() };
+    return {
+      success: true,
+      message: 'TeachLink API is running',
+      data: { timestamp: new Date().toISOString() },
+    };
   }
 }

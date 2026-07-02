@@ -135,6 +135,7 @@
     "csurf": "^1.2.2",
     "dataloader": "^2.2.3",
     "express": "^5.2.1",
+    "express-openapi-validator": "^5.3.9",
     "express-session": "^1.19.0",
     "fast-xml-parser": "^5.2.5",
     "fluent-ffmpeg": "^2.1.3",
