@@ -49,9 +49,7 @@ const mockShardConfigService = {
   getActiveShards: jest.fn(() => mockShards),
   getShardById: jest.fn((id: string) => mockShards.find((s) => s.id === id)),
   reloadConfig: jest.fn(() => mockShards),
-  onConfigUpdated: jest.fn(
-    (_listener: (message?: string) => void | Promise<void>) => jest.fn(),
-  ),
+  onConfigUpdated: jest.fn((_listener: (message?: string) => void | Promise<void>) => jest.fn()),
 };
 
 describe('ShardRouter', () => {
