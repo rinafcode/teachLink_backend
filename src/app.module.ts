@@ -27,6 +27,7 @@ import { ApiVersionMiddleware } from './common/middleware/api-version.middleware
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { PaymentsModule } from './payments/payments.module';
 import { HealthModule } from './health/health.module';
 
 import { ReadReplicaModule } from './database/read-replica';
@@ -62,6 +63,7 @@ const featureFlags = loadFeatureFlags();
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
+    PaymentsModule,
     HealthModule,
     ReadReplicaModule,
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
