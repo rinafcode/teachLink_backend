@@ -103,6 +103,12 @@ export class GdprService {
       throw new NotFoundException('User not found');
     }
 
+    if (user.deletedAt) {
+      return {
+        success: true,
+        alreadyErased: true,
+      };
+    }
     await this.sessionService.deleteAllSessionsForUser(userId);
 
     await this.usersService.update(userId, {
@@ -113,7 +119,33 @@ export class GdprService {
       refreshToken: null,
     });
 
-    await this.auditService.log('GDPR_ERASURE', userId);
+    await this.consentRepository.manager.transaction(async (manager) => {
+      // Wrap all DB writes in a transaction with ON CONFLICT DO NOTHING or upsert semantics.
+      await manager
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({
+          id: userId,
+          email: null as any,
+          firstName: '[DELETED]',
+          lastName: '[DELETED]',
+          deletedAt: new Date(),
+        })
+        .orUpdate(['email', 'firstName', 'lastName', 'deletedAt'], ['id'])
+        .execute();
+
+      await this.usersService.update(userId, {
+        email: null,
+        firstName: '[DELETED]',
+        lastName: '[DELETED]',
+        phone: null,
+        address: null,
+        deletedAt: new Date(),
+      });
+
+      await this.auditService.log('GDPR_ERASURE', userId);
+    });
 
     return {
       success: true,

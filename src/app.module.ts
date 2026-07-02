@@ -29,18 +29,19 @@ import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
 
-// ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
 import { CoursesModule } from './courses/courses.module';
 import { AuthModule } from './auth/auth.module';
 import { CohortsModule } from './cohorts/cohorts.module';
+import { LoggingModule } from './logging/logging.module';
 import { FeatureFlagAuditModule } from './config/feature-flag-audit.module';
 
 const featureFlags = loadFeatureFlags();
 
 @Module({
   imports: [
+    LoggingModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: envValidationSchema,
@@ -62,21 +63,11 @@ const featureFlags = loadFeatureFlags();
     InvoicesModule,
     ReportingModule,
     HealthModule,
-
-    // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
-
-    // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
-
-    // ✅ feature-flagged auth
     ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
-
-    // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
     CohortsModule,
-
-    // Feature flag audit trail and admin management endpoints
     FeatureFlagAuditModule,
   ],
   controllers: [AppController],

@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import type { Job } from 'bull';
+import { Job } from 'bull';
 import Redis from 'ioredis';
 import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
