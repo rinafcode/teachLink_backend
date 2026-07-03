@@ -26,7 +26,7 @@ function createMockRedis() {
     return removed;
   });
   const scan = jest.fn(async (_cursor: string, _match: string, pattern: string) => {
-    const re = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+    const re = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
     const matches = Array.from(store.keys()).filter((k) => re.test(k));
     return ['0', matches] as [string, string[]];
   });
@@ -156,10 +156,7 @@ describe('CachingService', () => {
       expect(metrics.updateCacheHitRate).toHaveBeenCalledWith('application', 70);
 
       // The read path must use MGET against the CRedis keys, not local state.
-      expect(redis.mget).toHaveBeenCalledWith(
-        'cache:hits:application',
-        'cache:misses:application',
-      );
+      expect(redis.mget).toHaveBeenCalledWith('cache:hits:application', 'cache:misses:application');
     });
 
     it('uses literal cache:hits:{type} / cache:misses:{type} keys (issue #811)', async () => {
@@ -256,7 +253,10 @@ describe('CachingService', () => {
       const localOnly = new CachingService(
         cacheManager as never,
         metrics as unknown as MetricsCollectionService,
-        { get: (key: string, fallback?: any) => (key === 'CACHE_COUNTER_FALLBACK_LOCAL' ? true : fallback) } as any,
+        {
+          get: (key: string, fallback?: any) =>
+            key === 'CACHE_COUNTER_FALLBACK_LOCAL' ? true : fallback,
+        } as any,
         { incr: brokenIncr, mget: brokenMget, scan: jest.fn(), del: jest.fn() } as never,
       );
 
@@ -277,7 +277,10 @@ describe('CachingService', () => {
       const noFallback = new CachingService(
         cacheManager as never,
         metrics as unknown as MetricsCollectionService,
-        { get: (key: string, fallback?: any) => (key === 'CACHE_COUNTER_FALLBACK_LOCAL' ? false : fallback) } as any,
+        {
+          get: (key: string, fallback?: any) =>
+            key === 'CACHE_COUNTER_FALLBACK_LOCAL' ? false : fallback,
+        } as any,
         { incr: brokenIncr, mget: brokenMget, scan: jest.fn(), del: jest.fn() } as never,
       );
 
