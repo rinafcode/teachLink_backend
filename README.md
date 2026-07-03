@@ -4,6 +4,9 @@
 [![Coverage](https://img.shields.io/badge/coverage-70%25%20threshold-brightgreen)](#-ci--testing)
 [![Branch Protection](https://img.shields.io/badge/branch%20protection-enabled-blue)](#-branch-protection)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
+## 🚦 Local Validation: Analytics & Cost Tracking
+q
+To quickly validate feature analytics and cost tracking end-to-end:
 
 > **Replace** `teachlink/backend` in the badge URLs above with your actual `org/repo` slug once the repository is on GitHub.
 

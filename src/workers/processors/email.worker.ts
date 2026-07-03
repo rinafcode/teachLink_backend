@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 import { EmailTrackingService } from '../../email-marketing/services/email-tracking.service';
 import { EmailEventType } from '../../email-marketing/enums/email-event-type.enum';
@@ -10,8 +11,11 @@ import { EmailEventType } from '../../email-marketing/enums/email-event-type.enu
  */
 @Injectable()
 export class EmailWorker extends BaseWorker {
-  constructor(private readonly emailTracking: EmailTrackingService) {
-    super('email');
+  constructor(
+    private readonly emailTracking: EmailTrackingService,
+    configService: ConfigService,
+  ) {
+    super('email', configService);
   }
 
   /**

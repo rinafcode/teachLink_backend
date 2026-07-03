@@ -11,7 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Course, CourseStatus } from './entities/course.entity';
 import { Enrollment } from './entities/enrollment.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { APP_EVENTS } from '../common/constants/event.constants';
@@ -92,6 +92,110 @@ export class EnrollmentsService {
 
       return saved;
     });
+  }
+
+  /**
+   * Bulk enroll users.
+   */
+  async bulkEnroll(
+    enrollments: { userId: string; courseId: string }[],
+  ): Promise<{ enrolled: number; skipped: number; failed: number; errors: any[] }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let enrolledCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    const errors: any[] = [];
+    const successfulEnrollments: any[] = [];
+
+    try {
+      const enrollmentRepo = queryRunner.manager.getRepository(Enrollment);
+      const courseRepo = queryRunner.manager.getRepository(Course);
+
+      for (const item of enrollments) {
+        const { userId, courseId } = item;
+        try {
+          const course = await courseRepo.findOne({
+            where: { id: courseId },
+            relations: ['prerequisite'],
+          });
+
+          if (!course) {
+            failedCount++;
+            errors.push({ userId, courseId, error: `Course ${courseId} not found` });
+            continue;
+          }
+
+          if (course.status !== CourseStatus.PUBLISHED) {
+            failedCount++;
+            errors.push({
+              userId,
+              courseId,
+              error: `Cannot enroll in course with status "${course.status}".`,
+            });
+            continue;
+          }
+
+          const existing = await enrollmentRepo.findOne({
+            where: { userId, courseId },
+          });
+
+          if (existing) {
+            skippedCount++;
+            errors.push({ userId, courseId, error: 'User is already enrolled in this course' });
+            continue;
+          }
+
+          await this.validatePrerequisites(userId, course, enrollmentRepo);
+
+          const enrollment = enrollmentRepo.create({
+            userId,
+            courseId,
+            status: APP_CONSTANTS.ENROLLMENT_STATUS.ACTIVE,
+            progress: 0,
+          });
+
+          const saved = await enrollmentRepo.save(enrollment);
+          enrolledCount++;
+          successfulEnrollments.push(saved);
+        } catch (error) {
+          failedCount++;
+          errors.push({
+            userId,
+            courseId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      if (failedCount > 0) {
+        await queryRunner.rollbackTransaction();
+        enrolledCount = 0;
+      } else {
+        await queryRunner.commitTransaction();
+
+        // Emit events for successful enrollments after commit
+        for (const saved of successfulEnrollments) {
+          this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
+          this.eventEmitter.emit(APP_EVENTS.COURSE_ENROLLED, {
+            userId: saved.userId,
+            courseId: saved.courseId,
+          });
+        }
+        if (enrolledCount > 0) {
+          this.logger.log(`Bulk enrolled ${enrolledCount} users successfully`);
+        }
+      }
+
+      return { enrolled: enrolledCount, skipped: skippedCount, failed: failedCount, errors };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
@@ -272,7 +376,11 @@ export class EnrollmentsService {
    * Check admin/moderator role.
    */
   private isPrivileged(user: User): boolean {
-    return [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    return (
+      user.roles?.some((role) =>
+        ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
+      ) ?? false
+    );
   }
 
   /**

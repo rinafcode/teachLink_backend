@@ -40,11 +40,15 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       ELASTICSEARCH_NODE: http://elasticsearch:9200
+      JAEGER_AGENT_HOST: jaeger
+      JAEGER_AGENT_PORT: 6831
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     networks:
       - teachlink-staging
     security_opt:
@@ -261,6 +265,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  # ─── Jaeger Tracing ─────────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.48
+    container_name: teachlink-staging-jaeger
+    restart: unless-stopped
+    ports:
+      - '6831:6831/udp'
+      - '16686:16686'
+    networks:
+      - teachlink-staging
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:16686/jaeger/api/v1/services || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
 
   # ─── Exporters ───────────────────────────────────────────────────────────────
   redis_exporter:

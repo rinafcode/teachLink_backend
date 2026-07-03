@@ -4,6 +4,7 @@ import { Repository, Between } from 'typeorm';
 import { AuditLog } from '../audit-log.entity';
 import { AuditAction } from '../enums/audit-action.enum';
 import { IAuditLogSearchFilters, IAuditLogSearchResult } from '../interfaces/audit-log.interfaces';
+import { clampLimit } from '../../common/utils/pagination.utils';
 
 /**
  * Provides audit log query operations.
@@ -100,16 +101,20 @@ export class AuditQueryService {
     queryBuilder.orderBy('audit.timestamp', 'DESC');
 
     const total = await queryBuilder.getCount();
-    const skip = (page - 1) * limit;
-    queryBuilder.skip(skip).take(limit);
-    const logs = await queryBuilder.getMany();
+    const clampedLimit = clampLimit(limit);
+    const skip = (page - 1) * clampedLimit;
+    queryBuilder.skip(skip).take(clampedLimit);
+    const data = await queryBuilder.getMany();
+    const totalPages = Math.ceil(total / clampedLimit);
 
     return {
-      logs,
+      data,
       total,
       page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      limit: clampedLimit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
     };
   }
 
