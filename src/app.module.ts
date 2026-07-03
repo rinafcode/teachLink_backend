@@ -28,6 +28,7 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
+import { MetricsModule } from './utils/masking/metrics.module';
 
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
@@ -63,6 +64,9 @@ const featureFlags = loadFeatureFlags();
     InvoicesModule,
     ReportingModule,
     HealthModule,
+    MetricsModule,
+
+    // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
     ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
