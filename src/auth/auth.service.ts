@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
-import { User } from '../users/entities/user.entity';
+import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 
 @Injectable()
@@ -38,17 +38,24 @@ export class AuthService {
     try {
       // Verify token signature and expiration
       decoded = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
+        secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch (_e) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     const userId = decoded.sub;
-    const user = await this.userRepository.findOneBy({ id: userId });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
+    });
 
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access Denied');
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new UnauthorizedException('User is not active');
     }
 
     const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
@@ -111,13 +118,13 @@ export class AuthService {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET || 'default-jwt-secret',
+        secret: process.env.JWT_SECRET,
         expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
       }),
       this.jwtService.signAsync(
         { ...payload, jti: refreshJti },
         {
-          secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
+          secret: process.env.JWT_REFRESH_SECRET,
           expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
         },
       ),

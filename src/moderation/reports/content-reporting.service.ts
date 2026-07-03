@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { ManualReviewService } from '../manual/manual-review.service';
+import { ReportAssignmentService } from '../assignment/report-assignment.service';
 import { ContentReportReason } from './content-report-reason.enum';
 import { ContentReportStatus } from './content-report-status.enum';
 import { ContentReport } from './content-report.entity';
@@ -30,6 +31,7 @@ export class ContentReportingService {
     @InjectRepository(ContentReport)
     private readonly reportRepo: Repository<ContentReport>,
     private readonly manualReviewService: ManualReviewService,
+    private readonly assignmentService: ReportAssignmentService,
   ) {}
 
   async reportContent(dto: CreateContentReportDto, reporter: User): Promise<ContentReport> {
@@ -61,7 +63,10 @@ export class ContentReportingService {
       `Content report ${linkedReport.id} queued for ${linkedReport.contentType}:${linkedReport.contentId} by ${reporter.id}`,
     );
 
-    return linkedReport;
+    // Assign the new report to a moderator via round-robin (best-effort).
+    const assignedReport = await this.assignmentService.assignReport(linkedReport);
+
+    return assignedReport;
   }
 
   async listReports(

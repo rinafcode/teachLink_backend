@@ -46,10 +46,16 @@ export class SocialAuthService {
       }
     }
 
+    // Derive a username-like base from the email local part for fallback names.
+    const emailLocalPart = profile.email ? profile.email.split('@')[0] : profile.providerId;
+
+    const firstName = profile.firstName?.trim() || emailLocalPart;
+    const lastName = profile.lastName?.trim() || '';
+
     const user = this.users.create({
       email: profile.email,
-      firstName: profile.firstName ?? '',
-      lastName: profile.lastName ?? '',
+      firstName,
+      lastName,
       profilePicture: profile.picture,
       provider: profile.provider,
       providerId: profile.providerId,
