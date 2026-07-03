@@ -63,6 +63,7 @@ class AutoRebalanceDto {
  *   POST   /sharding/rebalance           — manual rebalance
  *   POST   /sharding/rebalance/auto      — auto rebalance analysis
  *   GET    /sharding/rebalance/plans     — list rebalance plans
+ *   POST   /sharding/reload              — reload shard config and hash ring
  *   POST   /sharding/ring/rebuild        — rebuild consistent-hash ring
  */
 @ApiTags('sharding')
@@ -181,6 +182,14 @@ export class ShardingController {
   }
 
   // ── Hash Ring ─────────────────────────────────────────────────────────────
+
+  @Post('reload')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reload shard configuration and rebuild the consistent-hash ring' })
+  async reloadConfig() {
+    await this.shardRouter.reloadConfig();
+    return { message: 'Shard configuration reloaded successfully' };
+  }
 
   @Post('ring/rebuild')
   @HttpCode(HttpStatus.OK)

@@ -1,12 +1,15 @@
 {
   "moduleFileExtensions": ["ts", "js", "json"],
   "rootDir": ".",
-  "testEnvironment": "./test/utils/test-environment.js",
+  "testEnvironment": "./utils/test-environment.js",
   "testRegex": "test/sanity/.*\\.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"],
+  "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/mocks/uuid.ts"
+  },
   "testTimeout": 15000,
   "forceExit": true,
   "verbose": true,

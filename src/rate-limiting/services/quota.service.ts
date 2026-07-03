@@ -21,10 +21,16 @@ export class QuotaManagementService {
   /** Resolve and return the effective quota limits for a user. */
   async getQuotaForUser(userId: string, tier: UserTier) {
     const base = await this.definitions.resolveForUser(userId, tier);
+    const [requestsPerMinute, requestsPerHour, requestsPerDay] = await Promise.all([
+      this.adaptive.adjustLimit(base.requestsPerMinute),
+      this.adaptive.adjustLimit(base.requestsPerHour),
+      this.adaptive.adjustLimit(base.requestsPerDay),
+    ]);
+
     return {
-      requestsPerMinute: this.adaptive.adjustLimit(base.requestsPerMinute),
-      requestsPerHour: this.adaptive.adjustLimit(base.requestsPerHour),
-      requestsPerDay: this.adaptive.adjustLimit(base.requestsPerDay),
+      requestsPerMinute,
+      requestsPerHour,
+      requestsPerDay,
     };
   }
 

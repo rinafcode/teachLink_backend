@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 
 /**
@@ -8,8 +9,8 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class MediaProcessingWorker extends BaseWorker {
-  constructor() {
-    super('media-processing');
+  constructor(configService: ConfigService) {
+    super('media-processing', configService);
   }
 
   /**

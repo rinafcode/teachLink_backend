@@ -1,5 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
+import Redis from 'ioredis';
+import { getSharedRedisClient } from '../../config/cache.config';
+import { ConfigService } from '@nestjs/config';
 import { IWorkerResult, IWorkerMetrics, IWorkerHealthCheck } from '../interfaces/worker.interfaces';
 
 /**
@@ -17,9 +20,18 @@ export abstract class BaseWorker {
   protected createdAt: Date = new Date();
   protected lastActivityAt: Date = new Date();
 
-  constructor(protected readonly workerType: string) {
+  protected redis: Redis;
+  private readonly workerStallThreshold: number;
+
+  constructor(
+    protected readonly workerType: string,
+    configService: ConfigService,
+  ) {
     this.workerId = `${workerType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     this.logger = new Logger(`${workerType}Worker`);
+    this.redis = getSharedRedisClient(configService);
+    this.workerStallThreshold =
+      configService?.get<number>('WORKER_STALL_THRESHOLD_SECONDS', 300) ?? 300;
   }
 
   /**
@@ -53,6 +65,15 @@ export abstract class BaseWorker {
       this.lastExecutionTime = executionTime;
       this.lastActivityAt = new Date();
 
+      // Update Redis heartbeat after successful job
+      const heartbeatKey = `worker:heartbeat:${this.workerId}`;
+      await this.redis.set(
+        heartbeatKey,
+        Date.now().toString(),
+        'EX',
+        this.workerStallThreshold * 2,
+      ); // TTL 2x threshold to auto-expire
+
       this.logger.log(
         `[${this.workerId}] Job ${job.name} completed successfully in ${executionTime}ms`,
       );
@@ -71,6 +92,15 @@ export abstract class BaseWorker {
       this.totalExecutionTime += executionTime;
       this.lastExecutionTime = executionTime;
       this.lastActivityAt = new Date();
+
+      // Update Redis heartbeat even on failure (to track activity)
+      const heartbeatKey = `worker:heartbeat:${this.workerId}`;
+      await this.redis.set(
+        heartbeatKey,
+        Date.now().toString(),
+        'EX',
+        this.workerStallThreshold * 2,
+      );
 
       this.logger.error(
         `[${this.workerId}] Job ${job.name} failed after ${executionTime}ms:`,

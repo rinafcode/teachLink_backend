@@ -158,6 +158,10 @@ export const envValidationSchema = Joi.object({
   // Segment Analytics
   SEGMENT_WRITE_KEY: Joi.string().optional(),
 
+  // Data Retention
+  AUDIT_LOG_RETENTION_DAYS: Joi.number().integer().min(1).default(730),
+  ANALYTICS_RETENTION_DAYS: Joi.number().integer().min(1).default(365),
+
   // Circuit Breaker Configuration
   CIRCUIT_BREAKER_TIMEOUT_MS: Joi.number().integer().min(100).default(3000),
   CIRCUIT_BREAKER_ERROR_THRESHOLD: Joi.number().integer().min(1).max(100).default(50),
