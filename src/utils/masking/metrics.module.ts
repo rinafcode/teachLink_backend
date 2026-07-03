@@ -7,16 +7,16 @@ import { MetricsService } from './metrics.service';
 import { KpiService } from './kpi.service';
 import { MetricsInterceptor } from './metrics.interceptor';
 
-import { User } from '../users/entities/user.entity';
-import { Course } from '../courses/entities/course.entity';
-import { Enrollment } from '../courses/entities/enrollment.entity';
-import { Payment } from '../payments/entities/payment.entity';
-import { UserActivity } from '../analytics/entities/user-activity.entity';
+import { User } from '../../users/entities/user.entity';
+import { Course } from '../../courses/entities/course.entity';
+import { Enrollment } from '../../courses/entities/enrollment.entity';
+import { Payment } from '../../payments/entities/payment.entity';
+import { AnalyticsEvent } from '../../analytics/entities/event.entity';
 
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Course, Enrollment, Payment, UserActivity]),
+    TypeOrmModule.forFeature([User, Course, Enrollment, Payment, AnalyticsEvent]),
     ScheduleModule.forRoot(),
   ],
   controllers: [MetricsController],

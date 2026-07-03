@@ -1,16 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThan } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { subDays, startOfDay, endOfDay, startOfMonth, format } from 'date-fns';
 
 import { MetricsService } from './metrics.service';
-import { User } from '../users/entities/user.entity';
-import { Course } from '../courses/entities/course.entity';
-import { Enrollment } from '../courses/entities/enrollment.entity';
-import { Payment } from '../payments/entities/payment.entity';
-import { UserActivity } from '../analytics/entities/user-activity.entity';
-import { PaymentStatus } from '../payments/enums/payment-status.enum';
+import { User } from '../../users/entities/user.entity';
+import { Course } from '../../courses/entities/course.entity';
+import { Enrollment } from '../../courses/entities/enrollment.entity';
+import { AnalyticsEvent } from '../../analytics/entities/event.entity';
+import { Payment, PaymentStatus } from '../../payments/entities/payment.entity';
 
 @Injectable()
 export class KpiService {
@@ -22,8 +21,8 @@ export class KpiService {
     @InjectRepository(Course) private readonly courseRepository: Repository<Course>,
     @InjectRepository(Enrollment) private readonly enrollmentRepository: Repository<Enrollment>,
     @InjectRepository(Payment) private readonly paymentRepository: Repository<Payment>,
-    @InjectRepository(UserActivity)
-    private readonly userActivityRepository: Repository<UserActivity>,
+    @InjectRepository(Event)
+    private readonly eventRepository: Repository<AnalyticsEvent>,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -41,15 +40,32 @@ export class KpiService {
 
   async calculateActiveUsers(): Promise<void> {
     const now = new Date();
-    const dauPromise = this.userActivityRepository.count({
-      where: { lastSeen: Between(startOfDay(now), endOfDay(now)) },
-    });
-    const wauPromise = this.userActivityRepository.count({
-      where: { lastSeen: MoreThan(subDays(now, 7)) },
-    });
-    const mauPromise = this.userActivityRepository.count({
-      where: { lastSeen: MoreThan(subDays(now, 30)) },
-    });
+    // For DAU
+    const dauPromise = this.eventRepository
+      .createQueryBuilder('event')
+      .select('COUNT(DISTINCT(event.userId))', 'count')
+      .where('event.createdAt BETWEEN :start AND :end', {
+        start: startOfDay(now),
+        end: endOfDay(now),
+      })
+      .getRawOne()
+      .then((res) => parseInt(res.count));
+
+    // For WAU
+    const wauPromise = this.eventRepository
+      .createQueryBuilder('event')
+      .select('COUNT(DISTINCT(event.userId))', 'count')
+      .where('event.createdAt > :date', { date: subDays(now, 7) })
+      .getRawOne()
+      .then((res) => parseInt(res.count));
+
+    // For MAU
+    const mauPromise = this.eventRepository
+      .createQueryBuilder('event')
+      .select('COUNT(DISTINCT(event.userId))', 'count')
+      .where('event.createdAt > :date', { date: subDays(now, 30) })
+      .getRawOne()
+      .then((res) => parseInt(res.count));
 
     const [dau, wau, mau] = await Promise.all([dauPromise, wauPromise, mauPromise]);
 
@@ -61,7 +77,7 @@ export class KpiService {
 
   async calculatePaymentSuccessRate(): Promise<void> {
     const succeeded = await this.paymentRepository.count({
-      where: { status: PaymentStatus.SUCCEEDED },
+      where: { status: PaymentStatus.COMPLETED },
     });
     const failed = await this.paymentRepository.count({
       where: { status: PaymentStatus.FAILED },
@@ -81,7 +97,7 @@ export class KpiService {
       .addSelect('SUM(payment.amount)', 'totalRevenue')
       .innerJoin('payment.course', 'course')
       .addSelect('course.title', 'courseName')
-      .where('payment.status = :status', { status: PaymentStatus.SUCCEEDED })
+      .where('payment.status = :status', { status: PaymentStatus.COMPLETED })
       .groupBy('payment.courseId, course.title')
       .getRawMany();
 
@@ -142,11 +158,11 @@ export class KpiService {
 
         if (retentionMonthStart > now) continue;
 
-        const retainedUsersCount = await this.userActivityRepository
-          .createQueryBuilder('activity')
-          .select('COUNT(DISTINCT activity.userId)', 'count')
-          .where('activity.userId IN (:...cohortUserIds)', { cohortUserIds })
-          .andWhere('activity.lastSeen BETWEEN :start AND :end', {
+        const retainedUsersCount = await this.eventRepository
+          .createQueryBuilder('event')
+          .select('COUNT(DISTINCT event.userId)', 'count')
+          .where('event.userId IN (:...cohortUserIds)', { cohortUserIds })
+          .andWhere('event.createdAt BETWEEN :start AND :end', {
             start: retentionMonthStart,
             end: retentionMonthEnd,
           })

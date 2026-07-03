@@ -2,7 +2,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { MetricsService } from './metrics.service';
-import { SkipQuota } from '../rate-limiting/decorators/quota.decorator';
+import { SkipQuota } from '../../rate-limiting/decorators/quota.decorator';
 
 @ApiTags('Metrics')
 @SkipQuota()

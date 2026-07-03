@@ -29,7 +29,7 @@ import { AuditLogService } from './audit-log/audit-log.service';
 import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 import { initStructuredLogging } from './logging/structured-logging';
 import { requestIdMiddleware } from './logging/request-id.middleware';
-import { MetricsInterceptor } from './metrics/metrics.interceptor';
+import { MetricsInterceptor } from './utils/masking/metrics.interceptor';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
