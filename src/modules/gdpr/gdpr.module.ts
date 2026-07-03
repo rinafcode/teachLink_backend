@@ -9,5 +9,6 @@ import { GdprController } from './gdpr.controller';
   imports: [SessionModule, TypeOrmModule.forFeature([UserConsent])],
   controllers: [GdprController],
   providers: [GdprService],
+  controllers: [GdprController],
 })
 export class GdprModule {}

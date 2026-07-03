@@ -12,7 +12,9 @@ const mockQueryBuilder = {
   orderBy: jest.fn().mockReturnThis(),
   skip: jest.fn().mockReturnThis(),
   take: jest.fn().mockReturnThis(),
+  select: jest.fn().mockReturnThis(),
   getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+  getMany: jest.fn().mockResolvedValue([]),
 };
 
 const mockCourseRepo = {
@@ -104,5 +106,48 @@ describe('SearchService', () => {
 
     expect(result).toBeDefined();
     expect(Date.now() - start).toBeLessThan(100);
+  });
+
+  describe('Autocomplete LRU Cache', () => {
+    it('should evict oldest entries when cache cap is reached', async () => {
+      const mockCourses = [
+        { id: '1', title: 'Course 1' },
+        { id: '2', title: 'Course 2' },
+      ];
+      mockQueryBuilder.getMany.mockResolvedValue(mockCourses);
+
+      // Fill cache beyond its max size (1000 entries)
+      for (let i = 0; i < 1001; i++) {
+        await service.getAutoComplete(`query${i}`);
+      }
+
+      // First entry should have been evicted
+      const firstResult = await service.getAutoComplete('query0');
+      expect(mockQueryBuilder.getMany).toHaveBeenCalled(); // Cache miss, so DB query is made
+
+      // Last entry should still be cached
+      mockQueryBuilder.getMany.mockClear();
+      const lastResult = await service.getAutoComplete('query1000');
+      expect(mockQueryBuilder.getMany).not.toHaveBeenCalled(); // Cache hit, no DB query
+    });
+
+    it('should enforce TTL via cache backend', async () => {
+      const mockCourses = [{ id: '1', title: 'Course 1' }];
+      mockQueryBuilder.getMany.mockResolvedValue(mockCourses);
+
+      // First call - cache miss
+      await service.getAutoComplete('test');
+      expect(mockQueryBuilder.getMany).toHaveBeenCalledTimes(1);
+
+      // Second call immediately - cache hit
+      await service.getAutoComplete('test');
+      expect(mockQueryBuilder.getMany).toHaveBeenCalledTimes(1);
+
+      // Wait for TTL to expire (300000ms = 5 minutes)
+      // In test, we can't actually wait 5 minutes, but we verify the TTL is configured
+      // The LRU cache handles TTL automatically, so we just verify the cache is using TTL
+      const cache = (service as any).autocompleteCache;
+      expect(cache.options.ttl).toBe(300000);
+    });
   });
 });

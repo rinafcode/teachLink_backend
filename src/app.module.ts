@@ -3,6 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { envValidationSchema } from './config/env.validation';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
@@ -27,20 +28,28 @@ import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { HealthModule } from './health/health.module';
+import { QueueModule } from './queues/queue.module';
+import { WorkersBridgeModule } from './workers/bridge/workers-bridge.module';
+import { MetricsModule } from './utils/masking/metrics.module';
 
-// ✅ keep BOTH modules
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
 import { CoursesModule } from './courses/courses.module';
 import { AuthModule } from './auth/auth.module';
 import { CohortsModule } from './cohorts/cohorts.module';
+import { LoggingModule } from './logging/logging.module';
 import { FeatureFlagAuditModule } from './config/feature-flag-audit.module';
 
 const featureFlags = loadFeatureFlags();
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    LoggingModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: { abortEarly: false },
+    }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
     ScheduleModule.forRoot(),
     SessionModule,
@@ -57,21 +66,16 @@ const featureFlags = loadFeatureFlags();
     InvoicesModule,
     ReportingModule,
     HealthModule,
+    QueueModule,
+    WorkersBridgeModule,
+    MetricsModule,
 
     // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
-
-    // ✅ feature-flagged caching
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
-
-    // ✅ feature-flagged auth
     ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
-
-    // ✅ courses module with enrollment and prerequisite enforcement
     CoursesModule,
     CohortsModule,
-
-    // Feature flag audit trail and admin management endpoints
     FeatureFlagAuditModule,
   ],
   controllers: [AppController],

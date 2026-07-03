@@ -3,10 +3,14 @@ import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { GdprService } from '../gdpr.service';
 import { UserConsent } from '../entities/user-consent.entity';
+import { User } from '../../../users/entities/user.entity';
+import { Enrollment } from '../../../courses/entities/enrollment.entity';
+import { Payment } from '../../../payments/entities/payment.entity';
+import { Notification } from '../../../notifications/entities/notification.entity';
 import { SessionService } from '../../../session/session.service';
 
-const mockUsersService = {
-  findById: jest.fn().mockResolvedValue({
+const mockUserRepository = {
+  findOne: jest.fn().mockResolvedValue({
     id: 'user-1',
     email: 'test@test.com',
     firstName: 'John',
@@ -16,12 +20,31 @@ const mockUsersService = {
     passwordHistory: ['$2a$10$oldhash1', '$2a$10$oldhash2'],
     totpSecret: 'supersecretotpvalue',
     token: 'active-session-token-or-verification-token',
+    deletedAt: null,
   }),
   update: jest.fn().mockResolvedValue(undefined),
 };
 
-const mockAuditService = {
-  log: jest.fn().mockResolvedValue(undefined),
+const mockEnrollmentRepository = {
+  find: jest
+    .fn()
+    .mockResolvedValue([
+      { id: 'enrollment-1', userId: 'user-1', courseId: 'course-1', deletedAt: null },
+    ]),
+};
+
+const mockPaymentRepository = {
+  find: jest
+    .fn()
+    .mockResolvedValue([{ id: 'payment-1', userId: 'user-1', amount: 100, deletedAt: null }]),
+};
+
+const mockNotificationRepository = {
+  find: jest
+    .fn()
+    .mockResolvedValue([
+      { id: 'notification-1', userId: 'user-1', title: 'Test', deletedAt: null },
+    ]),
 };
 
 const mockSessionService = {
@@ -32,6 +55,23 @@ const mockConsentRepository = {
   find: jest.fn().mockResolvedValue([]),
   create: jest.fn((dto) => ({ ...dto, id: 'consent-1' })),
   save: jest.fn((consent) => Promise.resolve(consent)),
+  manager: {
+    transaction: jest.fn(async (cb) => {
+      const mockEntityManager = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        into: jest.fn().mockReturnThis(),
+        values: jest.fn().mockReturnThis(),
+        orUpdate: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue(undefined),
+      };
+      return cb(mockEntityManager);
+    }),
+  },
+};
+
+const mockAuditService = {
+  log: jest.fn().mockResolvedValue(undefined),
 };
 
 // QueryBuilder mock reused across table updates
@@ -60,6 +100,10 @@ describe('GdprService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GdprService,
+        { provide: getRepositoryToken(User), useValue: mockUserRepository },
+        { provide: getRepositoryToken(Enrollment), useValue: mockEnrollmentRepository },
+        { provide: getRepositoryToken(Payment), useValue: mockPaymentRepository },
+        { provide: getRepositoryToken(Notification), useValue: mockNotificationRepository },
         { provide: 'UsersService', useValue: mockUsersService },
         { provide: 'AuditService', useValue: mockAuditService },
         { provide: SessionService, useValue: mockSessionService },
@@ -109,6 +153,40 @@ describe('GdprService', () => {
     await service.eraseUserData('user-1');
     // Second call: findById still returns something (soft-deleted row)
     await expect(service.eraseUserData('user-1')).resolves.toEqual({ success: true });
+  });
+
+  it('supports idempotent erasure on repeated calls', async () => {
+    // Reset mock history
+    mockUsersService.update.mockClear();
+    mockAuditService.log.mockClear();
+
+    // First call
+    const result1 = await service.eraseUserData('user-1');
+    expect(result1.success).toBe(true);
+    expect(mockUsersService.update).toHaveBeenCalledTimes(1);
+    expect(mockAuditService.log).toHaveBeenCalledWith('GDPR_ERASURE', 'user-1');
+
+    // Simulate database state change by updating the mock return value to have deletedAt
+    const originalFindById = mockUsersService.findById;
+    mockUsersService.findById = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      email: null,
+      firstName: '[DELETED]',
+      lastName: '[DELETED]',
+      deletedAt: new Date(),
+    });
+
+    // Second call
+    const result2 = await service.eraseUserData('user-1');
+    expect(result2.success).toBe(true);
+    expect(result2.alreadyErased).toBe(true);
+
+    // Verify no extra DB updates or audit logs were created
+    expect(mockUsersService.update).toHaveBeenCalledTimes(1);
+    expect(mockAuditService.log).toHaveBeenCalledTimes(1);
+
+    // Restore original mock
+    mockUsersService.findById = originalFindById;
   });
 
   it('stores consent changes', async () => {

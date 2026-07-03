@@ -33,7 +33,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Successfully authenticated' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.userRepository.findOneBy({ email: loginDto.email });
+    const user = await this.userRepository.findOne({
+      where: { email: loginDto.email },
+      relations: ['roles'],
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
