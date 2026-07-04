@@ -353,6 +353,7 @@ export class SensitiveOperationsService {
       [AuditAction.DATA_RETENTION_APPLIED]: AuditCategory.COMPLIANCE,
       [AuditAction.AUDIT_LOG_EXPORTED]: AuditCategory.COMPLIANCE,
       [AuditAction.REPORT_GENERATED]: AuditCategory.COMPLIANCE,
+      [AuditAction.PAYMENT_RECONCILIATION_MISMATCH]: AuditCategory.COMPLIANCE,
     };
 
     return categoryMap[action] || AuditCategory.SYSTEM;
