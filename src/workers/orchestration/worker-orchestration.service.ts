@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import type { Job } from 'bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BaseWorker } from '../base/base.worker';
 import {
