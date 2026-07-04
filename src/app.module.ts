@@ -29,6 +29,9 @@ import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
 import { PaymentsModule } from './payments/payments.module';
 import { HealthModule } from './health/health.module';
+import { QueueModule } from './queues/queue.module';
+import { WorkersBridgeModule } from './workers/bridge/workers-bridge.module';
+import { MetricsModule } from './utils/masking/metrics.module';
 
 import { ReadReplicaModule } from './database/read-replica';
 import { CachingModule } from './caching/caching.module';
@@ -65,6 +68,11 @@ const featureFlags = loadFeatureFlags();
     ReportingModule,
     PaymentsModule,
     HealthModule,
+    QueueModule,
+    WorkersBridgeModule,
+    MetricsModule,
+
+    // ✅ always include read replicas (or wrap if needed)
     ReadReplicaModule,
     ...(featureFlags.ENABLE_CACHING ? [CachingModule] : []),
     ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
