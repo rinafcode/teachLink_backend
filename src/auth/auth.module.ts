@@ -19,6 +19,7 @@ import { AuthTokensService } from './services/auth-tokens.service';
 // (providerAccessToken / providerRefreshToken) at rest. SecurityModule is the
 // only module that provides EncryptionService, so it must be imported here.
 import { SecurityModule } from '../security/security.module';
+import { createJwtOptions } from './config/jwt-config.factory';
 
 /**
  * Registers the authentication module with Passport and JWT support.

@@ -16,6 +16,7 @@ import {
   SubscriptionsWorker,
 } from '../processors';
 import Redis from 'ioredis';
+import { Job } from 'bull';
 import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
 
