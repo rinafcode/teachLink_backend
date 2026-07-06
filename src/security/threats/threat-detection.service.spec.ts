@@ -22,8 +22,7 @@ async function buildModule(redis: ReturnType<typeof createMockRedisClient>) {
             // Use the documented defaults; tests can override via direct injection.
             if (key === 'THREAT_FAILED_ATTEMPT_THRESHOLD') return 10;
             if (key === 'THREAT_FAILED_ATTEMPT_WINDOW_SECONDS') return 15 * 60;
-            if (key === 'THREAT_FAILED_ATTEMPT_KEY_PREFIX')
-              return 'threat:failed-attempts:';
+            if (key === 'THREAT_FAILED_ATTEMPT_KEY_PREFIX') return 'threat:failed-attempts:';
             return fallback;
           }),
         },
@@ -56,10 +55,7 @@ describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => 
 
       await service.recordFailure('192.168.0.1');
 
-      expect(redis.expire).toHaveBeenCalledWith(
-        'threat:failed-attempts:192.168.0.1',
-        15 * 60,
-      );
+      expect(redis.expire).toHaveBeenCalledWith('threat:failed-attempts:192.168.0.1', 15 * 60);
     });
 
     it('does NOT set EXPIRE on subsequent calls in the same window', async () => {

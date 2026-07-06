@@ -100,9 +100,7 @@ export class ThreatDetectionService {
     } catch (err) {
       // Recording failures must not throw — losing a single increment is
       // acceptable; throwing would amplify the very load we are tracking.
-      this.logger.error(
-        `recordFailure: Redis INCR failed (${(err as Error).message}); dropping.`,
-      );
+      this.logger.error(`recordFailure: Redis INCR failed (${(err as Error).message}); dropping.`);
     }
   }
 

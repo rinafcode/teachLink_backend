@@ -76,10 +76,13 @@ export class ReencryptOAuthProviderTokens1783000000001 implements MigrationInter
       // Already encrypted — leave as-is so re-runs are idempotent.
       return stored;
     }
-    return 'enc:' + JSON.stringify(this.aesGcmEncrypt(stored, key));
+    return `enc:${JSON.stringify(this.aesGcmEncrypt(stored, key))}`;
   }
 
-  private aesGcmEncrypt(plaintext: string, key: Buffer): {
+  private aesGcmEncrypt(
+    plaintext: string,
+    key: Buffer,
+  ): {
     iv: string;
     content: string;
     tag: string;

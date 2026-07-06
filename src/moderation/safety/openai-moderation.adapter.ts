@@ -55,15 +55,10 @@ export class OpenAiModerationAdapter implements ExternalModerationProvider {
 
   async scoreContent(text: string): Promise<ModerationScore> {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    const timeoutMs = this.configService.get<number>(
-      'OPENAI_MODERATION_TIMEOUT_MS',
-      500,
-    );
+    const timeoutMs = this.configService.get<number>('OPENAI_MODERATION_TIMEOUT_MS', 500);
 
     if (!apiKey) {
-      throw new ExternalModerationUnavailableError(
-        'OPENAI_API_KEY is not configured',
-      );
+      throw new ExternalModerationUnavailableError('OPENAI_API_KEY is not configured');
     }
     if (typeof text !== 'string' || text.length === 0) {
       return 0;
@@ -123,9 +118,7 @@ export class OpenAiModerationAdapter implements ExternalModerationProvider {
     if (!result) {
       // Treat empty results as unavailability — better to false-positive than
       // to silently approve everything because the provider changed shape.
-      throw new ExternalModerationUnavailableError(
-        'OpenAI moderation returned no results array',
-      );
+      throw new ExternalModerationUnavailableError('OpenAI moderation returned no results array');
     }
 
     const scores = Object.values(result.category_scores ?? {});

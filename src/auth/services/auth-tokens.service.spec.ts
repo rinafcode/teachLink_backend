@@ -1,10 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from '../../users/entities/user.entity';
-import {
-  AuthTokensService,
-  hashToken,
-} from './auth-tokens.service';
+import { AuthTokensService, hashToken } from './auth-tokens.service';
 
 function makeMockRepo() {
   return {
@@ -20,10 +17,7 @@ describe('AuthTokensService (Issue #801 — SHA-256 hashed tokens)', () => {
   beforeEach(async () => {
     mockRepo = makeMockRepo();
     const moduleRef: TestingModule = await Test.createTestingModule({
-      providers: [
-        AuthTokensService,
-        { provide: getRepositoryToken(User), useValue: mockRepo },
-      ],
+      providers: [AuthTokensService, { provide: getRepositoryToken(User), useValue: mockRepo }],
     }).compile();
     service = moduleRef.get(AuthTokensService);
   });

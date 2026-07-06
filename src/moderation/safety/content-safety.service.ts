@@ -46,14 +46,8 @@ export class ContentSafetyService {
     private readonly circuitBreaker: EnhancedCircuitBreakerService,
     private readonly configService: ConfigService,
   ) {
-    this.breakerTimeoutMs = this.configService.get<number>(
-      'OPENAI_MODERATION_TIMEOUT_MS',
-      500,
-    );
-    this.providerEnabled = this.configService.get<boolean>(
-      'OPENAI_MODERATION_ENABLED',
-      true,
-    );
+    this.breakerTimeoutMs = this.configService.get<number>('OPENAI_MODERATION_TIMEOUT_MS', 500);
+    this.providerEnabled = this.configService.get<boolean>('OPENAI_MODERATION_ENABLED', true);
   }
 
   /**
@@ -94,9 +88,7 @@ export class ContentSafetyService {
     } catch (err) {
       // Last-resort net — if even the fallback threw (shouldn't happen), degrade
       // to keyword-only and log loudly so an operator investigates.
-      this.logger.error(
-        `ContentSafetyService fallback chain failed: ${(err as Error).message}`,
-      );
+      this.logger.error(`ContentSafetyService fallback chain failed: ${(err as Error).message}`);
       return keywordScore;
     }
   }

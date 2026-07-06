@@ -31,11 +31,6 @@ import { getSharedRedisClient } from '../config/cache.config';
     ComplianceService,
     AuditLoggingService,
   ],
-  exports: [
-    SecurityService,
-    EncryptionService,
-    SecretsModule,
-    THREAT_REDIS_CLIENT,
-  ],
+  exports: [SecurityService, EncryptionService, SecretsModule, THREAT_REDIS_CLIENT],
 })
 export class SecurityModule {}

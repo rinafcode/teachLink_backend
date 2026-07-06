@@ -36,9 +36,7 @@ export class AuthTokensService {
   private readonly logger = new Logger(AuthTokensService.name);
   private readonly ttlMs: number;
 
-  constructor(
-    @InjectRepository(User) private readonly users: Repository<User>,
-  ) {
+  constructor(@InjectRepository(User) private readonly users: Repository<User>) {
     this.ttlMs = DEFAULT_TOKEN_TTL_MS;
   }
 
@@ -154,9 +152,6 @@ export class AuthTokensService {
     const candidate = hashToken(rawToken);
     // Constant-time comparison guards against timing side-channels. SHA-256
     // strings are always 64 hex chars, so the lengths match by construction.
-    return crypto.timingSafeEqual(
-      Buffer.from(candidate, 'hex'),
-      Buffer.from(storedHash, 'hex'),
-    );
+    return crypto.timingSafeEqual(Buffer.from(candidate, 'hex'), Buffer.from(storedHash, 'hex'));
   }
 }

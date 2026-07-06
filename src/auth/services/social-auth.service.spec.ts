@@ -3,10 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException } from '@nestjs/common';
 import { SocialAuthService, SocialProfile } from './social-auth.service';
 import { User } from '../../users/entities/user.entity';
-import {
-  EncryptionService,
-  IEncryptedPayload,
-} from '../../security/encryption/encryption.service';
+import { EncryptionService, IEncryptedPayload } from '../../security/encryption/encryption.service';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -247,16 +244,20 @@ describe('SocialAuthService (Issue #799 — at-rest encryption)', () => {
       // out, this assertion breaks LOUD instead of silently.)
       const encCallsBefore = [...stub.encCalls];
 
-      await service.linkProvider('user-1', makeProfile({ accessToken: 'NEW-AT', provider: 'google' }));
+      await service.linkProvider(
+        'user-1',
+        makeProfile({ accessToken: 'NEW-AT', provider: 'google' }),
+      );
 
       // The new value must replace the old one, AND must be encrypted.
       expect(user.providerAccessToken).not.toBe('NEW-AT');
       expect(user.providerAccessToken).not.toBe(stored);
       expect(user.providerAccessToken).toMatch(/^enc:/);
       // Only the NEW token should have hit encrypt() — never the old plaintext.
-      expect(stub.encCalls.map((c) => c.input)).toEqual(
-        [...encCallsBefore.map((c) => c.input), 'NEW-AT'],
-      );
+      expect(stub.encCalls.map((c) => c.input)).toEqual([
+        ...encCallsBefore.map((c) => c.input),
+        'NEW-AT',
+      ]);
     });
 
     it('nulls out provider tokens on unlink (no encryption needed for null)', async () => {
@@ -292,9 +293,7 @@ describe('SocialAuthService (Issue #799 — at-rest encryption)', () => {
     });
 
     it('returns null (with warning) when stored value is legacy plaintext', async () => {
-      const warn = jest
-        .spyOn((service as any).logger, 'warn')
-        .mockImplementation(() => undefined);
+      const warn = jest.spyOn((service as any).logger, 'warn').mockImplementation(() => undefined);
       const user = makeUser({ providerAccessToken: 'plaintext-AT' });
       mockRepo.findOne.mockResolvedValueOnce(user);
 

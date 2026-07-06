@@ -2,10 +2,7 @@ import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import {
-  EncryptionService,
-  IEncryptedPayload,
-} from '../../security/encryption/encryption.service';
+import { EncryptionService, IEncryptedPayload } from '../../security/encryption/encryption.service';
 
 export interface SocialProfile {
   provider: string;
