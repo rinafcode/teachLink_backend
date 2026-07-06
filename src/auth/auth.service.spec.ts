@@ -105,10 +105,7 @@ describe('AuthService', () => {
 
       await service.logout('user-1', 'fake.access.token');
 
-      expect(mockBlacklistService.addToBlacklist).toHaveBeenCalledWith(
-        jti,
-        expect.any(Number),
-      );
+      expect(mockBlacklistService.addToBlacklist).toHaveBeenCalledWith(jti, expect.any(Number));
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
     });
 

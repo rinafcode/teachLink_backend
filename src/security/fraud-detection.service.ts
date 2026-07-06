@@ -113,9 +113,7 @@ export class FraudDetectionService {
 
   constructor(private readonly configService: ConfigService) {
     this.providers = [
-      new IpRateSignalProvider(
-        this.configService.get<number>('FRAUD_IP_RATE_THRESHOLD', 100),
-      ),
+      new IpRateSignalProvider(this.configService.get<number>('FRAUD_IP_RATE_THRESHOLD', 100)),
       new NewDeviceSignalProvider(
         this.configService.get<number>('FRAUD_NEW_DEVICE_AMOUNT_THRESHOLD', 500),
       ),
