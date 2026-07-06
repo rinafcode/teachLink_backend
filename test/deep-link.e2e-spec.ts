@@ -23,7 +23,7 @@ describe('DeepLinkController (e2e)', () => {
     const response = await request(app.getHttpServer())
       .get('/.well-known/apple-app-site-association')
       .expect(200);
-      
+
     expect(response.body).toHaveProperty('applinks');
     expect(response.body.applinks.details[0].appID).toBe('TEAMID.com.teachlink.app');
   });
@@ -42,7 +42,7 @@ describe('DeepLinkController (e2e)', () => {
       .get('/deep-link/course/123')
       .set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
       .expect(302);
-      
+
     expect(response.header.location).toBe('/course/123');
   });
 
@@ -51,7 +51,7 @@ describe('DeepLinkController (e2e)', () => {
       .get('/deep-link/course/456')
       .set('user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)')
       .expect(302);
-      
+
     expect(response.header.location).toBe('teachlink://course/456');
   });
 });

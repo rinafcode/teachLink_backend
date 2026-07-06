@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { WorkerOrchestrationService } from '../orchestration/worker-orchestration.service';
-import { BaseWorker } from '../base/base.worker';
 
 export interface WorkerShutdownOptions {
   gracefulTimeoutMs: number;
@@ -11,7 +10,13 @@ export interface WorkerShutdownOptions {
 }
 
 export interface WorkerShutdownStatus {
-  phase: 'idle' | 'stopping_new_jobs' | 'waiting_completion' | 'requeuing' | 'terminating' | 'completed';
+  phase:
+    | 'idle'
+    | 'stopping_new_jobs'
+    | 'waiting_completion'
+    | 'requeuing'
+    | 'terminating'
+    | 'completed';
   activeJobs: number;
   completedJobs: number;
   requeuedJobs: number;
@@ -107,7 +112,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
 
       this.logger.log(
         `Shutdown initialized: ${this.shutdownStatus.totalWorkers} workers, ` +
-        `${this.shutdownStatus.activeJobs} active jobs`
+          `${this.shutdownStatus.activeJobs} active jobs`,
       );
     } catch (error) {
       this.logger.error('Error initializing shutdown status:', error);
@@ -125,7 +130,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
     try {
       // Pause all queues to prevent new job processing
       await this.workerOrchestration.pauseAllQueues();
-      
+
       this.logger.log('All queues paused - no new jobs will be processed');
     } catch (error) {
       this.logger.error('Error stopping new job acceptance:', error);
@@ -139,7 +144,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
   private async waitForJobCompletion(): Promise<void> {
     this.logger.log('Waiting for active jobs to complete...');
     this.shutdownStatus.phase = 'waiting_completion';
-    
+
     const startTime = Date.now();
     const checkInterval = 1000; // Check every second
 
@@ -147,12 +152,12 @@ export class WorkerShutdownService implements OnModuleDestroy {
       const timeoutTimer = setTimeout(() => {
         const duration = Date.now() - startTime;
         const remainingJobs = this.shutdownStatus.activeJobs;
-        
+
         this.logger.warn(
           `Timeout waiting for job completion after ${duration}ms. ` +
-          `${remainingJobs} jobs still active`
+            `${remainingJobs} jobs still active`,
         );
-        
+
         reject(new Error(`Timeout waiting for ${remainingJobs} active jobs`));
       }, this.options.jobCompletionTimeoutMs);
 
@@ -160,7 +165,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
         try {
           const metrics = await this.workerOrchestration.getMetrics();
           const activeJobs = metrics.activeJobs || 0;
-          
+
           this.shutdownStatus.activeJobs = activeJobs;
           this.shutdownStatus.completedJobs = metrics.completedJobs || 0;
 
@@ -195,7 +200,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
     try {
       const requeuedCount = await this.workerOrchestration.requeueIncompleteJobs();
       this.shutdownStatus.requeuedJobs = requeuedCount;
-      
+
       this.logger.log(`Requeued ${requeuedCount} incomplete jobs`);
     } catch (error) {
       this.logger.error('Error requeuing incomplete jobs:', error);
@@ -212,11 +217,11 @@ export class WorkerShutdownService implements OnModuleDestroy {
 
     try {
       const terminatedCount = await this.workerOrchestration.terminateAllWorkers(
-        this.options.forceTerminationTimeoutMs
+        this.options.forceTerminationTimeoutMs,
       );
-      
+
       this.shutdownStatus.terminatedWorkers = terminatedCount;
-      
+
       this.logger.log(`Terminated ${terminatedCount} worker processes`);
     } catch (error) {
       this.logger.error('Error terminating workers:', error);
@@ -275,7 +280,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
    */
   async emergencyStop(): Promise<void> {
     this.logger.warn('Emergency worker stop initiated');
-    
+
     try {
       await this.workerOrchestration.emergencyStopAll();
       this.shutdownStatus.phase = 'completed';

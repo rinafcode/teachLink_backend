@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import 'dotenv/config';
 import axios from 'axios';
 import { SlackService } from './slack.service';
@@ -13,15 +14,15 @@ async function run() {
   }
 
   const payload = {
-    text: "🚨 *TeachLink Alert* (HIGH)\nDirect Antigravity bypass testing successful! The integration works flawlessly. 🎉",
+    text: '🚨 *TeachLink Alert* (HIGH)\nDirect Antigravity bypass testing successful! The integration works flawlessly. 🎉',
   };
 
   try {
     // Send the direct message over Axios bypass test
-    console.log(`Sending direct POST request to Slack...`);
+    console.log('Sending direct POST request to Slack...');
     const directResponse = await axios.post(webhookUrl, payload);
     console.log(`Direct Axios post request status: ${directResponse.status}`);
-    
+
     // Log the exact expected message to console when complete
     console.log('Test message triggered!');
 
@@ -30,7 +31,7 @@ async function run() {
     const slackService = new SlackService();
     await slackService.sendAlert(
       'Direct Antigravity bypass testing successful! The integration works flawlessly. 🎉',
-      'high'
+      'high',
     );
   } catch (error: any) {
     console.error('Bypass test execution failed:', error.response?.data || error.message);

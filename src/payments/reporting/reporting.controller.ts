@@ -50,15 +50,15 @@ export class ReportingController {
     }
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
-    
+
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       throw new BadRequestException('Invalid date format for startDate or endDate');
     }
-    
+
     if (startDate > endDate) {
       throw new BadRequestException('startDate must be before or equal to endDate');
     }
-    
+
     return { startDate, endDate };
   }
 }

@@ -24,6 +24,9 @@ import {
   BulkPublishDto,
 } from './dto/bulk-operations.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
+import { Course } from './entities/course.entity';
 
 @ApiTags('courses')
 @Controller('courses')
@@ -40,10 +43,14 @@ export class CoursesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all courses' })
-  @ApiResponse({ status: 200, description: 'Returns all courses' })
-  async findAll(@Request() req) {
-    return this.coursesService.findAll(req.user);
+  @ApiOperation({ summary: 'Get all courses with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns paginated courses',
+    type: PaginatedSwaggerDto(Course),
+  })
+  async findAll(@Request() req, @Query() query?: PaginationQueryDto) {
+    return this.coursesService.findAll(req.user, query);
   }
 
   @Get(':id')
@@ -118,7 +125,8 @@ export class CoursesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Bulk update price across courses',
-    description: 'Apply a single new price value to many courses owned by the caller in one request.',
+    description:
+      'Apply a single new price value to many courses owned by the caller in one request.',
   })
   @ApiResponse({ status: 200, description: 'Bulk price update recorded' })
   async bulkUpdatePrice(@Body() dto: BulkPriceUpdateDto, @Request() req) {

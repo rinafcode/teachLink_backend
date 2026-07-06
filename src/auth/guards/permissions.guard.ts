@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 
@@ -32,6 +32,6 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Assuming user.permissions is an array of permission strings in the format "resource:action"
-    return requiredPermissions.every(permission => user.permissions.includes(permission));
+    return requiredPermissions.every((permission) => user.permissions.includes(permission));
   }
 }

@@ -1,7 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { CachingService } from './caching.service';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
-import { COMPUTATION_TTL } from './caching.constants';
 import { buildComputationKey } from './cache-key.builder';
 
 export interface ComputationCacheStats {

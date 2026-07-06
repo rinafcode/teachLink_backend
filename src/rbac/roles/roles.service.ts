@@ -49,13 +49,17 @@ export class RolesService {
 
     if (permissionIds !== undefined) {
       const permissions = await this.permissionRepository.findByIds(permissionIds);
-      await this.roleRepository.createQueryBuilder()
+      await this.roleRepository
+        .createQueryBuilder()
         .relation(Role, 'permissions')
         .of(id)
         .set(permissions);
     }
 
-    const updated = await this.roleRepository.findOne({ where: { id }, relations: ['permissions'] });
+    const updated = await this.roleRepository.findOne({
+      where: { id },
+      relations: ['permissions'],
+    });
     if (!updated) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
@@ -70,7 +74,10 @@ export class RolesService {
   }
 
   async addPermissionToRole(roleId: string, permissionId: string): Promise<Role> {
-    const role = await this.roleRepository.findOne({ where: { id: roleId }, relations: ['permissions'] });
+    const role = await this.roleRepository.findOne({
+      where: { id: roleId },
+      relations: ['permissions'],
+    });
     if (!role) {
       throw new NotFoundException(`Role with ID ${roleId} not found`);
     }
@@ -80,7 +87,7 @@ export class RolesService {
       throw new NotFoundException(`Permission with ID ${permissionId} not found`);
     }
 
-    if (!role.permissions.some(p => p.id === permission.id)) {
+    if (!role.permissions.some((p) => p.id === permission.id)) {
       role.permissions.push(permission);
       await this.roleRepository.save(role);
     }
@@ -89,12 +96,15 @@ export class RolesService {
   }
 
   async removePermissionFromRole(roleId: string, permissionId: string): Promise<Role> {
-    const role = await this.roleRepository.findOne({ where: { id: roleId }, relations: ['permissions'] });
+    const role = await this.roleRepository.findOne({
+      where: { id: roleId },
+      relations: ['permissions'],
+    });
     if (!role) {
       throw new NotFoundException(`Role with ID ${roleId} not found`);
     }
 
-    role.permissions = role.permissions.filter(p => p.id !== permissionId);
+    role.permissions = role.permissions.filter((p) => p.id !== permissionId);
     await this.roleRepository.save(role);
 
     return role;

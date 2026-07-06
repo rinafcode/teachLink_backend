@@ -134,17 +134,11 @@ export class NotificationAndEscalationService {
    * Notify incident detection
    */
   async notifyIncidentDetected(incident: Incident): Promise<void> {
-    this.logger.log(
-      `Notifying incident detected: ${incident.id} - ${incident.title}`,
-    );
+    this.logger.log(`Notifying incident detected: ${incident.id} - ${incident.title}`);
 
-    const policy = this.escalationPolicies.get(
-      incident.severity.toLowerCase(),
-    );
+    const policy = this.escalationPolicies.get(incident.severity.toLowerCase());
     if (!policy) {
-      this.logger.warn(
-        `No escalation policy found for severity: ${incident.severity}`,
-      );
+      this.logger.warn(`No escalation policy found for severity: ${incident.severity}`);
       return;
     }
 
@@ -176,17 +170,10 @@ export class NotificationAndEscalationService {
   /**
    * Notify incident resolution
    */
-  async notifyIncidentResolved(
-    incident: Incident,
-    resolutionTime: number,
-  ): Promise<void> {
-    this.logger.log(
-      `Notifying incident resolved: ${incident.id} - ${incident.title}`,
-    );
+  async notifyIncidentResolved(incident: Incident, resolutionTime: number): Promise<void> {
+    this.logger.log(`Notifying incident resolved: ${incident.id} - ${incident.title}`);
 
-    const policy = this.escalationPolicies.get(
-      incident.severity.toLowerCase(),
-    );
+    const policy = this.escalationPolicies.get(incident.severity.toLowerCase());
     if (!policy) return;
 
     const recipients = policy.recipients.filter(
@@ -194,12 +181,7 @@ export class NotificationAndEscalationService {
     );
 
     const notificationPromises = recipients.map((recipient) =>
-      this.sendNotification(
-        recipient,
-        incident,
-        'incident_resolved',
-        resolutionTime,
-      ),
+      this.sendNotification(recipient, incident, 'incident_resolved', resolutionTime),
     );
 
     await Promise.allSettled(notificationPromises);
@@ -208,17 +190,10 @@ export class NotificationAndEscalationService {
   /**
    * Notify remediation action execution
    */
-  async notifyRemediationExecuted(
-    incident: Incident,
-    action: RemediationAction,
-  ): Promise<void> {
-    this.logger.log(
-      `Notifying remediation execution: ${action.id} - ${action.actionType}`,
-    );
+  async notifyRemediationExecuted(incident: Incident, action: RemediationAction): Promise<void> {
+    this.logger.log(`Notifying remediation execution: ${action.id} - ${action.actionType}`);
 
-    const policy = this.escalationPolicies.get(
-      incident.severity.toLowerCase(),
-    );
+    const policy = this.escalationPolicies.get(incident.severity.toLowerCase());
     if (!policy) return;
 
     const recipients = policy.recipients.filter(
@@ -226,13 +201,7 @@ export class NotificationAndEscalationService {
     );
 
     const notificationPromises = recipients.map((recipient) =>
-      this.sendNotification(
-        recipient,
-        incident,
-        'remediation_executed',
-        0,
-        action,
-      ),
+      this.sendNotification(recipient, incident, 'remediation_executed', 0, action),
     );
 
     await Promise.allSettled(notificationPromises);
@@ -241,14 +210,8 @@ export class NotificationAndEscalationService {
   /**
    * Escalate incident to higher level
    */
-  async escalateIncident(
-    incident: Incident,
-    escalatedTo: string,
-    reason: string,
-  ): Promise<void> {
-    this.logger.warn(
-      `Escalating incident: ${incident.id} to ${escalatedTo} - ${reason}`,
-    );
+  async escalateIncident(incident: Incident, escalatedTo: string, reason: string): Promise<void> {
+    this.logger.warn(`Escalating incident: ${incident.id} to ${escalatedTo} - ${reason}`);
 
     // Send escalation notifications
     const escalationRecipient: NotificationRecipient = {
@@ -308,11 +271,7 @@ export class NotificationAndEscalationService {
           break;
 
         case NotificationChannel.WEBHOOK:
-          await this.sendWebhookNotification(
-            recipient.address,
-            incident,
-            eventType,
-          );
+          await this.sendWebhookNotification(recipient.address, incident, eventType);
           break;
 
         default:
@@ -320,9 +279,7 @@ export class NotificationAndEscalationService {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Error sending ${recipient.channel} notification: ${errorMsg}`,
-      );
+      this.logger.error(`Error sending ${recipient.channel} notification: ${errorMsg}`);
       throw error;
     }
   }
@@ -429,10 +386,7 @@ export class NotificationAndEscalationService {
   /**
    * Send PagerDuty notification
    */
-  private async sendPagerDutyNotification(
-    incident: Incident,
-    eventType: string,
-  ): Promise<void> {
+  private async sendPagerDutyNotification(incident: Incident, eventType: string): Promise<void> {
     const pagerDutyKey = this.configService.get('PAGERDUTY_INTEGRATION_KEY');
     if (!pagerDutyKey) {
       this.logger.warn('PagerDuty integration key not configured');
@@ -504,7 +458,9 @@ export class NotificationAndEscalationService {
         errorThresholdPercentage: 50,
         resetTimeout: 30000,
         fallback: (error: Error) => {
-          this.logger.warn(`Webhook notification fallback triggered for ${webhookUrl}: ${error.message}`);
+          this.logger.warn(
+            `Webhook notification fallback triggered for ${webhookUrl}: ${error.message}`,
+          );
           return null;
         },
       },
@@ -516,12 +472,8 @@ export class NotificationAndEscalationService {
   /**
    * Build email subject
    */
-  private buildEmailSubject(
-    incident: Incident,
-    eventType: string,
-  ): string {
-    const prefix =
-      incident.severity === IncidentSeverity.CRITICAL ? '🚨' : '⚠️';
+  private buildEmailSubject(incident: Incident, eventType: string): string {
+    const prefix = incident.severity === IncidentSeverity.CRITICAL ? '🚨' : '⚠️';
 
     if (eventType === 'incident_detected') {
       return `${prefix} [${incident.severity}] Incident Detected: ${incident.title}`;
@@ -557,32 +509,27 @@ export class NotificationAndEscalationService {
     `;
 
     if (eventType === 'incident_resolved' && resolutionTime) {
-      return (
-        baseTemplate +
-        `<p><strong>Resolution Time:</strong> ${(resolutionTime / 1000 / 60).toFixed(2)} minutes</p>
-        </body></html>`
-      );
+      return `${
+        baseTemplate
+      }<p><strong>Resolution Time:</strong> ${(resolutionTime / 1000 / 60).toFixed(2)} minutes</p>
+        </body></html>`;
     }
 
     if (remediationAction) {
-      return (
-        baseTemplate +
-        `<p><strong>Remediation Action:</strong> ${remediationAction.actionType}</p>
+      return `${
+        baseTemplate
+      }<p><strong>Remediation Action:</strong> ${remediationAction.actionType}</p>
         <p><strong>Status:</strong> ${remediationAction.status}</p>
         <p><strong>Output:</strong> ${remediationAction.executionOutput || 'N/A'}</p>
-        </body></html>`
-      );
+        </body></html>`;
     }
 
     if (escalationReason) {
-      return (
-        baseTemplate +
-        `<p><strong>Escalation Reason:</strong> ${escalationReason}</p>
-        </body></html>`
-      );
+      return `${baseTemplate}<p><strong>Escalation Reason:</strong> ${escalationReason}</p>
+        </body></html>`;
     }
 
-    return baseTemplate + `</body></html>`;
+    return `${baseTemplate}</body></html>`;
   }
 
   /**
@@ -607,10 +554,7 @@ export class NotificationAndEscalationService {
   /**
    * Register custom escalation policy
    */
-  registerEscalationPolicy(
-    name: string,
-    policy: EscalationPolicy,
-  ): void {
+  registerEscalationPolicy(name: string, policy: EscalationPolicy): void {
     this.escalationPolicies.set(name, policy);
     this.logger.log(`Escalation policy registered: ${name}`);
   }

@@ -22,8 +22,7 @@ export class CriterionScoreDto {
   criterionId: string;
 
   @ApiPropertyOptional({
-    description:
-      'Selected level ID. If omitted, `points` must be supplied directly.',
+    description: 'Selected level ID. If omitted, `points` must be supplied directly.',
     format: 'uuid',
   })
   @IsOptional()
@@ -72,8 +71,7 @@ export class GradeSubmissionDto {
   feedbackTemplateId?: string;
 
   @ApiPropertyOptional({
-    description:
-      'Override feedback text. When provided, no template rendering is performed.',
+    description: 'Override feedback text. When provided, no template rendering is performed.',
   })
   @IsOptional()
   @IsString()

@@ -15,6 +15,7 @@ import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
 import { CourseReview } from './course-review.entity';
+import { CourseVersion } from './course-version.entity';
 
 /** Lifecycle states a course can be in. */
 export enum CourseStatus {
@@ -30,6 +31,8 @@ export enum CourseStatus {
  * Represents the course entity.
  */
 @Entity()
+@Index(['status', 'createdAt'])
+@Index(['instructorId', 'createdAt'])
 export class Course {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -86,11 +89,15 @@ export class Course {
   @OneToMany(() => CourseReview, (review) => review.course, { eager: false })
   reviews: CourseReview[];
 
+  @OneToMany(() => CourseVersion, (version) => version.course)
+  versions: CourseVersion[];
+
   /** The submission note provided by the instructor when submitting for review. */
   @Column({ type: 'text', nullable: true })
   submissionNote?: string;
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()
@@ -99,4 +106,3 @@ export class Course {
   @DeleteDateColumn()
   deletedAt?: Date;
 }
-

@@ -31,7 +31,7 @@ describe('Graceful Shutdown Integration', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     gracefulShutdown = app.get<GracefulShutdownService>(GracefulShutdownService);
     requestTracker = app.get<RequestTrackerService>(RequestTrackerService);
     databaseShutdown = app.get<DatabaseShutdownService>(DatabaseShutdownService);
@@ -53,11 +53,11 @@ describe('Graceful Shutdown Integration', () => {
   describe('Shutdown State Management', () => {
     it('should track shutdown state correctly', () => {
       expect(shutdownState.isShuttingDown()).toBe(false);
-      
+
       shutdownState.markShuttingDown('Test shutdown');
-      
+
       expect(shutdownState.isShuttingDown()).toBe(true);
-      
+
       const info = shutdownState.getShutdownInfo();
       expect(info.isShuttingDown).toBe(true);
       expect(info.reason).toBe('Test shutdown');
@@ -68,10 +68,10 @@ describe('Graceful Shutdown Integration', () => {
     it('should reset shutdown state', () => {
       shutdownState.markShuttingDown('Test');
       expect(shutdownState.isShuttingDown()).toBe(true);
-      
+
       shutdownState.reset();
       expect(shutdownState.isShuttingDown()).toBe(false);
-      
+
       const info = shutdownState.getShutdownInfo();
       expect(info.isShuttingDown).toBe(false);
       expect(info.startTime).toBeNull();
@@ -82,27 +82,27 @@ describe('Graceful Shutdown Integration', () => {
   describe('Request Tracking', () => {
     it('should track active requests', async () => {
       expect(requestTracker.getActiveRequestCount()).toBe(0);
-      
+
       // Simulate a request by manually calling the middleware
       const mockReq = {
         method: 'GET',
         url: '/test',
         get: jest.fn().mockReturnValue('test-agent'),
       } as any;
-      
+
       const mockRes = {
         locals: {},
         on: jest.fn(),
       } as any;
-      
+
       const mockNext = jest.fn();
-      
+
       const middleware = requestTracker.trackRequest();
       middleware(mockReq, mockRes, mockNext);
-      
+
       expect(requestTracker.getActiveRequestCount()).toBe(1);
       expect(mockNext).toHaveBeenCalled();
-      
+
       const activeRequests = requestTracker.getActiveRequests();
       expect(activeRequests).toHaveLength(1);
       expect(activeRequests[0].method).toBe('GET');
@@ -111,7 +111,7 @@ describe('Graceful Shutdown Integration', () => {
 
     it('should wait for active requests to complete', async () => {
       const waitPromise = requestTracker.waitForActiveRequests(1000);
-      
+
       // Should resolve immediately when no active requests
       await expect(waitPromise).resolves.toBeUndefined();
     });
@@ -121,19 +121,21 @@ describe('Graceful Shutdown Integration', () => {
       const mockReq = { method: 'GET', url: '/test', get: jest.fn() } as any;
       const mockRes = { locals: {}, on: jest.fn() } as any;
       const mockNext = jest.fn();
-      
+
       const middleware = requestTracker.trackRequest();
       middleware(mockReq, mockRes, mockNext);
-      
+
       // Should timeout since request never completes
-      await expect(requestTracker.waitForActiveRequests(100)).rejects.toThrow('Timeout waiting for');
+      await expect(requestTracker.waitForActiveRequests(100)).rejects.toThrow(
+        'Timeout waiting for',
+      );
     });
   });
 
   describe('Graceful Shutdown Orchestration', () => {
     it('should register and execute shutdown phases', async () => {
       const executionOrder: string[] = [];
-      
+
       gracefulShutdown.registerShutdownPhase({
         name: 'phase-1',
         timeout: 1000,
@@ -141,7 +143,7 @@ describe('Graceful Shutdown Integration', () => {
           executionOrder.push('phase-1');
         },
       });
-      
+
       gracefulShutdown.registerShutdownPhase({
         name: 'phase-2',
         timeout: 500, // Shorter timeout should execute first
@@ -149,9 +151,9 @@ describe('Graceful Shutdown Integration', () => {
           executionOrder.push('phase-2');
         },
       });
-      
+
       await gracefulShutdown.shutdown('TEST');
-      
+
       expect(executionOrder).toEqual(['phase-2', 'phase-1']);
       expect(gracefulShutdown.isShutdownInProgress()).toBe(true);
     });
@@ -161,10 +163,10 @@ describe('Graceful Shutdown Integration', () => {
         name: 'slow-phase',
         timeout: 100,
         execute: async () => {
-          await new Promise(resolve => setTimeout(resolve, 200)); // Takes longer than timeout
+          await new Promise((resolve) => setTimeout(resolve, 200)); // Takes longer than timeout
         },
       });
-      
+
       gracefulShutdown.registerShutdownPhase({
         name: 'fast-phase',
         timeout: 1000,
@@ -172,7 +174,7 @@ describe('Graceful Shutdown Integration', () => {
           // Should still execute even if previous phase times out
         },
       });
-      
+
       // Should not throw even with timeout
       await expect(gracefulShutdown.shutdown('TEST')).resolves.toBeUndefined();
     });
@@ -180,10 +182,8 @@ describe('Graceful Shutdown Integration', () => {
 
   describe('Health Endpoints', () => {
     it('should return healthy status when not shutting down', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/health/shutdown')
-        .expect(200);
-      
+      const response = await request(app.getHttpServer()).get('/health/shutdown').expect(200);
+
       expect(response.body.status).toBe('healthy');
       expect(response.body.shutdown.isShuttingDown).toBe(false);
       expect(response.body.readiness.acceptingRequests).toBe(true);
@@ -191,11 +191,9 @@ describe('Graceful Shutdown Integration', () => {
 
     it('should return shutting down status during shutdown', async () => {
       shutdownState.markShuttingDown('Test shutdown');
-      
-      const response = await request(app.getHttpServer())
-        .get('/health/shutdown')
-        .expect(200);
-      
+
+      const response = await request(app.getHttpServer()).get('/health/shutdown').expect(200);
+
       expect(response.body.status).toBe('shutting_down');
       expect(response.body.shutdown.isShuttingDown).toBe(true);
       expect(response.body.readiness.acceptingRequests).toBe(false);
@@ -205,7 +203,7 @@ describe('Graceful Shutdown Integration', () => {
       const response = await request(app.getHttpServer())
         .get('/health/shutdown/readiness')
         .expect(200);
-      
+
       expect(response.body.ready).toBe(true);
       expect(response.body.activeRequests).toBe(0);
       expect(response.body.activeJobs).toBe(0);
@@ -213,11 +211,11 @@ describe('Graceful Shutdown Integration', () => {
 
     it('should return not ready during shutdown', async () => {
       shutdownState.markShuttingDown('Test');
-      
+
       const response = await request(app.getHttpServer())
         .get('/health/shutdown/readiness')
         .expect(200);
-      
+
       expect(response.body.ready).toBe(false);
       expect(response.body.reason).toBe('Application is shutting down');
     });
@@ -226,7 +224,7 @@ describe('Graceful Shutdown Integration', () => {
       const response = await request(app.getHttpServer())
         .get('/health/shutdown/detailed')
         .expect(200);
-      
+
       expect(response.body).toHaveProperty('timestamp');
       expect(response.body).toHaveProperty('shutdown');
       expect(response.body).toHaveProperty('gracefulShutdown');
@@ -294,7 +292,7 @@ describe('Graceful Shutdown Integration', () => {
 
       // Execute complete shutdown
       await expect(gracefulShutdown.shutdown('INTEGRATION_TEST')).resolves.toBeUndefined();
-      
+
       // Verify final state
       expect(shutdownState.isShuttingDown()).toBe(true);
       expect(gracefulShutdown.isShutdownInProgress()).toBe(true);

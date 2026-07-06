@@ -26,7 +26,7 @@ export class RequestTrackerService {
     return (req: Request, res: Response, next: NextFunction): void => {
       const requestId = this.generateRequestId();
       const startTime = Date.now();
-      
+
       const activeRequest: ActiveRequest = {
         id: requestId,
         method: req.method,
@@ -38,7 +38,7 @@ export class RequestTrackerService {
 
       // Store the request
       this.activeRequests.set(requestId, activeRequest);
-      
+
       // Store request ID in response locals for cleanup
       res.locals.requestId = requestId;
 
@@ -64,29 +64,29 @@ export class RequestTrackerService {
    */
   async waitForActiveRequests(timeoutMs: number = 30000): Promise<void> {
     const activeCount = this.activeRequests.size;
-    
+
     if (activeCount === 0) {
       this.logger.log('No active requests to wait for');
       return;
     }
 
     this.logger.log(`Waiting for ${activeCount} active requests to complete...`);
-    
+
     const startTime = Date.now();
     const checkInterval = 100; // Check every 100ms
-    
+
     return new Promise((resolve, reject) => {
       const timeoutTimer = setTimeout(() => {
         const remainingRequests = this.activeRequests.size;
         const waitTime = Date.now() - startTime;
-        
+
         if (remainingRequests > 0) {
           this.logger.warn(
-            `Timeout waiting for requests after ${waitTime}ms. ${remainingRequests} requests still active:`
+            `Timeout waiting for requests after ${waitTime}ms. ${remainingRequests} requests still active:`,
           );
           this.logActiveRequests();
         }
-        
+
         reject(new Error(`Timeout waiting for ${remainingRequests} active requests`));
       }, timeoutMs);
 
@@ -124,18 +124,18 @@ export class RequestTrackerService {
    */
   logActiveRequests(): void {
     const requests = this.getActiveRequests();
-    
+
     if (requests.length === 0) {
       this.logger.log('No active requests');
       return;
     }
 
     this.logger.log(`Active requests (${requests.length}):`);
-    
+
     requests.forEach((req) => {
       const duration = Date.now() - req.startTime;
       this.logger.log(
-        `  - ${req.id}: ${req.method} ${req.url} (${duration}ms) [${req.correlationId || 'no-correlation'}]`
+        `  - ${req.id}: ${req.method} ${req.url} (${duration}ms) [${req.correlationId || 'no-correlation'}]`,
       );
     });
   }
@@ -146,11 +146,11 @@ export class RequestTrackerService {
   forceCleanupRequest(requestId: string): boolean {
     const existed = this.activeRequests.has(requestId);
     this.activeRequests.delete(requestId);
-    
+
     if (existed) {
       this.logger.warn(`Force cleaned up request: ${requestId}`);
     }
-    
+
     return existed;
   }
 
@@ -165,10 +165,10 @@ export class RequestTrackerService {
   } {
     const activeRequests = this.getActiveRequests();
     const now = Date.now();
-    
+
     let longestRunning = 0;
     let totalDuration = 0;
-    
+
     activeRequests.forEach((req) => {
       const duration = now - req.startTime;
       longestRunning = Math.max(longestRunning, duration);

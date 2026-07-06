@@ -7,10 +7,7 @@ import { ArchivedData } from './entities/archived-data.entity';
 import { retentionConfig } from '../config/retention.config';
 
 @Module({
-  imports: [
-    ConfigModule.forFeature(retentionConfig),
-    TypeOrmModule.forFeature([ArchivedData]),
-  ],
+  imports: [ConfigModule.forFeature(retentionConfig), TypeOrmModule.forFeature([ArchivedData])],
   providers: [DataRetentionService, DataRetentionTask],
   exports: [DataRetentionService],
 })

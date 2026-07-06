@@ -1,18 +1,11 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FeedbackTemplate } from './entities/feedback-template.entity';
 import { Rubric } from './entities/rubric.entity';
 import { RubricCriterion } from './entities/rubric-criterion.entity';
 import { RubricLevel } from './entities/rubric-level.entity';
-import {
-  CreateFeedbackTemplateDto,
-  UpdateFeedbackTemplateDto,
-} from './dto/grading.dto';
+import { CreateFeedbackTemplateDto, UpdateFeedbackTemplateDto } from './dto/grading.dto';
 
 /**
  * Context passed in when rendering a feedback template. Everything is
@@ -52,10 +45,7 @@ export class FeedbackTemplatesService {
     private readonly repo: Repository<FeedbackTemplate>,
   ) {}
 
-  async create(
-    dto: CreateFeedbackTemplateDto,
-    ownerId?: string,
-  ): Promise<FeedbackTemplate> {
+  async create(dto: CreateFeedbackTemplateDto, ownerId?: string): Promise<FeedbackTemplate> {
     const tpl = this.repo.create({
       name: dto.name,
       body: dto.body,
@@ -120,9 +110,7 @@ export class FeedbackTemplatesService {
     const verdict = this.deriveVerdict(percentage);
 
     const criteria = ctx.rubric?.criteria ?? [];
-    const criterionByTitle = new Map(
-      criteria.map(c => [this.normalize(c.title), c]),
-    );
+    const criterionByTitle = new Map(criteria.map((c) => [this.normalize(c.title), c]));
 
     return body.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, rawKey: string) => {
       const key = rawKey.trim();

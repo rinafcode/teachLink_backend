@@ -1,0 +1,82 @@
+replicaCount: 2
+
+image:
+  repository: teachlink-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: api.teachlink.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: teachlink-tls
+      hosts:
+        - api.teachlink.io
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 70
+
+# Non-sensitive configuration (goes into ConfigMap)
+config:
+  nodeEnv: "production"
+  databaseHost: "postgres-service"
+  databasePort: "5432"
+  databaseName: "teachlink"
+  databasePoolMax: "30"
+  databasePoolMin: "5"
+  redisHost: "redis-service"
+  redisPort: "6379"
+  elasticsearchNode: "http://elasticsearch-service:9200"
+  jwtExpiresIn: "15m"
+  jwtRefreshExpiresIn: "7d"
+  bcryptRounds: "12"
+  appUrl: "https://api.teachlink.io"
+  corsAllowedOrigins: "https://teachlink.io"
+  trustProxy: "true"
+  apiDefaultVersion: "1"
+  apiSupportedVersions: "1"
+
+# Sensitive configuration (goes into Secret)
+# Override these with --set or a separate values file; never commit real values.
+secrets:
+  databaseUser: "postgres"
+  databasePassword: "REPLACE_ME"
+  jwtSecret: "REPLACE_ME"
+  jwtRefreshSecret: "REPLACE_ME"
+  encryptionSecret: "REPLACE_ME"
+  sessionSecret: "REPLACE_ME"
+  stripeSecretKey: "REPLACE_ME"
+  stripeWebhookSecret: "REPLACE_ME"
+  awsAccessKeyId: "REPLACE_ME"
+  awsSecretAccessKey: "REPLACE_ME"
+  awsRegion: "us-east-1"
+  awsS3BucketName: "REPLACE_ME"
+  sendgridApiKey: "REPLACE_ME"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}

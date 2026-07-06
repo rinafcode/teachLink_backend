@@ -13,7 +13,6 @@ import {
   UpdateIncidentDto,
   GetIncidentsQueryDto,
   CreateRemediationActionDto,
-  CreateRunbookExecutionDto,
 } from './dto';
 import { IAlertEvent } from '../monitoring/alerting/alerting.service';
 
@@ -70,8 +69,9 @@ export class IncidentManagementService {
    */
   private async executeAutoRemediation(incident: Incident): Promise<void> {
     try {
-      const suggestedActions =
-        this.autoRemediationService.suggestRemediationActions(incident.title);
+      const suggestedActions = this.autoRemediationService.suggestRemediationActions(
+        incident.title,
+      );
 
       if (suggestedActions.length === 0) {
         this.logger.debug(`No suggested remediation actions for: ${incident.title}`);
@@ -92,22 +92,12 @@ export class IncidentManagementService {
         remediationIds.push(remediationAction.id);
 
         // Notify remediation action execution
-        await this.notificationService.notifyRemediationExecuted(
-          incident,
-          remediationAction,
-        );
+        await this.notificationService.notifyRemediationExecuted(incident, remediationAction);
 
         // Auto-rollback on failure if configured
-        if (
-          suggestion.autoRollback &&
-          remediationAction.status === RemediationStatus.FAILED
-        ) {
-          this.logger.log(
-            `Auto-rolling back failed remediation action: ${remediationAction.id}`,
-          );
-          await this.autoRemediationService.rollbackRemediationAction(
-            remediationAction,
-          );
+        if (suggestion.autoRollback && remediationAction.status === RemediationStatus.FAILED) {
+          this.logger.log(`Auto-rolling back failed remediation action: ${remediationAction.id}`);
+          await this.autoRemediationService.rollbackRemediationAction(remediationAction);
         }
       }
 
@@ -169,10 +159,7 @@ export class IncidentManagementService {
     Object.assign(incident, updateIncidentDto);
 
     // Set resolved timestamp if status changed to resolved
-    if (
-      updateIncidentDto.status === IncidentStatus.RESOLVED &&
-      incident.resolvedAt === null
-    ) {
+    if (updateIncidentDto.status === IncidentStatus.RESOLVED && incident.resolvedAt === null) {
       incident.resolvedAt = new Date();
     }
 
@@ -215,10 +202,7 @@ export class IncidentManagementService {
   /**
    * Resolve incident manually
    */
-  async resolveIncident(
-    incidentId: string,
-    resolutionNotes: string,
-  ): Promise<Incident> {
+  async resolveIncident(incidentId: string, resolutionNotes: string): Promise<Incident> {
     const incident = await this.getIncidentById(incidentId);
     if (!incident) {
       throw new Error(`Incident not found: ${incidentId}`);
@@ -233,10 +217,7 @@ export class IncidentManagementService {
     const updatedIncident = await this.incidentRepository.save(incident);
 
     // Notify incident resolution
-    await this.notificationService.notifyIncidentResolved(
-      updatedIncident,
-      resolutionTime,
-    );
+    await this.notificationService.notifyIncidentResolved(updatedIncident, resolutionTime);
 
     this.logger.log(
       `Incident resolved: ${incidentId} (Resolution time: ${(resolutionTime / 1000 / 60).toFixed(2)}m)`,
@@ -264,11 +245,7 @@ export class IncidentManagementService {
     const updatedIncident = await this.incidentRepository.save(incident);
 
     // Notify escalation
-    await this.notificationService.escalateIncident(
-      updatedIncident,
-      escalatedTo,
-      reason,
-    );
+    await this.notificationService.escalateIncident(updatedIncident, escalatedTo, reason);
 
     this.logger.log(`Incident escalated: ${incidentId} to ${escalatedTo}`);
 
@@ -278,9 +255,7 @@ export class IncidentManagementService {
   /**
    * Create remediation action manually
    */
-  async createRemediationAction(
-    createDto: CreateRemediationActionDto,
-  ): Promise<RemediationAction> {
+  async createRemediationAction(createDto: CreateRemediationActionDto): Promise<RemediationAction> {
     const incident = await this.getIncidentById(createDto.incidentId);
     if (!incident) {
       throw new Error(`Incident not found: ${createDto.incidentId}`);
@@ -298,9 +273,7 @@ export class IncidentManagementService {
   /**
    * Get remediation actions for an incident
    */
-  async getRemediationActionsForIncident(
-    incidentId: string,
-  ): Promise<RemediationAction[]> {
+  async getRemediationActionsForIncident(incidentId: string): Promise<RemediationAction[]> {
     return this.autoRemediationService.getRemediationActions(incidentId);
   }
 
@@ -322,12 +295,8 @@ export class IncidentManagementService {
   /**
    * Get runbook executions for an incident
    */
-  async getRunbookExecutionsForIncident(
-    incidentId: string,
-  ): Promise<RunbookExecution[]> {
-    return this.runbookExecutionService.getRunbookExecutionsForIncident(
-      incidentId,
-    );
+  async getRunbookExecutionsForIncident(incidentId: string): Promise<RunbookExecution[]> {
+    return this.runbookExecutionService.getRunbookExecutionsForIncident(incidentId);
   }
 
   /**

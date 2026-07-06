@@ -2,7 +2,7 @@
 
 Self-contained Prometheus + Alertmanager + Grafana stack for the teachLink
 backend. Scrapes the Prometheus exporter served from
-`/observability/metrics/export/prometheus`.
+`/metrics`.
 
 See [`docs/monitoring-dashboard.md`](../../docs/monitoring-dashboard.md) for
 the full guide and runbook.

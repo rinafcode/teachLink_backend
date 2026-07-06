@@ -51,25 +51,25 @@ export class ShutdownHealthController {
   ) {}
 
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get shutdown health status',
-    description: 'Returns detailed information about the application shutdown state and readiness'
+    description: 'Returns detailed information about the application shutdown state and readiness',
   })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
-    description: 'Shutdown health status retrieved successfully'
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Shutdown health status retrieved successfully',
   })
   async getShutdownHealth(): Promise<ShutdownHealthResponse> {
     const shutdownInfo = this.shutdownState.getShutdownInfo();
     const requestStats = this.requestTracker.getStatistics();
     const databaseStatus = this.databaseShutdown.getShutdownStatus();
     const workerStatus = this.workerShutdown.getShutdownStatus();
-    const gracefulStatus = this.gracefulShutdown.getShutdownStatus();
 
     const isShuttingDown = shutdownInfo.isShuttingDown;
     const hasActiveRequests = requestStats.activeCount > 0;
     const hasActiveJobs = workerStatus.activeJobs > 0;
-    const databaseReady = !databaseStatus.isShuttingDown && databaseStatus.poolSnapshot.utilizationPct < 90;
+    const databaseReady =
+      !databaseStatus.isShuttingDown && databaseStatus.poolSnapshot.utilizationPct < 90;
 
     // Determine overall status
     let status: 'healthy' | 'shutting_down' | 'unhealthy';
@@ -108,9 +108,9 @@ export class ShutdownHealthController {
   }
 
   @Get('detailed')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get detailed shutdown status',
-    description: 'Returns comprehensive shutdown information for debugging'
+    description: 'Returns comprehensive shutdown information for debugging',
   })
   async getDetailedShutdownStatus(): Promise<any> {
     const [
@@ -135,7 +135,7 @@ export class ShutdownHealthController {
       gracefulShutdown: gracefulStatus,
       requests: {
         statistics: requestStats,
-        activeRequests: activeRequests.map(req => ({
+        activeRequests: activeRequests.map((req) => ({
           id: req.id,
           method: req.method,
           url: req.url,
@@ -149,9 +149,9 @@ export class ShutdownHealthController {
   }
 
   @Get('readiness')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Check if application is ready for shutdown',
-    description: 'Returns readiness status for load balancer health checks'
+    description: 'Returns readiness status for load balancer health checks',
   })
   async getReadinessStatus(): Promise<{
     ready: boolean;

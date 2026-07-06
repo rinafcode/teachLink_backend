@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bull';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { MessagingService } from './messaging.service';
 import { TracingService } from './tracing/tracing.service';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
+import { Message } from './message.entity';
 
 const mockSpan = { end: jest.fn() };
 
@@ -13,6 +15,13 @@ const mockQueue = {
   getActive: jest.fn(),
   getCompleted: jest.fn(),
   getFailed: jest.fn(),
+};
+
+const mockMessageRepo = {
+  create: jest.fn((dto) => ({ ...dto, id: 'msg-1' })),
+  save: jest.fn((msg) => Promise.resolve(msg)),
+  find: jest.fn().mockResolvedValue([]),
+  update: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockTracingService = {
@@ -29,6 +38,7 @@ describe('MessagingService', () => {
         MessagingService,
         { provide: getQueueToken(QUEUE_NAMES.MESSAGE_QUEUE), useValue: mockQueue },
         { provide: TracingService, useValue: mockTracingService },
+        { provide: getRepositoryToken(Message), useValue: mockMessageRepo },
       ],
     }).compile();
 
@@ -41,32 +51,27 @@ describe('MessagingService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('addMessageToQueue', () => {
-    it('should add a message to the queue and return the job', async () => {
-      const job = { id: 'job-1', data: { text: 'hello' } };
-      mockQueue.add.mockResolvedValue(job);
+  describe('createMessage', () => {
+    it('should create a message and add it to the queue', async () => {
+      const dto = { text: 'hello' };
+      const saved = { ...dto, id: 'msg-1', readAt: null };
+      mockMessageRepo.save.mockResolvedValue(saved);
+      mockQueue.add.mockResolvedValue({ id: 'job-1', data: saved });
 
-      const result = await service.addMessageToQueue({ text: 'hello' });
+      const result = await service.createMessage(dto as any);
 
-      expect(mockQueue.add).toHaveBeenCalledWith({ text: 'hello' }, undefined);
-      expect(result).toEqual(job);
-      expect(mockTracingService.startSpan).toHaveBeenCalledWith('add-message-to-queue');
+      expect(mockMessageRepo.create).toHaveBeenCalled();
+      expect(mockMessageRepo.save).toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalled();
+      expect(result).toEqual(saved);
+      expect(mockTracingService.startSpan).toHaveBeenCalledWith('create-message');
       expect(mockTracingService.endSpan).toHaveBeenCalledWith(mockSpan);
     });
 
-    it('should pass options to the queue', async () => {
-      const job = { id: 'job-2' };
-      mockQueue.add.mockResolvedValue(job);
+    it('should throw when save fails', async () => {
+      mockMessageRepo.save.mockRejectedValue(new Error('DB error'));
 
-      await service.addMessageToQueue({ text: 'hi' }, { delay: 1000 });
-
-      expect(mockQueue.add).toHaveBeenCalledWith({ text: 'hi' }, { delay: 1000 });
-    });
-
-    it('should end span even when queue.add throws', async () => {
-      mockQueue.add.mockRejectedValue(new Error('Queue error'));
-
-      await expect(service.addMessageToQueue({ text: 'fail' })).rejects.toThrow('Queue error');
+      await expect(service.createMessage({ text: 'fail' } as any)).rejects.toThrow('DB error');
       expect(mockTracingService.endSpan).toHaveBeenCalledWith(mockSpan);
     });
   });

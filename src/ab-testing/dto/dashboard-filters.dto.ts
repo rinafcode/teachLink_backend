@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsDate, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDate, IsEnum, IsOptional } from 'class-validator';
 import { ExperimentStatus, ExperimentType } from '../entities/experiment.entity';
 
 /**
@@ -29,7 +29,10 @@ export class DashboardFiltersDto {
   @IsDate({ message: 'End date must be a valid date' })
   endDate?: Date;
 
-  @ApiPropertyOptional({ description: 'Include archived experiments in dashboard results.', example: false })
+  @ApiPropertyOptional({
+    description: 'Include archived experiments in dashboard results.',
+    example: false,
+  })
   @IsOptional()
   @IsBoolean({ message: 'includeArchived must be a boolean' })
   includeArchived?: boolean;

@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
@@ -108,8 +114,6 @@ export class RolesGuard implements CanActivate {
     }
 
     // Clean up, normalize to lowercase strings, and filter out empty values
-    return roles
-      .map((r) => String(r).trim().toLowerCase())
-      .filter((r) => r.length > 0);
+    return roles.map((r) => String(r).trim().toLowerCase()).filter((r) => r.length > 0);
   }
 }

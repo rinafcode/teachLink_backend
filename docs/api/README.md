@@ -24,6 +24,11 @@ Welcome to the comprehensive API documentation for the TeachLink platform. This 
 
 **API Version**: v1.0.0
 
+**Versioning**: Header-based versioning is enforced with `X-API-Version`.
+- Use `X-API-Version: 1` for current versioned requests.
+- Deprecated version headers return `Deprecation`, `Sunset`, `Link`, and `X-API-Deprecation-Notice` response headers.
+- For migration guidance, see [API Versioning and Deprecation Policy](./versioning.md).
+
 **Interactive Documentation**: 
 - Swagger UI: http://localhost:3000/api/docs
 

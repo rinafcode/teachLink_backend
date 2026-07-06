@@ -7,6 +7,9 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/../test/mocks/uuid.ts"
+  },
   "testTimeout": 60000,
   "forceExit": true,
   "verbose": true,

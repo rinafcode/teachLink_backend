@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Reflector } from '@nestjs/core';
@@ -45,26 +46,25 @@ async function runVerification() {
 
     // 5. Verify the RolesGuard extraction logic
     console.log('[4/4] Verifying RolesGuard custom claim extraction logic...');
-    
+
     // Instantiate RolesGuard manually with a mock Reflector
     const mockReflector = new Reflector();
     const guard = new RolesGuard(mockReflector);
-    
+
     // Access the private extractRoles method via type casting to verify it
     const extractedRoles = (guard as any).extractRoles(validatedProfile);
     console.log(`      Extracted roles from token custom claims: [${extractedRoles.join(', ')}]`);
-    
+
     if (extractedRoles.includes('admin')) {
       console.log('✅ Roles Guard Claims Extraction Successful!');
     } else {
       console.warn('⚠️ Roles Guard Claims Extraction did not extract "admin" role.');
     }
-
   } catch (error) {
     console.error('\n❌ Verification Failed!');
     console.error(error instanceof Error ? error.stack : String(error));
   }
-  
+
   console.log('\n================================================================');
 }
 

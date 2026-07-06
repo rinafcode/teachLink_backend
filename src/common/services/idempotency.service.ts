@@ -42,11 +42,7 @@ export interface IdempotencyRequestFingerprint {
 
 export interface IdempotencyRedisClient {
   get(key: string): Promise<string | null>;
-  set(
-    key: string,
-    value: string,
-    ...args: Array<string | number>
-  ): Promise<'OK' | null>;
+  set(key: string, value: string, ...args: Array<string | number>): Promise<'OK' | null>;
   del(...keys: string[]): Promise<number>;
   ttl?(key: string): Promise<number>;
   keys?(pattern: string): Promise<string[]>;
@@ -82,12 +78,7 @@ export class IdempotencyService {
   async saveRecord(key: string, record: IdempotencyRecord): Promise<void> {
     try {
       const ttlSeconds = record.ttlSeconds ?? this.defaultTTLSeconds;
-      await this.redisClient.set(
-        this.getRecordKey(key),
-        JSON.stringify(record),
-        'EX',
-        ttlSeconds,
-      );
+      await this.redisClient.set(this.getRecordKey(key), JSON.stringify(record), 'EX', ttlSeconds);
     } catch (error) {
       console.error('Error saving idempotency record:', error);
     }
@@ -115,7 +106,11 @@ export class IdempotencyService {
     }
   }
 
-  async acquireLock(key: string, fingerprint: string, ttlMs = IDEMPOTENCY_DEFAULT_LOCK_TTL_MS): Promise<boolean> {
+  async acquireLock(
+    key: string,
+    fingerprint: string,
+    ttlMs = IDEMPOTENCY_DEFAULT_LOCK_TTL_MS,
+  ): Promise<boolean> {
     try {
       const result = await this.redisClient.set(
         this.getLockKey(key),

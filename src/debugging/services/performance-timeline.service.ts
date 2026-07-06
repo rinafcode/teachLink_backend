@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  IPerformanceTimeline,
-  ITimelineSpan,
-} from '../interfaces/debug.interfaces';
+import { IPerformanceTimeline, ITimelineSpan } from '../interfaces/debug.interfaces';
 
 /**
  * A mutable timeline builder scoped to a single request. The middleware creates
@@ -75,8 +72,6 @@ export class PerformanceTimelineService {
    * phase in the inspector UI. Returns spans sorted by duration descending.
    */
   hotspots(timeline: IPerformanceTimeline, limit = 3): ITimelineSpan[] {
-    return [...timeline.spans]
-      .sort((a, b) => b.durationMs - a.durationMs)
-      .slice(0, limit);
+    return [...timeline.spans].sort((a, b) => b.durationMs - a.durationMs).slice(0, limit);
   }
 }

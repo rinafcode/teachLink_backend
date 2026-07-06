@@ -19,7 +19,13 @@ describe('CachingService', () => {
       clear: jest.fn().mockResolvedValue(undefined),
     };
     metrics = { updateCacheHitRate: jest.fn() };
-    service = new CachingService(cacheManager as never, metrics as unknown as MetricsCollectionService);
+    (cacheManager as any).store = {
+      keys: jest.fn().mockResolvedValue(['cache:test:1', 'cache:test:2']),
+    };
+    service = new CachingService(
+      cacheManager as never,
+      metrics as unknown as MetricsCollectionService,
+    );
   });
 
   describe('getOrSet', () => {
@@ -45,6 +51,15 @@ describe('CachingService', () => {
       expect(factory).toHaveBeenCalledTimes(1);
       expect(cacheManager.set).toHaveBeenCalledWith('cache:test:2', { id: '2' }, 120000);
       expect(service.getStats().misses).toBe(1);
+    });
+  });
+
+  describe('deleteByPattern', () => {
+    it('uses store.keys to delete matching keys when client scan is unavailable', async () => {
+      await service.deleteByPattern('cache:test:*');
+      expect((cacheManager as any).store.keys).toHaveBeenCalledWith('cache:test:*');
+      expect(cacheManager.del).toHaveBeenCalledWith('cache:test:1');
+      expect(cacheManager.del).toHaveBeenCalledWith('cache:test:2');
     });
   });
 

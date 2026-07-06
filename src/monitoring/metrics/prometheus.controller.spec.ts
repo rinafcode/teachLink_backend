@@ -52,9 +52,7 @@ describe('PrometheusController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PrometheusController],
-      providers: [
-        { provide: MetricsCollectionService, useValue: mockMetricsCollectionService },
-      ],
+      providers: [{ provide: MetricsCollectionService, useValue: mockMetricsCollectionService }],
     }).compile();
 
     controller = module.get<PrometheusController>(PrometheusController);
@@ -75,6 +73,23 @@ describe('PrometheusController', () => {
       const res = buildResponse();
 
       await controller.getMetrics(req, res);
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/plain; version=0.0.4; charset=utf-8',
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.statusSpy().send).toHaveBeenCalledWith(metricText);
+    });
+
+    it('returns 200 from the legacy observability alias endpoint', async () => {
+      const metricText = '# HELP process_memory_bytes\n# TYPE gauge\n';
+      mockMetricsCollectionService.getMetrics.mockResolvedValue(metricText);
+
+      const req = buildRequest({ path: '/observability/metrics/export/prometheus' });
+      const res = buildResponse();
+
+      await controller.exportPrometheusMetrics(req, res);
 
       expect(res.setHeader).toHaveBeenCalledWith(
         'Content-Type',
@@ -107,9 +122,7 @@ describe('PrometheusController', () => {
       // Re-create the module so the controller reads the updated env var
       const module: TestingModule = await Test.createTestingModule({
         controllers: [PrometheusController],
-        providers: [
-          { provide: MetricsCollectionService, useValue: mockMetricsCollectionService },
-        ],
+        providers: [{ provide: MetricsCollectionService, useValue: mockMetricsCollectionService }],
       }).compile();
 
       controller = module.get<PrometheusController>(PrometheusController);

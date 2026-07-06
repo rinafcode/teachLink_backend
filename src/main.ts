@@ -1,9 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import {
-  ValidationPipe,
-  Logger,
-  VersioningType,
-} from '@nestjs/common';
+import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -13,9 +9,12 @@ import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
+import * as OpenApiValidator from 'express-openapi-validator';
+import { join } from 'path';
+import './tracing/opentelemetry';
 
-import { correlationMiddleware } from './common/utils/correlation.utils';
-import { sessionConfig } from './config/cache.config';
+import { CorrelationIdMiddleware } from './middleware/correlation-id';
+import { createSessionConfig } from './config/cache.config';
 import { SESSION_REDIS_CLIENT } from './session/session.constants';
 import helmet from 'helmet';
 import { corsConfig } from './config/cors.config';
@@ -26,25 +25,29 @@ import { DatabaseShutdownService } from './database/services/database-shutdown.s
 import { WorkerShutdownService } from './workers/services/worker-shutdown.service';
 import { TIME, BYTES } from './common/constants/time.constants';
 import { DecompressionMiddleware } from './common/middleware/decompression.middleware';
+import { csrfMiddleware } from './middleware/csrf/csrf.middleware';
 import { SlackService } from './slack.service';
 import compression from 'compression';
-import { FieldFilterInterceptor } from './common/interceptors/field-filter.interceptor';
-import { ImageOptimizationInterceptor } from './common/interceptors/image-optimization.interceptor';
 import { AuditLogService } from './audit-log/audit-log.service';
 import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
+import { initStructuredLogging } from './logging/structured-logging';
+import { requestIdMiddleware } from './logging/request-id.middleware';
+import { MetricsInterceptor } from './utils/masking/metrics.interceptor';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
+import { PaginationInterceptor } from './common/interceptors/pagination.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
-const SUPPORTED_API_VERSIONS = ['1'];
+// const SUPPORTED_API_VERSIONS = ['1'];
 
 type SessionRequest = Request & {
   session?: Session & Partial<SessionData> & { userAgent?: string };
 };
 
 async function bootstrapWorker(): Promise<void> {
+  initStructuredLogging(process.env.SERVICE_NAME || 'teachlink-backend');
   const logger = new Logger('Bootstrap');
   const bootstrapStartTime = Date.now();
 
@@ -55,8 +58,34 @@ async function bootstrapWorker(): Promise<void> {
     10,
   );
 
+  const wsMaxPayloadBytes = parseInt(
+    process.env.WS_MAX_PAYLOAD_BYTES || `${BYTES.SIXTY_FOUR_KB}`,
+    10,
+  );
+
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  
+
+  // =========================
+  // WEBSOCKET PAYLOAD SIZE LIMIT
+  // =========================
+  // Configure Socket.IO maxHttpBufferSize at the transport layer.
+  // Messages exceeding this limit are rejected before reaching any handler.
+  const { IoAdapter } = await import('@nestjs/platform-socket.io');
+
+  class SizeLimitedIoAdapter extends IoAdapter {
+    createIOServer(port: number, options?: any): any {
+      return super.createIOServer(port, {
+        ...options,
+        maxHttpBufferSize: wsMaxPayloadBytes,
+      });
+    }
+  }
+
+  app.useWebSocketAdapter(new SizeLimitedIoAdapter(app));
+  logger.log(
+    `WebSocket maxHttpBufferSize set to ${wsMaxPayloadBytes} bytes (${Math.round(wsMaxPayloadBytes / 1024)}KB)`,
+  );
+
   // Get shutdown services
   const shutdownState = app.get(ShutdownStateService);
   const gracefulShutdown = app.get(GracefulShutdownService);
@@ -142,7 +171,17 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   app.use(new DecompressionMiddleware());
-  app.use(compression());
+  app.use(
+    compression({
+      threshold: 1024, // Only compress responses >1KB (1024 bytes)
+      level: 6, // Default gzip compression level (balance between speed and compression)
+      filter: (req: Request, _res: Response) => {
+        // Only compress if the client accepts gzip encoding
+        const acceptEncoding = req.headers['accept-encoding'] || '';
+        return acceptEncoding.includes('gzip');
+      },
+    }),
+  );
 
   // =========================
   // BODY PARSING
@@ -160,8 +199,7 @@ async function bootstrapWorker(): Promise<void> {
     const contentLengthHeader = req.headers['content-length'];
 
     const isMultipart =
-      typeof contentType === 'string' &&
-      contentType.toLowerCase().includes('multipart/form-data');
+      typeof contentType === 'string' && contentType.toLowerCase().includes('multipart/form-data');
 
     if (!isMultipart) return next();
 
@@ -186,13 +224,16 @@ async function bootstrapWorker(): Promise<void> {
   // REDIS SESSION
   // =========================
   const redisClient = app.get<Redis>(SESSION_REDIS_CLIENT);
+  const sessionConfig = createSessionConfig();
 
   if (sessionConfig.trustProxy) {
     const expressApp = app.getHttpAdapter().getInstance();
     expressApp.set('trust proxy', 1);
   }
 
-  app.use(correlationMiddleware);
+  const correlationIdMiddleware = new CorrelationIdMiddleware();
+  app.use(correlationIdMiddleware.use.bind(correlationIdMiddleware));
+  app.use(requestIdMiddleware);
 
   const auditLogService = app.get(AuditLogService);
   app.use(createAuditLoggerMiddleware(auditLogService));
@@ -242,6 +283,11 @@ async function bootstrapWorker(): Promise<void> {
   });
 
   // =========================
+  // CSRF PROTECTION
+  // =========================
+  app.use(csrfMiddleware);
+
+  // =========================
   // CORS
   // =========================
   app.enableCors(corsConfig);
@@ -266,9 +312,51 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
-  app.useGlobalInterceptors(
-    new LocaleInterceptor(),
+  app.useGlobalInterceptors(new LocaleInterceptor(), new PaginationInterceptor());
+
+  // =========================
+  // OPENAPI VALIDATION
+  // =========================
+  const apiSpecPath = join(process.cwd(), 'docs/api/openapi-spec.json');
+  app.use(
+    OpenApiValidator.middleware({
+      apiSpec: apiSpecPath,
+      validateRequests: true,
+      validateResponses: process.env.NODE_ENV !== 'production',
+      ignorePaths: /.*\/api\/docs.*/, // ignore swagger docs
+    }),
   );
+
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.status === 400 && err.errors) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: err.errors.map((e: any) => ({
+          field: e.path,
+          message: e.message,
+        })),
+      });
+    }
+    if (
+      err.status === 500 &&
+      err.errors &&
+      typeof err.message === 'string' &&
+      err.message.toLowerCase().includes('response')
+    ) {
+      logger.warn(`Response validation deviation: ${JSON.stringify(err.errors)}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+    next(err);
+  });
+
+  // =========================
+  // GLOBAL METRICS INTERCEPTOR
+  // =========================
+  app.useGlobalInterceptors(app.get(MetricsInterceptor));
 
   // =========================
   // SWAGGER
@@ -278,13 +366,14 @@ async function bootstrapWorker(): Promise<void> {
     .setDescription('The TeachLink API documentation - Unified System.')
     .setVersion('1.0')
     .addBearerAuth()
-    .addTag('gamification')
-    .addTag('Email Marketing - Campaigns')
-    .addTag('Email Marketing - Templates')
-    .addTag('Email Marketing - Automation')
-    .addTag('Email Marketing - Segments')
-    .addTag('Email Marketing - A/B Testing')
-    .addTag('Email Marketing - Analytics')
+    .addTag('gamification', 'Gamification and user rewards')
+    .addTag('Email Marketing - Campaigns', 'Create and manage email campaigns')
+    .addTag('Email Marketing - Templates', 'Email template management')
+    .addTag('Email Marketing - Automation', 'Automation workflows')
+    .addTag('Email Marketing - Segments', 'Audience segmentation')
+    .addTag('Email Marketing - A/B Testing', 'A/B testing for campaigns')
+    .addTag('Email Marketing - Analytics', 'Campaign analytics and reporting')
+    .addTag('moderation', 'User reports and moderation queue')
     .addTag('App')
     .addTag('Quota')
     .addTag('Quota Management')
@@ -307,7 +396,10 @@ async function bootstrapWorker(): Promise<void> {
 
   app.enableShutdownHooks();
   const slackService = app.get(SlackService);
-  await slackService.sendAlert('TeachLink Backend has successfully started up on local system! 🚀', 'low');
+  await slackService.sendAlert(
+    'TeachLink Backend has successfully started up on local system! 🚀',
+    'low',
+  );
   await app.listen(port);
 
   const startupTime = Date.now() - bootstrapStartTime;
@@ -356,10 +448,7 @@ async function bootstrap(): Promise<void> {
   const clusterModeEnabled = (process.env.CLUSTER_MODE || 'false') === 'true';
 
   if (clusterModeEnabled && cluster.isPrimary) {
-    const workerCount = parseInt(
-      process.env.CLUSTER_WORKERS || `${cpus().length}`,
-      10,
-    );
+    const workerCount = parseInt(process.env.CLUSTER_WORKERS || `${cpus().length}`, 10);
 
     logger.log(`Cluster mode enabled with ${workerCount} workers`);
 

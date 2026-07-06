@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { injectCorrelationIdToHeaders } from '../../common/utils/correlation.utils';
 import type { RouteConfig, ProxyResponse } from '../interfaces/gateway.interfaces';
 
 @Injectable()
@@ -10,15 +11,33 @@ export class GatewayRoutingService {
   private readonly routes = new Map<string, RouteConfig>([
     [
       'courses',
-      { service: 'courses', upstream: 'http://localhost:3000', weight: 1, cacheTtlSeconds: 60, rateLimitPerMinute: 100 },
+      {
+        service: 'courses',
+        upstream: 'http://localhost:3000',
+        weight: 1,
+        cacheTtlSeconds: 60,
+        rateLimitPerMinute: 100,
+      },
     ],
     [
       'users',
-      { service: 'users', upstream: 'http://localhost:3000', weight: 1, cacheTtlSeconds: 30, rateLimitPerMinute: 200 },
+      {
+        service: 'users',
+        upstream: 'http://localhost:3000',
+        weight: 1,
+        cacheTtlSeconds: 30,
+        rateLimitPerMinute: 200,
+      },
     ],
     [
       'analytics',
-      { service: 'analytics', upstream: 'http://localhost:3000', weight: 1, cacheTtlSeconds: 120, rateLimitPerMinute: 50 },
+      {
+        service: 'analytics',
+        upstream: 'http://localhost:3000',
+        weight: 1,
+        cacheTtlSeconds: 120,
+        rateLimitPerMinute: 50,
+      },
     ],
   ]);
 
@@ -48,7 +67,12 @@ export class GatewayRoutingService {
     this.logger.debug(`Proxying ${method} ${url}`);
 
     const response = await firstValueFrom(
-      this.http.request<T>({ method, url, headers, data: body }),
+      this.http.request<T>({
+        method,
+        url,
+        headers: injectCorrelationIdToHeaders(headers) as Record<string, string>,
+        data: body,
+      }),
     );
 
     return {

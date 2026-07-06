@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 
 /**
@@ -8,8 +9,8 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class MediaProcessingWorker extends BaseWorker {
-  constructor() {
-    super('media-processing');
+  constructor(configService: ConfigService) {
+    super('media-processing', configService);
   }
 
   /**
@@ -61,7 +62,7 @@ export class MediaProcessingWorker extends BaseWorker {
     job: Job,
     fileUrl: string,
     format: string,
-    options: any,
+    _options: any,
   ): Promise<any> {
     await job.progress(50);
     this.logger.log(`Processing image: ${fileUrl}, format: ${format || 'original'}`);
@@ -88,7 +89,7 @@ export class MediaProcessingWorker extends BaseWorker {
     job: Job,
     fileUrl: string,
     format: string,
-    options: any,
+    _options: any,
   ): Promise<any> {
     await job.progress(50);
     this.logger.log(`Processing video: ${fileUrl}, format: ${format || 'mp4'}`);
@@ -115,7 +116,7 @@ export class MediaProcessingWorker extends BaseWorker {
     job: Job,
     fileUrl: string,
     format: string,
-    options: any,
+    _options: any,
   ): Promise<any> {
     await job.progress(50);
     this.logger.log(`Processing audio: ${fileUrl}, format: ${format || 'mp3'}`);

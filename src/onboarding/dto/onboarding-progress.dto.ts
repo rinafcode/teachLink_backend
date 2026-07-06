@@ -16,6 +16,7 @@ export class UpdateProgressDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: { lastViewedSection: 'introduction', attempts: 2 },
   })
   @IsOptional()
@@ -36,6 +37,7 @@ export class CompleteStepDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: { quizScore: 95 },
   })
   @IsOptional()

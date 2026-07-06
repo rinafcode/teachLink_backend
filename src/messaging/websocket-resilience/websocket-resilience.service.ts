@@ -21,18 +21,21 @@ export class WebSocketResilienceService {
     }
     this.heartbeatTimer = setInterval(() => {
       const now = Date.now();
-      server.sockets.forEach((socket) => {
-        const session = this.sessionService.getBySocket(socket.id);
-        if (!session) {
-          return;
-        }
-        if (now - session.lastPongAt > WS_HEARTBEAT_INTERVAL_MS + WS_HEARTBEAT_TIMEOUT_MS) {
-          this.logger.warn(`Stale connection ${socket.id}, disconnecting`);
-          socket.disconnect(true);
-          return;
-        }
-        socket.emit('ping', { ts: now });
-      });
+      const socketMap = server.sockets.sockets as any;
+      if (socketMap && typeof socketMap.forEach === 'function') {
+        socketMap.forEach((socket: any) => {
+          const session = this.sessionService.getBySocket(socket.id);
+          if (!session) {
+            return;
+          }
+          if (now - session.lastPongAt > WS_HEARTBEAT_INTERVAL_MS + WS_HEARTBEAT_TIMEOUT_MS) {
+            this.logger.warn(`Stale connection ${socket.id}, disconnecting`);
+            socket.disconnect(true);
+            return;
+          }
+          socket.emit('ping', { ts: now });
+        });
+      }
     }, WS_HEARTBEAT_INTERVAL_MS);
   }
 
@@ -58,12 +61,19 @@ export class WebSocketResilienceService {
 
   replayPending(server: Server, socketId: string, lastSeq: number): void {
     const pending = this.sessionService.drainPending(socketId, lastSeq);
-    const socket = server.sockets.get(socketId);
+    const socketMap = server.sockets.sockets as any;
+    const socket = socketMap?.get
+      ? socketMap.get(socketId)
+      : ((socketMap && socketMap[socketId]) ?? null);
     if (!socket) {
       return;
     }
     for (const message of pending) {
-      socket.emit(message.event, { ...message.payload, _seq: message.seq, _replayed: true });
+      const payload =
+        typeof message.payload === 'object' && message.payload
+          ? { ...message.payload, _seq: message.seq, _replayed: true }
+          : message.payload;
+      socket.emit(message.event, payload);
     }
     if (pending.length > 0) {
       this.logger.log(`Replayed ${pending.length} messages to socket ${socketId}`);

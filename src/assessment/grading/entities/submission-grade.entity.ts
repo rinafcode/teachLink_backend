@@ -79,7 +79,7 @@ export class SubmissionGrade {
   @Column({ name: 'feedback_template_id', type: 'uuid', nullable: true })
   feedbackTemplateId?: string;
 
-  @OneToMany(() => CriterionGrade, cg => cg.grade, { cascade: true })
+  @OneToMany(() => CriterionGrade, (cg) => cg.grade, { cascade: true })
   criterionGrades: CriterionGrade[];
 
   @CreateDateColumn()

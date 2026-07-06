@@ -1,16 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  SQSClient,
-  SendMessageCommand,
-  ReceiveMessageCommand,
-  DeleteMessageCommand,
-} from '@aws-sdk/client-sqs';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
-import { NotificationStatus } from './entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notification } from './entities/notification.entity';
+import { Notification, NotificationStatus } from './entities/notification.entity';
 
 @Injectable()
 export class NotificationsQueueService {
@@ -35,7 +29,10 @@ export class NotificationsQueueService {
   /**
    * Publish notification to SNS topic
    */
-  async publishToTopic(notification: Notification): Promise<void> {
+  async publishToTopic(
+    notification: Notification,
+    options?: { bypassBatch?: boolean },
+  ): Promise<void> {
     if (!this.snsTopicArn || !this.queueUrl) {
       this.logger.warn(
         `AWS SNS/SQS not configured; marking notification ${notification.id} as sent (dev mode)`,
@@ -47,19 +44,27 @@ export class NotificationsQueueService {
       return;
     }
     try {
+      const payload = {
+        id: notification.id,
+        userId: notification.userId,
+        title: notification.title,
+        content: notification.content,
+        type: notification.type,
+        metadata: notification.metadata,
+        bypassBatch: options?.bypassBatch ?? false,
+      };
       const command = new PublishCommand({
         TopicArn: this.snsTopicArn,
-        Message: JSON.stringify({
-          id: notification.id,
-          userId: notification.userId,
-          title: notification.title,
-          content: notification.content,
-          type: notification.type,
-          metadata: notification.metadata,
-        }),
+        Message: JSON.stringify(payload),
         MessageAttributes: {
           type: { DataType: 'String', StringValue: notification.type },
           priority: { DataType: 'String', StringValue: notification.priority },
+          batch: {
+            DataType: 'String',
+            StringValue: String(
+              payload.bypassBatch ? 'false' : Boolean(notification.metadata?.batched),
+            ),
+          },
         },
       });
 

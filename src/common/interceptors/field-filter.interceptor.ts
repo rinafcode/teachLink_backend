@@ -18,9 +18,7 @@ export class FieldFilterInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    return next.handle().pipe(
-      map((data) => this.filterData(data, requestedFields))
-    );
+    return next.handle().pipe(map((data) => this.filterData(data, requestedFields)));
   }
 
   private filterData(data: any, fields: string[]): any {

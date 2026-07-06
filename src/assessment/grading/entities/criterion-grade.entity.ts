@@ -24,7 +24,7 @@ export class CriterionGrade {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => SubmissionGrade, sg => sg.criterionGrades, {
+  @ManyToOne(() => SubmissionGrade, (sg) => sg.criterionGrades, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'grade_id' })

@@ -8,7 +8,7 @@ export class SlackService {
 
   async sendAlert(message: string, severity: 'low' | 'medium' | 'high') {
     if (!this.webhookUrl) {
-      console.error('Slack Webhook URL is missing in .env file!');
+      // console.error('Slack Webhook URL is missing in .env file!');
       return;
     }
 
@@ -28,9 +28,9 @@ export class SlackService {
     try {
       // Send the message over the internet to Slack
       await axios.post(this.webhookUrl, payload);
-      console.log(`Slack alert (${severity}) sent successfully!`);
-    } catch (error) {
-      console.error('Failed to send Slack alert:', error.message);
+      // console.log(`Slack alert (${severity}) sent successfully!`);
+    } catch (_error) {
+      // console.error('Failed to send Slack alert:', error.message);
     }
   }
 }

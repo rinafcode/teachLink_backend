@@ -18,6 +18,8 @@ import { Course } from './course.entity';
 @Entity()
 @Index(['userId', 'status'])
 @Index(['courseId', 'status'])
+@Index(['userId', 'enrolledAt'])
+@Index(['courseId', 'enrolledAt'])
 export class Enrollment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -47,6 +49,7 @@ export class Enrollment {
   status: string;
 
   @CreateDateColumn()
+  @Index()
   enrolledAt: Date;
 
   @UpdateDateColumn()

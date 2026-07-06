@@ -72,6 +72,9 @@ export class Subscription {
   @Column({ type: 'timestamp', nullable: true })
   trialEnd: Date;
 
+  @Column({ type: 'jsonb', nullable: true })
+  properties?: Record<string, any>;
+
   @ManyToOne(() => User, (user) => user.courses)
   @JoinColumn({ name: 'user_id' })
   user: User;

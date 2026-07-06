@@ -65,11 +65,7 @@ export class GradingController {
 
   @Patch('rubrics/:id')
   @ApiOperation({ summary: 'Update rubric metadata' })
-  updateRubric(
-    @Param('id') id: string,
-    @Body() dto: UpdateRubricDto,
-    @Request() req: any,
-  ) {
+  updateRubric(@Param('id') id: string, @Body() dto: UpdateRubricDto, @Request() req: any) {
     return this.rubrics.update(id, dto, req.user?.id);
   }
 
@@ -125,9 +121,7 @@ export class GradingController {
   @Get('feedback-templates')
   @ApiOperation({ summary: 'List feedback templates' })
   listTemplates(@Query('mine') mine: string | undefined, @Request() req: any) {
-    return this.feedbackTemplates.findAll(
-      mine === 'true' ? req.user?.id : undefined,
-    );
+    return this.feedbackTemplates.findAll(mine === 'true' ? req.user?.id : undefined);
   }
 
   @Get('feedback-templates/:id')

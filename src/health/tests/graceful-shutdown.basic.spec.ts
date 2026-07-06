@@ -43,11 +43,11 @@ describe('Graceful Shutdown Basic Tests', () => {
   describe('Shutdown State Management', () => {
     it('should track shutdown state correctly', () => {
       expect(shutdownState.isShuttingDown()).toBe(false);
-      
+
       shutdownState.markShuttingDown('Test shutdown');
-      
+
       expect(shutdownState.isShuttingDown()).toBe(true);
-      
+
       const info = shutdownState.getShutdownInfo();
       expect(info.isShuttingDown).toBe(true);
       expect(info.reason).toBe('Test shutdown');
@@ -58,10 +58,10 @@ describe('Graceful Shutdown Basic Tests', () => {
     it('should reset shutdown state', () => {
       shutdownState.markShuttingDown('Test');
       expect(shutdownState.isShuttingDown()).toBe(true);
-      
+
       shutdownState.reset();
       expect(shutdownState.isShuttingDown()).toBe(false);
-      
+
       const info = shutdownState.getShutdownInfo();
       expect(info.isShuttingDown).toBe(false);
       expect(info.startTime).toBeNull();
@@ -72,27 +72,27 @@ describe('Graceful Shutdown Basic Tests', () => {
   describe('Request Tracking', () => {
     it('should track active requests', () => {
       expect(requestTracker.getActiveRequestCount()).toBe(0);
-      
+
       // Simulate a request by manually calling the middleware
       const mockReq = {
         method: 'GET',
         url: '/test',
         get: jest.fn().mockReturnValue('test-agent'),
       } as any;
-      
+
       const mockRes = {
         locals: {},
         on: jest.fn(),
       } as any;
-      
+
       const mockNext = jest.fn();
-      
+
       const middleware = requestTracker.trackRequest();
       middleware(mockReq, mockRes, mockNext);
-      
+
       expect(requestTracker.getActiveRequestCount()).toBe(1);
       expect(mockNext).toHaveBeenCalled();
-      
+
       const activeRequests = requestTracker.getActiveRequests();
       expect(activeRequests).toHaveLength(1);
       expect(activeRequests[0].method).toBe('GET');
@@ -101,7 +101,7 @@ describe('Graceful Shutdown Basic Tests', () => {
 
     it('should wait for active requests to complete', async () => {
       const waitPromise = requestTracker.waitForActiveRequests(1000);
-      
+
       // Should resolve immediately when no active requests
       await expect(waitPromise).resolves.toBeUndefined();
     });
@@ -111,12 +111,14 @@ describe('Graceful Shutdown Basic Tests', () => {
       const mockReq = { method: 'GET', url: '/test', get: jest.fn() } as any;
       const mockRes = { locals: {}, on: jest.fn() } as any;
       const mockNext = jest.fn();
-      
+
       const middleware = requestTracker.trackRequest();
       middleware(mockReq, mockRes, mockNext);
-      
+
       // Should timeout since request never completes
-      await expect(requestTracker.waitForActiveRequests(100)).rejects.toThrow('Timeout waiting for');
+      await expect(requestTracker.waitForActiveRequests(100)).rejects.toThrow(
+        'Timeout waiting for',
+      );
     });
 
     it('should get request statistics', () => {
@@ -131,7 +133,7 @@ describe('Graceful Shutdown Basic Tests', () => {
   describe('Graceful Shutdown Orchestration', () => {
     it('should register and execute shutdown phases', async () => {
       const executionOrder: string[] = [];
-      
+
       gracefulShutdown.registerShutdownPhase({
         name: 'phase-1',
         timeout: 1000,
@@ -139,7 +141,7 @@ describe('Graceful Shutdown Basic Tests', () => {
           executionOrder.push('phase-1');
         },
       });
-      
+
       gracefulShutdown.registerShutdownPhase({
         name: 'phase-2',
         timeout: 500, // Shorter timeout should execute first
@@ -147,9 +149,9 @@ describe('Graceful Shutdown Basic Tests', () => {
           executionOrder.push('phase-2');
         },
       });
-      
+
       await gracefulShutdown.shutdown('TEST');
-      
+
       expect(executionOrder).toEqual(['phase-2', 'phase-1']);
       expect(gracefulShutdown.isShutdownInProgress()).toBe(true);
     });
@@ -159,10 +161,10 @@ describe('Graceful Shutdown Basic Tests', () => {
         name: 'slow-phase',
         timeout: 100,
         execute: async () => {
-          await new Promise(resolve => setTimeout(resolve, 200)); // Takes longer than timeout
+          await new Promise((resolve) => setTimeout(resolve, 200)); // Takes longer than timeout
         },
       });
-      
+
       gracefulShutdown.registerShutdownPhase({
         name: 'fast-phase',
         timeout: 1000,
@@ -170,7 +172,7 @@ describe('Graceful Shutdown Basic Tests', () => {
           // Should still execute even if previous phase times out
         },
       });
-      
+
       // Should not throw even with timeout
       await expect(gracefulShutdown.shutdown('TEST')).resolves.toBeUndefined();
     });
@@ -204,7 +206,7 @@ describe('Graceful Shutdown Basic Tests', () => {
 
       // Execute complete shutdown
       await expect(gracefulShutdown.shutdown('INTEGRATION_TEST')).resolves.toBeUndefined();
-      
+
       // Verify final state
       expect(shutdownState.isShuttingDown()).toBe(true);
       expect(gracefulShutdown.isShutdownInProgress()).toBe(true);
@@ -213,7 +215,7 @@ describe('Graceful Shutdown Basic Tests', () => {
     it('should handle shutdown with active requests', async () => {
       // Simulate an active request
       const mockReq = { method: 'GET', url: '/test', get: jest.fn() } as any;
-      const mockRes = { 
+      const mockRes = {
         locals: {},
         on: jest.fn((event, callback) => {
           // Simulate request completion after a short delay
@@ -223,12 +225,12 @@ describe('Graceful Shutdown Basic Tests', () => {
         }),
       } as any;
       const mockNext = jest.fn();
-      
+
       const middleware = requestTracker.trackRequest();
       middleware(mockReq, mockRes, mockNext);
-      
+
       expect(requestTracker.getActiveRequestCount()).toBe(1);
-      
+
       // Register shutdown phase that waits for requests
       gracefulShutdown.registerShutdownPhase({
         name: 'wait-requests',
@@ -239,7 +241,7 @@ describe('Graceful Shutdown Basic Tests', () => {
       });
 
       // Trigger request completion
-      const finishCallback = mockRes.on.mock.calls.find(call => call[0] === 'finish')?.[1];
+      const finishCallback = mockRes.on.mock.calls.find((call) => call[0] === 'finish')?.[1];
       if (finishCallback) {
         setTimeout(finishCallback, 100);
       }

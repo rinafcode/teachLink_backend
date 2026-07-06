@@ -221,7 +221,7 @@ def ${snake_case(example.title)}():
     ${example.requestBody ? `data = ${JSON.stringify(example.requestBody, null, 4).split('\n').join('\n    ')}` : 'data = None'}
     
     try:
-        response = requests.${example.method.lower()}(url, json=data${example.requiresAuth ? ', headers=headers' : ''})
+        response = requests.${example.method.toLowerCase()}(url, json=data${example.requiresAuth ? ', headers=headers' : ''})
         response.raise_for_status()
         print("Response:", response.json())
         return response.json()
@@ -352,6 +352,7 @@ public class ${pascalCase(example.title)}Example {
 }
 
 function generateCSharpExample(example) {
+  const method = example.method.toLowerCase();
   const auth = example.requiresAuth
     ? `
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);`
@@ -374,7 +375,7 @@ public class ${pascalCase(example.title)}Example {
                 "application/json"
             );
 
-            var response = await client.${example.method.ToLower()}Async("${example.path.split('?')[0]}", content);` : `var response = await client.${example.method.toLowerCase()}Async("${example.path.split('?')[0]}");`}
+            var response = await client.${method}Async("${example.path.split('?')[0]}", content);` : `var response = await client.${method}Async("${example.path.split('?')[0]}");`}
             
             var result = await response.Content.ReadAsStringAsync();
             Console.WriteLine("Response: " + result);

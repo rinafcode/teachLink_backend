@@ -9,7 +9,7 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { MessagingService } from './messaging.service';
 import { CreateMessageDto } from './message.dto';
 import { ConnectionSessionService } from './websocket-resilience/connection-session.service';
@@ -79,7 +79,9 @@ export class MessageGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   handleTyping(@MessageBody() payload: { recipientId: string }, @ConnectedSocket() client: Socket) {
     const userId = client.handshake.query.userId as string;
     if (userId) {
-      this.resilienceService.emitOrQueue(this.server, payload.recipientId, 'typing', { from: userId });
+      this.resilienceService.emitOrQueue(this.server, payload.recipientId, 'typing', {
+        from: userId,
+      });
     }
   }
 }

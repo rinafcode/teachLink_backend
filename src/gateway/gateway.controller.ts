@@ -42,13 +42,7 @@ export class GatewayController {
     const forwardHeaders = { ...(req.headers as Record<string, string>) };
     delete forwardHeaders['host'];
 
-    const result = await this.routing.proxy(
-      service,
-      `/${path}`,
-      req.method,
-      forwardHeaders,
-      body,
-    );
+    const result = await this.routing.proxy(service, `/${path}`, req.method, forwardHeaders, body);
 
     res.status(result.status).json(result.data);
   }

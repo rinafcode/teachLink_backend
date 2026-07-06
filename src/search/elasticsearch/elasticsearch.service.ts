@@ -55,7 +55,13 @@ export class ElasticsearchService implements OnModuleInit {
             enrollments: { type: 'integer' },
             duration: { type: 'integer' },
             instructorId: { type: 'keyword' },
-            instructorName: { type: 'text' },
+            instructorName: {
+              type: 'text',
+              fields: {
+                keyword: { type: 'keyword' },
+                search: { type: 'search_as_you_type' },
+              },
+            },
             status: { type: 'keyword' },
             createdAt: { type: 'date' },
             updatedAt: { type: 'date' },

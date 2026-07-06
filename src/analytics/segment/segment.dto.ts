@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsBoolean,
-  IsObject,
-  MaxLength,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsObject, MaxLength, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class TrackEventDto {

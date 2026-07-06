@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FormattingService } from '../../localization/services/formatting.service';
@@ -37,7 +32,7 @@ export class ResponseFormatInterceptor implements NestInterceptor {
     if (!data) return data;
 
     if (Array.isArray(data)) {
-      return data.map(item => this.formatResponse(item, locale, timezone));
+      return data.map((item) => this.formatResponse(item, locale, timezone));
     }
 
     if (typeof data === 'object') {
@@ -47,11 +42,7 @@ export class ResponseFormatInterceptor implements NestInterceptor {
         const value = data[key];
 
         if (value instanceof Date) {
-          formatted[key] = this.formattingService.formatDate(
-            value,
-            locale as any,
-            timezone,
-          );
+          formatted[key] = this.formattingService.formatDate(value, locale as any, timezone);
         } else if (typeof value === 'object') {
           formatted[key] = this.formatResponse(value, locale, timezone);
         } else {

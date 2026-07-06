@@ -6,42 +6,145 @@ import {
   Index,
   DeleteDateColumn,
   VersionColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Check,
+  JoinColumn,
 } from 'typeorm';
 import { CourseModule } from './course-module.entity';
 
 /**
- * Represents the lesson entity.
+ * Represents an individual lesson within a course module.
  */
-@Entity()
+@Entity('lessons')
+@Check('"order" >= 0')
+@Check('"duration_seconds" >= 0')
 export class Lesson {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  /**
+   * Optimistic locking for concurrent updates.
+   */
   @VersionColumn()
   version: number;
 
-  @Column()
+  /**
+   * Lesson title displayed to learners.
+   */
+  @Column({
+    type: 'varchar',
+    length: 255,
+  })
+  @Index()
   title: string;
 
-  @Column('text', { nullable: true })
-  content: string;
+  /**
+   * Rich text or markdown lesson content.
+   */
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  content?: string | null;
 
-  @Column({ nullable: true })
-  videoUrl: string;
+  /**
+   * Optional video URL for lesson media.
+   */
+  @Column({
+    name: 'video_url',
+    type: 'varchar',
+    length: 2048,
+    nullable: true,
+  })
+  videoUrl?: string | null;
 
-  @Column({ type: 'int', default: 0 })
+  /**
+   * Display order inside a module.
+   */
+  @Column({
+    type: 'integer',
+    default: 0,
+  })
+  @Index()
   order: number;
 
-  @Column({ type: 'int', default: 0 })
+  /**
+   * Lesson duration in seconds.
+   */
+  @Column({
+    name: 'duration_seconds',
+    type: 'integer',
+    default: 0,
+  })
   durationSeconds: number;
 
-  @ManyToOne(() => CourseModule, (module) => module.lessons, { onDelete: 'CASCADE' })
+  /**
+   * Parent module relationship.
+   */
+  @ManyToOne(() => CourseModule, (module) => module.lessons, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'module_id' })
   module: CourseModule;
 
-  @Column({ name: 'module_id' })
+  /**
+   * Foreign key reference.
+   */
+  @Column({
+    name: 'module_id',
+    type: 'uuid',
+  })
   @Index()
   moduleId: string;
 
-  @DeleteDateColumn()
-  deletedAt?: Date;
+  /**
+   * Creation timestamp.
+   */
+  @CreateDateColumn({
+    name: 'created_at',
+    type: 'timestamptz',
+  })
+  createdAt: Date;
+
+  /**
+   * Last update timestamp.
+   */
+  @UpdateDateColumn({
+    name: 'updated_at',
+    type: 'timestamptz',
+  })
+  updatedAt: Date;
+
+  /**
+   * Soft deletion timestamp.
+   */
+  @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamptz',
+  })
+  @Index()
+  deletedAt?: Date | null;
+
+  /**
+   * Whether the lesson contains video content.
+   */
+  get hasVideo(): boolean {
+    return !!this.videoUrl;
+  }
+
+  /**
+   * Duration in minutes.
+   */
+  get durationMinutes(): number {
+    return Math.ceil(this.durationSeconds / 60);
+  }
+
+  /**
+   * Whether the lesson has textual content.
+   */
+  get hasContent(): boolean {
+    return !!this.content?.trim();
+  }
 }

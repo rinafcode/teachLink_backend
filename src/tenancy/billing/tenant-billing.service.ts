@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';

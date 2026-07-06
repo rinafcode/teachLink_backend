@@ -1,5 +1,5 @@
 import { Injectable, Scope } from '@nestjs/common';
-import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Tenant, TenantStatus } from '../entities/tenant.entity';

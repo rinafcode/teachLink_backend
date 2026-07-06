@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateMessageDto, MarkReadDto } from './message.dto';
+import { CreateMessageDto } from './message.dto';
 import { Message } from './message.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
@@ -70,7 +70,6 @@ export class MessagingService {
       this.tracingService.endSpan(span);
     }
   }
-
 
   /**
    * Processes messages.
