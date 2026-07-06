@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Job } from 'bull';
 import { BaseWorker } from '../base/base.worker';
 import {
   IWorkerPoolConfig,
