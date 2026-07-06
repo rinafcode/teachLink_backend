@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import type { Job } from 'bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BaseWorker } from '../base/base.worker';
 import {
@@ -17,6 +16,7 @@ import {
   SubscriptionsWorker,
 } from '../processors';
 import Redis from 'ioredis';
+import { Job } from 'bull';
 import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
 
