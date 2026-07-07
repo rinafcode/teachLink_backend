@@ -83,10 +83,8 @@ export class CachingService {
     // Prefer an explicitly injected client (used by tests / module overrides),
     // then fall back to the configured shared singleton, then to local-only.
     this.redis = redis ?? this.resolveRedisFromConfig();
-    this.fallbackLocal = this.configService?.get<boolean>(
-      'CACHE_COUNTER_FALLBACK_LOCAL',
-      true,
-    ) ?? true;
+    this.fallbackLocal =
+      this.configService?.get<boolean>('CACHE_COUNTER_FALLBACK_LOCAL', true) ?? true;
   }
 
   private resolveRedisFromConfig(): Redis | undefined {
@@ -105,7 +103,7 @@ export class CachingService {
       return getSharedRedisClient(this.configService);
     } catch (err) {
       this.logger.warn(
-        `Could not acquire shared Redis client for hit/miss counters — ` +
+        'Could not acquire shared Redis client for hit/miss counters — ' +
           `falling back to local in-process counters. ${(err as Error)?.message ?? ''}`,
       );
       return undefined;
