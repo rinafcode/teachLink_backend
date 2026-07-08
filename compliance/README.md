@@ -5,14 +5,7 @@ This directory contains license compliance scanning and reporting for the teachL
 
 ## Structure
 ```
-compliance/
-├── configs/
-│   ├── license-policy.yml    # Defines allowed/prohibited licenses
-│   └── scanner-config.yml     # Scanner configuration
-├── reports/
-│   └── license-report-*.json # Generated compliance reports
-└── README.md                  # This file
-```
+
 
 ## Running License Scans
 

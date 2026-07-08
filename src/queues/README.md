@@ -465,6 +465,71 @@ curl http://localhost:3000/queues/metrics
 curl http://localhost:3000/queues/health
 ```
 
+## Optimization Architecture
+
+### Centralized Queue Config (`QueueModule`)
+
+`src/queues/queue.module.ts` is a `@Global()` module that registers all 11 Bull queues in one place. It provides `QueueService`, `PrioritizationService`, `RetryStrategyService`, and `QueueMetricsService` globally.
+
+### Workers Bridge (`WorkersBridgeService`)
+
+`src/workers/bridge/workers-bridge.service.ts` bridges Bull queue consumers to the existing worker classes. On `onModuleInit`, it:
+1. Binds each queue to its worker's `.handle()` method
+2. Wraps processing with Prometheus metric recording (`queue_processing_duration_seconds`)
+3. Registers `failed` event handlers that forward permanently failed jobs to the dead-letter queue
+
+### Priority Queue
+
+`PrioritizationService` maps `JobPriority` enum (CRITICAL=1, HIGH=2, NORMAL=3, LOW=4, BACKGROUND=5) to Bull's native priority (0-4, lower=higher). `QueueService.addJob()` defaults to `NORMAL` if no priority is specified, ensuring all jobs participate in Bull's priority sorting.
+
+### Dead Letter Queue
+
+`DeadLetterService` receives failed jobs from Bull's `failed` event and re-queues them to the `DEAD_LETTER` queue with the original job metadata, error reason, and stack trace. This replaces the in-process-only failure tracking.
+
+### Retry Strategies
+
+`RetryStrategyService` exposes `RETRY_STRATEGIES` (EMAIL, PAYMENT, NOTIFICATION, BACKUP, REPORT, DEFAULT) as injectable config. Pass a strategy key to `QueueService.addJob()` to apply automatic backoff and max attempts.
+
+### Monitoring
+
+- `MetricsCollectionService` records `queue_processing_duration_seconds` (histogram), `queue_waiting_jobs`, `queue_active_jobs`, `queue_failed_jobs_total` (gauges)
+- `QueueMetricsService` polls all queues every 30s and updates the Prometheus gauges
+- All queue metrics are available at `/metrics`
+
+### Using `QueueService`
+
+```ts
+// Basic — default priority (NORMAL)
+await queueService.addJob(QUEUE_NAMES.EMAIL, 'send-email', { to, subject });
+
+// With explicit priority
+await queueService.addJob(QUEUE_NAMES.WEBHOOKS, 'process-webhook', payload, {
+  priority: JobPriority.CRITICAL,
+});
+
+// With retry strategy
+await queueService.addJob(QUEUE_NAMES.EMAIL, 'send-campaign', template, {}, 'EMAIL');
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `REDIS_URL` / `QUEUE_REDIS_URL` | `redis://127.0.0.1:6379` | Redis connection |
+| `QUEUE_CONCURRENCY_EMAIL` | `5` | Email worker concurrency |
+| `QUEUE_CONCURRENCY_MEDIA` | `3` | Media processing concurrency |
+| `QUEUE_CONCURRENCY_SYNC` | `4` | Data sync concurrency |
+| `QUEUE_CONCURRENCY_BACKUP` | `1` | Backup concurrency |
+| `QUEUE_CONCURRENCY_WEBHOOKS` | `10` | Webhooks concurrency |
+| `QUEUE_CONCURRENCY_SUBSCRIPTIONS` | `5` | Subscriptions concurrency |
+
+### Load Testing
+
+```bash
+# Queue throughput benchmark (requires Redis localhost)
+npx ts-node tests/load/queue-throughput.benchmark.ts
+```
+
 ## Production Considerations
 
 1. **Redis High Availability**: Use Redis Sentinel or Cluster
