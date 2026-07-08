@@ -26,11 +26,26 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().required(),
 
   // JWT Configuration
+  // Either JWT_SECRET (HS256) or JWT_PRIVATE_KEY + JWT_PUBLIC_KEY (RS256) must be configured
   JWT_SECRETS: Joi.string().optional(),
   JWT_SECRET_CURRENT_VERSION: Joi.string().optional(),
   JWT_SECRET: Joi.string()
     .min(10)
-    .when('JWT_SECRETS', { is: Joi.exist(), then: Joi.optional(), otherwise: Joi.required() }),
+    .when('JWT_PRIVATE_KEY', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.when('JWT_SECRETS', {
+        is: Joi.exist(),
+        then: Joi.optional(),
+        otherwise: Joi.required(),
+      }),
+    }),
+  JWT_PRIVATE_KEY: Joi.string().optional(),
+  JWT_PUBLIC_KEY: Joi.string().optional().when('JWT_PRIVATE_KEY', {
+    is: Joi.exist(),
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().min(10).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
@@ -157,6 +172,10 @@ export const envValidationSchema = Joi.object({
 
   // Segment Analytics
   SEGMENT_WRITE_KEY: Joi.string().optional(),
+
+  // Data Retention
+  AUDIT_LOG_RETENTION_DAYS: Joi.number().integer().min(1).default(730),
+  ANALYTICS_RETENTION_DAYS: Joi.number().integer().min(1).default(365),
 
   // Circuit Breaker Configuration
   CIRCUIT_BREAKER_TIMEOUT_MS: Joi.number().integer().min(100).default(3000),

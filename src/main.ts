@@ -9,6 +9,9 @@ import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
+import * as OpenApiValidator from 'express-openapi-validator';
+import { join } from 'path';
+import './tracing/opentelemetry';
 
 import { CorrelationIdMiddleware } from './middleware/correlation-id';
 import { createSessionConfig } from './config/cache.config';
@@ -29,9 +32,11 @@ import { AuditLogService } from './audit-log/audit-log.service';
 import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 import { initStructuredLogging } from './logging/structured-logging';
 import { requestIdMiddleware } from './logging/request-id.middleware';
+import { MetricsInterceptor } from './utils/masking/metrics.interceptor';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
+import { PaginationInterceptor } from './common/interceptors/pagination.interceptor';
 
 const API_VERSION_HEADER = 'X-API-Version';
 const DEFAULT_API_VERSION = '1';
@@ -53,7 +58,33 @@ async function bootstrapWorker(): Promise<void> {
     10,
   );
 
+  const wsMaxPayloadBytes = parseInt(
+    process.env.WS_MAX_PAYLOAD_BYTES || `${BYTES.SIXTY_FOUR_KB}`,
+    10,
+  );
+
   const app = await NestFactory.create(AppModule, { rawBody: true });
+
+  // =========================
+  // WEBSOCKET PAYLOAD SIZE LIMIT
+  // =========================
+  // Configure Socket.IO maxHttpBufferSize at the transport layer.
+  // Messages exceeding this limit are rejected before reaching any handler.
+  const { IoAdapter } = await import('@nestjs/platform-socket.io');
+
+  class SizeLimitedIoAdapter extends IoAdapter {
+    createIOServer(port: number, options?: any): any {
+      return super.createIOServer(port, {
+        ...options,
+        maxHttpBufferSize: wsMaxPayloadBytes,
+      });
+    }
+  }
+
+  app.useWebSocketAdapter(new SizeLimitedIoAdapter(app));
+  logger.log(
+    `WebSocket maxHttpBufferSize set to ${wsMaxPayloadBytes} bytes (${Math.round(wsMaxPayloadBytes / 1024)}KB)`,
+  );
 
   // Get shutdown services
   const shutdownState = app.get(ShutdownStateService);
@@ -140,7 +171,17 @@ async function bootstrapWorker(): Promise<void> {
   );
 
   app.use(new DecompressionMiddleware());
-  app.use(compression());
+  app.use(
+    compression({
+      threshold: 1024, // Only compress responses >1KB (1024 bytes)
+      level: 6, // Default gzip compression level (balance between speed and compression)
+      filter: (req: Request, _res: Response) => {
+        // Only compress if the client accepts gzip encoding
+        const acceptEncoding = req.headers['accept-encoding'] || '';
+        return acceptEncoding.includes('gzip');
+      },
+    }),
+  );
 
   // =========================
   // BODY PARSING
@@ -271,7 +312,51 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
-  app.useGlobalInterceptors(new LocaleInterceptor());
+  app.useGlobalInterceptors(new LocaleInterceptor(), new PaginationInterceptor());
+
+  // =========================
+  // OPENAPI VALIDATION
+  // =========================
+  const apiSpecPath = join(process.cwd(), 'docs/api/openapi-spec.json');
+  app.use(
+    OpenApiValidator.middleware({
+      apiSpec: apiSpecPath,
+      validateRequests: true,
+      validateResponses: process.env.NODE_ENV !== 'production',
+      ignorePaths: /.*\/api\/docs.*/, // ignore swagger docs
+    }),
+  );
+
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.status === 400 && err.errors) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: err.errors.map((e: any) => ({
+          field: e.path,
+          message: e.message,
+        })),
+      });
+    }
+    if (
+      err.status === 500 &&
+      err.errors &&
+      typeof err.message === 'string' &&
+      err.message.toLowerCase().includes('response')
+    ) {
+      logger.warn(`Response validation deviation: ${JSON.stringify(err.errors)}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+    next(err);
+  });
+
+  // =========================
+  // GLOBAL METRICS INTERCEPTOR
+  // =========================
+  app.useGlobalInterceptors(app.get(MetricsInterceptor));
 
   // =========================
   // SWAGGER
