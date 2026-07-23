@@ -29,9 +29,9 @@ export class MediaProcessingWorker extends BaseWorker {
     try {
       const axios = (await import('axios')).default;
       const headRes = await axios.head(fileUrl);
-      const contentLength = headRes.headers['content-length'];
-      if (contentLength) {
-        const size = parseInt(contentLength, 10);
+      const contentLengthHeader = headRes.headers['content-length'];
+      if (contentLengthHeader !== undefined && contentLengthHeader !== null) {
+        const size = parseInt(String(contentLengthHeader), 10);
         const isVideo = mediaType.toLowerCase() === 'video';
         const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
         if (size > maxSize) {
