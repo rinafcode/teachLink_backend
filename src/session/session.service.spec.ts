@@ -12,7 +12,9 @@ const mockRedis = {
   multi: jest.fn(),
   zadd: jest.fn().mockResolvedValue(1),
   zrem: jest.fn().mockResolvedValue(1),
+  zcard: jest.fn().mockResolvedValue(0),
   zrange: jest.fn().mockResolvedValue([]),
+  zremrangebyrank: jest.fn().mockResolvedValue(1),
   scan: jest.fn(),
   status: 'ready',
   quit: jest.fn(),
@@ -34,6 +36,7 @@ const mockConfigService = {
       SESSION_LOCK_TTL_MS: '5000',
       SESSION_LOCK_MAX_RETRIES: '5',
       SESSION_LOCK_RETRY_DELAY_MS: '120',
+      MAX_SESSIONS_PER_USER: '2',
     };
     return values[key] ?? defaultVal ?? '';
   }),
@@ -89,6 +92,17 @@ describe('SessionService', () => {
       expect(payload.userId).toBe('user-456');
       expect(payload.metadata.plan).toBe('premium');
       expect(payload.version).toBe(1);
+    });
+
+    it('should evict the oldest session when the user exceeds the max session limit', async () => {
+      mockRedis.set.mockResolvedValue('OK');
+      mockRedis.zcard.mockResolvedValue(3);
+      mockRedis.zrange.mockResolvedValue(['oldest-session']);
+
+      await service.createSession('user-789', { role: 'teacher' });
+
+      expect(mockRedis.del).toHaveBeenCalledWith('auth:sess:oldest-session');
+      expect(mockRedis.zremrangebyrank).toHaveBeenCalledWith('user:sessions:user-789', 0, 0);
     });
   });
 
