@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,7 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+import { AuthTokensService } from './services/auth-tokens.service';
 import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
+import { InvalidTokenException, ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +22,7 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly authTokensService: AuthTokensService,
   ) {}
 
   /**
@@ -118,6 +121,93 @@ export class AuthService {
 
   private async revokeUserTokens(userId: string) {
     await this.userRepository.update(userId, { refreshToken: null });
+  }
+
+  // ─── Issue #801 — password reset & email verification ─────────────────
+  // These three methods plug the SHA-256-hashed token flow into real routes.
+  // All three ultimately delegate to AuthTokensService which owns the hash
+  // and the lookups; AuthService just turns user-facing operations into DB
+  // updates (e.g. update the password column after a successful reset).
+
+  /**
+   * Issues a password-reset token for the user with the given email.
+   *
+   * The raw token is included in the response ONLY when `EXPOSE_RESET_TOKENS=true`
+   * is set explicitly. The default behaviour deliberately omits the raw value so
+   * it cannot leak via API logs, browser history, load-test captures, or
+   * non-`production` environments (staging, QA, uat, canary) where traffic is
+   * often less protected than `production`.
+   *
+   * Production callers MUST NOT rely on the return value — they must trigger
+   * an email worker that delivers the raw token to the user.
+   */
+  async requestPasswordReset(email: string): Promise<{
+    delivered: boolean;
+    rawToken?: string;
+    expiresAt?: Date;
+  }> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    // Always respond successfully to avoid leaking which emails are registered.
+    if (!user) {
+      return { delivered: true };
+    }
+    const { rawToken, expiresAt } = await this.authTokensService.issuePasswordReset(user.id);
+    if (process.env.EXPOSE_RESET_TOKENS === 'true') {
+      return { delivered: true, rawToken, expiresAt };
+    }
+    return { delivered: true };
+  }
+
+  /**
+   * Consumes a raw reset token and writes the new password (bcrypt-hashed).
+   * Single-use: {@link AuthTokensService.consumePasswordReset} clears the
+   * stored hash atomically with the user lookup.
+   */
+  async resetPassword(rawToken: string, newPassword: string): Promise<User> {
+    if (!rawToken || !newPassword) {
+      throw new BadRequestException('Token and newPassword are required');
+    }
+    const user = await this.authTokensService.consumePasswordReset(rawToken);
+    if (!user) {
+      throw new InvalidTokenException('Password reset token is invalid or has expired');
+    }
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(newPassword, salt);
+    await this.userRepository.update(user.id, { password: hashed });
+    // Force refresh-token rotation so a token-stealing scenario can't survive.
+    await this.revokeUserTokens(user.id);
+    this.logger.log(`Password reset completed for user ${user.id}`);
+    return user;
+  }
+
+  /**
+   * Consumes a raw email-verification token and flips `isEmailVerified`.
+   */
+  async verifyEmailToken(rawToken: string): Promise<User> {
+    if (!rawToken) {
+      throw new BadRequestException('Verification token is required');
+    }
+    const user = await this.authTokensService.consumeEmailVerification(rawToken);
+    if (!user) {
+      throw new InvalidTokenException('Email verification token is invalid or has expired');
+    }
+    this.logger.log(`Email verified for user ${user.id}`);
+    return user;
+  }
+
+  /**
+   * Convenience helper exposed for callers that want to issue a verification
+   * token directly (e.g. a worker that re-sends the verification email).
+   */
+  async issueEmailVerificationToken(userId: string): Promise<{
+    rawToken: string;
+    expiresAt: Date;
+  }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new ResourceNotFoundException('User', userId);
+    }
+    return this.authTokensService.issueEmailVerification(user.id);
   }
 
   private async updateRefreshTokenHash(userId: string, refreshToken: string) {
