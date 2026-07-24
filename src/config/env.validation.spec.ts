@@ -69,4 +69,32 @@ describe('envValidationSchema', () => {
 
     expect(error).toBeUndefined();
   });
+
+  describe('BCRYPT_ROUNDS validation', () => {
+    it('defaults BCRYPT_ROUNDS to 12 when omitted', () => {
+      const { value, error } = validate(validEnv);
+      expect(error).toBeUndefined();
+      expect(value.BCRYPT_ROUNDS).toBe(12);
+    });
+
+    it('accepts BCRYPT_ROUNDS values between 10 and 14', () => {
+      for (const rounds of [10, 12, 14]) {
+        const { value, error } = validate({ ...validEnv, BCRYPT_ROUNDS: String(rounds) });
+        expect(error).toBeUndefined();
+        expect(value.BCRYPT_ROUNDS).toBe(rounds);
+      }
+    });
+
+    it('rejects BCRYPT_ROUNDS values below 10', () => {
+      const { error } = validate({ ...validEnv, BCRYPT_ROUNDS: '9' });
+      expect(error).toBeDefined();
+      expect(error?.message).toContain('BCRYPT_ROUNDS');
+    });
+
+    it('rejects BCRYPT_ROUNDS values above 14', () => {
+      const { error } = validate({ ...validEnv, BCRYPT_ROUNDS: '15' });
+      expect(error).toBeDefined();
+      expect(error?.message).toContain('BCRYPT_ROUNDS');
+    });
+  });
 });

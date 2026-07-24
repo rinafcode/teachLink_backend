@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CdnService } from './cdn.service';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import * as fileType from 'file-type';
 
 jest.mock('@aws-sdk/client-cloudfront');
-
+jest.mock('file-type');
 describe('CdnService', () => {
   let service: CdnService;
   let cfClientSendMock: jest.Mock;
@@ -74,6 +76,36 @@ describe('CdnService', () => {
       const result = await service.invalidate(paths);
       expect(result.success).toBe(false);
       expect(result.message).toBe('CDN invalidation failed');
+    });
+  });
+
+  describe('validateUpload', () => {
+    it('should throw Payload Too Large for oversized video files', async () => {
+      const buffer = Buffer.alloc(500 * 1024 * 1024 + 1); // 500MB + 1 byte
+      await expect(service.validateUpload(buffer, 'video/mp4')).rejects.toThrow(
+        new HttpException('Payload Too Large', HttpStatus.PAYLOAD_TOO_LARGE),
+      );
+    });
+
+    it('should throw Payload Too Large for oversized image files', async () => {
+      const buffer = Buffer.alloc(10 * 1024 * 1024 + 1); // 10MB + 1 byte
+      await expect(service.validateUpload(buffer, 'image/jpeg')).rejects.toThrow(
+        new HttpException('Payload Too Large', HttpStatus.PAYLOAD_TOO_LARGE),
+      );
+    });
+
+    it('should throw Unsupported Media Type if magic bytes mismatch', async () => {
+      const buffer = Buffer.alloc(1024);
+      (fileType.fromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/x-php' });
+      await expect(service.validateUpload(buffer, 'video/mp4')).rejects.toThrow(
+        new HttpException('Unsupported Media Type', HttpStatus.UNSUPPORTED_MEDIA_TYPE),
+      );
+    });
+
+    it('should pass if size and magic bytes are valid', async () => {
+      const buffer = Buffer.alloc(1024);
+      (fileType.fromBuffer as jest.Mock).mockResolvedValue({ mime: 'video/mp4' });
+      await expect(service.validateUpload(buffer, 'video/mp4')).resolves.toBeUndefined();
     });
   });
 });

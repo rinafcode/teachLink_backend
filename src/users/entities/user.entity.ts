@@ -91,12 +91,14 @@ export class User {
   isEmailVerified: boolean;
 
   @Column({ nullable: true })
+  @Index()
   emailVerificationToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires?: Date;
 
   @Column({ nullable: true })
+  @Index()
   passwordResetToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })

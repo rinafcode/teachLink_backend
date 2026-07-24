@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
+import { Idempotent } from '../../common/decorators/idempotency.decorator';
 
 @ApiTags('Payouts')
 @Controller('payments/payouts')
@@ -59,6 +60,7 @@ export class PayoutsController {
 
   @Post('admin/process')
   @Roles(UserRole.ADMIN)
+  @Idempotent()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Process a payout for an instructor (Admin only)' })
   @ApiResponse({ status: 200, description: 'Payout processed successfully' })
