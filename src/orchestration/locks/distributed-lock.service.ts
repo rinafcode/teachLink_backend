@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, OnModuleDestroy, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
 
@@ -9,17 +9,20 @@ const RELEASE_SCRIPT = `
   return 0
 `;
 
+export const DISTRIBUTED_LOCK_REDIS = 'DISTRIBUTED_LOCK_REDIS';
+
 /**
  * Provides distributed Lock operations.
  */
 @Injectable()
-export class DistributedLockService {
-  private redis = new Redis(process.env.REDIS_URL);
+export class DistributedLockService implements OnModuleDestroy {
+  private readonly logger = new Logger(DistributedLockService.name);
 
-  constructor() {
-    this.redis.on('error', () => {
-      // Prevent unhandled error events during Redis outages.
-    });
+  constructor(@Inject(DISTRIBUTED_LOCK_REDIS) private readonly redis: Redis) {}
+
+  onModuleDestroy() {
+    this.redis.quit();
+    this.logger.log('Redis connection closed');
   }
 
   /**
