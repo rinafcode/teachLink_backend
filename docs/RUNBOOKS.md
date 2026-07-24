@@ -41,3 +41,44 @@ This document provides actionable steps for the most common critical alerts gene
 2. Correlate the spike with recent deployments or infrastructure changes.
 3. Roll back the latest deployment if a specific PR is identified as the root cause.
 4. If the errors correlate with a specific downstream microservice outage, ensure Circuit Breakers are correctly failing fast.
+
+## 5. HighErrorRate
+**Description:** The HTTP 5xx error rate has exceeded 1% over a 5-minute window.
+**Potential Impact:** End users are encountering unexpected application errors during API requests, violating the 99% availability SLA.
+
+### Mitigation Steps:
+1. Check Prometheus / Grafana dashboards for error distribution across routes (`/courses`, `/auth`, `/payments`, etc.).
+2. Inspect application logs in Kibana/CloudWatch filtering by status code `>= 500`.
+3. Check for recent service deployments or database connection issues.
+4. If a specific endpoint or upstream dependency is failing, enable circuit breaking or roll back the recent deployment.
+
+## 6. HighP99Latency
+**Description:** 99th percentile (P99) API request response time has exceeded 1 second for more than 10 minutes.
+**Potential Impact:** Severe degradation in user interface responsiveness and increased client-side request timeouts.
+
+### Mitigation Steps:
+1. Review Grafana latency breakdown charts to identify slow endpoints or database query latencies.
+2. Check database connection pool status (`db_pool_utilization`, active connections, slow query log).
+3. Verify if background workers or high CPU utilization are starving HTTP event loop handlers.
+4. Scale out backend pod replicas or optimize slow database queries/indexes.
+
+## 7. QueueDepthHigh
+**Description:** The total count of waiting jobs in asynchronous processing queues has exceeded 1,000 for more than 10 minutes.
+**Potential Impact:** Backlog accumulation in async tasks (email notifications, video transcode, search index sync, etc.), leading to delayed processing.
+
+### Mitigation Steps:
+1. Check queue worker pod health and scaling via Kubernetes / BullMQ dashboard.
+2. Inspect worker logs for crash loops or stuck job handlers.
+3. Scale up queue worker replicas (`CLUSTER_WORKERS` or pod count) to increase consumption throughput.
+4. Ensure Redis is responsive and not experiencing memory eviction or network latency.
+
+## 8. DLQDepthHigh
+**Description:** Dead-letter queues (DLQ) contain 1 or more failed jobs that could not be processed after maximum retries over 5 minutes.
+**Potential Impact:** Data loss or incomplete processing for failed asynchronous jobs (e.g. unhandled payment webhooks, failed email notifications).
+
+### Mitigation Steps:
+1. Inspect the Dead-Letter Queue via `src/queues/dead-letter/dead-letter.service.ts` endpoints or Redis CLI.
+2. Review error messages and stack traces attached to failed jobs in DLQ.
+3. Fix underlying bug or infrastructure issue causing job failures.
+4. Replay or re-queue jobs from the DLQ once the root cause is resolved.
+
