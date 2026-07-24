@@ -158,6 +158,25 @@ describe('PayoutsService', () => {
         ],
       });
     });
+
+    it('should calculate revenue precisely avoiding floating-point rounding errors', async () => {
+      const mockCourses = [
+        { id: 'course-1', title: 'Course One', instructorId: 'inst-1' },
+      ];
+      mockCourseRepository.find.mockResolvedValue(mockCourses);
+
+      const mockPayments = [
+        { id: 'pay-1', courseId: 'course-1', amount: 0.1, status: PaymentStatus.COMPLETED },
+        { id: 'pay-2', courseId: 'course-1', amount: 0.2, status: PaymentStatus.COMPLETED },
+      ];
+      mockPaymentRepository.find.mockResolvedValue(mockPayments);
+      mockRefundRepository.find.mockResolvedValue([]);
+
+      const result = await service.getRevenueBreakdown('inst-1');
+
+      expect(result.summary.totalGrossRevenue).toBe(0.30);
+      expect(result.summary.totalNetRevenue).toBe(0.30);
+    });
   });
 
   describe('getPayoutProfile', () => {
