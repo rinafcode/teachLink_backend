@@ -48,6 +48,7 @@ import { AuthModule } from './auth/auth.module';
 import { CohortsModule } from './cohorts/cohorts.module';
 import { LoggingModule } from './logging/logging.module';
 import { FeatureFlagAuditModule } from './config/feature-flag-audit.module';
+import { UsersModule } from './users/users.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -92,6 +93,7 @@ const featureFlags = loadFeatureFlags();
     ...(featureFlags.ENABLE_AUTH ? [AuthModule] : []),
     CoursesModule,
     CohortsModule,
+    UsersModule,
     FeatureFlagAuditModule,
   ],
   controllers: [AppController],
