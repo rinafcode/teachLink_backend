@@ -210,7 +210,10 @@ export class PaymentReconciliationJob {
     return String(status ?? 'unknown');
   }
 
-  private async logMismatch(mismatch: PaymentReconciliationMismatch, payment?: Payment): Promise<void> {
+  private async logMismatch(
+    mismatch: PaymentReconciliationMismatch,
+    payment?: Payment,
+  ): Promise<void> {
     try {
       await this.auditLogService.log({
         action: AuditAction.PAYMENT_RECONCILIATION_MISMATCH,
@@ -226,7 +229,9 @@ export class PaymentReconciliationJob {
         },
       });
     } catch (error) {
-      this.logger.warn(`Failed to log reconciliation mismatch: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Failed to log reconciliation mismatch: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }

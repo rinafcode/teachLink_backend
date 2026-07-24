@@ -33,9 +33,9 @@ describe('PaymentReconciliationJob', () => {
         createdAt: new Date('2026-01-02T00:00:00.000Z'),
       },
     ]);
-    jest.spyOn(service as any, 'fetchProviderTransactions').mockResolvedValue([
-      { id: 'pi_1', amount: 100, status: 'succeeded' },
-    ]);
+    jest
+      .spyOn(service as any, 'fetchProviderTransactions')
+      .mockResolvedValue([{ id: 'pi_1', amount: 100, status: 'succeeded' }]);
 
     const report = await service.runReconciliation(
       new Date('2026-01-01T00:00:00.000Z'),
@@ -75,9 +75,9 @@ describe('PaymentReconciliationJob', () => {
 
   it('logs a discrepancy when a provider transaction is missing locally', async () => {
     paymentRepo.find.mockResolvedValue([]);
-    jest.spyOn(service as any, 'fetchProviderTransactions').mockResolvedValue([
-      { id: 'pi_1', amount: 100, status: 'succeeded' },
-    ]);
+    jest
+      .spyOn(service as any, 'fetchProviderTransactions')
+      .mockResolvedValue([{ id: 'pi_1', amount: 100, status: 'succeeded' }]);
 
     const report = await service.runReconciliation(
       new Date('2026-01-01T00:00:00.000Z'),
@@ -99,9 +99,9 @@ describe('PaymentReconciliationJob', () => {
         createdAt: new Date('2026-01-02T00:00:00.000Z'),
       },
     ]);
-    jest.spyOn(service as any, 'fetchProviderTransactions').mockResolvedValue([
-      { id: 'pi_1', amount: 75, status: 'failed' },
-    ]);
+    jest
+      .spyOn(service as any, 'fetchProviderTransactions')
+      .mockResolvedValue([{ id: 'pi_1', amount: 75, status: 'failed' }]);
 
     const report = await service.runReconciliation(
       new Date('2026-01-01T00:00:00.000Z'),

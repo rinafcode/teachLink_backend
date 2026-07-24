@@ -35,11 +35,6 @@ import { PaymentReconciliationController } from './reconciliation/reconciliation
   ],
   providers: [PricingService, PaymentReconciliationJob],
   controllers: [PricingController, PaymentReconciliationController],
-  exports: [
-    PricingService,
-    CurrencyModule,
-    IdempotencyModule,
-    PaymentReconciliationJob,
-  ],
+  exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentReconciliationJob],
 })
 export class PaymentsModule {}
