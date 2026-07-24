@@ -7,10 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import {
-  SecurityEventLogger,
-  SecurityEventType,
-} from '../../security/audit/security-event-logger';
+import { SecurityEventLogger, SecurityEventType } from '../../security/audit/security-event-logger';
 
 /**
  * Protects execution paths based on roles extracted from the user object.

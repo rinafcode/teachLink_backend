@@ -2,10 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
-import {
-  SecurityEventLogger,
-  SecurityEventType,
-} from '../audit/security-event-logger';
+import { SecurityEventLogger, SecurityEventType } from '../audit/security-event-logger';
 import { THREAT_REDIS_CLIENT } from './threat-detection.constants';
 
 /**

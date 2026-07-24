@@ -2,10 +2,7 @@ import { Injectable, Logger, Optional, UnauthorizedException } from '@nestjs/com
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
-import {
-  SecurityEventLogger,
-  SecurityEventType,
-} from '../../security/audit/security-event-logger';
+import { SecurityEventLogger, SecurityEventType } from '../../security/audit/security-event-logger';
 
 /**
  * Passport JWT strategy for validating Auth0 Bearer tokens dynamically.
