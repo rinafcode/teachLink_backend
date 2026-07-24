@@ -6,8 +6,10 @@ jest.mock('bcrypt', () => ({
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UnauthorizedException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { User, UserStatus } from '../users/entities/user.entity';
@@ -44,6 +46,13 @@ const mockBlacklistService = {
   isBlacklisted: jest.fn(),
 };
 
+const mockConfigService = {
+  get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
+    if (key === 'BCRYPT_ROUNDS') return 10;
+    return defaultValue;
+  }),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -54,6 +63,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: TokenBlacklistService, useValue: mockBlacklistService },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -76,6 +86,7 @@ describe('AuthService', () => {
       const result = await service.login(makeUser());
 
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
+      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(mockUserRepo.update).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({ refreshToken: expect.any(String) }),
