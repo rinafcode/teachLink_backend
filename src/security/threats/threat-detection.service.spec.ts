@@ -1,4 +1,5 @@
 import { ThreatDetectionService } from './threat-detection.service';
+import { SecurityEventType } from '../audit/security-event-logger';
 
 /**
  * Helper: build a string IP for index `n` so we can deterministically
@@ -20,11 +21,26 @@ describe('ThreatDetectionService', () => {
     });
 
     it('throws ForbiddenOperationException once attempts exceed 10', () => {
-      const svc = new ThreatDetectionService({ max: 100, ttlMs: 60_000 });
+      const securityEventLogger = { emit: jest.fn() };
+      const svc = new ThreatDetectionService(
+        { max: 100, ttlMs: 60_000 },
+        securityEventLogger as any,
+      );
       const ip = '192.168.0.2';
 
       for (let i = 0; i < 11; i++) svc.recordFailure(ip);
       expect(() => svc.analyzeRequest(ip)).toThrow(/Suspicious activity detected/);
+      expect(securityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
+          ip,
+          severity: 'high',
+          details: expect.objectContaining({
+            reason: 'failed_attempt_threshold_exceeded',
+            attempts: 11,
+          }),
+        }),
+      );
     });
 
     it('clears the failure counter on reset()', () => {

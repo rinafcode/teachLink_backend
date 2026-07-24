@@ -13,6 +13,9 @@ import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { SocialAuthService } from './services/social-auth.service';
 import { SocialAuthController } from './controllers/social-auth.controller';
+import { MonitoringModule } from '../monitoring/monitoring.module';
+import { StructuredLoggerService } from '../observability/logging/structured-logger.service';
+import { SecurityEventLogger } from '../security/audit/security-event-logger';
 
 /**
  * Registers the authentication module with Passport and JWT support.
@@ -25,6 +28,7 @@ import { SocialAuthController } from './controllers/social-auth.controller';
       signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any },
     }),
     TypeOrmModule.forFeature([User]),
+    MonitoringModule,
   ],
   controllers: [AuthController, SocialAuthController],
   providers: [
@@ -36,6 +40,8 @@ import { SocialAuthController } from './controllers/social-auth.controller';
     SocialAuthService,
     RolesGuard,
     PermissionsGuard,
+    StructuredLoggerService,
+    SecurityEventLogger,
   ],
   exports: [
     PassportModule,

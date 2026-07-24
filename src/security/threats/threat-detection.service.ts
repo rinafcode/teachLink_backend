@@ -1,6 +1,10 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
 import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
+import {
+  SecurityEventLogger,
+  SecurityEventType,
+} from '../audit/security-event-logger';
 
 /**
  * Provides threat Detection operations.
@@ -21,11 +25,13 @@ export class ThreatDetectionService {
   /** 15-minute TTL on each entry. */
   static readonly TTL_MS = 15 * 60 * 1000;
 
-  private readonly logger = new Logger(ThreatDetectionService.name);
   private readonly failedAttempts: LRUCache<string, number>;
   private lastEvictionWarnAt = 0;
 
-  constructor(@Optional() options?: { max?: number; ttlMs?: number }) {
+  constructor(
+    @Optional() options?: { max?: number; ttlMs?: number },
+    @Optional() private readonly securityEventLogger?: SecurityEventLogger,
+  ) {
     const max = options?.max ?? ThreatDetectionService.MAX_ENTRIES;
     const ttl = options?.ttlMs ?? ThreatDetectionService.TTL_MS;
 
@@ -42,11 +48,18 @@ export class ThreatDetectionService {
         const now = Date.now();
         if (now - this.lastEvictionWarnAt < 60_000) return;
         this.lastEvictionWarnAt = now;
-        this.logger.warn(
-          `LRU eviction triggered on failedAttempts cache (cap=${max}). ` +
-            'Sustained pressure indicates a potential IP-rotation attack; ' +
-            'consider raising MAX_ENTRIES or migrating to a distributed store.',
-        );
+        this.securityEventLogger?.emit({
+          eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
+          ip: 'unknown',
+          severity: 'high',
+          details: {
+            reason: 'failed_attempts_cache_eviction',
+            cache: 'failedAttempts',
+            cap: max,
+            recommendation:
+              'Sustained pressure indicates a potential IP-rotation attack; consider raising MAX_ENTRIES or migrating to a distributed store.',
+          },
+        });
       },
     });
   }
@@ -54,6 +67,16 @@ export class ThreatDetectionService {
   analyzeRequest(ip: string): void {
     const attempts = this.failedAttempts.get(ip) || 0;
     if (attempts > 10) {
+      this.securityEventLogger?.emit({
+        eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
+        ip,
+        severity: 'high',
+        details: {
+          reason: 'failed_attempt_threshold_exceeded',
+          attempts,
+          threshold: 10,
+        },
+      });
       throw new ForbiddenOperationException('Suspicious activity detected');
     }
   }

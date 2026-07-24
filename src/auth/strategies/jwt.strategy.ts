@@ -1,7 +1,11 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, Optional, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
+import {
+  SecurityEventLogger,
+  SecurityEventType,
+} from '../../security/audit/security-event-logger';
 
 /**
  * Passport JWT strategy for validating Auth0 Bearer tokens dynamically.
@@ -11,7 +15,7 @@ import { passportJwtSecret } from 'jwks-rsa';
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   private readonly logger = new Logger(JwtStrategy.name);
 
-  constructor() {
+  constructor(@Optional() private readonly securityEventLogger?: SecurityEventLogger) {
     const audience = process.env.AUTH0_AUDIENCE;
     const issuerUrl = process.env.AUTH0_ISSUER_URL;
 
@@ -58,7 +62,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
    */
   async validate(payload: any): Promise<any> {
     if (!payload) {
-      this.logger.warn('Token validation failed: payload is empty or invalid.');
+      this.securityEventLogger?.emit({
+        eventType: SecurityEventType.AUTH_FAILURE,
+        severity: 'high',
+        details: {
+          reason: 'empty_or_invalid_jwt_payload',
+          action: 'jwt_strategy_validate',
+        },
+      });
       throw new UnauthorizedException('Invalid token payload');
     }
     return payload;

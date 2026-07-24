@@ -6,19 +6,24 @@ import { ThreatDetectionService } from './threats/threat-detection.service';
 import { ComplianceService } from './compliance/compliance.service';
 import { AuditLoggingService } from './audit/audit-logging.service';
 import { SecretsModule } from './secrets/secrets.module';
+import { SecurityEventLogger } from './audit/security-event-logger';
+import { MonitoringModule } from '../monitoring/monitoring.module';
+import { StructuredLoggerService } from '../observability/logging/structured-logger.service';
 
 /**
  * Registers the security module.
  */
 @Module({
-  imports: [ScheduleModule.forRoot(), SecretsModule],
+  imports: [ScheduleModule.forRoot(), SecretsModule, MonitoringModule],
   providers: [
     SecurityService,
     EncryptionService,
     ThreatDetectionService,
     ComplianceService,
     AuditLoggingService,
+    StructuredLoggerService,
+    SecurityEventLogger,
   ],
-  exports: [SecurityService, EncryptionService, SecretsModule],
+  exports: [SecurityService, EncryptionService, SecretsModule, SecurityEventLogger],
 })
 export class SecurityModule {}
