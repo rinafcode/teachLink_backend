@@ -1,9 +1,10 @@
 import {
-  Controller,
-  Post,
+  BadRequestException,
   Body,
+  Controller,
   HttpCode,
   HttpStatus,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -20,8 +21,6 @@ import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ThreatDetectionService } from '../security/threats/threat-detection.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-
-import { BadRequestException } from '@nestjs/common';
 import { InvalidCredentialsException } from '../common/exceptions/app.exceptions';
 
 /**

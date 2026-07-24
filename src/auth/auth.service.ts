@@ -8,7 +8,10 @@ import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { AuthTokensService } from './services/auth-tokens.service';
 import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
-import { InvalidTokenException, ResourceNotFoundException } from '../common/exceptions/app.exceptions';
+import {
+  InvalidTokenException,
+  ResourceNotFoundException,
+} from '../common/exceptions/app.exceptions';
 
 @Injectable()
 export class AuthService {

@@ -6,8 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthTokensService } from './services/auth-tokens.service';
 import { ThreatDetectionService } from '../security/threats/threat-detection.service';
 import { User } from '../users/entities/user.entity';
-import { createMockRedisClient } from '../../test/utils/mock-factories';
-import { createMockRepository } from '../../test/utils/mock-factories';
+import { createMockRedisClient, createMockRepository } from '../../test/utils/mock-factories';
 import { THREAT_REDIS_CLIENT } from '../security/threats/threat-detection.constants';
 
 /**
@@ -43,13 +42,9 @@ describe('AuthController — Blaqkenny wiring (#798 + #801)', () => {
     } as unknown as jest.Mocked<ThreatDetectionService>;
 
     authService = {
-      login: jest
-        .fn()
-        .mockResolvedValue({ accessToken: 'AT', refreshToken: 'RT' }),
+      login: jest.fn().mockResolvedValue({ accessToken: 'AT', refreshToken: 'RT' }),
       requestPasswordReset: jest.fn().mockResolvedValue({ delivered: true }),
-      resetPassword: jest
-        .fn()
-        .mockResolvedValue({ id: 'u1', email: 'x@y.com' } as User),
+      resetPassword: jest.fn().mockResolvedValue({ id: 'u1', email: 'x@y.com' } as User),
       verifyEmailToken: jest
         .fn()
         .mockResolvedValue({ id: 'u1', email: 'x@y.com', isEmailVerified: true } as User),
@@ -58,7 +53,9 @@ describe('AuthController — Blaqkenny wiring (#798 + #801)', () => {
     authTokens = {
       issuePasswordReset: jest.fn().mockResolvedValue({ rawToken: 'rawRT', expiresAt: new Date() }),
       consumePasswordReset: jest.fn(),
-      issueEmailVerification: jest.fn().mockResolvedValue({ rawToken: 'rawET', expiresAt: new Date() }),
+      issueEmailVerification: jest
+        .fn()
+        .mockResolvedValue({ rawToken: 'rawET', expiresAt: new Date() }),
       consumeEmailVerification: jest.fn(),
     } as unknown as jest.Mocked<AuthTokensService>;
 
