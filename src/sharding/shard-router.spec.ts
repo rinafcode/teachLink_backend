@@ -48,12 +48,21 @@ const mockShards: ShardConfig[] = [
 const mockShardConfigService = {
   getActiveShards: jest.fn(() => mockShards),
   getShardById: jest.fn((id: string) => mockShards.find((s) => s.id === id)),
+  reloadConfig: jest.fn(() => mockShards),
+  onConfigUpdated: jest.fn((_listener: (message?: string) => void | Promise<void>) => jest.fn()),
 };
 
 describe('ShardRouter', () => {
   let router: ShardRouter;
 
   beforeEach(async () => {
+    mockShardConfigService.getActiveShards.mockReturnValue(mockShards);
+    mockShardConfigService.getShardById.mockImplementation((id: string) =>
+      mockShards.find((s) => s.id === id),
+    );
+    mockShardConfigService.reloadConfig.mockReturnValue(mockShards);
+    mockShardConfigService.onConfigUpdated.mockReturnValue(jest.fn());
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [ShardRouter, { provide: ShardConfigService, useValue: mockShardConfigService }],
     }).compile();
@@ -71,13 +80,55 @@ describe('ShardRouter', () => {
     });
 
     it('produces a larger ring for higher-weight shards', () => {
-      // White-box: access private ring via cast
+      // White-box: access private routing snapshot via cast
       router.rebuildRing();
-      const ring = (router as unknown as { ring: { shardId: string }[] }).ring;
+      const ring = (router as unknown as { routingSnapshot: { ring: { shardId: string }[] } })
+        .routingSnapshot.ring;
       const shard00Count = ring.filter((n) => n.shardId === 'shard-00').length;
       const shard02Count = ring.filter((n) => n.shardId === 'shard-02').length;
       // shard-02 has weight=50, shard-00 has weight=100 → shard-00 should have ~2x nodes
       expect(shard00Count).toBeGreaterThan(shard02Count);
+    });
+
+    it('registers for shard config update events', () => {
+      expect(mockShardConfigService.onConfigUpdated).toHaveBeenCalledTimes(1);
+    });
+
+    it('reloads when the shard config update listener fires', async () => {
+      const expandedShards: ShardConfig[] = [
+        ...mockShards,
+        {
+          id: 'shard-03',
+          name: 'Shard 3',
+          host: 'pg-3.internal',
+          port: 5432,
+          username: 'user',
+          password: 'pass',
+          database: 'teachlink_3',
+          poolMax: 30,
+          poolMin: 5,
+          weight: 100,
+          status: ShardStatus.ACTIVE,
+        },
+      ];
+
+      mockShardConfigService.reloadConfig.mockReturnValue(expandedShards);
+      mockShardConfigService.getActiveShards.mockReturnValue(expandedShards);
+      mockShardConfigService.getShardById.mockImplementation((id: string) =>
+        expandedShards.find((s) => s.id === id),
+      );
+
+      const updateListener = mockShardConfigService.onConfigUpdated.mock.calls[0][0] as (
+        message?: string,
+      ) => Promise<void>;
+      await updateListener('test-config-version');
+
+      const shardIds = new Set<string>();
+      for (let i = 0; i < 1000; i++) {
+        shardIds.add(router.route(`pubsub-reload-user-${i}`).shard.id);
+      }
+
+      expect(shardIds).toContain('shard-03');
     });
   });
 
@@ -189,6 +240,102 @@ describe('ShardRouter', () => {
       mockShardConfigService.getActiveShards.mockReturnValueOnce([]);
       router.rebuildRing();
       expect(() => router.route('some-key')).toThrow('consistent-hash ring is empty');
+    });
+  });
+
+  describe('live reload', () => {
+    it('reloads shard config and routes using the new ring', async () => {
+      const expandedShards: ShardConfig[] = [
+        ...mockShards,
+        {
+          id: 'shard-03',
+          name: 'Shard 3',
+          host: 'pg-3.internal',
+          port: 5432,
+          username: 'user',
+          password: 'pass',
+          database: 'teachlink_3',
+          poolMax: 30,
+          poolMin: 5,
+          weight: 100,
+          status: ShardStatus.ACTIVE,
+        },
+      ];
+
+      mockShardConfigService.reloadConfig.mockReturnValue(expandedShards);
+      mockShardConfigService.getActiveShards.mockReturnValue(expandedShards);
+      mockShardConfigService.getShardById.mockImplementation((id: string) =>
+        expandedShards.find((s) => s.id === id),
+      );
+
+      await router.reloadConfig();
+
+      const shardIds = new Set<string>();
+      for (let i = 0; i < 1000; i++) {
+        shardIds.add(router.route(`reloaded-user-${i}`).shard.id);
+      }
+
+      expect(mockShardConfigService.reloadConfig).toHaveBeenCalled();
+      expect(shardIds).toContain('shard-03');
+    });
+
+    it('does not route against a partially rebuilt ring during reload', async () => {
+      let activeShards = mockShards;
+      const expandedShards: ShardConfig[] = [
+        ...mockShards,
+        {
+          id: 'shard-03',
+          name: 'Shard 3',
+          host: 'pg-3.internal',
+          port: 5432,
+          username: 'user',
+          password: 'pass',
+          database: 'teachlink_3',
+          poolMax: 30,
+          poolMin: 5,
+          weight: 100,
+          status: ShardStatus.ACTIVE,
+        },
+      ];
+
+      mockShardConfigService.getActiveShards.mockImplementation(() => activeShards);
+      mockShardConfigService.getShardById.mockImplementation((id: string) =>
+        activeShards.find((s) => s.id === id),
+      );
+      mockShardConfigService.reloadConfig.mockImplementation(() => {
+        activeShards = expandedShards;
+        return activeShards;
+      });
+
+      const observedShardIds = new Set<string>();
+      const routeErrors: Error[] = [];
+      let keepRouting = true;
+
+      const routingLoop = async () => {
+        let i = 0;
+        while (keepRouting) {
+          try {
+            observedShardIds.add(router.route(`live-reload-key-${i++}`).shard.id);
+          } catch (error) {
+            routeErrors.push(error as Error);
+          }
+          await Promise.resolve();
+        }
+      };
+
+      const routingPromise = routingLoop();
+      await Promise.resolve();
+      await router.reloadConfig();
+
+      for (let i = 0; i < 1000; i++) {
+        observedShardIds.add(router.route(`post-reload-key-${i}`).shard.id);
+      }
+
+      keepRouting = false;
+      await routingPromise;
+
+      expect(routeErrors).toEqual([]);
+      expect(observedShardIds).toContain('shard-03');
     });
   });
 });

@@ -11,6 +11,7 @@ import { AnalyticsEvent } from './entities/event.entity';
 import { EventBatchingService } from './services/event-batching.service';
 import { EventValidationService } from './services/event-validation.service';
 import { EventTrackingSDK } from './sdk/event-tracking.sdk';
+import { AnalyticsRetentionTask } from './tasks/analytics-retention.task';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EventTrackingSDK } from './sdk/event-tracking.sdk';
     EventBatchingService,
     EventValidationService,
     EventTrackingSDK,
+    AnalyticsRetentionTask,
     { provide: APP_INTERCEPTOR, useClass: FingerprintInterceptor },
   ],
   controllers: [AnalyticsController],

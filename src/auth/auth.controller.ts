@@ -33,7 +33,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Successfully authenticated' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto, @Req() req: any) {
-    const user = await this.userRepository.findOneBy({ email: loginDto.email });
+    const user = await this.userRepository.findOne({
+      where: { email: loginDto.email },
+      relations: ['roles'],
+    });
     if (!user) {
       this.authService.emitAuthFailure(
         {
@@ -85,7 +88,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log out and invalidate refresh token' })
   async logout(@Req() req: any) {
-    await this.authService.logout(req.user.id);
+    const authHeader: string | undefined = req.headers?.authorization;
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    await this.authService.logout(req.user.id, accessToken);
     return { message: 'Logged out successfully' };
   }
 }

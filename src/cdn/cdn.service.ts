@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { resolveCdnConfig, resolveCacheHeaderConfig } from './cdn.config';
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import CircuitBreaker from 'opossum';
+import * as fileType from 'file-type';
 
 export interface CacheHeaders {
   'Cache-Control': string;
@@ -17,6 +20,28 @@ export class CdnService {
   private readonly logger = new Logger(CdnService.name);
   private readonly cdn = resolveCdnConfig();
   private readonly cacheHeaders = resolveCacheHeaderConfig();
+  private readonly cfClient = new CloudFrontClient({});
+  private readonly invalidationBreaker: CircuitBreaker<[string[]], any>;
+
+  constructor() {
+    this.invalidationBreaker = new CircuitBreaker(
+      async (paths: string[]) => {
+        const command = new CreateInvalidationCommand({
+          DistributionId: this.cdn.distributionId,
+          InvalidationBatch: {
+            Paths: { Quantity: paths.length, Items: paths },
+            CallerReference: Date.now().toString(),
+          },
+        });
+        return this.cfClient.send(command);
+      },
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+      },
+    );
+  }
 
   /**
    * Returns optimised Cache-Control headers for a given asset path.
@@ -79,5 +104,25 @@ export class CdnService {
 
   getConfig() {
     return { ...this.cdn, cacheHeaders: this.cacheHeaders };
+  }
+
+  /**
+   * Validates uploaded file size and magic bytes against expected MIME.
+   * Throws 413 Payload Too Large if size exceeds limits (500MB video, 10MB image).
+   * Throws 415 Unsupported Media Type if magic bytes do not match.
+   */
+  async validateUpload(buffer: Buffer, declaredMimeType: string): Promise<void> {
+    const isVideo = declaredMimeType.startsWith('video/');
+    const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
+
+    if (buffer.length > maxSize) {
+      throw new HttpException('Payload Too Large', HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    const type = await fileType.fromBuffer(buffer);
+    if (!type || type.mime !== declaredMimeType) {
+      this.logger.warn(`MIME type mismatch: declared ${declaredMimeType}, detected ${type?.mime}`);
+      throw new HttpException('Unsupported Media Type', HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
   }
 }

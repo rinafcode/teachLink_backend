@@ -4,12 +4,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
-import { User } from '../users/entities/user.entity';
+import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import {
   SecurityEventLogger,
   SecurityEventType,
 } from '../security/audit/security-event-logger';
+import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
 
 @Injectable()
 export class AuthService {
@@ -51,7 +52,7 @@ export class AuthService {
     try {
       // Verify token signature and expiration
       decoded = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
+        secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch (_e) {
       this.securityEventLogger.emit({
@@ -67,7 +68,10 @@ export class AuthService {
     }
 
     const userId = decoded.sub;
-    const user = await this.userRepository.findOneBy({ id: userId });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
+    });
 
     if (!user || !user.refreshToken) {
       this.securityEventLogger.emit({
@@ -81,6 +85,21 @@ export class AuthService {
         },
       });
       throw new UnauthorizedException('Access Denied');
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+      this.securityEventLogger.emit({
+        eventType: SecurityEventType.ACCOUNT_LOCKED,
+        userId,
+        ip,
+        severity: 'high',
+        details: {
+          reason: 'inactive_user_refresh_attempt',
+          action: 'refreshTokens',
+          status: user.status,
+        },
+      });
+      throw new UnauthorizedException('User is not active');
     }
 
     const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
@@ -151,7 +170,20 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string) {
+  async logout(userId: string, accessToken?: string) {
+    if (accessToken) {
+      try {
+        const decoded = this.jwtService.decode(accessToken) as any;
+        if (decoded?.jti) {
+          const remainingMs = decoded.exp * 1000 - Date.now();
+          if (remainingMs > 0) {
+            await this.tokenBlacklistService.addToBlacklist(decoded.jti, remainingMs);
+          }
+        }
+      } catch {
+        // malformed token — still revoke refresh token below
+      }
+    }
     await this.revokeUserTokens(userId);
   }
 
@@ -167,17 +199,21 @@ export class AuthService {
 
   private async generateTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessJti = uuidv4();
     const refreshJti = uuidv4();
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET || 'default-jwt-secret',
-        expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
-      }),
+      this.jwtService.signAsync(
+        { ...payload, jti: accessJti },
+        {
+          secret: process.env.JWT_SECRET || 'default-jwt-secret',
+          expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+        },
+      ),
       this.jwtService.signAsync(
         { ...payload, jti: refreshJti },
         {
-          secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
+          secret: process.env.JWT_REFRESH_SECRET,
           expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
         },
       ),
@@ -187,5 +223,10 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  private getPrivateKey(): string | Buffer {
+    const key = process.env.JWT_PRIVATE_KEY || '';
+    return loadPEMKey(key) || key;
   }
 }
