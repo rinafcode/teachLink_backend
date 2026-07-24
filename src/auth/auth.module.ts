@@ -15,6 +15,8 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { SocialAuthService } from './services/social-auth.service';
 import { SocialAuthController } from './controllers/social-auth.controller';
 import { AuthTokensService } from './services/auth-tokens.service';
+import { MfaService } from './mfa/mfa.service';
+import { MfaController } from './mfa/mfa.controller';
 // Issue #799 — EncryptionService is required to encrypt OAuth provider tokens
 // (providerAccessToken / providerRefreshToken) at rest. SecurityModule is the
 // only module that provides EncryptionService, so it must be imported here.
@@ -40,7 +42,7 @@ import { createJwtOptions } from './config/jwt-config.factory';
     TypeOrmModule.forFeature([User]),
     SecurityModule,
   ],
-  controllers: [AuthController, SocialAuthController],
+  controllers: [AuthController, SocialAuthController, MfaController],
   providers: [
     JwtStrategy,
     AuthService,
@@ -49,6 +51,7 @@ import { createJwtOptions } from './config/jwt-config.factory';
     GitHubStrategy,
     SocialAuthService,
     AuthTokensService,
+    MfaService,
     RolesGuard,
     PermissionsGuard,
   ],
