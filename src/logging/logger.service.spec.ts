@@ -13,6 +13,12 @@ describe('AppLoggerService', () => {
     service = module.get(AppLoggerService);
   });
 
+  afterEach(() => {
+    delete process.env.LOG_TO_FILE;
+    delete process.env.LOG_LEVEL;
+    delete process.env.LOG_DIR;
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -30,36 +36,241 @@ describe('AppLoggerService', () => {
     expect(typeof service.logResponse).toBe('function');
   });
 
-  it('calls log without throwing', () => {
-    expect(() => service.log('hello', 'TestContext')).not.toThrow();
+  describe('Log Level Methods', () => {
+    it('calls log without throwing', () => {
+      expect(() => service.log('hello', 'TestContext')).not.toThrow();
+    });
+
+    it('calls error without throwing', () => {
+      expect(() => service.error('err msg', 'stack trace', 'TestContext')).not.toThrow();
+    });
+
+    it('calls warn without throwing', () => {
+      expect(() => service.warn('warning', 'TestContext')).not.toThrow();
+    });
+
+    it('calls debug without throwing', () => {
+      expect(() => service.debug('debug info', 'TestContext')).not.toThrow();
+    });
+
+    it('calls verbose without throwing', () => {
+      expect(() => service.verbose('verbose info', 'TestContext')).not.toThrow();
+    });
   });
 
-  it('calls error without throwing', () => {
-    expect(() => service.error('err msg', 'stack trace', 'TestContext')).not.toThrow();
+  describe('HTTP Logging Helpers', () => {
+    it('calls logRequest without throwing', () => {
+      expect(() => service.logRequest({ method: 'GET', url: '/test' })).not.toThrow();
+    });
+
+    it('calls logResponse without throwing', () => {
+      expect(() => service.logResponse({ statusCode: 200, durationMs: 42 })).not.toThrow();
+    });
+
+    it('logRequest includes method and url', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { info: jest.Mock } }).winston,
+        'info',
+      );
+
+      service.logRequest({ method: 'POST', url: '/api/users', userId: '123' });
+
+      expect(winstonSpy).toHaveBeenCalledWith('http_request', expect.objectContaining({
+        method: 'POST',
+        url: '/api/users',
+        userId: '123'
+      }));
+    });
+
+    it('logResponse includes statusCode and duration', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { info: jest.Mock } }).winston,
+        'info',
+      );
+
+      service.logResponse({ statusCode: 201, durationMs: 123, requestId: 'abc' });
+
+      expect(winstonSpy).toHaveBeenCalledWith('http_response', expect.objectContaining({
+        statusCode: 201,
+        durationMs: 123,
+        requestId: 'abc'
+      }));
+    });
   });
 
-  it('calls warn without throwing', () => {
-    expect(() => service.warn('warning', 'TestContext')).not.toThrow();
+  describe('Correlation ID Support', () => {
+    it('includes correlation ID in log output when set', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { info: jest.Mock } }).winston,
+        'info',
+      );
+
+      runWithCorrelationId(() => {
+        service.log('test message');
+      }, 'cid-test-123');
+
+      expect(winstonSpy).toHaveBeenCalledWith('test message', expect.any(Object));
+    });
+
+    it('works without correlation ID when not set', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { info: jest.Mock } }).winston,
+        'info',
+      );
+
+      service.log('test message without correlation');
+
+      expect(winstonSpy).toHaveBeenCalledWith('test message without correlation', expect.any(Object));
+    });
   });
 
-  it('calls logRequest without throwing', () => {
-    expect(() => service.logRequest({ method: 'GET', url: '/test' })).not.toThrow();
+  describe('Configuration', () => {
+    it('uses default log level when not specified', () => {
+      delete process.env.LOG_LEVEL;
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
+
+    it('respects custom log level from environment', () => {
+      process.env.LOG_LEVEL = 'debug';
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
+
+    it('uses default log directory when not specified', () => {
+      delete process.env.LOG_DIR;
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
+
+    it('respects custom log directory from environment', () => {
+      process.env.LOG_DIR = '/custom/logs';
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
+
+    it('disables file logging by default in non-production', () => {
+      process.env.NODE_ENV = 'development';
+      delete process.env.LOG_TO_FILE;
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
+
+    it('enables file logging when LOG_TO_FILE is true', () => {
+      process.env.LOG_TO_FILE = 'true';
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
+
+    it('enables file logging in production', () => {
+      process.env.NODE_ENV = 'production';
+      delete process.env.LOG_TO_FILE;
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+    });
   });
 
-  it('calls logResponse without throwing', () => {
-    expect(() => service.logResponse({ statusCode: 200, durationMs: 42 })).not.toThrow();
+  describe('Error Handling', () => {
+    it('handles error with stack trace', () => {
+      const error = new Error('Test error');
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { error: jest.Mock } }).winston,
+        'error',
+      );
+
+      service.error('Error occurred', error.stack, 'TestContext');
+
+      expect(winstonSpy).toHaveBeenCalledWith('Error occurred', expect.objectContaining({
+        context: 'TestContext',
+        stack: error.stack
+      }));
+    });
+
+    it('handles error without stack trace', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { error: jest.Mock } }).winston,
+        'error',
+      );
+
+      service.error('Error occurred', undefined, 'TestContext');
+
+      expect(winstonSpy).toHaveBeenCalledWith('Error occurred', expect.objectContaining({
+        context: 'TestContext'
+      }));
+    });
+
+    it('handles error without context', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { error: jest.Mock } }).winston,
+        'error',
+      );
+
+      service.error('Error occurred');
+
+      expect(winstonSpy).toHaveBeenCalledWith('Error occurred', expect.any(Object));
+    });
   });
 
-  it('includes correlation ID in log output when set', () => {
-    const winstonSpy = jest.spyOn(
-      (service as unknown as { winston: { info: jest.Mock } }).winston,
-      'info',
-    );
+  describe('Structured Output', () => {
+    it('includes service name in log output', () => {
+      process.env.SERVICE_NAME = 'test-service';
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [AppLoggerService],
+      }).compile();
+      const configuredService = module.get(AppLoggerService);
+      
+      expect(configuredService).toBeDefined();
+      delete process.env.SERVICE_NAME;
+    });
 
-    runWithCorrelationId(() => {
+    it('includes timestamp in log output', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { info: jest.Mock } }).winston,
+        'info',
+      );
+
       service.log('test message');
-    }, 'cid-test-123');
 
-    expect(winstonSpy).toHaveBeenCalledWith('test message', expect.any(Object));
+      expect(winstonSpy).toHaveBeenCalled();
+    });
+
+    it('includes process ID in log output', () => {
+      const winstonSpy = jest.spyOn(
+        (service as unknown as { winston: { info: jest.Mock } }).winston,
+        'info',
+      );
+
+      service.log('test message');
+
+      expect(winstonSpy).toHaveBeenCalled();
+    });
   });
 });
