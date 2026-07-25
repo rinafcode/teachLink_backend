@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,6 +21,7 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -121,7 +123,8 @@ export class AuthService {
   }
 
   private async updateRefreshTokenHash(userId: string, refreshToken: string) {
-    const salt = await bcrypt.genSalt(10);
+    const rounds = Number(this.configService.get('BCRYPT_ROUNDS', 12));
+    const salt = await bcrypt.genSalt(rounds);
     const hash = await bcrypt.hash(refreshToken, salt);
     await this.userRepository.update(userId, { refreshToken: hash });
   }

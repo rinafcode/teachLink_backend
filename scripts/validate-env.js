@@ -213,9 +213,9 @@ const ENV_SPEC = {
   BCRYPT_ROUNDS: {
     required: false,
     type: 'integer',
-    min: 4,
-    max: 15,
-    default: 10,
+    min: 10,
+    max: 14,
+    default: 12,
     description: 'Bcrypt hashing rounds',
   },
   JWT_EXPIRES_IN: {

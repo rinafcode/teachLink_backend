@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PaymentMethodsService } from './payment-methods.service';
 import { CreatePaymentMethodDto, UpdatePaymentMethodDto } from './payment-methods.dto';
+import { Idempotent } from '../../common/decorators/idempotency.decorator';
 
 @ApiTags('Payment Methods')
 @Controller('payment-methods')
@@ -17,6 +18,7 @@ export class PaymentMethodsController {
   }
 
   @Post()
+  @Idempotent()
   @ApiOperation({ summary: 'Add a new payment method' })
   @ApiQuery({ name: 'userId', required: true, description: 'User identifier' })
   @ApiResponse({ status: 201, description: 'Payment method added' })
