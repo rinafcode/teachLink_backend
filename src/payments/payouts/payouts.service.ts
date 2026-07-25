@@ -51,14 +51,14 @@ const MAX_PAGE_SIZE = 100;
 const DEFAULT_CURRENCY = 'USD';
 
 /**
- * Convert an arbitrary numeric value (which may have arrived as a Number or
- * as a String from SQL SUM/numeric output) into a 2-decimal currency-ready
- * JavaScript number, using Decimal arithmetic to avoid IEEE-754 drift
- * (Issue #820 / fix-820). The SQL SUM result is exact; only the post-fetch
- * subtraction and Number coercion can drift, so Decimal is applied at this
- * boundary only.
+ * Convert an arbitrary numeric value (which may have arrived as a Number, a
+ * String from SQL SUM/numeric output, or a Decimal from an arithmetic chain)
+ * into a 2-decimal currency-ready JavaScript number, using Decimal arithmetic
+ * to avoid IEEE-754 drift (Issue #820 / fix-820). The SQL SUM result is
+ * exact; only the post-fetch subtraction and Number coercion can drift, so
+ * Decimal is applied at this boundary only.
  */
-function toMoneyNumber(value: string | number): number {
+function toMoneyNumber(value: string | number | Decimal): number {
   return new Decimal(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 }
 
@@ -397,7 +397,7 @@ export class PayoutsService {
     const totalRefunds = toMoneyNumber(refundsRow?.totalRefunds ?? 0);
     return {
       totalGrossRevenue: totalGross,
-      totalRefunds: totalRefunds,
+      totalRefunds,
       totalNetRevenue: toMoneyNumber(new Decimal(totalGross).minus(totalRefunds)),
       currency: DEFAULT_CURRENCY,
     };

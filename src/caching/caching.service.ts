@@ -59,7 +59,7 @@ export const deriveCacheType = (key: string): string => {
 export const buildCounterKeys = (cacheType: string): { hits: string; misses: string } => ({
   hits: `cache:hits:${cacheType}`,
   misses: `cache:misses:${cacheType}`,
-);
+});
 
 // ── Issue #812 thundering-herd protection (#812) ────────────────────────────
 
@@ -495,10 +495,7 @@ export class CachingService {
     return DEFAULT_LOCK_TTL_MS;
   }
 
-  private async pollUntilValuePresent<T>(
-    key: string,
-    timeoutMs: number,
-  ): Promise<T | undefined> {
+  private async pollUntilValuePresent<T>(key: string, timeoutMs: number): Promise<T | undefined> {
     const deadline = Date.now() + timeoutMs;
     let backoffMs = POLL_INITIAL_BACKOFF_MS;
     while (Date.now() < deadline) {
