@@ -10,6 +10,7 @@ import { Queue } from 'bull';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { APP_EVENTS } from '../../common/constants/event.constants';
+import { enrichWithCorrelation } from '../../queues/utils/correlation-job.util';
 import { AutomationWorkflow } from '../entities/automation-workflow.entity';
 import { AutomationTrigger } from '../entities/automation-trigger.entity';
 import { AutomationAction } from '../entities/automation-action.entity';
@@ -281,21 +282,24 @@ export class AutomationService {
   ): Promise<void> {
     switch (action.type) {
       case ActionType.SEND_EMAIL:
-        await this.emailQueue.add(JOB_NAMES.SEND_AUTOMATION_EMAIL, {
-          actionId: action.id,
-          templateId: action.config.templateId,
-          userId: payload.userId,
-          variables: { ...payload, ...action.config.variables },
-        });
+        await this.emailQueue.add(
+          JOB_NAMES.SEND_AUTOMATION_EMAIL,
+          enrichWithCorrelation({
+            actionId: action.id,
+            templateId: action.config.templateId,
+            userId: payload.userId,
+            variables: { ...payload, ...action.config.variables },
+          }),
+        );
         break;
       case ActionType.WAIT:
         await this.emailQueue.add(
           JOB_NAMES.CONTINUE_AUTOMATION,
-          {
+          enrichWithCorrelation({
             workflowId: action.workflowId,
             nextActionOrder: action.order + 1,
             payload,
-          },
+          }),
           { delay: action.config.delayMs || 0 },
         );
         break;
@@ -318,11 +322,14 @@ export class AutomationService {
         });
         break;
       case ActionType.WEBHOOK:
-        await this.emailQueue.add(JOB_NAMES.CALL_WEBHOOK, {
-          url: action.config.webhookUrl,
-          method: action.config.method || 'POST',
-          payload: { ...payload, ...action.config.webhookPayload },
-        });
+        await this.emailQueue.add(
+          JOB_NAMES.CALL_WEBHOOK,
+          enrichWithCorrelation({
+            url: action.config.webhookUrl,
+            method: action.config.method || 'POST',
+            payload: { ...payload, ...action.config.webhookPayload },
+          }),
+        );
         break;
       default:
         console.warn(`Unknown action type: ${action.type}`);

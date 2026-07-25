@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Payment, PaymentStatus } from '../entities/payment.entity';
 import { Refund, RefundStatus } from '../entities/refund.entity';
 import { Course } from '../../courses/entities/course.entity';
@@ -11,6 +11,56 @@ import { UpdatePayoutSettingsDto } from './dto/payout.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { NotificationType } from '../../notifications/entities/notification.entity';
 import Decimal from 'decimal.js';
+
+export interface RevenueBreakdownPagination {
+  page?: number;
+  pageSize?: number;
+}
+
+export interface RevenueBreakdownPageInfo {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface RevenueBreakdownCourseRow {
+  courseId: string;
+  title: string;
+  grossRevenue: number;
+  refunds: number;
+  netRevenue: number;
+  salesCount: number;
+}
+
+export interface RevenueBreakdownSummary {
+  totalGrossRevenue: number;
+  totalRefunds: number;
+  totalNetRevenue: number;
+  currency: string;
+}
+
+export interface RevenueBreakdownResult {
+  summary: RevenueBreakdownSummary;
+  pageInfo: RevenueBreakdownPageInfo;
+  courses: RevenueBreakdownCourseRow[];
+}
+
+const DEFAULT_PAGE_SIZE = 10;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_CURRENCY = 'USD';
+
+/**
+ * Convert an arbitrary numeric value (which may have arrived as a Number, a
+ * String from SQL SUM/numeric output, or a Decimal from an arithmetic chain)
+ * into a 2-decimal currency-ready JavaScript number, using Decimal arithmetic
+ * to avoid IEEE-754 drift (Issue #820 / fix-820). The SQL SUM result is
+ * exact; only the post-fetch subtraction and Number coercion can drift, so
+ * Decimal is applied at this boundary only.
+ */
+function toMoneyNumber(value: string | number | Decimal): number {
+  return new Decimal(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+}
 
 @Injectable()
 export class PayoutsService {
@@ -34,84 +84,60 @@ export class PayoutsService {
 
   /**
    * Generates the revenue breakdown for an instructor, course-by-course.
+   *
+   * Uses two pre-aggregated derived subqueries (gross, refunds) joined back
+   * onto the courses table, so the per-course and summary numbers are
+   * computed in 3 SQL round-trips regardless of dataset size. Refunds are
+   * aggregated PER PAYMENT in the subquery so a payment with multiple
+   * partial refunds still contributes its gross exactly once (avoids the
+   * row-multiplicity bug that direct LEFT JOIN would cause). Decimal
+   * arithmetic at the JS-boundary rounding step satisfies Issue #820, and
+   * pagination is added per Issue #809.
    */
-  async getRevenueBreakdown(instructorId: string) {
-    const courses = await this.courseRepository.find({
-      where: { instructorId },
-    });
+  async getRevenueBreakdown(
+    instructorId: string,
+    pagination: RevenueBreakdownPagination = {},
+  ): Promise<RevenueBreakdownResult> {
+    const page = this.normalizePage(pagination.page);
+    const pageSize = this.normalizePageSize(pagination.pageSize);
 
-    if (courses.length === 0) {
-      return {
-        summary: {
-          totalGrossRevenue: 0.0,
-          totalRefunds: 0.0,
-          totalNetRevenue: 0.0,
-          currency: 'USD',
-        },
-        courses: [],
-      };
+    const emptyResult: RevenueBreakdownResult = {
+      summary: {
+        totalGrossRevenue: 0,
+        totalRefunds: 0,
+        totalNetRevenue: 0,
+        currency: DEFAULT_CURRENCY,
+      },
+      pageInfo: {
+        total: 0,
+        page,
+        pageSize,
+        totalPages: 0,
+      },
+      courses: [],
+    };
+
+    const total = await this.countInstructorCourses(instructorId);
+    if (total === 0) {
+      return emptyResult;
     }
 
-    const courseIds = courses.map((c) => c.id);
+    const [courses, summary] = await Promise.all([
+      this.fetchPaginatedCourseRevenue(instructorId, page, pageSize),
+      this.fetchInstructorRevenueSummary(instructorId),
+    ]);
 
-    // Fetch all completed payments for instructor's courses
-    const payments = await this.paymentRepository.find({
-      where: {
-        courseId: In(courseIds),
-        status: PaymentStatus.COMPLETED,
-      },
-    });
-
-    const paymentIds = payments.map((p) => p.id);
-
-    // Fetch all processed refunds for those payments
-    const refunds =
-      paymentIds.length > 0
-        ? await this.refundRepository.find({
-            where: {
-              paymentId: In(paymentIds),
-              status: RefundStatus.PROCESSED,
-            },
-          })
-        : [];
-
-    // Map payments and refunds to courses
-    let totalGrossRevenue = new Decimal(0);
-    let totalRefunds = new Decimal(0);
-
-    const coursesBreakdown = courses.map((course) => {
-      const coursePayments = payments.filter((p) => p.courseId === course.id);
-      const coursePaymentIds = coursePayments.map((p) => p.id);
-      const courseRefunds = refunds.filter((r) => coursePaymentIds.includes(r.paymentId));
-
-      const gross = coursePayments.reduce((sum, p) => sum.plus(p.amount), new Decimal(0));
-      const refunded = courseRefunds.reduce((sum, r) => sum.plus(r.amount), new Decimal(0));
-      const net = gross.minus(refunded);
-
-      totalGrossRevenue = totalGrossRevenue.plus(gross);
-      totalRefunds = totalRefunds.plus(refunded);
-
-      return {
-        courseId: course.id,
-        title: course.title,
-        grossRevenue: gross.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
-        refunds: refunded.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
-        netRevenue: net.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
-        salesCount: coursePayments.length,
-      };
-    });
+    const totalPages = Math.ceil(total / pageSize);
 
     return {
-      summary: {
-        totalGrossRevenue: totalGrossRevenue.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
-        totalRefunds: totalRefunds.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
-        totalNetRevenue: totalGrossRevenue
-          .minus(totalRefunds)
-          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-          .toNumber(),
-        currency: 'USD',
+      summary,
+      pageInfo: {
+        total,
+        page,
+        pageSize,
+        totalPages,
       },
-      courses: coursesBreakdown,
+      courses,
     };
   }
 
@@ -185,7 +211,6 @@ export class PayoutsService {
 
     const savedPayout = await this.payoutRepository.save(payout);
 
-    // Retrieve instructor profile for name and email
     const instructor = await this.userRepository.findOne({
       where: { id: instructorId },
     });
@@ -228,5 +253,153 @@ export class PayoutsService {
     }
 
     return savedPayout;
+  }
+
+  /**
+   * Builds the OUTER QueryBuilder that joins per-course aggregations. The
+   * pre-aggregated subqueries prevent row-multiplicity from blowing up the
+   * gross/refund totals when a payment has multiple partial refunds.
+   * Exposed (package-private) for unit testing convenience.
+   */
+  protected buildCourseRevenueQuery(instructorId: string): SelectQueryBuilder<Course> {
+    const grossSubquery = this.buildPerCourseGrossSubquery();
+    const refundsSubquery = this.buildPerCourseRefundsSubquery();
+
+    return this.courseRepository
+      .createQueryBuilder('course')
+      .leftJoin(`(${grossSubquery.getQuery()})`, 'gross_sub', 'gross_sub.course_id = course.id')
+      .leftJoin(
+        `(${refundsSubquery.getQuery()})`,
+        'refunds_sub',
+        'refunds_sub.course_id = course.id',
+      )
+      .select('course.id', 'courseId')
+      .addSelect('course.title', 'title')
+      .addSelect('COALESCE(gross_sub.gross, 0)', 'gross')
+      .addSelect('COALESCE(refunds_sub.refunds, 0)', 'refunds')
+      .addSelect('COALESCE(gross_sub.sales_count, 0)', 'salesCount')
+      .where('course.instructorId = :instructorId', { instructorId })
+      .orderBy('course.title', 'ASC')
+      .setParameters({
+        ...grossSubquery.getParameters(),
+        ...refundsSubquery.getParameters(),
+      });
+  }
+
+  /**
+   * Per-course gross aggregator: sums completed payments grouped by
+   * course_id, returning one row per course.
+   */
+  private buildPerCourseGrossSubquery(): SelectQueryBuilder<Payment> {
+    return this.paymentRepository
+      .createQueryBuilder('p')
+      .select('p.course_id', 'course_id')
+      .addSelect('SUM(p.amount)', 'gross')
+      .addSelect('COUNT(p.id)', 'sales_count')
+      .where('p.status = :completedPaymentStatus', {
+        completedPaymentStatus: PaymentStatus.COMPLETED,
+      })
+      .andWhere('p.course_id IS NOT NULL')
+      .groupBy('p.course_id');
+  }
+
+  /**
+   * Per-course refund aggregator: sums processed refunds grouped by their
+   * payment's course_id, returning one row per course. Refunds are
+   * aggregated per course_id via the inner JOIN — never duplicated across
+   * payment rows.
+   */
+  private buildPerCourseRefundsSubquery(): SelectQueryBuilder<Refund> {
+    return this.refundRepository
+      .createQueryBuilder('r')
+      .innerJoin(Payment, 'p', 'p.id = r.payment_id AND p.status = :completedPaymentStatus', {
+        completedPaymentStatus: PaymentStatus.COMPLETED,
+      })
+      .select('p.course_id', 'course_id')
+      .addSelect('SUM(r.amount)', 'refunds')
+      .where('r.status = :processedRefundStatus', {
+        processedRefundStatus: RefundStatus.PROCESSED,
+      })
+      .andWhere('p.course_id IS NOT NULL')
+      .groupBy('p.course_id');
+  }
+
+  private normalizePage(page?: number): number {
+    if (page === undefined || Number.isNaN(page) || page < 1) {
+      return 1;
+    }
+    return Math.floor(page);
+  }
+
+  private normalizePageSize(pageSize?: number): number {
+    if (pageSize === undefined || Number.isNaN(pageSize) || pageSize < 1) {
+      return DEFAULT_PAGE_SIZE;
+    }
+    return Math.min(Math.floor(pageSize), MAX_PAGE_SIZE);
+  }
+
+  private async countInstructorCourses(instructorId: string): Promise<number> {
+    return this.courseRepository
+      .createQueryBuilder('course')
+      .where('course.instructorId = :instructorId', { instructorId })
+      .getCount();
+  }
+
+  private async fetchPaginatedCourseRevenue(
+    instructorId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<RevenueBreakdownCourseRow[]> {
+    const qb = this.buildCourseRevenueQuery(instructorId);
+    qb.offset((page - 1) * pageSize).limit(pageSize);
+
+    const rawRows = await qb.getRawMany();
+    return rawRows.map((row) => {
+      const gross = toMoneyNumber(row.gross ?? 0);
+      const refunds = toMoneyNumber(row.refunds ?? 0);
+      return {
+        courseId: row.courseId,
+        title: row.title,
+        grossRevenue: gross,
+        refunds,
+        netRevenue: toMoneyNumber(new Decimal(gross).minus(refunds)),
+        salesCount: Number(row.salesCount) || 0,
+      };
+    });
+  }
+
+  private async fetchInstructorRevenueSummary(
+    instructorId: string,
+  ): Promise<RevenueBreakdownSummary> {
+    const [grossRow, refundsRow] = await Promise.all([
+      this.paymentRepository
+        .createQueryBuilder('p')
+        .innerJoin(Course, 'c', 'c.id = p.course_id AND c.instructorId = :instructorId', {
+          instructorId,
+        })
+        .select('COALESCE(SUM(p.amount), 0)', 'totalGross')
+        .where('p.status = :completedStatus', { completedStatus: PaymentStatus.COMPLETED })
+        .getRawOne(),
+      this.refundRepository
+        .createQueryBuilder('r')
+        .innerJoin(Payment, 'p', 'p.id = r.payment_id AND p.status = :completedStatus', {
+          completedStatus: PaymentStatus.COMPLETED,
+        })
+        .innerJoin(Course, 'c', 'c.id = p.course_id AND c.instructorId = :instructorId', {
+          instructorId,
+        })
+        .select('COALESCE(SUM(r.amount), 0)', 'totalRefunds')
+        .where('r.status = :processedStatus', { processedStatus: RefundStatus.PROCESSED })
+        .getRawOne(),
+    ]);
+
+    const totalGross = toMoneyNumber(grossRow?.totalGross ?? 0);
+    const totalRefunds = toMoneyNumber(refundsRow?.totalRefunds ?? 0);
+    return {
+      totalGrossRevenue: totalGross,
+      totalRefunds,
+      totalNetRevenue: toMoneyNumber(new Decimal(totalGross).minus(totalRefunds)),
+      currency: DEFAULT_CURRENCY,
+    };
   }
 }
