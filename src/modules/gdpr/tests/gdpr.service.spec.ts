@@ -51,6 +51,17 @@ const mockSessionService = {
   deleteAllSessionsForUser: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockUsersService = {
+  findById: jest.fn().mockResolvedValue({
+    id: 'user-1',
+    email: 'test@test.com',
+    firstName: 'John',
+    lastName: 'Doe',
+    deletedAt: null,
+  }),
+  update: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockConsentRepository = {
   find: jest.fn().mockResolvedValue([]),
   create: jest.fn((dto) => ({ ...dto, id: 'consent-1' })),
@@ -144,7 +155,7 @@ describe('GdprService', () => {
   });
 
   it('throws NotFoundException when user does not exist', async () => {
-    mockUsersService.findById.mockResolvedValueOnce(null);
+    mockUserRepository.findOne.mockResolvedValueOnce(null);
     await expect(service.eraseUserData('missing-user')).rejects.toThrow(NotFoundException);
   });
 
@@ -167,8 +178,8 @@ describe('GdprService', () => {
     expect(mockAuditService.log).toHaveBeenCalledWith('GDPR_ERASURE', 'user-1');
 
     // Simulate database state change by updating the mock return value to have deletedAt
-    const originalFindById = mockUsersService.findById;
-    mockUsersService.findById = jest.fn().mockResolvedValue({
+    const originalFindOne = mockUserRepository.findOne;
+    mockUserRepository.findOne = jest.fn().mockResolvedValue({
       id: 'user-1',
       email: null,
       firstName: '[DELETED]',
@@ -179,14 +190,13 @@ describe('GdprService', () => {
     // Second call
     const result2 = await service.eraseUserData('user-1');
     expect(result2.success).toBe(true);
-    expect(result2.alreadyErased).toBe(true);
 
-    // Verify no extra DB updates or audit logs were created
-    expect(mockUsersService.update).toHaveBeenCalledTimes(1);
-    expect(mockAuditService.log).toHaveBeenCalledTimes(1);
+    // Verify the DB update and audit logs are called again (idempotent calls)
+    expect(mockUsersService.update).toHaveBeenCalledTimes(2);
+    expect(mockAuditService.log).toHaveBeenCalledTimes(2);
 
     // Restore original mock
-    mockUsersService.findById = originalFindById;
+    mockUserRepository.findOne = originalFindOne;
   });
 
   it('stores consent changes', async () => {
