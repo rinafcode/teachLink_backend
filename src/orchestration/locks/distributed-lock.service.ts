@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import { randomUUID } from 'crypto';
+import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 
 const RELEASE_SCRIPT = `
   if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -11,16 +12,14 @@ const RELEASE_SCRIPT = `
 
 /**
  * Provides distributed Lock operations.
+ *
+ * Issue #837 — uses the shared `REDIS_CLIENT` connection
+ * (standalone/Sentinel/Cluster, see `RedisModule`) instead of opening its
+ * own connection to `REDIS_URL`.
  */
 @Injectable()
 export class DistributedLockService {
-  private redis = new Redis(process.env.REDIS_URL);
-
-  constructor() {
-    this.redis.on('error', () => {
-      // Prevent unhandled error events during Redis outages.
-    });
-  }
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
   /**
    * Atomically acquires a lock via a single SET key value NX PX command,
