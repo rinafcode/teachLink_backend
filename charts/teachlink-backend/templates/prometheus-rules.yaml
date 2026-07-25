@@ -1,0 +1,73 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "teachlink-backend.fullname" . }}-rules
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "teachlink-backend.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: teachlink-backend-sla.rules
+      rules:
+        - alert: HighErrorRate
+          expr: |
+            (
+              sum(rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]))
+              /
+              sum(rate(http_request_duration_seconds_count[5m]))
+            ) * 100 > 1
+          for: 5m
+          labels:
+            severity: {{ .Values.prometheusRule.severities.highErrorRate | default "critical" }}
+            service: {{ include "teachlink-backend.name" . }}
+          annotations:
+            summary: "API 5xx error rate exceeds SLA threshold of 1%"
+            description: "HTTP 5xx error rate is {{ $value | printf \"%.2f\" }}% for more than 5 minutes on {{ $labels.service }}."
+            runbook_url: "{{ .Values.prometheusRule.runbookBaseUrl }}#5-higherrorrate"
+
+        - alert: HighP99Latency
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+            ) > 1
+          for: 10m
+          labels:
+            severity: {{ .Values.prometheusRule.severities.highP99Latency | default "critical" }}
+            service: {{ include "teachlink-backend.name" . }}
+          annotations:
+            summary: "API P99 latency exceeds SLA threshold of 1s"
+            description: "P99 HTTP request latency is {{ $value | printf \"%.2f\" }}s for more than 10 minutes on {{ $labels.service }}."
+            runbook_url: "{{ .Values.prometheusRule.runbookBaseUrl }}#6-highp99latency"
+
+        - alert: QueueDepthHigh
+          expr: |
+            sum by (queue_name) (queue_waiting_jobs) > 1000
+          for: 10m
+          labels:
+            severity: {{ .Values.prometheusRule.severities.queueDepthHigh | default "warning" }}
+            service: {{ include "teachlink-backend.name" . }}
+          annotations:
+            summary: "Queue depth exceeds SLA threshold of 1000 waiting jobs"
+            description: "Queue {{ $labels.queue_name }} has {{ $value }} waiting jobs for more than 10 minutes."
+            runbook_url: "{{ .Values.prometheusRule.runbookBaseUrl }}#7-queuedepthhigh"
+
+        - alert: DLQDepthHigh
+          expr: |
+            sum by (queue_name) (
+              queue_waiting_jobs{queue_name=~".*dlq.*|.*dead-letter.*"}
+              or queue_failed_jobs_total
+            ) > 0
+          for: 5m
+          labels:
+            severity: {{ .Values.prometheusRule.severities.dlqDepthHigh | default "critical" }}
+            service: {{ include "teachlink-backend.name" . }}
+          annotations:
+            summary: "Dead-letter queue contains unhandled failed jobs"
+            description: "Queue {{ $labels.queue_name }} has {{ $value }} dead-letter/failed jobs for more than 5 minutes."
+            runbook_url: "{{ .Values.prometheusRule.runbookBaseUrl }}#8-dlqdepthhigh"
+{{- end }}
