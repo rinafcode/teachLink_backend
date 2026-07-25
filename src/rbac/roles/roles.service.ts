@@ -164,7 +164,10 @@ export class RolesService {
   async deleteRole(id: string, context: RbacAuditContext = {}): Promise<void> {
     const before = await this.findRoleById(id, true);
 
-    if (before.isSystem || BUILTIN_ROLE_NAMES.includes(before.name as (typeof BUILTIN_ROLE_NAMES)[number])) {
+    if (
+      before.isSystem ||
+      BUILTIN_ROLE_NAMES.includes(before.name as (typeof BUILTIN_ROLE_NAMES)[number])
+    ) {
       throw new ConflictException(`System role '${before.name}' cannot be deleted`);
     }
 
@@ -274,7 +277,11 @@ export class RolesService {
    * emission inside the service lets callers (e.g. controllers) record the
    * intent even if persistence is performed elsewhere.
    */
-  async logRoleAssigned(roleId: string, targetUserId: string, context: RbacAuditContext = {}): Promise<void> {
+  async logRoleAssigned(
+    roleId: string,
+    targetUserId: string,
+    context: RbacAuditContext = {},
+  ): Promise<void> {
     const role = await this.findRoleById(roleId);
 
     await this.writeAudit({
@@ -287,7 +294,11 @@ export class RolesService {
     });
   }
 
-  async logRoleRevoked(roleId: string, targetUserId: string, context: RbacAuditContext = {}): Promise<void> {
+  async logRoleRevoked(
+    roleId: string,
+    targetUserId: string,
+    context: RbacAuditContext = {},
+  ): Promise<void> {
     const role = await this.findRoleById(roleId);
 
     await this.writeAudit({
@@ -329,7 +340,9 @@ export class RolesService {
         },
       });
     } catch (err) {
-      this.logger.warn(`Audit log write failed for ${action} on role ${role.id}: ${(err as Error).message}`);
+      this.logger.warn(
+        `Audit log write failed for ${action} on role ${role.id}: ${(err as Error).message}`,
+      );
     }
   }
 }

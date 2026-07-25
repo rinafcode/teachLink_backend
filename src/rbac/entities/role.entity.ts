@@ -16,7 +16,13 @@ import { User } from '../../users/entities/user.entity';
  * Built-in roles that ship with the platform.
  * These are protected from deletion and are used by authorization checks.
  */
-export const BUILTIN_ROLE_NAMES = ['student', 'teacher', 'instructor', 'moderator', 'admin'] as const;
+export const BUILTIN_ROLE_NAMES = [
+  'student',
+  'teacher',
+  'instructor',
+  'moderator',
+  'admin',
+] as const;
 
 export type BuiltinRoleName = (typeof BUILTIN_ROLE_NAMES)[number];
 
