@@ -115,6 +115,15 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
+  @Column({ default: false })
+  isMfaEnabled: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  totpSecret?: string;
+
+  @Column('text', { array: true, default: [] })
+  mfaRecoveryCodes: string[];
+
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable()
   roles: Role[];

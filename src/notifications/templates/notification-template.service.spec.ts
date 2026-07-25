@@ -65,9 +65,9 @@ describe('NotificationTemplateService', () => {
       // Verify that the malicious scripts are escaped/sanitized
       expect(result.body).not.toContain('<script>');
       expect(result.body).not.toContain('onerror=alert(1)');
-      // Verify the content is still present but escaped
-      expect(result.body).toContain('alert(&quot;xss&quot;)');
-      expect(result.body).toContain('&lt;img src=x');
+      // Verify the malicious content is completely stripped by sanitize-html
+      expect(result.body).not.toContain('alert("xss")');
+      expect(result.body).not.toContain('img src=x');
     });
   });
 

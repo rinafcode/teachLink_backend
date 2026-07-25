@@ -19,7 +19,7 @@ import { ZeroTrustGuard } from './zero-trust.guard';
  *   - ThreatDetectionService: IP-level abuse detection
  */
 @Module({
-  imports: [ScheduleModule.forRoot(), SecretsModule],
+  imports: [ScheduleModule.forRoot(), SecretsModule, MonitoringModule],
   providers: [
     SecurityService,
     EncryptionService,

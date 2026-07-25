@@ -10,6 +10,7 @@ import { InstructorPayout, PayoutStatus } from '../entities/payout.entity';
 import { UpdatePayoutSettingsDto } from './dto/payout.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { NotificationType } from '../../notifications/entities/notification.entity';
+import Decimal from 'decimal.js';
 
 @Injectable()
 export class PayoutsService {
@@ -75,36 +76,39 @@ export class PayoutsService {
         : [];
 
     // Map payments and refunds to courses
-    let totalGrossRevenue = 0;
-    let totalRefunds = 0;
+    let totalGrossRevenue = new Decimal(0);
+    let totalRefunds = new Decimal(0);
 
     const coursesBreakdown = courses.map((course) => {
       const coursePayments = payments.filter((p) => p.courseId === course.id);
       const coursePaymentIds = coursePayments.map((p) => p.id);
       const courseRefunds = refunds.filter((r) => coursePaymentIds.includes(r.paymentId));
 
-      const gross = coursePayments.reduce((sum, p) => sum + Number(p.amount), 0);
-      const refunded = courseRefunds.reduce((sum, r) => sum + Number(r.amount), 0);
-      const net = gross - refunded;
+      const gross = coursePayments.reduce((sum, p) => sum.plus(p.amount), new Decimal(0));
+      const refunded = courseRefunds.reduce((sum, r) => sum.plus(r.amount), new Decimal(0));
+      const net = gross.minus(refunded);
 
-      totalGrossRevenue += gross;
-      totalRefunds += refunded;
+      totalGrossRevenue = totalGrossRevenue.plus(gross);
+      totalRefunds = totalRefunds.plus(refunded);
 
       return {
         courseId: course.id,
         title: course.title,
-        grossRevenue: Number(gross.toFixed(2)),
-        refunds: Number(refunded.toFixed(2)),
-        netRevenue: Number(net.toFixed(2)),
+        grossRevenue: gross.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
+        refunds: refunded.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
+        netRevenue: net.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
         salesCount: coursePayments.length,
       };
     });
 
     return {
       summary: {
-        totalGrossRevenue: Number(totalGrossRevenue.toFixed(2)),
-        totalRefunds: Number(totalRefunds.toFixed(2)),
-        totalNetRevenue: Number((totalGrossRevenue - totalRefunds).toFixed(2)),
+        totalGrossRevenue: totalGrossRevenue.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
+        totalRefunds: totalRefunds.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
+        totalNetRevenue: totalGrossRevenue
+          .minus(totalRefunds)
+          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+          .toNumber(),
         currency: 'USD',
       },
       courses: coursesBreakdown,

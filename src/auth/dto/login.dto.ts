@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional } from 'class-validator';
 
 export class LoginDto {
   @Transform(({ value }) => value?.toLowerCase?.() ?? value)
@@ -10,4 +10,8 @@ export class LoginDto {
   @IsNotEmpty()
   @MinLength(6)
   password: string;
+
+  @IsString()
+  @IsOptional()
+  mfaCode?: string;
 }

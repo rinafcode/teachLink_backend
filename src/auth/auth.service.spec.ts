@@ -1,7 +1,25 @@
+import 'reflect-metadata';
+
 jest.mock('bcrypt', () => ({
   genSalt: jest.fn().mockResolvedValue('salt'),
   hash: jest.fn().mockResolvedValue('hashed-password'),
   compare: jest.fn().mockResolvedValue(true),
+}));
+
+jest.mock('../users/entities/user.entity', () => ({
+  User: class User {},
+  UserStatus: {
+    ACTIVE: 'active',
+  },
+}));
+
+jest.mock('../security/audit/security-event-logger', () => ({
+  SecurityEventLogger: class SecurityEventLogger {},
+  SecurityEventType: {
+    AUTH_FAILURE: 'AUTH_FAILURE',
+    TOKEN_REUSE: 'TOKEN_REUSE',
+    ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+  },
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -13,6 +31,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { User, UserStatus } from '../users/entities/user.entity';
+import { SecurityEventLogger, SecurityEventType } from '../security/audit/security-event-logger';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -46,6 +65,10 @@ const mockBlacklistService = {
   isBlacklisted: jest.fn(),
 };
 
+const mockSecurityEventLogger = {
+  emit: jest.fn(),
+};
+
 const mockConfigService = {
   get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
     if (key === 'BCRYPT_ROUNDS') return 10;
@@ -63,6 +86,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: TokenBlacklistService, useValue: mockBlacklistService },
+        { provide: SecurityEventLogger, useValue: mockSecurityEventLogger },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
@@ -145,6 +169,13 @@ describe('AuthService', () => {
       });
 
       await expect(service.refreshTokens('bad-token')).rejects.toThrow(UnauthorizedException);
+      expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.AUTH_FAILURE,
+          severity: 'medium',
+          details: expect.objectContaining({ reason: 'invalid_or_expired_refresh_token' }),
+        }),
+      );
     });
 
     it('throws UnauthorizedException when the user does not exist', async () => {
@@ -169,6 +200,14 @@ describe('AuthService', () => {
 
       await expect(service.refreshTokens('revoked-token')).rejects.toThrow(UnauthorizedException);
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
+      expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.TOKEN_REUSE,
+          userId: 'user-1',
+          severity: 'critical',
+          details: expect.objectContaining({ jti: 'jti-abc' }),
+        }),
+      );
     });
 
     it('throws UnauthorizedException when the user status is SUSPENDED', async () => {
