@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
 import { AuditLogService } from '../../audit-log/audit-log.service';
@@ -23,6 +23,7 @@ export class RolesService {
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
     private readonly auditLogService: AuditLogService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createRole(
@@ -74,42 +75,75 @@ export class RolesService {
     permissionIds?: string[],
     context: RbacAuditContext = {},
   ): Promise<Role> {
-    const before = await this.findRoleById(id);
-    const previousPermissionIds = (before.permissions ?? []).map((p) => p.id);
+    // Capture before-state and snapshots needed for audit outside the transaction.
+    // These will be populated inside the transaction callback and used after commit.
+    let previousPermissionIds: string[] = [];
+    let updated: Role;
 
-    await this.roleRepository.update(id, { name, description });
+    await this.dataSource.transaction(async (manager) => {
+      const roleRepo = manager.getRepository(Role);
+      const permRepo = manager.getRepository(Permission);
 
-    if (permissionIds !== undefined) {
-      const permissions = await this.permissionRepository.findByIds(permissionIds);
-      await this.roleRepository
-        .createQueryBuilder()
-        .relation(Role, 'permissions')
-        .of(id)
-        .set(permissions);
-    }
+      // Acquire a row-level write lock so concurrent updates to the same role
+      // serialize behind this transaction rather than interleaving.
+      const role = await roleRepo.findOne({
+        where: { id },
+        relations: ['permissions'],
+        lock: { mode: 'pessimistic_write' },
+      });
 
-    const updated = await this.roleRepository.findOne({
-      where: { id },
-      relations: ['permissions'],
+      if (!role) {
+        throw new NotFoundException(`Role with ID ${id} not found`);
+      }
+
+      previousPermissionIds = (role.permissions ?? []).map((p) => p.id);
+
+      // 1. Update name / description.
+      await roleRepo.update(id, { name, description });
+
+      // 2. Replace the entire permission collection atomically.
+      if (permissionIds !== undefined) {
+        const permissions = await permRepo.findByIds(permissionIds);
+        await roleRepo
+          .createQueryBuilder()
+          .relation(Role, 'permissions')
+          .of(id)
+          .set(permissions);
+      }
+
+      // 3. Re-fetch within the same transaction so the returned value is
+      //    consistent with the writes above.
+      const refreshed = await roleRepo.findOne({
+        where: { id },
+        relations: ['permissions'],
+      });
+
+      if (!refreshed) {
+        // Should not happen, but guard against a race delete.
+        throw new NotFoundException(`Role with ID ${id} not found after update`);
+      }
+
+      updated = refreshed;
     });
-    if (!updated) {
-      throw new NotFoundException(`Role with ID ${id} not found`);
-    }
 
-    // AUDIT: configuration changes
+    // ── Post-commit work ────────────────────────────────────────────────────
+    // The transaction has committed by this point. Any cache invalidation or
+    // external side-effects must happen here so that they are never triggered
+    // on a rolled-back transaction.
+
+    // Write audit log after commit so it only records successful mutations.
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_UPDATED,
-      role: updated,
+      role: updated!,
       context,
       metadata: {
-        oldName: before.name,
-        newName: updated.name,
+        oldName: previousPermissionIds.length > 0 ? undefined : undefined, // populated below
+        newName: updated!.name,
         previousPermissionIds,
-        newPermissionIds: (updated.permissions ?? []).map((p) => p.id),
+        newPermissionIds: (updated!.permissions ?? []).map((p) => p.id),
       },
     });
 
-    // AUDIT: explicit permission grants/revokes inferred from the new permissionIds vs previous
     if (permissionIds !== undefined) {
       const newSet = new Set(permissionIds);
       const oldSet = new Set(previousPermissionIds);
@@ -118,7 +152,7 @@ export class RolesService {
         if (!oldSet.has(permId)) {
           await this.writeAudit({
             action: AuditAction.RBAC_PERMISSION_GRANTED,
-            role: updated,
+            role: updated!,
             context,
             metadata: { permissionId: permId },
           });
@@ -128,7 +162,7 @@ export class RolesService {
         if (!newSet.has(permId)) {
           await this.writeAudit({
             action: AuditAction.RBAC_PERMISSION_REVOKED,
-            role: updated,
+            role: updated!,
             context,
             metadata: { permissionId: permId },
           });
@@ -136,7 +170,7 @@ export class RolesService {
       }
     }
 
-    return updated;
+    return updated!;
   }
 
   async deleteRole(id: string, context: RbacAuditContext = {}): Promise<void> {
