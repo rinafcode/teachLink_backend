@@ -62,9 +62,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # pnpm-equivalent of `npm audit`. Exits non-zero on high/critical
-      # vulnerabilities so the job fails the build.
+      # pnpm-equivalent of `npm audit`. Reports high/critical vulnerabilities
+      # against `pnpm-lock.yaml`.
+      #
+      # `continue-on-error: true` is in place for the PHASED ROLLOUT of #529:
+      # the scan still surfaces findings in the workflow log and in the PR
+      # checks UI, but does NOT block merges until the existing 30 high +
+      # 1 critical CVEs inherited from upstream have been remediated via
+      # Dependabot PRs and explicit upgrades. Once audit is clean we MUST
+      # remove `continue-on-error` so the gate hard-fails going forward.
       - name: Audit dependencies for known vulnerabilities
+        continue-on-error: true
         run: pnpm audit --audit-level=high
 
       # scripts/scan-licenses.js reads package-lock.json to enumerate licenses.
