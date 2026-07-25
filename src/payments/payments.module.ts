@@ -8,6 +8,7 @@ import { Invoice } from './entities/invoice.entity';
 import { Refund } from './entities/refund.entity';
 import { PricingService } from './services/pricing.service';
 import { PricingController } from './controllers/pricing.controller';
+import { PaymentProviderCircuitBreakerService } from './services/payment-provider-circuit-breaker.service';
 
 /**
  * PaymentsModule
@@ -17,6 +18,10 @@ import { PricingController } from './controllers/pricing.controller';
  * honored. The IdempotencyInterceptor is registered as APP_INTERCEPTOR in
  * AppModule so a single instance covers all routes, instead of being
  * redeclared per-module.
+ *
+ * PaymentProviderCircuitBreakerService wraps all outbound payment-provider
+ * HTTP calls so that a slow or unavailable gateway fails fast (503) instead
+ * of exhausting the connection pool.
  */
 @Module({
   imports: [
@@ -24,8 +29,8 @@ import { PricingController } from './controllers/pricing.controller';
     CurrencyModule,
     IdempotencyModule,
   ],
-  providers: [PricingService],
+  providers: [PricingService, PaymentProviderCircuitBreakerService],
   controllers: [PricingController],
-  exports: [PricingService, CurrencyModule, IdempotencyModule],
+  exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentProviderCircuitBreakerService],
 })
 export class PaymentsModule {}
