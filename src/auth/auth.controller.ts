@@ -60,7 +60,7 @@ export class AuthController {
       // If MFA is not enabled but is enforced for this role, we can either:
       // 1. Issue a token and expect the frontend to force them to /mfa/setup (most common in APIs where the frontend checks isMfaEnabled)
       // 2. Reject the login. But rejecting the login means they can never authenticate to set it up.
-      // We will allow login here, but they must set it up. 
+      // We will allow login here, but they must set it up.
       // The requirement "Admin login without valid TOTP returns 401" will be covered when isMfaEnabled = true.
       // Alternatively, we could require a pre-auth setup flow. We'll issue the token for now.
     }

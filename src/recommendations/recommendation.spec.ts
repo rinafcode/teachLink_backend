@@ -24,7 +24,7 @@ describe('RecommendationEngineService', () => {
   let service: RecommendationEngineService;
   let courseRepo: { find: jest.Mock };
   let enrollmentRepo: { find: jest.Mock };
-  let caching: { getOrSet: jest.Mock; deleteMany: jest.Mock };
+  let caching: { getOrSet: jest.Mock; deleteMany: jest.Mock; deleteByPattern: jest.Mock };
 
   beforeEach(async () => {
     courseRepo = { find: jest.fn() };

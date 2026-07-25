@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-const { authenticator } = require('otplib');
+import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
@@ -17,16 +17,16 @@ export class MfaService {
   ) {}
 
   async generateTotpSecret(user: User) {
-    const secret = authenticator.generateSecret();
-    const otpauthUrl = authenticator.keyuri(user.email, 'TeachLink', secret);
-    
+    const secret = generateSecret();
+    const otpauthUrl = generateURI({ issuer: 'TeachLink', label: user.email, secret });
+
     // Encrypt the secret before storing
     const encryptedSecret = this.encryptionService.encrypt(secret);
 
     // Generate recovery codes
     const recoveryCodes = Array.from({ length: 5 }, () => crypto.randomBytes(4).toString('hex'));
     const salt = await bcrypt.genSalt(10);
-    const hashedCodes = await Promise.all(recoveryCodes.map(code => bcrypt.hash(code, salt)));
+    const hashedCodes = await Promise.all(recoveryCodes.map((code) => bcrypt.hash(code, salt)));
 
     // Save to user but do NOT enable MFA yet
     user.totpSecret = JSON.stringify(encryptedSecret);
@@ -49,7 +49,7 @@ export class MfaService {
     const encryptedPayload = JSON.parse(user.totpSecret);
     const secret = this.encryptionService.decrypt(encryptedPayload);
 
-    const isValid = authenticator.verify({ token: code, secret });
+    const isValid = verifySync({ token: code, secret }).valid;
     if (!isValid) {
       throw new BadRequestException('Invalid TOTP code');
     }
@@ -69,7 +69,7 @@ export class MfaService {
     const encryptedPayload = JSON.parse(user.totpSecret);
     const secret = this.encryptionService.decrypt(encryptedPayload);
 
-    const isValid = authenticator.verify({ token: code, secret });
+    const isValid = verifySync({ token: code, secret }).valid;
     if (isValid) {
       return true;
     }

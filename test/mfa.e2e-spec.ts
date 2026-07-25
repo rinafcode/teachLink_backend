@@ -7,7 +7,8 @@ import { User, UserRole, UserStatus } from '../src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../src/rbac/entities/role.entity';
-const { authenticator } = require('otplib');
+import { generateSync } from 'otplib';
+import { EncryptionService } from '../src/security/encryption/encryption.service';
 
 describe('MFA (e2e)', () => {
   let app: INestApplication;
@@ -30,21 +31,26 @@ describe('MFA (e2e)', () => {
     roleRepository = moduleFixture.get<Repository<Role>>(getRepositoryToken(Role));
 
     // Seed admin role
-    adminRole = await roleRepository.findOne({ where: { name: UserRole.ADMIN } }) || 
-      await roleRepository.save(roleRepository.create({ name: UserRole.ADMIN, description: 'Admin' }));
+    adminRole =
+      (await roleRepository.findOne({ where: { name: UserRole.ADMIN } })) ||
+      (await roleRepository.save(
+        roleRepository.create({ name: UserRole.ADMIN, description: 'Admin' }),
+      ));
 
     // Seed admin user
     const salt = await bcrypt.genSalt(10);
     const password = await bcrypt.hash('password123', salt);
-    adminUser = await userRepository.save(userRepository.create({
-      email: 'mfa-admin@example.com',
-      password,
-      firstName: 'Mfa',
-      lastName: 'Admin',
-      status: UserStatus.ACTIVE,
-      isEmailVerified: true,
-      roles: [adminRole],
-    }));
+    adminUser = await userRepository.save(
+      userRepository.create({
+        email: 'mfa-admin@example.com',
+        password,
+        firstName: 'Mfa',
+        lastName: 'Admin',
+        status: UserStatus.ACTIVE,
+        isEmailVerified: true,
+        roles: [adminRole],
+      }),
+    );
   });
 
   afterAll(async () => {
@@ -76,11 +82,10 @@ describe('MFA (e2e)', () => {
 
   it('/mfa/verify (POST) - verifies setup and enables MFA', async () => {
     const userInDb = await userRepository.findOneBy({ id: adminUser.id });
-    
-    const { EncryptionService } = require('../src/security/encryption/encryption.service');
+
     const encryptionService = app.get(EncryptionService);
     const secret = encryptionService.decrypt(JSON.parse(userInDb.totpSecret));
-    const token = authenticator.generate(secret);
+    const token = generateSync({ secret });
 
     await request(app.getHttpServer())
       .post('/mfa/verify')
@@ -108,10 +113,9 @@ describe('MFA (e2e)', () => {
 
   it('/auth/login (POST) - succeeds with valid MFA code', async () => {
     const userInDb = await userRepository.findOneBy({ id: adminUser.id });
-    const { EncryptionService } = require('../src/security/encryption/encryption.service');
     const encryptionService = app.get(EncryptionService);
     const secret = encryptionService.decrypt(JSON.parse(userInDb.totpSecret));
-    const token = authenticator.generate(secret);
+    const token = generateSync({ secret });
 
     const response = await request(app.getHttpServer())
       .post('/auth/login')
@@ -124,10 +128,9 @@ describe('MFA (e2e)', () => {
 
   it('/mfa/disable (POST) - disables MFA with valid code', async () => {
     const userInDb = await userRepository.findOneBy({ id: adminUser.id });
-    const { EncryptionService } = require('../src/security/encryption/encryption.service');
     const encryptionService = app.get(EncryptionService);
     const secret = encryptionService.decrypt(JSON.parse(userInDb.totpSecret));
-    const token = authenticator.generate(secret);
+    const token = generateSync({ secret });
 
     await request(app.getHttpServer())
       .post('/mfa/disable')

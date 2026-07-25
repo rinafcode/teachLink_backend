@@ -147,7 +147,7 @@ describe('SearchService', () => {
       // In test, we can't actually wait 5 minutes, but we verify the TTL is configured
       // The LRU cache handles TTL automatically, so we just verify the cache is using TTL
       const cache = (service as any).autocompleteCache;
-      expect(cache.options.ttl).toBe(300000);
+      expect(cache.ttl).toBe(300000);
     });
   });
 });

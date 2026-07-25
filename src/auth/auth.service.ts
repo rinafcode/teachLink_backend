@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
-import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
+import { loadPEMKey } from './config/jwt-config.factory';
 
 @Injectable()
 export class AuthService {
