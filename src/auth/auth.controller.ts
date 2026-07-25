@@ -32,17 +32,35 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in with email and password' })
   @ApiResponse({ status: 200, description: 'Successfully authenticated' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto, @Req() req: any) {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
       relations: ['roles'],
     });
     if (!user) {
+      this.authService.emitAuthFailure(
+        {
+          reason: 'user_not_found',
+          action: 'login',
+          email: loginDto.email,
+        },
+        null,
+        req.ip,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const passwordMatches = await bcrypt.compare(loginDto.password, user.password);
     if (!passwordMatches) {
+      this.authService.emitAuthFailure(
+        {
+          reason: 'invalid_password',
+          action: 'login',
+          email: loginDto.email,
+        },
+        user.id,
+        req.ip,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -54,14 +72,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access and refresh tokens' })
   @ApiResponse({ status: 200, description: 'Successfully refreshed tokens' })
   @ApiResponse({ status: 401, description: 'Invalid or revoked refresh token' })
-  async refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
+  async refreshTokens(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: any) {
     // Note: In a real implementation, you might want to decode the refresh token first
     // to get the userId without needing it in the request body, or require a separate strategy.
     // For this, we'll extract the userId from the payload inside the service after verifying the token.
 
     // Actually, our service needs userId. Let's fix auth.service to decode and find userId.
     // We will pass just the token to the service.
-    return this.authService.refreshTokens(refreshTokenDto.refreshToken);
+    return this.authService.refreshTokens(refreshTokenDto.refreshToken, req.ip);
   }
 
   @Post('logout')

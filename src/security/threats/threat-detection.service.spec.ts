@@ -2,24 +2,23 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
 import { ThreatDetectionService } from './threat-detection.service';
+import { SecurityEventLogger, SecurityEventType } from '../audit/security-event-logger';
 import { THREAT_REDIS_CLIENT } from './threat-detection.constants';
 import { createMockRedisClient } from '../../../test/utils/mock-factories';
 
-/**
- * Helper: build a Test module that wires the service with the supplied
- * Redis mock + ConfigService. Centralised because every test in the suite
- * builds this module the same way.
- */
-async function buildModule(redis: ReturnType<typeof createMockRedisClient>) {
+async function buildModule(
+  redis: ReturnType<typeof createMockRedisClient>,
+  securityEventLogger = { emit: jest.fn() },
+) {
   const moduleRef: TestingModule = await Test.createTestingModule({
     providers: [
       ThreatDetectionService,
       { provide: THREAT_REDIS_CLIENT, useValue: redis },
+      { provide: SecurityEventLogger, useValue: securityEventLogger },
       {
         provide: ConfigService,
         useValue: {
           get: jest.fn((key: string, fallback?: unknown) => {
-            // Use the documented defaults; tests can override via direct injection.
             if (key === 'THREAT_FAILED_ATTEMPT_THRESHOLD') return 10;
             if (key === 'THREAT_FAILED_ATTEMPT_WINDOW_SECONDS') return 15 * 60;
             if (key === 'THREAT_FAILED_ATTEMPT_KEY_PREFIX') return 'threat:failed-attempts:';
@@ -32,7 +31,7 @@ async function buildModule(redis: ReturnType<typeof createMockRedisClient>) {
   return moduleRef.get(ThreatDetectionService);
 }
 
-describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => {
+describe('ThreatDetectionService (Issue #798: Redis-backed counters)', () => {
   let service: ThreatDetectionService;
   let redis: ReturnType<typeof createMockRedisClient>;
 
@@ -41,7 +40,7 @@ describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => 
     service = await buildModule(redis);
   });
 
-  describe('recordFailure — INCR + first-call EXPIRE', () => {
+  describe('recordFailure: INCR + first-call EXPIRE', () => {
     it('calls INCR with the per-IP key', async () => {
       redis.incr.mockResolvedValueOnce(1);
 
@@ -71,7 +70,7 @@ describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => 
     });
   });
 
-  describe('analyzeRequest — GET + threshold check', () => {
+  describe('analyzeRequest: GET + threshold check', () => {
     it('does not throw when no failure counter is stored', async () => {
       redis.get.mockResolvedValueOnce(null);
       await expect(service.analyzeRequest('192.168.0.2')).resolves.toBeUndefined();
@@ -82,10 +81,25 @@ describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => 
       await expect(service.analyzeRequest('192.168.0.2')).resolves.toBeUndefined();
     });
 
-    it('throws ForbiddenOperationException when count exceeds the threshold', async () => {
+    it('throws ForbiddenOperationException and emits a security event when count exceeds the threshold', async () => {
+      const securityEventLogger = { emit: jest.fn() };
+      service = await buildModule(redis, securityEventLogger);
       redis.get.mockResolvedValueOnce('11');
+
       await expect(service.analyzeRequest('192.168.0.2')).rejects.toBeInstanceOf(
         ForbiddenOperationException,
+      );
+      expect(securityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
+          ip: '192.168.0.2',
+          severity: 'high',
+          details: expect.objectContaining({
+            reason: 'failed_attempt_threshold_exceeded',
+            attempts: 11,
+            threshold: 10,
+          }),
+        }),
       );
     });
 
@@ -110,8 +124,6 @@ describe('ThreatDetectionService (Issue #798 — Redis-backed counters)', () => 
 
   describe('expiry semantics (Issue #798 acceptance)', () => {
     it('a failure counter that has expired no longer triggers analyseRequest', async () => {
-      // Simulate an empty store: Redis returned null after the previous key
-      // expired — meaning the failure window cleared correctly.
       redis.get.mockResolvedValue(null);
       await expect(service.analyzeRequest('192.168.0.4')).resolves.toBeUndefined();
     });
