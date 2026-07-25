@@ -21,6 +21,8 @@
     "typecheck": "tsc --project tsconfig.build.json --noEmit",
     "validate:env": "node scripts/validate-env.js",
     "verify": "node scripts/verify-setup.js",
+    "verify:auth0": "ts-node -r tsconfig-paths/register scripts/verify-auth0.ts",
+    "verify:slack": "ts-node -r tsconfig-paths/register scripts/verify-slack.ts",
     "prepare": "husky",
     "test": "jest",
     "test:watch": "jest --watch",
