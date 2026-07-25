@@ -110,13 +110,21 @@ describe('KpiService', () => {
 
   describe('handleCron', () => {
     it('should call all calculation methods', async () => {
-      const activeUsersSpy = jest.spyOn(kpiService, 'calculateActiveUsers').mockResolvedValue(undefined);
-      const paymentSpy = jest.spyOn(kpiService, 'calculatePaymentSuccessRate').mockResolvedValue(undefined);
-      const revenueSpy = jest.spyOn(kpiService, 'calculateRevenuePerCourse').mockResolvedValue(undefined);
+      const activeUsersSpy = jest
+        .spyOn(kpiService, 'calculateActiveUsers')
+        .mockResolvedValue(undefined);
+      const paymentSpy = jest
+        .spyOn(kpiService, 'calculatePaymentSuccessRate')
+        .mockResolvedValue(undefined);
+      const revenueSpy = jest
+        .spyOn(kpiService, 'calculateRevenuePerCourse')
+        .mockResolvedValue(undefined);
       const enrollmentSpy = jest
         .spyOn(kpiService, 'calculateEnrollmentConversionRate')
         .mockResolvedValue(undefined);
-      const retentionSpy = jest.spyOn(kpiService, 'calculateUserRetention').mockResolvedValue(undefined);
+      const retentionSpy = jest
+        .spyOn(kpiService, 'calculateUserRetention')
+        .mockResolvedValue(undefined);
 
       await kpiService.handleCron();
 
