@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
+import { SanitizationPipe } from './common/pipes/sanitization.pipe';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -162,6 +163,10 @@ async function bootstrapWorker(): Promise<void> {
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'https:'],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
         },
       },
     }),
@@ -292,7 +297,11 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL PIPE
   // =========================
+  // SanitizationPipe runs FIRST so downstream ValidationPipe sees cleaned
+  // payloads. Sensitive fields (password/tokens/hashes) bypass sanitization
+  // so authentication and integrity-critical values are preserved verbatim.
   app.useGlobalPipes(
+    new SanitizationPipe(),
     new ValidationPipe({
       whitelist: true,
       transform: true,
