@@ -81,19 +81,17 @@ export class CdnService {
       `Invalidating ${paths.length} path(s) on distribution ${this.cdn.distributionId}: ${paths.join(', ')}`,
     );
 
-    // Placeholder: wire up AWS SDK CloudFront.createInvalidation here when credentials are available.
-    // Example:
-    //   const cf = new CloudFrontClient({});
-    //   await cf.send(new CreateInvalidationCommand({
-    //     DistributionId: this.cdn.distributionId,
-    //     InvalidationBatch: { Paths: { Quantity: paths.length, Items: paths }, CallerReference: Date.now().toString() },
-    //   }));
-
-    return {
-      success: true,
-      paths,
-      message: `Invalidation queued for distribution ${this.cdn.distributionId}`,
-    };
+    try {
+      await this.invalidationBreaker.fire(paths);
+      return {
+        success: true,
+        paths,
+        message: `Invalidation queued for distribution ${this.cdn.distributionId}`,
+      };
+    } catch (error: any) {
+      this.logger.error(`CloudFront invalidation failed: ${error.message}`, error.stack);
+      return { success: false, paths, message: 'CDN invalidation failed' };
+    }
   }
 
   /** Returns the CDN URL for a given asset path. */

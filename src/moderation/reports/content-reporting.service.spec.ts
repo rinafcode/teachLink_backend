@@ -7,6 +7,7 @@ import { ContentReportStatus } from './content-report-status.enum';
 import { ContentReport } from './content-report.entity';
 import { ContentReportingService } from './content-reporting.service';
 import { ContentReportDisposition } from './dto/review-content-report.dto';
+import { ReportAssignmentService } from '../assignment/report-assignment.service';
 
 const mockRepo = {
   create: jest.fn(),
@@ -18,6 +19,10 @@ const mockRepo = {
 const mockManualReviewService = {
   enqueue: jest.fn(),
   markReviewed: jest.fn(),
+};
+
+const mockReportAssignmentService = {
+  assignReport: jest.fn((report) => Promise.resolve(report)),
 };
 
 describe('ContentReportingService', () => {
@@ -39,6 +44,7 @@ describe('ContentReportingService', () => {
         ContentReportingService,
         { provide: getRepositoryToken(ContentReport), useValue: mockRepo },
         { provide: ManualReviewService, useValue: mockManualReviewService },
+        { provide: ReportAssignmentService, useValue: mockReportAssignmentService },
       ],
     }).compile();
 

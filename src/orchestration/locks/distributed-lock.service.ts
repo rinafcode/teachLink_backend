@@ -10,6 +10,8 @@ const RELEASE_SCRIPT = `
   return 0
 `;
 
+export const DISTRIBUTED_LOCK_REDIS = 'DISTRIBUTED_LOCK_REDIS';
+
 /**
  * Provides distributed Lock operations.
  *
@@ -54,7 +56,6 @@ export class DistributedLockService {
     if (!token) {
       throw new Error(`Could not acquire lock: ${key}`);
     }
-
     try {
       return await fn();
     } finally {
