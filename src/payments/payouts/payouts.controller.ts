@@ -4,12 +4,14 @@ import {
   Post,
   Put,
   Body,
+  Query,
   UseGuards,
   Request,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PayoutsService } from './payouts.service';
 import { UpdatePayoutSettingsDto, ProcessPayoutDto } from './dto/payout.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -29,9 +31,25 @@ export class PayoutsController {
   @Get('revenue')
   @Roles(UserRole.INSTRUCTOR, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get revenue breakdown by course for current instructor' })
-  @ApiResponse({ status: 200, description: 'Returns revenue breakdown' })
-  async getRevenueBreakdown(@Request() req) {
-    return this.payoutsService.getRevenueBreakdown(req.user.id);
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (1-indexed)' })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Items per page (max 100)',
+  })
+  @ApiResponse({ status: 200, description: 'Returns paginated revenue breakdown with summary' })
+  async getRevenueBreakdown(
+    @Request() req,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const parsedPage = this.parsePositiveInt(page, 'page');
+    const parsedPageSize = this.parsePositiveInt(pageSize, 'pageSize');
+    return this.payoutsService.getRevenueBreakdown(req.user.id, {
+      page: parsedPage,
+      pageSize: parsedPageSize,
+    });
   }
 
   @Get('settings')
@@ -66,5 +84,16 @@ export class PayoutsController {
   @ApiResponse({ status: 200, description: 'Payout processed successfully' })
   async processPayout(@Body() dto: ProcessPayoutDto) {
     return this.payoutsService.processPayout(dto.instructorId, dto.amount);
+  }
+
+  private parsePositiveInt(raw: string | undefined, field: string): number | undefined {
+    if (raw === undefined || raw === '') {
+      return undefined;
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new BadRequestException(`Query parameter '${field}' must be a positive integer`);
+    }
+    return parsed;
   }
 }

@@ -7,6 +7,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { TracingService } from './tracing/tracing.service';
+import { enrichWithCorrelation } from '../queues/utils/correlation-job.util';
 
 /**
  * Provides messaging operations.
@@ -36,8 +37,10 @@ export class MessagingService {
         readAt: null,
       });
       const saved = await this.messageRepo.save(message);
-      // Add to queue for async processing if needed
-      await this.messageQueue.add(saved);
+      // Add to queue for async processing if needed.
+      // Enrich payload with the active correlation ID so the worker can
+      // restore the originating request's tracing context (#829).
+      await this.messageQueue.add(enrichWithCorrelation({ ...saved }));
       return saved;
     } catch (error) {
       this.logger.error('Failed to create message', error);
