@@ -105,7 +105,10 @@ export class PayoutsService {
       summary: {
         totalGrossRevenue: totalGrossRevenue.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
         totalRefunds: totalRefunds.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
-        totalNetRevenue: totalGrossRevenue.minus(totalRefunds).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber(),
+        totalNetRevenue: totalGrossRevenue
+          .minus(totalRefunds)
+          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+          .toNumber(),
         currency: 'USD',
       },
       courses: coursesBreakdown,
