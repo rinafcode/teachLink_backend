@@ -15,18 +15,15 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { SocialAuthService } from './services/social-auth.service';
 import { SocialAuthController } from './controllers/social-auth.controller';
 import { AuthTokensService } from './services/auth-tokens.service';
-// Issue #799 — EncryptionService is required to encrypt OAuth provider tokens
-// (providerAccessToken / providerRefreshToken) at rest. SecurityModule is the
-// only module that provides EncryptionService, so it must be imported here.
 import { SecurityModule } from '../security/security.module';
 import { createJwtOptions } from './config/jwt-config.factory';
 
 /**
  * Registers the authentication module with Passport and JWT support.
  *
- * Issue #801 — AuthTokensService is registered here so password-reset and
+ * Issue #801: AuthTokensService is registered here so password-reset and
  * email-verification flows can persist only SHA-256 hashes (never raw tokens).
- * Issue #799 — SecurityModule is imported so SocialAuthService has access to
+ * Issue #799: SecurityModule is imported so SocialAuthService has access to
  * the EncryptionService for at-rest OAuth token protection.
  */
 @Module({
