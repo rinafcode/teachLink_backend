@@ -59,9 +59,38 @@ export const CACHE_PREFIXES = {
   QUIZ: 'cache:quiz',
 } as const;
 export const CACHE_WARMING = {
+  /** Hard ceiling on rows fetched per warming target. Override with CACHE_WARM_MAX_ENTRIES. */
   POPULAR_COURSES_LIMIT: 20,
   USER_PROFILE_WARM_LIMIT: 50,
   SEARCH_WARM_QUERIES: ['', 'programming', 'math', 'science'],
+
+  /**
+   * Maximum number of cache entries to warm per target.
+   * Applies as a `take` to every DB read so we never pull an unbounded
+   * result set into memory. Can be overridden via the CACHE_WARM_MAX_ENTRIES
+   * environment variable.
+   */
+  MAX_ENTRIES: parseInt(process.env.CACHE_WARM_MAX_ENTRIES ?? '500', 10),
+
+  /**
+   * Number of entries processed in a single batch before the inter-batch
+   * delay is applied.  Bounds memory pressure per cycle.
+   */
+  BATCH_SIZE: parseInt(process.env.CACHE_WARM_BATCH_SIZE ?? '50', 10),
+
+  /**
+   * Milliseconds to wait between consecutive batches.
+   * A small pause releases the event-loop and avoids overwhelming Redis
+   * with burst writes.
+   */
+  BATCH_DELAY_MS: parseInt(process.env.CACHE_WARM_BATCH_DELAY_MS ?? '50', 10),
+
+  /**
+   * How long (ms) to wait after the NestJS application has signalled it is
+   * ready before the first cache warm-up is triggered.  Allows the HTTP
+   * server to start accepting traffic before we run expensive DB queries.
+   */
+  STARTUP_DELAY_MS: parseInt(process.env.CACHE_WARM_STARTUP_DELAY_MS ?? '5000', 10),
 } as const;
 
 export const CACHE_EVENTS = {
