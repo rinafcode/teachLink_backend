@@ -37,3 +37,40 @@ jobs:
 
       - name: Build application
         run: pnpm run build
+
+  # Vulnerability and license compliance scanning. Runs in addition to the
+  # validation job so deploy-blocking checks do not couple with lint/typecheck.
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # pnpm-equivalent of `npm audit`. Exits non-zero on high/critical
+      # vulnerabilities so the job fails the build.
+      - name: Audit dependencies for known vulnerabilities
+        run: pnpm audit --audit-level=high
+
+      # scripts/scan-licenses.js reads package-lock.json to enumerate licenses.
+      # Generate it without touching node_modules so pnpm's tree stays intact.
+      - name: Generate package-lock.json for license scan
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+
+      - name: License compliance scan
+        run: npm run license:scan
