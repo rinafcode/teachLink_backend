@@ -102,7 +102,7 @@ pnpm migrate:status   # Check status
 pnpm build
 
 # Run migrations using TypeORM CLI
-npx typeorm-ts-node-commonjs migration:run -d src/config/datasource.ts
+npx typeorm migration:run -d src/config/datasource.ts
 ```
 
 ---
