@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { RolesService } from '../rbac/roles/roles.service';
 
 export interface JwtPayload {
   sub: string;
@@ -19,6 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly rolesService: RolesService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -37,6 +39,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+
+    const isActiveRole = await this.rolesService.isRoleActive(user.role);
+    if (!isActiveRole) {
+      throw new UnauthorizedException('Role is no longer active');
+    }
+
     return user;
   }
 }

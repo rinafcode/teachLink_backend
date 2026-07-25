@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
+import { RbacModule } from '../rbac/rbac.module';
 
 /**
  * Registers the authentication module with Passport and JWT support.
@@ -16,6 +17,7 @@ import { JwtStrategy } from './jwt.strategy';
       signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '15m' },
     }),
     TypeOrmModule.forFeature([User]),
+    RbacModule,
   ],
   providers: [JwtStrategy],
   exports: [PassportModule, JwtModule],
