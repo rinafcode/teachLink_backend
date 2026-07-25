@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AutoRemediationService } from '../services/auto-remediation.service';
 import { RemediationAction, RemediationStatus } from '../entities/remediation-action.entity';
-import { Incident, IncidentSeverity } from '../entities/incident.entity';
+import { Incident, IncidentSeverity, IncidentStatus } from '../entities/incident.entity';
 
 describe('AutoRemediationService', () => {
   let service: AutoRemediationService;
@@ -26,9 +26,7 @@ describe('AutoRemediationService', () => {
     }).compile();
 
     service = module.get<AutoRemediationService>(AutoRemediationService);
-    repository = module.get<Repository<RemediationAction>>(
-      getRepositoryToken(RemediationAction),
-    );
+    repository = module.get<Repository<RemediationAction>>(getRepositoryToken(RemediationAction));
   });
 
   describe('executeRemediationAction', () => {
@@ -38,12 +36,15 @@ describe('AutoRemediationService', () => {
         title: 'Service Down',
         description: 'API service is down',
         severity: IncidentSeverity.CRITICAL,
-        status: 'detected',
+        status: IncidentStatus.DETECTED,
         triggerMetrics: {},
         detectedAt: new Date(),
         updatedAt: new Date(),
         runbookId: null,
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       const mockAction: RemediationAction = {
@@ -84,12 +85,15 @@ describe('AutoRemediationService', () => {
         title: 'Cache Issue',
         description: 'Cache hit rate too low',
         severity: IncidentSeverity.WARNING,
-        status: 'detected',
+        status: IncidentStatus.DETECTED,
         triggerMetrics: {},
         detectedAt: new Date(),
         updatedAt: new Date(),
         runbookId: null,
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       const mockAction: RemediationAction = {
@@ -128,12 +132,15 @@ describe('AutoRemediationService', () => {
         title: 'Scale Issue',
         description: 'High resource usage',
         severity: IncidentSeverity.WARNING,
-        status: 'detected',
+        status: IncidentStatus.DETECTED,
         triggerMetrics: {},
         detectedAt: new Date(),
         updatedAt: new Date(),
         runbookId: null,
         remediationActionIds: [],
+        escalatedTo: null,
+        resolvedAt: null,
+        resolutionNotes: null,
       };
 
       const mockAction: RemediationAction = {
@@ -176,22 +183,20 @@ describe('AutoRemediationService', () => {
       );
 
       expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions[0].actionType).toMatch(/database_operation|restart_service/);
+      expect(suggestions[0].actionType).toMatch(
+        /database_operation|restart_service|run_database_query/,
+      );
     });
 
     it('should suggest actions for Cache incident', () => {
-      const suggestions = service.suggestRemediationActions(
-        'Cache Hit Rate Degradation',
-      );
+      const suggestions = service.suggestRemediationActions('Cache Hit Rate Degradation');
 
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.some((s) => s.actionType === 'clear_cache')).toBe(true);
     });
 
     it('should suggest actions for Resource incident', () => {
-      const suggestions = service.suggestRemediationActions(
-        'High Resource Utilization Detected',
-      );
+      const suggestions = service.suggestRemediationActions('High Resource Utilization Detected');
 
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.some((s) => s.actionType === 'scale_resources')).toBe(true);

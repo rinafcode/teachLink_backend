@@ -14,7 +14,7 @@ interface IRequestWithUser extends Request {
 
 const logger = new Logger('AuditLoggerMiddleware');
 
-const SKIP_PATTERNS = [/^\/health/, /^\/favicon/, /^\/api$/];
+const SKIP_PATTERNS = [/^\/health/, /^\/favicon/, /^\/api$/, /^\/api\/docs/, /^\/api\/docs-json/];
 
 function shouldSkipLogging(path: string): boolean {
   return SKIP_PATTERNS.some((pattern) => pattern.test(path));
@@ -61,6 +61,7 @@ export function createAuditLoggerMiddleware(auditLogService: AuditLogService) {
             path: req.path,
             baseUrl: req.baseUrl,
             queryKeys: Object.keys(req.query || {}),
+            ...userAction.metadata,
           },
         })
         .catch((error: unknown) => {

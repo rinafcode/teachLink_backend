@@ -1,0 +1,341 @@
+# docker-compose.staging.yml
+#
+# Staging environment – mirrors production service topology.
+# Usage:
+#   docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
+#
+# All resource limits are set to match the production baseline.
+# Secrets must be supplied via .env.staging (never committed).
+
+networks:
+  teachlink-staging:
+    driver: bridge
+
+volumes:
+  staging-postgres-data:
+  staging-redis-data:
+  staging-elasticsearch-data:
+  staging-prometheus-data:
+  staging-alertmanager-data:
+  staging-grafana-data:
+
+services:
+  # ─── Application ────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: teachlink-backend:staging
+    container_name: teachlink-staging-app
+    restart: unless-stopped
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    env_file:
+      - .env.staging
+    environment:
+      NODE_ENV: staging
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      JAEGER_AGENT_HOST: jaeger
+      JAEGER_AGENT_PORT: 6831
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+    networks:
+      - teachlink-staging
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /app/tmp:size=64m,mode=1777
+      - /tmp:size=32m,mode=1777
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ─── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: teachlink-staging-postgres
+    restart: unless-stopped
+    ports:
+      - '${DATABASE_PORT:-5433}:5432'
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-teachlink_staging}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME:-teachlink_staging}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    networks:
+      - teachlink-staging
+    volumes:
+      - staging-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-teachlink_staging} -d ${DATABASE_NAME:-teachlink_staging}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: teachlink-staging-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6380}:6379'
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    networks:
+      - teachlink-staging
+    volumes:
+      - staging-redis-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ─── Elasticsearch ───────────────────────────────────────────────────────────
+  elasticsearch:
+    image: elasticsearch:8.13.4
+    container_name: teachlink-staging-elasticsearch
+    restart: unless-stopped
+    ports:
+      - '9201:9200'
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+      cluster.name: teachlink-staging-cluster
+    networks:
+      - teachlink-staging
+    volumes:
+      - staging-elasticsearch-data:/usr/share/elasticsearch/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'curl -s http://localhost:9200/_cluster/health | grep -qv "\"status\":\"red\""']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ─── Prometheus ──────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: teachlink-staging-prometheus
+    restart: unless-stopped
+    ports:
+      - '9091:9090'
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - teachlink-staging
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - staging-prometheus-data:/prometheus
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ─── Grafana ─────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: teachlink-staging-grafana
+    restart: unless-stopped
+    ports:
+      - '3002:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - teachlink-staging
+    volumes:
+      - staging-grafana-data:/var/lib/grafana
+      - ./infra/monitoring/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ─── Jaeger Tracing ─────────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.48
+    container_name: teachlink-staging-jaeger
+    restart: unless-stopped
+    ports:
+      - '6831:6831/udp'
+      - '16686:16686'
+    networks:
+      - teachlink-staging
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:16686/jaeger/api/v1/services || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 32M
+
+  # ─── Exporters ───────────────────────────────────────────────────────────────
+  redis_exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: teachlink-staging-redis-exporter
+    restart: unless-stopped
+    ports:
+      - '9122:9121'
+    environment:
+      REDIS_ADDR: 'redis://redis:6379'
+    networks:
+      - teachlink-staging
+    depends_on:
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64M
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: teachlink-staging-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - '9188:9187'
+    environment:
+      DATA_SOURCE_NAME: 'postgresql://${DATABASE_USER:-teachlink_staging}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME:-teachlink_staging}?sslmode=disable'
+    networks:
+      - teachlink-staging
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 64M

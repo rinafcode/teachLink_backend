@@ -4,9 +4,13 @@ import {
   DeleteDateColumn,
   Entity,
   Index,
+  JoinTable,
+  ManyToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Permission } from './permission.entity';
+import { User } from '../../users/entities/user.entity';
 
 /**
  * Built-in roles that ship with the platform.
@@ -34,8 +38,12 @@ export class Role {
   @Column({ default: false })
   isSystem: boolean;
 
-  @Column('text', { array: true, default: [] })
-  permissions: string[];
+  @ManyToMany(() => Permission, (permission) => permission.roles, { eager: true })
+  @JoinTable()
+  permissions: Permission[];
+
+  @ManyToMany(() => User, (user) => user.roles)
+  users: User[];
 
   @CreateDateColumn()
   createdAt: Date;

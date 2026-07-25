@@ -52,11 +52,13 @@ export interface IAuditLogSearchFilters {
  * Paginated search results for audit logs
  */
 export interface IAuditLogSearchResult {
-  logs: AuditLog[];
+  data: AuditLog[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 /**

@@ -43,6 +43,13 @@ export class NotificationPreferences {
   @Column({ type: 'jsonb', nullable: true })
   topicSubscriptions: Record<string, boolean>;
 
+  /** Per-event delivery frequency: instant | daily | weekly | never */
+  @Column({ type: 'jsonb', nullable: true })
+  eventFrequency: Record<string, 'instant' | 'daily' | 'weekly' | 'never'>;
+
+  @Column({ default: false })
+  globalUnsubscribe: boolean;
+
   @Column({ type: 'varchar', default: '09:00' })
   quietTimeStart: string;
 

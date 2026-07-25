@@ -42,6 +42,7 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging.local
 .env.local
 
 # temp directory
@@ -80,3 +81,21 @@ tsconfig.build.tsbuildinfo
 
 # Backups
 /backups
+
+# AI assistant / tooling artifacts
+.claude/
+.claude/**
+CLAUDE.md
+.cursor/
+.cursorrules
+.cursorignore
+.aider*
+.windsurfrules
+.github/copilot-instructions.md
+.continue/
+.codeium/
+.gemini/
+.specstory/
+.roo/
+.kilocode/
+.augment/

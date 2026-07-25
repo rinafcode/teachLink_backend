@@ -1,0 +1,67 @@
+# Environment
+environment = "prod"
+
+# Regions
+primary_region   = "us-east-1"
+secondary_region = "us-west-2"
+
+primary_availability_zones   = ["us-east-1a", "us-east-1b"]
+secondary_availability_zones = ["us-west-2a", "us-west-2b"]
+
+# Networking (non-overlapping CIDRs so the VPCs can be peered if needed)
+primary_vpc_cidr               = "10.0.0.0/16"
+secondary_vpc_cidr             = "10.1.0.0/16"
+primary_public_subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24"]
+primary_private_subnet_cidrs   = ["10.0.10.0/24", "10.0.11.0/24"]
+secondary_public_subnet_cidrs  = ["10.1.1.0/24", "10.1.2.0/24"]
+secondary_private_subnet_cidrs = ["10.1.10.0/24", "10.1.11.0/24"]
+
+# Compute
+cluster_name    = "teachlink-cluster"
+service_name    = "teachlink-service"
+container_image = "<your-account>.dkr.ecr.us-east-1.amazonaws.com/teachlink:latest"
+container_port  = 3000
+task_cpu        = 512
+task_memory     = 1024
+
+# Primary fleet (active)
+primary_desired_count = 3
+primary_min_capacity  = 3
+primary_max_capacity  = 20
+
+# Secondary fleet (warm standby; raise for active-active)
+secondary_desired_count = 1
+secondary_min_capacity  = 1
+secondary_max_capacity  = 20
+
+# HTTPS certificates (must exist in each region)
+# primary_certificate_arn   = "arn:aws:acm:us-east-1:123456789012:certificate/xxx"
+# secondary_certificate_arn = "arn:aws:acm:us-west-2:123456789012:certificate/yyy"
+
+# Database
+db_instance_class        = "db.t3.large"
+db_allocated_storage     = 100
+db_max_allocated_storage = 500
+db_name                  = "teachlink_db"
+
+# Redis
+redis_node_type       = "cache.t3.small"
+redis_num_cache_nodes = 1
+
+# Storage (region is appended automatically to keep bucket names unique)
+s3_bucket_prefix = "teachlink"
+
+# DNS failover
+domain_name   = "teachlink.io"
+app_subdomain = "api"
+# hosted_zone_id = "Z0123456789ABCDEFG"  # reuse an existing zone; omit to create one
+
+# Monitoring
+enable_monitoring = true
+
+# Tags
+tags = {
+  Project    = "teachlink"
+  Team       = "backend"
+  CostCenter = "engineering"
+}

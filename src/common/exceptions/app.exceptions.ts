@@ -60,3 +60,48 @@ export class ServiceUnavailableException extends HttpException {
     );
   }
 }
+
+/**
+ * Thrown when authentication credentials are invalid or the user cannot be found.
+ * Maps to HTTP 401 Unauthorized.
+ */
+export class InvalidCredentialsException extends HttpException {
+  constructor(message = 'Invalid credentials') {
+    super(
+      { message, error: 'Unauthorized', statusCode: HttpStatus.UNAUTHORIZED },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+}
+
+/**
+ * Thrown when a token (e.g. email verification, password reset) is invalid, used, or expired.
+ * Maps to HTTP 401 Unauthorized.
+ */
+export class InvalidTokenException extends HttpException {
+  constructor(message = 'Invalid or expired token') {
+    super(
+      { message, error: 'Unauthorized', statusCode: HttpStatus.UNAUTHORIZED },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+}
+
+/**
+ * Thrown when a client exceeds the allowed request rate.
+ * Maps to HTTP 429 Too Many Requests.
+ */
+export class RateLimitExceededException extends HttpException {
+  constructor(retryAfterSeconds?: number) {
+    const message = 'You have exceeded the request rate limit. Please wait before retrying.';
+    super(
+      {
+        message,
+        error: 'Too Many Requests',
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        ...(retryAfterSeconds !== undefined && { retryAfterSeconds }),
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+}

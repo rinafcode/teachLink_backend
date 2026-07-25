@@ -65,7 +65,12 @@ export class DbConnectionHealthService implements OnModuleInit, OnModuleDestroy 
       message = `DB ping failed: ${(err as Error).message}`;
       this.logger.error(`[DB HEALTH] ${message}`);
       const result: DbHealthResult = {
-        status, latencyMs, pool: this.poolSnapshot(), recycledAt: this.lastRecycledAt, checkedAt, message,
+        status,
+        latencyMs,
+        pool: this.poolSnapshot(),
+        recycledAt: this.lastRecycledAt,
+        checkedAt,
+        message,
       };
       this.lastResult = result;
       return result;
@@ -75,9 +80,10 @@ export class DbConnectionHealthService implements OnModuleInit, OnModuleDestroy 
 
     if (latencyMs > this.LATENCY_WARN_MS || pool.utilizationPct >= this.UTIL_WARN_PCT) {
       status = 'degraded';
-      message = latencyMs > this.LATENCY_WARN_MS
-        ? `High DB latency: ${latencyMs}ms`
-        : `High pool utilisation: ${pool.utilizationPct}%`;
+      message =
+        latencyMs > this.LATENCY_WARN_MS
+          ? `High DB latency: ${latencyMs}ms`
+          : `High pool utilisation: ${pool.utilizationPct}%`;
       this.logger.warn(`[DB HEALTH] ${message}`);
     }
 
@@ -86,7 +92,14 @@ export class DbConnectionHealthService implements OnModuleInit, OnModuleDestroy 
       await this.recycleConnections();
     }
 
-    const result: DbHealthResult = { status, latencyMs, pool, recycledAt: this.lastRecycledAt, checkedAt, message };
+    const result: DbHealthResult = {
+      status,
+      latencyMs,
+      pool,
+      recycledAt: this.lastRecycledAt,
+      checkedAt,
+      message,
+    };
     this.lastResult = result;
     return result;
   }
@@ -103,7 +116,7 @@ export class DbConnectionHealthService implements OnModuleInit, OnModuleDestroy 
   }
 
   private poolSnapshot() {
-    const driver = (this.dataSource.driver as any);
+    const driver = this.dataSource.driver as any;
     const pgPool = driver?.master?.pool ?? driver?.pool;
     const total: number = pgPool?.totalCount ?? 0;
     const idle: number = pgPool?.idleCount ?? 0;

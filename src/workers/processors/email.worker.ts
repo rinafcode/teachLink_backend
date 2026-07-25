@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
+import { EmailTrackingService } from '../../email-marketing/services/email-tracking.service';
+import { EmailEventType } from '../../email-marketing/enums/email-event-type.enum';
 
 /**
  * Email Worker
@@ -8,15 +11,18 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class EmailWorker extends BaseWorker {
-  constructor() {
-    super('email');
+  constructor(
+    private readonly emailTracking: EmailTrackingService,
+    configService: ConfigService,
+  ) {
+    super('email', configService);
   }
 
   /**
    * Execute email job
    */
   async execute(job: Job): Promise<any> {
-    const { to, subject, template, variables } = job.data;
+    const { to, subject, template, variables, campaignId } = job.data;
 
     await job.progress(25);
 
@@ -27,17 +33,13 @@ export class EmailWorker extends BaseWorker {
 
     await job.progress(50);
 
-    // Simulate email sending process
     try {
-      // This is where actual email service integration would happen
-      // For example: SendGrid, Nodemailer, AWS SES, etc.
       this.logger.log(`Preparing email to ${to} with subject "${subject}"`);
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       await job.progress(75);
 
-      // Log email metadata
       const result = {
         to,
         subject,
@@ -46,6 +48,13 @@ export class EmailWorker extends BaseWorker {
         sentAt: new Date(),
         status: 'sent',
       };
+
+      // ONLY use valid EmailEvent fields
+      await this.emailTracking.recordSent({
+        recipientId: to,
+        campaignId: campaignId || null,
+        eventType: EmailEventType.SENT,
+      });
 
       await job.progress(100);
       return result;

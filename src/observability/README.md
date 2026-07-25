@@ -448,7 +448,13 @@ export class DatabaseLogger implements Logger {
 
 ## Prometheus Integration
 
-Export metrics in Prometheus format:
+Export metrics in Prometheus format using the main scrape endpoint:
+
+```http
+GET /metrics
+```
+
+A legacy observability alias is also supported for compatibility:
 
 ```http
 GET /observability/metrics/export/prometheus

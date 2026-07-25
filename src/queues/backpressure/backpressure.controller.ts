@@ -17,6 +17,8 @@ export class BackpressureController {
   @ApiParam({ name: 'queue', description: 'Queue name' })
   @ApiOperation({ summary: 'Get backpressure snapshot for a specific queue' })
   getSnapshot(@Param('queue') queue: string) {
-    return this.backpressureService.getSnapshot(queue) ?? { message: `No data for queue "${queue}"` };
+    return (
+      this.backpressureService.getSnapshot(queue) ?? { message: `No data for queue "${queue}"` }
+    );
   }
 }

@@ -1,13 +1,21 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
+
 export class CreateSchemaVersionDto {
-  /** Logical name of the schema (e.g., 'courses') */
+  @ApiProperty({ description: 'Logical name of the schema (e.g., courses)', example: 'courses' })
+  @IsString()
   schemaName: string;
 
-  /** Full JSON definition of the current schema */
+  @ApiProperty({ description: 'Full JSON definition of the current schema' })
   definition: Record<string, any>;
 
-  /** Optional human readable description of the change */
+  @ApiPropertyOptional({ description: 'Optional human readable description of the change' })
+  @IsOptional()
+  @IsString()
   description?: string;
 
-  /** Optional author identifier */
+  @ApiPropertyOptional({ description: 'Optional author identifier' })
+  @IsOptional()
+  @IsString()
   authorId?: string;
 }

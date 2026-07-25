@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantCustomization } from '../entities/tenant-customization.entity';
@@ -19,7 +20,7 @@ export class CustomizationService {
   async getCustomization(tenantId: string): Promise<TenantCustomization> {
     const customization = await this.customizationRepository.findOne({ where: { tenantId } });
     if (!customization) {
-      throw new NotFoundException(`Customization not found for tenant ${tenantId}`);
+      throw new ResourceNotFoundException(`TenantCustomization for tenant '${tenantId}'`);
     }
     return customization;
   }

@@ -6,6 +6,8 @@ import { AuditLoggerService } from './services/audit-logger.service';
 import { AuditQueryService } from './services/audit-query.service';
 import { AuditReportingService } from './services/audit-reporting.service';
 import { AuditExportService } from './services/audit-export.service';
+import { AuditRetentionTask } from './tasks/audit-retention.task';
+import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 
 /**
  * Audit Log Module
@@ -23,7 +25,9 @@ import { AuditExportService } from './services/audit-export.service';
     AuditQueryService,
     AuditReportingService,
     AuditExportService,
+    AuditRetentionTask,
     AuditLogService,
+    MetricsCollectionService,
   ],
   exports: [AuditLogService],
 })

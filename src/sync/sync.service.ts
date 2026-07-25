@@ -7,7 +7,7 @@ import {
   ISyncData,
 } from './conflicts/conflict-resolution.service';
 import { DataConsistencyService } from './consistency/data-consistency.service';
-import { CacheInvalidationService } from './cache/cache-invalidation.service';
+import { CacheInvalidationService } from '../caching/cache-invalidation.service';
 import { ReplicationService } from './replication/replication.service';
 
 /**

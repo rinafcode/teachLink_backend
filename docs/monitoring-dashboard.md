@@ -3,11 +3,11 @@
 This document describes the Grafana monitoring dashboard for the teachLink
 backend, the panels it ships with, and the alerts that fire from it.
 
-The backend exports metrics in Prometheus format from
-`src/observability/observability.controller.ts` at:
+The backend exports metrics in Prometheus format from the active backend
+scrape endpoint at:
 
 ```
-GET /observability/metrics/export/prometheus
+GET /metrics
 ```
 
 Prometheus scrapes that endpoint, Grafana visualizes the metrics, and

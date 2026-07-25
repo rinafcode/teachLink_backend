@@ -6,7 +6,13 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@scure|otplib)/)"
+  ],
   "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/../test/mocks/uuid.ts"
+  },
   "testTimeout": 60000,
   "forceExit": true,
   "verbose": true,

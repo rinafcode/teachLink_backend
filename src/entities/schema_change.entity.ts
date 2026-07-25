@@ -18,19 +18,19 @@ export class SchemaChange {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: '255' })
   schemaName: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: '50' })
   fromVersion: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: '50' })
   toVersion: string;
 
   @Column({ type: 'enum', enum: ChangeType })
   changeType: ChangeType;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: '255' })
   fieldPath: string;
 
   @Column({ type: 'jsonb', nullable: true })

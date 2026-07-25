@@ -2,12 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: teachlink-backend-service
+  namespace: default
+  labels:
+    app: teachlink-backend
 spec:
   type: ClusterIP
-  ports:
-    - port: 80
-      targetPort: 3000
-      protocol: TCP
-      name: http
   selector:
     app: teachlink-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP

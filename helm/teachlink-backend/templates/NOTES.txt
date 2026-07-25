@@ -1,0 +1,25 @@
+TeachLink Backend has been deployed!
+
+1. Get the application URL:
+{{- if .Values.ingress.enabled }}
+  https://{{ (first .Values.ingress.hosts).host }}
+{{- else }}
+  kubectl port-forward svc/{{ include "teachlink-backend.fullname" . }} 3000:80
+  http://localhost:3000
+{{- end }}
+
+2. Check pod status:
+  kubectl get pods -l app.kubernetes.io/name={{ include "teachlink-backend.name" . }}
+
+3. View logs:
+  kubectl logs -l app.kubernetes.io/name={{ include "teachlink-backend.name" . }} -f
+
+4. HPA status:
+{{- if .Values.autoscaling.enabled }}
+  kubectl get hpa {{ include "teachlink-backend.fullname" . }}
+{{- else }}
+  Autoscaling is disabled. Set autoscaling.enabled=true to enable HPA.
+{{- end }}
+
+IMPORTANT: Replace all CHANGE_ME values in secrets before deploying to production.
+Use --set secrets.KEY=value or a values override file (never commit real secrets).

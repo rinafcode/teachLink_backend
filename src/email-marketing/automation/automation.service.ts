@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import {
+  ResourceNotFoundException,
+  BusinessValidationException,
+} from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
@@ -98,7 +102,7 @@ export class AutomationService {
       relations: ['triggers', 'actions'],
     });
     if (!workflow) {
-      throw new NotFoundException(`Automation workflow with ID ${id} not found`);
+      throw new ResourceNotFoundException('AutomationWorkflow', id);
     }
     return workflow;
   }
@@ -108,7 +112,7 @@ export class AutomationService {
   async update(id: string, updateAutomationDto: UpdateAutomationDto): Promise<AutomationWorkflow> {
     const workflow = await this.findOne(id);
     if (workflow.status === WorkflowStatus.ACTIVE) {
-      throw new BadRequestException('Deactivate workflow before making changes');
+      throw new BusinessValidationException('Deactivate workflow before making changes');
     }
     Object.assign(workflow, {
       name: updateAutomationDto.name ?? workflow.name,
@@ -146,7 +150,7 @@ export class AutomationService {
   async remove(id: string): Promise<void> {
     const workflow = await this.findOne(id);
     if (workflow.status === WorkflowStatus.ACTIVE) {
-      throw new BadRequestException('Deactivate workflow before deleting');
+      throw new BusinessValidationException('Deactivate workflow before deleting');
     }
     await this.workflowRepository.manager.transaction(async (manager) => {
       await manager.getRepository(AutomationTrigger).softDelete({ workflowId: id });
@@ -160,10 +164,10 @@ export class AutomationService {
   async activate(id: string): Promise<AutomationWorkflow> {
     const workflow = await this.findOne(id);
     if (!workflow.triggers?.length) {
-      throw new BadRequestException('Workflow must have at least one trigger');
+      throw new BusinessValidationException('Workflow must have at least one trigger');
     }
     if (!workflow.actions?.length) {
-      throw new BadRequestException('Workflow must have at least one action');
+      throw new BusinessValidationException('Workflow must have at least one action');
     }
     workflow.status = WorkflowStatus.ACTIVE;
     workflow.activatedAt = new Date();

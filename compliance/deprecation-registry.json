@@ -1,0 +1,11 @@
+{
+    "deprecatedItems": [
+      {
+        "name": "LegacyPaymentService",
+        "reason": "Superseded by PaymentOrchestrator",
+        "deprecatedDate": "2026-06-01",
+        "removalVersion": "v3.0.0",
+        "owner": "Backend Team"
+      }
+    ]
+  }

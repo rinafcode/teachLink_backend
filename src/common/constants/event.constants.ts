@@ -13,6 +13,7 @@ export const APP_EVENTS = {
   USER_REMOVE_TAG: 'user.removeTag',
   // Course events
   COURSE_ENROLLED: 'course.enrolled',
+  COURSE_UNENROLLED: 'course.unenrolled',
   COURSE_COMPLETED: 'course.completed',
   // Payment events
   PAYMENT_COMPLETED: 'payment.completed',

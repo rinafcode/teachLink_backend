@@ -55,16 +55,23 @@ export class ProfileCompletenessService {
     }
 
     const percentage = Math.round((score / MAX_SCORE) * 100);
-    const level =
-      percentage >= 80 ? 'complete' : percentage >= 40 ? 'intermediate' : 'starter';
+    const level = percentage >= 80 ? 'complete' : percentage >= 40 ? 'intermediate' : 'starter';
 
     const nextIncentive =
       level === 'starter'
         ? 'Reach 40% to unlock Intermediate badge'
         : level === 'intermediate'
-        ? 'Reach 80% to unlock Complete Profile badge'
-        : null;
+          ? 'Reach 80% to unlock Complete Profile badge'
+          : null;
 
-    return { score, maxScore: MAX_SCORE, percentage, completedFields, missingFields, level, nextIncentive };
+    return {
+      score,
+      maxScore: MAX_SCORE,
+      percentage,
+      completedFields,
+      missingFields,
+      level,
+      nextIncentive,
+    };
   }
 }

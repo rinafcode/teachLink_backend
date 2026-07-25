@@ -2,10 +2,10 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  ForbiddenException,
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
+import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
 import { Reflector } from '@nestjs/core';
 import { IsolationService } from '../../tenancy/isolation/isolation.service';
 import { TENANT_KEY } from '../../tenancy/decorators/requires-tenant.decorator';
@@ -48,7 +48,7 @@ export class TenantAccessValidationGuard implements CanActivate {
       this.logger.warn(
         `Access denied: tenant ${tenant?.id} is not active (status=${tenant?.status})`,
       );
-      throw new ForbiddenException('Tenant is not active');
+      throw new ForbiddenOperationException('Tenant is not active');
     }
 
     // 3. Authenticated user must belong to the active tenant
@@ -59,7 +59,7 @@ export class TenantAccessValidationGuard implements CanActivate {
         this.logger.warn(
           `Access denied: user tenantId=${user.tenantId} does not match active tenant=${currentTenantId}`,
         );
-        throw new ForbiddenException('User does not belong to this tenant');
+        throw new ForbiddenOperationException('User does not belong to this tenant');
       }
     }
 

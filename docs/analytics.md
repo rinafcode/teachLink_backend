@@ -5,6 +5,7 @@ This document describes the lightweight analytics and cost-tracking additions.
 Endpoints:
 
 - POST /analytics/event - record a feature event (body: { category, action, label?, value? })
+- POST /metrics/cost - record an hourly infrastructure cost event (body: { amountUsd })
 - GET /monitoring/cost/summary - returns last 24h estimated spend and avg hourly cost if enabled
 
 Metrics added (Prometheus):

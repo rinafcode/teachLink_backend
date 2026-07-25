@@ -37,19 +37,28 @@ if (releaseType === 'tag') {
 } else if (releaseType === 'auto') {
   // Analyze commits since last tag to determine version bump
   try {
-    const commits = execSync(
-      'git log $(git describe --tags --abbrev=0)..HEAD --oneline',
-      { encoding: 'utf8' }
-    ).trim().split('\n');
+    let lastTag = null;
+    try {
+      lastTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
+    } catch (tagError) {
+      lastTag = null;
+    }
+
+    const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
+    const commits = execSync(`git log ${range} --oneline`, { encoding: 'utf8' })
+      .trim()
+      .split('\n')
+      .filter(Boolean);
 
     let hasBreaking = false;
     let hasFeature = false;
 
     commits.forEach(commit => {
-      if (commit.includes('BREAKING CHANGE:') || commit.startsWith('!')) {
+      const message = commit.replace(/^\S+\s+/, '');
+      if (/BREAKING CHANGE/i.test(message) || /^!(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)/i.test(message)) {
         hasBreaking = true;
       }
-      if (commit.startsWith('feat')) {
+      if (/^feat(\(.+\))?(!)?:/i.test(message)) {
         hasFeature = true;
       }
     });

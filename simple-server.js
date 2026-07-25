@@ -1,8 +1,12 @@
 const express = require('express');
 const app = express();
+const moderationRoutes = require('./moderation.routes');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Mount the moderation and queue APIs
+app.use('/api/moderation', moderationRoutes);
 
 // Basic health check endpoint
 app.get('/', (req, res) => {
