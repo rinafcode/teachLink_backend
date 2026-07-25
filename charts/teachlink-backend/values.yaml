@@ -80,3 +80,23 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 podAnnotations: {}
+
+# PrometheusRule & Alerting Configuration
+prometheusRule:
+  enabled: true
+  additionalLabels:
+    role: alert-rules
+  runbookBaseUrl: "https://github.com/dot-enny/teachLink_backend/blob/main/docs/RUNBOOKS.md"
+  severities:
+    highErrorRate: critical
+    highP99Latency: critical
+    queueDepthHigh: warning
+    dlqDepthHigh: critical
+
+alertmanager:
+  enabled: true
+  webhookUrl: "https://alertmanager.teachlink.io/api/v2/alerts"
+  slackRoute:
+    channel: "#alerts-backend"
+    webhookUrl: "https://hooks.slack.com/services/REPLACE_ME"
+
