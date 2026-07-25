@@ -17,6 +17,7 @@ import { CacheInvalidationListener } from './cache-invalidation.listener';
 import { CacheWarmingService } from './cache-warming.service';
 import { CacheWarmingScheduler } from './cache-warming.scheduler';
 import { ComputationCacheService } from './computation-cache.service';
+import { TenancyModule } from '../tenancy/tenancy.module';
 
 /**
  * Registers the application-level Redis cache layer, warming engine, and invalidation listeners.
@@ -28,6 +29,7 @@ import { ComputationCacheService } from './computation-cache.service';
     EventEmitterModule.forRoot(),
     MonitoringModule,
     SearchModule,
+    TenancyModule,
     TypeOrmModule.forFeature([Course, Enrollment, User]),
     CacheModule.registerAsync({
       imports: [ConfigModule],

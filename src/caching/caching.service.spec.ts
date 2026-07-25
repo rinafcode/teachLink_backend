@@ -62,16 +62,18 @@ describe('CachingService', () => {
       metrics as unknown as MetricsCollectionService,
       undefined,
       redis as never,
+      { tenant: { id: 'tenant-a' } } as any,
     );
   });
 
   // ── deriveCacheType / buildCounterKeys ──────────────────────────────────────
 
   describe('deriveCacheType', () => {
-    it('returns the second segment for cache:{type}:... keys', () => {
+    it('returns the second segment for cache:{type}:... keys and the third for tenant-scoped keys', () => {
       expect(deriveCacheType('cache:test:1')).toBe('test');
       expect(deriveCacheType('cache:user:42')).toBe('user');
       expect(deriveCacheType('cache:course:popular')).toBe('course');
+      expect(deriveCacheType('cache:tenant-a:course:popular')).toBe('course');
     });
 
     it('returns "default" for keys with no cache: prefix', () => {
@@ -121,7 +123,7 @@ describe('CachingService', () => {
 
       expect(result).toEqual({ id: '2' });
       expect(factory).toHaveBeenCalledTimes(1);
-      expect(cacheManager.set).toHaveBeenCalledWith('cache:test:2', { id: '2' }, 120000);
+      expect(cacheManager.set).toHaveBeenCalledWith('cache:tenant-a:test:2', { id: '2' }, 120000);
       expect(redis.incr).toHaveBeenCalledWith('cache:misses:test');
 
       const stats = await service.getStats('test');
@@ -144,6 +146,28 @@ describe('CachingService', () => {
   // ── Cluster-wide hit rate (Issue #811) ─────────────────────────────────────
 
   describe('distributed hit rate metrics', () => {
+    it('keeps tenant-scoped cache entries isolated across tenants', async () => {
+      const tenantA = new CachingService(
+        cacheManager as never,
+        metrics as unknown as MetricsCollectionService,
+        undefined,
+        redis as never,
+        { tenant: { id: 'tenant-a' } } as any,
+      );
+      const tenantB = new CachingService(
+        cacheManager as never,
+        metrics as unknown as MetricsCollectionService,
+        undefined,
+        redis as never,
+        { tenant: { id: 'tenant-b' } } as any,
+      );
+
+      await tenantA.set('cache:course:123', { id: '123' }, 60);
+
+      await expect(tenantB.get('cache:course:123')).resolves.toBeUndefined();
+      await expect(tenantA.get('cache:course:123')).resolves.toEqual({ id: '123' });
+    });
+
     it('publishes aggregated cluster-wide hit rate to Prometheus', async () => {
       // Simulate three pods: each has independently INCRemented the shared
       // Redis counter. The reported hit rate must reflect what Redis holds,

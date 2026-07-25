@@ -6,6 +6,7 @@ import { Cache } from 'cache-manager';
 import Redis from 'ioredis';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 import { getSharedRedisClient } from '../config/cache.config';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 
 export interface CacheStats {
   hits: number;
@@ -40,6 +41,9 @@ export const deriveCacheType = (key: string): string => {
 
   const parts = key.split(':');
   if (parts.length >= 2 && parts[0] === 'cache') {
+    if (parts.length >= 4) {
+      return parts[2] || CACHE_TYPE_FALLBACK;
+    }
     return parts[1] || CACHE_TYPE_FALLBACK;
   }
   return CACHE_TYPE_FALLBACK;
@@ -79,6 +83,7 @@ export class CachingService {
     @Optional() private readonly metrics?: MetricsCollectionService,
     @Optional() private readonly configService?: ConfigService,
     @Optional() redis?: Redis,
+    @Optional() private readonly isolationService?: IsolationService,
   ) {
     // Prefer an explicitly injected client (used by tests / module overrides),
     // then fall back to the configured shared singleton, then to local-only.
@@ -110,38 +115,79 @@ export class CachingService {
     }
   }
 
-  async get<T>(key: string): Promise<T | undefined> {
-    const value = await this.cacheManager.get<T>(key);
+  getCurrentTenantId(): string | undefined {
+    return this.resolveTenantId();
+  }
+
+  private resolveTenantId(explicitTenantId?: string): string | undefined {
+    if (typeof explicitTenantId === 'string' && explicitTenantId.trim().length > 0) {
+      return explicitTenantId;
+    }
+
+    const tenantIdFromIsolation = this.isolationService?.getTenantId();
+    if (typeof tenantIdFromIsolation === 'string' && tenantIdFromIsolation.trim().length > 0) {
+      return tenantIdFromIsolation;
+    }
+
+    return undefined;
+  }
+
+  private buildTenantScopedKey(key: string, explicitTenantId?: string): string {
+    const tenantId = this.resolveTenantId(explicitTenantId);
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped cache keys');
+    }
+
+    if (key.startsWith(`cache:${tenantId}:`)) {
+      return key;
+    }
+
+    const normalizedKey = key.startsWith('cache:') ? key.slice('cache:'.length) : key;
+    return `cache:${tenantId}:${normalizedKey}`;
+  }
+
+  async get<T>(key: string, tenantId?: string): Promise<T | undefined> {
+    const scopedKey = this.buildTenantScopedKey(key, tenantId);
+    const value = await this.cacheManager.get<T>(scopedKey);
     if (value === undefined || value === null) {
-      await this.recordMiss(deriveCacheType(key), key);
+      await this.recordMiss(deriveCacheType(scopedKey), scopedKey);
       return undefined;
     }
-    await this.recordHit(deriveCacheType(key), key);
+    await this.recordHit(deriveCacheType(scopedKey), scopedKey);
     return value;
   }
 
-  async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
+  async set<T>(key: string, value: T, ttlSeconds?: number, tenantId?: string): Promise<void> {
     const ttlMs = ttlSeconds !== undefined ? ttlSeconds * 1000 : undefined;
-    await this.cacheManager.set(key, value, ttlMs);
+    const scopedKey = this.buildTenantScopedKey(key, tenantId);
+    await this.cacheManager.set(scopedKey, value, ttlMs);
   }
 
-  async getOrSet<T>(key: string, factory: () => Promise<T>, ttlSeconds?: number): Promise<T> {
-    const cached = await this.get<T>(key);
+  async getOrSet<T>(
+    key: string,
+    factory: () => Promise<T>,
+    ttlSeconds?: number,
+    tenantId?: string,
+  ): Promise<T> {
+    const scopedKey = this.buildTenantScopedKey(key, tenantId);
+    const cached = await this.get<T>(scopedKey, tenantId);
     if (cached !== undefined) {
       return cached;
     }
 
     const value = await factory();
-    await this.set(key, value, ttlSeconds);
+    await this.set(scopedKey, value, ttlSeconds, tenantId);
     return value;
   }
 
-  async delete(key: string): Promise<void> {
-    await this.cacheManager.del(key);
+  async delete(key: string, tenantId?: string): Promise<void> {
+    const scopedKey = this.buildTenantScopedKey(key, tenantId);
+    await this.cacheManager.del(scopedKey);
   }
 
-  async deleteMany(keys: string[]): Promise<void> {
-    await Promise.all(keys.map((key) => this.cacheManager.del(key)));
+  async deleteMany(keys: string[], tenantId?: string): Promise<void> {
+    const scopedKeys = keys.map((key) => this.buildTenantScopedKey(key, tenantId));
+    await Promise.all(scopedKeys.map((scopedKey) => this.cacheManager.del(scopedKey)));
   }
 
   async clear(): Promise<void> {
