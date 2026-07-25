@@ -1,9 +1,6 @@
 import { Injectable, type PipeTransform, type ArgumentMetadata } from '@nestjs/common';
 
-import {
-  sanitizeHtmlContent,
-  sanitizeTextInput,
-} from '../utils/sanitization.utils';
+import { sanitizeHtmlContent, sanitizeTextInput } from '../utils/sanitization.utils';
 
 /**
  * Field-name suffixes (case-insensitive) whose values are treated as rich text.
@@ -122,8 +119,7 @@ function sanitizeOverflow(value: unknown, mode: SanitizeMode): unknown {
   if (isPlainObject(value)) {
     const sanitized: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(value)) {
-      const childMode =
-        mode === 'passthrough' || isPassthroughField(key) ? 'passthrough' : mode;
+      const childMode = mode === 'passthrough' || isPassthroughField(key) ? 'passthrough' : mode;
       sanitized[key] = sanitizeOverflow(child, childMode);
     }
     return sanitized;
@@ -131,11 +127,7 @@ function sanitizeOverflow(value: unknown, mode: SanitizeMode): unknown {
   return value;
 }
 
-function sanitizeRecursive(
-  value: unknown,
-  depth: number,
-  parentMode: SanitizeMode,
-): unknown {
+function sanitizeRecursive(value: unknown, depth: number, parentMode: SanitizeMode): unknown {
   if (depth <= 0) {
     // Fail-closed at the depth limit. Hand off to the unlimited walker which
     // forces plain-text sanitization on every string we encounter.

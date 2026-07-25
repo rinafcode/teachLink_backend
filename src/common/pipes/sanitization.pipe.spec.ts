@@ -55,10 +55,7 @@ describe('SanitizationPipe', () => {
       signature: 'sig<nat>',
       hash: 'h<>ash',
     };
-    const out = pipe.transform(input, { type: 'body' }) as Record<
-      string,
-      string
-    >;
+    const out = pipe.transform(input, { type: 'body' }) as Record<string, string>;
 
     for (const key of Object.keys(input)) {
       expect(out[key]).toBe(input[key as keyof typeof input]);
@@ -81,10 +78,7 @@ describe('SanitizationPipe', () => {
       bodyHtml: '<p>ok</p><script>alert(1)</script>',
       commentRichText: '<a href="javascript:bad()">x</a>',
     };
-    const out = pipe.transform(input, { type: 'body' }) as Record<
-      string,
-      string
-    >;
+    const out = pipe.transform(input, { type: 'body' }) as Record<string, string>;
 
     expect(out.bodyHtml).toBe('<p>ok</p>');
 
@@ -119,10 +113,7 @@ describe('SanitizationPipe', () => {
     for (let i = 0; i < 50; i += 1) {
       deep = { nest: deep };
     }
-    const out = pipe.transform(deep, { type: 'body' }) as Record<
-      string,
-      unknown
-    >;
+    const out = pipe.transform(deep, { type: 'body' }) as Record<string, unknown>;
     const serialized = JSON.stringify(out);
     // Even at the boundary, no executable <script> token survives — either
     // the safe inner value remained or the boundary plain-text sanitization
@@ -150,7 +141,10 @@ describe('SanitizationPipe', () => {
 
   it('does not recurse into class instances', () => {
     class User {
-      constructor(public name: string, public bio: string) {}
+      constructor(
+        public name: string,
+        public bio: string,
+      ) {}
     }
     const u = new User('<b>Carol</b>', '<script>bad</script>dev');
     const out = pipe.transform(u, { type: 'body' });

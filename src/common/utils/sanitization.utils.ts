@@ -61,11 +61,7 @@ export function sanitizeHtmlContent(input: string): string {
     allowProtocolRelative: false,
     disallowedTagsMode: 'discard',
     transformTags: {
-      a: sanitizeHtml.simpleTransform(
-        'a',
-        { rel: 'noopener noreferrer' },
-        true,
-      ),
+      a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' }, true),
     },
     nonTextTags: ['script', 'style', 'textarea', 'noscript'],
   });
