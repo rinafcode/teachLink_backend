@@ -11,6 +11,7 @@ import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
 import { TenantAdminService } from './admin/tenant-admin.service';
 import { TenantGuard } from './guards/tenant.guard';
+import { TenantLimitGuard } from './guards/tenant-limit.guard';
 import { TenantMiddleware } from '../middleware/tenant/tenant.middleware';
 import { TenantRlsSubscriber } from '../middleware/tenant/tenant-rls.subscriber';
 import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-validation.guard';
@@ -28,6 +29,7 @@ import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-
     CustomizationService,
     TenantAdminService,
     TenantGuard,
+    TenantLimitGuard,
     TenantMiddleware,
     TenantRlsSubscriber,
     TenantAccessValidationGuard,
@@ -39,6 +41,7 @@ import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-
     CustomizationService,
     TenantAdminService,
     TenantGuard,
+    TenantLimitGuard,
     TenantMiddleware,
     TenantRlsSubscriber,
     TenantAccessValidationGuard,

@@ -18,6 +18,7 @@ import { AuthTokensService } from './services/auth-tokens.service';
 import { MfaService } from './mfa/mfa.service';
 import { MfaController } from './mfa/mfa.controller';
 import { SecurityModule } from '../security/security.module';
+import { TenancyModule } from '../tenancy/tenancy.module';
 import { createJwtOptions } from './config/jwt-config.factory';
 
 /**
@@ -38,6 +39,7 @@ import { createJwtOptions } from './config/jwt-config.factory';
     }),
     TypeOrmModule.forFeature([User]),
     SecurityModule,
+    TenancyModule,
   ],
   controllers: [AuthController, SocialAuthController, MfaController],
   providers: [

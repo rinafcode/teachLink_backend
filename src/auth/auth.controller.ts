@@ -7,16 +7,20 @@ import {
   HttpStatus,
   Req,
   UseGuards,
+  ConflictException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { MfaService } from './mfa/mfa.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { TenantLimitGuard, LimitType } from '../tenancy/guards/tenant-limit.guard';
+import { TenancyService } from '../tenancy/tenancy.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Auth')
@@ -27,7 +31,55 @@ export class AuthController {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly mfaService: MfaService,
+    private readonly tenancyService: TenancyService,
   ) {}
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @LimitType('user')
+  @UseGuards(TenantLimitGuard)
+  @ApiOperation({ summary: 'Register a new user account' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 402, description: 'Tenant user limit exceeded' })
+  @ApiResponse({ status: 409, description: 'Email or username already exists' })
+  async register(@Body() registerDto: RegisterDto, @Req() req: any) {
+    const existingEmail = await this.userRepository.findOne({
+      where: { email: registerDto.email },
+    });
+    if (existingEmail) {
+      throw new ConflictException('Email already registered');
+    }
+
+    const existingUsername = await this.userRepository.findOne({
+      where: { username: registerDto.username },
+    });
+    if (existingUsername) {
+      throw new ConflictException('Username already taken');
+    }
+
+    const rounds = Number(process.env.BCRYPT_ROUNDS || 12);
+    const salt = await bcrypt.genSalt(rounds);
+    const passwordHash = await bcrypt.hash(registerDto.password, salt);
+
+    const user = this.userRepository.create({
+      email: registerDto.email,
+      username: registerDto.username,
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      displayName: registerDto.displayName || registerDto.username,
+      profilePicture: registerDto.avatarUrl,
+      password: passwordHash,
+      tenantId: req.tenantId,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    if (req.tenantId) {
+      await this.tenancyService.incrementUserCount(req.tenantId);
+    }
+
+    return this.authService.login(savedUser);
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
