@@ -8,6 +8,7 @@ import { AuditLoggingService } from './audit/audit-logging.service';
 import { SecretsModule } from './secrets/secrets.module';
 import { ServiceAuthService } from './service-auth.service';
 import { ZeroTrustGuard } from './zero-trust.guard';
+import { MonitoringModule } from '../monitoring/monitoring.module';
 
 /**
  * SecurityModule wires the zero-trust architecture:
