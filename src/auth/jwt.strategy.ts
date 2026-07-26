@@ -6,12 +6,14 @@ import { Repository } from 'typeorm';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
 import { RolesService } from '../rbac/roles/roles.service';
+import { TokenBlacklistService } from './services/token-blacklist.service';
 
 export interface JwtPayload {
   sub: string;
   email: string;
   roles: string[];
   permissions: string[];
+  jti: string;
 }
 
 /**
@@ -27,6 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly rolesService: RolesService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -54,6 +57,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
    * @returns The authenticated user with roles and permissions.
    */
   async validate(payload: JwtPayload): Promise<any> {
+    if (payload.jti) {
+      const isBlacklisted = await this.tokenBlacklistService.isBlacklisted(payload.jti);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('Token has been revoked');
+      }
+    }
+
     const user = await this.userRepository.findOneBy({ id: payload.sub });
     if (!user) {
       throw new Error('User not found');

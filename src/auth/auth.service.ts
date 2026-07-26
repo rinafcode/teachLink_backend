@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
@@ -199,8 +199,8 @@ export class AuthService {
 
   private async generateTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessJti = uuidv4();
-    const refreshJti = uuidv4();
+    const accessJti = randomUUID();
+    const refreshJti = randomUUID();
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
