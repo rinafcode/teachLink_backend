@@ -30,6 +30,8 @@ export enum UserStatus {
   SUSPENDED = 'suspended',
 }
 
+export const PRIVILEGED_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.MODERATOR];
+
 /**
  * Represents the user entity.
  */
@@ -136,6 +138,16 @@ export class User {
       return this.roles[0].name as UserRole;
     }
     return UserRole.STUDENT;
+  }
+
+  hasRole(...roleNames: UserRole[]): boolean {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
+    return this.roles.some((role) => {
+      const name = typeof role === 'string' ? role : role.name;
+      return roleNames.includes(name as UserRole);
+    });
   }
 
   @OneToMany(() => Course, (course) => course.instructor)
