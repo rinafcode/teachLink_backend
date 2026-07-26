@@ -1,31 +1,32 @@
 # openapi_client.AuthApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost:3000*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**auth_login_post**](AuthApi.md#auth_login_post) | **POST** /auth/login | User login
-[**auth_register_post**](AuthApi.md#auth_register_post) | **POST** /auth/register | User registration
+[**login_user**](AuthApi.md#login_user) | **POST** /auth/login | Log in with email and password
+[**register_user**](AuthApi.md#register_user) | **POST** /auth/register | Register a new user
 
 
-# **auth_login_post**
-> auth_login_post(auth_login_post_request)
+# **login_user**
+> ApiSuccess login_user(login_request)
 
-User login
+Log in with email and password
 
 ### Example
 
 
 ```python
 import openapi_client
-from openapi_client.models.auth_login_post_request import AuthLoginPostRequest
+from openapi_client.models.api_success import ApiSuccess
+from openapi_client.models.login_request import LoginRequest
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to http://localhost:3000
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "http://localhost"
+    host = "http://localhost:3000"
 )
 
 
@@ -33,13 +34,15 @@ configuration = openapi_client.Configuration(
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.AuthApi(api_client)
-    auth_login_post_request = openapi_client.AuthLoginPostRequest() # AuthLoginPostRequest | 
+    login_request = {"email":"learner@example.com","password":"Password123!"} # LoginRequest | 
 
     try:
-        # User login
-        api_instance.auth_login_post(auth_login_post_request)
+        # Log in with email and password
+        api_response = api_instance.login_user(login_request)
+        print("The response of AuthApi->login_user:\n")
+        pprint(api_response)
     except Exception as e:
-        print("Exception when calling AuthApi->auth_login_post: %s\n" % e)
+        print("Exception when calling AuthApi->login_user: %s\n" % e)
 ```
 
 
@@ -49,11 +52,11 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **auth_login_post_request** | [**AuthLoginPostRequest**](AuthLoginPostRequest.md)|  | 
+ **login_request** | [**LoginRequest**](LoginRequest.md)|  | 
 
 ### Return type
 
-void (empty response body)
+[**ApiSuccess**](ApiSuccess.md)
 
 ### Authorization
 
@@ -62,7 +65,7 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: Not defined
+ - **Accept**: application/json
 
 ### HTTP response details
 
@@ -73,24 +76,25 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **auth_register_post**
-> auth_register_post(users_post_request)
+# **register_user**
+> ApiSuccess register_user(register_request)
 
-User registration
+Register a new user
 
 ### Example
 
 
 ```python
 import openapi_client
-from openapi_client.models.users_post_request import UsersPostRequest
+from openapi_client.models.api_success import ApiSuccess
+from openapi_client.models.register_request import RegisterRequest
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to http://localhost:3000
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "http://localhost"
+    host = "http://localhost:3000"
 )
 
 
@@ -98,13 +102,15 @@ configuration = openapi_client.Configuration(
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.AuthApi(api_client)
-    users_post_request = openapi_client.UsersPostRequest() # UsersPostRequest | 
+    register_request = {"email":"learner@example.com","password":"Password123!","firstName":"Ada","lastName":"Lovelace","role":"student"} # RegisterRequest | 
 
     try:
-        # User registration
-        api_instance.auth_register_post(users_post_request)
+        # Register a new user
+        api_response = api_instance.register_user(register_request)
+        print("The response of AuthApi->register_user:\n")
+        pprint(api_response)
     except Exception as e:
-        print("Exception when calling AuthApi->auth_register_post: %s\n" % e)
+        print("Exception when calling AuthApi->register_user: %s\n" % e)
 ```
 
 
@@ -114,11 +120,11 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **users_post_request** | [**UsersPostRequest**](UsersPostRequest.md)|  | 
+ **register_request** | [**RegisterRequest**](RegisterRequest.md)|  | 
 
 ### Return type
 
-void (empty response body)
+[**ApiSuccess**](ApiSuccess.md)
 
 ### Authorization
 
@@ -127,13 +133,15 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: Not defined
+ - **Accept**: application/json
 
 ### HTTP response details
 
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **201** | Registration successful |  -  |
+**400** | Invalid registration data |  -  |
+**409** | Email already exists |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
