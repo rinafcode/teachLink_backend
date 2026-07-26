@@ -66,22 +66,61 @@ async function bootstrapWorker(): Promise<void> {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // =========================
-  // WEBSOCKET PAYLOAD SIZE LIMIT
+  // WEBSOCKET ADAPTER (Redis + Payload Size Limit)
   // =========================
-  // Configure Socket.IO maxHttpBufferSize at the transport layer.
-  // Messages exceeding this limit are rejected before reaching any handler.
+  // Configure Socket.IO with Redis adapter for cross-pod collaboration
+  // and maxHttpBufferSize at the transport layer.
   const { IoAdapter } = await import('@nestjs/platform-socket.io');
 
   class SizeLimitedIoAdapter extends IoAdapter {
+    private adapterFactory: ((nsp: any) => any) | null = null;
+
+    setAdapterFactory(factory: (nsp: any) => any): void {
+      this.adapterFactory = factory;
+    }
+
     createIOServer(port: number, options?: any): any {
-      return super.createIOServer(port, {
+      const server = super.createIOServer(port, {
         ...options,
         maxHttpBufferSize: wsMaxPayloadBytes,
       });
+      if (this.adapterFactory) {
+        server.adapter(this.adapterFactory);
+      }
+      return server;
     }
   }
 
-  app.useWebSocketAdapter(new SizeLimitedIoAdapter(app));
+  const wsAdapter = new SizeLimitedIoAdapter(app);
+
+  try {
+    const { createAdapter } = await import('@socket.io/redis-adapter');
+    const RedisClient = (await import('ioredis')).default;
+
+    const redisHost = process.env.REDIS_HOST || 'localhost';
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+
+    const pubClient = new RedisClient({
+      host: redisHost,
+      port: redisPort,
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      lazyConnect: true,
+    });
+    const subClient = pubClient.duplicate();
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+
+    wsAdapter.setAdapterFactory(createAdapter(pubClient, subClient));
+    logger.log('Socket.IO Redis adapter connected for cross-pod collaboration');
+  } catch (err) {
+    logger.warn(
+      'Redis adapter unavailable for WebSocket, falling back to in-memory adapter',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
+  app.useWebSocketAdapter(wsAdapter);
   logger.log(
     `WebSocket maxHttpBufferSize set to ${wsMaxPayloadBytes} bytes (${Math.round(wsMaxPayloadBytes / 1024)}KB)`,
   );
