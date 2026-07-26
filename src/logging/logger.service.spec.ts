@@ -75,11 +75,14 @@ describe('AppLoggerService', () => {
 
       service.logRequest({ method: 'POST', url: '/api/users', userId: '123' });
 
-      expect(winstonSpy).toHaveBeenCalledWith('http_request', expect.objectContaining({
-        method: 'POST',
-        url: '/api/users',
-        userId: '123'
-      }));
+      expect(winstonSpy).toHaveBeenCalledWith(
+        'http_request',
+        expect.objectContaining({
+          method: 'POST',
+          url: '/api/users',
+          userId: '123',
+        }),
+      );
     });
 
     it('logResponse includes statusCode and duration', () => {
@@ -90,11 +93,14 @@ describe('AppLoggerService', () => {
 
       service.logResponse({ statusCode: 201, durationMs: 123, requestId: 'abc' });
 
-      expect(winstonSpy).toHaveBeenCalledWith('http_response', expect.objectContaining({
-        statusCode: 201,
-        durationMs: 123,
-        requestId: 'abc'
-      }));
+      expect(winstonSpy).toHaveBeenCalledWith(
+        'http_response',
+        expect.objectContaining({
+          statusCode: 201,
+          durationMs: 123,
+          requestId: 'abc',
+        }),
+      );
     });
   });
 
@@ -125,75 +131,75 @@ describe('AppLoggerService', () => {
   });
 
   describe('Configuration', () => {
-    it('uses default log level when not specified', () => {
+    it('uses default log level when not specified', async () => {
       delete process.env.LOG_LEVEL;
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
 
-    it('respects custom log level from environment', () => {
+    it('respects custom log level from environment', async () => {
       process.env.LOG_LEVEL = 'debug';
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
 
-    it('uses default log directory when not specified', () => {
+    it('uses default log directory when not specified', async () => {
       delete process.env.LOG_DIR;
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
 
-    it('respects custom log directory from environment', () => {
+    it('respects custom log directory from environment', async () => {
       process.env.LOG_DIR = '/custom/logs';
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
 
-    it('disables file logging by default in non-production', () => {
+    it('disables file logging by default in non-production', async () => {
       process.env.NODE_ENV = 'development';
       delete process.env.LOG_TO_FILE;
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
 
-    it('enables file logging when LOG_TO_FILE is true', () => {
+    it('enables file logging when LOG_TO_FILE is true', async () => {
       process.env.LOG_TO_FILE = 'true';
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
 
-    it('enables file logging in production', () => {
+    it('enables file logging in production', async () => {
       process.env.NODE_ENV = 'production';
       delete process.env.LOG_TO_FILE;
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
     });
   });
@@ -208,10 +214,13 @@ describe('AppLoggerService', () => {
 
       service.error('Error occurred', error.stack, 'TestContext');
 
-      expect(winstonSpy).toHaveBeenCalledWith('Error occurred', expect.objectContaining({
-        context: 'TestContext',
-        stack: error.stack
-      }));
+      expect(winstonSpy).toHaveBeenCalledWith(
+        'Error occurred',
+        expect.objectContaining({
+          context: 'TestContext',
+          stack: error.stack,
+        }),
+      );
     });
 
     it('handles error without stack trace', () => {
@@ -222,9 +231,12 @@ describe('AppLoggerService', () => {
 
       service.error('Error occurred', undefined, 'TestContext');
 
-      expect(winstonSpy).toHaveBeenCalledWith('Error occurred', expect.objectContaining({
-        context: 'TestContext'
-      }));
+      expect(winstonSpy).toHaveBeenCalledWith(
+        'Error occurred',
+        expect.objectContaining({
+          context: 'TestContext',
+        }),
+      );
     });
 
     it('handles error without context', () => {
@@ -240,13 +252,13 @@ describe('AppLoggerService', () => {
   });
 
   describe('Structured Output', () => {
-    it('includes service name in log output', () => {
+    it('includes service name in log output', async () => {
       process.env.SERVICE_NAME = 'test-service';
       const module: TestingModule = await Test.createTestingModule({
         providers: [AppLoggerService],
       }).compile();
       const configuredService = module.get(AppLoggerService);
-      
+
       expect(configuredService).toBeDefined();
       delete process.env.SERVICE_NAME;
     });
