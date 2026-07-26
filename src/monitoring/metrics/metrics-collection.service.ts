@@ -86,6 +86,12 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Cache hit rate percentage, labelled by cache_type */
   public cacheHitRate: Gauge;
 
+  /** Total cache entries warmed, labelled by target (e.g. COURSES_LIST) */
+  public cacheWarmingEntriesTotal: Counter;
+
+  /** Duration of a single cache warming run in seconds, labelled by target */
+  public cacheWarmingDuration: Histogram;
+
   // ── Business Metrics – Queues ──────────────────────────────────────────────
 
   /** Queue job processing duration, labelled by queue_name and job_type */
@@ -222,6 +228,18 @@ export class MetricsCollectionService implements OnModuleInit {
 
   updateCacheHitRate(cacheType: string, hitRate: number): void {
     this.cacheHitRate.set({ cache_type: cacheType }, hitRate);
+  }
+
+  /**
+   * Records one completed cache warming run.
+   *
+   * @param target      Warming target label (e.g. 'COURSES_LIST')
+   * @param keysWarmed  Number of cache entries written
+   * @param durationMs  Wall-clock duration of the warming run in milliseconds
+   */
+  recordCacheWarming(target: string, keysWarmed: number, durationMs: number): void {
+    this.cacheWarmingEntriesTotal.inc({ target }, keysWarmed);
+    this.cacheWarmingDuration.observe({ target }, durationMs / 1000);
   }
 
   // ── Recording helpers – Queues ────────────────────────────────────────────
@@ -431,6 +449,21 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'cache_hit_rate_percentage',
       help: 'Cache hit rate percentage',
       labelNames: ['cache_type'],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmingEntriesTotal = new Counter({
+      name: 'cache_warming_entries_total',
+      help: 'Total number of cache entries warmed per warming target',
+      labelNames: ['target'],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmingDuration = new Histogram({
+      name: 'cache_warming_duration_seconds',
+      help: 'Duration of a single cache warming run in seconds per target',
+      labelNames: ['target'],
+      buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
       registers: [this.registry],
     });
 

@@ -38,10 +38,28 @@ describe('CacheWarmingScheduler', () => {
     );
   });
 
-  it('runs full warm-up on module init', async () => {
-    await scheduler.onModuleInit();
+  // ── Deferred startup warming ────────────────────────────────────────────────
+
+  it('runs full warm-up after the startup delay via onApplicationBootstrap', async () => {
+    jest.useFakeTimers();
+    const bootstrapPromise = scheduler.onApplicationBootstrap();
+    // Advance past STARTUP_DELAY_MS
+    await jest.runAllTimersAsync();
+    await bootstrapPromise;
+    jest.useRealTimers();
+
     expect(warming.warmAll).toHaveBeenCalledTimes(1);
   });
+
+  it('does NOT call warmAll before the startup delay has elapsed', async () => {
+    jest.useFakeTimers();
+    // Start bootstrap but do not advance timers
+    void scheduler.onApplicationBootstrap();
+    expect(warming.warmAll).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  // ── Scheduled methods ───────────────────────────────────────────────────────
 
   it('delegates scheduled search warming to CacheWarmingService', async () => {
     await scheduler.warmSearchResults();
@@ -51,6 +69,16 @@ describe('CacheWarmingScheduler', () => {
   it('delegates scheduled profile warming to CacheWarmingService', async () => {
     await scheduler.warmUserProfiles();
     expect(warming.warmUserProfiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates scheduled course list warming to CacheWarmingService', async () => {
+    await scheduler.warmCoursesList();
+    expect(warming.warmCoursesList).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates scheduled popular courses warming to CacheWarmingService', async () => {
+    await scheduler.warmPopularCourses();
+    expect(warming.warmPopularCourses).toHaveBeenCalledTimes(1);
   });
 
   it('publishes cache hit-rate metrics on schedule', () => {
