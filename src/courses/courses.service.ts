@@ -12,7 +12,7 @@ import {
   BulkOperationStatus,
   BulkOperationType,
 } from './entities/bulk-operation.entity';
-import { User } from '../users/entities/user.entity';
+import { User, PRIVILEGED_ROLES } from '../users/entities/user.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
@@ -107,11 +107,7 @@ export class CoursesService {
   ): Promise<OffsetPaginatedResponse<Course>> {
     const page = query?.page ?? 1;
     const limit = query?.limit ?? 20;
-    const isPrivileged =
-      requestingUser &&
-      requestingUser.roles?.some((role) =>
-        ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
-      );
+    const isPrivileged = requestingUser?.hasRole(...PRIVILEGED_ROLES) ?? false;
 
     const where = isPrivileged ? {} : { status: CourseStatus.PUBLISHED };
     const [data, total] = await this.courseRepo.findAndCount({
@@ -390,20 +386,13 @@ export class CoursesService {
   }
 
   private assertPrivileged(user: User): void {
-    const isPrivileged = user.roles?.some((role) =>
-      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
-    );
-    if (!isPrivileged) {
+    if (!user.hasRole(...PRIVILEGED_ROLES)) {
       throw new ForbiddenOperationException('Only admins or moderators may perform this action.');
     }
   }
 
   private assertOwnerOrPrivileged(course: Course, user: User): void {
-    const isOwner = course.instructorId === user.id;
-    const isPrivileged = user.roles?.some((role) =>
-      ['admin', 'moderator'].includes(typeof role === 'string' ? role : role.name),
-    );
-    if (!isOwner && !isPrivileged) {
+    if (course.instructorId !== user.id && !user.hasRole(...PRIVILEGED_ROLES)) {
       throw new ForbiddenOperationException('Insufficient permissions.');
     }
   }
@@ -500,9 +489,7 @@ export class CoursesService {
       throw new ResourceNotFoundException('Bulk operation', operationId);
     }
 
-    const isInitiator = op.initiatedById === user.id;
-    const isPrivileged = user.roles.some((role) => ['admin', 'moderator'].includes(role.name));
-    if (!isInitiator && !isPrivileged) {
+    if (op.initiatedById !== user.id && !user.hasRole(...PRIVILEGED_ROLES)) {
       throw new ForbiddenOperationException(
         'Only the initiator or an admin/moderator may undo this operation.',
       );
@@ -563,7 +550,7 @@ export class CoursesService {
     apply: (course: Course) => BulkCourseSnapshot['previous'];
   }): Promise<BulkOperation> {
     const { type, payload, courseIds, user, apply } = args;
-    const isPrivileged = user.roles.some((role) => ['admin', 'moderator'].includes(role.name));
+    const isPrivileged = user.hasRole(...PRIVILEGED_ROLES);
 
     const courses = await this.courseRepo.find({ where: { id: In(courseIds) } });
     const found = new Map(courses.map((c) => [c.id, c]));
