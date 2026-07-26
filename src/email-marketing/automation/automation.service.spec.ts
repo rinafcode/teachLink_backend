@@ -107,13 +107,19 @@ describe('AutomationService', () => {
         expect.objectContaining({ where: { workflowId: 'wf-1', eventType: EmailEventType.SENT } }),
       );
       expect(emailEventRepo.count).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { workflowId: 'wf-1', eventType: EmailEventType.DELIVERED } }),
+        expect.objectContaining({
+          where: { workflowId: 'wf-1', eventType: EmailEventType.DELIVERED },
+        }),
       );
       expect(emailEventRepo.count).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { workflowId: 'wf-1', eventType: EmailEventType.OPENED } }),
+        expect.objectContaining({
+          where: { workflowId: 'wf-1', eventType: EmailEventType.OPENED },
+        }),
       );
       expect(emailEventRepo.count).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { workflowId: 'wf-1', eventType: EmailEventType.CLICKED } }),
+        expect.objectContaining({
+          where: { workflowId: 'wf-1', eventType: EmailEventType.CLICKED },
+        }),
       );
     });
 
@@ -133,7 +139,10 @@ describe('AutomationService', () => {
     });
 
     it('preserves executionCount and lastExecutedAt from the workflow row', async () => {
-      const workflow = createWorkflow({ executionCount: 12, lastExecutedAt: new Date('2026-07-15T08:30:00Z') });
+      const workflow = createWorkflow({
+        executionCount: 12,
+        lastExecutedAt: new Date('2026-07-15T08:30:00Z'),
+      });
       workflowRepo.findOne.mockResolvedValue(workflow);
       emailEventRepo.count.mockResolvedValue(0);
 
@@ -155,7 +164,9 @@ describe('AutomationService', () => {
     it('throws ResourceNotFoundException for unknown workflow', async () => {
       workflowRepo.findOne.mockResolvedValue(null);
 
-      await expect(service.getWorkflowStats('nonexistent')).rejects.toThrow(ResourceNotFoundException);
+      await expect(service.getWorkflowStats('nonexistent')).rejects.toThrow(
+        ResourceNotFoundException,
+      );
     });
 
     it('queries counts for the correct workflowId', async () => {

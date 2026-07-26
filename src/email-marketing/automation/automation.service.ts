@@ -352,9 +352,7 @@ export class AutomationService {
    * - `openRate`  — (unique OPENED events / DELIVERED events) × 100 (`null` if no deliveries)
    * - `clickRate` — (unique CLICKED events / DELIVERED events) × 100 (`null` if no deliveries)
    */
-  async getWorkflowStats(
-    id: string,
-  ): Promise<{
+  async getWorkflowStats(id: string): Promise<{
     executionCount: number;
     lastExecutedAt: Date | null;
     emailsSent: number | null;
@@ -378,21 +376,16 @@ export class AutomationService {
       }),
     ]);
 
-    const hasEvents =
-      sentCount > 0 || deliveredCount > 0 || openCount > 0 || clickCount > 0;
+    const hasEvents = sentCount > 0 || deliveredCount > 0 || openCount > 0 || clickCount > 0;
 
     return {
       executionCount: workflow.executionCount || 0,
       lastExecutedAt: workflow.lastExecutedAt,
       emailsSent: hasEvents ? sentCount : null,
       openRate:
-        deliveredCount > 0
-          ? parseFloat(((openCount / deliveredCount) * 100).toFixed(2))
-          : null,
+        deliveredCount > 0 ? parseFloat(((openCount / deliveredCount) * 100).toFixed(2)) : null,
       clickRate:
-        deliveredCount > 0
-          ? parseFloat(((clickCount / deliveredCount) * 100).toFixed(2))
-          : null,
+        deliveredCount > 0 ? parseFloat(((clickCount / deliveredCount) * 100).toFixed(2)) : null,
     };
   }
 }
