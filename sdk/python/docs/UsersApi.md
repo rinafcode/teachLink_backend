@@ -1,20 +1,17 @@
 # openapi_client.UsersApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost:3000*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**users_get**](UsersApi.md#users_get) | **GET** /users | Get all users (Admin only)
-[**users_id_delete**](UsersApi.md#users_id_delete) | **DELETE** /users/{id} | Delete user (Admin only)
-[**users_id_get**](UsersApi.md#users_id_get) | **GET** /users/{id} | Get user by ID
-[**users_id_patch**](UsersApi.md#users_id_patch) | **PATCH** /users/{id} | Update user
-[**users_post**](UsersApi.md#users_post) | **POST** /users | Create a new user (Admin only)
+[**create_user**](UsersApi.md#create_user) | **POST** /users | Create a user
+[**list_users**](UsersApi.md#list_users) | **GET** /users | List users
 
 
-# **users_get**
-> users_get()
+# **create_user**
+> ApiSuccess create_user(register_request)
 
-Get all users (Admin only)
+Create a user
 
 ### Example
 
@@ -22,13 +19,15 @@ Get all users (Admin only)
 
 ```python
 import openapi_client
+from openapi_client.models.api_success import ApiSuccess
+from openapi_client.models.register_request import RegisterRequest
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to http://localhost:3000
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "http://localhost"
+    host = "http://localhost:3000"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -45,72 +44,15 @@ configuration = openapi_client.Configuration(
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.UsersApi(api_client)
+    register_request = {"email":"teacher@example.com","password":"Password123!","firstName":"Grace","lastName":"Hopper","role":"teacher"} # RegisterRequest | 
 
     try:
-        # Get all users (Admin only)
-        api_instance.users_get()
+        # Create a user
+        api_response = api_instance.create_user(register_request)
+        print("The response of UsersApi->create_user:\n")
+        pprint(api_response)
     except Exception as e:
-        print("Exception when calling UsersApi->users_get: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[bearerAuth](../README.md#bearerAuth)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | Users found |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **users_id_delete**
-> users_id_delete(id)
-
-Delete user (Admin only)
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to http://localhost
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "http://localhost"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.UsersApi(api_client)
-    id = 'id_example' # str | 
-
-    try:
-        # Delete user (Admin only)
-        api_instance.users_id_delete(id)
-    except Exception as e:
-        print("Exception when calling UsersApi->users_id_delete: %s\n" % e)
+        print("Exception when calling UsersApi->create_user: %s\n" % e)
 ```
 
 
@@ -120,211 +62,11 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
+ **register_request** | [**RegisterRequest**](RegisterRequest.md)|  | 
 
 ### Return type
 
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | User deleted |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **users_id_get**
-> users_id_get(id)
-
-Get user by ID
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to http://localhost
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "http://localhost"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.UsersApi(api_client)
-    id = 'id_example' # str | 
-
-    try:
-        # Get user by ID
-        api_instance.users_id_get(id)
-    except Exception as e:
-        print("Exception when calling UsersApi->users_id_get: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | User found |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **users_id_patch**
-> users_id_patch(id)
-
-Update user
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to http://localhost
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "http://localhost"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.UsersApi(api_client)
-    id = 'id_example' # str | 
-
-    try:
-        # Update user
-        api_instance.users_id_patch(id)
-    except Exception as e:
-        print("Exception when calling UsersApi->users_id_patch: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **id** | **str**|  | 
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | User updated |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **users_post**
-> users_post(users_post_request)
-
-Create a new user (Admin only)
-
-### Example
-
-* Bearer (JWT) Authentication (bearerAuth):
-
-```python
-import openapi_client
-from openapi_client.models.users_post_request import UsersPostRequest
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to http://localhost
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "http://localhost"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure Bearer authorization (JWT): bearerAuth
-configuration = openapi_client.Configuration(
-    access_token = os.environ["BEARER_TOKEN"]
-)
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.UsersApi(api_client)
-    users_post_request = openapi_client.UsersPostRequest() # UsersPostRequest | 
-
-    try:
-        # Create a new user (Admin only)
-        api_instance.users_post(users_post_request)
-    except Exception as e:
-        print("Exception when calling UsersApi->users_post: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **users_post_request** | [**UsersPostRequest**](UsersPostRequest.md)|  | 
-
-### Return type
-
-void (empty response body)
+[**ApiSuccess**](ApiSuccess.md)
 
 ### Authorization
 
@@ -333,13 +75,93 @@ void (empty response body)
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: Not defined
+ - **Accept**: application/json
 
 ### HTTP response details
 
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **201** | User created |  -  |
+**400** | Invalid user data |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **list_users**
+> ApiSuccess list_users(page=page, limit=limit)
+
+List users
+
+### Example
+
+* Bearer (JWT) Authentication (bearerAuth):
+
+```python
+import openapi_client
+from openapi_client.models.api_success import ApiSuccess
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost:3000
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "http://localhost:3000"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure Bearer authorization (JWT): bearerAuth
+configuration = openapi_client.Configuration(
+    access_token = os.environ["BEARER_TOKEN"]
+)
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.UsersApi(api_client)
+    page = 1 # int |  (optional) (default to 1)
+    limit = 20 # int |  (optional) (default to 20)
+
+    try:
+        # List users
+        api_response = api_instance.list_users(page=page, limit=limit)
+        print("The response of UsersApi->list_users:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling UsersApi->list_users: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **page** | **int**|  | [optional] [default to 1]
+ **limit** | **int**|  | [optional] [default to 20]
+
+### Return type
+
+[**ApiSuccess**](ApiSuccess.md)
+
+### Authorization
+
+[bearerAuth](../README.md#bearerAuth)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Users found |  -  |
+**401** | Authentication required |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

@@ -15,35 +15,10 @@ import { ShardConfigService } from './shard-config.service';
 import { ShardMigrationService } from './migration/shard-migration.service';
 import { ShardRebalanceService } from './rebalance/shard-rebalance.service';
 import { ShardHealthService } from './health/shard-health.service';
-import { ShardMigrationPlan, ShardStrategy } from './interfaces/shard.interface';
-
-class RouteShardDto {
-  /** Routing key, e.g. a userId, tenantId, or courseId */
-  key: string;
-  /** Strategy override — defaults to HASH_BASED */
-  strategy?: ShardStrategy;
-  /** Route to read replica if true */
-  forRead?: boolean;
-}
-
-class StartMigrationDto {
-  sourceShardId: string;
-  targetShardId: string;
-  entityType: string;
-  estimatedRowCount: number;
-  batchSize: number;
-  dryRun: boolean;
-}
-
-class ManualRebalanceDto {
-  migrations: ShardMigrationPlan[];
-  dryRun: boolean;
-}
-
-class AutoRebalanceDto {
-  entityTypes: string[];
-  autoExecute: boolean;
-}
+import { RouteShardDto } from './dto/route-shard.dto';
+import { StartMigrationDto } from './dto/start-migration.dto';
+import { ManualRebalanceDto } from './dto/manual-rebalance.dto';
+import { AutoRebalanceDto } from './dto/auto-rebalance.dto';
 
 /**
  * ShardingController
