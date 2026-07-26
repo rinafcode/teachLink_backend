@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Gauge } from 'prom-client';
 import { MetricsCollectionService } from './metrics/metrics-collection.service';
 
 /**
  * CostTrackingService
- * - Records estimated cost metrics (e.g., AWS spend) into Prometheus metrics via MetricsCollectionService.
+ * - Records real cloud-provider billing data into Prometheus metrics via MetricsCollectionService.
  * - Provides a simple in-memory rolling window and ability to evaluate budgets.
  */
 @Injectable()
@@ -12,40 +13,53 @@ export class CostTrackingService {
   private windowHours = 24;
   private hourlyCosts: number[] = [];
 
+  /** Lazily created gauge so we can add the billing_period label on first use. */
+  private hourlyCostGauge: Gauge | null = null;
+
   constructor(private readonly metrics: MetricsCollectionService) {}
 
-  async recordHourlyCost(amountUsd: number): Promise<void> {
-    // maintain a rolling window of last `windowHours` hourly costs
+  /**
+   * Records the hourly cost figure into the rolling window and updates the
+   * Prometheus gauge `infrastructure_hourly_cost_usd`.
+   *
+   * @param amountUsd    Cost in USD for the billing period.
+   * @param billingPeriod  ISO-8601 date range the amount covers, e.g.
+   *                       "2026-07-25/2026-07-26".  Omit when the billing
+   *                       period is unknown.
+   */
+  async recordHourlyCost(amountUsd: number, billingPeriod?: string): Promise<void> {
+    // Maintain a rolling window of the last `windowHours` hourly costs.
     this.hourlyCosts.push(amountUsd);
     if (this.hourlyCosts.length > this.windowHours) {
       this.hourlyCosts.shift();
     }
 
-    // Expose as a Gauge on the metrics registry using a generic name
     try {
-      // Create or update a simple gauge on the registry
-      const gaugeName = 'infrastructure_hourly_cost_usd';
-      // Use prom-client directly to set the gauge if not present
-      const registry = this.metrics.getRegistry();
-      const existing = registry.getSingleMetric(gaugeName);
-      const latest = amountUsd;
-      if (existing) {
-        // @ts-expect-error - prom-client Metric has set method but types are incomplete
-        existing.set(latest);
-      } else {
-        // Create a new gauge
-        // Lazy import to avoid import ordering issues
-        const prom = await import('prom-client');
-        const Gauge = prom.Gauge;
-        new Gauge({
-          name: gaugeName,
-          help: 'Hourly infrastructure cost in USD',
-          registers: [registry],
-        }).set(latest);
-      }
+      const gauge = this.getOrCreateGauge();
+      const labels = billingPeriod ? { billing_period: billingPeriod } : { billing_period: 'unknown' };
+      gauge.set(labels, amountUsd);
     } catch (err) {
       this.logger.error('Failed to record cost metric', err as Error);
     }
+  }
+
+  private getOrCreateGauge(): Gauge {
+    if (!this.hourlyCostGauge) {
+      const registry = this.metrics.getRegistry();
+      const gaugeName = 'infrastructure_hourly_cost_usd';
+      const existing = registry.getSingleMetric(gaugeName);
+      if (existing) {
+        this.hourlyCostGauge = existing as Gauge;
+      } else {
+        this.hourlyCostGauge = new Gauge({
+          name: gaugeName,
+          help: 'Hourly infrastructure cost in USD, labelled with the billing period it describes',
+          labelNames: ['billing_period'],
+          registers: [registry],
+        });
+      }
+    }
+    return this.hourlyCostGauge;
   }
 
   getLast24hCost(): number {
