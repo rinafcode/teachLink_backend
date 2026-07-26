@@ -4,6 +4,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { TIME } from '../../common/constants/time.constants';
+import { enrichWithCorrelation } from '../../queues/utils/correlation-job.util';
 
 export interface IReplicationEvent {
   entityId: string;
@@ -43,13 +44,17 @@ export class ReplicationService {
       timestamp: new Date(),
     };
 
-    await this.syncQueue.add(JOB_NAMES.REPLICATE_DATA, event, {
-      attempts: 5,
-      backoff: {
-        type: 'exponential',
-        delay: TIME.TWO_SECONDS_MS,
+    await this.syncQueue.add(
+      JOB_NAMES.REPLICATE_DATA,
+      enrichWithCorrelation(event as unknown as Record<string, unknown>),
+      {
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: TIME.TWO_SECONDS_MS,
+        },
       },
-    });
+    );
 
     this.eventEmitter.emit('data.replication.started', event);
   }
