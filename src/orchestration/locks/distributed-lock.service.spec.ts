@@ -43,7 +43,8 @@ describe('DistributedLockService', () => {
   });
 
   it('acquires the lock using a single SET key value NX PX command', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
 
     const token = await service.acquireLock('lock:test', 5000);
 
@@ -53,7 +54,8 @@ describe('DistributedLockService', () => {
   });
 
   it('returns null when the lock is already held', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
 
     const first = await service.acquireLock('lock:test', 5000);
     const second = await service.acquireLock('lock:test', 5000);
@@ -63,7 +65,8 @@ describe('DistributedLockService', () => {
   });
 
   it('allows exactly one caller to acquire the lock under 100 concurrent attempts', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
 
     const results = await Promise.all(
       Array.from({ length: 100 }, () => service.acquireLock('lock:contended', 5000)),
@@ -74,7 +77,8 @@ describe('DistributedLockService', () => {
   });
 
   it('releaseLock only removes the lock if the token matches', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
     const token = await service.acquireLock('lock:test', 5000);
 
     await service.releaseLock('lock:test', 'wrong-token');
@@ -85,7 +89,8 @@ describe('DistributedLockService', () => {
   });
 
   it('withLock releases the lock even if fn throws', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
 
     await expect(
       service.withLock('lock:test', 5000, async () => {
@@ -99,7 +104,8 @@ describe('DistributedLockService', () => {
   });
 
   it('withLock returns the value produced by fn and releases the lock', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
 
     const result = await service.withLock('lock:test', 5000, async () => 'done');
 
@@ -108,7 +114,8 @@ describe('DistributedLockService', () => {
   });
 
   it('withLock throws if the lock cannot be acquired', async () => {
-    const service = new DistributedLockService();
+    const redisMock = new Redis() as unknown as Redis;
+    const service = new DistributedLockService(redisMock);
     await service.acquireLock('lock:test', 5000);
 
     await expect(service.withLock('lock:test', 5000, async () => 'unreachable')).rejects.toThrow(
