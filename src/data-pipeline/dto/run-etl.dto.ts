@@ -6,7 +6,10 @@ export class RunEtlDto {
   @IsString()
   source: string;
 
-  @ApiProperty({ description: 'Array of records to process', example: [{ id: 1, name: 'example' }] })
+  @ApiProperty({
+    description: 'Array of records to process',
+    example: [{ id: 1, name: 'example' }],
+  })
   @IsArray()
   @IsObject({ each: true })
   data: Record<string, unknown>[];

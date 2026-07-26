@@ -3,7 +3,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ShardMigrationPlan } from '../interfaces/shard.interface';
 
 export class ManualRebalanceDto {
-  @ApiProperty({ description: 'List of migration plans to execute', type: 'array', items: { type: 'object' } })
+  @ApiProperty({
+    description: 'List of migration plans to execute',
+    type: 'array',
+    items: { type: 'object' },
+  })
   @IsArray()
   migrations: ShardMigrationPlan[];
 
