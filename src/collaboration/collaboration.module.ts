@@ -7,6 +7,7 @@ import { ChangeHistoryService } from './change-history.service';
 import { CollaborationGateway } from './collaboration.gateway';
 import { WsPayloadSizeGuardService } from './guards/ws-payload-size-guard.service';
 import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
+import { RedisSocketRegistryService } from './redis-socket-registry.service';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
     CollaborationGateway,
     WsPayloadSizeGuardService,
     WsJwtAuthGuard,
+    RedisSocketRegistryService,
   ],
   exports: [OtCrdtService, PresenceService, ChangeHistoryService],
 })

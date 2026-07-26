@@ -113,6 +113,7 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/semantic-conventions": "^1.41.1",
     "@segment/analytics-node": "^2.1.2",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@types/csurf": "^1.11.5",
     "@types/express-session": "^1.18.2",
     "@types/handlebars": "^4.0.40",
