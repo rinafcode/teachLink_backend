@@ -126,7 +126,10 @@ describe('AppLoggerService', () => {
 
       service.log('test message without correlation');
 
-      expect(winstonSpy).toHaveBeenCalledWith('test message without correlation', expect.any(Object));
+      expect(winstonSpy).toHaveBeenCalledWith(
+        'test message without correlation',
+        expect.any(Object),
+      );
     });
   });
 
