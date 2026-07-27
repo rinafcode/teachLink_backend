@@ -194,7 +194,8 @@ export class AuthService {
   }
 
   private hashRefreshToken(token: string): string {
-    const secret = process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+    const secret =
+      process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
     return createHmac('sha256', secret).update(token).digest('hex');
   }
 

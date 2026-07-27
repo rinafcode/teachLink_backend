@@ -219,7 +219,8 @@ describe('AuthService', () => {
     });
 
     function hmacToken(token: string): string {
-      const secret = process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+      const secret =
+        process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
       return createHmac('sha256', secret).update(token).digest('hex');
     }
 
@@ -241,7 +242,9 @@ describe('AuthService', () => {
 
     it('throws UnauthorizedException when the refresh token hash does not match', async () => {
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOne.mockResolvedValue(makeUser({ refreshToken: hmacToken('some-other-token') }));
+      mockUserRepo.findOne.mockResolvedValue(
+        makeUser({ refreshToken: hmacToken('some-other-token') }),
+      );
 
       await expect(service.refreshTokens('wrong-token')).rejects.toThrow(UnauthorizedException);
       expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
