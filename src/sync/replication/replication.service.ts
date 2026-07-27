@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -18,15 +19,32 @@ export interface IReplicationEvent {
  * Provides replication operations.
  */
 @Injectable()
-export class ReplicationService {
+export class ReplicationService implements OnModuleInit {
   private readonly logger = new Logger(ReplicationService.name);
-  private readonly currentRegion = process.env.REGION || 'us-east-1';
+  private readonly currentRegion: string;
+  private readonly allRegions: string[];
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     @InjectQueue(QUEUE_NAMES.SYNC_TASKS)
     private readonly syncQueue: Queue,
-  ) {}
+  ) {
+    this.currentRegion = this.configService.getOrThrow<string>('REGION');
+    this.allRegions = this.configService
+      .getOrThrow<string>('REPLICATION_REGIONS')
+      .split(',')
+      .map((r) => r.trim())
+      .filter(Boolean);
+  }
+
+  onModuleInit(): void {
+    if (!this.allRegions.includes(this.currentRegion)) {
+      throw new Error(
+        `REGION "${this.currentRegion}" is not present in REPLICATION_REGIONS "${this.allRegions.join(',')}"`,
+      );
+    }
+  }
 
   async replicateToRegion(entityId: string, data: unknown, targetRegion: string): Promise<void> {
     if (targetRegion === this.currentRegion) {
@@ -60,10 +78,9 @@ export class ReplicationService {
   }
 
   async broadcastToAllRegions(entityId: string, data: unknown): Promise<void> {
-    const allRegions = ['us-east-1', 'eu-west-1', 'ap-southeast-1'];
     this.logger.log(`Broadcasting ${entityId} to all regions`);
 
-    const replicationPromises = allRegions
+    const replicationPromises = this.allRegions
       .filter((region) => region !== this.currentRegion)
       .map((region) => this.replicateToRegion(entityId, data, region));
 

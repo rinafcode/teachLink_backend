@@ -184,6 +184,10 @@ export const envValidationSchema = Joi.object({
   CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT: Joi.number().integer().min(1000).default(60000),
   CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS: Joi.number().integer().min(1).default(10),
 
+  // Replication Configuration
+  REGION: Joi.string().required(),
+  REPLICATION_REGIONS: Joi.string().required(),
+
   // ── Database Sharding (#602) ──────────────────────────────────────────────
   // Number of shards. Set to 0 or omit to run in single-shard fallback mode.
   SHARD_COUNT: Joi.number().integer().min(0).default(0),
