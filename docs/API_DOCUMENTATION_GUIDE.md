@@ -382,9 +382,63 @@ curl http://localhost:3000/api/docs-json | jq '.paths | keys'
 grep -r "@Controller\|@ApiTags" src/
 ```
 
+## Cursor-Based Pagination
+
+TeachLink supports opaque cursor-based pagination across list endpoints (including Courses, Notifications, and Audit Logs) alongside existing offset/limit pagination.
+
+### Cursor Format
+
+The cursor token is a Base64-encoded string of a JSON object containing `{ id, createdAt }`:
+
+```json
+{
+  "id": "uuid-or-id-string",
+  "createdAt": "2026-07-26T12:00:00.000Z"
+}
+```
+
+### Usage
+
+1. **First Page Request**:
+   To request the first page of results, call the endpoint without passing a `cursor` query parameter (or with optional `limit`):
+   ```http
+   GET /courses?limit=20
+   ```
+   The response will include the list of items and a `nextCursor` field:
+   ```json
+   {
+     "data": [ ... ],
+     "nextCursor": "eyJpZCI6IjEyMyIsImNyZWF0ZWRBdCI6IjIwMjYtMDctMjZUMTI6MDA6MDAuMDAwWiJ9"
+   }
+   ```
+
+2. **Subsequent Page Requests**:
+   To request the next page of results, pass the received `nextCursor` value in the `cursor` query parameter:
+   ```http
+   GET /courses?limit=20&cursor=eyJpZCI6IjEyMyIsImNyZWF0ZWRBdCI6IjIwMjYtMDctMjZUMTI6MDA6MDAuMDAwWiJ9
+   ```
+
+3. **Final Page**:
+   When there are no more items available, `nextCursor` in the response will be `null`:
+   ```json
+   {
+     "data": [ ... ],
+     "nextCursor": null
+   }
+   ```
+
+### Backward Compatibility
+
+Offset-based pagination via `page` / `offset` and `limit` query parameters remains fully supported for backward compatibility:
+```http
+GET /courses?page=1&limit=20
+```
+When `offset` or `page` is provided (without `cursor`), the endpoint continues to return standard offset paginated metadata (`total`, `page`, `limit`, `totalPages`, `hasNextPage`, `hasPrevPage`).
+
 ## References
 
 - [NestJS Swagger Documentation](https://docs.nestjs.com/openapi/introduction)
 - [OpenAPI Specification](https://swagger.io/specification/)
 - [ReDoc Documentation](https://redoc.ly/)
 - [OpenAPI Generator](https://openapi-generator.tech/)
+

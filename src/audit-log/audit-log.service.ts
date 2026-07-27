@@ -158,8 +158,14 @@ export class AuditLogService {
 
   // ── Query ──────────────────────────────────────────────────────────────────
 
-  search(filters: IAuditLogSearchFilters, page = 1, limit = 50): Promise<IAuditLogSearchResult> {
-    return this.queryService.search(filters, page, limit);
+  search(
+    filters: IAuditLogSearchFilters,
+    page = 1,
+    limit = 50,
+    cursor?: string,
+    offset?: number,
+  ): Promise<IAuditLogSearchResult> {
+    return this.queryService.search(filters, page, limit, cursor, offset);
   }
 
   findAll(limit = 100): Promise<AuditLog[]> {
