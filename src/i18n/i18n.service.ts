@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { readdir, readFile } from 'fs/promises';
 import { extname, join } from 'path';
 
 /**
@@ -32,13 +32,13 @@ export interface LocaleDefinition {
 }
 
 @Injectable()
-export class I18nWrapperService {
+export class I18nWrapperService implements OnModuleInit {
   private readonly logger = new Logger(I18nWrapperService.name);
   private readonly localesPath = join(__dirname, 'locales');
   private readonly fallbackLocale = DEFAULT_LOCALE;
 
   /**
-   * Populated during construction by {@link loadBundles}.
+   * Populated during {@link onModuleInit} by {@link loadBundles}.
    * Contains exactly one entry per locale whose directory was discovered and
    * whose bundle loaded without error — no more, no less.
    */
@@ -47,8 +47,14 @@ export class I18nWrapperService {
   /** Translation bundles keyed by locale code. */
   private readonly bundles: Record<string, Record<string, unknown>> = {};
 
-  constructor() {
-    this.loadBundles();
+  /**
+   * Locale bundles are loaded here — through the module lifecycle — rather than
+   * in the constructor.  This keeps all filesystem access asynchronous and
+   * ensures a missing or empty locales directory fails startup loudly instead
+   * of silently degrading every translation to a key passthrough.
+   */
+  async onModuleInit(): Promise<void> {
+    await this.loadBundles();
   }
 
   /**
@@ -84,17 +90,31 @@ export class I18nWrapperService {
    * `_meta.json` — if present — provides the display name and direction for
    * the locale.  If it is absent, direction falls back to {@link RTL_LANGS}
    * and the display name falls back to the uppercased locale code.
+   *
+   * Startup fails (this method throws) when the locales directory cannot be
+   * read, is empty, or yields no loadable bundle — the caller
+   * ({@link onModuleInit}) surfaces the error so the application does not boot
+   * into a state where every translation silently falls through to its key.
    */
-  private loadBundles(): void {
+  private async loadBundles(): Promise<void> {
     let localeDirs: string[];
 
     try {
-      localeDirs = readdirSync(this.localesPath, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => entry.name);
+      const entries = await readdir(this.localesPath, { withFileTypes: true });
+      localeDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
     } catch (err) {
-      this.logger.error('Failed to read locales directory', err as Error);
-      return;
+      throw new Error(
+        `i18n: unable to read locales directory at "${this.localesPath}". ` +
+          `The production build must ship the locale bundles (see nest-cli.json "assets"). ` +
+          `Underlying error: ${(err as Error).message}`,
+      );
+    }
+
+    if (localeDirs.length === 0) {
+      throw new Error(
+        `i18n: locales directory at "${this.localesPath}" is empty. ` +
+          `The production build must ship the locale bundles (see nest-cli.json "assets").`,
+      );
     }
 
     for (const locale of localeDirs) {
@@ -102,7 +122,8 @@ export class I18nWrapperService {
         const localeFolder = join(this.localesPath, locale);
         const bundle: Record<string, unknown> = {};
 
-        const files = readdirSync(localeFolder, { withFileTypes: true }).filter((e) => e.isFile());
+        const entries = await readdir(localeFolder, { withFileTypes: true });
+        const files = entries.filter((e) => e.isFile());
 
         for (const file of files) {
           // _meta.json is metadata, not a translation namespace — skip it here.
@@ -110,14 +131,14 @@ export class I18nWrapperService {
           if (extname(file.name).toLowerCase() !== '.json') continue;
 
           const namespace = file.name.replace(/\.json$/i, '');
-          const raw = readFileSync(join(localeFolder, file.name), 'utf8');
+          const raw = await readFile(join(localeFolder, file.name), 'utf8');
           bundle[namespace] = JSON.parse(raw) as Record<string, unknown>;
         }
 
         this.bundles[locale] = bundle;
 
         // Read optional metadata; fall back gracefully if absent or malformed.
-        const meta = this.readMeta(localeFolder, locale);
+        const meta = await this.readMeta(localeFolder, locale);
 
         this.supported.push({
           code: locale,
@@ -131,18 +152,35 @@ export class I18nWrapperService {
         this.logger.error(`Failed to load locale bundle: ${locale}`, err as Error);
       }
     }
+
+    if (this.supported.length === 0) {
+      throw new Error(
+        `i18n: found locale directories under "${this.localesPath}" but none produced a ` +
+          `loadable bundle. Refusing to start with translations degraded to key passthrough.`,
+      );
+    }
   }
 
   /**
    * Attempts to read and parse `_meta.json` from `localeFolder`.
-   * Returns an empty object (causing fallbacks to apply) on any error.
+   * Returns an empty object (causing fallbacks to apply) when the file is
+   * absent or cannot be parsed.
    */
-  private readMeta(localeFolder: string, locale: string): LocaleMeta {
+  private async readMeta(localeFolder: string, locale: string): Promise<LocaleMeta> {
     const metaPath = join(localeFolder, '_meta.json');
-    if (!existsSync(metaPath)) return {};
+
+    let raw: string;
+    try {
+      raw = await readFile(metaPath, 'utf8');
+    } catch (err) {
+      // A missing _meta.json is expected (it is optional); only surface other errors.
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        this.logger.warn(`Could not read _meta.json for locale "${locale}"`, err as Error);
+      }
+      return {};
+    }
 
     try {
-      const raw = readFileSync(metaPath, 'utf8');
       return JSON.parse(raw) as LocaleMeta;
     } catch (err) {
       this.logger.warn(`Could not parse _meta.json for locale "${locale}"`, err as Error);
