@@ -8,6 +8,9 @@ import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment } from '../entities/payment.entity';
 import { APP_EVENTS } from '../../common/constants/event.constants';
 
+// Default tax rate (can be overridden with location-based tax in the future)
+const DEFAULT_TAX_RATE = 0; // 0% tax by default
+
 @Injectable()
 export class InvoicesService {
   private readonly logger = new Logger(InvoicesService.name);
@@ -54,11 +57,16 @@ export class InvoicesService {
       },
     ];
 
+    // Calculate tax and totals using cents to avoid floating-point precision errors
+    const subtotal = Number(payment.amount);
+    const taxAmount = this.calculateTaxAmount(subtotal, DEFAULT_TAX_RATE);
+    const totalAmount = subtotal + taxAmount;
+
     let invoice = this.invoiceRepository.create({
       invoiceNumber,
-      amount: payment.amount,
-      taxAmount: 0,
-      totalAmount: payment.amount,
+      amount: subtotal,
+      taxAmount,
+      totalAmount,
       currency: payment.currency,
       items,
       status: InvoiceStatus.PAID,
@@ -114,5 +122,13 @@ export class InvoicesService {
       throw new NotFoundException('Invoice file not found in archival storage');
     }
     return fileUrl;
+  }
+
+  private calculateTaxAmount(amount: number, taxRate: number): number {
+    // Convert to cents to avoid floating-point precision errors
+    const amountInCents = Math.round(amount * 100);
+    const taxCents = Math.round(amountInCents * taxRate);
+    // Convert back to dollars
+    return taxCents / 100;
   }
 }

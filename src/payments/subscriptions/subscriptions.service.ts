@@ -216,11 +216,11 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated amount
+    // Calculate prorated amount using cents to avoid floating-point precision errors
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCredit = (oldAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
+    const proratedCredit = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
+    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
     const proratedAmount = proratedCharge - proratedCredit;
 
     // Update subscription
@@ -280,11 +280,11 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated credit based on prorationType
+    // Calculate prorated credit based on prorationType using cents to avoid floating-point precision errors
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
-    const oldProratedCharge = (oldAmount * daysRemaining) / totalDaysInPeriod;
+    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
+    const oldProratedCharge = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
     const proratedCredit = oldProratedCharge - proratedCharge;
     const prorationType = dto.prorationType || 'credit';
 
@@ -485,6 +485,14 @@ export class SubscriptionsService {
     const now = new Date();
     const diffMs = endDate.getTime() - now.getTime();
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  private calculateProratedAmount(amount: number, daysRemaining: number, totalDaysInPeriod: number): number {
+    // Convert to cents to avoid floating-point precision errors
+    const amountInCents = Math.round(amount * 100);
+    const proratedCents = Math.round((amountInCents * daysRemaining) / totalDaysInPeriod);
+    // Convert back to dollars
+    return proratedCents / 100;
   }
 
   private calculateDaysInPeriod(interval: SubscriptionInterval): number {
