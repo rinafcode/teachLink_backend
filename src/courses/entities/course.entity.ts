@@ -96,6 +96,24 @@ export class Course {
   @Column({ type: 'text', nullable: true })
   submissionNote?: string;
 
+  /**
+   * Issue #814 — generated `tsvector` column maintained by PostgreSQL.
+   * Indexed with GIN and queried by `SearchService` for full-text search.
+   * Marked read-only via `generatedType: 'STORED'` and `asExpression` so
+   * TypeORM doesn't try to write/read this column directly even if
+   * `synchronize: true` is enabled. The `@Index` keeps the entity in sync
+   * with the migration (idempotent name matches the migration's index).
+   */
+  @Index('IDX_course_search_vector', { synchronize: false })
+  @Column({
+    type: 'tsvector',
+    select: false,
+    generatedType: 'STORED',
+    asExpression:
+      "to_tsvector('english', coalesce(\"title\", '') || ' ' || coalesce(\"description\", '') || ' ' || coalesce(\"category\", ''))",
+  })
+  searchVector?: unknown;
+
   @CreateDateColumn()
   @Index()
   createdAt: Date;

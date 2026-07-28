@@ -25,6 +25,7 @@ describe('SubmitAssessmentDto', () => {
       }),
     );
     expect(errors).toHaveLength(1);
-    expect(errors[0].children?.some((child) => child.property === 'questionId')).toBe(true);
+    const itemChildren = errors[0].children?.[0]?.children ?? [];
+    expect(itemChildren.some((child) => child.property === 'questionId')).toBe(true);
   });
 });

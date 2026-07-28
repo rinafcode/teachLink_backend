@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger, VersioningType } from '@nestjs/common';
+import { SanitizationPipe } from './common/pipes/sanitization.pipe';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cluster from 'node:cluster';
 import { cpus } from 'node:os';
@@ -9,6 +10,8 @@ import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 
 import { AppModule } from './app.module';
+import * as OpenApiValidator from 'express-openapi-validator';
+import { join } from 'path';
 import './tracing/opentelemetry';
 
 import { CorrelationIdMiddleware } from './middleware/correlation-id';
@@ -30,6 +33,7 @@ import { AuditLogService } from './audit-log/audit-log.service';
 import { createAuditLoggerMiddleware } from './middleware/audit/audit-logger.middleware';
 import { initStructuredLogging } from './logging/structured-logging';
 import { requestIdMiddleware } from './logging/request-id.middleware';
+import { MetricsInterceptor } from './utils/masking/metrics.interceptor';
 
 // GLOBAL ENFORCEMENT IMPORT (IMPORTANT FOR YOUR TASK)
 import { LocaleInterceptor } from './common/interceptors/locale.interceptor';
@@ -63,22 +67,61 @@ async function bootstrapWorker(): Promise<void> {
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // =========================
-  // WEBSOCKET PAYLOAD SIZE LIMIT
+  // WEBSOCKET ADAPTER (Redis + Payload Size Limit)
   // =========================
-  // Configure Socket.IO maxHttpBufferSize at the transport layer.
-  // Messages exceeding this limit are rejected before reaching any handler.
+  // Configure Socket.IO with Redis adapter for cross-pod collaboration
+  // and maxHttpBufferSize at the transport layer.
   const { IoAdapter } = await import('@nestjs/platform-socket.io');
 
   class SizeLimitedIoAdapter extends IoAdapter {
+    private adapterFactory: ((nsp: any) => any) | null = null;
+
+    setAdapterFactory(factory: (nsp: any) => any): void {
+      this.adapterFactory = factory;
+    }
+
     createIOServer(port: number, options?: any): any {
-      return super.createIOServer(port, {
+      const server = super.createIOServer(port, {
         ...options,
         maxHttpBufferSize: wsMaxPayloadBytes,
       });
+      if (this.adapterFactory) {
+        server.adapter(this.adapterFactory);
+      }
+      return server;
     }
   }
 
-  app.useWebSocketAdapter(new SizeLimitedIoAdapter(app));
+  const wsAdapter = new SizeLimitedIoAdapter(app);
+
+  try {
+    const { createAdapter } = await import('@socket.io/redis-adapter');
+    const RedisClient = (await import('ioredis')).default;
+
+    const redisHost = process.env.REDIS_HOST || 'localhost';
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+
+    const pubClient = new RedisClient({
+      host: redisHost,
+      port: redisPort,
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      lazyConnect: true,
+    });
+    const subClient = pubClient.duplicate();
+
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+
+    wsAdapter.setAdapterFactory(createAdapter(pubClient, subClient));
+    logger.log('Socket.IO Redis adapter connected for cross-pod collaboration');
+  } catch (err) {
+    logger.warn(
+      'Redis adapter unavailable for WebSocket, falling back to in-memory adapter',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
+  app.useWebSocketAdapter(wsAdapter);
   logger.log(
     `WebSocket maxHttpBufferSize set to ${wsMaxPayloadBytes} bytes (${Math.round(wsMaxPayloadBytes / 1024)}KB)`,
   );
@@ -162,6 +205,10 @@ async function bootstrapWorker(): Promise<void> {
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'https:'],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
         },
       },
     }),
@@ -292,7 +339,11 @@ async function bootstrapWorker(): Promise<void> {
   // =========================
   // GLOBAL PIPE
   // =========================
+  // SanitizationPipe runs FIRST so downstream ValidationPipe sees cleaned
+  // payloads. Sensitive fields (password/tokens/hashes) bypass sanitization
+  // so authentication and integrity-critical values are preserved verbatim.
   app.useGlobalPipes(
+    new SanitizationPipe(),
     new ValidationPipe({
       whitelist: true,
       transform: true,
@@ -310,6 +361,50 @@ async function bootstrapWorker(): Promise<void> {
   // GLOBAL TIMEZONE + LOCALE ENFORCEMENT (IMPORTANT FIX)
   // =========================
   app.useGlobalInterceptors(new LocaleInterceptor(), new PaginationInterceptor());
+
+  // =========================
+  // OPENAPI VALIDATION
+  // =========================
+  const apiSpecPath = join(process.cwd(), 'docs/api/openapi-spec.json');
+  app.use(
+    OpenApiValidator.middleware({
+      apiSpec: apiSpecPath,
+      validateRequests: true,
+      validateResponses: process.env.NODE_ENV !== 'production',
+      ignorePaths: /.*\/api\/docs.*/, // ignore swagger docs
+    }),
+  );
+
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.status === 400 && err.errors) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: err.errors.map((e: any) => ({
+          field: e.path,
+          message: e.message,
+        })),
+      });
+    }
+    if (
+      err.status === 500 &&
+      err.errors &&
+      typeof err.message === 'string' &&
+      err.message.toLowerCase().includes('response')
+    ) {
+      logger.warn(`Response validation deviation: ${JSON.stringify(err.errors)}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+    next(err);
+  });
+
+  // =========================
+  // GLOBAL METRICS INTERCEPTOR
+  // =========================
+  app.useGlobalInterceptors(app.get(MetricsInterceptor));
 
   // =========================
   // SWAGGER

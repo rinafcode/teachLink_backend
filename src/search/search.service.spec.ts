@@ -1,108 +1,221 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { SearchService } from './search.service';
-import { SEARCH_CONSTANTS } from './search.constants';
-import { Course } from '../courses/entities/course.entity';
+import { Repository } from 'typeorm';
+import { ElasticsearchService } from '@nestjs/elasticsearch';
 
-const mockQueryBuilder = {
-  where: jest.fn().mockReturnThis(),
-  andWhere: jest.fn().mockReturnThis(),
-  orderBy: jest.fn().mockReturnThis(),
-  skip: jest.fn().mockReturnThis(),
-  take: jest.fn().mockReturnThis(),
-  getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
-};
-
-const mockCourseRepo = {
-  find: jest.fn(),
-  findOne: jest.fn(),
-  createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
-};
-const mockCache = {
-  get: jest.fn(),
-  set: jest.fn(),
-};
-
-describe('SearchService', () => {
+/**
+ * Issue #814 — verifies the SearchService constructs the new `to_tsquery`
+ * parameter correctly, falls back gracefully when Elasticsearch is unavailable,
+ * and sanitizes tsquery metacharacters in autocomplete.
+ */
+describe('SearchService (Issue #814 full-text search)', () => {
   let service: SearchService;
+  let courseRepository: jest.Mocked<Repository<any>>;
+  let elasticsearch: { search: jest.Mock };
+  let isolationService: { getTenantId: jest.Mock };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SearchService,
-        { provide: NestElasticsearchService, useValue: {} },
-        { provide: CACHE_MANAGER, useValue: mockCache },
-        { provide: getRepositoryToken(Course), useValue: mockCourseRepo },
-      ],
-    }).compile();
+  beforeEach(() => {
+    courseRepository = {
+      createQueryBuilder: jest.fn(),
+    } as any;
 
-    service = module.get<SearchService>(SearchService);
+    elasticsearch = { search: jest.fn() };
+    isolationService = { getTenantId: jest.fn().mockReturnValue(null) };
+
+    service = new SearchService(
+      courseRepository as any,
+      elasticsearch as any,
+      isolationService as any,
+      undefined as any,
+    );
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should use cache when available', async () => {
-    const cached = {
-      results: [{ id: '1' }],
-      total: 1,
-      page: 1,
-      limit: 20,
-      query: 'test',
-      filters: {},
-      facets: {},
+  function makeQb(result: { rows: any[]; total: number }) {
+    const qb: any = {
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([result.rows, result.total]),
     };
-    mockCache.get.mockResolvedValue(cached);
+    return qb;
+  }
 
-    const result = await service.search('test', undefined, 'relevance', 1, 20);
+  it('uses tsvector ranking when a query is supplied and DB is the source', async () => {
+    // Simulate ES unavailable so the DB path is taken.
+    elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+    const qb = makeQb({ rows: [{ id: 'c1', title: 'Hooks' }], total: 1 });
+    courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
 
-    expect(result).toEqual(cached);
-    expect(mockCourseRepo.createQueryBuilder).not.toHaveBeenCalled();
+    await service.search('react hooks');
+
+    // The call to qb.where(...) is a Brackets instance wrapping a nested
+    // callback. Verify it's a single argument and that the inner callback
+    // drove both the tsquery match and the ILIKE fallback.
+    expect(qb.where).toHaveBeenCalledTimes(1);
+    const bracketsArg = qb.where.mock.calls[0][0];
+    expect(typeof bracketsArg).toBe('object');
+    expect(typeof bracketsArg.whereFactory).toBe('function');
+
+    // Simulate the bracket factory invocation to inspect what it produces.
+    const innerQb = {
+      where: jest.fn().mockReturnThis(),
+      orWhere: jest.fn().mockReturnThis(),
+    };
+    bracketsArg.whereFactory(innerQb);
+    expect(innerQb.where).toHaveBeenCalledWith(
+      expect.stringContaining('search_vector @@ plainto_tsquery'),
+      { query: 'react hooks' },
+    );
+    expect(innerQb.orWhere).toHaveBeenCalledWith(expect.stringContaining('title ILIKE'), {
+      fallback: expect.stringContaining('react'),
+    });
+
+    // When relevance ordering is in play, qb.orderBy is called with 'rank'.
+    expect(qb.orderBy).toHaveBeenCalledWith('rank', 'DESC');
   });
 
-  it('should build query with filters and return results', async () => {
-    mockCache.get.mockResolvedValue(undefined);
-    const mockCourses = [{ id: '1', title: 'Test Course', price: 50 }];
-    mockQueryBuilder.getManyAndCount.mockResolvedValue([mockCourses, 1]);
+  it('falls back to createdAt ordering when no query is supplied', async () => {
+    elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+    const qb = makeQb({ rows: [], total: 0 });
+    courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
 
-    const result = await service.search(
-      'javascript',
-      {
-        category: 'programming',
-        price: { gte: 0, lte: 100 },
-        rating: { gte: 4 },
-        instructor: 'Jane Doe',
-      },
-      'rating_desc',
-      1,
-      20,
+    await service.search('');
+
+    expect(qb.where).not.toHaveBeenCalled();
+    expect(qb.orderBy).toHaveBeenCalledWith('course.createdAt', 'DESC');
+  });
+
+  it('autocomplete uses simple tsquery with prefix operator', async () => {
+    const qb: any = {
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([{ id: 'c1', title: 'React' }]),
+    };
+    courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+    await service.getAutoComplete('re');
+
+    expect(qb.where).toHaveBeenCalledWith(
+      expect.stringContaining('to_tsquery'),
+      expect.objectContaining({ tsq: 're:*' }),
     );
+  });
 
-    expect(mockCourseRepo.createQueryBuilder).toHaveBeenCalled();
-    expect(result.results).toEqual(mockCourses);
+  it('autocomplete sanitizes tsquery metacharacters', async () => {
+    const qb: any = {
+      where: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([]),
+    };
+    courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+    await service.getAutoComplete('a&b|c');
+
+    expect(qb.where).toHaveBeenCalledWith(
+      expect.stringContaining('to_tsquery'),
+      expect.objectContaining({ tsq: 'a b c:*' }),
+    );
+  });
+
+  it('uses Elasticsearch fast-path when present and successful', async () => {
+    elasticsearch.search.mockResolvedValueOnce({
+      hits: { total: { value: 1 }, hits: [{ _source: { id: 'c1', title: 'X' } }] },
+    } as any);
+
+    const result = await service.search('react');
+
+    expect(result.source).toBe('elasticsearch');
     expect(result.total).toBe(1);
+    expect(elasticsearch.search).toHaveBeenCalled();
+    expect(courseRepository.createQueryBuilder).not.toHaveBeenCalled();
   });
 
-  it('should execute search quickly', async () => {
-    mockCache.get.mockResolvedValue(undefined);
-    mockQueryBuilder.getManyAndCount.mockResolvedValue([[], 0]);
+  it('falls back to DB when Elasticsearch throws', async () => {
+    elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+    const qb = makeQb({ rows: [], total: 0 });
+    courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
 
-    const start = Date.now();
-    const result = await service.search(
-      'search term',
-      {
-        category: ['programming', 'design'],
-        price: { gte: 0, lte: 300 },
-        rating: { gte: 4 },
-        instructor: 'Jane Doe',
-      },
-      'price_desc',
-    );
+    const result = await service.search('react');
 
-    expect(result).toBeDefined();
-    expect(Date.now() - start).toBeLessThan(100);
+    expect(result.source).toBeUndefined();
+    expect(result.query).toBe('react');
+  });
+
+  describe('Issue #889 — Tenant isolation enforcement on Elasticsearch queries', () => {
+    it('tenant_a_search_excludes_tenant_b_content', async () => {
+      isolationService.getTenantId.mockReturnValue('tenant-a');
+
+      const mockEsDocs = [
+        { _source: { id: 'c1', title: 'Course A1', tenantId: 'tenant-a' } },
+        { _source: { id: 'c2', title: 'Course A2', tenantId: 'tenant-a' } },
+      ];
+
+      elasticsearch.search.mockImplementationOnce(async (params: any) => {
+        const filterClause = params.query?.bool?.filter;
+        expect(filterClause).toEqual(expect.arrayContaining([{ term: { tenantId: 'tenant-a' } }]));
+
+        return {
+          hits: {
+            total: { value: mockEsDocs.length },
+            hits: mockEsDocs,
+          },
+        };
+      });
+
+      const result = await service.search('Course');
+
+      expect(result.source).toBe('elasticsearch');
+      expect(result.results.length).toBe(2);
+      const hasTenantBContent = result.results.some((doc: any) => doc.tenantId === 'tenant-b');
+      expect(hasTenantBContent).toBe(false);
+    });
+
+    it('tenant_filter_applied_with_empty_query', async () => {
+      isolationService.getTenantId.mockReturnValue('tenant-a');
+
+      elasticsearch.search.mockResolvedValueOnce({
+        hits: { total: { value: 0 }, hits: [] },
+      });
+
+      await service.search('');
+
+      expect(elasticsearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            bool: expect.objectContaining({
+              filter: expect.arrayContaining([{ term: { tenantId: 'tenant-a' } }]),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('tenant_filter_applied_across_all_query_methods', async () => {
+      isolationService.getTenantId.mockReturnValue('tenant-a');
+
+      elasticsearch.search.mockResolvedValueOnce({
+        hits: { total: { value: 0 }, hits: [] },
+      });
+
+      await (service as any).tryElasticsearch('test', undefined, 1, 20);
+
+      expect(elasticsearch.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            bool: expect.objectContaining({
+              filter: expect.arrayContaining([service.buildTenantFilter('tenant-a')]),
+            }),
+          }),
+        }),
+      );
+    });
   });
 });

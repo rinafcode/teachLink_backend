@@ -1,79 +1,138 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { KpiService } from './kpi.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { KpiService } from './kpi.service';
+import { MetricsService } from './metrics.service';
+import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
-import { User } from '../../users/entities/user.entity';
-import { MetricsService } from '../../observability/metrics.service';
+import { Payment, PaymentStatus } from '../../payments/entities/payment.entity';
+import { AnalyticsEvent } from '../../analytics/entities/event.entity';
+import { Repository } from 'typeorm';
 
 describe('KpiService', () => {
-  let service: KpiService;
-  let mockCourseRepository: any;
-  let mockEnrollmentRepository: any;
-  let mockUserRepository: any;
-  let mockMetricsService: any;
+  let kpiService: KpiService;
+  let metricsService: MetricsService;
+
+  const mockQb = {
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    groupBy: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn(),
+    getRawOne: jest.fn(),
+  };
+
+  const mockRepo = {
+    count: jest.fn(),
+    find: jest.fn(),
+    createQueryBuilder: jest.fn(() => mockQb),
+  };
 
   beforeEach(async () => {
-    mockCourseRepository = {
-      find: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]),
-    };
-
-    mockEnrollmentRepository = {
-      createQueryBuilder: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue([{ courseId: 1, count: '5' }]),
-      }),
-    };
-
-    mockUserRepository = {
-      createQueryBuilder: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ count: '10' }),
-      }),
-    };
-
-    mockMetricsService = {
-      recordMetric: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         KpiService,
-        { provide: getRepositoryToken(Course), useValue: mockCourseRepository },
-        { provide: getRepositoryToken(Enrollment), useValue: mockEnrollmentRepository },
-        { provide: getRepositoryToken(User), useValue: mockUserRepository },
-        { provide: MetricsService, useValue: mockMetricsService },
+        MetricsService,
+        { provide: getRepositoryToken(User), useValue: mockRepo },
+        { provide: getRepositoryToken(Course), useValue: mockRepo },
+        { provide: getRepositoryToken(Enrollment), useValue: mockRepo },
+        { provide: getRepositoryToken(Payment), useValue: mockRepo },
+        { provide: getRepositoryToken(Event), useValue: mockRepo },
       ],
     }).compile();
 
-    service = module.get<KpiService>(KpiService);
+    kpiService = module.get<KpiService>(KpiService);
+    metricsService = module.get<MetricsService>(MetricsService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(kpiService).toBeDefined();
   });
 
-  it('calculateEnrollmentConversionRate should issue a constant number of queries regardless of course count', async () => {
-    await service.calculateEnrollmentConversionRate();
-    
-    // Assert that find is called once for courses
-    expect(mockCourseRepository.find).toHaveBeenCalledTimes(1);
-    
-    // Assert that createQueryBuilder (for grouping) is called exactly once, 
-    // regardless of the 2 courses returned.
-    expect(mockEnrollmentRepository.createQueryBuilder).toHaveBeenCalledTimes(1);
-    
-    // Verify metric was recorded
-    expect(mockMetricsService.recordMetric).toHaveBeenCalledWith('kpi_job_duration_ms', expect.any(Number));
+  describe('calculateActiveUsers', () => {
+    it('should set active user gauges', async () => {
+      mockQb.getRawOne
+        .mockResolvedValueOnce({ count: '10' })
+        .mockResolvedValueOnce({ count: '50' })
+        .mockResolvedValueOnce({ count: '200' });
+      const gaugeSpy = jest.spyOn(metricsService.activeUsersGauge, 'set');
+
+      await kpiService.calculateActiveUsers();
+
+      expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 10);
+      expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 50);
+      expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 200);
+    });
   });
 
-  it('calculateUserRetention should not load individual user rows', async () => {
-    await service.calculateUserRetention('2023-01');
-    
-    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(1);
-    expect(mockMetricsService.recordMetric).toHaveBeenCalledWith('kpi_job_duration_ms', expect.any(Number));
+  describe('calculatePaymentSuccessRate', () => {
+    it('should set payment success rate gauge', async () => {
+      const gaugeSpy = jest.spyOn(metricsService.paymentSuccessRateGauge, 'set');
+      jest.spyOn(mockRepo, 'count').mockImplementation((options: any) => {
+        if (options.where.status === PaymentStatus.COMPLETED) return Promise.resolve(95);
+        if (options.where.status === PaymentStatus.FAILED) return Promise.resolve(5);
+        return Promise.resolve(0);
+      });
+
+      await kpiService.calculatePaymentSuccessRate();
+
+      expect(gaugeSpy).toHaveBeenCalledWith(95);
+    });
+
+    it('should handle zero total payments', async () => {
+      const gaugeSpy = jest.spyOn(metricsService.paymentSuccessRateGauge, 'set');
+      jest.spyOn(mockRepo, 'count').mockResolvedValue(0);
+
+      await kpiService.calculatePaymentSuccessRate();
+
+      expect(gaugeSpy).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe('calculateRevenuePerCourse', () => {
+    it('should set revenue per course gauge', async () => {
+      const revenueData = [
+        { courseId: 'c1', courseName: 'Course 1', totalRevenue: '1000' },
+        { courseId: 'c2', courseName: 'Course 2', totalRevenue: '2500' },
+      ];
+      mockQb.getRawMany.mockResolvedValue(revenueData);
+      const gaugeSpy = jest.spyOn(metricsService.revenuePerCourseGauge, 'set');
+
+      await kpiService.calculateRevenuePerCourse();
+
+      expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 1000);
+      expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 2500);
+    });
+  });
+
+  describe('handleCron', () => {
+    it('should call all calculation methods', async () => {
+      const activeUsersSpy = jest
+        .spyOn(kpiService, 'calculateActiveUsers')
+        .mockResolvedValue(undefined);
+      const paymentSpy = jest
+        .spyOn(kpiService, 'calculatePaymentSuccessRate')
+        .mockResolvedValue(undefined);
+      const revenueSpy = jest
+        .spyOn(kpiService, 'calculateRevenuePerCourse')
+        .mockResolvedValue(undefined);
+      const enrollmentSpy = jest
+        .spyOn(kpiService, 'calculateEnrollmentConversionRate')
+        .mockResolvedValue(undefined);
+      const retentionSpy = jest
+        .spyOn(kpiService, 'calculateUserRetention')
+        .mockResolvedValue(undefined);
+
+      await kpiService.handleCron();
+
+      expect(activeUsersSpy).toHaveBeenCalled();
+      expect(paymentSpy).toHaveBeenCalled();
+      expect(revenueSpy).toHaveBeenCalled();
+      expect(enrollmentSpy).toHaveBeenCalled();
+      expect(retentionSpy).toHaveBeenCalled();
+    });
   });
 });

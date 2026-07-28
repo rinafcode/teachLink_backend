@@ -38,14 +38,47 @@ describe('PayoutsController', () => {
 
   describe('getRevenueBreakdown', () => {
     it('should delegate to service using instructor ID from request', async () => {
-      const mockResult = { summary: { totalGrossRevenue: 100.0 }, courses: [] };
+      const mockResult = {
+        summary: { totalGrossRevenue: 100.0 },
+        pageInfo: { total: 0, page: 1, pageSize: 10, totalPages: 0 },
+        courses: [],
+      };
       mockPayoutsService.getRevenueBreakdown.mockResolvedValue(mockResult);
 
       const mockRequest = { user: { id: 'instructor-123' } };
-      const result = await controller.getRevenueBreakdown(mockRequest);
+      const result = await controller.getRevenueBreakdown(mockRequest, undefined, undefined);
 
       expect(result).toBe(mockResult);
-      expect(mockPayoutsService.getRevenueBreakdown).toHaveBeenCalledWith('instructor-123');
+      expect(mockPayoutsService.getRevenueBreakdown).toHaveBeenCalledWith('instructor-123', {
+        page: undefined,
+        pageSize: undefined,
+      });
+    });
+
+    it('should pass positive-integer pagination params through to the service', async () => {
+      const mockResult = {
+        summary: { totalGrossRevenue: 100.0 },
+        pageInfo: { total: 50, page: 2, pageSize: 25, totalPages: 2 },
+        courses: [],
+      };
+      mockPayoutsService.getRevenueBreakdown.mockResolvedValue(mockResult);
+
+      const mockRequest = { user: { id: 'instructor-456' } };
+      const result = await controller.getRevenueBreakdown(mockRequest, '2', '25');
+
+      expect(result).toBe(mockResult);
+      expect(mockPayoutsService.getRevenueBreakdown).toHaveBeenCalledWith('instructor-456', {
+        page: 2,
+        pageSize: 25,
+      });
+    });
+
+    it('should reject malformed pagination params with BadRequestException', async () => {
+      const mockRequest = { user: { id: 'instructor-789' } };
+      await expect(controller.getRevenueBreakdown(mockRequest, '0', '10')).rejects.toThrow(
+        "Query parameter 'page' must be a positive integer",
+      );
+      await expect(controller.getRevenueBreakdown(mockRequest, 'abc', '10')).rejects.toThrow();
     });
   });
 

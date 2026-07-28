@@ -1,198 +1,253 @@
 # Database Migration Guide
 
-This document covers how to run, roll back, and manage database migrations in the teachLink backend.
+How to manage database schema changes safely.
+
+---
 
 ## Overview
 
-Migrations are managed by the custom `MigrationModule` built on top of TypeORM and NestJS. Every migration implements a `MigrationConfig` interface with two methods:
+The TeachLink backend uses **TypeORM migrations** for schema management. Migration files are standard TypeORM `MigrationInterface` classes located in `src/migrations/`.
 
-- `up(connection)` — applies the schema change
-- `down(connection)` — fully reverses the schema change
+There are two mechanisms for schema updates:
 
-All migrations are registered in `src/migrations/migration.registry.ts` and tracked in the `migrations` database table.
-
----
-
-## Migration Files
-
-Migration files live in `src/migrations/samples/` and follow the naming convention:
-
-```
-NNN-description-of-change.migration.ts
-```
-
-Where `NNN` is a zero-padded sequence number (e.g. `001`, `002`). This ensures a deterministic execution order.
-
-### Current Migrations
-
-| # | Name | Description |
-|---|------|-------------|
-| 006 | `006-create-migrations-tracking-table` | Creates the `migrations` tracking table |
-| 001 | `001-create-users-table` | Creates the `users` table with roles, status, and indexes |
-| 002 | `002-create-courses-table` | Creates the `course` table with FK to users |
-| 003 | `003-create-course-modules-table` | Creates the `course_module` table |
-| 004 | `004-create-lessons-table` | Creates the `lesson` table |
-| 005 | `005-create-enrollments-table` | Creates the `enrollment` table |
+1. **TypeORM `synchronize`** (development only — auto-creates tables from entities)
+2. **Explicit migration files** (all environments — controlled, versioned changes)
 
 ---
 
-## Running Migrations
+## How migrations work
 
-### Via npm scripts (requires the app to be running)
+Migration files live in `src/migrations/` and follow the naming convention:
 
-```bash
-# Run all pending migrations
-npm run migrate:run
-
-# Check status of all migrations
-npm run migrate:status
+```
+<TIMESTAMP>-<Description>.ts
 ```
 
-### Via HTTP API directly
+Each file exports a class implementing `MigrationInterface` with two methods:
 
-```bash
-# Run all pending migrations
-curl -X POST http://localhost:3000/migrations/run
+- `up(queryRunner)` — applies the schema change
+- `down(queryRunner)` — reverses the schema change
 
-# List all migrations and their status
-curl http://localhost:3000/migrations
-```
-
-### Automatic on startup
-
-Set the environment variable to run migrations automatically when the app boots:
-
-```bash
-AUTO_RUN_MIGRATIONS=true
-```
-
----
-
-## Rolling Back Migrations
-
-### Roll back the last migration
-
-```bash
-npm run migrate:rollback
-# or
-curl -X POST http://localhost:3000/migrations/rollback
-```
-
-### Roll back the last N migrations
-
-```bash
-# Roll back last 3 migrations
-COUNT=3 npm run migrate:rollback:count
-# or
-curl -X POST http://localhost:3000/migrations/rollback/3
-```
-
-### Roll back a specific named migration
-
-```bash
-curl -X PUT http://localhost:3000/migrations/002-create-courses-table/rollback
-```
-
-> **Note:** This will fail if later migrations that depend on this one are still applied. Roll those back first.
-
-### Roll back to a specific version
-
-Rolls back all migrations applied *after* the named migration, leaving the named migration itself in place.
-
-```bash
-MIGRATION_NAME=002-create-courses-table npm run migrate:rollback:to
-# or
-curl -X POST http://localhost:3000/migrations/rollback/to/002-create-courses-table
-```
-
----
-
-## Resetting All Migrations (Development Only)
-
-This rolls back every applied migration in reverse order and clears the tracking table.
-
-```bash
-npm run migrate:reset
-# or
-curl -X DELETE http://localhost:3000/migrations/reset
-```
-
-> ⚠️ **Never run this in production.** It will drop all managed tables.
-
----
-
-## Creating a New Migration
-
-1. Create a new file in `src/migrations/samples/` following the naming convention:
+Example (`src/migrations/1630000000000-CreateMessageTable.ts`):
 
 ```typescript
-// src/migrations/samples/007-add-bio-to-users.migration.ts
-import { Injectable, Logger } from '@nestjs/common';
-import { MigrationConfig } from '../migration.service';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 
-@Injectable()
-export class AddBioToUsersMigration implements MigrationConfig {
-  name = '007-add-bio-to-users';
-  version = '1.0.0';
-  dependencies = ['001-create-users-table'];
-
-  private readonly logger = new Logger(AddBioToUsersMigration.name);
-
-  async up(connection: any): Promise<void> {
-    await connection.query(`ALTER TABLE users ADD COLUMN bio TEXT;`);
+export class CreateMessageTable1630000000000 implements MigrationInterface {
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.createTable(
+      new Table({
+        name: 'messages',
+        columns: [
+          { name: 'id', type: 'uuid', isPrimary: true, generationStrategy: 'uuid', default: 'uuid_generate_v4()' },
+          { name: 'senderId', type: 'uuid', isNullable: false },
+          { name: 'recipientId', type: 'uuid', isNullable: false },
+          { name: 'content', type: 'text', isNullable: false },
+          { name: 'createdAt', type: 'timestamptz', default: 'now()' },
+          { name: 'readAt', type: 'timestamptz', isNullable: true },
+        ],
+      }),
+    );
   }
 
-  async down(connection: any): Promise<void> {
-    await connection.query(`ALTER TABLE users DROP COLUMN IF EXISTS bio;`);
+  async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropTable('messages');
   }
 }
 ```
 
-2. Register it in `src/migrations/migration.registry.ts`:
+### Current migrations
 
-```typescript
-import { AddBioToUsersMigration } from './samples/007-add-bio-to-users.migration';
+| File | Description |
+|------|-------------|
+| `1630000000000-CreateMessageTable.ts` | Creates `messages` table with sender/recipient FKs |
+| `1680000000000-create-schema-version-and-change-tables.ts` | Creates `schema_version` and `schema_change` tables |
+| `1685000001000-add-currency-and-location-fields-to-users.ts` | Adds currency/location to users |
+| `1685000001001-add-currency-field-to-courses.ts` | Adds currency to courses |
+| `1748600000000-add-course-bulk-operations.ts` | Adds course bulk operations support |
+| `1748700000000-add-grading-system.ts` | Adds grading system tables |
+| `1748800000000-add-gamification-tiers.ts` | Adds gamification tier tables |
+| `1762000000000-create-audit-log-table.ts` | Creates `audit_log` table |
+| `AddTimezoneLocalePreferences.ts` | Adds timezone/locale preferences |
+| `src/achievements/migrations/1700000000000-CreateAchievementsSchema.ts` | Creates achievements schema |
 
-export const MIGRATION_REGISTRY: MigrationConfig[] = [
-  // ... existing migrations ...
-  new AddBioToUsersMigration(),
-];
+---
+
+## Running migrations
+
+### Via HTTP API (server must be running)
+
+```bash
+# Start the server first
+pnpm start:dev
+
+# In another terminal, run pending migrations
+curl -X POST http://localhost:3000/migrations/run
+
+# Check migration status
+curl http://localhost:3000/migrations
+```
+
+Or via npm scripts:
+
+```bash
+pnpm migrate:run      # Run all pending
+pnpm migrate:status   # Check status
+```
+
+### Via TypeORM CLI (alternative)
+
+```bash
+# Build the project first
+pnpm build
+
+# Run migrations using TypeORM CLI
+npx typeorm-ts-node-commonjs migration:run -d src/config/datasource.ts
 ```
 
 ---
 
-## Migration Best Practices
+## Development mode (synchronize)
 
-- **Always implement `down()`** as the exact inverse of `up()` — same columns, same types, same constraints, in reverse order.
-- **Declare dependencies** in the `dependencies` array. The runner validates them before executing.
-- **Never modify an existing migration** that has already been applied to any environment. Create a new migration instead.
-- **Test rollbacks locally** before merging. Run `up`, verify, then run `down` and verify the schema is restored.
-- **Use `IF EXISTS` / `IF NOT EXISTS`** guards in SQL to make migrations idempotent where possible.
-- **Back up your database** before running migrations in staging or production.
+In development (`NODE_ENV=development`), TypeORM's `synchronize: true` is enabled. This means:
+
+- Tables are **auto-created** from entity definitions on server startup
+- You do NOT need to run migrations for schema changes during active development
+- This is fast for prototyping but provides no version tracking
+
+> **Important:** When `synchronize` is on, running explicit migrations may fail with "relation already exists" because tables are already created. In that case, either:
+> - Disable synchronize (`NODE_ENV=production` or edit `database.config.ts`)
+> - Drop tables first, then run migrations
 
 ---
 
-## Environment-Specific Considerations
+## Rolling back migrations
 
-| Environment | `AUTO_RUN_MIGRATIONS` | Notes |
-|-------------|----------------------|-------|
-| Development | `true` (recommended) | Migrations run on every app start |
-| Test | `false` | Use `migrate:run` before test suites |
+### Roll back the last migration
+
+```bash
+curl -X POST http://localhost:3000/migrations/rollback
+# or
+pnpm migrate:rollback
+```
+
+### Roll back multiple migrations
+
+```bash
+# Roll back last 3
+curl -X POST http://localhost:3000/migrations/rollback/3
+# or
+COUNT=3 pnpm migrate:rollback:count
+```
+
+### Roll back to a specific version
+
+```bash
+curl -X POST http://localhost:3000/migrations/rollback/to/002-create-courses-table
+# or
+MIGRATION_NAME=002-create-courses-table pnpm migrate:rollback:to
+```
+
+### Reset all migrations (development only)
+
+```bash
+curl -X DELETE http://localhost:3000/migrations/reset
+# or
+pnpm migrate:reset
+```
+
+> ⚠️ **Never run reset in production.** It drops all managed tables.
+
+---
+
+## Creating a new migration
+
+1. Create a new file in `src/migrations/`:
+
+```bash
+# Naming convention: <timestamp>-<kebab-case-description>.ts
+touch src/migrations/$(date +%s%N | cut -b1-13)-add-bio-to-users.ts
+```
+
+2. Implement the migration class:
+
+```typescript
+import { MigrationInterface, QueryRunner, TableColumn } from 'typeorm';
+
+export class AddBioToUsers<TIMESTAMP> implements MigrationInterface {
+  name = 'AddBioToUsers<TIMESTAMP>';
+
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.addColumn(
+      'users',
+      new TableColumn({ name: 'bio', type: 'text', isNullable: true }),
+    );
+  }
+
+  async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropColumn('users', 'bio');
+  }
+}
+```
+
+3. Build and run:
+
+```bash
+pnpm build
+# Restart server or run migration
+```
+
+---
+
+## Best practices
+
+| Practice | Why |
+|----------|-----|
+| Always implement `down()` | Enables safe rollback |
+| Never modify an applied migration | Create a new migration instead |
+| Test rollbacks locally | Run `up` → verify → `down` → verify |
+| Use `IF EXISTS` / `IF NOT NULL` | Makes migrations idempotent |
+| Backup database before staging/prod migrations | Safety net |
+| Keep migrations small and focused | Easier to review and rollback |
+| Use timestamp-based naming | Ensures deterministic ordering |
+
+---
+
+## Common migration failures
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `relation already exists` | Table created by `synchronize` or a prior migration | Drop the table or disable `synchronize` |
+| `column "X" of relation "Y" already exists` | Duplicate migration | Create a new migration to handle the state |
+| `Cannot roll back: later migrations depend` | Dependency chain | Roll back later migrations first |
+| `migration:run` returns 404 | Migration endpoints not wired | Check if endpoints exist; use `synchronize` for dev |
+| Foreign key violation during migration | Data integrity issue | Clean data, then retry |
+
+---
+
+## Environment-specific settings
+
+| Environment | `synchronize` | Migrations |
+|-------------|---------------|------------|
+| Development | `true` (default) | Optional (synchronize handles schema) |
+| Test | `true` | Run before test suite |
 | Staging | `false` | Run manually after deployment |
-| Production | `false` | Run manually with a backup in place |
+| Production | `false` | Run manually with backup |
 
 ---
 
-## Troubleshooting
+## Seed data
 
-**Migration stuck in `pending` status**
-The migration was registered but never executed. Run `npm run migrate:run`.
+Seed data is available for specific modules:
 
-**Migration stuck in `failed` status**
-Check the `error_message` column in the `migrations` table. Fix the underlying issue, then either re-run or roll back.
+- **Achievements:** `src/achievements/achievements.seed.ts` — seed achievement definitions
 
-**`Dependency not met` error**
-A migration's dependency hasn't been applied yet. Check the registry order and run the dependency first.
+To run seeds, execute the seed function (typically exposed via an API endpoint or called during module initialization).
 
-**`Cannot roll back` error**
-Later migrations that depend on this one are still applied. Roll those back first, then retry.
+---
+
+## Related
+
+- [Setup guide](./setup.md) — how to get the database running
+- [Troubleshooting guide](./troubleshooting.md) — database connection issues
+- [Database config](../src/config/database.config.ts) — connection settings
