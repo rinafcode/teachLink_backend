@@ -9,11 +9,13 @@ import { Enrollment } from './entities/enrollment.entity';
 import { CourseReview } from './entities/course-review.entity';
 import { CourseModule } from './entities/course-module.entity';
 import { CachingModule } from '../caching/caching.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule]),
     CachingModule,
+    CommonModule,
   ],
   providers: [CoursesService, EnrollmentsService],
   controllers: [CoursesController, EnrollmentsController],
