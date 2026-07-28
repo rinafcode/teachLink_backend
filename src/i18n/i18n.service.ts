@@ -105,7 +105,7 @@ export class I18nWrapperService implements OnModuleInit {
     } catch (err) {
       throw new Error(
         `i18n: unable to read locales directory at "${this.localesPath}". ` +
-          `The production build must ship the locale bundles (see nest-cli.json "assets"). ` +
+          'The production build must ship the locale bundles (see nest-cli.json "assets"). ' +
           `Underlying error: ${(err as Error).message}`,
       );
     }
@@ -113,7 +113,7 @@ export class I18nWrapperService implements OnModuleInit {
     if (localeDirs.length === 0) {
       throw new Error(
         `i18n: locales directory at "${this.localesPath}" is empty. ` +
-          `The production build must ship the locale bundles (see nest-cli.json "assets").`,
+          'The production build must ship the locale bundles (see nest-cli.json "assets").',
       );
     }
 
@@ -156,7 +156,7 @@ export class I18nWrapperService implements OnModuleInit {
     if (this.supported.length === 0) {
       throw new Error(
         `i18n: found locale directories under "${this.localesPath}" but none produced a ` +
-          `loadable bundle. Refusing to start with translations degraded to key passthrough.`,
+          'loadable bundle. Refusing to start with translations degraded to key passthrough.',
       );
     }
   }

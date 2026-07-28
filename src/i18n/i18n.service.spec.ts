@@ -98,7 +98,7 @@ describe('I18nWrapperService', () => {
     });
 
     it('throws when locales directory is missing', async () => {
-      const missing = join(tmpdir(), 'i18n-test-missing-' + Date.now());
+      const missing = join(tmpdir(), `i18n-test-missing-${Date.now()}`);
       await expect(makeService(missing)).rejects.toThrow(/unable to read locales directory/);
     });
 
