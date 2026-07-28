@@ -9,7 +9,6 @@ import { NotificationsQueueService } from './notifications.queue';
 import { NotificationsService } from './notifications.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { NotificationTemplateService } from './templates/notification-template.service';
-import { PaginationService } from '../common/services/pagination.service';
 
 @Module({
   imports: [
@@ -22,7 +21,6 @@ import { PaginationService } from '../common/services/pagination.service';
     PreferencesService,
     NotificationsQueueService,
     NotificationTemplateService,
-    PaginationService,
   ],
   exports: [NotificationsService, PreferencesService, NotificationTemplateService],
 })

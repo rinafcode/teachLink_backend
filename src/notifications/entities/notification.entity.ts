@@ -32,6 +32,7 @@ export enum NotificationStatus {
 }
 
 @Entity('notifications')
+@Index('IDX_notifications_userId_createdAt', ['userId', 'createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -40,7 +41,6 @@ export class Notification {
   version: number;
 
   @Column()
-  @Index()
   userId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
