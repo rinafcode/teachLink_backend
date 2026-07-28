@@ -1,13 +1,12 @@
 # ApiSuccess
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**success** | **boolean** |  | [optional] [default to undefined]
-**message** | **string** |  | [optional] [default to undefined]
-**data** | **object** |  | [optional] [default to undefined]
+| Name        | Type        | Description | Notes                             |
+| ----------- | ----------- | ----------- | --------------------------------- |
+| **success** | **boolean** |             | [optional] [default to undefined] |
+| **message** | **string**  |             | [optional] [default to undefined] |
+| **data**    | **object**  |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -15,9 +14,9 @@ Name | Type | Description | Notes
 import { ApiSuccess } from './api';
 
 const instance: ApiSuccess = {
-    success,
-    message,
-    data,
+  success,
+  message,
+  data,
 };
 ```
 

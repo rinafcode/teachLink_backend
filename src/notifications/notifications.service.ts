@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, FindOptionsWhere } from 'typeorm';
+import * as crypto from 'crypto';
 import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
 import { PaginationQueryDto, SortOrder } from '../common/dto/pagination.dto';
 import { clampLimit, buildOffsetResponse } from '../common/utils/pagination.utils';
@@ -18,12 +19,24 @@ export class NotificationsService {
     private notificationRepository: Repository<Notification>,
   ) {}
 
+  /**
+   * Generates a deterministic SHA-256 hash for raw content.
+   */
+  private hashContent(content: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(content || '')
+      .digest('hex');
+  }
+
   async findDuplicate(userId: string, type: NotificationType, content: string) {
+    const contentHash = this.hashContent(content);
+
     return this.notificationRepository.findOne({
       where: {
         userId,
         type,
-        content,
+        contentHash,
         createdAt: MoreThan(new Date(Date.now() - 5 * 60 * 1000)),
       },
     });
@@ -35,11 +48,14 @@ export class NotificationsService {
       return duplicate;
     }
 
+    const contentHash = this.hashContent(content);
+
     const notification = this.notificationRepository.create({
       userId,
       type,
       title: 'Notification',
       content,
+      contentHash,
       status: NotificationStatus.SENT,
     });
 

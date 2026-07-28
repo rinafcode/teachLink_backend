@@ -9,13 +9,22 @@ const apiClient = axios.create({
 
 async function createCourse() {
   try {
-    const response = await apiClient.post('/courses', {"title":"Advanced TypeScript","description":"Master TypeScript type system and advanced patterns.","category":"programming","level":"advanced","price":5999},
-    {
-  headers: {
-    'Authorization': `Bearer ${accessToken}`,
-  },
-    });
-    
+    const response = await apiClient.post(
+      '/courses',
+      {
+        title: 'Advanced TypeScript',
+        description: 'Master TypeScript type system and advanced patterns.',
+        category: 'programming',
+        level: 'advanced',
+        price: 5999,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
     console.log('Response:', response.data);
     return response.data;
   } catch (error) {

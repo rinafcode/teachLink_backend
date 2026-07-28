@@ -3,8 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'crypto';
-import * as bcrypt from 'bcrypt';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { SecurityEventLogger, SecurityEventType } from '../security/audit/security-event-logger';
@@ -101,7 +100,11 @@ export class AuthService {
       throw new UnauthorizedException('User is not active');
     }
 
-    const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+    const refreshTokenMatches = timingSafeEqual(
+      Buffer.from(this.hashRefreshToken(refreshToken)),
+      Buffer.from(user.refreshToken),
+    );
+
     if (!refreshTokenMatches) {
       this.securityEventLogger.emit({
         eventType: SecurityEventType.AUTH_FAILURE,
@@ -190,10 +193,14 @@ export class AuthService {
     await this.userRepository.update(userId, { refreshToken: null });
   }
 
+  private hashRefreshToken(token: string): string {
+    const secret =
+      process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+    return createHmac('sha256', secret).update(token).digest('hex');
+  }
+
   private async updateRefreshTokenHash(userId: string, refreshToken: string) {
-    const rounds = Number(this.configService.get('BCRYPT_ROUNDS', 12));
-    const salt = await bcrypt.genSalt(rounds);
-    const hash = await bcrypt.hash(refreshToken, salt);
+    const hash = this.hashRefreshToken(refreshToken);
     await this.userRepository.update(userId, { refreshToken: hash });
   }
 

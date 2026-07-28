@@ -10,12 +10,12 @@ Implemented by [`tf/multi-region`](../../tf/multi-region) — issue **#620**.
 
 ## Summary
 
-| Data store | Mechanism | Direction | RPO | On failover |
-| ---------- | --------- | --------- | --- | ----------- |
-| PostgreSQL (RDS) | Cross-region **read replica** | primary → secondary (continuous) | seconds | Promote replica to standalone primary |
-| Object storage (S3) | **Cross-Region Replication (CRR)** | primary → secondary (async) | seconds–minutes | Already present in secondary bucket |
-| Redis (ElastiCache) | Independent standby (no replication) | n/a | n/a (cache) | Warm standby; repopulates from DB |
-| Terraform state | S3 versioning + DynamoDB lock | n/a | n/a | Restore from versioned state |
+| Data store          | Mechanism                            | Direction                        | RPO             | On failover                           |
+| ------------------- | ------------------------------------ | -------------------------------- | --------------- | ------------------------------------- |
+| PostgreSQL (RDS)    | Cross-region **read replica**        | primary → secondary (continuous) | seconds         | Promote replica to standalone primary |
+| Object storage (S3) | **Cross-Region Replication (CRR)**   | primary → secondary (async)      | seconds–minutes | Already present in secondary bucket   |
+| Redis (ElastiCache) | Independent standby (no replication) | n/a                              | n/a (cache)     | Warm standby; repopulates from DB     |
+| Terraform state     | S3 versioning + DynamoDB lock        | n/a                              | n/a             | Restore from versioned state          |
 
 ---
 
@@ -99,11 +99,11 @@ configuration to avoid clobbering the single-region state.
 
 ## Verification
 
-| Check | Command / Tool |
-| ----- | -------------- |
-| Replica exists & lag OK | `infra/scripts/failover-drill.sh` |
-| CRR enabled | `aws s3api get-bucket-replication --bucket <bucket>` |
-| End-to-end failover | Quarterly drill (see [dr/README.md](../README.md)) |
+| Check                   | Command / Tool                                       |
+| ----------------------- | ---------------------------------------------------- |
+| Replica exists & lag OK | `infra/scripts/failover-drill.sh`                    |
+| CRR enabled             | `aws s3api get-bucket-replication --bucket <bucket>` |
+| End-to-end failover     | Quarterly drill (see [dr/README.md](../README.md))   |
 
 ---
 

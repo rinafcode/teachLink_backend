@@ -39,7 +39,13 @@ export class CreateMessageTable1630000000000 implements MigrationInterface {
       new Table({
         name: 'messages',
         columns: [
-          { name: 'id', type: 'uuid', isPrimary: true, generationStrategy: 'uuid', default: 'uuid_generate_v4()' },
+          {
+            name: 'id',
+            type: 'uuid',
+            isPrimary: true,
+            generationStrategy: 'uuid',
+            default: 'uuid_generate_v4()',
+          },
           { name: 'senderId', type: 'uuid', isNullable: false },
           { name: 'recipientId', type: 'uuid', isNullable: false },
           { name: 'content', type: 'text', isNullable: false },
@@ -58,18 +64,18 @@ export class CreateMessageTable1630000000000 implements MigrationInterface {
 
 ### Current migrations
 
-| File | Description |
-|------|-------------|
-| `1630000000000-CreateMessageTable.ts` | Creates `messages` table with sender/recipient FKs |
-| `1680000000000-create-schema-version-and-change-tables.ts` | Creates `schema_version` and `schema_change` tables |
-| `1685000001000-add-currency-and-location-fields-to-users.ts` | Adds currency/location to users |
-| `1685000001001-add-currency-field-to-courses.ts` | Adds currency to courses |
-| `1748600000000-add-course-bulk-operations.ts` | Adds course bulk operations support |
-| `1748700000000-add-grading-system.ts` | Adds grading system tables |
-| `1748800000000-add-gamification-tiers.ts` | Adds gamification tier tables |
-| `1762000000000-create-audit-log-table.ts` | Creates `audit_log` table |
-| `AddTimezoneLocalePreferences.ts` | Adds timezone/locale preferences |
-| `src/achievements/migrations/1700000000000-CreateAchievementsSchema.ts` | Creates achievements schema |
+| File                                                                    | Description                                         |
+| ----------------------------------------------------------------------- | --------------------------------------------------- |
+| `1630000000000-CreateMessageTable.ts`                                   | Creates `messages` table with sender/recipient FKs  |
+| `1680000000000-create-schema-version-and-change-tables.ts`              | Creates `schema_version` and `schema_change` tables |
+| `1685000001000-add-currency-and-location-fields-to-users.ts`            | Adds currency/location to users                     |
+| `1685000001001-add-currency-field-to-courses.ts`                        | Adds currency to courses                            |
+| `1748600000000-add-course-bulk-operations.ts`                           | Adds course bulk operations support                 |
+| `1748700000000-add-grading-system.ts`                                   | Adds grading system tables                          |
+| `1748800000000-add-gamification-tiers.ts`                               | Adds gamification tier tables                       |
+| `1762000000000-create-audit-log-table.ts`                               | Creates `audit_log` table                           |
+| `AddTimezoneLocalePreferences.ts`                                       | Adds timezone/locale preferences                    |
+| `src/achievements/migrations/1700000000000-CreateAchievementsSchema.ts` | Creates achievements schema                         |
 
 ---
 
@@ -116,6 +122,7 @@ In development (`NODE_ENV=development`), TypeORM's `synchronize: true` is enable
 - This is fast for prototyping but provides no version tracking
 
 > **Important:** When `synchronize` is on, running explicit migrations may fail with "relation already exists" because tables are already created. In that case, either:
+>
 > - Disable synchronize (`NODE_ENV=production` or edit `database.config.ts`)
 > - Drop tables first, then run migrations
 
@@ -201,38 +208,38 @@ pnpm build
 
 ## Best practices
 
-| Practice | Why |
-|----------|-----|
-| Always implement `down()` | Enables safe rollback |
-| Never modify an applied migration | Create a new migration instead |
-| Test rollbacks locally | Run `up` → verify → `down` → verify |
-| Use `IF EXISTS` / `IF NOT NULL` | Makes migrations idempotent |
-| Backup database before staging/prod migrations | Safety net |
-| Keep migrations small and focused | Easier to review and rollback |
-| Use timestamp-based naming | Ensures deterministic ordering |
+| Practice                                       | Why                                 |
+| ---------------------------------------------- | ----------------------------------- |
+| Always implement `down()`                      | Enables safe rollback               |
+| Never modify an applied migration              | Create a new migration instead      |
+| Test rollbacks locally                         | Run `up` → verify → `down` → verify |
+| Use `IF EXISTS` / `IF NOT NULL`                | Makes migrations idempotent         |
+| Backup database before staging/prod migrations | Safety net                          |
+| Keep migrations small and focused              | Easier to review and rollback       |
+| Use timestamp-based naming                     | Ensures deterministic ordering      |
 
 ---
 
 ## Common migration failures
 
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `relation already exists` | Table created by `synchronize` or a prior migration | Drop the table or disable `synchronize` |
-| `column "X" of relation "Y" already exists` | Duplicate migration | Create a new migration to handle the state |
-| `Cannot roll back: later migrations depend` | Dependency chain | Roll back later migrations first |
-| `migration:run` returns 404 | Migration endpoints not wired | Check if endpoints exist; use `synchronize` for dev |
-| Foreign key violation during migration | Data integrity issue | Clean data, then retry |
+| Error                                       | Cause                                               | Fix                                                 |
+| ------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
+| `relation already exists`                   | Table created by `synchronize` or a prior migration | Drop the table or disable `synchronize`             |
+| `column "X" of relation "Y" already exists` | Duplicate migration                                 | Create a new migration to handle the state          |
+| `Cannot roll back: later migrations depend` | Dependency chain                                    | Roll back later migrations first                    |
+| `migration:run` returns 404                 | Migration endpoints not wired                       | Check if endpoints exist; use `synchronize` for dev |
+| Foreign key violation during migration      | Data integrity issue                                | Clean data, then retry                              |
 
 ---
 
 ## Environment-specific settings
 
-| Environment | `synchronize` | Migrations |
-|-------------|---------------|------------|
+| Environment | `synchronize`    | Migrations                            |
+| ----------- | ---------------- | ------------------------------------- |
 | Development | `true` (default) | Optional (synchronize handles schema) |
-| Test | `true` | Run before test suite |
-| Staging | `false` | Run manually after deployment |
-| Production | `false` | Run manually with backup |
+| Test        | `true`           | Run before test suite                 |
+| Staging     | `false`          | Run manually after deployment         |
+| Production  | `false`          | Run manually with backup              |
 
 ---
 

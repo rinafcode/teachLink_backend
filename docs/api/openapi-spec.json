@@ -60,9 +60,7 @@
   "paths": {
     "/": {
       "get": {
-        "tags": [
-          "App"
-        ],
+        "tags": ["App"],
         "summary": "Get app status",
         "operationId": "getAppStatus",
         "responses": {
@@ -89,9 +87,7 @@
     },
     "/auth/register": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Register a new user",
         "operationId": "registerUser",
         "requestBody": {
@@ -190,9 +186,7 @@
     },
     "/auth/login": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Log in with email and password",
         "operationId": "loginUser",
         "requestBody": {
@@ -268,9 +262,7 @@
     },
     "/users": {
       "get": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "List users",
         "operationId": "listUsers",
         "security": [
@@ -350,9 +342,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "Create a user",
         "operationId": "createUser",
         "security": [
@@ -432,9 +422,7 @@
     },
     "/courses": {
       "get": {
-        "tags": [
-          "Courses"
-        ],
+        "tags": ["Courses"],
         "summary": "List courses",
         "operationId": "listCourses",
         "parameters": [
@@ -491,9 +479,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Courses"
-        ],
+        "tags": ["Courses"],
         "summary": "Create a course",
         "operationId": "createCourse",
         "security": [
@@ -579,9 +565,7 @@
     },
     "/payments/create-intent": {
       "post": {
-        "tags": [
-          "Payments"
-        ],
+        "tags": ["Payments"],
         "summary": "Create a payment intent",
         "operationId": "createPaymentIntent",
         "security": [
@@ -669,9 +653,7 @@
     },
     "/search": {
       "get": {
-        "tags": [
-          "Search"
-        ],
+        "tags": ["Search"],
         "summary": "Search courses and learning content",
         "operationId": "searchContent",
         "parameters": [
@@ -786,9 +768,7 @@
     },
     "/search/autocomplete": {
       "get": {
-        "tags": [
-          "Search"
-        ],
+        "tags": ["Search"],
         "summary": "Get search autocomplete suggestions",
         "operationId": "getAutocomplete",
         "parameters": [
@@ -812,11 +792,7 @@
                 },
                 "examples": {
                   "default": {
-                    "value": [
-                      "javascript",
-                      "java fundamentals",
-                      "java spring"
-                    ]
+                    "value": ["javascript", "java fundamentals", "java spring"]
                   }
                 }
               }
@@ -827,9 +803,7 @@
     },
     "/debug/requests": {
       "get": {
-        "tags": [
-          "Debugging"
-        ],
+        "tags": ["Debugging"],
         "summary": "List recently captured requests",
         "operationId": "listCapturedRequests",
         "security": [
@@ -880,9 +854,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Debugging"
-        ],
+        "tags": ["Debugging"],
         "summary": "Clear the captured request buffer",
         "operationId": "clearCapturedRequests",
         "security": [
@@ -913,9 +885,7 @@
     },
     "/gamification/points/award-activity": {
       "post": {
-        "tags": [
-          "Gamification"
-        ],
+        "tags": ["Gamification"],
         "summary": "Award points for a user activity",
         "operationId": "awardActivity",
         "requestBody": {
@@ -988,9 +958,7 @@
     },
     "/gamification/points/add": {
       "post": {
-        "tags": [
-          "Gamification"
-        ],
+        "tags": ["Gamification"],
         "summary": "Add points to a user",
         "operationId": "addPoints",
         "requestBody": {
@@ -1064,9 +1032,7 @@
     },
     "/gamification/tiers/rewards/{tier}": {
       "post": {
-        "tags": [
-          "Gamification"
-        ],
+        "tags": ["Gamification"],
         "summary": "Create or update a tier reward",
         "operationId": "upsertReward",
         "parameters": [
@@ -1076,13 +1042,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": [
-                "BRONZE",
-                "SILVER",
-                "GOLD",
-                "PLATINUM",
-                "DIAMOND"
-              ]
+              "enum": ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"]
             },
             "example": "GOLD"
           }
@@ -1159,9 +1119,7 @@
     },
     "/gamification/points/progress/{userId}": {
       "get": {
-        "tags": [
-          "Gamification"
-        ],
+        "tags": ["Gamification"],
         "summary": "Get user progress and points",
         "operationId": "getUserProgress",
         "parameters": [
@@ -1205,9 +1163,7 @@
     },
     "/gamification/leaderboard": {
       "get": {
-        "tags": [
-          "Gamification"
-        ],
+        "tags": ["Gamification"],
         "summary": "Get leaderboard",
         "operationId": "getLeaderboard",
         "parameters": [
@@ -1266,9 +1222,7 @@
     },
     "/data-pipeline/etl/run": {
       "post": {
-        "tags": [
-          "Data Pipeline"
-        ],
+        "tags": ["Data Pipeline"],
         "summary": "Run an ETL job",
         "operationId": "runEtl",
         "requestBody": {
@@ -1346,9 +1300,7 @@
     },
     "/sharding/route": {
       "post": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "Resolve which shard a key routes to",
         "operationId": "routeShard",
         "requestBody": {
@@ -1426,9 +1378,7 @@
     },
     "/sharding/migrations": {
       "post": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "Start a cross-shard data migration",
         "operationId": "startMigration",
         "requestBody": {
@@ -1503,9 +1453,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "List all migration plans and their statuses",
         "operationId": "listMigrations",
         "responses": {
@@ -1540,9 +1488,7 @@
     },
     "/sharding/migrations/{planId}": {
       "get": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "Get the status of a specific migration plan",
         "operationId": "getMigrationStatus",
         "parameters": [
@@ -1584,9 +1530,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "Roll back a completed migration",
         "operationId": "rollbackMigration",
         "parameters": [
@@ -1627,9 +1571,7 @@
     },
     "/sharding/rebalance": {
       "post": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "Trigger a manual shard rebalance",
         "operationId": "manualRebalance",
         "requestBody": {
@@ -1711,9 +1653,7 @@
     },
     "/sharding/rebalance/auto": {
       "post": {
-        "tags": [
-          "Sharding"
-        ],
+        "tags": ["Sharding"],
         "summary": "Run automated rebalance analysis",
         "operationId": "autoRebalance",
         "requestBody": {
@@ -1726,10 +1666,7 @@
               "examples": {
                 "default": {
                   "value": {
-                    "entityTypes": [
-                      "users",
-                      "courses"
-                    ],
+                    "entityTypes": ["users", "courses"],
                     "autoExecute": false
                   }
                 }
@@ -1844,10 +1781,7 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string",
@@ -1863,12 +1797,7 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password",
-          "firstName",
-          "lastName"
-        ],
+        "required": ["email", "password", "firstName", "lastName"],
         "properties": {
           "email": {
             "type": "string",
@@ -1890,20 +1819,14 @@
           },
           "role": {
             "type": "string",
-            "enum": [
-              "student",
-              "teacher"
-            ],
+            "enum": ["student", "teacher"],
             "example": "student"
           }
         }
       },
       "CourseRequest": {
         "type": "object",
-        "required": [
-          "title",
-          "description"
-        ],
+        "required": ["title", "description"],
         "properties": {
           "title": {
             "type": "string",
@@ -1929,11 +1852,7 @@
       },
       "PaymentIntentRequest": {
         "type": "object",
-        "required": [
-          "courseId",
-          "amount",
-          "currency"
-        ],
+        "required": ["courseId", "amount", "currency"],
         "properties": {
           "courseId": {
             "type": "string",
@@ -1982,10 +1901,7 @@
       },
       "AwardActivityRequest": {
         "type": "object",
-        "required": [
-          "userId",
-          "activityType"
-        ],
+        "required": ["userId", "activityType"],
         "properties": {
           "userId": {
             "type": "string",
@@ -2009,11 +1925,7 @@
       },
       "AddPointsRequest": {
         "type": "object",
-        "required": [
-          "userId",
-          "points",
-          "activityType"
-        ],
+        "required": ["userId", "points", "activityType"],
         "properties": {
           "userId": {
             "type": "string",
@@ -2032,10 +1944,7 @@
       },
       "UpsertRewardRequest": {
         "type": "object",
-        "required": [
-          "title",
-          "description"
-        ],
+        "required": ["title", "description"],
         "properties": {
           "title": {
             "type": "string",
@@ -2061,10 +1970,7 @@
       },
       "RunEtlRequest": {
         "type": "object",
-        "required": [
-          "source",
-          "data"
-        ],
+        "required": ["source", "data"],
         "properties": {
           "source": {
             "type": "string",
@@ -2086,9 +1992,7 @@
       },
       "RouteShardRequest": {
         "type": "object",
-        "required": [
-          "key"
-        ],
+        "required": ["key"],
         "properties": {
           "key": {
             "type": "string",
@@ -2096,12 +2000,7 @@
           },
           "strategy": {
             "type": "string",
-            "enum": [
-              "tenant_based",
-              "hash_based",
-              "range_based",
-              "read_replica"
-            ],
+            "enum": ["tenant_based", "hash_based", "range_based", "read_replica"],
             "example": "hash_based"
           },
           "forRead": {
@@ -2112,14 +2011,7 @@
       },
       "StartMigrationRequest": {
         "type": "object",
-        "required": [
-          "sourceShardId",
-          "targetShardId",
-          "entityType",
-          "estimatedRowCount",
-          "batchSize",
-          "dryRun"
-        ],
+        "required": ["sourceShardId", "targetShardId", "entityType", "estimatedRowCount", "batchSize", "dryRun"],
         "properties": {
           "sourceShardId": {
             "type": "string",
@@ -2151,10 +2043,7 @@
       },
       "ManualRebalanceRequest": {
         "type": "object",
-        "required": [
-          "migrations",
-          "dryRun"
-        ],
+        "required": ["migrations", "dryRun"],
         "properties": {
           "migrations": {
             "type": "array",
@@ -2170,20 +2059,14 @@
       },
       "AutoRebalanceRequest": {
         "type": "object",
-        "required": [
-          "entityTypes",
-          "autoExecute"
-        ],
+        "required": ["entityTypes", "autoExecute"],
         "properties": {
           "entityTypes": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "example": [
-              "users",
-              "courses"
-            ]
+            "example": ["users", "courses"]
           },
           "autoExecute": {
             "type": "boolean",

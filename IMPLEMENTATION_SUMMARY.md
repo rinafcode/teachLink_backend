@@ -3,6 +3,7 @@
 ## Issues Completed
 
 ### ✅ Issue #355 - Secret Management
+
 **Status**: COMPLETE  
 **URL**: https://github.com/rinafcode/teachLink_backend/issues/355
 
@@ -46,6 +47,7 @@
    - Added `@aws-sdk/client-secrets-manager` for AWS integration
 
 #### Acceptance Criteria Met
+
 ✅ Secrets managed securely  
 ✅ AWS Secrets Manager support  
 ✅ HashiCorp Vault support  
@@ -55,6 +57,7 @@
 ---
 
 ### ✅ Issue #384 - Idempotent Operations
+
 **Status**: COMPLETE  
 **URL**: https://github.com/rinafcode/teachLink_backend/issues/384
 
@@ -95,6 +98,7 @@
    - Added `IDEMPOTENCY_TTL_SECONDS` configuration
 
 #### Acceptance Criteria Met
+
 ✅ Operations idempotent  
 ✅ Endpoints audited (payments module)  
 ✅ Idempotency keys implemented  
@@ -106,6 +110,7 @@
 ## Files Created
 
 ### Secrets Management
+
 - `src/security/secrets/secrets-manager.service.ts` - AWS Secrets Manager service
 - `src/security/secrets/vault-secrets.service.ts` - HashiCorp Vault service
 - `src/security/secrets/secrets.controller.ts` - REST API controller
@@ -113,6 +118,7 @@
 - `src/security/secrets/secrets-manager.service.spec.ts` - Unit tests
 
 ### Idempotency
+
 - `src/common/services/idempotency.service.ts` - Redis-based idempotency storage
 - `src/common/services/idempotency.service.spec.ts` - Unit tests
 - `src/common/decorators/idempotency.decorator.ts` - @Idempotent() decorator
@@ -120,6 +126,7 @@
 - `src/common/modules/idempotency.module.ts` - Module definition
 
 ### Documentation
+
 - `docs/secrets-and-idempotency.md` - Comprehensive documentation
 - `.env.example` - Updated with new configuration variables
 
@@ -136,10 +143,12 @@
 ## Testing
 
 ### Unit Tests Created
+
 - `secrets-manager.service.spec.ts` - Tests for AWS Secrets Manager service
 - `idempotency.service.spec.ts` - Tests for idempotency key generation and service
 
 ### Running Tests
+
 ```bash
 # Test secrets management
 npm test -- secrets-manager.service.spec.ts
@@ -162,9 +171,7 @@ import { SecretsManagerService } from './security/secrets/secrets-manager.servic
 
 @Injectable()
 export class MyService {
-  constructor(
-    private readonly secretsManager: SecretsManagerService,
-  ) {}
+  constructor(private readonly secretsManager: SecretsManagerService) {}
 
   async getSensitiveData() {
     const secret = await this.secretsManager.getSecret('my-secret-name');
@@ -189,6 +196,7 @@ async myEndpoint(@Body() dto: MyDto) {
 ```
 
 Client request:
+
 ```bash
 curl -X POST http://localhost:3000/my-endpoint \
   -H "X-Idempotency-Key: unique-uuid-here" \
@@ -217,7 +225,7 @@ curl -X POST http://localhost:3000/my-endpoint \
 ✅ Distributed locking prevents race conditions  
 ✅ Cryptographically secure secret generation  
 ✅ Automatic secret rotation for compliance  
-✅ Cache expiration prevents stale secret usage  
+✅ Cache expiration prevents stale secret usage
 
 ---
 
@@ -227,7 +235,7 @@ curl -X POST http://localhost:3000/my-endpoint \
 ✅ Redis-based idempotency storage for fast lookups  
 ✅ Configurable TTLs for both features  
 ✅ Lock timeout prevents deadlocks  
-✅ Graceful degradation on storage failures  
+✅ Graceful degradation on storage failures
 
 ---
 
@@ -237,9 +245,11 @@ curl -X POST http://localhost:3000/my-endpoint \
 Closes #355, Closes #384
 
 ## Summary
+
 Implemented secure secrets management with AWS Secrets Manager and HashiCorp Vault support, plus idempotent operations to prevent duplicate actions from retries.
 
 ## Changes
+
 - Added secrets management module with rotation capabilities
 - Implemented idempotency interceptor and decorator
 - Applied idempotency to payment endpoints
@@ -247,11 +257,13 @@ Implemented secure secrets management with AWS Secrets Manager and HashiCorp Vau
 - Added comprehensive documentation and tests
 
 ## Testing
+
 - Unit tests created for both features
 - All existing tests should pass
 - Manual testing required for AWS/Vault integration
 
 ## Breaking Changes
+
 - Payment endpoints now require `X-Idempotency-Key` header
 - New environment variables required (see .env.example)
 ```
