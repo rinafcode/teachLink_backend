@@ -8,7 +8,9 @@ import {
   IsBoolean,
   IsObject,
 } from 'class-validator';
-import { NotificationType, NotificationPriority } from '../entities/notification.entity';
+import { Transform } from 'class-transformer';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { NotificationType, NotificationPriority, NotificationStatus } from '../entities/notification.entity';
 
 /**
  * Defines the create Notification payload.
@@ -79,4 +81,21 @@ export class BulkOperationDto {
   @IsUUID('all', { each: true })
   @IsNotEmpty({ each: true })
   ids: string[];
+}
+
+export class GetNotificationsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ enum: NotificationStatus, description: 'Filter by delivery status' })
+  @IsOptional()
+  @IsEnum(NotificationStatus)
+  status?: NotificationStatus;
+
+  @ApiPropertyOptional({ description: 'When true, return only unread notifications' })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsBoolean()
+  unread?: boolean;
 }

@@ -3,13 +3,12 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { NotificationTemplateService } from './templates/notification-template.service';
-import { CreateNotificationDto, BulkOperationDto } from './dto/notification.dto';
+import { CreateNotificationDto, BulkOperationDto, GetNotificationsQueryDto } from './dto/notification.dto';
 import {
   UpdateNotificationPreferencesDto,
   UnsubscribeDto,
   SendTemplatedNotificationDto,
 } from './dto/preferences.dto';
-import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { Notification } from './entities/notification.entity';
 import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
 
@@ -66,7 +65,7 @@ export class NotificationsController {
     description: 'Paginated list of notifications',
     type: PaginatedSwaggerDto(Notification),
   })
-  list(@Query('userId', ParseUUIDPipe) userId: string, @Query() query?: PaginationQueryDto) {
+  list(@Query('userId', ParseUUIDPipe) userId: string, @Query() query?: GetNotificationsQueryDto) {
     return this.notificationsService.findForUser(userId, query);
   }
 

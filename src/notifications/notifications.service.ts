@@ -1,17 +1,21 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, FindOptionsWhere } from 'typeorm';
 import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
-import { PaginationService } from '../common/services/pagination.service';
-import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { PaginationQueryDto, SortOrder } from '../common/dto/pagination.dto';
+import { clampLimit, buildOffsetResponse } from '../common/utils/pagination.utils';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+
+export type GetNotificationsQuery = PaginationQueryDto & {
+  status?: NotificationStatus;
+  unread?: boolean;
+};
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
-    @Optional()
-    private paginationService: PaginationService = new PaginationService(),
   ) {}
 
   async findDuplicate(userId: string, type: NotificationType, content: string) {
@@ -42,8 +46,39 @@ export class NotificationsService {
     return this.notificationRepository.save(notification);
   }
 
-  async getNotifications(userId: string) {
-    return this.notificationRepository.find({ where: { userId } });
+  /**
+   * Returns a paginated page of notifications for the user, newest first.
+   * Rows older than `retention.notificationRetentionDays` are removed by the data-retention job.
+   */
+  async getNotifications(
+    userId: string,
+    query?: GetNotificationsQuery,
+  ): Promise<OffsetPaginatedResponse<Notification>> {
+    const limit = clampLimit(query?.limit);
+    const page = query?.page ?? 1;
+    const skip = query?.offset ?? (page - 1) * limit;
+    const resolvedPage = query?.offset !== undefined ? Math.floor(skip / limit) + 1 : page;
+
+    const where: FindOptionsWhere<Notification> = { userId };
+    if (query?.status !== undefined) {
+      where.status = query.status;
+    }
+    if (query?.unread === true) {
+      where.isRead = false;
+    } else if (query?.unread === false) {
+      where.isRead = true;
+    }
+
+    const order = query?.order ?? SortOrder.DESC;
+
+    const [data, total] = await this.notificationRepository.findAndCount({
+      where,
+      order: { createdAt: order },
+      skip,
+      take: limit,
+    });
+
+    return buildOffsetResponse(data, total, resolvedPage, limit);
   }
 
   // Stubs for other methods (to satisfy typecheck)
@@ -56,15 +91,8 @@ export class NotificationsService {
   async unsubscribe(_userId: string, _eventType: string) {
     return;
   }
-  async findForUser(userId: string, query?: PaginationQueryDto) {
-    const limit = query?.limit ?? 20;
-    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
-
-    const qb = this.notificationRepository
-      .createQueryBuilder('notification')
-      .where('notification.userId = :userId', { userId });
-
-    return this.paginationService.paginate(qb, query?.cursor, limit, offset, 'createdAt');
+  async findForUser(userId: string, query?: GetNotificationsQuery) {
+    return this.getNotifications(userId, query);
   }
   async create(_dto: any) {
     return null;
