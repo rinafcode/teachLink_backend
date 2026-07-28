@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Unique } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Unique, Index } from 'typeorm';
 
 @Entity('forum_votes')
 @Unique(['entityType', 'entityId', 'authorId'])
+@Index(['entityType', 'entityId'])
 export class ForumVote {
   @PrimaryGeneratedColumn('uuid')
   id: string;
