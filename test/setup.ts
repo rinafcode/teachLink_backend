@@ -1,5 +1,4 @@
 // Test setup file to optimize memory usage and test performance
-/// <reference path="../src/test-typings.d.ts" />
 export {};
 
 declare global {
@@ -21,6 +20,7 @@ process.env.DATABASE_USER = 'postgres';
 process.env.DATABASE_PASSWORD = 'password';
 process.env.DATABASE_NAME = 'test_db';
 process.env.ENCRYPTION_SECRET = 'super-secret-key-32-chars-long-x';
+process.env.BCRYPT_ROUNDS = '10';
 
 // Mock console methods to reduce output noise
 global.console = {

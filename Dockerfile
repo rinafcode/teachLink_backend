@@ -20,17 +20,15 @@ RUN apk add --no-cache dumb-init \
 
 WORKDIR /app
 
-# Install production dependencies as root before switching user
+RUN apk add --no-cache dumb-init curl
+
 COPY package.json package-lock.json ./
-RUN npm ci --only=production --ignore-scripts \
-  && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts
 
 COPY --from=builder /app/dist ./dist
 
-# Create writable tmp dir for the app, then lock down ownership
 RUN mkdir -p /app/tmp && chown -R node:node /app
 
-# Drop to non-root user
 USER node
 
 EXPOSE 3000

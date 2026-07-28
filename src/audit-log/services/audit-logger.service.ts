@@ -40,8 +40,9 @@ export class AuditLoggerService {
 
     const log = this.auditRepo.create({
       ...entry,
-      severity: entry.severity || AuditSeverity.INFO,
+      severity: (entry.severity || AuditSeverity.INFO) as any,
       retentionUntil,
+      httpMethod: entry.httpMethod as any,
     });
 
     try {
@@ -53,7 +54,7 @@ export class AuditLoggerService {
     } catch (error) {
       this.logger.error('Failed to create audit log:', error);
       // Don't throw - audit logging should not break main functionality
-      return log;
+      return log as any;
     }
   }
 

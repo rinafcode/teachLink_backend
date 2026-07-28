@@ -16,9 +16,7 @@ export class UserPreferencesService {
   async getPreferences(userId: string): Promise<UserPreference> {
     let prefs = await this.preferenceRepository.findOne({ where: { userId } });
     if (!prefs) {
-      prefs = await this.preferenceRepository.save(
-        this.preferenceRepository.create({ userId }),
-      );
+      prefs = await this.preferenceRepository.save(this.preferenceRepository.create({ userId }));
       this.logger.debug(`Created default preferences for user ${userId}`);
     }
     return prefs;
@@ -33,8 +31,6 @@ export class UserPreferencesService {
   async resetPreferences(userId: string): Promise<UserPreference> {
     const prefs = await this.getPreferences(userId);
     await this.preferenceRepository.remove(prefs);
-    return this.preferenceRepository.save(
-      this.preferenceRepository.create({ userId }),
-    );
+    return this.preferenceRepository.save(this.preferenceRepository.create({ userId }));
   }
 }

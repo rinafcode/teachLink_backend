@@ -15,9 +15,9 @@ describe('CacheWarmingScheduler', () => {
 
   beforeEach(() => {
     warming = {
-      warmAll: jest.fn().mockResolvedValue([
-        { target: 'COURSES_LIST', keysWarmed: 1, durationMs: 5 },
-      ]),
+      warmAll: jest
+        .fn()
+        .mockResolvedValue([{ target: 'COURSES_LIST', keysWarmed: 1, durationMs: 5 }]),
       warmSearchResults: jest
         .fn()
         .mockResolvedValue({ target: 'SEARCH_RESULTS', keysWarmed: 4, durationMs: 3 }),

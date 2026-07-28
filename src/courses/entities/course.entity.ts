@@ -15,6 +15,7 @@ import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
 import { CourseReview } from './course-review.entity';
+import { CourseVersion } from './course-version.entity';
 
 /** Lifecycle states a course can be in. */
 export enum CourseStatus {
@@ -30,6 +31,8 @@ export enum CourseStatus {
  * Represents the course entity.
  */
 @Entity()
+@Index(['status', 'createdAt'])
+@Index(['instructorId', 'createdAt'])
 export class Course {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -58,6 +61,11 @@ export class Course {
   @Column({ nullable: true })
   thumbnailUrl: string;
 
+  /** Optional category/tag used for catalog grouping and bulk operations. */
+  @Column({ nullable: true })
+  @Index()
+  category?: string;
+
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
 
@@ -81,11 +89,33 @@ export class Course {
   @OneToMany(() => CourseReview, (review) => review.course, { eager: false })
   reviews: CourseReview[];
 
+  @OneToMany(() => CourseVersion, (version) => version.course)
+  versions: CourseVersion[];
+
   /** The submission note provided by the instructor when submitting for review. */
   @Column({ type: 'text', nullable: true })
   submissionNote?: string;
 
+  /**
+   * Issue #814 — generated `tsvector` column maintained by PostgreSQL.
+   * Indexed with GIN and queried by `SearchService` for full-text search.
+   * Marked read-only via `generatedType: 'STORED'` and `asExpression` so
+   * TypeORM doesn't try to write/read this column directly even if
+   * `synchronize: true` is enabled. The `@Index` keeps the entity in sync
+   * with the migration (idempotent name matches the migration's index).
+   */
+  @Index('IDX_course_search_vector', { synchronize: false })
+  @Column({
+    type: 'tsvector',
+    select: false,
+    generatedType: 'STORED',
+    asExpression:
+      "to_tsvector('english', coalesce(\"title\", '') || ' ' || coalesce(\"description\", '') || ' ' || coalesce(\"category\", ''))",
+  })
+  searchVector?: unknown;
+
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()
@@ -94,4 +124,3 @@ export class Course {
   @DeleteDateColumn()
   deletedAt?: Date;
 }
-

@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThan } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { AuditLog } from '../audit-log.entity';
-import { AuditAction, AuditSeverity, AuditCategory } from '../enums/audit-action.enum';
-import {
-  IAuditLogSearchFilters,
-  IAuditLogSearchResult,
-} from '../interfaces/audit-log.interfaces';
+import { AuditAction } from '../enums/audit-action.enum';
+import { IAuditLogSearchFilters, IAuditLogSearchResult } from '../interfaces/audit-log.interfaces';
+import { clampLimit } from '../../common/utils/pagination.utils';
+
+import { PaginationService } from '../../common/services/pagination.service';
 
 /**
  * Provides audit log query operations.
@@ -18,6 +18,8 @@ export class AuditQueryService {
   constructor(
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
+    @Optional()
+    private readonly paginationService: PaginationService = new PaginationService(),
   ) {}
 
   /**
@@ -27,6 +29,8 @@ export class AuditQueryService {
     filters: IAuditLogSearchFilters,
     page: number = 1,
     limit: number = 50,
+    cursor?: string,
+    offset?: number,
   ): Promise<IAuditLogSearchResult> {
     const queryBuilder = this.auditRepo.createQueryBuilder('audit');
 
@@ -100,20 +104,16 @@ export class AuditQueryService {
       queryBuilder.andWhere('audit.timestamp <= :endDate', { endDate: filters.endDate });
     }
 
-    queryBuilder.orderBy('audit.timestamp', 'DESC');
+    const clampedLimit = clampLimit(limit);
+    const calculatedOffset = offset ?? (cursor ? undefined : (page - 1) * clampedLimit);
 
-    const total = await queryBuilder.getCount();
-    const skip = (page - 1) * limit;
-    queryBuilder.skip(skip).take(limit);
-    const logs = await queryBuilder.getMany();
-
-    return {
-      logs,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return this.paginationService.paginate(
+      queryBuilder,
+      cursor,
+      clampedLimit,
+      calculatedOffset,
+      'timestamp',
+    ) as Promise<IAuditLogSearchResult>;
   }
 
   /**
@@ -177,11 +177,7 @@ export class AuditQueryService {
   /**
    * Find logs by date range
    */
-  async findByDateRange(
-    startDate: Date,
-    endDate: Date,
-    limit: number = 1000,
-  ): Promise<AuditLog[]> {
+  async findByDateRange(startDate: Date, endDate: Date, limit: number = 1000): Promise<AuditLog[]> {
     return this.auditRepo.find({
       where: {
         timestamp: Between(startDate, endDate),

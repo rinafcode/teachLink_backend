@@ -21,7 +21,9 @@ export class ComplianceReportService {
   ): ComplianceReport {
     const complianceRate =
       totalTransactions > 0
-        ? parseFloat((((totalTransactions - flaggedTransactions) / totalTransactions) * 100).toFixed(2))
+        ? parseFloat(
+            (((totalTransactions - flaggedTransactions) / totalTransactions) * 100).toFixed(2),
+          )
         : 100;
 
     return {

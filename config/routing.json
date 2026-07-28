@@ -1,0 +1,278 @@
+{
+  "rules": [
+    {
+      "id": "api-version-routing",
+      "name": "API Version Header Routing",
+      "description": "Route requests based on API version header to appropriate API version",
+      "priority": 100,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "header",
+          "field": "x-api-version",
+          "operator": "equals",
+          "value": "v2",
+          "caseSensitive": false
+        }
+      ],
+      "action": {
+        "type": "rewrite",
+        "target": "/api/v2${originalPath}",
+        "transformations": [
+          {
+            "type": "header",
+            "operation": "add",
+            "field": "x-routed-by",
+            "value": "content-router"
+          }
+        ]
+      },
+      "metadata": {
+        "category": "api-versioning",
+        "createdBy": "system",
+        "createdAt": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "id": "mobile-client-routing",
+      "name": "Mobile Client Routing",
+      "description": "Special routing and optimizations for mobile clients",
+      "priority": 90,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "header",
+          "field": "x-client-type",
+          "operator": "equals",
+          "value": "mobile",
+          "caseSensitive": false
+        }
+      ],
+      "action": {
+        "type": "forward",
+        "target": "/api/mobile",
+        "transformations": [
+          {
+            "type": "header",
+            "operation": "add",
+            "field": "x-mobile-optimized",
+            "value": "true"
+          },
+          {
+            "type": "header",
+            "operation": "add",
+            "field": "x-response-format",
+            "value": "compact"
+          }
+        ]
+      },
+      "metadata": {
+        "category": "client-optimization",
+        "description": "Enables mobile-specific optimizations"
+      }
+    },
+    {
+      "id": "admin-access-control",
+      "name": "Admin Access Control",
+      "description": "Block non-admin access to admin endpoints",
+      "priority": 200,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "path_pattern",
+          "field": "path",
+          "operator": "starts_with",
+          "value": "/admin"
+        },
+        {
+          "type": "custom",
+          "field": "user.role",
+          "operator": "not_equals",
+          "value": "ADMIN"
+        }
+      ],
+      "action": {
+        "type": "block",
+        "target": "unauthorized",
+        "parameters": {
+          "statusCode": 403,
+          "message": "Admin access required"
+        }
+      },
+      "metadata": {
+        "category": "security",
+        "critical": true
+      }
+    },
+    {
+      "id": "tenant-subdomain-routing",
+      "name": "Tenant Subdomain Routing",
+      "description": "Route requests based on tenant subdomain",
+      "priority": 80,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "header",
+          "field": "host",
+          "operator": "regex_match",
+          "value": "^([^.]+)\\.teachlink\\.",
+          "caseSensitive": false
+        }
+      ],
+      "action": {
+        "type": "forward",
+        "target": "/tenant",
+        "transformations": [
+          {
+            "type": "header",
+            "operation": "add",
+            "field": "x-tenant-from-subdomain",
+            "value": "true"
+          }
+        ]
+      },
+      "metadata": {
+        "category": "multi-tenancy"
+      }
+    },
+    {
+      "id": "feature-flag-routing",
+      "name": "Feature Flag Routing",
+      "description": "Route to beta features based on query parameter",
+      "priority": 70,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "query_param",
+          "field": "beta",
+          "operator": "equals",
+          "value": "true",
+          "caseSensitive": false
+        }
+      ],
+      "action": {
+        "type": "forward",
+        "target": "/api/beta",
+        "transformations": [
+          {
+            "type": "header",
+            "operation": "add",
+            "field": "x-beta-features",
+            "value": "enabled"
+          },
+          {
+            "type": "query",
+            "operation": "remove",
+            "field": "beta"
+          }
+        ]
+      },
+      "metadata": {
+        "category": "feature-flags",
+        "experimental": true
+      }
+    },
+    {
+      "id": "content-type-routing",
+      "name": "Content Type Based Routing",
+      "description": "Route based on request content type",
+      "priority": 60,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "content_type",
+          "field": "content-type",
+          "operator": "contains",
+          "value": "application/json",
+          "caseSensitive": false
+        },
+        {
+          "type": "path_pattern",
+          "field": "path",
+          "operator": "starts_with",
+          "value": "/api/upload"
+        }
+      ],
+      "action": {
+        "type": "forward",
+        "target": "/api/upload/json",
+        "transformations": [
+          {
+            "type": "header",
+            "operation": "add",
+            "field": "x-upload-type",
+            "value": "json"
+          }
+        ]
+      },
+      "metadata": {
+        "category": "content-handling"
+      }
+    },
+    {
+      "id": "rate-limit-by-user-type",
+      "name": "Rate Limit by User Type",
+      "description": "Apply different rate limits based on user type",
+      "priority": 50,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "custom",
+          "field": "user.role",
+          "operator": "equals",
+          "value": "FREE_USER"
+        }
+      ],
+      "action": {
+        "type": "rate_limit",
+        "target": "free-tier",
+        "parameters": {
+          "limit": 100,
+          "window": 3600000,
+          "message": "Free tier rate limit exceeded"
+        }
+      },
+      "metadata": {
+        "category": "rate-limiting"
+      }
+    },
+    {
+      "id": "cache-static-content",
+      "name": "Cache Static Content",
+      "description": "Apply caching headers to static content requests",
+      "priority": 40,
+      "enabled": true,
+      "conditions": [
+        {
+          "type": "path_pattern",
+          "field": "path",
+          "operator": "regex_match",
+          "value": "\\.(css|js|png|jpg|jpeg|gif|ico|svg)$",
+          "caseSensitive": false
+        }
+      ],
+      "action": {
+        "type": "cache",
+        "target": "static-assets",
+        "parameters": {
+          "maxAge": 86400,
+          "cacheControl": "public, max-age=86400, immutable"
+        }
+      },
+      "metadata": {
+        "category": "performance"
+      }
+    }
+  ],
+  "defaultAction": {
+    "type": "forward",
+    "target": "/api"
+  },
+  "enableLogging": true,
+  "enableMetrics": true,
+  "cacheConfig": {
+    "enabled": true,
+    "ttl": 300000,
+    "maxSize": 1000
+  }
+}

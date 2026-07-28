@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 
 /**
@@ -8,8 +9,8 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class MediaProcessingWorker extends BaseWorker {
-  constructor() {
-    super('media-processing');
+  constructor(configService: ConfigService) {
+    super('media-processing', configService);
   }
 
   /**
@@ -23,6 +24,25 @@ export class MediaProcessingWorker extends BaseWorker {
     // Validate media data
     if (!fileUrl || !mediaType) {
       throw new Error('Missing required media fields: fileUrl, mediaType');
+    }
+
+    try {
+      const axios = (await import('axios')).default;
+      const headRes = await axios.head(fileUrl);
+      const contentLengthHeader = headRes.headers['content-length'];
+      if (contentLengthHeader !== undefined && contentLengthHeader !== null) {
+        const size = parseInt(String(contentLengthHeader), 10);
+        const isVideo = mediaType.toLowerCase() === 'video';
+        const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (size > maxSize) {
+          throw new Error(`File size ${size} exceeds maximum allowed size of ${maxSize}`);
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Could not validate remote file size for ${fileUrl}: ${e.message}`);
+      if (e.message.includes('exceeds maximum allowed size')) {
+        throw e;
+      }
     }
 
     await job.progress(40);
@@ -61,7 +81,7 @@ export class MediaProcessingWorker extends BaseWorker {
     job: Job,
     fileUrl: string,
     format: string,
-    options: any,
+    _options: any,
   ): Promise<any> {
     await job.progress(50);
     this.logger.log(`Processing image: ${fileUrl}, format: ${format || 'original'}`);
@@ -88,7 +108,7 @@ export class MediaProcessingWorker extends BaseWorker {
     job: Job,
     fileUrl: string,
     format: string,
-    options: any,
+    _options: any,
   ): Promise<any> {
     await job.progress(50);
     this.logger.log(`Processing video: ${fileUrl}, format: ${format || 'mp4'}`);
@@ -115,7 +135,7 @@ export class MediaProcessingWorker extends BaseWorker {
     job: Job,
     fileUrl: string,
     format: string,
-    options: any,
+    _options: any,
   ): Promise<any> {
     await job.progress(50);
     this.logger.log(`Processing audio: ${fileUrl}, format: ${format || 'mp3'}`);

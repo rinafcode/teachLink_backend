@@ -98,6 +98,15 @@ export const ALERT_RULES: IAlertRule[] = [
     alertWhenAbove: true,
     cooldownMs: 5 * 60 * 1000,
   },
+  {
+    metricName: 'payment_failure_rate',
+    description: 'Payment Failure Rate',
+    warningThreshold: 2,
+    criticalThreshold: 5,
+    unit: '%',
+    alertWhenAbove: true,
+    cooldownMs: 3 * 60 * 1000,
+  },
 ];
 
 /**
@@ -116,8 +125,10 @@ export class AlertingService {
 
   private readonly emailEnabled: boolean;
   private readonly slackEnabled: boolean;
+  private readonly pagerDutyEnabled: boolean;
   private readonly alertEmailRecipients: string[];
   private readonly slackWebhookUrl: string | undefined;
+  private readonly pagerDutyRoutingKey: string | undefined;
   private readonly emailFrom: string;
   private mailerTransport: nodemailer.Transporter | null = null;
 
@@ -134,6 +145,9 @@ export class AlertingService {
 
     this.slackWebhookUrl = this.configService.get<string>('ALERT_SLACK_WEBHOOK_URL');
     this.slackEnabled = !!this.slackWebhookUrl;
+
+    this.pagerDutyRoutingKey = this.configService.get<string>('PAGERDUTY_ROUTING_KEY');
+    this.pagerDutyEnabled = !!this.pagerDutyRoutingKey;
 
     if (this.emailEnabled) {
       this.mailerTransport = nodemailer.createTransport({
@@ -262,6 +276,12 @@ export class AlertingService {
         this.logger.error(`Slack alert delivery failed: ${err.message}`),
       );
     }
+
+    if (this.pagerDutyEnabled && event.severity === 'CRITICAL') {
+      this.sendPagerDutyAlert(event).catch((err) =>
+        this.logger.error(`PagerDuty alert delivery failed: ${err.message}`),
+      );
+    }
   }
 
   private logAlert(event: IAlertEvent): void {
@@ -370,5 +390,26 @@ export class AlertingService {
     };
 
     await axios.post(this.slackWebhookUrl, body);
+  }
+
+  private async sendPagerDutyAlert(event: IAlertEvent): Promise<void> {
+    if (!this.pagerDutyRoutingKey) {
+      return;
+    }
+
+    const payload = {
+      routing_key: this.pagerDutyRoutingKey,
+      event_action: 'trigger',
+      dedup_key: event.id,
+      payload: {
+        summary: `[${event.severity}] ${event.type} - ${event.message}`,
+        source: 'teachLink_backend',
+        severity: 'critical',
+        timestamp: event.firedAt.toISOString(),
+        custom_details: event.metadata || {},
+      },
+    };
+
+    await axios.post('https://events.pagerduty.com/v2/enqueue', payload);
   }
 }

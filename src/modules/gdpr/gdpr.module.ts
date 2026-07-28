@@ -1,14 +1,14 @@
-import {
-  Module,
-} from "@nestjs/common";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SessionModule } from '../../session/session.module';
+import { UserConsent } from './entities/user-consent.entity';
+import { GdprService } from './gdpr.service';
+import { GdprController } from './gdpr.controller';
 
 @Module({
-  controllers: [
-    GdprController,
-  ],
-
-  providers: [
-    GdprService,
-  ],
+  imports: [SessionModule, TypeOrmModule.forFeature([UserConsent])],
+  controllers: [GdprController],
+  providers: [GdprService],
+  controllers: [GdprController],
 })
 export class GdprModule {}

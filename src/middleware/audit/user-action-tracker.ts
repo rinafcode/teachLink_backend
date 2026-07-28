@@ -4,13 +4,19 @@ export interface IUserActionDescriptor {
   action: AuditAction;
   category: AuditCategory;
   description: string;
+  metadata?: Record<string, unknown>;
 }
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+function isAdminSurface(path: string): boolean {
+  return /(^|\/)(admin|roles|permissions|tenants|moderation|rbac)(\/|$)/.test(path);
+}
+
 export function resolveUserAction(method: string, path: string): IUserActionDescriptor {
   const normalizedMethod = method.toUpperCase();
   const normalizedPath = path.toLowerCase();
+  const adminSurface = isAdminSurface(normalizedPath);
 
   if (normalizedPath.includes('/auth/login')) {
     return {
@@ -40,7 +46,11 @@ export function resolveUserAction(method: string, path: string): IUserActionDesc
     return {
       action: AuditAction.DATA_VIEWED,
       category: AuditCategory.DATA_ACCESS,
-      description: `Data access via ${normalizedMethod} ${path}`,
+      description: `${adminSurface ? 'Admin ' : ''}data access via ${normalizedMethod} ${path}`,
+      metadata: {
+        isAdminAction: adminSurface,
+        accessType: 'read',
+      },
     };
   }
 
@@ -50,7 +60,11 @@ export function resolveUserAction(method: string, path: string): IUserActionDesc
       category: WRITE_METHODS.has(normalizedMethod)
         ? AuditCategory.DATA_MODIFICATION
         : AuditCategory.DATA_ACCESS,
-      description: `Resource creation via ${normalizedMethod} ${path}`,
+      description: `${adminSurface ? 'Admin ' : ''}resource creation via ${normalizedMethod} ${path}`,
+      metadata: {
+        isAdminAction: adminSurface,
+        accessType: 'write',
+      },
     };
   }
 
@@ -58,7 +72,11 @@ export function resolveUserAction(method: string, path: string): IUserActionDesc
     return {
       action: AuditAction.DATA_UPDATED,
       category: AuditCategory.DATA_MODIFICATION,
-      description: `Resource update via ${normalizedMethod} ${path}`,
+      description: `${adminSurface ? 'Admin ' : ''}resource update via ${normalizedMethod} ${path}`,
+      metadata: {
+        isAdminAction: adminSurface,
+        accessType: 'write',
+      },
     };
   }
 
@@ -66,7 +84,11 @@ export function resolveUserAction(method: string, path: string): IUserActionDesc
     return {
       action: AuditAction.DATA_DELETED,
       category: AuditCategory.DATA_MODIFICATION,
-      description: `Resource deletion via ${normalizedMethod} ${path}`,
+      description: `${adminSurface ? 'Admin ' : ''}resource deletion via ${normalizedMethod} ${path}`,
+      metadata: {
+        isAdminAction: adminSurface,
+        accessType: 'write',
+      },
     };
   }
 
@@ -74,5 +96,9 @@ export function resolveUserAction(method: string, path: string): IUserActionDesc
     action: AuditAction.API_CALLED,
     category: AuditCategory.DATA_ACCESS,
     description: `API call via ${normalizedMethod} ${path}`,
+    metadata: {
+      isAdminAction: adminSurface,
+      accessType: 'general',
+    },
   };
 }

@@ -10,9 +10,9 @@ stages:
 .pytest:
   stage: test
   script:
-   - pip install -r requirements.txt
-   - pip install -r test-requirements.txt
-   - pytest --cov=openapi_client
+    - pip install -r requirements.txt
+    - pip install -r test-requirements.txt
+    - pytest --cov=openapi_client
 
 pytest-3.10:
   extends: .pytest

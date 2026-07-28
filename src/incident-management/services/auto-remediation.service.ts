@@ -1,10 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  RemediationAction,
-  RemediationStatus,
-} from '../entities/remediation-action.entity';
+import { RemediationAction, RemediationStatus } from '../entities/remediation-action.entity';
 import { Incident } from '../entities/incident.entity';
 
 export interface RemediationHandler {
@@ -188,9 +185,7 @@ export class AutoRemediationService {
     parameters: Record<string, unknown>,
     autoRollback = false,
   ): Promise<RemediationAction> {
-    this.logger.log(
-      `Executing remediation action: ${actionType} for incident ${incident.id}`,
-    );
+    this.logger.log(`Executing remediation action: ${actionType} for incident ${incident.id}`);
 
     // Create remediation action record
     let remediationAction = this.remediationRepository.create({
@@ -224,9 +219,7 @@ export class AutoRemediationService {
         remediationAction.executionOutput = result.output;
         remediationAction.errorMessage = result.error;
         remediationAction.executedAt = new Date();
-        this.logger.error(
-          `Remediation action failed: ${actionType} - ${result.error}`,
-        );
+        this.logger.error(`Remediation action failed: ${actionType} - ${result.error}`);
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -243,18 +236,12 @@ export class AutoRemediationService {
   /**
    * Rollback a remediation action
    */
-  async rollbackRemediationAction(
-    remediationAction: RemediationAction,
-  ): Promise<void> {
-    this.logger.log(
-      `Rolling back remediation action: ${remediationAction.id}`,
-    );
+  async rollbackRemediationAction(remediationAction: RemediationAction): Promise<void> {
+    this.logger.log(`Rolling back remediation action: ${remediationAction.id}`);
 
     try {
       // Determine rollback strategy based on action type
-      const rollbackStrategy = this.getRollbackStrategy(
-        remediationAction.actionType,
-      );
+      const rollbackStrategy = this.getRollbackStrategy(remediationAction.actionType);
       if (rollbackStrategy) {
         await rollbackStrategy(remediationAction.parameters);
         this.logger.log(`Rollback completed for action: ${remediationAction.id}`);
@@ -276,19 +263,14 @@ export class AutoRemediationService {
   private getRollbackStrategy(
     actionType: string,
   ): ((parameters: Record<string, unknown>) => Promise<void>) | null {
-    const strategies: Record<
-      string,
-      (parameters: Record<string, unknown>) => Promise<void>
-    > = {
-      scale_resources: async (params) => {
+    const strategies: Record<string, (parameters: Record<string, unknown>) => Promise<void>> = {
+      scale_resources: async (_params) => {
         // Scale down to original replicas
-        this.logger.log(
-          `Rolling back resource scaling to original state`,
-        );
+        this.logger.log('Rolling back resource scaling to original state');
       },
       clear_cache: async () => {
         // Re-populate cache
-        this.logger.log(`Rolling back cache clear`);
+        this.logger.log('Rolling back cache clear');
       },
     };
 
@@ -308,9 +290,7 @@ export class AutoRemediationService {
   /**
    * Get remediation action by ID
    */
-  async getRemediationActionById(
-    remediationId: string,
-  ): Promise<RemediationAction | null> {
+  async getRemediationActionById(remediationId: string): Promise<RemediationAction | null> {
     return this.remediationRepository.findOne({ where: { id: remediationId } });
   }
 

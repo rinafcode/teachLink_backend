@@ -1,67 +1,44 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 
-@Controller(
-  "email-templates",
-)
+@Controller('email-templates')
 export class EmailTemplateController {
-
-  constructor(
-    private readonly service:
-      EmailTemplateService,
-  ) {}
+  constructor(private readonly service: EmailTemplateService) {}
 
   @Post()
   create(
     @Body()
     dto: CreateEmailTemplateDto,
   ) {
-    return this.service.create(
-      dto,
-    );
+    return this.service.create(dto);
   }
 
-  @Patch(":id")
+  @Patch(':id')
   update(
-    @Param("id")
+    @Param('id')
     id: string,
 
     @Body()
     dto: UpdateEmailTemplateDto,
   ) {
-    return this.service.update(
-      id,
-      dto,
-    );
+    return this.service.update(id, dto);
   }
 
-  @Get(":id")
+  @Get(':id')
   findOne(
-    @Param("id")
+    @Param('id')
     id: string,
   ) {
-    return this.service.findById(
-      id,
-    );
+    return this.service.findById(id);
   }
 
-  @Post(":id/preview")
+  @Post(':id/preview')
   preview(
-    @Param("id")
+    @Param('id')
     id: string,
 
     @Body()
     dto: PreviewTemplateDto,
   ) {
-    return this.service.preview(
-      id,
-      dto.variables,
-    );
+    return this.service.preview(id, dto.variables);
   }
 }

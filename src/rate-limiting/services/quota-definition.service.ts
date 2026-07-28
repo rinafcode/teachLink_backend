@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QuotaDefinition } from '../entities/quota-definition.entity';
@@ -50,7 +51,7 @@ export class QuotaDefinitionService {
 
   async findOne(id: string): Promise<QuotaDefinition> {
     const def = await this.repo.findOne({ where: { id } });
-    if (!def) throw new NotFoundException(`Quota definition ${id} not found`);
+    if (!def) throw new ResourceNotFoundException('QuotaDefinition', id);
     return def;
   }
 

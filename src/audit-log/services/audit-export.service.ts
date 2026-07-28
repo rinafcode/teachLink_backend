@@ -15,15 +15,15 @@ export class AuditExportService {
    * Export logs to JSON format
    */
   async exportToJson(filters: IAuditLogSearchFilters): Promise<string> {
-    const { logs } = await this.queryService.search(filters, 1, 10000);
-    return JSON.stringify(logs, null, 2);
+    const { data } = await this.queryService.search(filters, 1, 10000);
+    return JSON.stringify(data, null, 2);
   }
 
   /**
    * Export logs to CSV format
    */
   async exportToCsv(filters: IAuditLogSearchFilters): Promise<string> {
-    const { logs } = await this.queryService.search(filters, 1, 10000);
+    const { data } = await this.queryService.search(filters, 1, 10000);
 
     const headers = [
       'timestamp',
@@ -42,7 +42,7 @@ export class AuditExportService {
       'statusCode',
     ];
 
-    const rows = logs.map((log) => [
+    const rows = data.map((log) => [
       log.timestamp.toISOString(),
       log.userId || '',
       log.userEmail || '',

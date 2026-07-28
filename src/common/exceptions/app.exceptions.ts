@@ -62,15 +62,46 @@ export class ServiceUnavailableException extends HttpException {
 }
 
 /**
- * Thrown when a request exceeds the configured timeout.
- * Maps to HTTP 504 Gateway Timeout.
+ * Thrown when authentication credentials are invalid or the user cannot be found.
+ * Maps to HTTP 401 Unauthorized.
  */
-export class RequestTimeoutException extends HttpException {
-  constructor(timeoutMs: number) {
-    const message = `Request timeout after ${timeoutMs}ms`;
+export class InvalidCredentialsException extends HttpException {
+  constructor(message = 'Invalid credentials') {
     super(
-      { message, error: 'Gateway Timeout', statusCode: HttpStatus.GATEWAY_TIMEOUT },
-      HttpStatus.GATEWAY_TIMEOUT,
+      { message, error: 'Unauthorized', statusCode: HttpStatus.UNAUTHORIZED },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+}
+
+/**
+ * Thrown when a token (e.g. email verification, password reset) is invalid, used, or expired.
+ * Maps to HTTP 401 Unauthorized.
+ */
+export class InvalidTokenException extends HttpException {
+  constructor(message = 'Invalid or expired token') {
+    super(
+      { message, error: 'Unauthorized', statusCode: HttpStatus.UNAUTHORIZED },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+}
+
+/**
+ * Thrown when a client exceeds the allowed request rate.
+ * Maps to HTTP 429 Too Many Requests.
+ */
+export class RateLimitExceededException extends HttpException {
+  constructor(retryAfterSeconds?: number) {
+    const message = 'You have exceeded the request rate limit. Please wait before retrying.';
+    super(
+      {
+        message,
+        error: 'Too Many Requests',
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        ...(retryAfterSeconds !== undefined && { retryAfterSeconds }),
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
     );
   }
 }

@@ -13,7 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ABTestingService, ICreateExperimentDto } from './ab-testing.service';
+import { ABTestingService } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
 import { StatisticalAnalysisService } from './analysis/statistical-analysis.service';
 import { AutomatedDecisionService } from './automation/automated-decision.service';
@@ -22,6 +22,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import {
+  AutoSelectWinnerDto,
+  CreateExperimentDto,
+  CreateVariantDto,
+  DashboardFiltersDto,
+  UpdateExperimentDto,
+  UpdateTrafficAllocationDto,
+} from './dto';
 
 /**
  * Exposes AB testing endpoints.
@@ -42,6 +50,88 @@ export class ABTestingController {
     private automatedDecisionService: AutomatedDecisionService,
     private reportsService: ABTestingReportsService,
   ) {}
+
+  /**
+   * Get available experiment templates
+   */
+  @Get('templates')
+  @ApiResponse({
+    status: 200,
+    description: 'Available experiment templates',
+    schema: {
+      example: [
+        {
+          name: 'Standard A/B Test',
+          description: 'Standard 50/50 A/B test with 95% confidence',
+          trafficAllocation: 50,
+          confidenceLevel: 0.95,
+          minimumSampleSize: 1000,
+        },
+      ],
+    },
+  })
+  async getExperimentTemplates(): Promise<any> {
+    this.logger.log('Fetching experiment templates');
+    return this.abTestingService.getAvailableTemplates();
+  }
+
+  /**
+   * Analyze experiment and check for auto-stop conditions
+   */
+  @Post('experiments/:id/analyze')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN)
+  @ApiResponse({
+    status: 200,
+    description: 'Analysis complete',
+    schema: {
+      example: {
+        results: [
+          {
+            variantId: 'variant-1',
+            sampleSize: 2500,
+            conversionRate: 0.085,
+            confidence: 0.97,
+            pValue: 0.03,
+            isSignificant: true,
+            uplift: 0.15,
+            upliftCI: { lower: 0.08, upper: 0.22 },
+          },
+        ],
+        shouldStop: true,
+        reason: 'Statistical significance reached',
+      },
+    },
+  })
+  async analyzeAndAutoStop(@Param('id') experimentId: string): Promise<any> {
+    this.logger.log(`Analyzing experiment for auto-stop: ${experimentId}`);
+    return await this.abTestingService.analyzeAndAutoStop(experimentId);
+  }
+
+  /**
+   * Get comprehensive experiment results dashboard
+   */
+  @Get('experiments/:id/dashboard')
+  @ApiResponse({
+    status: 200,
+    description: 'Experiment results dashboard',
+    schema: {
+      example: {
+        experiment: {},
+        variantResults: [],
+        summary: {
+          winner: 'variant-2',
+          confidence: 0.96,
+          estimatedUplift: 0.12,
+          sampleSizeReached: true,
+        },
+      },
+    },
+  })
+  async getResultsDashboard(@Param('id') experimentId: string): Promise<any> {
+    this.logger.log(`Fetching results dashboard for experiment: ${experimentId}`);
+    return await this.abTestingService.getExperimentResults(experimentId);
+  }
 
   /**
    * Returns all Experiments.
@@ -73,7 +163,7 @@ export class ABTestingController {
   @Post('experiments')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
-  async createExperiment(@Body() createExperimentDto: ICreateExperimentDto): Promise<any> {
+  async createExperiment(@Body() createExperimentDto: CreateExperimentDto): Promise<any> {
     this.logger.log(`Creating new experiment: ${createExperimentDto.name}`);
     return await this.abTestingService.createExperiment(createExperimentDto);
   }
@@ -113,9 +203,12 @@ export class ABTestingController {
   @Put('experiments/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async updateExperiment(@Param('id') id: string, @Body() updateData: any): Promise<any> {
+  async updateExperiment(
+    @Param('id') id: string,
+    @Body() updateData: UpdateExperimentDto,
+  ): Promise<any> {
     this.logger.log(`Updating experiment: ${id}`);
-    return await this.experimentService.updateExperiment(id, updateData);
+    return await this.experimentService.updateExperiment(id, updateData as any);
   }
 
   /**
@@ -152,7 +245,10 @@ export class ABTestingController {
   @Post('experiments/:id/variants')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
-  async addVariant(@Param('id') experimentId: string, @Body() variantData: any): Promise<any> {
+  async addVariant(
+    @Param('id') experimentId: string,
+    @Body() variantData: CreateVariantDto,
+  ): Promise<any> {
     this.logger.log(`Adding variant to experiment: ${experimentId}`);
     return await this.experimentService.addVariant(experimentId, variantData);
   }
@@ -182,10 +278,13 @@ export class ABTestingController {
   @Roles(UserRole.ADMIN)
   async updateTrafficAllocation(
     @Param('id') experimentId: string,
-    @Body() allocations: Record<string, number>,
+    @Body() updateTrafficAllocationDto: UpdateTrafficAllocationDto,
   ): Promise<any> {
     this.logger.log(`Updating traffic allocation for experiment: ${experimentId}`);
-    await this.experimentService.updateTrafficAllocation(experimentId, allocations);
+    await this.experimentService.updateTrafficAllocation(
+      experimentId,
+      updateTrafficAllocationDto.allocations,
+    );
     return { message: 'Traffic allocation updated successfully' };
   }
 
@@ -220,9 +319,18 @@ export class ABTestingController {
   @Post('experiments/:id/auto-select-winner')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  async autoSelectWinner(@Param('id') id: string, @Body() criteria?: any): Promise<any> {
+  async autoSelectWinner(
+    @Param('id') id: string,
+    @Body() criteria?: AutoSelectWinnerDto,
+  ): Promise<any> {
     this.logger.log(`Auto-selecting winner for experiment: ${id}`);
-    return await this.automatedDecisionService.autoSelectWinner(id, criteria);
+    const mappedCriteria = criteria
+      ? ({
+          minimumSampleSize: criteria.minimumVotes,
+          durationThreshold: criteria.minimumDurationDays,
+        } as any)
+      : undefined;
+    return await this.automatedDecisionService.autoSelectWinner(id, mappedCriteria);
   }
 
   /**
@@ -257,7 +365,7 @@ export class ABTestingController {
    */
   @Get('reports/dashboard')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  async getDashboardSummary(@Query() filters?: any): Promise<any> {
+  async getDashboardSummary(@Query() filters?: DashboardFiltersDto): Promise<any> {
     this.logger.log('Generating dashboard summary');
     return await this.reportsService.getDashboardSummary(filters);
   }

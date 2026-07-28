@@ -6,7 +6,8 @@ import {
   UpdateEvent,
   RemoveEvent,
 } from 'typeorm';
-import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
 import { IsolationService } from '../../tenancy/isolation/isolation.service';
 
 /**
@@ -74,7 +75,7 @@ export class TenantRlsSubscriber implements EntitySubscriberInterface {
       this.logger.error(
         `RLS violation on ${operation}: entity tenantId=${entity.tenantId}, current tenant=${currentTenantId}`,
       );
-      throw new ForbiddenException('Cross-tenant data access is not allowed');
+      throw new ForbiddenOperationException('Cross-tenant data access is not allowed');
     }
   }
 

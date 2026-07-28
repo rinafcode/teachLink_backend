@@ -173,10 +173,12 @@ function generateCurlExample(example) {
 }
 
 function generateTypeScriptExample(example) {
-  const requiresAuth = example.requiresAuth ? `
+  const requiresAuth = example.requiresAuth
+    ? `
   headers: {
     'Authorization': \`Bearer \${accessToken}\`,
-  },` : '';
+  },`
+    : '';
 
   return `import axios from 'axios';
 
@@ -189,9 +191,13 @@ const apiClient = axios.create({
 
 async function ${camelCase(example.title)}() {
   try {
-    const response = await apiClient.${example.method.toLowerCase()}('${example.path.split('?')[0]}'${example.requestBody ? `, ${JSON.stringify(example.requestBody)}` : ''}${requiresAuth ? `,
+    const response = await apiClient.${example.method.toLowerCase()}('${example.path.split('?')[0]}'${example.requestBody ? `, ${JSON.stringify(example.requestBody)}` : ''}${
+      requiresAuth
+        ? `,
     {${requiresAuth}
-    }` : ''});
+    }`
+        : ''
+    });
     
     console.log('Response:', response.data);
     return response.data;
@@ -221,7 +227,7 @@ def ${snake_case(example.title)}():
     ${example.requestBody ? `data = ${JSON.stringify(example.requestBody, null, 4).split('\n').join('\n    ')}` : 'data = None'}
     
     try:
-        response = requests.${example.method.lower()}(url, json=data${example.requiresAuth ? ', headers=headers' : ''})
+        response = requests.${example.method.toLowerCase()}(url, json=data${example.requiresAuth ? ', headers=headers' : ''})
         response.raise_for_status()
         print("Response:", response.json())
         return response.json()
@@ -235,10 +241,12 @@ if __name__ == "__main__":
 }
 
 function generateJavaScriptExample(example) {
-  const auth = example.requiresAuth ? `
+  const auth = example.requiresAuth
+    ? `
     headers: {
       'Authorization': \`Bearer \${accessToken}\`,
-    },` : '';
+    },`
+    : '';
 
   return `// Fetch API example (works in Node.js 18+ and browsers)
 async function ${camelCase(example.title)}() {
@@ -273,14 +281,16 @@ function generateGoExample(example) {
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))`
     : '';
 
-  const reqBody = example.requestBody ? `
+  const reqBody = example.requestBody
+    ? `
 	payload := map[string]interface{}{
 		${Object.entries(example.requestBody)
       .map(([key, val]) => `"${key}": ${JSON.stringify(val)}`)
       .join(',\n\t\t')}
 	}
 	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequest("${example.method}", "http://localhost:3000${example.path.split('?')[0]}", bytes.NewBuffer(body))` : `
+	req, _ := http.NewRequest("${example.method}", "http://localhost:3000${example.path.split('?')[0]}", bytes.NewBuffer(body))`
+    : `
 	req, _ := http.NewRequest("${example.method}", "http://localhost:3000${example.path.split('?')[0]}", nil)`;
 
   return `package main
@@ -335,11 +345,15 @@ public class ${pascalCase(example.title)}Example {
         connection.setRequestProperty("Content-Type", "application/json");${auth}
         connection.setDoOutput(true);
         
-        ${example.requestBody ? `String jsonInput = "${JSON.stringify(example.requestBody)}";
+        ${
+          example.requestBody
+            ? `String jsonInput = "${JSON.stringify(example.requestBody)}";
         try (OutputStream os = connection.getOutputStream()) {
             byte[] input = jsonInput.getBytes("utf-8");
             os.write(input, 0, input.length);
-        }` : ''}
+        }`
+            : ''
+        }
         
         int code = connection.getResponseCode();
         System.out.println("Response Code: " + code);
@@ -352,6 +366,7 @@ public class ${pascalCase(example.title)}Example {
 }
 
 function generateCSharpExample(example) {
+  const method = example.method.toLowerCase();
   const auth = example.requiresAuth
     ? `
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);`
@@ -368,13 +383,17 @@ public class ${pascalCase(example.title)}Example {
         using (var client = new HttpClient()) {
             client.BaseAddress = new Uri("http://localhost:3000");${auth}
             
-            ${example.requestBody ? `var content = new StringContent(
+            ${
+              example.requestBody
+                ? `var content = new StringContent(
                 JsonSerializer.Serialize(${JSON.stringify(example.requestBody)}),
                 Encoding.UTF8,
                 "application/json"
             );
 
-            var response = await client.${example.method.ToLower()}Async("${example.path.split('?')[0]}", content);` : `var response = await client.${example.method.toLowerCase()}Async("${example.path.split('?')[0]}");`}
+            var response = await client.${method}Async("${example.path.split('?')[0]}", content);`
+                : `var response = await client.${method}Async("${example.path.split('?')[0]}");`
+            }
             
             var result = await response.Content.ReadAsStringAsync();
             Console.WriteLine("Response: " + result);
@@ -391,7 +410,9 @@ public class ${pascalCase(example.title)}Example {
 function camelCase(str) {
   return str
     .split(' ')
-    .map((word, i) => (i === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
+    .map((word, i) =>
+      i === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
     .join('');
 }
 
@@ -403,7 +424,10 @@ function snake_case(str) {
 }
 
 function pascalCase(str) {
-  return str.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('');
+  return str
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join('');
 }
 
 function ensureDir(dir) {
@@ -464,10 +488,7 @@ function main() {
     const exampleName = `${idx + 1}_${snake_case(example.title)}`;
 
     // TypeScript
-    writeFile(
-      path.join(examplesDir, `${exampleName}.ts`),
-      generateTypeScriptExample(example),
-    );
+    writeFile(path.join(examplesDir, `${exampleName}.ts`), generateTypeScriptExample(example));
 
     // Python
     writeFile(path.join(examplesDir, `${exampleName}.py`), generatePythonExample(example));
@@ -479,10 +500,7 @@ function main() {
     writeFile(path.join(examplesDir, `${exampleName}.go`), generateGoExample(example));
 
     // Java
-    writeFile(
-      path.join(examplesDir, `${exampleName}.java`),
-      generateJavaExample(example),
-    );
+    writeFile(path.join(examplesDir, `${exampleName}.java`), generateJavaExample(example));
 
     // C#
     writeFile(path.join(examplesDir, `${exampleName}.cs`), generateCSharpExample(example));

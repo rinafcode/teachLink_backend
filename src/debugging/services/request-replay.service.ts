@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { RequestCaptureService } from './request-capture.service';
 import { IReplayOptions, IReplayResult } from '../interfaces/debug.interfaces';
 
@@ -13,8 +14,7 @@ export class RequestReplayService {
 
   /** Default target — the locally running instance. */
   private readonly selfBaseUrl =
-    process.env.DEBUG_REPLAY_BASE_URL ??
-    `http://127.0.0.1:${process.env.PORT ?? 3000}`;
+    process.env.DEBUG_REPLAY_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
 
   // Headers that must never be replayed verbatim because they describe the
   // original transport, not the logical request.
@@ -34,7 +34,7 @@ export class RequestReplayService {
   async replay(id: string, options: IReplayOptions = {}): Promise<IReplayResult> {
     const record = this.capture.get(id);
     if (!record) {
-      throw new NotFoundException(`No captured request with id "${id}"`);
+      throw new ResourceNotFoundException('CapturedRequest', id);
     }
 
     const baseUrl = options.baseUrl ?? this.selfBaseUrl;
@@ -55,8 +55,7 @@ export class RequestReplayService {
       headers,
       body: hasBody ? this.serialiseBody(body, headers) : undefined,
     });
-    const durationMs =
-      Math.round(Number(process.hrtime.bigint() - start) / 1e3) / 1e3;
+    const durationMs = Math.round(Number(process.hrtime.bigint() - start) / 1e3) / 1e3;
 
     const responseBody = await this.readBody(response);
     const responseHeaders: Record<string, string> = {};
@@ -77,8 +76,7 @@ export class RequestReplayService {
       diff: {
         replayedStatus: response.status,
         originalStatus,
-        statusChanged:
-          originalStatus !== undefined && originalStatus !== response.status,
+        statusChanged: originalStatus !== undefined && originalStatus !== response.status,
       },
     };
   }

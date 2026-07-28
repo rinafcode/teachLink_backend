@@ -33,7 +33,9 @@ export class AnomalyDetectionService {
     return {
       isAnomaly,
       score: parseFloat(score.toFixed(4)),
-      ...(isAnomaly && { reason: `Z-score ${score.toFixed(2)} exceeds threshold ${this.zScoreThreshold}` }),
+      ...(isAnomaly && {
+        reason: `Z-score ${score.toFixed(2)} exceeds threshold ${this.zScoreThreshold}`,
+      }),
     };
   }
 }

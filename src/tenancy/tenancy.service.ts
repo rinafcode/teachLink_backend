@@ -1,9 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
+  ResourceNotFoundException,
+  ResourceConflictException,
+  BusinessValidationException,
+} from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tenant } from './entities/tenant.entity';
@@ -14,6 +14,8 @@ import { CreateTenantDto, UpdateTenantDto, UpdateTenantConfigDto } from './dto/t
 import { TenantBillingService } from './billing/tenant-billing.service';
 import { CustomizationService } from './customization/customization.service';
 import { TENANT_DEFAULTS } from './tenancy.constants';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 
 /**
  * Provides tenancy operations.
@@ -39,7 +41,7 @@ export class TenancyService {
       withDeleted: true,
     });
     if (existingTenant) {
-      throw new ConflictException('Tenant with this slug already exists');
+      throw new ResourceConflictException('Tenant', 'slug');
     }
 
     const tenant = this.tenantRepository.create({
@@ -62,25 +64,20 @@ export class TenancyService {
   async findAll(
     page: number = 1,
     limit: number = TENANT_DEFAULTS.DEFAULT_PAGE_SIZE,
-  ): Promise<{ tenants: Tenant[]; total: number; page: number; totalPages: number }> {
+  ): Promise<OffsetPaginatedResponse<Tenant>> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
     });
 
-    return {
-      tenants,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return buildOffsetResponse(tenants, total, page, limit);
   }
 
   async findOne(id: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${id} not found`);
+      throw new ResourceNotFoundException('Tenant', id);
     }
     return tenant;
   }
@@ -88,7 +85,7 @@ export class TenancyService {
   async findBySlug(slug: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { slug } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with slug ${slug} not found`);
+      throw new ResourceNotFoundException(`Tenant with slug '${slug}'`);
     }
     return tenant;
   }
@@ -96,7 +93,7 @@ export class TenancyService {
   async findByDomain(domain: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { domain } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with domain ${domain} not found`);
+      throw new ResourceNotFoundException(`Tenant with domain '${domain}'`);
     }
     return tenant;
   }
@@ -120,7 +117,7 @@ export class TenancyService {
   async getConfig(tenantId: string): Promise<TenantConfig> {
     const config = await this.configRepository.findOne({ where: { tenantId } });
     if (!config) {
-      throw new NotFoundException(`Config not found for tenant ${tenantId}`);
+      throw new ResourceNotFoundException(`TenantConfig for tenant '${tenantId}'`);
     }
     return config;
   }
@@ -229,7 +226,7 @@ export class TenancyService {
       if (tenant) return tenant.id;
     }
 
-    throw new BadRequestException('Tenant context could not be resolved from the request');
+    throw new BusinessValidationException('Tenant context could not be resolved from the request');
   }
 
   async validateTenantExists(tenantId: string): Promise<void> {

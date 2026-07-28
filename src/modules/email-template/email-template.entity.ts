@@ -4,11 +4,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
+} from 'typeorm';
 
-@Entity("email_templates")
+@Entity('email_templates')
 export class EmailTemplate {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({
@@ -23,12 +23,12 @@ export class EmailTemplate {
   subject: string;
 
   @Column({
-    type: "text",
+    type: 'text',
   })
   body: string;
 
   @Column({
-    type: "json",
+    type: 'json',
     default: [],
   })
   variables: string[];

@@ -36,7 +36,11 @@ export class CreateCourseDto {
   @IsOptional()
   thumbnailUrl?: string;
 
-  @ApiProperty({ required: false, description: 'ID of the prerequisite course that must be completed before enrolling in this course' })
+  @ApiProperty({
+    required: false,
+    description:
+      'ID of the prerequisite course that must be completed before enrolling in this course',
+  })
   @IsUUID('4', { message: 'Prerequisite course ID must be a valid UUID' })
   @IsOptional()
   prerequisiteCourseId?: string;

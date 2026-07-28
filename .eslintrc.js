@@ -89,12 +89,16 @@ module.exports = {
         selector: 'variable',
         modifiers: ['const'],
         format: ['camelCase', 'PascalCase', 'UPPER_CASE'],
+        filter: {
+          regex: '^_',
+          match: false,
+        },
       },
     ],
 
     // ── Formatting ──
-    'semi': ['error', 'always'],
-    'quotes': ['error', 'single', { avoidEscape: true }],
+    semi: ['error', 'always'],
+    quotes: ['error', 'single', { avoidEscape: true }],
   },
 
   overrides: [

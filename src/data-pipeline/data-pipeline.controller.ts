@@ -2,11 +2,7 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { EtlService, EtlResult } from './etl.service';
 import { DataWarehouseService, WarehouseEntry } from './data-warehouse.service';
 import { BiIntegrationService, BiReport, BiExportFormat } from './bi-integration.service';
-
-class RunEtlDto {
-  source: string;
-  data: Record<string, unknown>[];
-}
+import { RunEtlDto } from './dto/run-etl.dto';
 
 @Controller('data-pipeline')
 export class DataPipelineController {

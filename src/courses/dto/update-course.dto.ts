@@ -12,9 +12,11 @@ export class UpdateCourseDto extends PartialType(CreateCourseDto) {
   @IsEnum(CourseStatus)
   status?: CourseStatus;
 
-  @ApiPropertyOptional({ description: 'ID of the prerequisite course that must be completed before enrolling in this course' })
+  @ApiPropertyOptional({
+    description:
+      'ID of the prerequisite course that must be completed before enrolling in this course',
+  })
   @IsUUID('4', { message: 'Prerequisite course ID must be a valid UUID' })
   @IsOptional()
   prerequisiteCourseId?: string;
 }
-

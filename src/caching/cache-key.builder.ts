@@ -33,3 +33,15 @@ export function buildSearchCacheKey(
   }
   return `${CACHE_PREFIXES.SEARCH}:${hash.toString()}`;
 }
+
+// ---------------------------------------------------------------------------
+// Computation cache key builder — Issue #603
+//
+// Format: cache:computation:<type>:<identifier>
+// Examples:
+//   cache:computation:leaderboard:top-players:10
+//   cache:computation:leaderboard:user-rank:user-abc
+// ---------------------------------------------------------------------------
+export function buildComputationKey(type: string, identifier: string): string {
+  return `cache:computation:${type}:${identifier}`;
+}

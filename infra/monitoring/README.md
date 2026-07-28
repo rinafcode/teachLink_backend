@@ -2,7 +2,7 @@
 
 Self-contained Prometheus + Alertmanager + Grafana stack for the teachLink
 backend. Scrapes the Prometheus exporter served from
-`/observability/metrics/export/prometheus`.
+`/metrics`.
 
 See [`docs/monitoring-dashboard.md`](../../docs/monitoring-dashboard.md) for
 the full guide and runbook.
@@ -31,11 +31,11 @@ cp .env.example .env   # fill in SLACK_WEBHOOK_URL / PAGERDUTY_SERVICE_KEY
 docker compose up -d
 ```
 
-| Service | URL |
-| --- | --- |
-| Grafana | <http://localhost:3001> (admin / admin) |
-| Prometheus | <http://localhost:9090> |
-| Alertmanager | <http://localhost:9093> |
+| Service      | URL                                     |
+| ------------ | --------------------------------------- |
+| Grafana      | <http://localhost:3001> (admin / admin) |
+| Prometheus   | <http://localhost:9090>                 |
+| Alertmanager | <http://localhost:9093>                 |
 
 The backend must be reachable from the Prometheus container. The default
 scrape target is `host.docker.internal:3000`, which works on Docker Desktop

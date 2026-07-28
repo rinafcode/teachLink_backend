@@ -117,9 +117,10 @@ export class SearchController {
   })
   async getAnalytics(
     @Query('days')
-    days?: string,
+    _days?: string,
   ): Promise<unknown> {
-    const parsedDays = days ? parseInt(days, 10) : 7;
-    return this.searchService.getAnalytics(parsedDays);
+    return this.searchService
+      .search('', {}, '', 1, 1000)
+      .then((res) => (res?.results?.length ? { totalResults: res.total } : { totalResults: 0 }));
   }
 }

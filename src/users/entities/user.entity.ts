@@ -8,9 +8,14 @@ import {
   Index,
   OneToMany,
   VersionColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
+import { Role } from '../../rbac/entities/role.entity';
+import { VisibleTo } from '../../common/decorators/visible-to.decorator';
+
 export enum UserRole {
   STUDENT = 'student',
   TEACHER = 'teacher',
@@ -18,11 +23,14 @@ export enum UserRole {
   MODERATOR = 'moderator',
   ADMIN = 'admin',
 }
+
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
 }
+
+export const PRIVILEGED_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.MODERATOR];
 
 /**
  * Represents the user entity.
@@ -43,21 +51,29 @@ export class User {
   @Index()
   username?: string;
 
-  @Column()
+  @Column({ nullable: true })
   password: string;
+
+  @Column({ nullable: true })
+  provider: string | null;
+
+  @Column({ nullable: true })
+  @Index()
+  providerId: string | null;
+
+  @VisibleTo(UserRole.ADMIN)
+  @Column({ nullable: true })
+  providerAccessToken: string | null;
+
+  @VisibleTo(UserRole.ADMIN)
+  @Column({ nullable: true })
+  providerRefreshToken: string | null;
 
   @Column()
   firstName: string;
 
   @Column()
   lastName: string;
-
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.STUDENT,
-  })
-  role: UserRole;
 
   @Column({
     type: 'enum',
@@ -77,25 +93,62 @@ export class User {
   isEmailVerified: boolean;
 
   @Column({ nullable: true })
+  @Index()
   emailVerificationToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires?: Date;
 
   @Column({ nullable: true })
+  @Index()
   passwordResetToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpires?: Date;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column({ nullable: true })
   refreshToken?: string;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column('text', { array: true, default: [] })
   passwordHistory: string[];
 
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
+
+  @Column({ default: false })
+  isMfaEnabled: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  totpSecret?: string;
+
+  @Column('text', { array: true, default: [] })
+  mfaRecoveryCodes: string[];
+
+  @ManyToMany(() => Role, (role) => role.users)
+  @JoinTable()
+  roles: Role[];
+
+  get role(): UserRole {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
+    if (this.roles && this.roles.length > 0) {
+      return this.roles[0].name as UserRole;
+    }
+    return UserRole.STUDENT;
+  }
+
+  hasRole(...roleNames: UserRole[]): boolean {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
+    return this.roles.some((role) => {
+      const name = typeof role === 'string' ? role : role.name;
+      return roleNames.includes(name as UserRole);
+    });
+  }
 
   @OneToMany(() => Course, (course) => course.instructor)
   courses: Course[];

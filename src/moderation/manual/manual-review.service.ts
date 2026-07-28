@@ -17,11 +17,25 @@ export class ManualReviewService {
    * Executes enqueue.
    * @param content The content.
    * @param safetyScore The safety score.
+   * @param source Optional metadata linking the queue item back to the source report or content.
    * @returns The operation result.
    */
-  async enqueue(content: string, safetyScore: number) {
-    const item = this.reviewRepo.create({ content, safetyScore, status: 'pending' });
-    await this.reviewRepo.save(item);
+  async enqueue(
+    content: string,
+    safetyScore: number,
+    source?: {
+      sourceType?: string;
+      sourceId?: string;
+      reportId?: string;
+    },
+  ): Promise<ReviewItem> {
+    const item = this.reviewRepo.create({
+      content,
+      safetyScore,
+      status: 'pending',
+      ...source,
+    });
+    return this.reviewRepo.save(item);
   }
 
   /**

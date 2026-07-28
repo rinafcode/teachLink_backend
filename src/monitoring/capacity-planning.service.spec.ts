@@ -3,7 +3,11 @@ import { CapacityPlanningService } from './capacity-planning.service';
 const noop: any = () => {};
 const mockMetrics: any = {};
 const mockWorkerOrchestration: any = {
-  getPoolStatistics: () => ({ totalWorkers: 4, totalJobsProcessed: 120, averageExecutionTime: 200 }),
+  getPoolStatistics: () => ({
+    totalWorkers: 4,
+    totalJobsProcessed: 120,
+    averageExecutionTime: 200,
+  }),
 };
 const mockAlerting: any = { sendAlert: noop };
 

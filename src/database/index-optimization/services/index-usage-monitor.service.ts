@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import {
@@ -8,28 +8,23 @@ import {
 import { IIndexUsageStat } from '../interfaces/index-optimization.interfaces';
 
 /**
- * Reads index usage from pg_stat_user_indexes and the catalog so operators can
- * see which indexes earn their keep. Also classifies each index (primary /
- * unique / constraint-backed) so consumers like the stale-index detector know
- * what is safe to touch.
+ * Reads index usage from pg_stat_user_indexes and the catalog.
  */
 @Injectable()
 export class IndexUsageMonitorService {
   private readonly logger = new Logger(IndexUsageMonitorService.name);
   private readonly config: IndexOptimizationConfig;
 
-  /** Last sampled snapshot, kept for cheap health-check reads. */
   private lastSnapshot: IIndexUsageStat[] = [];
   private lastSampledAt?: string;
 
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    config?: IndexOptimizationConfig,
+    @Optional() config?: IndexOptimizationConfig,
   ) {
     this.config = config ?? resolveIndexOptimizationConfig();
   }
 
-  /** Fetch fresh usage stats and cache them. */
   async sample(): Promise<IIndexUsageStat[]> {
     const rows = await this.dataSource.query(
       `SELECT s.schemaname                          AS schema,
@@ -63,11 +58,9 @@ export class IndexUsageMonitorService {
 
     this.lastSnapshot = stats;
     this.lastSampledAt = new Date().toISOString();
-    this.logger.debug(`Sampled usage for ${stats.length} indexes`);
     return stats;
   }
 
-  /** Return the cached snapshot, sampling lazily if none exists yet. */
   async getSnapshot(): Promise<{
     sampledAt?: string;
     indexes: IIndexUsageStat[];
@@ -76,10 +69,6 @@ export class IndexUsageMonitorService {
     return { sampledAt: this.lastSampledAt, indexes: this.lastSnapshot };
   }
 
-  /**
-   * Indexes whose scan count is at or below the configured stale threshold,
-   * useful both for reporting and as input to stale-index removal.
-   */
   async findUnused(): Promise<IIndexUsageStat[]> {
     const stats = await this.sample();
     return stats.filter((s) => s.scans <= this.config.staleMinScans);

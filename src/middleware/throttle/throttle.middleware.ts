@@ -1,4 +1,5 @@
-import { Injectable, NestMiddleware, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { RateLimitExceededException } from '../../common/exceptions/app.exceptions';
 import { Request, Response, NextFunction } from 'express';
 
 const hits = new Map<string, { count: number; reset: number }>();
@@ -18,7 +19,7 @@ export class ThrottleMiddleware implements NestMiddleware {
     }
     if (entry.count >= LIMIT) {
       res.setHeader('Retry-After', Math.ceil((entry.reset - now) / 1000));
-      throw new HttpException('Too Many Requests', HttpStatus.TOO_MANY_REQUESTS);
+      throw new RateLimitExceededException(Math.ceil((entry.reset - now) / 1000));
     }
     entry.count++;
     next();

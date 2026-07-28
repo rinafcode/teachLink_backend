@@ -16,6 +16,8 @@ import { CacheInvalidationService } from './cache-invalidation.service';
 import { CacheInvalidationListener } from './cache-invalidation.listener';
 import { CacheWarmingService } from './cache-warming.service';
 import { CacheWarmingScheduler } from './cache-warming.scheduler';
+import { ComputationCacheService } from './computation-cache.service';
+import { QueryCacheService } from './query-cache.service';
 
 /**
  * Registers the application-level Redis cache layer, warming engine, and invalidation listeners.
@@ -59,7 +61,15 @@ import { CacheWarmingScheduler } from './cache-warming.scheduler';
     CacheWarmingService,
     CacheWarmingScheduler,
     ProfileCompletenessService,
+    ComputationCacheService,
+    QueryCacheService,
   ],
-  exports: [CachingService, CacheInvalidationService, CacheWarmingService],
+  exports: [
+    CachingService,
+    CacheInvalidationService,
+    CacheWarmingService,
+    ComputationCacheService,
+    QueryCacheService,
+  ],
 })
 export class CachingModule {}

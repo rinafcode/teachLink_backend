@@ -18,12 +18,7 @@ import { ReplicationService } from './replication/replication.service';
       name: QUEUE_NAMES.SYNC_TASKS,
     }),
   ],
-  providers: [
-    SyncService,
-    DataConsistencyService,
-    ConflictResolutionService,
-    ReplicationService,
-  ],
+  providers: [SyncService, DataConsistencyService, ConflictResolutionService, ReplicationService],
   exports: [
     SyncService,
     DataConsistencyService,

@@ -1,4 +1,7 @@
-# compiled output
+# Build outputs — generated files, never committed.
+# dist/ is produced by `npm run build`; *.tsbuildinfo are TypeScript
+# incremental build caches that are machine-specific and must not be
+# shared via version control.
 /dist
 /node_modules
 /build
@@ -42,6 +45,7 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging.local
 .env.local
 
 # temp directory
@@ -76,7 +80,6 @@ terraform.rc
 
 # Terraform crash log
 crash.log
-tsconfig.build.tsbuildinfo
 
 # Backups
 /backups
