@@ -1,9 +1,13 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
-import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
+import {
+  AuditAction,
+  AuditCategory,
+  AuditSeverity,
+} from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
 import { Role } from '../entities/role.entity';
 import { RolesService } from './roles.service';
@@ -33,7 +37,6 @@ describe('RolesService', () => {
       find: jest.fn(),
       findOne: jest.fn(),
       findOneBy: jest.fn(),
-      findByIds: jest.fn(),
       update: jest.fn().mockResolvedValue({ affected: 1 }),
       delete: jest.fn().mockResolvedValue({ affected: 1 }),
       softDelete: jest.fn().mockResolvedValue({ affected: 1, raw: {} }),
@@ -44,7 +47,7 @@ describe('RolesService', () => {
     } as any;
 
     permissionRepository = {
-      findByIds: jest.fn(),
+      find: jest.fn(),
       findOneBy: jest.fn(),
     } as any;
 
@@ -73,6 +76,26 @@ describe('RolesService', () => {
       }),
     );
   };
+
+  it('queries permissions with In() and creates a role successfully', async () => {
+    const permission = { id: 'perm-1', name: 'read' } as Permission;
+    permissionRepository.find.mockResolvedValue([permission]);
+
+    const result = await service.createRole('Editor', 'Editor role', ['perm-1']);
+
+    expect(permissionRepository.find).toHaveBeenCalledWith({
+      where: { id: In(['perm-1']) },
+    });
+    expect(result.permissions).toEqual([permission]);
+  });
+
+  it('throws BadRequestException when createRole is given a non-existent permission ID', async () => {
+    permissionRepository.find.mockResolvedValue([]);
+
+    await expect(
+      service.createRole('Editor', 'Editor role', ['invalid-id']),
+    ).rejects.toThrow(BadRequestException);
+  });
 
   it('throws a conflict when the role is in use', async () => {
     roleRepository.findOne.mockResolvedValueOnce({
@@ -132,7 +155,7 @@ describe('RolesService', () => {
       .mockResolvedValueOnce(deletedRole)
       .mockResolvedValueOnce(deletedRole)
       .mockResolvedValueOnce(restoredRole);
-    permissionRepository.findByIds.mockResolvedValue([permission]);
+    permissionRepository.find.mockResolvedValue([permission]);
 
     await service.deleteRole('role-3', { actorId: 'admin-1', actorEmail: 'admin@example.com' });
 
@@ -218,7 +241,7 @@ describe('RolesService', () => {
       });
 
     permissionRepository.findOneBy.mockResolvedValue(permission);
-    permissionRepository.findByIds.mockResolvedValue([permission]);
+    permissionRepository.find.mockResolvedValue([permission]);
 
     await service.addPermissionToRole('role-4', 'perm-2');
     await service.removePermissionFromRole('role-4', 'perm-2');

@@ -1,8 +1,18 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
-import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
+import {
+  AuditAction,
+  AuditCategory,
+  AuditSeverity,
+} from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
 import { BUILTIN_ROLE_NAMES, Role } from '../entities/role.entity';
 
@@ -28,6 +38,28 @@ export class RolesService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
+  /**
+   * Validates that all requested permission IDs exist.
+   * Throws a BadRequestException listing any missing IDs if counts mismatch.
+   */
+  private validatePermissionsExist(
+    requestedIds: string[],
+    foundPermissions: Permission[],
+  ): void {
+    if (!requestedIds || requestedIds.length === 0) return;
+
+    const uniqueRequestedIds = Array.from(new Set(requestedIds));
+
+    if (foundPermissions.length !== uniqueRequestedIds.length) {
+      const foundIds = new Set(foundPermissions.map((permission) => permission.id));
+      const missingIds = uniqueRequestedIds.filter((id) => !foundIds.has(id));
+
+      throw new BadRequestException(
+        `Invalid permission ID(s) provided: ${missingIds.join(', ')}`,
+      );
+    }
+  }
+
   async createRole(
     name: string,
     description?: string,
@@ -41,7 +73,11 @@ export class RolesService {
     });
 
     if (permissionIds && permissionIds.length > 0) {
-      const permissions = await this.permissionRepository.findByIds(permissionIds);
+      const permissions = await this.permissionRepository.find({
+        where: { id: In(permissionIds) },
+      });
+
+      this.validatePermissionsExist(permissionIds, permissions);
       role.permissions = permissions;
     }
 
@@ -109,7 +145,15 @@ export class RolesService {
     });
 
     if (permissionIds !== undefined) {
-      const permissions = await this.permissionRepository.findByIds(permissionIds);
+      let permissions: Permission[] = [];
+      if (permissionIds.length > 0) {
+        permissions = await this.permissionRepository.find({
+          where: { id: In(permissionIds) },
+        });
+
+        this.validatePermissionsExist(permissionIds, permissions);
+      }
+
       await this.roleRepository
         .createQueryBuilder()
         .relation(Role, 'permissions')
@@ -270,12 +314,6 @@ export class RolesService {
 
   /**
    * Issues #833 — assign a role to a target user.
-   *
-   * This handler is intentionally minimal: it only writes the audit log. The
-   * actual join-table ownership lives in the User entity; production callers
-   * are expected to ensure the assignment persists. Keeping the audit
-   * emission inside the service lets callers (e.g. controllers) record the
-   * intent even if persistence is performed elsewhere.
    */
   async logRoleAssigned(
     roleId: string,
