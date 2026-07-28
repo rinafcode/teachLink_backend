@@ -1,12 +1,15 @@
-import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional, BadRequestException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 import type { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
-import { Course } from '../courses/entities/course.entity';
+import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { LRUCache } from 'lru-cache';
 import { IsolationService } from '../tenancy/isolation/isolation.service';
+import { OnEvent } from '@nestjs/event-emitter';
+import { CACHE_EVENTS, CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
+import { SEARCH_CONSTANTS } from './search.constants';
 
 export interface SearchFilters {
   category?: string | string[];
@@ -28,11 +31,25 @@ export interface SearchFilters {
   };
 }
 
+export interface FacetValue {
+  value: string;
+  count: number;
+}
+
+export interface AvailableFilters {
+  categories: FacetValue[];
+  levels: FacetValue[];
+  languages: FacetValue[];
+}
+
 interface AutocompleteResult {
   title: string;
   type: 'course' | 'category' | 'trending';
   metadata?: Record<string, any>;
 }
+
+/** Cache key for the derived facet aggregation. */
+const FACETS_CACHE_KEY = `${CACHE_PREFIXES.SEARCH}:facets`;
 
 /**
  * Issue #814 — full-text search backed by a `tsvector` generated column with a
@@ -43,6 +60,12 @@ interface AutocompleteResult {
  * lowercases, applies the stemming configuration, ANDs all terms).
  * `to_tsvector` is already cached in `course.search_vector`, so this is just
  * an index scan + ranking — no seq scan, even at 100k+ rows.
+ *
+ * Issue #999 — getAvailableFilters() now runs real GROUP BY aggregations over
+ * published courses rather than returning a hardcoded literal.  Results are
+ * cached (CACHE_TTL.SEARCH_RESULTS) and invalidated on COURSE_CREATED /
+ * COURSE_UPDATED / COURSE_DELETED events.  Incoming SearchFilters.category
+ * values are validated against the live facet set.
  */
 @Injectable()
 export class SearchService {
@@ -74,6 +97,12 @@ export class SearchService {
     limit: number = 20,
   ): Promise<any> {
     const safeQuery = query?.trim() ?? '';
+
+    // Issue #999 — validate incoming filter values against the live facet set.
+    if (filters) {
+      await this.validateFilters(filters);
+    }
+
     const cacheKey = `search:${safeQuery}:${JSON.stringify(filters)}:${sort}:${page}`;
 
     if (this.cacheManager) {
@@ -182,12 +211,109 @@ export class SearchService {
     }
   }
 
-  async getAvailableFilters(): Promise<any> {
-    return {
-      categories: ['programming', 'web-development', 'data-science', 'design', 'business'],
-      levels: ['beginner', 'intermediate', 'advanced'],
-      languages: ['en', 'es', 'fr', 'de', 'zh'],
-    };
+  /**
+   * Issue #999 — derives filter facets from real published courses via GROUP BY
+   * aggregations.  Results are cached under FACETS_CACHE_KEY with a short TTL
+   * (CACHE_TTL.SEARCH_RESULTS = 2 min) and invalidated whenever a course is
+   * created, updated, or deleted.
+   *
+   * Shape: `{ categories: FacetValue[], levels: FacetValue[], languages: FacetValue[] }`
+   * where each FacetValue is `{ value: string; count: number }`.
+   * Zero-count values are omitted — every returned facet will yield at least
+   * one result when applied as a filter.
+   */
+  async getAvailableFilters(): Promise<AvailableFilters> {
+    // Return cached result when available to avoid re-running the aggregation
+    // on every facet request within the TTL window (Issue #999).
+    if (this.cacheManager) {
+      const cached = await this.cacheManager.get<AvailableFilters>(FACETS_CACHE_KEY);
+      if (cached) return cached;
+    }
+
+    const facets = await this.aggregateFacets();
+
+    if (this.cacheManager) {
+      await this.cacheManager.set(FACETS_CACHE_KEY, facets, CACHE_TTL.SEARCH_RESULTS);
+    }
+
+    return facets;
+  }
+
+  /**
+   * Runs the GROUP BY aggregations against the `course` table and assembles
+   * the AvailableFilters response.  Only published courses contribute.
+   */
+  private async aggregateFacets(): Promise<AvailableFilters> {
+    try {
+      // Category facet — `category` is a real nullable column on `course`.
+      const categoryRows: Array<{ category: string; count: string }> = await this.courseRepository
+        .createQueryBuilder('course')
+        .select('course.category', 'category')
+        .addSelect('COUNT(*)', 'count')
+        .where('course.status = :status', { status: CourseStatus.PUBLISHED })
+        .andWhere('course.category IS NOT NULL')
+        .andWhere("course.category <> ''")
+        .groupBy('course.category')
+        .orderBy('count', 'DESC')
+        .limit(SEARCH_CONSTANTS.AGG_CATEGORIES_SIZE)
+        .getRawMany();
+
+      const categories: FacetValue[] = categoryRows.map((row) => ({
+        value: row.category,
+        count: parseInt(row.count, 10),
+      }));
+
+      // `level` and `language` are not yet columns on the Course entity.
+      // Return empty arrays as placeholders so the API contract is stable;
+      // these will be populated once the columns are added.
+      const levels: FacetValue[] = [];
+      const languages: FacetValue[] = [];
+
+      return { categories, levels, languages };
+    } catch (err) {
+      this.logger.error(`Facet aggregation failed: ${(err as Error).message}`);
+      return { categories: [], levels: [], languages: [] };
+    }
+  }
+
+  /**
+   * Validates incoming SearchFilters against the live facet values.
+   * Throws BadRequestException (HTTP 400) for any unknown category value.
+   *
+   * Issue #999 — prevents hardcoded facet lists from drifting out of sync
+   * with accepted filter values.
+   */
+  async validateFilters(filters: SearchFilters): Promise<void> {
+    if (!filters.category) return;
+
+    const requestedCategories = Array.isArray(filters.category)
+      ? filters.category
+      : [filters.category];
+
+    const facets = await this.getAvailableFilters();
+    const validCategories = new Set(facets.categories.map((f) => f.value));
+
+    const unknown = requestedCategories.filter((c) => !validCategories.has(c));
+    if (unknown.length > 0) {
+      throw new BadRequestException(
+        `Unknown filter value(s) for 'category': ${unknown.join(', ')}. ` +
+          `Valid values are: ${[...validCategories].join(', ') || '(none — no published courses yet)'}`,
+      );
+    }
+  }
+
+  /**
+   * Issue #999 — invalidate the facets cache whenever a course is created,
+   * updated, or deleted so the next request re-runs the aggregation.
+   */
+  @OnEvent(CACHE_EVENTS.COURSE_CREATED)
+  @OnEvent(CACHE_EVENTS.COURSE_UPDATED)
+  @OnEvent(CACHE_EVENTS.COURSE_DELETED)
+  async onCourseChanged(_payload: { id: string }): Promise<void> {
+    if (this.cacheManager) {
+      await this.cacheManager.del(FACETS_CACHE_KEY);
+      this.logger.debug('Facets cache invalidated after course change');
+    }
   }
 
   buildTenantFilter(tenantId: string): { term: { tenantId: string } } {

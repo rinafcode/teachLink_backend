@@ -12,6 +12,9 @@ import { PricingService } from './services/pricing.service';
 import { PricingController } from './controllers/pricing.controller';
 import { PaymentReconciliationJob } from './reconciliation/reconciliation.service';
 import { PaymentReconciliationController } from './reconciliation/reconciliation.controller';
+import { SubscriptionsService } from './subscriptions/subscriptions.service';
+import { SubscriptionsController } from './subscriptions/subscriptions.controller';
+import { PaymentProviderService } from './providers/payment-provider.service';
 
 /**
  * PaymentsModule
@@ -24,6 +27,10 @@ import { PaymentReconciliationController } from './reconciliation/reconciliation
  *
  * Issue #856 — imports AuditLogModule so PaymentReconciliationJob can log
  * PAYMENT_RECONCILIATION_MISMATCH audit events.
+ *
+ * Issue #1007 — registers SubscriptionsService, SubscriptionsController, and
+ * PaymentProviderService so that prorated upgrade charges and downgrade credits
+ * are wired into the DI container.
  */
 @Module({
   imports: [
@@ -33,8 +40,8 @@ import { PaymentReconciliationController } from './reconciliation/reconciliation
     IdempotencyModule,
     HttpModule,
   ],
-  providers: [PricingService, PaymentReconciliationJob],
-  controllers: [PricingController, PaymentReconciliationController],
-  exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentReconciliationJob],
+  providers: [PricingService, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
+  controllers: [PricingController, PaymentReconciliationController, SubscriptionsController],
+  exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
 })
 export class PaymentsModule {}
