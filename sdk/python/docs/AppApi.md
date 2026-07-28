@@ -1,19 +1,18 @@
 # openapi_client.AppApi
 
-All URIs are relative to *http://localhost:3000*
+All URIs are relative to _http://localhost:3000_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**get_app_status**](AppApi.md#get_app_status) | **GET** / | Get app status
-
+| Method                                         | HTTP request | Description    |
+| ---------------------------------------------- | ------------ | -------------- |
+| [**get_app_status**](AppApi.md#get_app_status) | **GET** /    | Get app status |
 
 # **get_app_status**
+
 > ApiSuccess get_app_status()
 
 Get app status
 
 ### Example
-
 
 ```python
 import openapi_client
@@ -42,8 +41,6 @@ with openapi_client.ApiClient(configuration) as api_client:
         print("Exception when calling AppApi->get_app_status: %s\n" % e)
 ```
 
-
-
 ### Parameters
 
 This endpoint does not need any parameter.
@@ -58,14 +55,13 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | App is running |  -  |
+| Status code | Description    | Response headers |
+| ----------- | -------------- | ---------------- |
+| **200**     | App is running | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

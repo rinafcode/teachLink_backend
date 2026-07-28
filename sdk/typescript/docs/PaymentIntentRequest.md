@@ -1,13 +1,12 @@
 # PaymentIntentRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**courseId** | **string** |  | [default to undefined]
-**amount** | **number** |  | [default to undefined]
-**currency** | **string** |  | [default to undefined]
+| Name         | Type       | Description | Notes                  |
+| ------------ | ---------- | ----------- | ---------------------- |
+| **courseId** | **string** |             | [default to undefined] |
+| **amount**   | **number** |             | [default to undefined] |
+| **currency** | **string** |             | [default to undefined] |
 
 ## Example
 
@@ -15,9 +14,9 @@ Name | Type | Description | Notes
 import { PaymentIntentRequest } from './api';
 
 const instance: PaymentIntentRequest = {
-    courseId,
-    amount,
-    currency,
+  courseId,
+  amount,
+  currency,
 };
 ```
 

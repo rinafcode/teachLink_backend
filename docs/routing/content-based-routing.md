@@ -5,24 +5,28 @@ The TeachLink backend implements a comprehensive content-based routing system th
 ## Features
 
 ### ✅ Pattern-based Routing Rules
+
 - Path pattern matching with regex support
 - URL rewriting and forwarding
 - Dynamic route configuration
 - Priority-based rule evaluation
 
 ### ✅ Header-based Routing
+
 - Route based on any HTTP header
 - API version routing (`x-api-version`)
 - Client type routing (`x-client-type`)
 - Custom header conditions
 
 ### ✅ Query Parameter Routing
+
 - Route based on query parameters
 - Feature flag routing (`?beta=true`)
 - A/B testing support
 - Parameter transformation
 
 ### ✅ Dynamic Routing Configuration
+
 - JSON-based configuration
 - Hot-reload capability
 - Admin API for rule management
@@ -80,6 +84,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ### Example Rules
 
 #### API Version Routing
+
 ```json
 {
   "id": "api-v2-routing",
@@ -102,6 +107,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ```
 
 #### Mobile Client Optimization
+
 ```json
 {
   "id": "mobile-optimization",
@@ -132,6 +138,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ```
 
 #### Admin Access Control
+
 ```json
 {
   "id": "admin-access",
@@ -166,6 +173,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ## Condition Types
 
 ### Header Conditions
+
 ```typescript
 {
   type: "header",
@@ -176,6 +184,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ```
 
 ### Query Parameter Conditions
+
 ```typescript
 {
   type: "query_param",
@@ -186,6 +195,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ```
 
 ### Path Pattern Conditions
+
 ```typescript
 {
   type: "path_pattern",
@@ -196,6 +206,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ```
 
 ### Body Content Conditions
+
 ```typescript
 {
   type: "body_content",
@@ -206,6 +217,7 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ```
 
 ### Custom Conditions
+
 ```typescript
 {
   type: "custom",
@@ -228,7 +240,9 @@ Request → ContentRoutingMiddleware → RoutingEngine → Rule Evaluation → A
 ## Action Types
 
 ### Forward
+
 Continues processing with optional path modification:
+
 ```json
 {
   "type": "forward",
@@ -237,7 +251,9 @@ Continues processing with optional path modification:
 ```
 
 ### Redirect
+
 Sends HTTP redirect response:
+
 ```json
 {
   "type": "redirect",
@@ -249,7 +265,9 @@ Sends HTTP redirect response:
 ```
 
 ### Rewrite
+
 Internally modifies request URL:
+
 ```json
 {
   "type": "rewrite",
@@ -258,7 +276,9 @@ Internally modifies request URL:
 ```
 
 ### Block
+
 Blocks request with error response:
+
 ```json
 {
   "type": "block",
@@ -271,7 +291,9 @@ Blocks request with error response:
 ```
 
 ### Rate Limit
+
 Applies additional rate limiting:
+
 ```json
 {
   "type": "rate_limit",
@@ -284,7 +306,9 @@ Applies additional rate limiting:
 ```
 
 ### Cache
+
 Sets cache headers:
+
 ```json
 {
   "type": "cache",
@@ -299,12 +323,14 @@ Sets cache headers:
 ## Admin API
 
 ### Get All Rules
+
 ```http
 GET /admin/routing/rules
 Authorization: Bearer <admin-token>
 ```
 
 ### Create Rule
+
 ```http
 POST /admin/routing/rules
 Authorization: Bearer <admin-token>
@@ -320,6 +346,7 @@ Content-Type: application/json
 ```
 
 ### Update Rule
+
 ```http
 PUT /admin/routing/rules/{id}
 Authorization: Bearer <admin-token>
@@ -331,6 +358,7 @@ Content-Type: application/json
 ```
 
 ### Test Routing
+
 ```http
 POST /admin/routing/test
 Authorization: Bearer <admin-token>
@@ -349,6 +377,7 @@ Content-Type: application/json
 ```
 
 ### Get Statistics
+
 ```http
 GET /admin/routing/stats
 Authorization: Bearer <admin-token>
@@ -357,6 +386,7 @@ Authorization: Bearer <admin-token>
 ## Usage Examples
 
 ### 1. API Versioning
+
 Route requests to different API versions based on headers:
 
 ```typescript
@@ -370,12 +400,13 @@ const apiV2Rule = {
   conditions: [RoutingPresets.apiVersion.v2()],
   action: {
     type: 'rewrite',
-    target: '/api/v2${originalPath}'
-  }
+    target: '/api/v2${originalPath}',
+  },
 };
 ```
 
 ### 2. Feature Flags
+
 Enable beta features based on query parameters:
 
 ```typescript
@@ -393,14 +424,15 @@ const betaFeaturesRule = {
         type: 'header',
         operation: 'add',
         field: 'x-beta-enabled',
-        value: 'true'
-      }
-    ]
-  }
+        value: 'true',
+      },
+    ],
+  },
 };
 ```
 
 ### 3. Tenant Routing
+
 Route based on subdomain:
 
 ```typescript
@@ -418,10 +450,10 @@ const tenantRoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-tenant-from-subdomain',
-        value: 'true'
-      }
-    ]
-  }
+        value: 'true',
+      },
+    ],
+  },
 };
 ```
 
@@ -451,6 +483,7 @@ const tenantRoutingRule = {
 Default: `./config/routing.json`
 
 Override with environment variable:
+
 ```bash
 ROUTING_CONFIG_PATH=/path/to/custom/routing.json
 ```
@@ -458,6 +491,7 @@ ROUTING_CONFIG_PATH=/path/to/custom/routing.json
 ## Integration
 
 The routing system integrates with:
+
 - Authentication system (user context)
 - Multi-tenancy system (tenant context)
 - Rate limiting system

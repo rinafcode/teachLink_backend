@@ -47,6 +47,7 @@ Jobs are processed in order of priority:
 ## API Endpoints
 
 ### Add Job
+
 ```http
 POST /queues/jobs
 Content-Type: application/json
@@ -66,6 +67,7 @@ Content-Type: application/json
 ```
 
 ### Add Job with Priority Calculation
+
 ```http
 POST /queues/jobs
 Content-Type: application/json
@@ -86,6 +88,7 @@ Content-Type: application/json
 ```
 
 ### Schedule Job
+
 ```http
 POST /queues/jobs/schedule
 Content-Type: application/json
@@ -101,11 +104,13 @@ Content-Type: application/json
 ```
 
 ### Get Queue Metrics
+
 ```http
 GET /queues/metrics
 ```
 
 Response:
+
 ```json
 {
   "queueName": "default",
@@ -122,11 +127,13 @@ Response:
 ```
 
 ### Get Queue Health
+
 ```http
 GET /queues/health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",
@@ -137,21 +144,25 @@ Response:
 ```
 
 ### Get Failed Jobs
+
 ```http
 GET /queues/jobs/failed?limit=10
 ```
 
 ### Retry Failed Job
+
 ```http
 POST /queues/jobs/:id/retry
 ```
 
 ### Pause Queue
+
 ```http
 POST /queues/pause
 ```
 
 ### Resume Queue
+
 ```http
 POST /queues/resume
 ```
@@ -336,6 +347,7 @@ The monitoring service runs health checks every minute:
 ### Alert Conditions
 
 Alerts are triggered when:
+
 - Failure rate > 10% (warning) or > 20% (critical)
 - Waiting jobs > 1000 (warning) or > 5000 (critical)
 - Active jobs > 100 (warning)
@@ -372,16 +384,19 @@ Configure in `queue.module.ts`:
 ```typescript
 BullModule.registerQueue({
   name: 'default',
-  processors: [{
-    name: '*',
-    concurrency: 5 // Process 5 jobs simultaneously
-  }]
-})
+  processors: [
+    {
+      name: '*',
+      concurrency: 5, // Process 5 jobs simultaneously
+    },
+  ],
+});
 ```
 
 ### Job Cleanup
 
 Automatic cleanup runs daily at midnight:
+
 - Completed jobs older than 24 hours
 - Failed jobs older than 7 days
 
@@ -400,6 +415,7 @@ Content-Type: application/json
 ### Redis Configuration
 
 For production, configure Redis with:
+
 - Persistence enabled
 - Sufficient memory
 - Connection pooling
@@ -474,6 +490,7 @@ curl http://localhost:3000/queues/health
 ### Workers Bridge (`WorkersBridgeService`)
 
 `src/workers/bridge/workers-bridge.service.ts` bridges Bull queue consumers to the existing worker classes. On `onModuleInit`, it:
+
 1. Binds each queue to its worker's `.handle()` method
 2. Wraps processing with Prometheus metric recording (`queue_processing_duration_seconds`)
 3. Registers `failed` event handlers that forward permanently failed jobs to the dead-letter queue
@@ -513,15 +530,15 @@ await queueService.addJob(QUEUE_NAMES.EMAIL, 'send-campaign', template, {}, 'EMA
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `REDIS_URL` / `QUEUE_REDIS_URL` | `redis://127.0.0.1:6379` | Redis connection |
-| `QUEUE_CONCURRENCY_EMAIL` | `5` | Email worker concurrency |
-| `QUEUE_CONCURRENCY_MEDIA` | `3` | Media processing concurrency |
-| `QUEUE_CONCURRENCY_SYNC` | `4` | Data sync concurrency |
-| `QUEUE_CONCURRENCY_BACKUP` | `1` | Backup concurrency |
-| `QUEUE_CONCURRENCY_WEBHOOKS` | `10` | Webhooks concurrency |
-| `QUEUE_CONCURRENCY_SUBSCRIPTIONS` | `5` | Subscriptions concurrency |
+| Variable                          | Default                  | Description                  |
+| --------------------------------- | ------------------------ | ---------------------------- |
+| `REDIS_URL` / `QUEUE_REDIS_URL`   | `redis://127.0.0.1:6379` | Redis connection             |
+| `QUEUE_CONCURRENCY_EMAIL`         | `5`                      | Email worker concurrency     |
+| `QUEUE_CONCURRENCY_MEDIA`         | `3`                      | Media processing concurrency |
+| `QUEUE_CONCURRENCY_SYNC`          | `4`                      | Data sync concurrency        |
+| `QUEUE_CONCURRENCY_BACKUP`        | `1`                      | Backup concurrency           |
+| `QUEUE_CONCURRENCY_WEBHOOKS`      | `10`                     | Webhooks concurrency         |
+| `QUEUE_CONCURRENCY_SUBSCRIPTIONS` | `5`                      | Subscriptions concurrency    |
 
 ### Load Testing
 

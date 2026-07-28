@@ -1,15 +1,14 @@
 # RegisterRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**email** | **string** |  | [default to undefined]
-**password** | **string** |  | [default to undefined]
-**firstName** | **string** |  | [default to undefined]
-**lastName** | **string** |  | [default to undefined]
-**role** | **string** |  | [optional] [default to undefined]
+| Name          | Type       | Description | Notes                             |
+| ------------- | ---------- | ----------- | --------------------------------- |
+| **email**     | **string** |             | [default to undefined]            |
+| **password**  | **string** |             | [default to undefined]            |
+| **firstName** | **string** |             | [default to undefined]            |
+| **lastName**  | **string** |             | [default to undefined]            |
+| **role**      | **string** |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -17,11 +16,11 @@ Name | Type | Description | Notes
 import { RegisterRequest } from './api';
 
 const instance: RegisterRequest = {
-    email,
-    password,
-    firstName,
-    lastName,
-    role,
+  email,
+  password,
+  firstName,
+  lastName,
+  role,
 };
 ```
 

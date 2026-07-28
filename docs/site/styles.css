@@ -1,6 +1,13 @@
 :root {
   color-scheme: light;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   color: #172026;
   background: #f8faf9;
 }
@@ -60,7 +67,8 @@ table {
   border: 1px solid #d9e2df;
 }
 
-th, td {
+th,
+td {
   padding: 12px;
   border-bottom: 1px solid #e5ece9;
   text-align: left;
@@ -86,8 +94,18 @@ code {
   font-size: 0.78rem;
 }
 
-.method-get { background: #2563eb; }
-.method-post { background: #0d7a61; }
-.method-put { background: #b45309; }
-.method-patch { background: #7c3aed; }
-.method-delete { background: #dc2626; }
+.method-get {
+  background: #2563eb;
+}
+.method-post {
+  background: #0d7a61;
+}
+.method-put {
+  background: #b45309;
+}
+.method-patch {
+  background: #7c3aed;
+}
+.method-delete {
+  background: #dc2626;
+}

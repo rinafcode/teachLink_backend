@@ -5,11 +5,17 @@ async function createCourse() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-      body: JSON.stringify({"title":"Advanced TypeScript","description":"Master TypeScript type system and advanced patterns.","category":"programming","level":"advanced","price":5999}),
+      body: JSON.stringify({
+        title: 'Advanced TypeScript',
+        description: 'Master TypeScript type system and advanced patterns.',
+        category: 'programming',
+        level: 'advanced',
+        price: 5999,
+      }),
     });
 
     if (!response.ok) {

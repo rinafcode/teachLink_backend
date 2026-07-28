@@ -1,15 +1,14 @@
 # UpsertRewardRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**title** | **str** |  | 
-**description** | **str** |  | 
-**badge_id** | **str** |  | [optional] 
-**bonus_points** | **int** |  | [optional] 
-**metadata** | **object** |  | [optional] 
+| Name             | Type       | Description | Notes      |
+| ---------------- | ---------- | ----------- | ---------- |
+| **title**        | **str**    |             |
+| **description**  | **str**    |             |
+| **badge_id**     | **str**    |             | [optional] |
+| **bonus_points** | **int**    |             | [optional] |
+| **metadata**     | **object** |             | [optional] |
 
 ## Example
 
@@ -28,6 +27,5 @@ upsert_reward_request_dict = upsert_reward_request_instance.to_dict()
 # create an instance of UpsertRewardRequest from a dict
 upsert_reward_request_from_dict = UpsertRewardRequest.from_dict(upsert_reward_request_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

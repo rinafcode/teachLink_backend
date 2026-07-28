@@ -48,13 +48,13 @@ All 37 new tests pass. `pnpm typecheck` passes cleanly.
 
 ## Files changed
 
-- `src/orchestration/locks/distributed-lock.service.ts` *(modified)*
-- `src/orchestration/locks/distributed-lock.service.spec.ts` *(new)*
-- `src/users/entities/user.entity.ts` *(JSDoc only)*
-- `src/users/services/password-history.service.ts` *(modified — service gate)*
-- `src/users/entities/password-history.subscriber.ts` *(new)*
-- `src/users/entities/password-history.subscriber.spec.ts` *(new)*
-- `src/users/users.module.ts` *(subscriber provider registered)*
+- `src/orchestration/locks/distributed-lock.service.ts` _(modified)_
+- `src/orchestration/locks/distributed-lock.service.spec.ts` _(new)_
+- `src/users/entities/user.entity.ts` _(JSDoc only)_
+- `src/users/services/password-history.service.ts` _(modified — service gate)_
+- `src/users/entities/password-history.subscriber.ts` _(new)_
+- `src/users/entities/password-history.subscriber.spec.ts` _(new)_
+- `src/users/users.module.ts` _(subscriber provider registered)_
 
 ## Breaking API changes
 

@@ -112,6 +112,7 @@ npm run validate:env
 ```
 
 This script checks:
+
 - ✅ All required variables are set
 - ✅ Values have correct data types
 - ✅ Values are within valid ranges
@@ -385,9 +386,9 @@ kind: ConfigMap
 metadata:
   name: teachlink-config
 data:
-  NODE_ENV: "production"
-  PORT: "3000"
-  APP_URL: "https://api.teachlink.io"
+  NODE_ENV: 'production'
+  PORT: '3000'
+  APP_URL: 'https://api.teachlink.io'
 ---
 apiVersion: v1
 kind: Secret
@@ -417,28 +418,28 @@ spec:
         app: teachlink-backend
     spec:
       containers:
-      - name: backend
-        image: teachlink-backend:latest
-        ports:
-        - containerPort: 3000
-        envFrom:
-        - configMapRef:
-            name: teachlink-config
-        - secretRef:
-            name: teachlink-secrets
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "2Gi"
-            cpu: "1000m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
+        - name: backend
+          image: teachlink-backend:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: teachlink-config
+            - secretRef:
+                name: teachlink-secrets
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '250m'
+            limits:
+              memory: '2Gi'
+              cpu: '1000m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
 ```
 
 ---
@@ -490,12 +491,14 @@ VAULT_SECRET_PATH=secret/data/teachlink/prod
 ### Issue: Missing Required Variables
 
 **Error:**
+
 ```
 ❌ Validation Failed
    22 required variables have errors
 ```
 
 **Solution:**
+
 ```bash
 # Check which variables are missing
 npm run validate:env
@@ -515,12 +518,14 @@ npm run validate:env
 ### Issue: Invalid Email Format
 
 **Error:**
+
 ```
 EMAIL_FROM
   → Invalid email format
 ```
 
 **Solution:**
+
 ```env
 # Wrong
 EMAIL_FROM=noreply
@@ -532,12 +537,14 @@ EMAIL_FROM=noreply@teachlink.io
 ### Issue: Port Out of Range
 
 **Error:**
+
 ```
 DATABASE_PORT
   → Must be >= 1 and <= 65535
 ```
 
 **Solution:**
+
 ```env
 # Wrong
 DATABASE_PORT=99999
@@ -549,12 +556,14 @@ DATABASE_PORT=5432
 ### Issue: Encryption Secret Wrong Length
 
 **Error:**
+
 ```
 ENCRYPTION_SECRET
   → Must be exactly 32 characters
 ```
 
 **Solution:**
+
 ```bash
 # Generate 32-character secret
 node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
@@ -738,11 +747,13 @@ RUN npm run build
 For help with environment setup:
 
 1. **Check Documentation**
+
    ```bash
    cat ENV_VARS_DOCUMENTATION.md
    ```
 
 2. **Run Validation**
+
    ```bash
    npm run validate:env
    ```
@@ -752,6 +763,7 @@ For help with environment setup:
    - Check `.env.example` for all available variables
 
 4. **Check Logs**
+
    ```bash
    npm run start:dev 2>&1 | grep -i "error\|failed\|invalid"
    ```

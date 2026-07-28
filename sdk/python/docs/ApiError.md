@@ -1,13 +1,12 @@
 # ApiError
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**success** | **bool** |  | [optional] 
-**message** | **str** |  | [optional] 
-**errors** | [**List[ApiErrorErrorsInner]**](ApiErrorErrorsInner.md) |  | [optional] 
+| Name        | Type                                                    | Description | Notes      |
+| ----------- | ------------------------------------------------------- | ----------- | ---------- |
+| **success** | **bool**                                                |             | [optional] |
+| **message** | **str**                                                 |             | [optional] |
+| **errors**  | [**List[ApiErrorErrorsInner]**](ApiErrorErrorsInner.md) |             | [optional] |
 
 ## Example
 
@@ -26,6 +25,5 @@ api_error_dict = api_error_instance.to_dict()
 # create an instance of ApiError from a dict
 api_error_from_dict = ApiError.from_dict(api_error_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-
