@@ -26,7 +26,7 @@ export enum HttpMethod {
 @Index(['action', 'timestamp'])
 @Index(['category', 'timestamp'])
 @Index(['severity', 'timestamp'])
-@Index(['entityType', 'entityId'])
+@Index(['entityType', 'entityId', 'timestamp'])
 @Index(['ipAddress', 'timestamp'])
 @Index(['timestamp'])
 @Index(['retentionUntil']) // required for efficient retention policy deletes
