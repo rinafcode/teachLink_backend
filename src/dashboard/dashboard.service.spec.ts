@@ -27,6 +27,13 @@ describe('DashboardService', () => {
           useValue: {
             find: jest.fn().mockResolvedValue([]),
             count: jest.fn().mockResolvedValue(10),
+            createQueryBuilder: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnThis(),
+              addSelect: jest.fn().mockReturnThis(),
+              groupBy: jest.fn().mockReturnThis(),
+              orderBy: jest.fn().mockReturnThis(),
+              getRawMany: jest.fn().mockResolvedValue([]),
+            }),
           },
         },
         {
@@ -62,6 +69,138 @@ describe('DashboardService', () => {
     const funnel = await service.getConversionFunnel();
     expect(funnel.stages).toHaveLength(4);
     expect(funnel.stages[0].name).toBe('signup');
+  });
+
+  it('should compute user growth metrics from database aggregation', async () => {
+    const userQueryBuilder = {
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        { period: '2025-01', newUsers: '5' },
+        { period: '2025-02', newUsers: '3' },
+        { period: '2025-03', newUsers: '8' },
+      ]),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        DashboardService,
+        {
+          provide: getRepositoryToken(Payment),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(0),
+          },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(16),
+            createQueryBuilder: jest.fn().mockReturnValue(userQueryBuilder),
+          },
+        },
+        {
+          provide: getRepositoryToken(Enrollment),
+          useValue: { count: jest.fn().mockResolvedValue(5) },
+        },
+        {
+          provide: getRepositoryToken(Course),
+          useValue: { find: jest.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: getRepositoryToken(AnalyticsEvent),
+          useValue: { createQueryBuilder: jest.fn() },
+        },
+        {
+          provide: ReportingService,
+          useValue: {
+            generateRevenueRecognitionReport: jest.fn().mockResolvedValue({
+              grossRevenue: 100,
+              netRevenue: 90,
+              totalRefunds: 10,
+              currency: 'USD',
+            }),
+          },
+        },
+      ],
+    }).compile();
+
+    const localService = module.get<DashboardService>(DashboardService);
+    const result = await localService.getUserGrowthMetrics();
+
+    expect(result.totalUsers).toBe(16);
+    expect(result.monthlySignups).toEqual([
+      { period: '2025-01', newUsers: 5, totalUsers: 5 },
+      { period: '2025-02', newUsers: 3, totalUsers: 8 },
+      { period: '2025-03', newUsers: 8, totalUsers: 16 },
+    ]);
+    expect(userQueryBuilder.select).toHaveBeenCalled();
+    expect(userQueryBuilder.addSelect).toHaveBeenCalledWith('COUNT(*)', 'newUsers');
+    expect(userQueryBuilder.groupBy).toHaveBeenCalled();
+    expect(userQueryBuilder.orderBy).toHaveBeenCalledWith('period', 'ASC');
+  });
+
+  it('should return empty monthly signups when no users exist', async () => {
+    const userQueryBuilder = {
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([]),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        DashboardService,
+        {
+          provide: getRepositoryToken(Payment),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(0),
+          },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(0),
+            createQueryBuilder: jest.fn().mockReturnValue(userQueryBuilder),
+          },
+        },
+        {
+          provide: getRepositoryToken(Enrollment),
+          useValue: { count: jest.fn().mockResolvedValue(5) },
+        },
+        {
+          provide: getRepositoryToken(Course),
+          useValue: { find: jest.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: getRepositoryToken(AnalyticsEvent),
+          useValue: { createQueryBuilder: jest.fn() },
+        },
+        {
+          provide: ReportingService,
+          useValue: {
+            generateRevenueRecognitionReport: jest.fn().mockResolvedValue({
+              grossRevenue: 100,
+              netRevenue: 90,
+              totalRefunds: 10,
+              currency: 'USD',
+            }),
+          },
+        },
+      ],
+    }).compile();
+
+    const localService = module.get<DashboardService>(DashboardService);
+    const result = await localService.getUserGrowthMetrics();
+
+    expect(result.totalUsers).toBe(0);
+    expect(result.monthlySignups).toEqual([]);
   });
 
   it('should export CSV with headers', async () => {
