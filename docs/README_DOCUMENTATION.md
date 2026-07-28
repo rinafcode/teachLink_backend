@@ -541,3 +541,20 @@ aws s3 sync docs/site/ s3://your-bucket/
 ---
 
 **Questions?** Check the troubleshooting section or review the detailed guides linked above.
+
+
+# teachLink Backend Documentation Index
+
+Welcome to the `teachLink_backend` reference documentation.
+
+## 📚 Documentation Sections
+
+* **[Architecture](./architecture/)**
+  * [Routing & API Gateway](./architecture/routing.md)
+  * [Graceful Shutdown Protocol](./architecture/graceful-shutdown.md)
+* **[Configuration](./configuration/)**
+  * [Environment & Secrets Reference](./configuration/environment.md)
+* **[Operations](./operations/)**
+  * [Incident Management Protocol](./operations/incident-management.md)
+* **[Implementation Notes](./implementation-notes/)**
+  * Archive of feature implementation reports and design decision records.
