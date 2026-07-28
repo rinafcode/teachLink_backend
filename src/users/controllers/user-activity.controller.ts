@@ -39,12 +39,26 @@ export class UserActivityController {
     enum: AuditAction,
     description: 'Filter by activity type',
   })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    type: String,
+    description: 'Opaque cursor token',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Item offset count',
+  })
   @ApiResponse({ status: 200, description: 'Returns paginated activity logs' })
   async getTimeline(
     @Request() req,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
     @Query('type') type?: AuditAction,
+    @Query('cursor') cursor?: string,
+    @Query('offset') offset?: number,
   ) {
     // Security: Strictly use user ID from the authenticated request
     const userId = req.user.id || req.user.sub;
@@ -60,6 +74,8 @@ export class UserActivityController {
       },
       sanitizedPage,
       sanitizedLimit,
+      cursor,
+      offset !== undefined ? Number(offset) : undefined,
     );
   }
 

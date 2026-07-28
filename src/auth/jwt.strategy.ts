@@ -5,12 +5,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { isRS256Configured, loadPEMKey } from './config/jwt-config.factory';
+import { RolesService } from '../rbac/roles/roles.service';
+import { TokenBlacklistService } from './services/token-blacklist.service';
 
 export interface JwtPayload {
   sub: string;
   email: string;
   roles: string[];
   permissions: string[];
+  jti: string;
 }
 
 /**
@@ -25,6 +28,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly rolesService: RolesService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -52,6 +57,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
    * @returns The authenticated user with roles and permissions.
    */
   async validate(payload: JwtPayload): Promise<any> {
+    if (payload.jti) {
+      const isBlacklisted = await this.tokenBlacklistService.isBlacklisted(payload.jti);
+      if (isBlacklisted) {
+        throw new UnauthorizedException('Token has been revoked');
+      }
+    }
+
     const user = await this.userRepository.findOneBy({ id: payload.sub });
     if (!user) {
       throw new Error('User not found');
@@ -61,7 +73,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('User is not active');
     }
 
-    // Fetch roles and permissions for the user
     const userWithRolesAndPermissions = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
@@ -73,15 +84,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new Error('User not found');
     }
 
-    const roles = userWithRolesAndPermissions.roles.map((role) => role.name);
-    const permissions = userWithRolesAndPermissions.roles.reduce((acc, role) => {
+    const activeRoles = await Promise.all(
+      (userWithRolesAndPermissions.roles ?? []).map(async (role) => ({
+        role,
+        active: await this.rolesService.isRoleActive(role.name),
+      })),
+    );
+
+    const roles = activeRoles.filter((entry) => entry.active).map((entry) => entry.role);
+    const permissions = roles.reduce((acc, role) => {
       return acc.concat(role.permissions.map((p) => `${p.resource}:${p.action}`));
     }, [] as string[]);
 
-    return {
-      ...payload,
-      roles,
-      permissions,
-    };
+    userWithRolesAndPermissions.roles = roles;
+    (userWithRolesAndPermissions as User & { permissions: string[] }).permissions = permissions;
+
+    return userWithRolesAndPermissions;
   }
 }

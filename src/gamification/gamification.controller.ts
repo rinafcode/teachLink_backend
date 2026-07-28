@@ -13,28 +13,11 @@ import {
 import { PointsService } from './points/points.service';
 import { LeaderboardService } from './leaderboards/leaderboards.service';
 import { TiersService } from './tiers/tiers.service';
-import { PointActivityType } from './enums/point-activity.enum';
 import { Tier } from './enums/tier.enum';
 import { TierReward } from './entities/tier-reward.entity';
-
-class AwardActivityDto {
-  userId: string;
-  activityType: PointActivityType;
-}
-
-class AddPointsDto {
-  userId: string;
-  points: number;
-  activityType: string;
-}
-
-class UpsertRewardDto {
-  title: string;
-  description: string;
-  badgeId?: string;
-  bonusPoints?: number;
-  metadata?: Record<string, unknown>;
-}
+import { AwardActivityDto } from './dto/award-activity.dto';
+import { AddPointsDto } from './dto/add-points.dto';
+import { UpsertRewardDto } from './dto/upsert-reward.dto';
 
 @Controller('gamification')
 export class GamificationController {

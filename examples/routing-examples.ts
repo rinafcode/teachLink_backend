@@ -2,7 +2,12 @@
  * Examples of how to use the Content-Based Routing System
  */
 
-import { RoutingRule, RoutingConditionType, RoutingOperator, RoutingActionType } from '../src/routing/interfaces/routing.interface';
+import {
+  RoutingRule,
+  RoutingConditionType,
+  RoutingOperator,
+  RoutingActionType,
+} from '../src/routing/interfaces/routing.interface';
 import { RoutingPresets, CommonPatterns } from '../src/routing/utils/routing-helpers';
 
 // Example 1: API Version Routing
@@ -18,8 +23,8 @@ export const apiVersionRoutingRule: RoutingRule = {
       field: 'x-api-version',
       operator: RoutingOperator.EQUALS,
       value: 'v2',
-      caseSensitive: false
-    }
+      caseSensitive: false,
+    },
   ],
   action: {
     type: RoutingActionType.REWRITE,
@@ -29,14 +34,14 @@ export const apiVersionRoutingRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-routed-by',
-        value: 'content-router'
-      }
-    ]
+        value: 'content-router',
+      },
+    ],
   },
   metadata: {
     category: 'api-versioning',
-    createdBy: 'system'
-  }
+    createdBy: 'system',
+  },
 };
 
 // Example 2: Mobile Client Optimization
@@ -52,8 +57,8 @@ export const mobileOptimizationRule: RoutingRule = {
       field: 'x-client-type',
       operator: RoutingOperator.EQUALS,
       value: 'mobile',
-      caseSensitive: false
-    }
+      caseSensitive: false,
+    },
   ],
   action: {
     type: RoutingActionType.FORWARD,
@@ -63,16 +68,16 @@ export const mobileOptimizationRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-mobile-optimized',
-        value: 'true'
+        value: 'true',
       },
       {
         type: 'header',
         operation: 'add',
         field: 'x-response-format',
-        value: 'compact'
-      }
-    ]
-  }
+        value: 'compact',
+      },
+    ],
+  },
 };
 
 // Example 3: Admin Access Control
@@ -87,27 +92,27 @@ export const adminAccessControlRule: RoutingRule = {
       type: RoutingConditionType.PATH_PATTERN,
       field: 'path',
       operator: RoutingOperator.STARTS_WITH,
-      value: '/admin'
+      value: '/admin',
     },
     {
       type: RoutingConditionType.CUSTOM,
       field: 'user.role',
       operator: RoutingOperator.NOT_EQUALS,
-      value: 'ADMIN'
-    }
+      value: 'ADMIN',
+    },
   ],
   action: {
     type: RoutingActionType.BLOCK,
     target: 'unauthorized',
     parameters: {
       statusCode: 403,
-      message: 'Admin access required'
-    }
+      message: 'Admin access required',
+    },
   },
   metadata: {
     category: 'security',
-    critical: true
-  }
+    critical: true,
+  },
 };
 
 // Example 4: Feature Flag Routing
@@ -123,8 +128,8 @@ export const betaFeaturesRule: RoutingRule = {
       field: 'beta',
       operator: RoutingOperator.EQUALS,
       value: 'true',
-      caseSensitive: false
-    }
+      caseSensitive: false,
+    },
   ],
   action: {
     type: RoutingActionType.FORWARD,
@@ -134,15 +139,15 @@ export const betaFeaturesRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-beta-features',
-        value: 'enabled'
+        value: 'enabled',
       },
       {
         type: 'query',
         operation: 'remove',
-        field: 'beta'
-      }
-    ]
-  }
+        field: 'beta',
+      },
+    ],
+  },
 };
 
 // Example 5: Tenant Subdomain Routing
@@ -158,8 +163,8 @@ export const tenantSubdomainRule: RoutingRule = {
       field: 'host',
       operator: RoutingOperator.REGEX_MATCH,
       value: '^([^.]+)\\.teachlink\\.',
-      caseSensitive: false
-    }
+      caseSensitive: false,
+    },
   ],
   action: {
     type: RoutingActionType.FORWARD,
@@ -169,10 +174,10 @@ export const tenantSubdomainRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-tenant-from-subdomain',
-        value: 'true'
-      }
-    ]
-  }
+        value: 'true',
+      },
+    ],
+  },
 };
 
 // Example 6: Content Type Based Routing
@@ -188,14 +193,14 @@ export const contentTypeRoutingRule: RoutingRule = {
       field: 'content-type',
       operator: RoutingOperator.CONTAINS,
       value: 'application/json',
-      caseSensitive: false
+      caseSensitive: false,
     },
     {
       type: RoutingConditionType.PATH_PATTERN,
       field: 'path',
       operator: RoutingOperator.STARTS_WITH,
-      value: '/api/upload'
-    }
+      value: '/api/upload',
+    },
   ],
   action: {
     type: RoutingActionType.FORWARD,
@@ -205,10 +210,10 @@ export const contentTypeRoutingRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-upload-type',
-        value: 'json'
-      }
-    ]
-  }
+        value: 'json',
+      },
+    ],
+  },
 };
 
 // Example 7: Rate Limiting by User Type
@@ -223,8 +228,8 @@ export const rateLimitingRule: RoutingRule = {
       type: RoutingConditionType.CUSTOM,
       field: 'user.plan',
       operator: RoutingOperator.EQUALS,
-      value: 'free'
-    }
+      value: 'free',
+    },
   ],
   action: {
     type: RoutingActionType.RATE_LIMIT,
@@ -232,9 +237,9 @@ export const rateLimitingRule: RoutingRule = {
     parameters: {
       limit: 100,
       window: 3600000, // 1 hour
-      message: 'Free tier rate limit exceeded'
-    }
-  }
+      message: 'Free tier rate limit exceeded',
+    },
+  },
 };
 
 // Example 8: Static Asset Caching
@@ -250,17 +255,17 @@ export const staticAssetCachingRule: RoutingRule = {
       field: 'path',
       operator: RoutingOperator.REGEX_MATCH,
       value: '\\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$',
-      caseSensitive: false
-    }
+      caseSensitive: false,
+    },
   ],
   action: {
     type: RoutingActionType.CACHE,
     target: 'static-assets',
     parameters: {
       maxAge: 86400, // 24 hours
-      cacheControl: 'public, max-age=86400, immutable'
-    }
-  }
+      cacheControl: 'public, max-age=86400, immutable',
+    },
+  },
 };
 
 // Example 9: A/B Testing Routing
@@ -275,14 +280,14 @@ export const abTestingRule: RoutingRule = {
       type: RoutingConditionType.PATH_PATTERN,
       field: 'path',
       operator: RoutingOperator.EQUALS,
-      value: '/checkout'
+      value: '/checkout',
     },
     {
       type: RoutingConditionType.HEADER,
       field: 'x-ab-test-group',
       operator: RoutingOperator.EQUALS,
-      value: 'variant-b'
-    }
+      value: 'variant-b',
+    },
   ],
   action: {
     type: RoutingActionType.FORWARD,
@@ -292,10 +297,10 @@ export const abTestingRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-ab-test-active',
-        value: 'checkout-flow-b'
-      }
-    ]
-  }
+        value: 'checkout-flow-b',
+      },
+    ],
+  },
 };
 
 // Example 10: Geographic Routing
@@ -310,8 +315,8 @@ export const geographicRoutingRule: RoutingRule = {
       type: RoutingConditionType.HEADER,
       field: 'x-user-region',
       operator: RoutingOperator.IN,
-      value: ['EU', 'GDPR']
-    }
+      value: ['EU', 'GDPR'],
+    },
   ],
   action: {
     type: RoutingActionType.FORWARD,
@@ -321,10 +326,10 @@ export const geographicRoutingRule: RoutingRule = {
         type: 'header',
         operation: 'add',
         field: 'x-gdpr-compliant',
-        value: 'true'
-      }
-    ]
-  }
+        value: 'true',
+      },
+    ],
+  },
 };
 
 // Using Routing Presets (Simplified Creation)
@@ -338,8 +343,8 @@ export const presetExamples = {
     conditions: [RoutingPresets.apiVersion.v2()],
     action: {
       type: RoutingActionType.REWRITE,
-      target: '/api/v2${originalPath}'
-    }
+      target: '/api/v2${originalPath}',
+    },
   },
 
   // Mobile optimization using presets
@@ -351,8 +356,8 @@ export const presetExamples = {
     conditions: [RoutingPresets.clientType.mobile()],
     action: {
       type: RoutingActionType.FORWARD,
-      target: '/api/mobile'
-    }
+      target: '/api/mobile',
+    },
   },
 
   // Admin access control using presets
@@ -361,30 +366,27 @@ export const presetExamples = {
     name: 'Admin Only Preset',
     priority: 200,
     enabled: true,
-    conditions: [
-      RoutingPresets.paths.admin(),
-      RoutingPresets.userRole.notAdmin()
-    ],
+    conditions: [RoutingPresets.paths.admin(), RoutingPresets.userRole.notAdmin()],
     action: {
       type: RoutingActionType.BLOCK,
-      target: 'unauthorized'
-    }
-  }
+      target: 'unauthorized',
+    },
+  },
 };
 
 // Using Common Patterns (Even Simpler)
 export const patternExamples = {
   // API versioning pattern
   apiVersioning: CommonPatterns.apiVersioning('v2', '/api/v2'),
-  
+
   // Admin access control pattern
   adminAccess: CommonPatterns.adminOnly('Admin access required'),
-  
+
   // Mobile optimization pattern
   mobileOpt: CommonPatterns.mobileOptimization('/api/mobile'),
-  
+
   // Static asset caching pattern
-  staticCache: CommonPatterns.staticCaching(86400)
+  staticCache: CommonPatterns.staticCaching(86400),
 };
 
 // Complete routing configuration example
@@ -399,19 +401,19 @@ export const exampleRoutingConfig = {
     abTestingRule,
     contentTypeRoutingRule,
     rateLimitingRule,
-    staticAssetCachingRule
+    staticAssetCachingRule,
   ],
   defaultAction: {
     type: RoutingActionType.FORWARD,
-    target: '/api'
+    target: '/api',
   },
   enableLogging: true,
   enableMetrics: true,
   cacheConfig: {
     enabled: true,
     ttl: 300000, // 5 minutes
-    maxSize: 1000
-  }
+    maxSize: 1000,
+  },
 };
 
 // Example of how to test routing rules
@@ -421,15 +423,15 @@ export const testRoutingExamples = {
     method: 'GET',
     path: '/users',
     headers: {
-      'x-api-version': 'v2'
+      'x-api-version': 'v2',
     },
     expectedResult: {
       matched: true,
       action: {
         type: 'rewrite',
-        target: '/api/v2/users'
-      }
-    }
+        target: '/api/v2/users',
+      },
+    },
   },
 
   // Test mobile routing
@@ -437,15 +439,15 @@ export const testRoutingExamples = {
     method: 'GET',
     path: '/dashboard',
     headers: {
-      'x-client-type': 'mobile'
+      'x-client-type': 'mobile',
     },
     expectedResult: {
       matched: true,
       action: {
         type: 'forward',
-        target: '/api/mobile'
-      }
-    }
+        target: '/api/mobile',
+      },
+    },
   },
 
   // Test admin access control
@@ -454,15 +456,15 @@ export const testRoutingExamples = {
     path: '/admin/users',
     user: {
       id: 'user-1',
-      role: 'USER'
+      role: 'USER',
     },
     expectedResult: {
       matched: true,
       action: {
         type: 'block',
-        target: 'unauthorized'
-      }
-    }
+        target: 'unauthorized',
+      },
+    },
   },
 
   // Test beta features
@@ -470,14 +472,14 @@ export const testRoutingExamples = {
     method: 'GET',
     path: '/features',
     query: {
-      beta: 'true'
+      beta: 'true',
     },
     expectedResult: {
       matched: true,
       action: {
         type: 'forward',
-        target: '/api/beta'
-      }
-    }
-  }
+        target: '/api/beta',
+      },
+    },
+  },
 };

@@ -6,7 +6,13 @@ async function register() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({"email":"newuser@example.com","password":"SecurePass123!","firstName":"Grace","lastName":"Hopper","role":"student"}),
+      body: JSON.stringify({
+        email: 'newuser@example.com',
+        password: 'SecurePass123!',
+        firstName: 'Grace',
+        lastName: 'Hopper',
+        role: 'student',
+      }),
     });
 
     if (!response.ok) {

@@ -4,7 +4,15 @@ import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-clo
 import { HttpException, HttpStatus } from '@nestjs/common';
 import * as fileType from 'file-type';
 
-jest.mock('@aws-sdk/client-cloudfront');
+jest.mock('@aws-sdk/client-cloudfront', () => {
+  return {
+    CloudFrontClient: jest.fn(),
+    CreateInvalidationCommand: jest.fn().mockImplementation(function (this: any, input: any) {
+      this.input = input;
+      return this;
+    }),
+  };
+});
 jest.mock('file-type');
 describe('CdnService', () => {
   let service: CdnService;

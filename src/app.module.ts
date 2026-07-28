@@ -11,6 +11,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { envValidationSchema } from './config/env.validation';
+import { StructuredLoggerService } from './observability/logging/structured-logger.service';
+import { TracingInterceptor } from './observability/tracing/tracing.interceptor';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
@@ -36,6 +38,7 @@ import { ApiVersionMiddleware } from './common/middleware/api-version.middleware
 import { DeepLinkModule } from './deep-link/deep-link.module';
 import { InvoicesModule } from './payments/invoices/invoices.module';
 import { ReportingModule } from './payments/reporting/reporting.module';
+import { PaymentsModule } from './payments/payments.module';
 import { HealthModule } from './health/health.module';
 import { QueueModule } from './queues/queue.module';
 import { WorkersBridgeModule } from './workers/bridge/workers-bridge.module';
@@ -49,6 +52,7 @@ import { CohortsModule } from './cohorts/cohorts.module';
 import { LoggingModule } from './logging/logging.module';
 import { FeatureFlagAuditModule } from './config/feature-flag-audit.module';
 import { UsersModule } from './users/users.module';
+import { OrchestrationModule } from './orchestration/orchestration.module';
 
 const featureFlags = loadFeatureFlags();
 
@@ -82,6 +86,7 @@ const featureFlags = loadFeatureFlags();
     DeepLinkModule,
     InvoicesModule,
     ReportingModule,
+    PaymentsModule,
     HealthModule,
     QueueModule,
     WorkersBridgeModule,
@@ -95,6 +100,15 @@ const featureFlags = loadFeatureFlags();
     CohortsModule,
     UsersModule,
     FeatureFlagAuditModule,
+    /**
+     * Issue #828/#812 follow-on: OrchestrationModule is @Global() and exports
+     * DistributedLockService. We do NOT keep the previously-proposed
+     * LocksModule: registering DistributedLockService twice would crash the
+     * container (NestJS forbids duplicate providers). CachingService
+     * (@Optional() DistributedLockService) and any future consumer resolve
+     * through this global module instead.
+     */
+    OrchestrationModule,
   ],
   controllers: [AppController],
   providers: [
@@ -106,7 +120,12 @@ const featureFlags = loadFeatureFlags();
     // @Idempotent() decorator (in any module) is handled, regardless of
     // which module owns the controller.
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    // Issue #828 — forwards active OpenTelemetry traceId/spanId into the
+    // structured logger so every request log entry is correlated with the
+    // trace span that produced it.
+    { provide: APP_INTERCEPTOR, useClass: TracingInterceptor },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    StructuredLoggerService,
   ],
 })
 export class AppModule implements NestModule, OnApplicationBootstrap {

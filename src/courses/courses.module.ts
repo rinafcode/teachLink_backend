@@ -11,12 +11,14 @@ import { CourseModule } from './entities/course-module.entity';
 import { BulkOperation } from './entities/bulk-operation.entity';
 import { CachingModule } from '../caching/caching.module';
 
+import { PaginationService } from '../common/services/pagination.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule, BulkOperation]),
     CachingModule,
   ],
-  providers: [CoursesService, EnrollmentsService],
+  providers: [CoursesService, EnrollmentsService, PaginationService],
   controllers: [CoursesController, EnrollmentsController],
   exports: [CoursesService, EnrollmentsService],
 })
