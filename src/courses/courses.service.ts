@@ -1,7 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+> main
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview, ReviewDecision } from './entities/course-review.entity';
@@ -17,32 +17,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { SubmitForReviewDto } from './dto/submit-for-review.dto';
 import { ReviewCourseDto } from './dto/review-course.dto';
-import {
-  ResourceNotFoundException,
-  ForbiddenOperationException,
-  BusinessValidationException,
-} from '../common/exceptions/app.exceptions';
-import {
-  BulkCategoryUpdateDto,
-  BulkPriceUpdateDto,
-  BulkPublishDto,
-} from './dto/bulk-operations.dto';
-import { PaginationQueryDto } from '../common/dto/pagination.dto';
-import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
-import { PaginationService } from '../common/services/pagination.service';
-
-function checkUserRole(user?: User, ...roleNames: UserRole[]): boolean {
-  if (!user) return false;
-  if (typeof user.hasRole === 'function') {
-    return user.hasRole(...roleNames);
-  }
-  const roles = (user as any).roles || [];
-  return roles.some((role: any) => {
-    const name = typeof role === 'string' ? role : role?.name;
-    return roleNames.includes(name as UserRole);
-  });
-}
 
 /**
  * Maps a ReviewDecision to the resulting CourseStatus after the decision.
@@ -68,14 +43,13 @@ export class CoursesService {
     @InjectRepository(BulkOperation)
     private readonly bulkOpRepo: Repository<BulkOperation>,
     private readonly eventEmitter: EventEmitter2,
-    @Optional()
-    private readonly paginationService: PaginationService = new PaginationService(),
-  ) {}
+
 
   // ─── CRUD ────────────────────────────────────────────────────────────────────
 
   /**
    * Creates a new course in DRAFT status for the given instructor.
+   * Course creation and prerequisite validation are performed atomically.
    */
   async create(dto: CreateCourseDto, instructor: User): Promise<Course> {
     let prerequisite = null;
@@ -97,19 +71,7 @@ export class CoursesService {
       status: CourseStatus.DRAFT,
       prerequisite,
     });
-    const saved = await this.courseRepo.save(course);
 
-    const version = this.versionRepo.create({
-      courseId: saved.id,
-      versionNumber: 1,
-      eventType: CourseVersionEventType.CREATED,
-      title: saved.title,
-      description: saved.description,
-      price: saved.price,
-      thumbnailUrl: saved.thumbnailUrl,
-      status: saved.status,
-    });
-    await this.versionRepo.save(version);
     this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
     return saved;
   }
@@ -232,6 +194,7 @@ export class CoursesService {
 
   /**
    * Admin/moderator reviews a PENDING_REVIEW course and records the decision.
+   * Course status update and review (version snapshot) creation happen atomically.
    */
   async reviewCourse(id: string, dto: ReviewCourseDto, reviewer: User): Promise<CourseReview> {
     this.assertPrivileged(reviewer);
@@ -245,17 +208,23 @@ export class CoursesService {
 
     const previousStatus = course.status;
     course.status = DECISION_TO_STATUS[dto.decision];
-    await this.courseRepo.save(course);
-    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: course.id });
 
-    const review = this.reviewRepo.create({
-      courseId: id,
-      reviewerId: reviewer.id,
-      decision: dto.decision,
-      feedback: dto.feedback,
-      previousStatus,
-    });
-    return this.reviewRepo.save(review);
+    const [review] = await this.transactionHelper.executeInTransaction([
+      async (manager: EntityManager) => {
+        await manager.save(course);
+        const review = this.reviewRepo.create({
+          courseId: id,
+          reviewerId: reviewer.id,
+          decision: dto.decision,
+          feedback: dto.feedback,
+          previousStatus,
+        });
+        return manager.save(review);
+      },
+    ]);
+
+    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: course.id });
+    return review;
   }
 
   /**

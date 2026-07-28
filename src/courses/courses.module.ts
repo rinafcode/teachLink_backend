@@ -10,6 +10,7 @@ import { CourseReview } from './entities/course-review.entity';
 import { CourseModule } from './entities/course-module.entity';
 import { BulkOperation } from './entities/bulk-operation.entity';
 import { CachingModule } from '../caching/caching.module';
+import { CommonModule } from '../common/common.module';
 
 import { PaginationService } from '../common/services/pagination.service';
 
@@ -17,6 +18,7 @@ import { PaginationService } from '../common/services/pagination.service';
   imports: [
     TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule, BulkOperation]),
     CachingModule,
+    CommonModule,
   ],
   providers: [CoursesService, EnrollmentsService, PaginationService],
   controllers: [CoursesController, EnrollmentsController],
