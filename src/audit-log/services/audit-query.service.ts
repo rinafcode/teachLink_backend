@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { AuditLog } from '../audit-log.entity';
 import { AuditAction } from '../enums/audit-action.enum';
 import { IAuditLogSearchFilters, IAuditLogSearchResult } from '../interfaces/audit-log.interfaces';
 import { clampLimit } from '../../common/utils/pagination.utils';
+
+import { PaginationService } from '../../common/services/pagination.service';
 
 /**
  * Provides audit log query operations.
@@ -16,6 +18,8 @@ export class AuditQueryService {
   constructor(
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
+    @Optional()
+    private readonly paginationService: PaginationService = new PaginationService(),
   ) {}
 
   /**
@@ -25,6 +29,8 @@ export class AuditQueryService {
     filters: IAuditLogSearchFilters,
     page: number = 1,
     limit: number = 50,
+    cursor?: string,
+    offset?: number,
   ): Promise<IAuditLogSearchResult> {
     const queryBuilder = this.auditRepo.createQueryBuilder('audit');
 
@@ -98,24 +104,16 @@ export class AuditQueryService {
       queryBuilder.andWhere('audit.timestamp <= :endDate', { endDate: filters.endDate });
     }
 
-    queryBuilder.orderBy('audit.timestamp', 'DESC');
-
-    const total = await queryBuilder.getCount();
     const clampedLimit = clampLimit(limit);
-    const skip = (page - 1) * clampedLimit;
-    queryBuilder.skip(skip).take(clampedLimit);
-    const data = await queryBuilder.getMany();
-    const totalPages = Math.ceil(total / clampedLimit);
+    const calculatedOffset = offset ?? (cursor ? undefined : (page - 1) * clampedLimit);
 
-    return {
-      data,
-      total,
-      page,
-      limit: clampedLimit,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
-    };
+    return this.paginationService.paginate(
+      queryBuilder,
+      cursor,
+      clampedLimit,
+      calculatedOffset,
+      'timestamp',
+    ) as Promise<IAuditLogSearchResult>;
   }
 
   /**

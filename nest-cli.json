@@ -4,6 +4,8 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": false,
-    "builder": "tsc"
+    "builder": "tsc",
+    "assets": [{ "include": "i18n/locales/**/*", "watchAssets": true }],
+    "watchAssets": true
   }
 }

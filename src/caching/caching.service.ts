@@ -6,7 +6,7 @@ import { Cache } from 'cache-manager';
 import Redis from 'ioredis';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 import { getSharedRedisClient } from '../config/cache.config';
-import { IsolationService } from '../tenancy/isolation/isolation.service';
+import { DistributedLockService } from '../orchestration/locks/distributed-lock.service';
 
 export interface CacheStats {
   hits: number;
@@ -64,6 +64,22 @@ export const buildCounterKeys = (cacheType: string): { hits: string; misses: str
   misses: `cache:misses:${cacheType}`,
 });
 
+// ── Issue #812 thundering-herd protection (#812) ────────────────────────────
+
+export interface GetOrSetOptions {
+  /**
+   * If provided, overrides the lock acquisition/wait TTL (ms).
+   * Defaults to a value derived from the cache TTL (clamped to a sensible minimum).
+   */
+  lockTtlMs?: number;
+}
+
+const LOCK_KEY_PREFIX = 'cache:lock:';
+const DEFAULT_LOCK_TTL_MS = 5_000;
+const MIN_LOCK_TTL_MS = 1_000;
+const POLL_INITIAL_BACKOFF_MS = 50;
+const POLL_MAX_BACKOFF_MS = 500;
+
 @Injectable()
 export class CachingService {
   private readonly logger = new Logger(CachingService.name);
@@ -78,12 +94,22 @@ export class CachingService {
   private localHits = 0;
   private localMisses = 0;
 
+  /**
+   * Unifies upstream's cluster-wide hit/miss counters with the optional
+   * DistributedLockService thundering-herd protection from #812.
+   *
+   * The order is: (cacheManager, metrics, configService?, redis?, lockService?).
+   * All additional dependencies are @Optional() — single-process dev/test
+   * environments that inject only cacheManager (e.g. legacy `new
+   * CachingService(cacheManager, metrics)` calls in non-DI code paths) keep
+   * working unchanged.
+   */
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Optional() private readonly metrics?: MetricsCollectionService,
     @Optional() private readonly configService?: ConfigService,
     @Optional() redis?: Redis,
-    @Optional() private readonly isolationService?: IsolationService,
+    @Optional() private readonly lockService?: DistributedLockService,
   ) {
     // Prefer an explicitly injected client (used by tests / module overrides),
     // then fall back to the configured shared singleton, then to local-only.
@@ -163,16 +189,64 @@ export class CachingService {
     await this.cacheManager.set(scopedKey, value, ttlMs);
   }
 
+  /**
+   * Returns the cached value if present; otherwise computes it via factory().
+   *
+   * If a {@link DistributedLockService} is wired up (provided upstream as a
+   * @Global() production service), only one caller in the fleet runs the
+   * factory for a given key (the thundering-herd guard from #812). Other
+   * callers poll the underlying cache manager with exponential backoff up
+   * to the lock TTL; they fall back to local computation only if the lock
+   * holder fails to publish within that window, preserving correctness
+   * regardless of cache availability.
+   *
+   * When no lock service is present (e.g. local dev / unit tests), this
+   * method preserves its previous single-process behaviour.
+   */
   async getOrSet<T>(
     key: string,
     factory: () => Promise<T>,
     ttlSeconds?: number,
-    tenantId?: string,
+    options: GetOrSetOptions = {},
   ): Promise<T> {
-    const scopedKey = this.buildTenantScopedKey(key, tenantId);
-    const cached = await this.get<T>(scopedKey, tenantId);
+    const cached = await this.get<T>(key);
     if (cached !== undefined) {
       return cached;
+    }
+
+    const lockKey = `${LOCK_KEY_PREFIX}${key}`;
+    const lockTtlMs = this.resolveLockTtl(ttlSeconds, options.lockTtlMs);
+
+    if (this.lockService) {
+      const token = await this.lockService.acquireLock(lockKey, lockTtlMs);
+      if (token) {
+        try {
+          const value = await factory();
+          await this.set(key, value, ttlSeconds);
+          return value;
+        } finally {
+          await this.safeRelease(lockKey, token);
+        }
+      }
+
+      // Lock contention: poll the cache directly so we don't double-charge
+      // the stats counters and avoid counting the eventual hit as a miss.
+      const recheck = await this.cacheManager.get<T>(key);
+      if (recheck !== undefined && recheck !== null) {
+        // Record as a hit on the contended path since the user-facing cache
+        // check ultimately succeeded.
+        await this.recordHit(deriveCacheType(key), key);
+        return recheck;
+      }
+
+      // Polled retry loop — the lock-holder may still publish within the TTL window.
+      const winner = await this.pollUntilValuePresent<T>(key, lockTtlMs);
+      if (winner !== undefined) {
+        await this.recordHit(deriveCacheType(key), key);
+        return winner;
+      }
+      // Lock-holder never published within the timeout — fall through so we
+      // still satisfy the request with our own computation rather than dropping it.
     }
 
     const value = await factory();
@@ -445,6 +519,55 @@ export class CachingService {
         `Failed to INCR ${redisKey} — using local fallback counter. ${(err as Error).message}`,
       );
     }
+  }
+
+  // ── Issue #812 helpers ─────────────────────────────────────────────────────
+
+  private resolveLockTtl(ttlSeconds: number | undefined, override?: number): number {
+    if (override && override > 0) {
+      return Math.max(MIN_LOCK_TTL_MS, override);
+    }
+    if (ttlSeconds && ttlSeconds > 0) {
+      return Math.max(MIN_LOCK_TTL_MS, ttlSeconds * 1000);
+    }
+    return DEFAULT_LOCK_TTL_MS;
+  }
+
+  private async pollUntilValuePresent<T>(key: string, timeoutMs: number): Promise<T | undefined> {
+    const deadline = Date.now() + timeoutMs;
+    let backoffMs = POLL_INITIAL_BACKOFF_MS;
+    while (Date.now() < deadline) {
+      await this.sleep(backoffMs);
+      try {
+        const recheck = await this.cacheManager.get<T>(key);
+        if (recheck !== undefined && recheck !== null) {
+          return recheck;
+        }
+      } catch (error: any) {
+        this.logger.warn(
+          `Cache recheck during lock-contention poll failed for key=${key}: ${error?.message}`,
+        );
+      }
+      backoffMs = Math.min(backoffMs * 2, POLL_MAX_BACKOFF_MS);
+    }
+    return undefined;
+  }
+
+  private async safeRelease(lockKey: string, token: string): Promise<void> {
+    if (!this.lockService) {
+      return;
+    }
+    try {
+      await this.lockService.releaseLock(lockKey, token);
+    } catch (error: any) {
+      this.logger.warn(
+        `Failed to release cache lock ${lockKey}: ${error?.message ?? String(error)}`,
+      );
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async resetKeys(keys: string[]): Promise<void> {

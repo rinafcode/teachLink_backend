@@ -29,5 +29,6 @@ cd /home/gift/teachLink_backend && npx jest --runInBand src/modules/gdpr/tests/g
 ```
 
 Result:
+
 - 2/2 test suites passed
 - 17/17 tests passed
