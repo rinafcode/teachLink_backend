@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Role } from '../entities/role.entity';
-import { Permission } from '../entities/permission.entity';
+import { In, Repository } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
+import { Permission } from '../entities/permission.entity';
+import { BUILTIN_ROLE_NAMES, Role } from '../entities/role.entity';
 
 export interface RbacAuditContext {
   actorId?: string;
@@ -13,6 +19,9 @@ export interface RbacAuditContext {
   userAgent?: string;
 }
 
+/**
+ * Provides role management operations.
+ */
 @Injectable()
 export class RolesService {
   private readonly logger = new Logger(RolesService.name);
@@ -25,6 +34,23 @@ export class RolesService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
+  /**
+   * Validates that all requested permission IDs exist.
+   * Throws a BadRequestException listing any missing IDs if counts mismatch.
+   */
+  private validatePermissionsExist(requestedIds: string[], foundPermissions: Permission[]): void {
+    if (!requestedIds || requestedIds.length === 0) return;
+
+    const uniqueRequestedIds = Array.from(new Set(requestedIds));
+
+    if (foundPermissions.length !== uniqueRequestedIds.length) {
+      const foundIds = new Set(foundPermissions.map((permission) => permission.id));
+      const missingIds = uniqueRequestedIds.filter((id) => !foundIds.has(id));
+
+      throw new BadRequestException(`Invalid permission ID(s) provided: ${missingIds.join(', ')}`);
+    }
+  }
+
   async createRole(
     name: string,
     description?: string,
@@ -34,10 +60,15 @@ export class RolesService {
     const role = this.roleRepository.create({
       name,
       description,
+      isSystem: BUILTIN_ROLE_NAMES.includes(name as (typeof BUILTIN_ROLE_NAMES)[number]),
     });
 
     if (permissionIds && permissionIds.length > 0) {
-      const permissions = await this.permissionRepository.findByIds(permissionIds);
+      const permissions = await this.permissionRepository.find({
+        where: { id: In(permissionIds) },
+      });
+
+      this.validatePermissionsExist(permissionIds, permissions);
       role.permissions = permissions;
     }
 
@@ -59,12 +90,33 @@ export class RolesService {
     return this.roleRepository.find({ relations: ['permissions'] });
   }
 
-  async findRoleById(id: string): Promise<Role> {
-    const role = await this.roleRepository.findOne({ where: { id }, relations: ['permissions'] });
+  async findRoleById(id: string, includeDeleted = false): Promise<Role> {
+    const role = await this.roleRepository.findOne({
+      where: { id },
+      relations: ['permissions', 'users'],
+      withDeleted: includeDeleted,
+    });
     if (!role) {
       throw new NotFoundException(`Role with ID ${id} not found`);
     }
     return role;
+  }
+
+  async findRoleByName(name: string, includeDeleted = false): Promise<Role | null> {
+    return this.roleRepository.findOne({
+      where: { name },
+      relations: ['permissions', 'users'],
+      withDeleted: includeDeleted,
+    });
+  }
+
+  async isRoleActive(name: string): Promise<boolean> {
+    const role = await this.findRoleByName(name, true);
+    if (!role) {
+      return false;
+    }
+
+    return role.deletedAt == null;
   }
 
   async updateRole(
@@ -74,13 +126,25 @@ export class RolesService {
     permissionIds?: string[],
     context: RbacAuditContext = {},
   ): Promise<Role> {
-    const before = await this.findRoleById(id);
+    const before = await this.findRoleById(id, true);
     const previousPermissionIds = (before.permissions ?? []).map((p) => p.id);
 
-    await this.roleRepository.update(id, { name, description });
+    await this.roleRepository.update(id, {
+      name,
+      description,
+      isSystem: BUILTIN_ROLE_NAMES.includes(name as (typeof BUILTIN_ROLE_NAMES)[number]),
+    });
 
     if (permissionIds !== undefined) {
-      const permissions = await this.permissionRepository.findByIds(permissionIds);
+      let permissions: Permission[] = [];
+      if (permissionIds.length > 0) {
+        permissions = await this.permissionRepository.find({
+          where: { id: In(permissionIds) },
+        });
+
+        this.validatePermissionsExist(permissionIds, permissions);
+      }
+
       await this.roleRepository
         .createQueryBuilder()
         .relation(Role, 'permissions')
@@ -88,15 +152,8 @@ export class RolesService {
         .set(permissions);
     }
 
-    const updated = await this.roleRepository.findOne({
-      where: { id },
-      relations: ['permissions'],
-    });
-    if (!updated) {
-      throw new NotFoundException(`Role with ID ${id} not found`);
-    }
+    const updated = await this.findRoleById(id, true);
 
-    // AUDIT: configuration changes
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_UPDATED,
       role: updated,
@@ -109,7 +166,6 @@ export class RolesService {
       },
     });
 
-    // AUDIT: explicit permission grants/revokes inferred from the new permissionIds vs previous
     if (permissionIds !== undefined) {
       const newSet = new Set(permissionIds);
       const oldSet = new Set(previousPermissionIds);
@@ -124,6 +180,7 @@ export class RolesService {
           });
         }
       }
+
       for (const permId of oldSet) {
         if (!newSet.has(permId)) {
           await this.writeAudit({
@@ -140,23 +197,53 @@ export class RolesService {
   }
 
   async deleteRole(id: string, context: RbacAuditContext = {}): Promise<void> {
-    // Snapshot the role before deletion so the audit row still records the name.
-    const before = await this.roleRepository.findOne({ where: { id } });
-    if (!before) {
-      throw new NotFoundException(`Role with ID ${id} not found`);
+    const before = await this.findRoleById(id, true);
+
+    if (
+      before.isSystem ||
+      BUILTIN_ROLE_NAMES.includes(before.name as (typeof BUILTIN_ROLE_NAMES)[number])
+    ) {
+      throw new ConflictException(`System role '${before.name}' cannot be deleted`);
     }
 
-    const result = await this.roleRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Role with ID ${id} not found`);
+    const userCount = before.users?.length ?? 0;
+    if (userCount > 0) {
+      throw new ConflictException({
+        message: `Role '${before.name}' is currently assigned to ${userCount} user(s)`,
+        count: userCount,
+        roleId: before.id,
+      });
     }
+
+    await this.roleRepository.softDelete(id);
 
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_DELETED,
       role: before,
       context,
-      metadata: { name: before.name },
+      metadata: {
+        affectedAssignments: userCount,
+      },
     });
+  }
+
+  async restoreRole(id: string, context: RbacAuditContext = {}): Promise<Role> {
+    const before = await this.findRoleById(id, true);
+
+    await this.roleRepository.restore(id);
+
+    const restored = await this.findRoleById(id);
+
+    await this.writeAudit({
+      action: AuditAction.RBAC_ROLE_UPDATED,
+      role: restored,
+      context,
+      metadata: {
+        restoredFromDeletedAt: before.deletedAt,
+      },
+    });
+
+    return restored;
   }
 
   async addPermissionToRole(
@@ -164,14 +251,7 @@ export class RolesService {
     permissionId: string,
     context: RbacAuditContext = {},
   ): Promise<Role> {
-    const role = await this.roleRepository.findOne({
-      where: { id: roleId },
-      relations: ['permissions'],
-    });
-    if (!role) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
-    }
-
+    const role = await this.findRoleById(roleId);
     const permission = await this.permissionRepository.findOneBy({ id: permissionId });
     if (!permission) {
       throw new NotFoundException(`Permission with ID ${permissionId} not found`);
@@ -204,13 +284,7 @@ export class RolesService {
     permissionId: string,
     context: RbacAuditContext = {},
   ): Promise<Role> {
-    const role = await this.roleRepository.findOne({
-      where: { id: roleId },
-      relations: ['permissions'],
-    });
-    if (!role) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
-    }
+    const role = await this.findRoleById(roleId);
 
     const hadPermission = role.permissions.some((p) => p.id === permissionId);
     role.permissions = role.permissions.filter((p) => p.id !== permissionId);
@@ -231,18 +305,13 @@ export class RolesService {
 
   /**
    * Issues #833 — assign a role to a target user.
-   *
-   * This handler is intentionally minimal: it only writes the audit log. The
-   * actual join-table ownership lives in the User entity; production callers
-   * are expected to ensure the assignment persists. Keeping the audit
-   * emission inside the service lets callers (e.g. controllers) record the
-   * intent even if persistence is performed elsewhere.
    */
-  async logRoleAssigned(roleId: string, targetUserId: string, context: RbacAuditContext = {}) {
-    const role = await this.roleRepository.findOne({ where: { id: roleId } });
-    if (!role) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
-    }
+  async logRoleAssigned(
+    roleId: string,
+    targetUserId: string,
+    context: RbacAuditContext = {},
+  ): Promise<void> {
+    const role = await this.findRoleById(roleId);
 
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_ASSIGNED,
@@ -254,11 +323,12 @@ export class RolesService {
     });
   }
 
-  async logRoleRevoked(roleId: string, targetUserId: string, context: RbacAuditContext = {}) {
-    const role = await this.roleRepository.findOne({ where: { id: roleId } });
-    if (!role) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
-    }
+  async logRoleRevoked(
+    roleId: string,
+    targetUserId: string,
+    context: RbacAuditContext = {},
+  ): Promise<void> {
+    const role = await this.findRoleById(roleId);
 
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_REVOKED,
@@ -269,12 +339,6 @@ export class RolesService {
       metadata: { targetUserId, roleName: role.name },
     });
   }
-
-  // ── Audit helper ───────────────────────────────────────────────────────────
-  //
-  // The audit log service swallows errors internally so audit failures can't
-  // break the calling operation. We keep a same-shape helper so all RBAC
-  // events flow into audit_logs with consistent category/severity.
 
   private async writeAudit(args: {
     action: AuditAction;
@@ -305,7 +369,6 @@ export class RolesService {
         },
       });
     } catch (err) {
-      // Audit failures must never block a permission/role mutation.
       this.logger.warn(
         `Audit log write failed for ${action} on role ${role.id}: ${(err as Error).message}`,
       );

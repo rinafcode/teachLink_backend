@@ -1,7 +1,20 @@
-jest.mock('bcrypt', () => ({
-  genSalt: jest.fn().mockResolvedValue('salt'),
-  hash: jest.fn().mockResolvedValue('hashed-password'),
-  compare: jest.fn().mockResolvedValue(true),
+import 'reflect-metadata';
+import { createHmac } from 'crypto';
+
+jest.mock('../users/entities/user.entity', () => ({
+  User: class User {},
+  UserStatus: {
+    ACTIVE: 'active',
+  },
+}));
+
+jest.mock('../security/audit/security-event-logger', () => ({
+  SecurityEventLogger: class SecurityEventLogger {},
+  SecurityEventType: {
+    AUTH_FAILURE: 'AUTH_FAILURE',
+    TOKEN_REUSE: 'TOKEN_REUSE',
+    ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+  },
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
@@ -9,10 +22,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { User, UserStatus } from '../users/entities/user.entity';
+import { SecurityEventLogger, SecurityEventType } from '../security/audit/security-event-logger';
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -46,6 +59,10 @@ const mockBlacklistService = {
   isBlacklisted: jest.fn(),
 };
 
+const mockSecurityEventLogger = {
+  emit: jest.fn(),
+};
+
 const mockConfigService = {
   get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
     if (key === 'BCRYPT_ROUNDS') return 10;
@@ -63,6 +80,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: TokenBlacklistService, useValue: mockBlacklistService },
+        { provide: SecurityEventLogger, useValue: mockSecurityEventLogger },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
@@ -86,7 +104,6 @@ describe('AuthService', () => {
       const result = await service.login(makeUser());
 
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
-      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(mockUserRepo.update).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({ refreshToken: expect.any(String) }),
@@ -145,6 +162,13 @@ describe('AuthService', () => {
       });
 
       await expect(service.refreshTokens('bad-token')).rejects.toThrow(UnauthorizedException);
+      expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.AUTH_FAILURE,
+          severity: 'medium',
+          details: expect.objectContaining({ reason: 'invalid_or_expired_refresh_token' }),
+        }),
+      );
     });
 
     it('throws UnauthorizedException when the user does not exist', async () => {
@@ -162,13 +186,22 @@ describe('AuthService', () => {
     });
 
     it('revokes all tokens and throws when a blacklisted token is reused', async () => {
+      const rawToken = 'revoked-token';
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOne.mockResolvedValue(makeUser());
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ refreshToken: hmacToken(rawToken) }));
       mockBlacklistService.isBlacklisted.mockResolvedValue(true);
       mockUserRepo.update.mockResolvedValue(undefined);
 
-      await expect(service.refreshTokens('revoked-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens(rawToken)).rejects.toThrow(UnauthorizedException);
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
+      expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.TOKEN_REUSE,
+          userId: 'user-1',
+          severity: 'critical',
+          details: expect.objectContaining({ jti: 'jti-abc' }),
+        }),
+      );
     });
 
     it('throws UnauthorizedException when the user status is SUSPENDED', async () => {
@@ -185,9 +218,16 @@ describe('AuthService', () => {
       await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
     });
 
+    function hmacToken(token: string): string {
+      const secret =
+        process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+      return createHmac('sha256', secret).update(token).digest('hex');
+    }
+
     it('issues new tokens when the refresh token is valid and not blacklisted', async () => {
+      const rawToken = 'valid-token';
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOne.mockResolvedValue(makeUser());
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ refreshToken: hmacToken(rawToken) }));
       mockBlacklistService.isBlacklisted.mockResolvedValue(false);
       mockBlacklistService.addToBlacklist.mockResolvedValue(undefined);
       mockJwtService.signAsync
@@ -195,9 +235,25 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('new-refresh');
       mockUserRepo.update.mockResolvedValue(undefined);
 
-      const result = await service.refreshTokens('valid-token');
+      const result = await service.refreshTokens(rawToken);
 
       expect(result).toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh' });
+    });
+
+    it('throws UnauthorizedException when the refresh token hash does not match', async () => {
+      mockJwtService.verify.mockReturnValue(validDecoded);
+      mockUserRepo.findOne.mockResolvedValue(
+        makeUser({ refreshToken: hmacToken('some-other-token') }),
+      );
+
+      await expect(service.refreshTokens('wrong-token')).rejects.toThrow(UnauthorizedException);
+      expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.AUTH_FAILURE,
+          severity: 'high',
+          details: expect.objectContaining({ reason: 'refresh_token_hash_mismatch' }),
+        }),
+      );
     });
   });
 });

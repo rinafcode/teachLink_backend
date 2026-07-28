@@ -7,6 +7,7 @@ This guide explains how to access and use the interactive API documentation for 
 ### Local Development
 
 1. **Start the development server**:
+
    ```bash
    npm run start:dev
    ```
@@ -19,6 +20,7 @@ This guide explains how to access and use the interactive API documentation for 
 ### Production
 
 Access the documentation at:
+
 ```
 https://api.teachlink.com/api/docs
 ```
@@ -81,6 +83,7 @@ The documentation is configured with `persistAuthorization: true`, so your token
 #### Request/Response Schemas
 
 Each endpoint displays:
+
 - **Request body schema** with field descriptions
 - **Response schemas** for different status codes
 - **Data types** and validation rules
@@ -89,6 +92,7 @@ Each endpoint displays:
 #### Model Definitions
 
 Click on schema names (e.g., `RegisterDto`, `User`) to view:
+
 - All available fields
 - Data types
 - Required fields
@@ -106,6 +110,7 @@ For each endpoint, Swagger UI can generate client code in multiple languages:
 3. **Find "Code_samples"** or use external tools
 
 Supported languages:
+
 - cURL
 - JavaScript (Fetch, Axios)
 - Python (Requests)
@@ -205,17 +210,20 @@ Swagger UI validates your requests against the schema before sending:
 After executing a request, you can view:
 
 #### Response Body
+
 - **Pretty-printed JSON**
 - **Syntax highlighting**
 - **Collapsible nested objects**
 
 #### Response Headers
+
 - **Content-Type**
 - **Cache-Control**
 - **Rate limit headers**
 - **Custom headers**
 
 #### HTTP Status
+
 - **Status code** (200, 201, 400, 401, etc.)
 - **Status message** (OK, Created, Bad Request, etc.)
 - **Response time**
@@ -234,6 +242,7 @@ Share these links with team members for quick navigation.
 ### 4. Dark Mode
 
 Toggle between light and dark themes:
+
 - Click the **theme icon** in the top right corner
 - Choose **Light** or **Dark** mode
 
@@ -247,14 +256,17 @@ export function setupSwagger(app: INestApplication): void {
     .setTitle('TeachLink API')
     .setDescription('TeachLink backend API documentation')
     .setVersion('1.0')
-    .addBearerAuth({
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      name: 'Authorization',
-      description: 'Enter JWT token',
-      in: 'header',
-    }, 'access-token')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'access-token',
+    )
     .addTag('Auth', 'Authentication and authorization endpoints')
     .addTag('Users', 'User management endpoints')
     .addTag('Courses', 'Course management endpoints')
@@ -300,15 +312,15 @@ export class UsersController {
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @ApiProperty({ 
+  @ApiProperty({
     example: 'john.doe@example.com',
-    description: 'User email address'
+    description: 'User email address',
   })
   email: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: 'StrongPass123!',
-    description: 'User password (min 8 chars)'
+    description: 'User password (min 8 chars)',
   })
   password: string;
 }
@@ -356,7 +368,7 @@ Modern API documentation with a beautiful UI:
   <head>
     <title>TeachLink API Docs</title>
     <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css" />
   </head>
   <body>
     <elements-api
@@ -381,7 +393,7 @@ Modern API documentation with a beautiful UI:
 
 ```typescript
 // Good
-@ApiOperation({ 
+@ApiOperation({
   summary: 'Create a new course',
   description: 'Creates a new course with the provided details. Only instructors and admins can create courses.'
 })
@@ -394,18 +406,18 @@ Modern API documentation with a beautiful UI:
 
 ```typescript
 @Post()
-@ApiResponse({ 
-  status: 201, 
+@ApiResponse({
+  status: 201,
   description: 'Course created successfully',
   type: Course
 })
-@ApiResponse({ 
-  status: 400, 
-  description: 'Bad request - validation error' 
+@ApiResponse({
+  status: 400,
+  description: 'Bad request - validation error'
 })
-@ApiResponse({ 
-  status: 401, 
-  description: 'Unauthorized - invalid token' 
+@ApiResponse({
+  status: 401,
+  description: 'Unauthorized - invalid token'
 })
 create(@Body() createCourseDto: CreateCourseDto) {
   return this.coursesService.create(createCourseDto);
@@ -415,13 +427,13 @@ create(@Body() createCourseDto: CreateCourseDto) {
 ### 4. Provide Realistic Examples
 
 ```typescript
-@ApiProperty({ 
+@ApiProperty({
   example: 'john.doe@example.com',
   description: 'User email address'
 })
 email: string;
 
-@ApiProperty({ 
+@ApiProperty({
   example: 49.99,
   description: 'Course price in USD',
   minimum: 0
@@ -434,6 +446,7 @@ price: number;
 ### Issue: Swagger UI not loading
 
 **Solution**:
+
 ```bash
 # Check if server is running
 npm run start:dev
@@ -447,6 +460,7 @@ curl http://localhost:3000/api/docs
 ### Issue: Authentication not working
 
 **Solution**:
+
 1. Ensure token format is correct: `Bearer <token>`
 2. Check if token is expired
 3. Verify token includes required claims
@@ -455,6 +469,7 @@ curl http://localhost:3000/api/docs
 ### Issue: Endpoints not showing
 
 **Solution**:
+
 1. Verify controller has `@ApiTags` decorator
 2. Check if module is imported in app.module.ts
 3. Ensure routes are properly configured
@@ -463,6 +478,7 @@ curl http://localhost:3000/api/docs
 ### Issue: Schemas not displaying
 
 **Solution**:
+
 1. Ensure DTOs have `@ApiProperty` decorators
 2. Check TypeScript compilation
 3. Verify imports in controller

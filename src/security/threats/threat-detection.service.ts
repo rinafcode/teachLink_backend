@@ -1,11 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis } from 'ioredis';
 import { ForbiddenOperationException } from '../../common/exceptions/app.exceptions';
+import { SecurityEventLogger, SecurityEventType } from '../audit/security-event-logger';
 import { THREAT_REDIS_CLIENT } from './threat-detection.constants';
 
 /**
- * Issue #798 — Per-IP failed-attempt counter.
+ * Issue #798: Per-IP failed-attempt counter.
  *
  * Why Redis, not an in-process `Map`:
  *  - In a horizontally-scaled deployment, each pod had its own counter.
@@ -19,7 +20,7 @@ import { THREAT_REDIS_CLIENT } from './threat-detection.constants';
  *  - On the first call (when `INCR` returns 1) we set `EXPIRE ${key} ttlSeconds`
  *    so the counter auto-clears once the window elapses.
  *  - Threshold (count above which we refuse), window length, and key prefix
- *    are configurable via {@link ConfigService}.
+ *    are configurable via ConfigService.
  */
 @Injectable()
 export class ThreatDetectionService {
@@ -35,6 +36,7 @@ export class ThreatDetectionService {
   constructor(
     @Inject(THREAT_REDIS_CLIENT) private readonly redis: Redis,
     private readonly configService: ConfigService,
+    @Optional() private readonly securityEventLogger?: SecurityEventLogger,
   ) {
     this.threshold = this.configService.get<number>(
       'THREAT_FAILED_ATTEMPT_THRESHOLD',
@@ -57,10 +59,10 @@ export class ThreatDetectionService {
   /**
    * Refuses the request if the IP currently has more than `threshold` failures
    * recorded in the rolling Redis window. A failure count strictly greater than
-   * the configured threshold triggers {@link ForbiddenOperationException}.
+   * the configured threshold triggers ForbiddenOperationException.
    *
-   * Note: this is now async because the underlying store is remote. Callers
-   * (guards, middleware) must await. We deliberately fail OPEN on Redis errors
+   * Note: this is async because the underlying store is remote. Callers
+   * (guards, middleware) must await. We deliberately fail open on Redis errors
    * so an outage cannot amplify load by blocking legitimate traffic.
    */
   async analyzeRequest(ip: string): Promise<void> {
@@ -75,7 +77,18 @@ export class ThreatDetectionService {
       );
       return;
     }
+
     if (count > this.threshold) {
+      this.securityEventLogger?.emit({
+        eventType: SecurityEventType.SUSPICIOUS_ACTIVITY,
+        ip,
+        severity: 'high',
+        details: {
+          reason: 'failed_attempt_threshold_exceeded',
+          attempts: count,
+          threshold: this.threshold,
+        },
+      });
       throw new ForbiddenOperationException('Suspicious activity detected');
     }
   }
@@ -84,22 +97,18 @@ export class ThreatDetectionService {
    * Atomically increments the IP's failure counter. On the first increment
    * (the INCR returned 1) we install the TTL so the counter auto-expires.
    *
-   * The TTL is set AFTER the INCR so a Redis outage between the two commands
-   * cannot leave behind a permanent counter — at worst the counter survives
-   * forever, which degrades to the same behaviour as the legacy in-memory
-   * map (a non-zero counter is still better than nothing).
+   * The TTL is set after the INCR so a Redis outage between the two commands
+   * cannot leave behind a permanent counter. At worst the counter survives
+   * longer than intended, which is still preferable to losing all tracking.
    */
   async recordFailure(ip: string): Promise<void> {
     const key = this.keyFor(ip);
     try {
       const count = await this.redis.incr(key);
       if (count === 1) {
-        // First failure in this window — arm the auto-expiry.
         await this.redis.expire(key, this.windowSeconds);
       }
     } catch (err) {
-      // Recording failures must not throw — losing a single increment is
-      // acceptable; throwing would amplify the very load we are tracking.
       this.logger.error(`recordFailure: Redis INCR failed (${(err as Error).message}); dropping.`);
     }
   }
@@ -119,16 +128,12 @@ export class ThreatDetectionService {
     }
   }
 
-  // ─── Test introspection helpers ─────────────────────────────────────────
-  // Kept on the public so the unit suite can validate the key shape and
-  // existence semantics without poking at Redis internals.
-
-  /** Test introspection helper — not used by production callers. */
+  /** Test introspection helper: not used by production callers. */
   resolveKey(ip: string): string {
     return this.keyFor(ip);
   }
 
-  /** Test introspection helper — composes `KEY`-then-`EXISTS`. */
+  /** Test introspection helper: composes key and EXISTS. */
   async has(ip: string): Promise<boolean> {
     try {
       const result = await this.redis.exists(this.keyFor(ip));

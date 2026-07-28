@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Brackets } from 'typeorm';
 import { Course } from '../courses/entities/course.entity';
 import { LRUCache } from 'lru-cache';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 
 export interface SearchFilters {
   category?: string | string[];
@@ -55,6 +56,7 @@ export class SearchService {
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
     private readonly elasticsearch: NestElasticsearchService,
+    @Optional() private readonly isolationService?: IsolationService,
     @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache,
   ) {
     this.autocompleteCache = new LRUCache<string, AutocompleteResult[]>({
@@ -79,15 +81,12 @@ export class SearchService {
       if (cached) return cached;
     }
 
-    // Try the Elasticsearch fast-path first when present and the query is
-    // non-empty. Fall back to PostgreSQL FTS below on any failure so the API
-    // still returns results during ES outages.
-    if (safeQuery) {
-      const esResults = await this.tryElasticsearch(safeQuery, filters, page, limit, sort);
-      if (esResults) {
-        if (this.cacheManager) await this.cacheManager.set(cacheKey, esResults, 30);
-        return esResults;
-      }
+    // Try the Elasticsearch fast-path first when present. Fall back to PostgreSQL FTS
+    // below on any failure so the API still returns results during ES outages.
+    const esResults = await this.tryElasticsearch(safeQuery, filters, page, limit, sort);
+    if (esResults) {
+      if (this.cacheManager) await this.cacheManager.set(cacheKey, esResults, 30);
+      return esResults;
     }
 
     try {
@@ -191,6 +190,10 @@ export class SearchService {
     };
   }
 
+  buildTenantFilter(tenantId: string): { term: { tenantId: string } } {
+    return { term: { tenantId } };
+  }
+
   // ── Private helpers ────────────────────────────────────────────────────────
 
   /**
@@ -208,14 +211,27 @@ export class SearchService {
   ): Promise<any | null> {
     if (!this.elasticsearch) return null;
     try {
+      const tenantId = this.isolationService?.getTenantId() ?? '';
+      const mustClauses: any[] = [];
+      if (query) {
+        mustClauses.push({
+          multi_match: {
+            query,
+            fields: ['title^3', 'description', 'category^2'],
+          },
+        });
+      } else {
+        mustClauses.push({ match_all: {} });
+      }
+
       const result = await this.elasticsearch.search({
         index: 'courses',
         from: (page - 1) * limit,
         size: limit,
         query: {
-          multi_match: {
-            query,
-            fields: ['title^3', 'description', 'category^2'],
+          bool: {
+            must: mustClauses,
+            filter: [this.buildTenantFilter(tenantId)],
           },
         },
       });

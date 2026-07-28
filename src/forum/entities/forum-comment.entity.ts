@@ -6,10 +6,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { ForumThread } from './forum-thread.entity';
 
 @Entity('forum_comments')
+@Index(['threadId', 'createdAt'])
+@Index(['parentId'])
 export class ForumComment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import Redis from 'ioredis';
+import { SESSION_REDIS_CLIENT } from '../session/session.constants';
 
 export interface PresenceInfo {
   userId: string;
@@ -8,41 +10,54 @@ export interface PresenceInfo {
   cursorPosition?: number;
 }
 
+const PRESENCE_KEY_PREFIX = 'collab:presence:';
+
 @Injectable()
 export class PresenceService {
-  // sessionId -> userId -> PresenceInfo
-  private readonly sessions = new Map<string, Map<string, PresenceInfo>>();
+  private readonly logger = new Logger(PresenceService.name);
 
-  join(sessionId: string, userId: string): PresenceInfo {
-    if (!this.sessions.has(sessionId)) {
-      this.sessions.set(sessionId, new Map());
-    }
+  constructor(@Inject(SESSION_REDIS_CLIENT) private readonly redis: Redis) {}
+
+  async join(sessionId: string, userId: string): Promise<PresenceInfo> {
     const now = new Date();
     const info: PresenceInfo = { userId, sessionId, joinedAt: now, lastSeenAt: now };
-    this.sessions.get(sessionId)!.set(userId, info);
+    const key = `${PRESENCE_KEY_PREFIX}${sessionId}`;
+    await this.redis.hset(key, userId, JSON.stringify(info));
     return info;
   }
 
-  leave(sessionId: string, userId: string): void {
-    this.sessions.get(sessionId)?.delete(userId);
-    if (this.sessions.get(sessionId)?.size === 0) {
-      this.sessions.delete(sessionId);
+  async leave(sessionId: string, userId: string): Promise<void> {
+    const key = `${PRESENCE_KEY_PREFIX}${sessionId}`;
+    await this.redis.hdel(key, userId);
+    const remaining = await this.redis.hlen(key);
+    if (remaining === 0) {
+      await this.redis.del(key);
     }
   }
 
-  updateCursor(sessionId: string, userId: string, cursorPosition: number): void {
-    const info = this.sessions.get(sessionId)?.get(userId);
-    if (info) {
-      info.cursorPosition = cursorPosition;
-      info.lastSeenAt = new Date();
-    }
+  async updateCursor(sessionId: string, userId: string, cursorPosition: number): Promise<void> {
+    const key = `${PRESENCE_KEY_PREFIX}${sessionId}`;
+    const raw = await this.redis.hget(key, userId);
+    if (!raw) return;
+    const info: PresenceInfo = JSON.parse(raw);
+    info.cursorPosition = cursorPosition;
+    info.lastSeenAt = new Date();
+    await this.redis.hset(key, userId, JSON.stringify(info));
   }
 
-  getPresence(sessionId: string): PresenceInfo[] {
-    return Array.from(this.sessions.get(sessionId)?.values() ?? []);
+  async getPresence(sessionId: string): Promise<PresenceInfo[]> {
+    const key = `${PRESENCE_KEY_PREFIX}${sessionId}`;
+    const entries = await this.redis.hgetall(key);
+    return Object.values(entries).map((raw) => {
+      const info: PresenceInfo = JSON.parse(raw);
+      info.joinedAt = new Date(info.joinedAt);
+      info.lastSeenAt = new Date(info.lastSeenAt);
+      return info;
+    });
   }
 
-  isPresent(sessionId: string, userId: string): boolean {
-    return this.sessions.get(sessionId)?.has(userId) ?? false;
+  async isPresent(sessionId: string, userId: string): Promise<boolean> {
+    const key = `${PRESENCE_KEY_PREFIX}${sessionId}`;
+    return (await this.redis.hexists(key, userId)) === 1;
   }
 }

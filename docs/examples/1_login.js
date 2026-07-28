@@ -6,7 +6,7 @@ async function login() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({"email":"learner@example.com","password":"Password123!"}),
+      body: JSON.stringify({ email: 'learner@example.com', password: 'Password123!' }),
     });
 
     if (!response.ok) {

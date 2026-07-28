@@ -6,6 +6,7 @@ import {
   MessageBody,
   ConnectedSocket,
   OnGatewayDisconnect,
+  OnGatewayConnection,
 } from '@nestjs/websockets';
 import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 import { Server, Socket } from 'socket.io';
@@ -15,49 +16,57 @@ import { OtCrdtService, Operation } from './ot-crdt.service';
 import { PresenceService } from './presence.service';
 import { ChangeHistoryService } from './change-history.service';
 import { WsPayloadSizeGuardService } from './guards/ws-payload-size-guard.service';
+import { RedisSocketRegistryService } from './redis-socket-registry.service';
 
 @UseGuards(WsJwtAuthGuard)
 @WebSocketGateway({ namespace: '/collaboration', cors: { origin: '*' } })
-export class CollaborationGateway implements OnGatewayDisconnect {
+export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(CollaborationGateway.name);
-  // socketId -> { sessionId, userId }
-  private readonly socketMap = new Map<string, { sessionId: string; userId: string }>();
 
   constructor(
     private readonly otCrdt: OtCrdtService,
     private readonly presence: PresenceService,
     private readonly history: ChangeHistoryService,
     private readonly payloadSizeGuard: WsPayloadSizeGuardService,
+    private readonly socketRegistry: RedisSocketRegistryService,
   ) {}
 
-  handleDisconnect(client: Socket): void {
-    const info = this.socketMap.get(client.id);
+  async handleConnection(client: Socket): Promise<void> {
+    this.logger.debug(`Client connected: ${client.id}`);
+  }
+
+  async handleDisconnect(client: Socket): Promise<void> {
+    const info = await this.socketRegistry.get(client.id);
     if (info) {
-      this.presence.leave(info.sessionId, info.userId);
-      this.socketMap.delete(client.id);
+      await this.presence.leave(info.sessionId, info.userId);
+      await this.socketRegistry.setGraceDisconnect(client.id, info);
+
       this.server.to(info.sessionId).emit(COLLABORATION_EVENTS.USER_JOINED, {
         userId: info.userId,
         event: 'left',
-        presence: this.presence.getPresence(info.sessionId),
+        presence: await this.presence.getPresence(info.sessionId),
       });
     }
   }
 
   @SubscribeMessage(COLLABORATION_EVENTS.JOIN_SESSION)
-  handleJoin(@MessageBody() dto: JoinSessionDto, @ConnectedSocket() client: Socket) {
+  async handleJoin(@MessageBody() dto: JoinSessionDto, @ConnectedSocket() client: Socket) {
     this.payloadSizeGuard.validate(dto);
 
-    client.join(dto.sessionId);
-    this.socketMap.set(client.id, { sessionId: dto.sessionId, userId: dto.userId });
-    const presenceInfo = this.presence.join(dto.sessionId, dto.userId);
+    await client.join(dto.sessionId);
+    await this.socketRegistry.set(client.id, {
+      sessionId: dto.sessionId,
+      userId: dto.userId,
+    });
+    const presenceInfo = await this.presence.join(dto.sessionId, dto.userId);
 
     this.server.to(dto.sessionId).emit(COLLABORATION_EVENTS.USER_JOINED, {
       userId: dto.userId,
       event: 'joined',
-      presence: this.presence.getPresence(dto.sessionId),
+      presence: await this.presence.getPresence(dto.sessionId),
     });
 
     return {
@@ -65,7 +74,7 @@ export class CollaborationGateway implements OnGatewayDisconnect {
       data: {
         sessionId: dto.sessionId,
         revision: this.otCrdt.currentRevision(dto.sessionId),
-        presence: this.presence.getPresence(dto.sessionId),
+        presence: await this.presence.getPresence(dto.sessionId),
         presenceInfo,
       },
     };
@@ -82,7 +91,6 @@ export class CollaborationGateway implements OnGatewayDisconnect {
     const revision = this.otCrdt.nextRevision(dto.sessionId);
     const op: Operation = { ...incomingOp, sessionId: dto.sessionId, userId: dto.userId, revision };
 
-    // Transform against any concurrent ops at the same revision
     const concurrent = this.history
       .getHistory(dto.sessionId, revision - 1)
       .filter((e) => e.revision === revision && e.operation.userId !== dto.userId);
@@ -95,7 +103,6 @@ export class CollaborationGateway implements OnGatewayDisconnect {
 
     this.history.record(finalOp);
 
-    // Broadcast to all other clients in the session
     client.to(dto.sessionId).emit(COLLABORATION_EVENTS.OPERATION_APPLIED, {
       operation: finalOp,
       revision,
