@@ -23,6 +23,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Core Application
 
 ### NODE_ENV
+
 - **Status:** Optional
 - **Default:** `development`
 - **Valid Values:** `development`, `production`, `test`, `staging`
@@ -35,6 +36,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Staging: `NODE_ENV=staging` (test-like setup with production DB)
 
 ### PORT
+
 - **Status:** Optional
 - **Default:** `3000`
 - **Valid Range:** 1-65535
@@ -46,6 +48,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `PORT=443` (HTTPS, requires reverse proxy)
 
 ### APP_URL
+
 - **Status:** Optional
 - **Default:** `http://localhost:3000`
 - **Type:** URL/String
@@ -56,6 +59,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Production: `APP_URL=https://api.teachlink.io`
 
 ### SERVICE_NAME
+
 - **Status:** Optional
 - **Default:** `teachlink-backend`
 - **Type:** String
@@ -65,6 +69,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SERVICE_NAME=teachlink-backend-staging`
 
 ### SHUTDOWN_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `30000` (30 seconds)
 - **Valid Range:** 5000-120000 ms
@@ -75,6 +80,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SHUTDOWN_TIMEOUT_MS=60000` (longer timeout for heavy workloads)
 
 ### CLUSTER_MODE
+
 - **Status:** Optional
 - **Default:** `false`
 - **Valid Values:** `true`, `false`
@@ -86,6 +92,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `CLUSTER_MODE=false` (single process)
 
 ### CLUSTER_WORKERS
+
 - **Status:** Optional
 - **Default:** Number of CPU cores
 - **Valid Range:** 1+
@@ -100,6 +107,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Database Configuration
 
 ### DATABASE_HOST
+
 - **Status:** Required
 - **Type:** String (hostname or IP)
 - **Description:** PostgreSQL primary database host
@@ -109,6 +117,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - AWS RDS: `DATABASE_HOST=prod-db.c9akciq32.us-east-1.rds.amazonaws.com`
 
 ### DATABASE_PORT
+
 - **Status:** Required
 - **Default:** Not applied (must be explicitly set)
 - **Valid Range:** 1-65535
@@ -119,6 +128,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Non-standard: `DATABASE_PORT=5433`
 
 ### DATABASE_USER
+
 - **Status:** Required
 - **Type:** String
 - **Description:** PostgreSQL username for primary database
@@ -128,6 +138,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_USER=teachlink_prod` (production)
 
 ### DATABASE_PASSWORD
+
 - **Status:** Required
 - **Type:** String
 - **Description:** PostgreSQL password for primary database
@@ -136,6 +147,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Minimum complexity recommended for production
 
 ### DATABASE_NAME
+
 - **Status:** Required
 - **Type:** String
 - **Description:** Primary database name
@@ -145,6 +157,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_NAME=teachlink_prod` (production)
 
 ### DATABASE_POOL_MAX
+
 - **Status:** Optional
 - **Default:** `30`
 - **Valid Range:** 1+
@@ -159,6 +172,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_POOL_MAX=50` (high traffic)
 
 ### DATABASE_POOL_MIN
+
 - **Status:** Optional
 - **Default:** `5`
 - **Valid Range:** 0+
@@ -170,6 +184,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_POOL_MIN=10` (pre-warm connections)
 
 ### DATABASE_POOL_ACQUIRE_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `10000` (10 seconds)
 - **Valid Range:** 1000-60000 ms
@@ -180,6 +195,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_POOL_ACQUIRE_TIMEOUT_MS=5000` (faster timeout)
 
 ### DATABASE_POOL_IDLE_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `30000` (30 seconds)
 - **Valid Range:** 1000-300000 ms
@@ -190,6 +206,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_POOL_IDLE_TIMEOUT_MS=60000` (keep connections longer)
 
 ### DATABASE_POOL_LEAK_THRESHOLD_MS
+
 - **Status:** Optional
 - **Default:** `60000` (60 seconds)
 - **Valid Range:** 5000-300000 ms
@@ -199,6 +216,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_POOL_LEAK_THRESHOLD_MS=60000`
 
 ### DATABASE_REPLICA_HOSTS
+
 - **Status:** Optional
 - **Type:** Comma-separated string
 - **Description:** Read replica host names (comma-separated)
@@ -208,6 +226,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Leave empty to disable replicas
 
 ### DATABASE_REPLICA_PORT
+
 - **Status:** Optional
 - **Default:** Same as DATABASE_PORT
 - **Type:** Integer
@@ -216,6 +235,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_REPLICA_PORT=5432`
 
 ### DATABASE_REPLICA_USER
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Username for read replica connections
@@ -224,30 +244,35 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `DATABASE_REPLICA_USER=teachlink_ro` (read-only user)
 
 ### DATABASE_REPLICA_PASSWORD
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Password for read replica connections
 - **Default:** Falls back to DATABASE_PASSWORD
 
 ### DATABASE_REPLICA_NAME
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Database name for replicas
 - **Default:** Falls back to DATABASE_NAME
 
 ### DB_DRAIN_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `15000` (15 seconds)
 - **Type:** Integer
 - **Description:** Grace period before force-closing connections on shutdown
 
 ### DB_FORCE_CLOSE_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `5000` (5 seconds)
 - **Type:** Integer
 - **Description:** Hard timeout for connection closure
 
 ### DB_WAIT_FOR_QUERIES
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
@@ -258,6 +283,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Authentication & Security
 
 ### JWT_SECRET
+
 - **Status:** Required
 - **Minimum Length:** 10 characters (32+ recommended)
 - **Type:** String
@@ -269,6 +295,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Rotation:** Can be rotated using JWT_SECRETS (comma-separated keys)
 
 ### JWT_SECRETS
+
 - **Status:** Optional
 - **Type:** Comma-separated string
 - **Description:** Multiple JWT secrets for key rotation (current key first)
@@ -277,6 +304,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Note:** When set, JWT_SECRET becomes optional
 
 ### JWT_EXPIRES_IN
+
 - **Status:** Optional
 - **Default:** `15m`
 - **Type:** String (with unit: s, m, h, d)
@@ -287,6 +315,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `JWT_EXPIRES_IN=900` (900 seconds)
 
 ### JWT_REFRESH_SECRET
+
 - **Status:** Required
 - **Minimum Length:** 10 characters (32+ recommended)
 - **Type:** String
@@ -294,6 +323,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Security Note:** Must be different from JWT_SECRET
 
 ### JWT_REFRESH_EXPIRES_IN
+
 - **Status:** Optional
 - **Default:** `7d`
 - **Type:** String (with unit)
@@ -303,6 +333,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `JWT_REFRESH_EXPIRES_IN=30d` (30 days)
 
 ### ENCRYPTION_SECRET
+
 - **Status:** Required
 - **Minimum Length:** 32 characters
 - **Type:** String
@@ -312,6 +343,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Must be 32 chars: `ENCRYPTION_SECRET=0123456789abcdef0123456789abcdef`
 
 ### BCRYPT_ROUNDS
+
 - **Status:** Optional
 - **Default:** `10`
 - **Valid Range:** 4-15
@@ -327,6 +359,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `BCRYPT_ROUNDS=4` (testing only)
 
 ### AUTH0_AUDIENCE
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Auth0 API audience identifier
@@ -334,6 +367,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AUTH0_AUDIENCE=https://api.teachlink.io`
 
 ### AUTH0_ISSUER_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Auth0 issuer URL
@@ -345,6 +379,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## External Services
 
 ### SMTP_HOST
+
 - **Status:** Required
 - **Type:** String (hostname or IP)
 - **Description:** SMTP server for email sending
@@ -353,6 +388,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Production: `SMTP_HOST=smtp.sendgrid.net` or `smtp.mailtrap.io`
 
 ### SMTP_PORT
+
 - **Status:** Required
 - **Valid Range:** 1-65535
 - **Type:** Integer
@@ -366,6 +402,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SMTP_PORT=465` (SSL)
 
 ### SMTP_SECURE
+
 - **Status:** Optional
 - **Default:** `false`
 - **Valid Values:** `true`, `false`
@@ -376,6 +413,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SMTP_SECURE=true` (port 465 with implicit TLS)
 
 ### SMTP_USER
+
 - **Status:** Required
 - **Type:** String
 - **Description:** SMTP authentication username
@@ -384,12 +422,14 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SMTP_USER=api_user_123`
 
 ### SMTP_PASS
+
 - **Status:** Required
 - **Type:** String
 - **Description:** SMTP authentication password
 - **Security Note:** Use AWS Secrets Manager in production
 
 ### EMAIL_FROM
+
 - **Status:** Required
 - **Type:** Email address
 - **Description:** Default "from" email address
@@ -398,6 +438,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `EMAIL_FROM=support@teachlink.io`
 
 ### EMAIL_FROM_NAME
+
 - **Status:** Optional
 - **Default:** `TeachLink`
 - **Type:** String
@@ -406,6 +447,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `EMAIL_FROM_NAME=TeachLink Support`
 
 ### SENDGRID_API_KEY
+
 - **Status:** Required
 - **Type:** String
 - **Description:** SendGrid API key for email service
@@ -414,6 +456,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SENDGRID_API_KEY=SG.xxxxxxxxxxxxx`
 
 ### SENDGRID_HEALTH_URL
+
 - **Status:** Optional
 - **Default:** `https://api.sendgrid.com/v3/health`
 - **Type:** URL
@@ -421,6 +464,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Note:** Used for service health monitoring
 
 ### STRIPE_SECRET_KEY
+
 - **Status:** Required
 - **Type:** String
 - **Description:** Stripe secret API key
@@ -430,6 +474,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Production: `STRIPE_SECRET_KEY=sk_live_...`
 
 ### STRIPE_WEBHOOK_SECRET
+
 - **Status:** Required
 - **Type:** String
 - **Description:** Stripe webhook signing secret
@@ -438,6 +483,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `STRIPE_WEBHOOK_SECRET=whsec_...`
 
 ### STRIPE_HEALTH_URL
+
 - **Status:** Optional
 - **Default:** `https://api.stripe.com/v1/balance`
 - **Type:** URL
@@ -448,6 +494,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Storage & CDN
 
 ### AWS_ACCESS_KEY_ID
+
 - **Status:** Required
 - **Type:** String
 - **Description:** AWS IAM access key ID
@@ -456,12 +503,14 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_ACCESS_KEY_ID=AKIA...`
 
 ### AWS_SECRET_ACCESS_KEY
+
 - **Status:** Required
 - **Type:** String
 - **Description:** AWS IAM secret access key
 - **Security Note:** Use AWS Secrets Manager or IAM role in production
 
 ### AWS_REGION
+
 - **Status:** Optional
 - **Default:** `us-east-1`
 - **Type:** String
@@ -472,6 +521,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_REGION=eu-west-1` (Europe)
 
 ### AWS_S3_BUCKET
+
 - **Status:** Required
 - **Type:** String
 - **Description:** S3 bucket for file storage
@@ -480,16 +530,19 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_S3_BUCKET=teachlink-prod`
 
 ### AWS_S3_BUCKET_NAME
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Alternative S3 bucket name (fallback)
 
 ### AWS_S3_BUCKET_SECONDARY
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Secondary S3 bucket for backups/replicas
 
 ### AWS_KMS_KEY_ID
+
 - **Status:** Optional
 - **Type:** String (KMS key ARN or alias)
 - **Description:** KMS key for S3 encryption
@@ -498,6 +551,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_KMS_KEY_ID=alias/teachlink-prod`
 
 ### AWS_CLOUDFRONT_DISTRIBUTION_ID
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** CloudFront distribution ID for CDN cache invalidation
@@ -505,6 +559,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_CLOUDFRONT_DISTRIBUTION_ID=E123ABCDEF`
 
 ### AWS_SQS_NOTIFICATION_QUEUE_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** SQS queue for notifications
@@ -512,6 +567,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_SQS_NOTIFICATION_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/123456789/teachlink-notifications`
 
 ### AWS_SNS_NOTIFICATION_TOPIC_ARN
+
 - **Status:** Optional
 - **Type:** ARN
 - **Description:** SNS topic for notifications
@@ -519,12 +575,14 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `AWS_SNS_NOTIFICATION_TOPIC_ARN=arn:aws:sns:us-east-1:123456789:teachlink-notifications`
 
 ### AWS_HEALTH_URL
+
 - **Status:** Optional
 - **Default:** `https://sts.amazonaws.com`
 - **Type:** URL
 - **Description:** AWS health check endpoint
 
 ### CDN_ENABLED
+
 - **Status:** Optional
 - **Default:** `false`
 - **Valid Values:** `true`, `false`
@@ -532,6 +590,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Description:** Enable CDN for static assets
 
 ### CDN_DOMAIN
+
 - **Status:** Optional (required if CDN_ENABLED=true)
 - **Type:** String (domain name)
 - **Description:** CDN domain for static assets
@@ -540,18 +599,21 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `CDN_DOMAIN=d111111abcdef8.cloudfront.net`
 
 ### CDN_IMMUTABLE_MAX_AGE
+
 - **Status:** Optional
 - **Default:** `31536000` (1 year in seconds)
 - **Type:** Integer (seconds)
 - **Description:** Cache duration for immutable assets (versioned)
 
 ### CDN_HTML_MAX_AGE
+
 - **Status:** Optional
 - **Default:** `300` (5 minutes)
 - **Type:** Integer (seconds)
 - **Description:** Cache duration for HTML files (should be short)
 
 ### CDN_SWR
+
 - **Status:** Optional
 - **Default:** `60` (1 minute)
 - **Type:** Integer (seconds)
@@ -562,6 +624,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Messaging & Notifications
 
 ### REDIS_HOST
+
 - **Status:** Required
 - **Type:** String (hostname or IP)
 - **Description:** Redis server for caching and job queue
@@ -570,6 +633,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - Production: `REDIS_HOST=redis.internal`
 
 ### REDIS_PORT
+
 - **Status:** Required
 - **Default:** Not applied (must be explicitly set)
 - **Valid Range:** 1-65535
@@ -579,6 +643,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `REDIS_PORT=6379` (default)
 
 ### REDIS_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Full Redis URL (alternative to REDIS_HOST/PORT)
@@ -588,6 +653,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `REDIS_URL=redis://:password@redis.internal:6379/1`
 
 ### QUEUE_REDIS_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Separate Redis URL for Bull job queue
@@ -595,6 +661,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `QUEUE_REDIS_URL=redis://localhost:6379/1` (use different DB)
 
 ### SLACK_WEBHOOK_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Slack incoming webhook for notifications
@@ -602,11 +669,13 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK`
 
 ### ALERT_SLACK_WEBHOOK_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Slack webhook for alert notifications (may differ from SLACK_WEBHOOK_URL)
 
 ### ALERT_EMAIL_RECIPIENTS
+
 - **Status:** Optional
 - **Type:** Comma-separated email addresses
 - **Description:** Email addresses for alert notifications
@@ -614,6 +683,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `ALERT_EMAIL_RECIPIENTS=ops@teachlink.io,oncall@teachlink.io`
 
 ### PAGERDUTY_INTEGRATION_KEY
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** PagerDuty integration key for incident management
@@ -623,6 +693,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Monitoring & Observability
 
 ### ELASTICSEARCH_NODE
+
 - **Status:** Optional
 - **Default:** `http://localhost:9200`
 - **Type:** URL
@@ -633,18 +704,21 @@ Complete reference for all environment variables used in TeachLink Backend.
   - AWS: `ELASTICSEARCH_NODE=https://domain-abc123.us-east-1.es.amazonaws.com`
 
 ### ELASTICSEARCH_USERNAME
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Elasticsearch basic auth username
 - **Note:** Use API key authentication instead in production
 
 ### ELASTICSEARCH_PASSWORD
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Elasticsearch basic auth password
 - **Security Note:** Use ELASTICSEARCH_API_KEY for cloud setups
 
 ### ELASTICSEARCH_API_KEY
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Elasticsearch API key (preferred over basic auth)
@@ -653,6 +727,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `ELASTICSEARCH_API_KEY=VnVhQ2ZHY0JDUDhwN2VER0...`
 
 ### ELASTICSEARCH_CA_FINGERPRINT
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** CA fingerprint for self-signed TLS certificates
@@ -660,18 +735,21 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `ELASTICSEARCH_CA_FINGERPRINT=d41d8cd98f00b204e9800998ecf8427e`
 
 ### ELASTICSEARCH_REQUEST_TIMEOUT
+
 - **Status:** Optional
 - **Default:** `30000` (30 seconds)
 - **Type:** Integer (milliseconds)
 - **Description:** Timeout for Elasticsearch requests
 
 ### ELASTICSEARCH_MAX_RETRIES
+
 - **Status:** Optional
 - **Default:** `3`
 - **Type:** Integer
 - **Description:** Max retries for failed Elasticsearch requests
 
 ### KIBANA_URL
+
 - **Status:** Optional
 - **Type:** URL
 - **Description:** Kibana URL for log dashboard links
@@ -680,6 +758,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `KIBANA_URL=https://kibana.internal`
 
 ### METRICS_ENABLED
+
 - **Status:** Optional
 - **Default:** `true`
 - **Valid Values:** `true`, `false`
@@ -687,12 +766,14 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Description:** Enable Prometheus metrics endpoint (/metrics)
 
 ### METRICS_PATH
+
 - **Status:** Optional
 - **Default:** `/metrics`
 - **Type:** String
 - **Description:** Path for Prometheus metrics scrape endpoint
 
 ### METRICS_AUTH_TOKEN
+
 - **Status:** Optional
 - **Type:** String
 - **Description:** Bearer token for /metrics endpoint authentication
@@ -703,6 +784,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 ## Session Management
 
 ### SESSION_SECRET
+
 - **Status:** Required
 - **Minimum Length:** 10 characters (32+ recommended)
 - **Type:** String
@@ -710,6 +792,7 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Security Note:** Use 32+ character random string in production
 
 ### SESSION_COOKIE_NAME
+
 - **Status:** Optional
 - **Default:** `teachlink.sid`
 - **Type:** String
@@ -718,6 +801,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SESSION_COOKIE_NAME=teachlink.sid`
 
 ### SESSION_PREFIX
+
 - **Status:** Optional
 - **Default:** `sess:`
 - **Type:** String
@@ -727,6 +811,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SESSION_PREFIX=session:` (alternative)
 
 ### SESSION_TTL_SECONDS
+
 - **Status:** Optional
 - **Default:** `604800` (7 days)
 - **Type:** Integer (seconds)
@@ -736,6 +821,7 @@ Complete reference for all environment variables used in TeachLink Backend.
   - `SESSION_TTL_SECONDS=86400` (1 day)
 
 ### SESSION_COOKIE_MAX_AGE_MS
+
 - **Status:** Optional
 - **Default:** `604800000` (7 days)
 - **Type:** Integer (milliseconds)
@@ -743,24 +829,28 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Note:** Should match SESSION_TTL_SECONDS
 
 ### SESSION_LOCK_TTL_MS
+
 - **Status:** Optional
 - **Default:** `5000` (5 seconds)
 - **Type:** Integer (milliseconds)
 - **Description:** Distributed lock timeout for session updates
 
 ### SESSION_LOCK_MAX_RETRIES
+
 - **Status:** Optional
 - **Default:** `5`
 - **Type:** Integer
 - **Description:** Max retries for acquiring session lock
 
 ### SESSION_LOCK_RETRY_DELAY_MS
+
 - **Status:** Optional
 - **Default:** `120` (120ms)
 - **Type:** Integer (milliseconds)
 - **Description:** Delay between session lock retry attempts
 
 ### STICKY_SESSIONS_REQUIRED
+
 - **Status:** Optional
 - **Default:** `true`
 - **Valid Values:** `true`, `false`
@@ -769,11 +859,12 @@ Complete reference for all environment variables used in TeachLink Backend.
 - **Note:** Set to false only if using distributed session store (Redis)
 
 ### TRUST_PROXY
+
 - **Status:** Optional
 - **Default:** `true`
 - **Valid Values:** `true`, `false`
 - **Type:** Boolean
-- **Description:** Trust proxy headers (X-Forwarded-*)
+- **Description:** Trust proxy headers (X-Forwarded-\*)
 - **Important:** Set to true when behind reverse proxy
 
 ---
@@ -783,168 +874,196 @@ Complete reference for all environment variables used in TeachLink Backend.
 All feature flags default to `true` unless otherwise noted.
 
 ### ENABLE_AUTH
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable authentication module (recommended: always true)
 
 ### ENABLE_SESSION_MANAGEMENT
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable session management (recommended: always true)
 
 ### ENABLE_PAYMENTS
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable Stripe payment processing
 
 ### ENABLE_AB_TESTING
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
 - **Description:** Enable A/B testing module
 
 ### ENABLE_DATA_WAREHOUSE
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
 - **Description:** Enable data warehouse features
 
 ### ENABLE_COLLABORATION
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable collaboration features
 
 ### ENABLE_MEDIA_PROCESSING
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable media/image processing
 
 ### ENABLE_BACKUP
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable backup functionality
 
 ### ENABLE_GRAPHQL
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
 - **Description:** Enable GraphQL API
 
 ### ENABLE_SYNC
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable data synchronization
 
 ### ENABLE_MIGRATIONS
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable database migrations
 
 ### ENABLE_RATE_LIMITING
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable API rate limiting
 
 ### ENABLE_OBSERVABILITY
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable observability/monitoring
 
 ### ENABLE_CACHING
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable caching layer
 
 ### ENABLE_FEATURE_FLAGS
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable feature flag management
 
 ### ENABLE_SEARCH
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable search functionality
 
 ### ENABLE_NOTIFICATIONS
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable notification system
 
 ### ENABLE_EMAIL_MARKETING
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable email marketing features
 
 ### ENABLE_GAMIFICATION
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable gamification features
 
 ### ENABLE_ASSESSMENT
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable assessment module
 
 ### ENABLE_LEARNING_PATHS
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable learning paths
 
 ### ENABLE_MODERATION
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable content moderation
 
 ### ENABLE_ORCHESTRATION
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable workflow orchestration
 
 ### ENABLE_SECURITY
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable security features
 
 ### ENABLE_TENANCY
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable multi-tenancy support
 
 ### ENABLE_CDN
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable CDN integration
 
 ### ENABLE_LOCALIZATION
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Enable i18n/localization
 
 ### ENABLE_MALWARE_SCANNING
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
@@ -955,6 +1074,7 @@ All feature flags default to `true` unless otherwise noted.
 ## Performance & Limits
 
 ### REQUEST_BODY_LIMIT
+
 - **Status:** Optional
 - **Default:** `1mb`
 - **Type:** String (with unit: b, kb, mb, gb)
@@ -965,6 +1085,7 @@ All feature flags default to `true` unless otherwise noted.
   - `REQUEST_BODY_LIMIT=512kb` (small requests)
 
 ### FILE_UPLOAD_MAX_BYTES
+
 - **Status:** Optional
 - **Default:** `10mb` (10,485,760 bytes)
 - **Type:** Byte size
@@ -974,6 +1095,7 @@ All feature flags default to `true` unless otherwise noted.
   - `FILE_UPLOAD_MAX_BYTES=52428800` (50MB)
 
 ### REQUEST_TIMEOUT
+
 - **Status:** Optional
 - **Default:** (application-specific)
 - **Type:** Integer (milliseconds)
@@ -983,42 +1105,49 @@ All feature flags default to `true` unless otherwise noted.
   - `REQUEST_TIMEOUT=60000` (1 minute)
 
 ### DATABASE_TIMEOUT
+
 - **Status:** Optional
 - **Default:** (application-specific)
 - **Type:** Integer (milliseconds)
 - **Description:** Database query timeout
 
 ### THROTTLE_TTL
+
 - **Status:** Optional
 - **Default:** `60` (seconds)
 - **Type:** Integer
 - **Description:** Rate limiting window size
 
 ### THROTTLE_LIMIT
+
 - **Status:** Optional
 - **Default:** `10`
 - **Type:** Integer
 - **Description:** Max requests per THROTTLE_TTL window
 
 ### GRAPHQL_MAX_DEPTH
+
 - **Status:** Optional
 - **Default:** `10`
 - **Type:** Integer
 - **Description:** Max GraphQL query depth
 
 ### GRAPHQL_MAX_COMPLEXITY
+
 - **Status:** Optional
 - **Default:** `1000`
 - **Type:** Integer
 - **Description:** Max GraphQL query complexity score
 
 ### GRAPHQL_LIST_MULTIPLIER
+
 - **Status:** Optional
 - **Default:** `10`
 - **Type:** Integer
 - **Description:** Complexity multiplier for list fields
 
 ### IDEMPOTENCY_TTL_SECONDS
+
 - **Status:** Optional
 - **Default:** `86400` (24 hours)
 - **Valid Range:** 60+ seconds
@@ -1030,6 +1159,7 @@ All feature flags default to `true` unless otherwise noted.
 ## Secrets Management
 
 ### SECRET_PROVIDER
+
 - **Status:** Optional
 - **Default:** `env`
 - **Valid Values:** `env`, `aws`, `vault`
@@ -1041,6 +1171,7 @@ All feature flags default to `true` unless otherwise noted.
   - `SECRET_PROVIDER=vault` (HashiCorp Vault)
 
 ### SECRET_CACHE_TTL_MS
+
 - **Status:** Optional
 - **Default:** `300000` (5 minutes)
 - **Valid Range:** 1000+
@@ -1048,6 +1179,7 @@ All feature flags default to `true` unless otherwise noted.
 - **Description:** Cache TTL for secrets retrieved from manager
 
 ### SECRETS_TO_ROTATE
+
 - **Status:** Optional
 - **Type:** Comma-separated string
 - **Description:** List of secret names to rotate
@@ -1055,6 +1187,7 @@ All feature flags default to `true` unless otherwise noted.
   - `SECRETS_TO_ROTATE=JWT_SECRET,DATABASE_PASSWORD`
 
 ### VAULT_ADDR
+
 - **Status:** Optional (required if SECRET_PROVIDER=vault)
 - **Type:** URL
 - **Description:** HashiCorp Vault address
@@ -1062,12 +1195,14 @@ All feature flags default to `true` unless otherwise noted.
   - `VAULT_ADDR=https://vault.internal:8200`
 
 ### VAULT_TOKEN
+
 - **Status:** Optional (required if SECRET_PROVIDER=vault)
 - **Type:** String
 - **Description:** HashiCorp Vault authentication token
 - **Security Note:** Use IAM authentication in production
 
 ### VAULT_SECRET_PATH
+
 - **Status:** Optional
 - **Default:** `secret/data`
 - **Type:** String
@@ -1080,6 +1215,7 @@ All feature flags default to `true` unless otherwise noted.
 ## Internationalization (i18n)
 
 ### I18N_DEFAULT_LOCALE
+
 - **Status:** Optional
 - **Default:** `en`
 - **Type:** String (locale code)
@@ -1089,6 +1225,7 @@ All feature flags default to `true` unless otherwise noted.
   - `I18N_DEFAULT_LOCALE=es` (Spanish)
 
 ### I18N_SUPPORTED_LOCALES
+
 - **Status:** Optional
 - **Default:** `en`
 - **Type:** Comma-separated string
@@ -1097,6 +1234,7 @@ All feature flags default to `true` unless otherwise noted.
   - `I18N_SUPPORTED_LOCALES=en,es,fr,de`
 
 ### I18N_CACHE_TTL_SECONDS
+
 - **Status:** Optional
 - **Default:** `300` (5 minutes)
 - **Type:** Integer
@@ -1107,42 +1245,49 @@ All feature flags default to `true` unless otherwise noted.
 ## Advanced Database Configuration
 
 ### INDEX_OPT_ENABLED
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
 - **Description:** Enable automatic index optimization
 
 ### INDEX_OPT_DRY_RUN
+
 - **Status:** Optional
 - **Default:** `true`
 - **Type:** Boolean
 - **Description:** Run index optimization in dry-run mode (no changes)
 
 ### INDEX_OPT_AUTO_CREATE
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
 - **Description:** Auto-create missing indexes
 
 ### INDEX_OPT_AUTO_DROP_STALE
+
 - **Status:** Optional
 - **Default:** `false`
 - **Type:** Boolean
 - **Description:** Auto-drop unused indexes
 
 ### INDEX_OPT_SEQ_SCAN_THRESHOLD
+
 - **Status:** Optional
 - **Default:** `1000`
 - **Type:** Integer
 - **Description:** Threshold for sequential scans to trigger optimization
 
 ### INDEX_OPT_SLOW_QUERY_MS
+
 - **Status:** Optional
 - **Default:** `200` (milliseconds)
 - **Type:** Integer
 - **Description:** Slow query threshold
 
 ### INDEX_OPT_SCHEMA
+
 - **Status:** Optional
 - **Default:** `public`
 - **Type:** String
@@ -1153,6 +1298,7 @@ All feature flags default to `true` unless otherwise noted.
 ## Sharding Configuration
 
 ### SHARD_COUNT
+
 - **Status:** Optional
 - **Default:** `0` (disabled)
 - **Valid Range:** 0+ (0 = single shard mode)
@@ -1164,6 +1310,7 @@ All feature flags default to `true` unless otherwise noted.
   - `SHARD_COUNT=16` (large deployments)
 
 ### SHARD_REBALANCE_HIGH_WATERMARK
+
 - **Status:** Optional
 - **Default:** `80` (%)
 - **Valid Range:** 1-100
@@ -1171,6 +1318,7 @@ All feature flags default to `true` unless otherwise noted.
 - **Description:** Trigger rebalancing when utilization exceeds this %
 
 ### SHARD_REBALANCE_LOW_WATERMARK
+
 - **Status:** Optional
 - **Default:** `20` (%)
 - **Valid Range:** 0-99
@@ -1178,6 +1326,7 @@ All feature flags default to `true` unless otherwise noted.
 - **Description:** Target utilization after rebalancing
 
 ### SHARD_REBALANCE_BATCH_SIZE
+
 - **Status:** Optional
 - **Default:** `500`
 - **Valid Range:** 1-10000
@@ -1189,6 +1338,7 @@ All feature flags default to `true` unless otherwise noted.
 ## Circuit Breaker Configuration
 
 ### CIRCUIT_BREAKER_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `3000` (3 seconds)
 - **Valid Range:** 100+
@@ -1196,6 +1346,7 @@ All feature flags default to `true` unless otherwise noted.
 - **Description:** Timeout for circuit breaker calls
 
 ### CIRCUIT_BREAKER_ERROR_THRESHOLD
+
 - **Status:** Optional
 - **Default:** `50` (%)
 - **Valid Range:** 1-100
@@ -1203,18 +1354,21 @@ All feature flags default to `true` unless otherwise noted.
 - **Description:** Error % to open circuit
 
 ### CIRCUIT_BREAKER_RESET_TIMEOUT_MS
+
 - **Status:** Optional
 - **Default:** `30000` (30 seconds)
 - **Type:** Integer (milliseconds)
 - **Description:** Time before attempting to reset opened circuit
 
 ### CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT
+
 - **Status:** Optional
 - **Default:** `60000` (60 seconds)
 - **Type:** Integer (milliseconds)
 - **Description:** Rolling window size for error tracking
 
 ### CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS
+
 - **Status:** Optional
 - **Default:** `10`
 - **Type:** Integer
@@ -1225,6 +1379,7 @@ All feature flags default to `true` unless otherwise noted.
 ## CORS Configuration
 
 ### CORS_ALLOWED_ORIGINS
+
 - **Status:** Optional
 - **Default:** `http://localhost:3000,http://localhost:4000`
 - **Type:** Comma-separated URLs
@@ -1453,12 +1608,14 @@ View: `/health` (main health endpoint)
 ### Application fails to start
 
 **Check:**
+
 1. All required variables are set
 2. No typos in environment variable names
 3. Valid values for enum variables (NODE_ENV, SECRET_PROVIDER, etc.)
 4. Numeric variables are actual numbers, not strings
 
 Run validation:
+
 ```bash
 node ./scripts/validate-env.js
 ```
@@ -1466,6 +1623,7 @@ node ./scripts/validate-env.js
 ### Database connection fails
 
 **Check:**
+
 - `DATABASE_HOST` is reachable
 - `DATABASE_PORT` is correct (default 5432)
 - `DATABASE_USER` and `DATABASE_PASSWORD` are correct
@@ -1475,6 +1633,7 @@ node ./scripts/validate-env.js
 ### Redis connection fails
 
 **Check:**
+
 - `REDIS_HOST` is reachable
 - `REDIS_PORT` is correct (default 6379)
 - Redis is running and accepts connections
@@ -1482,6 +1641,7 @@ node ./scripts/validate-env.js
 ### Email sending fails
 
 **Check:**
+
 - `SMTP_HOST` and `SMTP_PORT` are correct
 - `SMTP_USER` and `SMTP_PASS` are valid credentials
 - `EMAIL_FROM` is authorized by SMTP server
@@ -1490,6 +1650,7 @@ node ./scripts/validate-env.js
 ### AWS/S3 access denied
 
 **Check:**
+
 - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` have S3 permissions
 - `AWS_REGION` matches S3 bucket region
 - `AWS_S3_BUCKET` bucket name is correct and exists

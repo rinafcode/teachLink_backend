@@ -6,7 +6,6 @@ async function searchCourses() {
       headers: {
         'Content-Type': 'application/json',
       },
-      
     });
 
     if (!response.ok) {

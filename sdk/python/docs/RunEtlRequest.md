@@ -1,12 +1,11 @@
 # RunEtlRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**source** | **str** |  | 
-**data** | **List[object]** |  | 
+| Name       | Type             | Description | Notes |
+| ---------- | ---------------- | ----------- | ----- |
+| **source** | **str**          |             |
+| **data**   | **List[object]** |             |
 
 ## Example
 
@@ -25,6 +24,5 @@ run_etl_request_dict = run_etl_request_instance.to_dict()
 # create an instance of RunEtlRequest from a dict
 run_etl_request_from_dict = RunEtlRequest.from_dict(run_etl_request_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

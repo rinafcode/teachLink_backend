@@ -1,13 +1,12 @@
 # ApiError
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**success** | **boolean** |  | [optional] [default to undefined]
-**message** | **string** |  | [optional] [default to undefined]
-**errors** | [**Array&lt;ApiErrorErrorsInner&gt;**](ApiErrorErrorsInner.md) |  | [optional] [default to undefined]
+| Name        | Type                                                           | Description | Notes                             |
+| ----------- | -------------------------------------------------------------- | ----------- | --------------------------------- |
+| **success** | **boolean**                                                    |             | [optional] [default to undefined] |
+| **message** | **string**                                                     |             | [optional] [default to undefined] |
+| **errors**  | [**Array&lt;ApiErrorErrorsInner&gt;**](ApiErrorErrorsInner.md) |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -15,9 +14,9 @@ Name | Type | Description | Notes
 import { ApiError } from './api';
 
 const instance: ApiError = {
-    success,
-    message,
-    errors,
+  success,
+  message,
+  errors,
 };
 ```
 

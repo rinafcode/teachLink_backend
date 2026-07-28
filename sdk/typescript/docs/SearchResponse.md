@@ -1,16 +1,15 @@
 # SearchResponse
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**results** | **Array&lt;object&gt;** |  | [optional] [default to undefined]
-**total** | **number** |  | [optional] [default to undefined]
-**page** | **number** |  | [optional] [default to undefined]
-**limit** | **number** |  | [optional] [default to undefined]
-**filters** | **object** |  | [optional] [default to undefined]
-**query** | **string** |  | [optional] [default to undefined]
+| Name        | Type                    | Description | Notes                             |
+| ----------- | ----------------------- | ----------- | --------------------------------- |
+| **results** | **Array&lt;object&gt;** |             | [optional] [default to undefined] |
+| **total**   | **number**              |             | [optional] [default to undefined] |
+| **page**    | **number**              |             | [optional] [default to undefined] |
+| **limit**   | **number**              |             | [optional] [default to undefined] |
+| **filters** | **object**              |             | [optional] [default to undefined] |
+| **query**   | **string**              |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -18,12 +17,12 @@ Name | Type | Description | Notes
 import { SearchResponse } from './api';
 
 const instance: SearchResponse = {
-    results,
-    total,
-    page,
-    limit,
-    filters,
-    query,
+  results,
+  total,
+  page,
+  limit,
+  filters,
+  query,
 };
 ```
 

@@ -12,7 +12,7 @@
 #   docker compose up -d postgres redis
 #   npm run start:dev
 
-version: "3.8"
+version: '3.8'
 
 networks:
   teachlink:
@@ -31,7 +31,7 @@ services:
     container_name: teachlink-postgres
     restart: unless-stopped
     ports:
-      - "${DATABASE_PORT:-5432}:5432"
+      - '${DATABASE_PORT:-5432}:5432'
     environment:
       POSTGRES_USER: ${DATABASE_USER:-postgres}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
@@ -41,7 +41,7 @@ services:
     networks:
       - teachlink
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-teachlink}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-postgres} -d ${DATABASE_NAME:-teachlink}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -55,7 +55,7 @@ services:
     container_name: teachlink-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - '${REDIS_PORT:-6379}:6379'
     command:
       - redis-server
       - --appendonly yes
@@ -67,7 +67,7 @@ services:
     networks:
       - teachlink
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -84,7 +84,7 @@ services:
     container_name: teachlink-app
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - '${APP_PORT:-3000}:3000'
     env_file:
       - .env
     environment:
@@ -101,7 +101,7 @@ services:
     networks:
       - teachlink
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/health']
       interval: 30s
       timeout: 10s
       retries: 5

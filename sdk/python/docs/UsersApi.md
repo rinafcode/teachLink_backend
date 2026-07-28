@@ -1,21 +1,21 @@
 # openapi_client.UsersApi
 
-All URIs are relative to *http://localhost:3000*
+All URIs are relative to _http://localhost:3000_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**create_user**](UsersApi.md#create_user) | **POST** /users | Create a user
-[**list_users**](UsersApi.md#list_users) | **GET** /users | List users
-
+| Method                                     | HTTP request    | Description   |
+| ------------------------------------------ | --------------- | ------------- |
+| [**create_user**](UsersApi.md#create_user) | **POST** /users | Create a user |
+| [**list_users**](UsersApi.md#list_users)   | **GET** /users  | List users    |
 
 # **create_user**
+
 > ApiSuccess create_user(register_request)
 
 Create a user
 
 ### Example
 
-* Bearer (JWT) Authentication (bearerAuth):
+- Bearer (JWT) Authentication (bearerAuth):
 
 ```python
 import openapi_client
@@ -44,7 +44,7 @@ configuration = openapi_client.Configuration(
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.UsersApi(api_client)
-    register_request = {"email":"teacher@example.com","password":"Password123!","firstName":"Grace","lastName":"Hopper","role":"teacher"} # RegisterRequest | 
+    register_request = {"email":"teacher@example.com","password":"Password123!","firstName":"Grace","lastName":"Hopper","role":"teacher"} # RegisterRequest |
 
     try:
         # Create a user
@@ -55,14 +55,11 @@ with openapi_client.ApiClient(configuration) as api_client:
         print("Exception when calling UsersApi->create_user: %s\n" % e)
 ```
 
-
-
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **register_request** | [**RegisterRequest**](RegisterRequest.md)|  | 
+| Name                 | Type                                      | Description | Notes |
+| -------------------- | ----------------------------------------- | ----------- | ----- |
+| **register_request** | [**RegisterRequest**](RegisterRequest.md) |             |
 
 ### Return type
 
@@ -74,26 +71,27 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**201** | User created |  -  |
-**400** | Invalid user data |  -  |
+| Status code | Description       | Response headers |
+| ----------- | ----------------- | ---------------- |
+| **201**     | User created      | -                |
+| **400**     | Invalid user data | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_users**
+
 > ApiSuccess list_users(page=page, limit=limit)
 
 List users
 
 ### Example
 
-* Bearer (JWT) Authentication (bearerAuth):
+- Bearer (JWT) Authentication (bearerAuth):
 
 ```python
 import openapi_client
@@ -133,15 +131,12 @@ with openapi_client.ApiClient(configuration) as api_client:
         print("Exception when calling UsersApi->list_users: %s\n" % e)
 ```
 
-
-
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **page** | **int**|  | [optional] [default to 1]
- **limit** | **int**|  | [optional] [default to 20]
+| Name      | Type    | Description | Notes                      |
+| --------- | ------- | ----------- | -------------------------- |
+| **page**  | **int** |             | [optional] [default to 1]  |
+| **limit** | **int** |             | [optional] [default to 20] |
 
 ### Return type
 
@@ -153,15 +148,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | Users found |  -  |
-**401** | Authentication required |  -  |
+| Status code | Description             | Response headers |
+| ----------- | ----------------------- | ---------------- |
+| **200**     | Users found             | -                |
+| **401**     | Authentication required | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

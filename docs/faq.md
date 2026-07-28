@@ -4,11 +4,11 @@
 
 ### What is the base URL?
 
-| Environment | URL |
-|-------------|-----|
-| Local | `http://localhost:3000` |
-| Staging | `https://api.staging.teachlink.com` |
-| Production | `https://api.teachlink.com` |
+| Environment | URL                                 |
+| ----------- | ----------------------------------- |
+| Local       | `http://localhost:3000`             |
+| Staging     | `https://api.staging.teachlink.com` |
+| Production  | `https://api.teachlink.com`         |
 
 ### What API version should I use?
 
@@ -35,11 +35,13 @@ See [authentication.md](./authentication.md) for details.
 List endpoints support two pagination modes:
 
 **Offset-based** (default):
+
 ```
 GET /users?page=1&limit=20
 ```
 
 **Cursor-based** (for large datasets):
+
 ```
 GET /users?cursor=eyJpZCI6MTIzfQ&limit=20
 ```
@@ -97,6 +99,7 @@ Yes! SDKs are auto-generated from the OpenAPI spec:
 - **Python**: `sdk/python/`
 
 Generate them with:
+
 ```bash
 npm run sdk:generate
 ```
@@ -109,7 +112,7 @@ Connect to the Socket.io endpoint and pass the JWT as a query parameter:
 
 ```javascript
 const socket = io('wss://api.teachlink.com', {
-  auth: { token: 'eyJhbGciOiJIUzI1NiIs...' }
+  auth: { token: 'eyJhbGciOiJIUzI1NiIs...' },
 });
 ```
 

@@ -1,20 +1,20 @@
 # openapi_client.PaymentsApi
 
-All URIs are relative to *http://localhost:3000*
+All URIs are relative to _http://localhost:3000_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**create_payment_intent**](PaymentsApi.md#create_payment_intent) | **POST** /payments/create-intent | Create a payment intent
-
+| Method                                                            | HTTP request                     | Description             |
+| ----------------------------------------------------------------- | -------------------------------- | ----------------------- |
+| [**create_payment_intent**](PaymentsApi.md#create_payment_intent) | **POST** /payments/create-intent | Create a payment intent |
 
 # **create_payment_intent**
+
 > ApiSuccess create_payment_intent(payment_intent_request, x_idempotency_key=x_idempotency_key)
 
 Create a payment intent
 
 ### Example
 
-* Bearer (JWT) Authentication (bearerAuth):
+- Bearer (JWT) Authentication (bearerAuth):
 
 ```python
 import openapi_client
@@ -43,7 +43,7 @@ configuration = openapi_client.Configuration(
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.PaymentsApi(api_client)
-    payment_intent_request = {"courseId":"8e4fd4f8-d8f3-46b5-8786-6f7167a654f4","amount":3999,"currency":"USD"} # PaymentIntentRequest | 
+    payment_intent_request = {"courseId":"8e4fd4f8-d8f3-46b5-8786-6f7167a654f4","amount":3999,"currency":"USD"} # PaymentIntentRequest |
     x_idempotency_key = 'payment-8e4fd4f8-d8f3-46b5' # str |  (optional)
 
     try:
@@ -55,15 +55,12 @@ with openapi_client.ApiClient(configuration) as api_client:
         print("Exception when calling PaymentsApi->create_payment_intent: %s\n" % e)
 ```
 
-
-
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **payment_intent_request** | [**PaymentIntentRequest**](PaymentIntentRequest.md)|  | 
- **x_idempotency_key** | **str**|  | [optional] 
+| Name                       | Type                                                | Description | Notes      |
+| -------------------------- | --------------------------------------------------- | ----------- | ---------- |
+| **payment_intent_request** | [**PaymentIntentRequest**](PaymentIntentRequest.md) |             |
+| **x_idempotency_key**      | **str**                                             |             | [optional] |
 
 ### Return type
 
@@ -75,15 +72,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**201** | Payment intent created |  -  |
-**409** | Duplicate idempotency key |  -  |
+| Status code | Description               | Response headers |
+| ----------- | ------------------------- | ---------------- |
+| **201**     | Payment intent created    | -                |
+| **409**     | Duplicate idempotency key | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

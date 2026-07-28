@@ -1,13 +1,12 @@
 # RouteShardRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**key** | **string** |  | [default to undefined]
-**strategy** | **string** |  | [optional] [default to undefined]
-**forRead** | **boolean** |  | [optional] [default to undefined]
+| Name         | Type        | Description | Notes                             |
+| ------------ | ----------- | ----------- | --------------------------------- |
+| **key**      | **string**  |             | [default to undefined]            |
+| **strategy** | **string**  |             | [optional] [default to undefined] |
+| **forRead**  | **boolean** |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -15,9 +14,9 @@ Name | Type | Description | Notes
 import { RouteShardRequest } from './api';
 
 const instance: RouteShardRequest = {
-    key,
-    strategy,
-    forRead,
+  key,
+  strategy,
+  forRead,
 };
 ```
 

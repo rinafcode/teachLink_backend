@@ -3,6 +3,7 @@
 ## Overview
 
 This document describes the implementation of two critical security and reliability features:
+
 1. **Secrets Management** (Issue #355)
 2. **Idempotent Operations** (Issue #384)
 
@@ -13,18 +14,21 @@ This document describes the implementation of two critical security and reliabil
 ### Features Implemented
 
 ✅ **AWS Secrets Manager Integration**
+
 - Secure retrieval and storage of secrets
 - Automatic caching with configurable TTL
 - Secret rotation support
 - Weekly automated rotation for critical secrets
 
 ✅ **HashiCorp Vault Integration**
+
 - Alternative secret provider option
 - KV secrets engine support
 - Token-based authentication
 - Secure HTTPS communication
 
 ✅ **Secret Rotation**
+
 - Manual rotation via API endpoints
 - Automated weekly rotation scheduler
 - Cryptographically secure secret generation
@@ -62,13 +66,13 @@ VAULT_SECRET_PATH=secret/data
 
 All endpoints require **ADMIN** role and JWT authentication.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/secrets/aws/:secretName` | Get secret from AWS (value redacted) |
-| GET | `/secrets/vault/:secretName` | Get secret from Vault (value redacted) |
-| POST | `/secrets/aws/rotate/:secretName` | Rotate AWS secret |
-| POST | `/secrets/vault/rotate/:secretName` | Rotate Vault secret |
-| POST | `/secrets/cache/clear` | Clear secret cache |
+| Method | Endpoint                            | Description                            |
+| ------ | ----------------------------------- | -------------------------------------- |
+| GET    | `/secrets/aws/:secretName`          | Get secret from AWS (value redacted)   |
+| GET    | `/secrets/vault/:secretName`        | Get secret from Vault (value redacted) |
+| POST   | `/secrets/aws/rotate/:secretName`   | Rotate AWS secret                      |
+| POST   | `/secrets/vault/rotate/:secretName` | Rotate Vault secret                    |
+| POST   | `/secrets/cache/clear`              | Clear secret cache                     |
 
 ### Usage Example
 
@@ -77,9 +81,7 @@ import { SecretsManagerService } from './security/secrets/secrets-manager.servic
 
 @Injectable()
 export class MyService {
-  constructor(
-    private readonly secretsManager: SecretsManagerService,
-  ) {}
+  constructor(private readonly secretsManager: SecretsManagerService) {}
 
   async getDatabasePassword(): Promise<string> {
     return await this.secretsManager.getSecret('database/password');
@@ -102,17 +104,20 @@ export class MyService {
 ### Features Implemented
 
 ✅ **Idempotency Interceptor**
+
 - Automatic deduplication of POST/PUT/PATCH requests
 - Redis-based storage for idempotency records
 - Distributed locking to prevent race conditions
 - Configurable TTL per endpoint
 
 ✅ **Idempotency Decorator**
+
 - Easy-to-use `@Idempotent()` decorator
 - Per-endpoint TTL configuration
 - Automatic header validation
 
 ✅ **Deduplication Logic**
+
 - SHA-256 hash-based key generation
 - User + endpoint + payload fingerprinting
 - Conflict detection for concurrent requests
@@ -150,10 +155,10 @@ import { IdempotencyInterceptor } from '../common/interceptors/idempotency.inter
 @Post('create-intent')
 @Idempotent({ ttl: 86400 }) // 24 hours
 @UseInterceptors(IdempotencyInterceptor)
-@ApiHeader({ 
-  name: 'X-Idempotency-Key', 
-  description: 'Unique key for idempotent requests', 
-  required: true 
+@ApiHeader({
+  name: 'X-Idempotency-Key',
+  description: 'Unique key for idempotent requests',
+  required: true
 })
 async createPaymentIntent(
   @Body() createPaymentDto: CreatePaymentDto,
@@ -174,6 +179,7 @@ curl -X POST http://localhost:3000/payments/create-intent \
 ```
 
 **Behavior:**
+
 - First request: Processes normally and stores response
 - Duplicate request (same key): Returns cached response without re-processing
 - Concurrent request: Returns 409 Conflict if still processing
@@ -182,11 +188,11 @@ curl -X POST http://localhost:3000/payments/create-intent \
 
 The following critical endpoints now have idempotency protection:
 
-| Endpoint | Method | TTL |
-|----------|--------|-----|
-| `/payments/create-intent` | POST | 24 hours |
-| `/payments/subscriptions` | POST | 24 hours |
-| `/payments/refund` | POST | 24 hours |
+| Endpoint                  | Method | TTL      |
+| ------------------------- | ------ | -------- |
+| `/payments/create-intent` | POST   | 24 hours |
+| `/payments/subscriptions` | POST   | 24 hours |
+| `/payments/refund`        | POST   | 24 hours |
 
 ### How It Works
 
@@ -223,6 +229,7 @@ npm test
 ### Test Coverage
 
 Both implementations include unit tests covering:
+
 - Service initialization
 - Core functionality (get/set/rotate secrets, generate keys)
 - Cache behavior
@@ -237,12 +244,14 @@ Both implementations include unit tests covering:
 To add idempotency to any POST/PUT/PATCH endpoint:
 
 1. Import the decorator and interceptor:
+
 ```typescript
 import { Idempotent } from '../common/decorators/idempotency.decorator';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
 ```
 
 2. Add decorators to the endpoint:
+
 ```typescript
 @Post('your-endpoint')
 @Idempotent({ ttl: 86400 })
@@ -288,6 +297,7 @@ To migrate from environment variables to AWS Secrets Manager or Vault:
 ## Best Practices
 
 ### Secrets Management
+
 - ✅ Rotate secrets regularly (automated weekly rotation enabled)
 - ✅ Use least-privilege IAM policies for AWS Secrets Manager
 - ✅ Vault tokens should have minimal required permissions
@@ -295,6 +305,7 @@ To migrate from environment variables to AWS Secrets Manager or Vault:
 - ✅ Monitor failed secret access attempts
 
 ### Idempotency
+
 - ✅ Generate UUIDs client-side for idempotency keys
 - ✅ Reuse the same key for retry attempts
 - ✅ Set appropriate TTL based on business requirements
@@ -306,18 +317,21 @@ To migrate from environment variables to AWS Secrets Manager or Vault:
 ## Troubleshooting
 
 ### Secrets Not Found
+
 - Verify `SECRET_PROVIDER` is set correctly
 - Check AWS IAM permissions or Vault token permissions
 - Ensure secret names match exactly (case-sensitive)
 - Check network connectivity to AWS/Vault
 
 ### Idempotency Not Working
+
 - Verify `X-Idempotency-Key` header is present
 - Check Redis connectivity and credentials
 - Ensure TTL is appropriate for your use case
 - Review logs for lock acquisition failures
 
 ### Performance Issues
+
 - Adjust `SECRET_CACHE_TTL_MS` to reduce AWS/Vault calls
 - Monitor Redis memory usage for idempotency records
 - Consider reducing `IDEMPOTENCY_TTL_SECONDS` if storage is high

@@ -17,7 +17,9 @@ export enum CourseVersionEventType {
 }
 
 @Entity('course_versions')
-@Index(['courseId', 'versionNumber'], { unique: true })
+@Index('IDX_course_versions_course_id_version_number', ['courseId', 'versionNumber'], {
+  unique: true,
+})
 export class CourseVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -7,6 +7,7 @@
 ## 🚀 Quick Start
 
 ### Local Development
+
 ```bash
 cp .env.example .env
 # Edit .env with localhost values
@@ -15,11 +16,13 @@ npm run start:dev
 ```
 
 ### Validate Any Time
+
 ```bash
 npm run validate:env
 ```
 
 ### Full Documentation
+
 ```bash
 cat ENV_VARS_DOCUMENTATION.md       # Complete reference
 cat ENV_SETUP_GUIDE.md              # Step-by-step guide
@@ -73,6 +76,7 @@ SENDGRID_API_KEY=your-api-key
 ## 🔧 Common Configurations
 
 ### Defaults (Most Optional Variables)
+
 ```env
 NODE_ENV=development
 PORT=3000
@@ -86,6 +90,7 @@ DATABASE_POOL_MIN=5
 ```
 
 ### Production Adjustments
+
 ```env
 NODE_ENV=production
 BCRYPT_ROUNDS=12
@@ -96,6 +101,7 @@ METRICS_ENABLED=true
 ```
 
 ### High Traffic
+
 ```env
 CLUSTER_MODE=true
 DATABASE_POOL_MAX=100
@@ -107,30 +113,30 @@ ENABLE_RATE_LIMITING=true
 
 ## ✅ Validation Rules
 
-| Variable | Type | Min | Max | Notes |
-|----------|------|-----|-----|-------|
-| PORT | Integer | 1 | 65535 | Application port |
-| DATABASE_PORT | Integer | 1 | 65535 | DB port |
-| REDIS_PORT | Integer | 1 | 65535 | Redis port |
-| SMTP_PORT | Integer | 1 | 65535 | SMTP port |
-| JWT_SECRET | String | 10 | - | 32+ for production |
-| ENCRYPTION_SECRET | String | 32 | 32 | Exactly 32 chars |
-| BCRYPT_ROUNDS | Integer | 4 | 15 | Hash rounds |
-| EMAIL_FROM | Email | - | - | Valid email format |
-| APP_URL | URL | - | - | Valid URL |
-| NODE_ENV | Enum | - | - | dev/prod/staging/test |
+| Variable          | Type    | Min | Max   | Notes                 |
+| ----------------- | ------- | --- | ----- | --------------------- |
+| PORT              | Integer | 1   | 65535 | Application port      |
+| DATABASE_PORT     | Integer | 1   | 65535 | DB port               |
+| REDIS_PORT        | Integer | 1   | 65535 | Redis port            |
+| SMTP_PORT         | Integer | 1   | 65535 | SMTP port             |
+| JWT_SECRET        | String  | 10  | -     | 32+ for production    |
+| ENCRYPTION_SECRET | String  | 32  | 32    | Exactly 32 chars      |
+| BCRYPT_ROUNDS     | Integer | 4   | 15    | Hash rounds           |
+| EMAIL_FROM        | Email   | -   | -     | Valid email format    |
+| APP_URL           | URL     | -   | -     | Valid URL             |
+| NODE_ENV          | Enum    | -   | -     | dev/prod/staging/test |
 
 ---
 
 ## 🐛 Common Issues & Fixes
 
-| Issue | Error | Fix |
-|-------|-------|-----|
-| Missing required var | `✗ DATABASE_HOST` | Set the variable in .env |
-| Invalid email | `Invalid email format` | Use proper email: user@domain.com |
-| Invalid port | `Must be >= 1 and <= 65535` | Use port in valid range |
-| Short secret | `Must be at least 32 chars` | Generate longer secret |
-| Not a number | `Invalid integer format` | Remove quotes, use number |
+| Issue                | Error                       | Fix                               |
+| -------------------- | --------------------------- | --------------------------------- |
+| Missing required var | `✗ DATABASE_HOST`           | Set the variable in .env          |
+| Invalid email        | `Invalid email format`      | Use proper email: user@domain.com |
+| Invalid port         | `Must be >= 1 and <= 65535` | Use port in valid range           |
+| Short secret         | `Must be at least 32 chars` | Generate longer secret            |
+| Not a number         | `Invalid integer format`    | Remove quotes, use number         |
 
 ---
 
@@ -149,31 +155,34 @@ ENABLE_RATE_LIMITING=true
 
 ## 📂 Files Reference
 
-| File | Purpose | Size |
-|------|---------|------|
-| ENV_VARS_DOCUMENTATION.md | Complete reference | 40KB |
-| ENV_SETUP_GUIDE.md | Step-by-step guide | 15KB |
-| ENV_IMPLEMENTATION_SUMMARY.md | What was built | 13KB |
-| .env.example | Configuration template | 25KB |
-| scripts/validate-env.js | Validation script | 13KB |
+| File                          | Purpose                | Size |
+| ----------------------------- | ---------------------- | ---- |
+| ENV_VARS_DOCUMENTATION.md     | Complete reference     | 40KB |
+| ENV_SETUP_GUIDE.md            | Step-by-step guide     | 15KB |
+| ENV_IMPLEMENTATION_SUMMARY.md | What was built         | 13KB |
+| .env.example                  | Configuration template | 25KB |
+| scripts/validate-env.js       | Validation script      | 13KB |
 
 ---
 
 ## 🎯 By Role
 
 ### Developer
+
 1. Copy .env.example to .env
 2. Set localhost values
 3. Run `npm run validate:env`
 4. Start with `npm run start:dev`
 
 ### DevOps Engineer
+
 1. Review ENV_VARS_DOCUMENTATION.md
 2. Configure for your environment
 3. Run validation in CI/CD
 4. Set up secrets management
 
 ### SRE
+
 1. Study deployment examples
 2. Implement in Kubernetes
 3. Configure monitoring variables
@@ -204,21 +213,25 @@ ENABLE_RATE_LIMITING=true
 ## 📞 Quick Help
 
 **Run validation:**
+
 ```bash
 npm run validate:env
 ```
 
 **See all variables:**
+
 ```bash
 grep "^[A-Z_]" .env.example | wc -l
 ```
 
 **Check documentation:**
+
 ```bash
 grep "^### " ENV_VARS_DOCUMENTATION.md
 ```
 
 **Generate 32-char secret:**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
 ```

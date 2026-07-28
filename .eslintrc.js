@@ -97,8 +97,8 @@ module.exports = {
     ],
 
     // ── Formatting ──
-    'semi': ['error', 'always'],
-    'quotes': ['error', 'single', { avoidEscape: true }],
+    semi: ['error', 'always'],
+    quotes: ['error', 'single', { avoidEscape: true }],
   },
 
   overrides: [
