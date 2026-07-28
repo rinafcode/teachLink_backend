@@ -14,7 +14,6 @@ import { PricingController } from './controllers/pricing.controller';
 import { PaymentReconciliationJob } from './reconciliation/reconciliation.service';
 import { PaymentReconciliationController } from './reconciliation/reconciliation.controller';
 import { StripeProvider } from './providers/stripe.provider';
-import { IPaymentProvider } from './providers/payment-provider.interface';
 
 /**
  * PaymentsModule

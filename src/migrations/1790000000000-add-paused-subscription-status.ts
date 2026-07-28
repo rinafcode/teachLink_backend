@@ -9,7 +9,7 @@ export class AddPausedSubscriptionStatus1790000000000 implements MigrationInterf
     `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
+  public async down(_queryRunner: QueryRunner): Promise<void> {
     // Note: PostgreSQL doesn't support removing enum values directly
     // To rollback, you would need to recreate the enum without the value
     // This is a limitation of PostgreSQL's enum type

@@ -1,13 +1,7 @@
-import {
-  Processor,
-  Process,
-  OnQueueActive,
-  OnQueueCompleted,
-  OnQueueFailed,
-} from '@nestjs/bull';
-import { Inject } from '@nestjs/common';
+import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
+
+import { Inject, Logger } from '@nestjs/common';
 import { Job } from 'bull';
-import { Logger } from '@nestjs/common';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
