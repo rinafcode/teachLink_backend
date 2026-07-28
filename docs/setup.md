@@ -8,13 +8,13 @@ Complete step-by-step instructions to get the TeachLink backend running locally.
 
 ## Prerequisites
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Node.js | >= 18.0.0 | JavaScript runtime |
-| pnpm | >= 8.x | Package manager (recommended) |
-| Docker | >= 24.x | Running PostgreSQL and Redis |
-| Docker Compose | >= 2.24.x | Orchestrating containers |
-| Git | >= 2.x | Version control |
+| Tool           | Version   | Purpose                       |
+| -------------- | --------- | ----------------------------- |
+| Node.js        | >= 18.0.0 | JavaScript runtime            |
+| pnpm           | >= 8.x    | Package manager (recommended) |
+| Docker         | >= 24.x   | Running PostgreSQL and Redis  |
+| Docker Compose | >= 2.24.x | Orchestrating containers      |
+| Git            | >= 2.x    | Version control               |
 
 **Verify installed versions:**
 
@@ -229,6 +229,7 @@ pnpm verify
 ```
 
 This checks:
+
 - Node.js version (>= 18)
 - `.env` file exists
 - Database connectivity
@@ -254,32 +255,32 @@ pnpm test:e2e
 
 ## Available commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm start:dev` | Start dev server with hot-reload |
-| `pnpm build` | Compile TypeScript to `dist/` |
-| `pnpm lint` | Lint and auto-fix |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm test` | Run unit tests |
-| `pnpm test:e2e` | Run end-to-end tests |
-| `pnpm validate:env` | Validate environment variables |
-| `pnpm migrate:run` | Run pending migrations |
-| `pnpm migrate:status` | Check migration status |
-| `pnpm verify` | Run setup verification |
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `pnpm start:dev`      | Start dev server with hot-reload |
+| `pnpm build`          | Compile TypeScript to `dist/`    |
+| `pnpm lint`           | Lint and auto-fix                |
+| `pnpm typecheck`      | TypeScript type checking         |
+| `pnpm test`           | Run unit tests                   |
+| `pnpm test:e2e`       | Run end-to-end tests             |
+| `pnpm validate:env`   | Validate environment variables   |
+| `pnpm migrate:run`    | Run pending migrations           |
+| `pnpm migrate:status` | Check migration status           |
+| `pnpm verify`         | Run setup verification           |
 
 ---
 
 ## Ports and services
 
-| Port | Service | Purpose |
-|------|---------|---------|
-| 3000 | NestJS API | Application server |
-| 5432 | PostgreSQL | Database |
-| 6379 | Redis | Caching, sessions, queues |
-| 9090 | Prometheus | Metrics (if monitoring stack is up) |
-| 3001 | Grafana | Dashboards (if monitoring stack is up) |
-| 9200 | Elasticsearch | Search (if monitoring stack is up) |
-| 5601 | Kibana | Log search (if monitoring stack is up) |
+| Port | Service       | Purpose                                |
+| ---- | ------------- | -------------------------------------- |
+| 3000 | NestJS API    | Application server                     |
+| 5432 | PostgreSQL    | Database                               |
+| 6379 | Redis         | Caching, sessions, queues              |
+| 9090 | Prometheus    | Metrics (if monitoring stack is up)    |
+| 3001 | Grafana       | Dashboards (if monitoring stack is up) |
+| 9200 | Elasticsearch | Search (if monitoring stack is up)     |
+| 5601 | Kibana        | Log search (if monitoring stack is up) |
 
 ---
 

@@ -1,12 +1,11 @@
 # ManualRebalanceRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**migrations** | **List[object]** |  | 
-**dry_run** | **bool** |  | 
+| Name           | Type             | Description | Notes |
+| -------------- | ---------------- | ----------- | ----- |
+| **migrations** | **List[object]** |             |
+| **dry_run**    | **bool**         |             |
 
 ## Example
 
@@ -25,6 +24,5 @@ manual_rebalance_request_dict = manual_rebalance_request_instance.to_dict()
 # create an instance of ManualRebalanceRequest from a dict
 manual_rebalance_request_from_dict = ManualRebalanceRequest.from_dict(manual_rebalance_request_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

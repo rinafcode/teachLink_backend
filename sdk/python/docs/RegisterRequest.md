@@ -1,15 +1,14 @@
 # RegisterRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**email** | **str** |  | 
-**password** | **str** |  | 
-**first_name** | **str** |  | 
-**last_name** | **str** |  | 
-**role** | **str** |  | [optional] 
+| Name           | Type    | Description | Notes      |
+| -------------- | ------- | ----------- | ---------- |
+| **email**      | **str** |             |
+| **password**   | **str** |             |
+| **first_name** | **str** |             |
+| **last_name**  | **str** |             |
+| **role**       | **str** |             | [optional] |
 
 ## Example
 
@@ -28,6 +27,5 @@ register_request_dict = register_request_instance.to_dict()
 # create an instance of RegisterRequest from a dict
 register_request_from_dict = RegisterRequest.from_dict(register_request_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

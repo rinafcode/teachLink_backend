@@ -1,12 +1,11 @@
 # RunEtlRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**source** | **string** |  | [default to undefined]
-**data** | **Array&lt;object&gt;** |  | [default to undefined]
+| Name       | Type                    | Description | Notes                  |
+| ---------- | ----------------------- | ----------- | ---------------------- |
+| **source** | **string**              |             | [default to undefined] |
+| **data**   | **Array&lt;object&gt;** |             | [default to undefined] |
 
 ## Example
 
@@ -14,8 +13,8 @@ Name | Type | Description | Notes
 import { RunEtlRequest } from './api';
 
 const instance: RunEtlRequest = {
-    source,
-    data,
+  source,
+  data,
 };
 ```
 

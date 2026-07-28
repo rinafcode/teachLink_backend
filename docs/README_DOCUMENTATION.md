@@ -20,12 +20,14 @@ npm run docs:check
 ### 2. View Documentation
 
 **Option A: Interactive Runtime Docs**
+
 ```bash
 npm run start:dev
 # Open http://localhost:3000/api/docs
 ```
 
 **Option B: Static Documentation Site**
+
 ```bash
 npm run docs:view
 # Open http://localhost:8080
@@ -104,6 +106,7 @@ npm run docs:check
 #### Use SDK in Code
 
 **TypeScript:**
+
 ```typescript
 import { SearchApi } from './sdk/typescript';
 
@@ -112,6 +115,7 @@ const courses = await api.searchContent('javascript');
 ```
 
 **Python:**
+
 ```python
 from openapi_client.apis.tags import search_api
 
@@ -122,6 +126,7 @@ courses = api.search_content(q='javascript')
 ### For API Documentation Contributors
 
 See [API_DOCUMENTATION_BEST_PRACTICES.md](./API_DOCUMENTATION_BEST_PRACTICES.md) for:
+
 - How to document endpoints
 - Swagger decorator examples
 - Error response patterns
@@ -234,6 +239,7 @@ npm run sdk:generate:spec     # Refresh spec for SDKs
 ### For Each Commit
 
 1. **Auto-run (if CI/CD configured)**
+
    ```bash
    npm run docs:generate
    npm run docs:generate:examples
@@ -248,11 +254,13 @@ npm run sdk:generate:spec     # Refresh spec for SDKs
 ### For Each Release
 
 1. **Archive version**
+
    ```bash
    npm run docs:version
    ```
 
 2. **Commit version**
+
    ```bash
    git add docs/versions/
    git commit -m "docs: archive API v1.0.0"
@@ -266,6 +274,7 @@ npm run sdk:generate:spec     # Refresh spec for SDKs
 ### For Breaking Changes
 
 1. **Compare versions**
+
    ```bash
    npm run docs:versions:diff v1.0 v2.0
    ```
@@ -285,6 +294,7 @@ npm run start:dev
 ```
 
 Features:
+
 - "Try it out" button for testing
 - Request/response examples
 - Parameter validation
@@ -299,6 +309,7 @@ npm run docs:view
 ```
 
 Features:
+
 - Beautiful, interactive documentation
 - Sidebar navigation
 - Search across endpoints
@@ -344,6 +355,7 @@ npm run docs:versions:diff v1.0 v1.1
 ```
 
 Output includes:
+
 - ✅ Added endpoints
 - ❌ Removed endpoints (breaking)
 - 🔄 Modified endpoints
@@ -356,13 +368,17 @@ Changelog is auto-generated in `docs/versions/CHANGELOG.md`:
 
 ```markdown
 ## v2.0.0
+
 ### ✅ Added
+
 - POST /courses/publish
 
 ### ❌ Breaking Changes
+
 - Removed: DELETE /courses/{id}
 
 ### 🔄 Modified
+
 - GET /courses (added pagination)
 ```
 
@@ -375,6 +391,7 @@ npm run docs:check
 ```
 
 This will:
+
 1. Generate OpenAPI spec
 2. Generate examples
 3. Validate OpenAPI spec format
@@ -383,6 +400,7 @@ This will:
 ### Test Documentation in CI/CD
 
 The system includes validation for:
+
 - Valid OpenAPI 3.0 spec
 - Required endpoints documented
 - Consistent error responses
@@ -409,7 +427,7 @@ servers: [
   { url: 'http://localhost:3000', description: 'Local development' },
   { url: 'https://api.staging.teachlink.com', description: 'Staging' },
   { url: 'https://api.teachlink.com', description: 'Production' },
-]
+];
 ```
 
 ### Security Schemes
@@ -471,6 +489,7 @@ npm run sdk:generate -- --verbose
 ## Best Practices
 
 ✅ **Do**:
+
 - Run `npm run docs:check` before committing
 - Use `@ApiTags` and `@ApiOperation` in controllers
 - Document all response codes
@@ -479,6 +498,7 @@ npm run sdk:generate -- --verbose
 - Keep docs in git
 
 ❌ **Don't**:
+
 - Manually edit generated files
 - Forget to update examples
 - Skip error response documentation
@@ -494,6 +514,7 @@ To auto-generate and publish docs on every commit:
 3. Add Slack notifications (optional)
 
 Benefits:
+
 - Automatic doc generation
 - Version archival on release
 - GitHub Pages publishing
@@ -542,19 +563,18 @@ aws s3 sync docs/site/ s3://your-bucket/
 
 **Questions?** Check the troubleshooting section or review the detailed guides linked above.
 
-
 # teachLink Backend Documentation Index
 
 Welcome to the `teachLink_backend` reference documentation.
 
 ## 📚 Documentation Sections
 
-* **[Architecture](./architecture/)**
-  * [Routing & API Gateway](./architecture/routing.md)
-  * [Graceful Shutdown Protocol](./architecture/graceful-shutdown.md)
-* **[Configuration](./configuration/)**
-  * [Environment & Secrets Reference](./configuration/environment.md)
-* **[Operations](./operations/)**
-  * [Incident Management Protocol](./operations/incident-management.md)
-* **[Implementation Notes](./implementation-notes/)**
-  * Archive of feature implementation reports and design decision records.
+- **[Architecture](./architecture/)**
+  - [Routing & API Gateway](./architecture/routing.md)
+  - [Graceful Shutdown Protocol](./architecture/graceful-shutdown.md)
+- **[Configuration](./configuration/)**
+  - [Environment & Secrets Reference](./configuration/environment.md)
+- **[Operations](./operations/)**
+  - [Incident Management Protocol](./operations/incident-management.md)
+- **[Implementation Notes](./implementation-notes/)**
+  - Archive of feature implementation reports and design decision records.

@@ -3,11 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
-import {
-  AuditAction,
-  AuditCategory,
-  AuditSeverity,
-} from '../../audit-log/enums/audit-action.enum';
+import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
 import { Role } from '../entities/role.entity';
 import { RolesService } from './roles.service';
@@ -92,9 +88,9 @@ describe('RolesService', () => {
   it('throws BadRequestException when createRole is given a non-existent permission ID', async () => {
     permissionRepository.find.mockResolvedValue([]);
 
-    await expect(
-      service.createRole('Editor', 'Editor role', ['invalid-id']),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.createRole('Editor', 'Editor role', ['invalid-id'])).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('throws a conflict when the role is in use', async () => {

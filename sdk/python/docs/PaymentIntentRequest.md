@@ -1,13 +1,12 @@
 # PaymentIntentRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**course_id** | **UUID** |  | 
-**amount** | **float** |  | 
-**currency** | **str** |  | 
+| Name          | Type      | Description | Notes |
+| ------------- | --------- | ----------- | ----- |
+| **course_id** | **UUID**  |             |
+| **amount**    | **float** |             |
+| **currency**  | **str**   |             |
 
 ## Example
 
@@ -26,6 +25,5 @@ payment_intent_request_dict = payment_intent_request_instance.to_dict()
 # create an instance of PaymentIntentRequest from a dict
 payment_intent_request_from_dict = PaymentIntentRequest.from_dict(payment_intent_request_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

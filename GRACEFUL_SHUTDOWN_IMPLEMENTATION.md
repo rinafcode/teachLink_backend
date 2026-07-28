@@ -58,6 +58,7 @@ The shutdown process executes in the following phases:
 **File**: `src/common/services/graceful-shutdown.service.ts`
 
 The `GracefulShutdownService` provides:
+
 - Phase registration and execution
 - Timeout management per phase
 - Error handling and recovery
@@ -86,6 +87,7 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 **File**: `src/common/services/request-tracker.service.ts`
 
 The `RequestTrackerService` provides:
+
 - Express middleware for request tracking
 - Active request counting and monitoring
 - Request completion waiting with timeout
@@ -100,6 +102,7 @@ await requestTracker.waitForActiveRequests(timeoutMs);
 ```
 
 **Features**:
+
 - Unique request ID generation
 - Request duration tracking
 - Correlation ID support
@@ -110,12 +113,14 @@ await requestTracker.waitForActiveRequests(timeoutMs);
 **File**: `src/database/services/database-shutdown.service.ts`
 
 The `DatabaseShutdownService` provides:
+
 - Connection pool draining
 - Active query monitoring
 - Graceful connection closure
 - Force close fallback
 
 **Shutdown Process**:
+
 1. **Drain Phase**: Wait for connections to return to pool
 2. **Query Wait**: Monitor active queries until completion
 3. **Close Phase**: Gracefully close all connections
@@ -123,10 +128,10 @@ The `DatabaseShutdownService` provides:
 
 ```typescript
 // Environment configuration
-DB_DRAIN_TIMEOUT_MS=15000
-DB_FORCE_CLOSE_TIMEOUT_MS=5000
-DB_WAIT_FOR_QUERIES=true
-DB_LOG_SHUTDOWN_DETAILS=true
+DB_DRAIN_TIMEOUT_MS = 15000;
+DB_FORCE_CLOSE_TIMEOUT_MS = 5000;
+DB_WAIT_FOR_QUERIES = true;
+DB_LOG_SHUTDOWN_DETAILS = true;
 ```
 
 ### 4. Queue Job Completion/Requeue
@@ -134,12 +139,14 @@ DB_LOG_SHUTDOWN_DETAILS=true
 **File**: `src/workers/services/worker-shutdown.service.ts`
 
 The `WorkerShutdownService` provides:
+
 - Worker pool management
 - Job completion monitoring
 - Incomplete job requeuing
 - Worker process termination
 
 **Shutdown Process**:
+
 1. **Pause Queues**: Stop accepting new jobs
 2. **Job Completion**: Wait for active jobs to finish
 3. **Requeue**: Move incomplete jobs back to queue
@@ -147,21 +154,23 @@ The `WorkerShutdownService` provides:
 
 ```typescript
 // Environment configuration
-WORKER_GRACEFUL_TIMEOUT_MS=20000
-WORKER_JOB_TIMEOUT_MS=15000
-WORKER_FORCE_TIMEOUT_MS=5000
-WORKER_REQUEUE_JOBS=true
-WORKER_WAIT_COMPLETION=true
+WORKER_GRACEFUL_TIMEOUT_MS = 20000;
+WORKER_JOB_TIMEOUT_MS = 15000;
+WORKER_FORCE_TIMEOUT_MS = 5000;
+WORKER_REQUEUE_JOBS = true;
+WORKER_WAIT_COMPLETION = true;
 ```
 
 ## Health Check Endpoints
 
 ### Shutdown Status
+
 ```
 GET /health/shutdown
 ```
 
 Returns comprehensive shutdown status:
+
 ```json
 {
   "status": "healthy|shutting_down|unhealthy",
@@ -195,11 +204,13 @@ Returns comprehensive shutdown status:
 ```
 
 ### Readiness Check
+
 ```
 GET /health/shutdown/readiness
 ```
 
 Load balancer-friendly readiness check:
+
 ```json
 {
   "ready": true,
@@ -209,6 +220,7 @@ Load balancer-friendly readiness check:
 ```
 
 ### Detailed Status
+
 ```
 GET /health/shutdown/detailed
 ```
@@ -219,23 +231,24 @@ Comprehensive debugging information including active requests, worker details, a
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SHUTDOWN_TIMEOUT_MS` | 30000 | Global shutdown timeout |
-| `FORCE_EXIT_ON_TIMEOUT` | true | Force exit if timeout exceeded |
-| `DB_DRAIN_TIMEOUT_MS` | 15000 | Database connection drain timeout |
-| `DB_FORCE_CLOSE_TIMEOUT_MS` | 5000 | Database force close timeout |
-| `DB_WAIT_FOR_QUERIES` | true | Wait for active queries to complete |
-| `DB_LOG_SHUTDOWN_DETAILS` | false | Log detailed database shutdown info |
-| `WORKER_GRACEFUL_TIMEOUT_MS` | 20000 | Worker graceful shutdown timeout |
-| `WORKER_JOB_TIMEOUT_MS` | 15000 | Job completion timeout |
-| `WORKER_FORCE_TIMEOUT_MS` | 5000 | Worker force termination timeout |
-| `WORKER_REQUEUE_JOBS` | true | Requeue incomplete jobs |
-| `WORKER_WAIT_COMPLETION` | true | Wait for job completion |
+| Variable                     | Default | Description                         |
+| ---------------------------- | ------- | ----------------------------------- |
+| `SHUTDOWN_TIMEOUT_MS`        | 30000   | Global shutdown timeout             |
+| `FORCE_EXIT_ON_TIMEOUT`      | true    | Force exit if timeout exceeded      |
+| `DB_DRAIN_TIMEOUT_MS`        | 15000   | Database connection drain timeout   |
+| `DB_FORCE_CLOSE_TIMEOUT_MS`  | 5000    | Database force close timeout        |
+| `DB_WAIT_FOR_QUERIES`        | true    | Wait for active queries to complete |
+| `DB_LOG_SHUTDOWN_DETAILS`    | false   | Log detailed database shutdown info |
+| `WORKER_GRACEFUL_TIMEOUT_MS` | 20000   | Worker graceful shutdown timeout    |
+| `WORKER_JOB_TIMEOUT_MS`      | 15000   | Job completion timeout              |
+| `WORKER_FORCE_TIMEOUT_MS`    | 5000    | Worker force termination timeout    |
+| `WORKER_REQUEUE_JOBS`        | true    | Requeue incomplete jobs             |
+| `WORKER_WAIT_COMPLETION`     | true    | Wait for job completion             |
 
 ### Cluster Mode Support
 
 The implementation supports cluster mode with coordinated shutdown:
+
 - Primary process manages worker shutdown
 - Workers report shutdown status to primary
 - Graceful termination with timeout handling
@@ -243,6 +256,7 @@ The implementation supports cluster mode with coordinated shutdown:
 ## Usage Examples
 
 ### Basic Shutdown
+
 ```bash
 # Send SIGTERM for graceful shutdown
 kill -TERM <pid>
@@ -252,6 +266,7 @@ kill -INT <pid>
 ```
 
 ### Monitoring Shutdown
+
 ```bash
 # Check shutdown status
 curl http://localhost:3000/health/shutdown
@@ -264,6 +279,7 @@ curl http://localhost:3000/health/shutdown/detailed
 ```
 
 ### Docker Integration
+
 ```dockerfile
 # Dockerfile
 STOPSIGNAL SIGTERM
@@ -274,10 +290,11 @@ STOPSIGNAL SIGTERM
 # docker-compose.yml
 services:
   app:
-    stop_grace_period: 45s  # Allow time for graceful shutdown
+    stop_grace_period: 45s # Allow time for graceful shutdown
 ```
 
 ### Kubernetes Integration
+
 ```yaml
 # deployment.yaml
 spec:
@@ -285,23 +302,26 @@ spec:
     spec:
       terminationGracePeriodSeconds: 45
       containers:
-      - name: app
-        lifecycle:
-          preStop:
-            httpGet:
-              path: /health/shutdown/readiness
-              port: 3000
+        - name: app
+          lifecycle:
+            preStop:
+              httpGet:
+                path: /health/shutdown/readiness
+                port: 3000
 ```
 
 ## Testing
 
 ### Integration Tests
+
 Run the comprehensive test suite:
+
 ```bash
 npm test src/health/tests/graceful-shutdown.integration.test.ts
 ```
 
 ### Manual Testing
+
 1. Start the application
 2. Generate some load (requests, jobs)
 3. Send SIGTERM signal
@@ -309,6 +329,7 @@ npm test src/health/tests/graceful-shutdown.integration.test.ts
 5. Verify clean shutdown completion
 
 ### Load Testing Shutdown
+
 ```bash
 # Generate load while testing shutdown
 ab -n 1000 -c 10 http://localhost:3000/api/health &
@@ -318,6 +339,7 @@ kill -TERM $(pgrep node)
 ## Monitoring and Observability
 
 ### Metrics
+
 - Active request count
 - Request completion time
 - Database connection utilization
@@ -325,12 +347,14 @@ kill -TERM $(pgrep node)
 - Shutdown phase duration
 
 ### Logging
+
 - Shutdown initiation and completion
 - Phase execution timing
 - Error conditions and recovery
 - Resource cleanup status
 
 ### Alerts
+
 - Shutdown timeout exceeded
 - High active request count during shutdown
 - Database connection leaks
@@ -365,6 +389,7 @@ kill -TERM $(pgrep node)
    - Monitor job completion rates
 
 ### Debug Commands
+
 ```bash
 # Check active connections
 curl http://localhost:3000/health/shutdown/detailed | jq '.database'

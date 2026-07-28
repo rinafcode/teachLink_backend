@@ -8,11 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
-import {
-  AuditAction,
-  AuditCategory,
-  AuditSeverity,
-} from '../../audit-log/enums/audit-action.enum';
+import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
 import { BUILTIN_ROLE_NAMES, Role } from '../entities/role.entity';
 
@@ -42,10 +38,7 @@ export class RolesService {
    * Validates that all requested permission IDs exist.
    * Throws a BadRequestException listing any missing IDs if counts mismatch.
    */
-  private validatePermissionsExist(
-    requestedIds: string[],
-    foundPermissions: Permission[],
-  ): void {
+  private validatePermissionsExist(requestedIds: string[], foundPermissions: Permission[]): void {
     if (!requestedIds || requestedIds.length === 0) return;
 
     const uniqueRequestedIds = Array.from(new Set(requestedIds));
@@ -54,9 +47,7 @@ export class RolesService {
       const foundIds = new Set(foundPermissions.map((permission) => permission.id));
       const missingIds = uniqueRequestedIds.filter((id) => !foundIds.has(id));
 
-      throw new BadRequestException(
-        `Invalid permission ID(s) provided: ${missingIds.join(', ')}`,
-      );
+      throw new BadRequestException(`Invalid permission ID(s) provided: ${missingIds.join(', ')}`);
     }
   }
 

@@ -1,13 +1,12 @@
 # ApiSuccess
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**success** | **bool** |  | [optional] 
-**message** | **str** |  | [optional] 
-**data** | **object** |  | [optional] 
+| Name        | Type       | Description | Notes      |
+| ----------- | ---------- | ----------- | ---------- |
+| **success** | **bool**   |             | [optional] |
+| **message** | **str**    |             | [optional] |
+| **data**    | **object** |             | [optional] |
 
 ## Example
 
@@ -26,6 +25,5 @@ api_success_dict = api_success_instance.to_dict()
 # create an instance of ApiSuccess from a dict
 api_success_from_dict = ApiSuccess.from_dict(api_success_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

@@ -2,11 +2,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import * as crypto from 'crypto';
-import {
-  Notification,
-  NotificationType,
-  NotificationStatus,
-} from './entities/notification.entity';
+import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
 import { PaginationService } from '../common/services/pagination.service';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
 
@@ -23,7 +19,10 @@ export class NotificationsService {
    * Generates a deterministic SHA-256 hash for raw content.
    */
   private hashContent(content: string): string {
-    return crypto.createHash('sha256').update(content || '').digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(content || '')
+      .digest('hex');
   }
 
   async findDuplicate(userId: string, type: NotificationType, content: string) {
@@ -75,8 +74,7 @@ export class NotificationsService {
   }
   async findForUser(userId: string, query?: PaginationQueryDto) {
     const limit = query?.limit ?? 20;
-    const offset =
-      query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
 
     const qb = this.notificationRepository
       .createQueryBuilder('notification')

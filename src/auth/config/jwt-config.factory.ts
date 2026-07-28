@@ -49,9 +49,7 @@ export function validateJwtConfig(configService?: ConfigService): void {
     ? configService.get<string>('JWT_PUBLIC_KEY')
     : process.env.JWT_PUBLIC_KEY;
 
-  const secret = configService
-    ? configService.get<string>('JWT_SECRET')
-    : process.env.JWT_SECRET;
+  const secret = configService ? configService.get<string>('JWT_SECRET') : process.env.JWT_SECRET;
   const refreshSecret = configService
     ? configService.get<string>('JWT_REFRESH_SECRET')
     : process.env.JWT_REFRESH_SECRET;
@@ -74,9 +72,7 @@ export function validateJwtConfig(configService?: ConfigService): void {
 
   // Reject missing configuration
   if (!hasRS256 && !hasHS256) {
-    throw new Error(
-      'Invalid JWT Configuration: Must specify either RS256 keys or HS256 secrets.',
-    );
+    throw new Error('Invalid JWT Configuration: Must specify either RS256 keys or HS256 secrets.');
   }
 }
 
@@ -97,9 +93,7 @@ export function getSigningKey(configService?: ConfigService): string {
     return resolvedKey;
   }
 
-  const secret = configService
-    ? configService.get<string>('JWT_SECRET')
-    : process.env.JWT_SECRET;
+  const secret = configService ? configService.get<string>('JWT_SECRET') : process.env.JWT_SECRET;
 
   return secret || '';
 }
@@ -121,9 +115,7 @@ export function getVerificationKey(configService?: ConfigService): string {
     return resolvedKey;
   }
 
-  const secret = configService
-    ? configService.get<string>('JWT_SECRET')
-    : process.env.JWT_SECRET;
+  const secret = configService ? configService.get<string>('JWT_SECRET') : process.env.JWT_SECRET;
 
   return secret || '';
 }

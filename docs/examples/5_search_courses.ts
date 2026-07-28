@@ -10,7 +10,7 @@ const apiClient = axios.create({
 async function searchCourses() {
   try {
     const response = await apiClient.get('/search');
-    
+
     console.log('Response:', response.data);
     return response.data;
   } catch (error) {
