@@ -1,18 +1,33 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToMany,
+  DeleteDateColumn,
+  Entity,
+  Index,
   JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Permission } from './permission.entity';
 import { User } from '../../users/entities/user.entity';
 
 /**
- * Represents a role in the system.
- * A role can have multiple permissions and can be assigned to multiple users.
+ * Built-in roles that ship with the platform.
+ * These are protected from deletion and are used by authorization checks.
+ */
+export const BUILTIN_ROLE_NAMES = [
+  'student',
+  'teacher',
+  'instructor',
+  'moderator',
+  'admin',
+] as const;
+
+export type BuiltinRoleName = (typeof BUILTIN_ROLE_NAMES)[number];
+
+/**
+ * Represents a role in the RBAC catalogue.
  */
 @Entity('roles')
 export class Role {
@@ -20,10 +35,14 @@ export class Role {
   id: string;
 
   @Column({ unique: true })
+  @Index()
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @Column({ default: false })
+  isSystem: boolean;
 
   @ManyToMany(() => Permission, (permission) => permission.roles, { eager: true })
   @JoinTable()
@@ -37,4 +56,7 @@ export class Role {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

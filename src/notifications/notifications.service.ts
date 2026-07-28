@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
+    @Optional()
+    private paginationService: PaginationService = new PaginationService(),
   ) {}
 
   async findDuplicate(userId: string, type: NotificationType, content: string) {
@@ -52,8 +56,15 @@ export class NotificationsService {
   async unsubscribe(_userId: string, _eventType: string) {
     return;
   }
-  async findForUser(_userId: string, _query?: any) {
-    return { data: [], total: 0 };
+  async findForUser(userId: string, query?: PaginationQueryDto) {
+    const limit = query?.limit ?? 20;
+    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+
+    const qb = this.notificationRepository
+      .createQueryBuilder('notification')
+      .where('notification.userId = :userId', { userId });
+
+    return this.paginationService.paginate(qb, query?.cursor, limit, offset, 'createdAt');
   }
   async create(_dto: any) {
     return null;

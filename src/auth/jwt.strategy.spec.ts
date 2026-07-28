@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtStrategy, JwtPayload } from './jwt.strategy';
 import { User, UserStatus } from '../users/entities/user.entity';
+import { TokenBlacklistService } from './services/token-blacklist.service';
 
 describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
@@ -12,15 +13,26 @@ describe('JwtStrategy', () => {
     createQueryBuilder: jest.fn(),
   };
 
+  const mockTokenBlacklistService = {
+    isBlacklisted: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [JwtStrategy, { provide: getRepositoryToken(User), useValue: mockUserRepo }],
+      providers: [
+        JwtStrategy,
+        { provide: getRepositoryToken(User), useValue: mockUserRepo },
+        { provide: TokenBlacklistService, useValue: mockTokenBlacklistService },
+      ],
     }).compile();
 
     strategy = module.get<JwtStrategy>(JwtStrategy);
   });
 
-  afterEach(() => jest.clearAllMocks());
+  afterEach(() => {
+    jest.clearAllMocks();
+    mockTokenBlacklistService.isBlacklisted.mockResolvedValue(false);
+  });
 
   it('should be defined', () => {
     expect(strategy).toBeDefined();
@@ -32,6 +44,7 @@ describe('JwtStrategy', () => {
       email: 'test@example.com',
       roles: [],
       permissions: [],
+      jti: 'test-jti',
     };
 
     const mockUser = {
@@ -49,6 +62,13 @@ describe('JwtStrategy', () => {
         },
       ],
     };
+
+    it('should check the blacklist on every request and throw UnauthorizedException if blacklisted', async () => {
+      mockTokenBlacklistService.isBlacklisted.mockResolvedValue(true);
+
+      await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
+      expect(mockTokenBlacklistService.isBlacklisted).toHaveBeenCalledWith('test-jti');
+    });
 
     it('should successfully validate and return payload with roles and permissions if user is active', async () => {
       mockUserRepo.findOneBy.mockResolvedValue(mockUser);

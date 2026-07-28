@@ -115,6 +115,9 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Total API errors (≥ 400), labelled by route and error_code */
   public apiErrors: Counter;
 
+  /** Total security events emitted, labelled by event type */
+  public securityEventsTotal: Counter;
+
   // ── Business Metrics – Workers ────────────────────────────────────────────
 
   /** Total worker restarts, labelled by worker_name */
@@ -255,6 +258,10 @@ export class MetricsCollectionService implements OnModuleInit {
 
   recordApiError(route: string, errorCode: string): void {
     this.apiErrors.inc({ route, error_code: errorCode });
+  }
+
+  recordSecurityEvent(type: string): void {
+    this.securityEventsTotal.inc({ type });
   }
 
   // ── Recording helpers – Workers ──────────────────────────────────────────
@@ -478,6 +485,14 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'api_errors_total',
       help: 'Total number of API errors (HTTP 4xx/5xx)',
       labelNames: ['route', 'error_code'],
+      registers: [this.registry],
+    });
+
+    // Security
+    this.securityEventsTotal = new Counter({
+      name: 'security_events_total',
+      help: 'Total number of structured security events emitted',
+      labelNames: ['type'],
       registers: [this.registry],
     });
 

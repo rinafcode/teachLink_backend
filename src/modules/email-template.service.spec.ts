@@ -54,8 +54,8 @@ describe('EmailTemplateService', () => {
     // Verify malicious scripts are not present in raw form
     expect(result.body).not.toContain('<script>');
     expect(result.body).not.toContain('onerror=alert(2)');
-    // Verify content is sanitized but preserved
-    expect(result.body).toContain('alert(&quot;hacked&quot;)');
-    expect(result.body).toContain('&lt;img src=x');
+    // Verify the malicious content is completely stripped by sanitize-html
+    expect(result.body).not.toContain('alert("hacked")');
+    expect(result.body).not.toContain('img src=x');
   });
 });

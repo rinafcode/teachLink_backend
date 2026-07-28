@@ -1,14 +1,14 @@
 # AuthApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost:3000*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
-|[**authLoginPost**](#authloginpost) | **POST** /auth/login | User login|
-|[**authRegisterPost**](#authregisterpost) | **POST** /auth/register | User registration|
+|[**loginUser**](#loginuser) | **POST** /auth/login | Log in with email and password|
+|[**registerUser**](#registeruser) | **POST** /auth/register | Register a new user|
 
-# **authLoginPost**
-> authLoginPost(authLoginPostRequest)
+# **loginUser**
+> ApiSuccess loginUser(loginRequest)
 
 
 ### Example
@@ -17,16 +17,16 @@ All URIs are relative to *http://localhost*
 import {
     AuthApi,
     Configuration,
-    AuthLoginPostRequest
+    LoginRequest
 } from './api';
 
 const configuration = new Configuration();
 const apiInstance = new AuthApi(configuration);
 
-let authLoginPostRequest: AuthLoginPostRequest; //
+let loginRequest: LoginRequest; //
 
-const { status, data } = await apiInstance.authLoginPost(
-    authLoginPostRequest
+const { status, data } = await apiInstance.loginUser(
+    loginRequest
 );
 ```
 
@@ -34,12 +34,12 @@ const { status, data } = await apiInstance.authLoginPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **authLoginPostRequest** | **AuthLoginPostRequest**|  | |
+| **loginRequest** | **LoginRequest**|  | |
 
 
 ### Return type
 
-void (empty response body)
+**ApiSuccess**
 
 ### Authorization
 
@@ -48,7 +48,7 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: Not defined
+ - **Accept**: application/json
 
 
 ### HTTP response details
@@ -59,8 +59,8 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **authRegisterPost**
-> authRegisterPost(usersPostRequest)
+# **registerUser**
+> ApiSuccess registerUser(registerRequest)
 
 
 ### Example
@@ -69,16 +69,16 @@ No authorization required
 import {
     AuthApi,
     Configuration,
-    UsersPostRequest
+    RegisterRequest
 } from './api';
 
 const configuration = new Configuration();
 const apiInstance = new AuthApi(configuration);
 
-let usersPostRequest: UsersPostRequest; //
+let registerRequest: RegisterRequest; //
 
-const { status, data } = await apiInstance.authRegisterPost(
-    usersPostRequest
+const { status, data } = await apiInstance.registerUser(
+    registerRequest
 );
 ```
 
@@ -86,12 +86,12 @@ const { status, data } = await apiInstance.authRegisterPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **usersPostRequest** | **UsersPostRequest**|  | |
+| **registerRequest** | **RegisterRequest**|  | |
 
 
 ### Return type
 
-void (empty response body)
+**ApiSuccess**
 
 ### Authorization
 
@@ -100,13 +100,15 @@ No authorization required
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: Not defined
+ - **Accept**: application/json
 
 
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**201** | Registration successful |  -  |
+|**400** | Invalid registration data |  -  |
+|**409** | Email already exists |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
