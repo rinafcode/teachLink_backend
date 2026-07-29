@@ -1,10 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, VersionColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn, Index } from 'typeorm';
 import { Tier } from '../enums/tier.enum';
 
 /**
  * Defines the reward granted when a user reaches a specific tier.
  */
 @Entity('tier_rewards')
+@Index(['tier'])
 export class TierReward {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -25,7 +25,9 @@ const RESPONSE_DTO_EXEMPTIONS = new Set([
 const PARTIAL_TYPE_RE = /\bPartialType\s*\(/;
 
 function hasClassValidatorDecorator(content) {
-  return /@(?:Is[A-Z]\w*|Min(?:Date)?|Max(?:Date)?|Length|ValidateNested|ValidatePromise|ValidateIf|ArrayMinSize|ArrayMaxSize|ArrayNotEmpty|ArrayUnique|ArrayContains|ArrayNotContains|ArrayContainsValues|MinLength|MaxLength|Equals|NotEquals|Contains|NotContains|IsDefined)\s*[(\n]/m.test(content);
+  return /@(?:Is[A-Z]\w*|Min(?:Date)?|Max(?:Date)?|Length|ValidateNested|ValidatePromise|ValidateIf|ArrayMinSize|ArrayMaxSize|ArrayNotEmpty|ArrayUnique|ArrayContains|ArrayNotContains|ArrayContainsValues|MinLength|MaxLength|Equals|NotEquals|Contains|NotContains|IsDefined)\s*[(\n]/m.test(
+    content,
+  );
 }
 
 function hasClassLevelExclude(content) {

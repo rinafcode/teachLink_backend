@@ -3,6 +3,7 @@
 Complete documentation for TeachLink authentication endpoints.
 
 ## Table of Contents
+
 - [Register User](#register-user)
 - [Login User](#login-user)
 - [Refresh Token](#refresh-token)
@@ -19,11 +20,13 @@ Complete documentation for TeachLink authentication endpoints.
 Create a new user account in the TeachLink platform.
 
 ### Endpoint
+
 ```
 POST /auth/register
 ```
 
 ### Rate Limiting
+
 - **Limit**: 10 requests per minute
 - **Header**: `X-RateLimit-Limit: 10`
 
@@ -31,13 +34,13 @@ POST /auth/register
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| email | string | Yes | User's email address | Valid email format |
-| password | string | Yes | User's password | Min 8 chars, uppercase, lowercase, number, special char |
-| firstName | string | Yes | User's first name | 1-50 characters |
-| lastName | string | Yes | User's last name | 1-50 characters |
-| role | string | No | User role | Enum: `STUDENT`, `INSTRUCTOR`, `ADMIN` (default: `STUDENT`) |
+| Field     | Type   | Required | Description          | Validation                                                  |
+| --------- | ------ | -------- | -------------------- | ----------------------------------------------------------- |
+| email     | string | Yes      | User's email address | Valid email format                                          |
+| password  | string | Yes      | User's password      | Min 8 chars, uppercase, lowercase, number, special char     |
+| firstName | string | Yes      | User's first name    | 1-50 characters                                             |
+| lastName  | string | Yes      | User's last name     | 1-50 characters                                             |
+| role      | string | No       | User role            | Enum: `STUDENT`, `INSTRUCTOR`, `ADMIN` (default: `STUDENT`) |
 
 ### Example Request
 
@@ -105,11 +108,13 @@ curl -X POST http://localhost:3000/auth/register \
 Authenticate user and receive access/refresh tokens.
 
 ### Endpoint
+
 ```
 POST /auth/login
 ```
 
 ### Rate Limiting
+
 - **Limit**: 10 requests per minute
 - **Header**: `X-RateLimit-Limit: 10`
 
@@ -117,10 +122,10 @@ POST /auth/login
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| email | string | Yes | User's email address |
-| password | string | Yes | User's password |
+| Field    | Type   | Required | Description          |
+| -------- | ------ | -------- | -------------------- |
+| email    | string | Yes      | User's email address |
+| password | string | Yes      | User's password      |
 
 ### Example Request
 
@@ -183,20 +188,22 @@ curl http://localhost:3000/users/profile \
 Obtain a new access token using a refresh token.
 
 ### Endpoint
+
 ```
 POST /auth/refresh
 ```
 
 ### Rate Limiting
+
 - **Limit**: 30 requests per minute
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| refreshToken | string | Yes | Valid refresh token |
+| Field        | Type   | Required | Description         |
+| ------------ | ------ | -------- | ------------------- |
+| refreshToken | string | Yes      | Valid refresh token |
 
 ### Example Request
 
@@ -241,11 +248,13 @@ curl -X POST http://localhost:3000/auth/refresh \
 Invalidate the current session and refresh token.
 
 ### Endpoint
+
 ```
 POST /auth/logout
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -291,20 +300,22 @@ curl -X POST http://localhost:3000/auth/logout \
 Request a password reset email.
 
 ### Endpoint
+
 ```
 POST /auth/forgot-password
 ```
 
 ### Rate Limiting
+
 - **Limit**: 5 requests per hour per email
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| email | string | Yes | User's registered email address |
+| Field | Type   | Required | Description                     |
+| ----- | ------ | -------- | ------------------------------- |
+| email | string | Yes      | User's registered email address |
 
 ### Example Request
 
@@ -348,21 +359,23 @@ For security reasons, the API returns the same response whether the email exists
 Reset password using the token received via email.
 
 ### Endpoint
+
 ```
 POST /auth/reset-password
 ```
 
 ### Rate Limiting
+
 - **Limit**: 5 requests per hour
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| token | string | Yes | Reset token from email |
-| newPassword | string | Yes | New password |
+| Field       | Type   | Required | Description            |
+| ----------- | ------ | -------- | ---------------------- |
+| token       | string | Yes      | Reset token from email |
+| newPassword | string | Yes      | New password           |
 
 ### Example Request
 
@@ -407,11 +420,13 @@ Reset tokens expire after **1 hour** for security purposes.
 Change password for an authenticated user.
 
 ### Endpoint
+
 ```
 POST /auth/change-password
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -425,10 +440,10 @@ Content-Type: application/json
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| currentPassword | string | Yes | Current password |
-| newPassword | string | Yes | New password |
+| Field           | Type   | Required | Description      |
+| --------------- | ------ | -------- | ---------------- |
+| currentPassword | string | Yes      | Current password |
+| newPassword     | string | Yes      | New password     |
 
 ### Example Request
 
@@ -470,20 +485,22 @@ curl -X POST http://localhost:3000/auth/change-password \
 Verify user's email address using the verification token.
 
 ### Endpoint
+
 ```
 POST /auth/verify-email
 ```
 
 ### Rate Limiting
+
 - **Limit**: 10 requests per hour
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| token | string | Yes | Email verification token |
+| Field | Type   | Required | Description              |
+| ----- | ------ | -------- | ------------------------ |
+| token | string | Yes      | Email verification token |
 
 ### Example Request
 
@@ -562,11 +579,13 @@ curl -X POST http://localhost:3000/auth/verify-email \
 ### Token Storage
 
 **Client-Side (Browser)**:
+
 - Store refresh token in HTTP-only, secure cookie
 - Store access token in memory (not localStorage)
 - Use CSRF protection
 
 **Mobile Apps**:
+
 - Use secure storage (Keychain for iOS, Keystore for Android)
 - Never store tokens in plain text
 
@@ -576,30 +595,30 @@ curl -X POST http://localhost:3000/auth/verify-email \
 // Example: Automatic token refresh
 async function apiCall(endpoint, options) {
   let token = getAccessToken();
-  
+
   let response = await fetch(endpoint, {
     ...options,
     headers: {
       ...options.headers,
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
-  
+
   if (response.status === 401) {
     // Token expired, refresh it
     const newTokens = await refreshAccessToken();
     token = newTokens.accessToken;
-    
+
     // Retry original request
     response = await fetch(endpoint, {
       ...options,
       headers: {
         ...options.headers,
-        'Authorization': `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
   }
-  
+
   return response;
 }
 ```
@@ -653,18 +672,22 @@ curl http://localhost:3000/users/profile \
 ### Common Issues
 
 **Issue**: `401 Unauthorized`
+
 - **Cause**: Missing or invalid token
 - **Solution**: Check Authorization header format and token validity
 
 **Issue**: `Token expired`
+
 - **Cause**: Access token lifetime exceeded
 - **Solution**: Use refresh token endpoint to get new token
 
 **Issue**: `Invalid credentials`
+
 - **Cause**: Wrong email or password
 - **Solution**: Verify credentials or use forgot password flow
 
 **Issue**: `Email already registered`
+
 - **Cause**: Attempting to register with existing email
 - **Solution**: Use login flow instead
 

@@ -66,10 +66,10 @@ If the server queue exceeds ~90% capacity, new messages may be dropped server-si
 
 ## Events
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `sendMessage` | client → server | Send chat message |
-| `message` | server → client | New message payload |
-| `typing` | both | Typing indicator |
-| `ping` / `pong` | both | Heartbeat |
-| `connected` | server → client | Session established, includes `reconnectDelayMs` |
+| Event           | Direction       | Description                                      |
+| --------------- | --------------- | ------------------------------------------------ |
+| `sendMessage`   | client → server | Send chat message                                |
+| `message`       | server → client | New message payload                              |
+| `typing`        | both            | Typing indicator                                 |
+| `ping` / `pong` | both            | Heartbeat                                        |
+| `connected`     | server → client | Session established, includes `reconnectDelayMs` |

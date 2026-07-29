@@ -61,7 +61,10 @@ await check('Node >= 18.0.0', () => {
 header('2. Package manager');
 
 await check('pnpm installed', () => {
-  const out = execSync('pnpm --version', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  const out = execSync('pnpm --version', {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  }).trim();
   pass('pnpm version', out);
   return true;
 });
@@ -216,8 +219,11 @@ await check('PostgreSQL reachable', async () => {
   }
   try {
     const client = new Client({
-      host: pgHost, port: pgPort, user: pgUser,
-      password: pgPass, database: pgDb,
+      host: pgHost,
+      port: pgPort,
+      user: pgUser,
+      password: pgPass,
+      database: pgDb,
       connectionTimeoutMillis: 5000,
     });
     await client.connect();
@@ -251,7 +257,8 @@ await check('Redis reachable', async () => {
   }
   try {
     const redis = new Redis({
-      host: redisHost, port: redisPort,
+      host: redisHost,
+      port: redisPort,
       maxRetriesPerRequest: 1,
       retryStrategy: () => null,
       lazyConnect: true,

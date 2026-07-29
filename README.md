@@ -4,7 +4,9 @@
 [![Coverage](https://img.shields.io/badge/coverage-70%25%20threshold-brightgreen)](#-ci--testing)
 [![Branch Protection](https://img.shields.io/badge/branch%20protection-enabled-blue)](#-branch-protection)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
+
 ## 🚦 Local Validation: Analytics & Cost Tracking
+
 q
 To quickly validate feature analytics and cost tracking end-to-end:
 
@@ -44,24 +46,24 @@ Open http://localhost:3000/api/docs for the interactive API documentation.
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Node.js | >= 18 | [nodejs.org](https://nodejs.org/) |
-| pnpm | >= 8 | `npm install -g pnpm` |
-| Docker | >= 24 | [docker.com](https://www.docker.com/products/docker-desktop/) |
-| Docker Compose | >= 2.24 | Included with Docker Desktop |
-| Git | >= 2 | [git-scm.com](https://git-scm.com/) |
+| Tool           | Version | Install                                                       |
+| -------------- | ------- | ------------------------------------------------------------- |
+| Node.js        | >= 18   | [nodejs.org](https://nodejs.org/)                             |
+| pnpm           | >= 8    | `npm install -g pnpm`                                         |
+| Docker         | >= 24   | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| Docker Compose | >= 2.24 | Included with Docker Desktop                                  |
+| Git            | >= 2    | [git-scm.com](https://git-scm.com/)                           |
 
 ---
 
 ## Onboarding Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Setup guide](docs/setup.md) | Step-by-step setup from scratch |
-| [Troubleshooting guide](docs/troubleshooting.md) | Common issues and fixes |
-| [Developer runbook](docs/runbook.md) | Day-to-day operational commands |
-| [Migrations guide](docs/migrations.md) | Database migration commands |
+| Document                                            | Description                          |
+| --------------------------------------------------- | ------------------------------------ |
+| [Setup guide](docs/setup.md)                        | Step-by-step setup from scratch      |
+| [Troubleshooting guide](docs/troubleshooting.md)    | Common issues and fixes              |
+| [Developer runbook](docs/runbook.md)                | Day-to-day operational commands      |
+| [Migrations guide](docs/migrations.md)              | Database migration commands          |
 | [API documentation](http://localhost:3000/api/docs) | Swagger UI (requires running server) |
 
 ---
@@ -70,7 +72,7 @@ Open http://localhost:3000/api/docs for the interactive API documentation.
 
 A video walkthrough for visual learners. Covers installation, configuration, and first API call.
 
-**Video link:** https://example.com/setup-video *(placeholder — to be recorded)*
+**Video link:** https://example.com/setup-video _(placeholder — to be recorded)_
 
 **What the video covers:**
 
@@ -87,18 +89,18 @@ A video walkthrough for visual learners. Covers installation, configuration, and
 
 ## Available Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm start:dev` | Start dev server with hot-reload |
-| `pnpm build` | Compile TypeScript to `dist/` |
-| `pnpm lint` | Lint and auto-fix |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm test` | Run unit tests |
-| `pnpm test:e2e` | Run end-to-end tests |
-| `pnpm validate:env` | Validate environment variables |
-| `pnpm migrate:run` | Run pending migrations |
-| `pnpm migrate:status` | Check migration status |
-| `pnpm verify` | Run setup verification |
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `pnpm start:dev`      | Start dev server with hot-reload |
+| `pnpm build`          | Compile TypeScript to `dist/`    |
+| `pnpm lint`           | Lint and auto-fix                |
+| `pnpm typecheck`      | TypeScript type checking         |
+| `pnpm test`           | Run unit tests                   |
+| `pnpm test:e2e`       | Run end-to-end tests             |
+| `pnpm validate:env`   | Validate environment variables   |
+| `pnpm migrate:run`    | Run pending migrations           |
+| `pnpm migrate:status` | Check migration status           |
+| `pnpm verify`         | Run setup verification           |
 
 ---
 
@@ -115,6 +117,7 @@ Every pull request and every push to `main` / `develop` runs an automated pipeli
 | **Format**     | Prettier         | Any file that would be reformatted        |
 | **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
 | **Build**      | NestJS CLI       | Compilation failure                       |
+| **Migrations** | TypeORM CLI      | Migration error or schema drift         |
 | **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
 | **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
 
@@ -138,6 +141,15 @@ pnpm test:ci
 
 # E2E tests (requires Postgres + Redis running locally)
 pnpm test:e2e
+
+# Run database migrations
+pnpm run migration:run
+
+# Revert last migration (verifies reversibility)
+pnpm run migration:revert
+
+# Check for schema drift (fails if model changes exist without a migration)
+pnpm run migration:generate:check
 ```
 
 ### Coverage thresholds
@@ -168,6 +180,7 @@ Every pull request and every push to `main` / `develop` runs an automated pipeli
 | **Format**     | Prettier         | Any file that would be reformatted        |
 | **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
 | **Build**      | NestJS CLI       | Compilation failure                       |
+| **Migrations** | TypeORM CLI      | Migration error or schema drift         |
 | **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
 | **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
 
@@ -191,6 +204,15 @@ npm run test:ci
 
 # E2E tests (requires Postgres + Redis running locally)
 npm run test:e2e
+
+# Run database migrations
+npm run migration:run
+
+# Revert last migration (verifies reversibility)
+npm run migration:revert
+
+# Check for schema drift (fails if model changes exist without a migration)
+npm run migration:generate:check
 ```
 
 ### Coverage thresholds
@@ -555,11 +577,11 @@ pnpm verify                     # Verify setup
 
 ### Access the API
 
-| Endpoint | URL |
-|----------|-----|
-| REST API | http://localhost:3000 |
+| Endpoint          | URL                            |
+| ----------------- | ------------------------------ |
+| REST API          | http://localhost:3000          |
 | API Documentation | http://localhost:3000/api/docs |
-| Health Check | http://localhost:3000/health |
+| Health Check      | http://localhost:3000/health   |
 
 ### Docker Compose
 

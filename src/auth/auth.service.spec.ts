@@ -1,10 +1,5 @@
 import 'reflect-metadata';
-
-jest.mock('bcrypt', () => ({
-  genSalt: jest.fn().mockResolvedValue('salt'),
-  hash: jest.fn().mockResolvedValue('hashed-password'),
-  compare: jest.fn().mockResolvedValue(true),
-}));
+import { createHmac } from 'crypto';
 
 jest.mock('../users/entities/user.entity', () => ({
   User: class User {},
@@ -27,7 +22,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { User, UserStatus } from '../users/entities/user.entity';
@@ -110,7 +104,6 @@ describe('AuthService', () => {
       const result = await service.login(makeUser());
 
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
-      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
       expect(mockUserRepo.update).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({ refreshToken: expect.any(String) }),
@@ -193,12 +186,13 @@ describe('AuthService', () => {
     });
 
     it('revokes all tokens and throws when a blacklisted token is reused', async () => {
+      const rawToken = 'revoked-token';
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOne.mockResolvedValue(makeUser());
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ refreshToken: hmacToken(rawToken) }));
       mockBlacklistService.isBlacklisted.mockResolvedValue(true);
       mockUserRepo.update.mockResolvedValue(undefined);
 
-      await expect(service.refreshTokens('revoked-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshTokens(rawToken)).rejects.toThrow(UnauthorizedException);
       expect(mockUserRepo.update).toHaveBeenCalledWith('user-1', { refreshToken: null });
       expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -224,9 +218,16 @@ describe('AuthService', () => {
       await expect(service.refreshTokens('token')).rejects.toThrow(UnauthorizedException);
     });
 
+    function hmacToken(token: string): string {
+      const secret =
+        process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+      return createHmac('sha256', secret).update(token).digest('hex');
+    }
+
     it('issues new tokens when the refresh token is valid and not blacklisted', async () => {
+      const rawToken = 'valid-token';
       mockJwtService.verify.mockReturnValue(validDecoded);
-      mockUserRepo.findOne.mockResolvedValue(makeUser());
+      mockUserRepo.findOne.mockResolvedValue(makeUser({ refreshToken: hmacToken(rawToken) }));
       mockBlacklistService.isBlacklisted.mockResolvedValue(false);
       mockBlacklistService.addToBlacklist.mockResolvedValue(undefined);
       mockJwtService.signAsync
@@ -234,9 +235,85 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('new-refresh');
       mockUserRepo.update.mockResolvedValue(undefined);
 
-      const result = await service.refreshTokens('valid-token');
+      const result = await service.refreshTokens(rawToken);
 
       expect(result).toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh' });
+    });
+
+    it('throws UnauthorizedException when the refresh token hash does not match', async () => {
+      mockJwtService.verify.mockReturnValue(validDecoded);
+      mockUserRepo.findOne.mockResolvedValue(
+        makeUser({ refreshToken: hmacToken('some-other-token') }),
+      );
+
+      await expect(service.refreshTokens('wrong-token')).rejects.toThrow(UnauthorizedException);
+      expect(mockSecurityEventLogger.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: SecurityEventType.AUTH_FAILURE,
+          severity: 'high',
+          details: expect.objectContaining({ reason: 'refresh_token_hash_mismatch' }),
+        }),
+      );
+    });
+  });
+});
+
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { UserStatus } from '../users/enums/user-status.enum';
+import { User } from '../users/entities/user.entity';
+
+describe('AuthService - Account Status Validation', () => {
+  let authService: AuthService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        // Mock dependencies (usersService, jwtService, etc.)
+      ],
+    }).compile();
+
+    authService = module.get<AuthService>(AuthService);
+  });
+
+  describe('assertUserMayAuthenticate', () => {
+    it('should allow authentication for ACTIVE users', () => {
+      const activeUser = { id: '1', status: UserStatus.ACTIVE } as User;
+      expect(() => authService.assertUserMayAuthenticate(activeUser)).not.toThrow();
+    });
+
+    it('should throw UnauthorizedException for SUSPENDED users', () => {
+      const suspendedUser = { id: '2', status: UserStatus.SUSPENDED } as User;
+      expect(() => authService.assertUserMayAuthenticate(suspendedUser)).toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException for BANNED users', () => {
+      const bannedUser = { id: '3', status: UserStatus.BANNED } as User;
+      expect(() => authService.assertUserMayAuthenticate(bannedUser)).toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException for PENDING_VERIFICATION users', () => {
+      const pendingUser = { id: '4', status: UserStatus.PENDING_VERIFICATION } as User;
+      expect(() => authService.assertUserMayAuthenticate(pendingUser)).toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('login', () => {
+    it('should reject login attempt if user is not ACTIVE', async () => {
+      const suspendedUser = { id: '2', status: UserStatus.SUSPENDED } as User;
+
+      await expect(authService.login(suspendedUser)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

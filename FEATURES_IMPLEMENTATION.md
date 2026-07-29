@@ -3,6 +3,7 @@
 This document covers the implementation of four major features requested in GitHub issues #546, #548, #545, and #554.
 
 ## Table of Contents
+
 1. [Event Tracking System (#546)](#event-tracking-system-546)
 2. [A/B Testing Framework (#548)](#ab-testing-framework-548)
 3. [Search Suggestions and Autocomplete (#545)](#search-suggestions-and-autocomplete-545)
@@ -13,9 +14,11 @@ This document covers the implementation of four major features requested in GitH
 ## Event Tracking System (#546)
 
 ### Overview
+
 A comprehensive event tracking system that captures user actions for analytics, with built-in validation, batching, and performance optimization.
 
 ### Features
+
 - **Event SDK**: Simple client API for tracking common events (signup, login, course_view, purchase, etc.)
 - **Event Validation**: Schema-based validation for event types with custom rules
 - **Event Batching**: Automatic batching and flushing for performance (configurable batch size & interval)
@@ -24,6 +27,7 @@ A comprehensive event tracking system that captures user actions for analytics, 
 - **Analytics Dashboard**: Summary endpoints for event analysis
 
 ### Files Created/Modified
+
 ```
 src/analytics/
 ├── entities/
@@ -39,6 +43,7 @@ src/analytics/
 ```
 
 ### Database Schema
+
 ```sql
 CREATE TABLE analytics_events (
   id UUID PRIMARY KEY,
@@ -64,6 +69,7 @@ CREATE TABLE analytics_events (
 ### API Endpoints
 
 #### Track Event
+
 ```http
 POST /analytics/events
 Authorization: Bearer <token>
@@ -82,6 +88,7 @@ Response: { "success": true }
 ```
 
 #### Query Events
+
 ```http
 GET /analytics/events?eventType=purchase&category=purchase&limit=50&offset=0
 Authorization: Bearer <token>
@@ -90,6 +97,7 @@ Response: { "events": [...], "total": 100 }
 ```
 
 #### Get Analytics Summary
+
 ```http
 GET /analytics/summary?startDate=2026-05-01&endDate=2026-06-01
 
@@ -104,6 +112,7 @@ Response: {
 ### Configuration
 
 Environment variables:
+
 ```bash
 EVENT_BATCH_SIZE=100              # Events before flush
 EVENT_FLUSH_INTERVAL_MS=5000      # Auto-flush interval
@@ -112,6 +121,7 @@ EVENT_FLUSH_INTERVAL_MS=5000      # Auto-flush interval
 ### Usage Example
 
 Using the Event SDK:
+
 ```typescript
 import { EventTrackingSDK } from '@/analytics/sdk/event-tracking.sdk';
 
@@ -133,17 +143,18 @@ export class UserService {
 
 ### Event Types & Validation
 
-| Event Type | Required Fields | Validation Rules |
-|------------|-----------------|-----------------|
-| SIGNUP | userId, category, action | Valid UUID for userId |
-| LOGIN | userId, category, action | Valid UUID for userId |
-| COURSE_VIEW | userId, properties.courseId | courseId is valid UUID |
-| PURCHASE | userId, value, properties.courseId | value > 0, valid UUIDs |
-| CUSTOM | category, action | No strict validation |
+| Event Type  | Required Fields                    | Validation Rules       |
+| ----------- | ---------------------------------- | ---------------------- |
+| SIGNUP      | userId, category, action           | Valid UUID for userId  |
+| LOGIN       | userId, category, action           | Valid UUID for userId  |
+| COURSE_VIEW | userId, properties.courseId        | courseId is valid UUID |
+| PURCHASE    | userId, value, properties.courseId | value > 0, valid UUIDs |
+| CUSTOM      | category, action                   | No strict validation   |
 
 ### Testing
 
 Run E2E tests:
+
 ```bash
 npm run test:e2e -- test/event-tracking.e2e-spec.ts
 ```
@@ -153,9 +164,11 @@ npm run test:e2e -- test/event-tracking.e2e-spec.ts
 ## A/B Testing Framework (#548)
 
 ### Overview
+
 A production-ready A/B testing framework with statistical analysis, experiment templates, and auto-stop capabilities based on statistical significance.
 
 ### Features
+
 - **Experiment Templates**: Pre-configured templates (standard, quick, high-confidence)
 - **Simplified Setup**: Easy experiment creation with templates
 - **Statistical Analysis**: P-value, confidence level, uplift calculation
@@ -165,6 +178,7 @@ A production-ready A/B testing framework with statistical analysis, experiment t
 - **Event Emission**: Integration with event system for downstream processing
 
 ### Files Created/Modified
+
 ```
 src/ab-testing/
 ├── ab-testing.service.ts (MODIFIED)      - Enhanced with templates, analysis, auto-stop
@@ -174,6 +188,7 @@ src/ab-testing/
 ### Experiment Templates
 
 **Standard Template (95% confidence)**
+
 ```json
 {
   "name": "Standard A/B Test",
@@ -186,18 +201,20 @@ src/ab-testing/
 ```
 
 **Quick Template (90% confidence, rapid iteration)**
+
 ```json
 {
   "name": "Quick Test",
   "trafficAllocation": 100,
-  "confidenceLevel": 0.90,
+  "confidenceLevel": 0.9,
   "minimumSampleSize": 200,
   "autoStopOnSignificance": true,
-  "significanceThreshold": 0.90
+  "significanceThreshold": 0.9
 }
 ```
 
 **High Confidence Template (99% confidence, critical decisions)**
+
 ```json
 {
   "name": "High Confidence Test",
@@ -212,6 +229,7 @@ src/ab-testing/
 ### API Endpoints
 
 #### Get Available Templates
+
 ```http
 GET /ab-testing/templates
 
@@ -223,6 +241,7 @@ Response: [
 ```
 
 #### Create Experiment from Template
+
 ```http
 POST /ab-testing/experiments
 Authorization: Bearer <admin-token>
@@ -264,6 +283,7 @@ Response: {
 ```
 
 #### Start Experiment
+
 ```http
 POST /ab-testing/experiments/{id}/start
 Authorization: Bearer <admin-token>
@@ -272,6 +292,7 @@ Response: { "id": "exp-123", "status": "running" }
 ```
 
 #### Analyze & Check Auto-Stop
+
 ```http
 POST /ab-testing/experiments/{id}/analyze
 Authorization: Bearer <admin-token>
@@ -295,6 +316,7 @@ Response: {
 ```
 
 #### Get Results Dashboard
+
 ```http
 GET /ab-testing/experiments/{id}/dashboard
 Authorization: Bearer <admin-token>
@@ -314,6 +336,7 @@ Response: {
 ### Statistical Methods
 
 The framework calculates:
+
 - **P-value**: Statistical significance of the difference
 - **Confidence Level**: 1 - p-value (e.g., 95% confidence means 5% p-value threshold)
 - **Uplift**: Relative improvement of treatment vs control
@@ -323,6 +346,7 @@ The framework calculates:
 ### Testing
 
 Run E2E tests:
+
 ```bash
 npm run test:e2e -- test/ab-testing.e2e-spec.ts
 ```
@@ -332,9 +356,11 @@ npm run test:e2e -- test/ab-testing.e2e-spec.ts
 ## Search Suggestions and Autocomplete (#545)
 
 ### Overview
+
 An autocomplete API providing real-time search suggestions with multi-source aggregation (courses, categories, trending searches) and intelligent caching.
 
 ### Features
+
 - **Multi-Source Suggestions**: Combines course titles, categories, trending searches
 - **Type-Aware Results**: Different suggestion types (course, category, trending)
 - **Smart Caching**: 5-minute cache with cache stats endpoint
@@ -343,6 +369,7 @@ An autocomplete API providing real-time search suggestions with multi-source agg
 - **Database Integration**: Searches against PostgreSQL for courses
 
 ### Files Created/Modified
+
 ```
 src/search/
 ├── search.service.ts (MODIFIED)   - Autocomplete & multi-source search
@@ -350,6 +377,7 @@ src/search/
 ```
 
 ### Database Integration
+
 ```sql
 -- Assumes courses table exists with indexed columns
 ALTER TABLE courses ADD INDEX idx_title_search (title);
@@ -358,6 +386,7 @@ ALTER TABLE courses ADD INDEX idx_title_search (title);
 ### API Endpoints
 
 #### Get Autocomplete Suggestions
+
 ```http
 GET /search/autocomplete?q=java
 
@@ -386,6 +415,7 @@ Response: [
 ```
 
 #### Search with Results
+
 ```http
 GET /search?q=javascript&filters={...}&sort=relevance&page=1&limit=20
 
@@ -400,6 +430,7 @@ Response: {
 ```
 
 #### Get Available Filters
+
 ```http
 GET /search/filters
 
@@ -426,6 +457,7 @@ Response: {
 8. **Cache Store**: Store results for future queries
 
 ### Performance Characteristics
+
 - Empty cache: ~100-200ms (database queries)
 - Cached result: ~10-20ms (in-memory)
 - Response size: ~5KB typical (10 suggestions)
@@ -434,6 +466,7 @@ Response: {
 ### Testing
 
 Run E2E tests:
+
 ```bash
 npm run test:e2e -- test/search-autocomplete.e2e-spec.ts
 ```
@@ -443,9 +476,11 @@ npm run test:e2e -- test/search-autocomplete.e2e-spec.ts
 ## Subscription Management System (#554)
 
 ### Overview
+
 A complete subscription lifecycle management system with pause/resume, upgrade/downgrade with proration, and retry logic for failed renewals.
 
 ### Features
+
 - **Pause/Resume**: Temporarily suspend subscriptions with optional resume date
 - **Upgrade/Downgrade**: Plan changes with automatic proration calculation
 - **Renewal Management**: Automatic renewal with exponential backoff retry
@@ -454,6 +489,7 @@ A complete subscription lifecycle management system with pause/resume, upgrade/d
 - **Event Emission**: Integration events for downstream processing
 
 ### Files Created/Modified
+
 ```
 src/payments/
 ├── entities/subscription.entity.ts (MODIFIED)      - Added properties JSONB column
@@ -464,6 +500,7 @@ src/payments/
 ```
 
 ### Database Schema Updates
+
 ```sql
 ALTER TABLE subscriptions ADD COLUMN properties JSONB DEFAULT '{}'::jsonb;
 
@@ -476,6 +513,7 @@ ALTER TABLE subscriptions ADD COLUMN properties JSONB DEFAULT '{}'::jsonb;
 ### API Endpoints
 
 #### Get Current User Subscription
+
 ```http
 GET /subscriptions/me
 Authorization: Bearer <token>
@@ -491,6 +529,7 @@ Response: {
 ```
 
 #### Pause Subscription
+
 ```http
 PATCH /subscriptions/{id}/pause
 Authorization: Bearer <token>
@@ -514,6 +553,7 @@ Response: {
 ```
 
 #### Resume Subscription
+
 ```http
 PATCH /subscriptions/{id}/resume
 Authorization: Bearer <token>
@@ -534,6 +574,7 @@ Response: {
 ```
 
 #### Upgrade Subscription
+
 ```http
 POST /subscriptions/{id}/upgrade
 Authorization: Bearer <token>
@@ -558,6 +599,7 @@ Response: {
 ```
 
 #### Downgrade Subscription
+
 ```http
 POST /subscriptions/{id}/downgrade
 Authorization: Bearer <token>
@@ -591,10 +633,10 @@ const totalDaysInPeriod = 30; // or 7, 90, 365 depending on interval
 // Upgrade calculation
 const oldCharge = oldAmount * (daysRemaining / totalDaysInPeriod);
 const newCharge = newAmount * (daysRemaining / totalDaysInPeriod);
-const proratedAmount = newCharge - oldCharge;  // Additional charge
+const proratedAmount = newCharge - oldCharge; // Additional charge
 
 // Downgrade calculation
-const credit = oldCharge - newCharge;  // Refund/credit
+const credit = oldCharge - newCharge; // Refund/credit
 ```
 
 ### Renewal Process
@@ -610,11 +652,11 @@ const credit = oldCharge - newCharge;  // Refund/credit
 
 ```typescript
 // Process renewal with retries
-const success = await subscriptionService.processRenewal(subscriptionId, maxRetries=3);
+const success = await subscriptionService.processRenewal(subscriptionId, (maxRetries = 3));
 
 if (!success) {
   // Mark subscription as past_due
-  await subscriptionService.scheduleRenewalRetry(subscriptionId, delayMs=300000);
+  await subscriptionService.scheduleRenewalRetry(subscriptionId, (delayMs = 300000));
 }
 ```
 
@@ -635,6 +677,7 @@ Events emitted by subscription service:
 ### Testing
 
 Run E2E tests:
+
 ```bash
 npm run test:e2e -- test/subscription-management.e2e-spec.ts
 ```
@@ -675,11 +718,13 @@ export class AppModule {}
 ### Authentication & Authorization
 
 All protected endpoints require:
+
 ```http
 Authorization: Bearer <JWT_TOKEN>
 ```
 
 Roles required:
+
 - Event tracking: User (public)
 - A/B Testing: ADMIN
 - Search: Public
@@ -702,21 +747,25 @@ All endpoints return standardized error responses:
 ## Performance & Scalability
 
 ### Event Tracking
+
 - **Batching**: Reduces database writes by ~90%
 - **Indexing**: Fast queries on userId, eventType, timestamp
 - **Retention**: Consider archiving old events (> 1 year) to separate table
 
 ### A/B Testing
+
 - **Caching**: Results cached to avoid recalculation
 - **User Assignment**: Use consistent hashing for stable assignments
 - **Metrics**: Aggregate metrics asynchronously
 
 ### Search
+
 - **Caching**: 5-minute cache on autocomplete queries
 - **Database**: Use full-text search indexes on course titles
 - **Elasticsearch**: Consider for production scale (100k+ courses)
 
 ### Subscriptions
+
 - **Renewal Job**: Run every hour to catch renewals
 - **Batch Processing**: Process renewals in batches (100 at a time)
 - **Retry Queue**: Use Bull queue for reliable retry processing
@@ -751,10 +800,10 @@ renewal_failures_total counter
 
 ```typescript
 // Event batching
-'Event batch flushed: 100 events'
-'Autocomplete cache cleared'
-'Renewal attempt 1/3 for subscription-123'
-'Subscription upgraded: $29.99 -> $49.99 (prorated: $13.70)'
+'Event batch flushed: 100 events';
+'Autocomplete cache cleared';
+'Renewal attempt 1/3 for subscription-123';
+'Subscription upgraded: $29.99 -> $49.99 (prorated: $13.70)';
 ```
 
 ---
@@ -762,21 +811,25 @@ renewal_failures_total counter
 ## Troubleshooting
 
 ### Event Batching Not Working
+
 - Check `EVENT_BATCH_SIZE` and `EVENT_FLUSH_INTERVAL_MS` env vars
 - Verify database connection is healthy
 - Check logs for "Failed to flush batch" errors
 
 ### A/B Test Not Auto-Stopping
+
 - Verify `autoStopOnSignificance` is true in experiment config
 - Check if `minimumSampleSize` has been reached
 - Verify `significanceThreshold` is set correctly
 
 ### Autocomplete Slow
+
 - Check if query length < 2 characters (returns empty)
 - Look for cache misses in stats: `GET /search/autocomplete/stats`
 - Consider adding database indexes on `courses.title`
 
 ### Subscription Renewal Failing
+
 - Check payment processor connectivity
 - Verify customer payment method is valid
 - Check `properties.failedRenewalAttempts` count
@@ -799,4 +852,3 @@ renewal_failures_total counter
 - NestJS: https://docs.nestjs.com
 - Bull Queues: https://github.com/OptimalBits/bull
 - Statistical Analysis: https://en.wikipedia.org/wiki/A/B_testing
-

@@ -1,15 +1,14 @@
 # CourseRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**title** | **string** |  | [default to undefined]
-**description** | **string** |  | [default to undefined]
-**category** | **string** |  | [optional] [default to undefined]
-**level** | **string** |  | [optional] [default to undefined]
-**price** | **number** |  | [optional] [default to undefined]
+| Name            | Type       | Description | Notes                             |
+| --------------- | ---------- | ----------- | --------------------------------- |
+| **title**       | **string** |             | [default to undefined]            |
+| **description** | **string** |             | [default to undefined]            |
+| **category**    | **string** |             | [optional] [default to undefined] |
+| **level**       | **string** |             | [optional] [default to undefined] |
+| **price**       | **number** |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -17,11 +16,11 @@ Name | Type | Description | Notes
 import { CourseRequest } from './api';
 
 const instance: CourseRequest = {
-    title,
-    description,
-    category,
-    level,
-    price,
+  title,
+  description,
+  category,
+  level,
+  price,
 };
 ```
 

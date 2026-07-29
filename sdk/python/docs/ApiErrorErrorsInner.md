@@ -1,12 +1,11 @@
 # ApiErrorErrorsInner
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**var_field** | **str** |  | [optional] 
-**message** | **str** |  | [optional] 
+| Name          | Type    | Description | Notes      |
+| ------------- | ------- | ----------- | ---------- |
+| **var_field** | **str** |             | [optional] |
+| **message**   | **str** |             | [optional] |
 
 ## Example
 
@@ -25,6 +24,5 @@ api_error_errors_inner_dict = api_error_errors_inner_instance.to_dict()
 # create an instance of ApiErrorErrorsInner from a dict
 api_error_errors_inner_from_dict = ApiErrorErrorsInner.from_dict(api_error_errors_inner_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

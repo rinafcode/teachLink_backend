@@ -23,6 +23,10 @@ export interface IPaymentProvider {
 
   cancelSubscription(subscriptionId: string): Promise<boolean>;
 
+  pauseSubscription(subscriptionId: string, resumeAt?: Date): Promise<boolean>;
+
+  resumeSubscription(subscriptionId: string): Promise<boolean>;
+
   refundPayment(
     paymentId: string,
     amount?: number,

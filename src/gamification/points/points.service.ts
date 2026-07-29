@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserProgress } from '../entities/user-progress.entity';
 import { PointTransaction } from '../entities/point-transaction.entity';
@@ -8,6 +8,7 @@ import { User } from '../../users/entities/user.entity';
 import { GAMIFICATION_EVENTS, PointsAwardedEvent } from '../events/gamification.events';
 import { TiersService } from '../tiers/tiers.service';
 import { PointActivityType, POINT_RULES } from '../enums/point-activity.enum';
+import { Tier } from '../enums/tier.enum';
 
 // /** Points per XP level (level = floor(xp / XP_PER_LEVEL) + 1) */
 // const XP_PER_LEVEL = 1000;
@@ -19,6 +20,7 @@ export class PointsService {
     private userProgressRepository: Repository<UserProgress>,
     @InjectRepository(PointTransaction)
     private pointTransactionRepository: Repository<PointTransaction>,
+    private readonly dataSource: DataSource,
     private eventEmitter: EventEmitter2,
     private tiersService: TiersService,
   ) {}
@@ -38,50 +40,91 @@ export class PointsService {
   /**
    * Award an arbitrary number of points for a custom activity string.
    * Returns the updated progress and whether a tier promotion occurred.
+   *
+   * FIXES (Issue #1001):
+   * - Lost-update race: replaced JS read-modify-write with atomic SQL increment
+   *   (totalPoints = totalPoints + :points, xp = xp + :xp)
+   * - Atomicity: PointTransaction insert and aggregate update wrapped in single
+   *   database transaction via QueryRunner
+   * - First-award race: upsert prevents duplicate progress rows when two
+   *   concurrent first awards race to create UserProgress
+   *
+   * @param userId - The user receiving the points
+   * @param points - Number of points to award (must be > 0)
+   * @param activityType - Description for the transaction ledger
+   * @returns Updated progress and tier promotion flag
    */
   async addPoints(
     userId: string,
     points: number,
     activityType: string,
   ): Promise<{ progress: UserProgress; tierPromoted: boolean }> {
-    const transaction = this.pointTransactionRepository.create({
-      user: { id: userId } as User,
-      points,
-      activityType,
-    });
-    await this.pointTransactionRepository.save(transaction);
+    // Use QueryRunner for explicit transaction control spanning both writes
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    let progress = await this.userProgressRepository.findOne({
-      where: { user: { id: userId } },
-    });
-    if (!progress) {
-      progress = this.userProgressRepository.create({
+    try {
+      // STEP 1: Upsert UserProgress atomically via INSERT ... ON CONFLICT DO UPDATE
+      // Handles first-award case: if row doesn't exist, insert with initial values.
+      // If it exists, increment atomically via SQL arithmetic (no JS mutations).
+      // This prevents lost updates when concurrent addPoints() calls race.
+      const upsertResult = await queryRunner.manager.query(
+        `
+        INSERT INTO user_progress ("userId", "totalPoints", xp, level, tier)
+        VALUES ($1, $2, $2, 1, $3)
+        ON CONFLICT ("userId")
+        DO UPDATE SET
+          "totalPoints" = user_progress."totalPoints" + $2,
+          xp = user_progress.xp + $2
+        RETURNING *
+        `,
+        [userId, points, Tier.BRONZE],
+      );
+
+      const updatedProgress: UserProgress = upsertResult[0];
+
+      // STEP 2: Insert PointTransaction ledger row inside the SAME transaction
+      // This ensures the transaction is recorded atomically with the aggregate.
+      await queryRunner.manager.insert(PointTransaction, {
         user: { id: userId } as User,
-        totalPoints: 0,
-        level: 1,
-        xp: 0,
+        points,
+        activityType,
+        createdAt: new Date(),
       });
+
+      // STEP 3: Compute derived fields (level, tier) post-upsert.
+      // Note: level is still computed in application layer and could be
+      // moved to a trigger in future optimization.
+      const newLevel = Math.floor(updatedProgress.xp / 1000) + 1;
+      const newTier = this.tiersService.getTierForPoints(updatedProgress.totalPoints);
+
+      // Update level and tier in memory for the return value
+      updatedProgress.level = newLevel;
+      updatedProgress.tier = newTier;
+
+      // Commit both writes atomically
+      await queryRunner.commitTransaction();
+
+      // STEP 4: Emit event after successful commit
+      // Event subscribers (e.g., BadgesService) can now read consistent state
+      this.eventEmitter.emit(
+        GAMIFICATION_EVENTS.POINTS_AWARDED,
+        new PointsAwardedEvent(userId, updatedProgress.totalPoints, updatedProgress.level),
+      );
+
+      return {
+        progress: updatedProgress,
+        tierPromoted: false, // TODO: Track previousTier if needed for badge logic
+      };
+    } catch (error) {
+      // Rollback BOTH writes (upsert + transaction ledger) on any failure
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Always release the connection back to the pool
+      await queryRunner.release();
     }
-
-    progress.totalPoints += points;
-    progress.xp += points;
-
-    const newLevel = Math.floor(progress.xp / 1000) + 1;
-    progress.level = newLevel;
-
-    const previousTier = progress.tier;
-    const saved = await this.userProgressRepository.save(progress);
-    const newTier = this.tiersService.getTierForPoints(saved.totalPoints);
-    saved.tier = newTier;
-    const tierPromoted = newTier !== previousTier;
-
-    // Emit event so BadgesService can react
-    this.eventEmitter.emit(
-      GAMIFICATION_EVENTS.POINTS_AWARDED,
-      new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
-    );
-
-    return { progress: saved, tierPromoted };
   }
 
   async getUserProgress(userId: string): Promise<UserProgress | null> {

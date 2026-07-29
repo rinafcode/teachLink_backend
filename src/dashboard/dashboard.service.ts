@@ -62,36 +62,55 @@ export class DashboardService {
   }
 
   async getUserGrowthMetrics() {
-    const users = await this.userRepository.find({ select: ['id', 'createdAt'] });
-    const byMonth = new Map<string, number>();
-    for (const user of users) {
-      const key = user.createdAt.toISOString().slice(0, 7);
-      byMonth.set(key, (byMonth.get(key) ?? 0) + 1);
+    const monthlyRows = await this.userRepository
+      .createQueryBuilder('user')
+      .select("to_char(date_trunc('month', user.createdAt), 'YYYY-MM')", 'period')
+      .addSelect('COUNT(*)', 'newUsers')
+      .groupBy("to_char(date_trunc('month', user.createdAt), 'YYYY-MM')")
+      .orderBy('period', 'ASC')
+      .getRawMany();
+
+    const totalUsers = await this.userRepository.count();
+
+    const monthlySignups: {
+      period: string;
+      newUsers: number;
+      totalUsers: number;
+    }[] = [];
+    let cumulative = 0;
+    for (const row of monthlyRows) {
+      const count = Number(row.newUsers);
+      cumulative += count;
+      monthlySignups.push({ period: row.period, newUsers: count, totalUsers: cumulative });
     }
-    const cumulative: { period: string; newUsers: number; totalUsers: number }[] = [];
-    let total = 0;
-    for (const [period, count] of [...byMonth.entries()].sort()) {
-      total += count;
-      cumulative.push({ period, newUsers: count, totalUsers: total });
-    }
+
     return {
-      totalUsers: users.length,
-      monthlySignups: cumulative,
+      totalUsers,
+      monthlySignups,
     };
   }
 
   async getCoursePerformanceMetrics() {
-    const courses = await this.courseRepository.find({ relations: ['enrollments'] });
-    return courses
-      .map((course) => ({
-        courseId: course.id,
-        title: course.title,
-        enrollments: course.enrollments?.length ?? 0,
-        price: course.price,
-        status: course.status,
-      }))
-      .sort((a, b) => b.enrollments - a.enrollments)
-      .slice(0, 20);
+    const results = await this.courseRepository
+      .createQueryBuilder('course')
+      .leftJoin('course.enrollments', 'enrollment')
+      .select(['course.id', 'course.title', 'course.price', 'course.status'])
+      .addSelect('COUNT(enrollment.id)', 'enrollmentCount')
+      .groupBy('course.id')
+      .addGroupBy('course.title')
+      .addGroupBy('course.price')
+      .addGroupBy('course.status')
+      .orderBy('enrollmentCount', 'DESC')
+      .take(20)
+      .getRawMany();
+
+    return results.map((row) => ({
+      courseId: row.course_id,
+      title: row.course_title,
+      enrollments: parseInt(row.enrollmentCount, 10),
+      price: parseFloat(row.course_price),
+      status: row.course_status,
+    }));
   }
 
   async getConversionFunnel() {

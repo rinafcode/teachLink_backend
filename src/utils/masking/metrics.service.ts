@@ -14,6 +14,7 @@ export class MetricsService {
 
   // Counters
   public readonly paymentsTotalCounter: Counter<string>;
+  public readonly searchFallbackCounter: Counter<string>;
 
   // Histograms
   public readonly apiLatencyHistogram: Histogram<string>;
@@ -67,6 +68,13 @@ export class MetricsService {
       name: 'teachlink_payments_total',
       help: 'Total number of payment attempts',
       labelNames: ['status'], // 'succeeded', 'failed'
+      registers: [this.registry],
+    });
+
+    this.searchFallbackCounter = new Counter({
+      name: 'teachlink_search_db_fallback_total',
+      help: 'Total number of search requests that fell back to the database',
+      labelNames: ['reason'], // 'unavailable', 'error'
       registers: [this.registry],
     });
 

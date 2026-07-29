@@ -9,6 +9,7 @@ import {
   DefaultValuePipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { PointsService } from './points/points.service';
 import { LeaderboardService } from './leaderboards/leaderboards.service';
@@ -18,8 +19,14 @@ import { TierReward } from './entities/tier-reward.entity';
 import { AwardActivityDto } from './dto/award-activity.dto';
 import { AddPointsDto } from './dto/add-points.dto';
 import { UpsertRewardDto } from './dto/upsert-reward.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { User } from '../../users/entities/user.entity';
 
 @Controller('gamification')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class GamificationController {
   constructor(
     private readonly pointsService: PointsService,
@@ -31,11 +38,15 @@ export class GamificationController {
 
   @Post('points/award-activity')
   @HttpCode(HttpStatus.OK)
-  awardActivity(@Body() dto: AwardActivityDto) {
-    return this.pointsService.awardActivity(dto.userId, dto.activityType);
+  awardActivity(
+    @CurrentUser() user: User,
+    @Body() dto: AwardActivityDto
+  ) {
+    return this.pointsService.awardActivity(user.id, dto.activityType);
   }
 
   @Post('points/add')
+  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   addPoints(@Body() dto: AddPointsDto) {
     return this.pointsService.addPoints(dto.userId, dto.points, dto.activityType);

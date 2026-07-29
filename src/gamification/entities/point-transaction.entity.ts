@@ -5,6 +5,7 @@ import {
   ManyToOne,
   CreateDateColumn,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -12,6 +13,8 @@ import { User } from '../../users/entities/user.entity';
  * Represents the point Transaction entity.
  */
 @Entity('point_transactions')
+@Index(['user', 'createdAt'])
+@Index(['activityType'])
 export class PointTransaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;

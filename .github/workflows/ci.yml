@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-      - "*"
+      - '*'
   pull_request:
 
 jobs:
@@ -36,6 +36,29 @@ jobs:
   validate:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: teachlink
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: teachlink
+      NODE_ENV: ci
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,6 +85,15 @@ jobs:
       - name: Build application
         run: pnpm run build
 
+      - name: Run migrations
+        run: pnpm run migration:run
+
+      - name: Check for schema drift
+        run: pnpm run migration:generate:check
+
+      - name: Revert migrations
+        run: pnpm run migration:revert
+
   # Vulnerability and license compliance scanning. Runs in addition to the
   # validation job so deploy-blocking checks do not couple with lint/typecheck.
   security-scan:
@@ -81,7 +113,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "pnpm"
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
