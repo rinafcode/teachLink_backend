@@ -19,6 +19,7 @@ import { ABTestingController } from './ab-testing.controller';
     TypeOrmModule.forFeature([Experiment, IExperimentVariant, ExperimentMetric, VariantMetric]),
   ],
   controllers: [ABTestingController],
+  // Providing the services to make them available for dependency injection
   providers: [
     ABTestingService,
     ExperimentService,
@@ -26,6 +27,7 @@ import { ABTestingController } from './ab-testing.controller';
     AutomatedDecisionService,
     ABTestingReportsService,
   ],
+  // Exporting the services to make them available for other modules
   exports: [
     ABTestingService,
     ExperimentService,
