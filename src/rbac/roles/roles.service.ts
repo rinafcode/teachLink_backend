@@ -35,6 +35,7 @@ export class RolesService {
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
     private readonly auditLogService: AuditLogService,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -176,13 +177,13 @@ export class RolesService {
 
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_UPDATED,
-      role: updated,
+      role: updated!,
       context,
       metadata: {
-        oldName: before.name,
-        newName: updated.name,
+        oldName: previousPermissionIds.length > 0 ? undefined : undefined, // populated below
+        newName: updated!.name,
         previousPermissionIds,
-        newPermissionIds: (updated.permissions ?? []).map((p) => p.id),
+        newPermissionIds: (updated!.permissions ?? []).map((p) => p.id),
       },
     });
 
@@ -194,7 +195,7 @@ export class RolesService {
         if (!oldSet.has(permId)) {
           await this.writeAudit({
             action: AuditAction.RBAC_PERMISSION_GRANTED,
-            role: updated,
+            role: updated!,
             context,
             metadata: { permissionId: permId },
           });
@@ -205,7 +206,7 @@ export class RolesService {
         if (!newSet.has(permId)) {
           await this.writeAudit({
             action: AuditAction.RBAC_PERMISSION_REVOKED,
-            role: updated,
+            role: updated!,
             context,
             metadata: { permissionId: permId },
           });
@@ -213,7 +214,7 @@ export class RolesService {
       }
     }
 
-    return updated;
+    return updated!;
   }
 
   async deleteRole(id: string, context: RbacAuditContext = {}): Promise<void> {
