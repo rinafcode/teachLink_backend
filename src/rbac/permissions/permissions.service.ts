@@ -5,6 +5,9 @@ import { Permission } from '../entities/permission.entity';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { RbacAuditContext } from '../roles/roles.service';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../../common/utils/pagination.utils';
 
 @Injectable()
 export class PermissionsService {
@@ -38,8 +41,21 @@ export class PermissionsService {
     return saved;
   }
 
-  async findAllPermissions(): Promise<Permission[]> {
-    return this.permissionRepository.find();
+  async findAllPermissions(
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Permission>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const sortBy = query?.sortBy ?? 'createdAt';
+    const order = query?.order ?? 'DESC';
+
+    const [data, total] = await this.permissionRepository.findAndCount({
+      order: { [sortBy]: order },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async findPermissionById(id: string): Promise<Permission> {

@@ -1,3 +1,9 @@
+import { Controller, Get, Post, Body, Param, Put, Delete, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { RolesService } from './roles.service';
+import { Role } from '../entities/role.entity';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { PaginatedSwaggerDto } from '../../common/dto/paginated-response.dto';
 import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
@@ -29,6 +35,15 @@ export class RolesController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all roles with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns paginated roles',
+    type: PaginatedSwaggerDto(Role),
+  })
+  async findAll(@Query() query?: PaginationQueryDto, @Query('include') include?: string) {
+    const includePermissions = include === 'permissions';
+    return this.rolesService.findAllRoles(query, includePermissions);
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List all roles (Admin only)' })
   async findAll(): Promise<Role[]> {
