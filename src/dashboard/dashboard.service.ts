@@ -91,17 +91,26 @@ export class DashboardService {
   }
 
   async getCoursePerformanceMetrics() {
-    const courses = await this.courseRepository.find({ relations: ['enrollments'] });
-    return courses
-      .map((course) => ({
-        courseId: course.id,
-        title: course.title,
-        enrollments: course.enrollments?.length ?? 0,
-        price: course.price,
-        status: course.status,
-      }))
-      .sort((a, b) => b.enrollments - a.enrollments)
-      .slice(0, 20);
+    const results = await this.courseRepository
+      .createQueryBuilder('course')
+      .leftJoin('course.enrollments', 'enrollment')
+      .select(['course.id', 'course.title', 'course.price', 'course.status'])
+      .addSelect('COUNT(enrollment.id)', 'enrollmentCount')
+      .groupBy('course.id')
+      .addGroupBy('course.title')
+      .addGroupBy('course.price')
+      .addGroupBy('course.status')
+      .orderBy('enrollmentCount', 'DESC')
+      .take(20)
+      .getRawMany();
+
+    return results.map((row) => ({
+      courseId: row.course_id,
+      title: row.course_title,
+      enrollments: parseInt(row.enrollmentCount, 10),
+      price: parseFloat(row.course_price),
+      status: row.course_status,
+    }));
   }
 
   async getConversionFunnel() {

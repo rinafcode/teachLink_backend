@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Body, Param, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Req, Query } from '@nestjs/common';
 import { ForumService } from './forum.service';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
 
 @Controller('forums')
 export class ForumController {
@@ -12,13 +13,13 @@ export class ForumController {
   }
 
   @Get('threads')
-  getThreads() {
-    return this.forumService.getThreads();
+  getThreads(@Query() query?: PaginationQueryDto) {
+    return this.forumService.getThreads(query);
   }
 
   @Get('threads/:id')
-  getThread(@Param('id') id: string) {
-    return this.forumService.getThread(id);
+  getThread(@Param('id') id: string, @Query() query?: PaginationQueryDto) {
+    return this.forumService.getThread(id, query);
   }
 
   @Post('threads/:id/comments')

@@ -52,6 +52,7 @@ export class Role {
   users: User[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

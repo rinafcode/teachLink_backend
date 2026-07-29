@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 
 @Injectable()
@@ -33,4 +33,17 @@ export class SlackService {
       // console.error('Failed to send Slack alert:', error.message);
     }
   }
+
+  async sendNotification(channel: string, message: string): Promise<void> {
+    try {
+      // Slack webhook dispatch logic
+    } catch (error) {
+      this.logger.error(`Failed to dispatch Slack notification to channel #${channel}`, {
+        channel,
+        message,
+        error: error instanceof Error ? error.message : error,
+      });
+    }
+  }
+}
 }
