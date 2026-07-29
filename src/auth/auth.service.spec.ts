@@ -258,7 +258,6 @@ describe('AuthService', () => {
   });
 });
 
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -311,9 +310,7 @@ describe('AuthService - Account Status Validation', () => {
     it('should reject login attempt if user is not ACTIVE', async () => {
       const suspendedUser = { id: '2', status: UserStatus.SUSPENDED } as User;
 
-      await expect(authService.login(suspendedUser)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(authService.login(suspendedUser)).rejects.toThrow(UnauthorizedException);
     });
   });
 });

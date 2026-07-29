@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PermissionsService } from './permissions.service';
 import { Permission } from '../entities/permission.entity';
@@ -55,16 +67,8 @@ export class PermissionsController {
   @ApiResponse({ status: 401, description: 'Authentication required' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiResponse({ status: 404, description: 'Permission not found' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdatePermissionDto,
-  ): Promise<Permission> {
-    return this.permissionsService.updatePermission(
-      id,
-      dto.resource,
-      dto.action,
-      dto.description,
-    );
+  async update(@Param('id') id: string, @Body() dto: UpdatePermissionDto): Promise<Permission> {
+    return this.permissionsService.updatePermission(id, dto.resource, dto.action, dto.description);
   }
 
   @Delete(':id')

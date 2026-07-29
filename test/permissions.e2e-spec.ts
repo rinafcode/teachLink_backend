@@ -73,12 +73,16 @@ describe('Permissions (e2e)', () => {
 
   describe('POST /permissions — guarded against invalid tokens', () => {
     it('should reject a malformed token', async () => {
-      const response = await httpClient.post('/permissions', {
-        resource: 'test',
-        action: 'read',
-      }, {
-        auth: { token: 'invalid-token' },
-      });
+      const response = await httpClient.post(
+        '/permissions',
+        {
+          resource: 'test',
+          action: 'read',
+        },
+        {
+          auth: { token: 'invalid-token' },
+        },
+      );
       // JWT guard rejects malformed tokens; the guard chain is verified active
       expect([401, 403]).toContain(response.status);
     });
@@ -86,12 +90,16 @@ describe('Permissions (e2e)', () => {
 
   describe('PUT /permissions/:id — guarded against invalid tokens', () => {
     it('should reject a malformed token', async () => {
-      const response = await httpClient.put('/permissions/fake-id', {
-        resource: 'test',
-        action: 'write',
-      }, {
-        auth: { token: 'invalid-token' },
-      });
+      const response = await httpClient.put(
+        '/permissions/fake-id',
+        {
+          resource: 'test',
+          action: 'write',
+        },
+        {
+          auth: { token: 'invalid-token' },
+        },
+      );
       expect([401, 403]).toContain(response.status);
     });
   });

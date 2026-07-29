@@ -221,7 +221,8 @@ export class IdempotencyService {
     }
 
     const record = value as Record<string, unknown>;
-    const hasValidString = (field: string) => typeof record[field] === 'string' && record[field] !== '';
+    const hasValidString = (field: string) =>
+      typeof record[field] === 'string' && record[field] !== '';
     const hasValidNumber = (field: string) =>
       typeof record[field] === 'number' && Number.isFinite(record[field]);
 

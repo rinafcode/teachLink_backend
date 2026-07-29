@@ -12,9 +12,7 @@ export interface PaymentProviderHealthResult {
 
 @Injectable()
 export class HealthIndicatorsService {
-  constructor(
-    private readonly paymentCircuitBreaker: PaymentProviderCircuitBreakerService,
-  ) {}
+  constructor(private readonly paymentCircuitBreaker: PaymentProviderCircuitBreakerService) {}
 
   async checkPostgres(): Promise<boolean> {
     return true;

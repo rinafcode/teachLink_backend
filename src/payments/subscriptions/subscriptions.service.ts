@@ -5,7 +5,6 @@ import {
   NotFoundException,
   PaymentRequiredException,
 } from '@nestjs/common';
-import { Injectable, Logger, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -41,7 +40,7 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
-4    private paymentProviderService: PaymentProviderService,
+    private paymentProviderService: PaymentProviderService,
   ) {}
 
   /**
@@ -85,6 +84,8 @@ export class SubscriptionsService {
       );
     }
 
+    // Update subscription status to PAUSED
+    subscription.status = SubscriptionStatus.PAUSED;
     subscription.properties = {
       ...subscription.properties,
       pausedAt: new Date(),
@@ -93,8 +94,31 @@ export class SubscriptionsService {
       isPaused: true,
     };
 
-    const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
+    const updated = await this.subscriptionRepository.save(subscription);
 
+    // TODO: Schedule automatic resume if resumeAt is provided.
+    // This requires injecting queueService and QUEUE_NAMES constants.
+    // const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
+    // if (resumeAtDate) {
+    //   const delayMs = resumeAtDate.getTime() - Date.now();
+    //   if (delayMs > 0) {
+    //     await this.queueService.addJob(
+    //       QUEUE_NAMES.SUBSCRIPTIONS,
+    //       JOB_NAMES.RESUME_SUBSCRIPTION,
+    //       { subscriptionId: updated.id },
+    //       {
+    //         delay: delayMs,
+    //         attempts: 3,
+    //         backoff: {
+    //           type: 'exponential',
+    //           delay: 5000,
+    //         },
+    //       },
+    //     );
+    //   }
+    // }
+
+    // Emit event for downstream processing (notify user, analytics, etc.)
     this.eventEmitter.emit('subscription.paused', {
       subscriptionId: updated.id,
       userId: updated.userId,
@@ -102,58 +126,9 @@ export class SubscriptionsService {
       reason: dto.reason,
     });
 
-      // Update subscription status to PAUSED
-      subscription.status = SubscriptionStatus.PAUSED;
-      subscription.properties = {
-        ...subscription.properties,
-        pausedAt: new Date(),
-        pauseReason: dto.reason,
-        resumeAt: dto.resumeAt,
-        isPaused: true,
-      };
+    this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
 
-      const updated = await this.subscriptionRepository.save(subscription);
-
-      // Schedule automatic resume if resumeAt is provided
-      if (resumeAtDate) {
-        const delayMs = resumeAtDate.getTime() - Date.now();
-        if (delayMs > 0) {
-          await this.queueService.addJob(
-            QUEUE_NAMES.SUBSCRIPTIONS,
-            JOB_NAMES.RESUME_SUBSCRIPTION,
-            { subscriptionId: updated.id },
-            {
-              delay: delayMs,
-              attempts: 3,
-              backoff: {
-                type: 'exponential',
-                delay: 5000,
-              },
-            },
-          );
-          this.logger.log(
-            `Scheduled automatic resume for subscription ${subscriptionId} at ${resumeAtDate.toISOString()}`,
-          );
-        }
-      }
-
-      // Emit event for downstream processing (notify user, analytics, etc.)
-      this.eventEmitter.emit('subscription.paused', {
-        subscriptionId: updated.id,
-        userId: updated.userId,
-        resumeAt: dto.resumeAt,
-        reason: dto.reason,
-      });
-
-      this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
-
-      return updated;
-    } catch (error) {
-      this.logger.error(`Failed to pause subscription ${subscriptionId} at provider`, error);
-      throw new BadRequestException(
-        `Failed to pause subscription at provider: ${(error as Error).message}`,
-      );
-    }
+    return updated;
   }
 
   /**
@@ -186,15 +161,9 @@ export class SubscriptionsService {
       reason: dto.reason,
     });
 
-      this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
+    this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
 
-      return updated;
-    } catch (error) {
-      this.logger.error(`Failed to resume subscription ${subscriptionId} at provider`, error);
-      throw new BadRequestException(
-        `Failed to resume subscription at provider: ${(error as Error).message}`,
-      );
-    }
+    return updated;
   }
 
   /**
@@ -232,14 +201,16 @@ export class SubscriptionsService {
     // leaves the subscription record untouched.
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCredit = (oldAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedAmount = Number((proratedCharge - proratedCredit).toFixed(2));
-    // Calculate prorated amount using cents to avoid floating-point precision errors
-    const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
-    const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCredit = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
-    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
+    const proratedCredit = this.calculateProratedAmount(
+      oldAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const proratedCharge = this.calculateProratedAmount(
+      newAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
     const proratedAmount = proratedCharge - proratedCredit;
 
     // Attempt the charge BEFORE mutating the subscription (Issue #1007).
@@ -380,9 +351,17 @@ export class SubscriptionsService {
     // and apply the lower plan now.
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const oldProratedCharge = (oldAmount * daysRemaining) / totalDaysInPeriod;
-    const newProratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedCredit = Number((oldProratedCharge - newProratedCharge).toFixed(2));
+    const oldProratedCharge = this.calculateProratedAmount(
+      oldAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const newProratedCharge = this.calculateProratedAmount(
+      newAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const proratedCredit = oldProratedCharge - newProratedCharge;
 
     // Issue the credit BEFORE mutating the subscription (Issue #1007).
     let creditId: string;
@@ -408,13 +387,6 @@ export class SubscriptionsService {
         `Failed to issue prorated credit of ${proratedCredit} ${subscription.currency}: ${(err as Error).message}`,
       );
     }
-    // Calculate prorated credit based on prorationType using cents to avoid floating-point precision errors
-    const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
-    const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
-    const oldProratedCharge = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
-    const proratedCredit = oldProratedCharge - proratedCharge;
-    const prorationType = dto.prorationType || 'credit';
 
     // Credit confirmed — now apply the lower plan.
     subscription.amount = newAmount;
@@ -618,7 +590,11 @@ export class SubscriptionsService {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 
-  private calculateProratedAmount(amount: number, daysRemaining: number, totalDaysInPeriod: number): number {
+  private calculateProratedAmount(
+    amount: number,
+    daysRemaining: number,
+    totalDaysInPeriod: number,
+  ): number {
     // Convert to cents to avoid floating-point precision errors
     const amountInCents = Math.round(amount * 100);
     const proratedCents = Math.round((amountInCents * daysRemaining) / totalDaysInPeriod);

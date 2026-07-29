@@ -114,7 +114,9 @@ export class PermissionsService {
     // Prevent deletion while the permission is still attached to roles
     const roleCount = await this.roleRepository
       .createQueryBuilder('role')
-      .innerJoin('role.permissions', 'permission', 'permission.id = :permissionId', { permissionId: id })
+      .innerJoin('role.permissions', 'permission', 'permission.id = :permissionId', {
+        permissionId: id,
+      })
       .getCount();
 
     if (roleCount > 0) {

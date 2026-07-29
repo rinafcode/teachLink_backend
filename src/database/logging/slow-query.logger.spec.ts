@@ -71,12 +71,7 @@ describe('SlowQueryLogger', () => {
   it('leaves queries between the two thresholds unexplained', async () => {
     const queryRunner = createQueryRunner();
 
-    new SlowQueryLogger(options).logQuerySlow(
-      900,
-      'SELECT * FROM users',
-      [],
-      queryRunner as never,
-    );
+    new SlowQueryLogger(options).logQuerySlow(900, 'SELECT * FROM users', [], queryRunner as never);
     await flushAsync();
 
     expect(queryRunner.query).not.toHaveBeenCalled();

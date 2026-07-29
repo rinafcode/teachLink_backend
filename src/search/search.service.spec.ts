@@ -528,9 +528,7 @@ describe('SearchService.validateFilters (Issue #999)', () => {
     const aggQb = makeAggQb([{ category: 'programming', count: '5' }]);
     courseRepository.createQueryBuilder.mockReturnValueOnce(aggQb as any);
 
-    await expect(
-      service.validateFilters({ category: 'programming' }),
-    ).resolves.toBeUndefined();
+    await expect(service.validateFilters({ category: 'programming' })).resolves.toBeUndefined();
   });
 
   it('passes when an array of categories are all valid', async () => {
@@ -549,9 +547,9 @@ describe('SearchService.validateFilters (Issue #999)', () => {
     const aggQb = makeAggQb([{ category: 'programming', count: '5' }]);
     courseRepository.createQueryBuilder.mockReturnValueOnce(aggQb as any);
 
-    await expect(
-      service.validateFilters({ category: 'web-development' }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.validateFilters({ category: 'web-development' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('throws BadRequestException listing all unknown values in the message', async () => {
@@ -578,9 +576,9 @@ describe('SearchService.validateFilters (Issue #999)', () => {
     const aggQb = makeAggQb([{ category: 'programming', count: '5' }]);
     courseRepository.createQueryBuilder.mockReturnValueOnce(aggQb as any);
 
-    await expect(
-      service.search('', { category: 'nonexistent' }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.search('', { category: 'nonexistent' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });
 

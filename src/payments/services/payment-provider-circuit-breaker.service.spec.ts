@@ -7,7 +7,9 @@ import {
 import { IPaymentProvider } from '../providers/payment-provider.interface';
 
 /** Creates a minimal mock IPaymentProvider */
-function makeMockProvider(overrides: Partial<IPaymentProvider> = {}): jest.Mocked<IPaymentProvider> {
+function makeMockProvider(
+  overrides: Partial<IPaymentProvider> = {},
+): jest.Mocked<IPaymentProvider> {
   return {
     name: 'mock-provider',
     createPaymentIntent: jest.fn(),
@@ -197,11 +199,17 @@ describe('PaymentProviderCircuitBreakerService', () => {
       );
 
       let halfOpenEmitted = false;
-      localBreaker.on('halfOpen', () => { halfOpenEmitted = true; });
+      localBreaker.on('halfOpen', () => {
+        halfOpenEmitted = true;
+      });
 
       // Trip the circuit with 5 failures.
       for (let i = 0; i < 5; i++) {
-        try { await localBreaker.fire(() => Promise.reject(new Error('fail'))); } catch { /* expected */ }
+        try {
+          await localBreaker.fire(() => Promise.reject(new Error('fail')));
+        } catch {
+          /* expected */
+        }
       }
       expect(localBreaker.opened).toBe(true);
 
@@ -223,7 +231,11 @@ describe('PaymentProviderCircuitBreakerService', () => {
 
       // Trip the circuit.
       for (let i = 0; i < 5; i++) {
-        try { await localBreaker.fire(() => Promise.reject(new Error('fail'))); } catch { /* expected */ }
+        try {
+          await localBreaker.fire(() => Promise.reject(new Error('fail')));
+        } catch {
+          /* expected */
+        }
       }
       expect(localBreaker.opened).toBe(true);
 
@@ -249,7 +261,11 @@ describe('PaymentProviderCircuitBreakerService', () => {
 
       // Trip the circuit.
       for (let i = 0; i < 5; i++) {
-        try { await localBreaker.fire(() => Promise.reject(new Error('fail'))); } catch { /* expected */ }
+        try {
+          await localBreaker.fire(() => Promise.reject(new Error('fail')));
+        } catch {
+          /* expected */
+        }
       }
       expect(localBreaker.opened).toBe(true);
 
@@ -258,7 +274,11 @@ describe('PaymentProviderCircuitBreakerService', () => {
       expect(localBreaker.halfOpen).toBe(true);
 
       // Failed probe — circuit should reopen.
-      try { await localBreaker.fire(() => Promise.reject(new Error('still down'))); } catch { /* expected */ }
+      try {
+        await localBreaker.fire(() => Promise.reject(new Error('still down')));
+      } catch {
+        /* expected */
+      }
       await new Promise((r) => setImmediate(r));
 
       expect(localBreaker.opened).toBe(true);

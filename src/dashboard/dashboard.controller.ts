@@ -1,4 +1,12 @@
-import { Controller, Get, Header, Query, BadRequestException, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  Query,
+  BadRequestException,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService, RevenuePeriod } from './dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

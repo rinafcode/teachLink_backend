@@ -34,7 +34,9 @@ export class AnomalyDetectionService {
       return { isAnomaly: false, score: 0 };
     }
 
-    const hasValidHistory = history.every((item) => typeof item === 'number' && Number.isFinite(item));
+    const hasValidHistory = history.every(
+      (item) => typeof item === 'number' && Number.isFinite(item),
+    );
     if (!hasValidHistory) {
       this.logger.warn('Invalid anomaly history values received');
       return { isAnomaly: false, score: 0 };

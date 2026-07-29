@@ -38,10 +38,7 @@ export class GamificationController {
 
   @Post('points/award-activity')
   @HttpCode(HttpStatus.OK)
-  awardActivity(
-    @CurrentUser() user: User,
-    @Body() dto: AwardActivityDto
-  ) {
+  awardActivity(@CurrentUser() user: User, @Body() dto: AwardActivityDto) {
     return this.pointsService.awardActivity(user.id, dto.activityType);
   }
 
