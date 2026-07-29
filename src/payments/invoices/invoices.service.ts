@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -54,19 +60,19 @@ export class InvoicesService {
 
   /**
    * Generate a unique invoice number from PostgreSQL sequence.
-   * 
+   *
    * Atomicity guarantee:
    *  - nextval() is atomic at the database level
    *  - Each concurrent call gets a distinct sequence value
    *  - No application-level locking needed
-   * 
+   *
    * @returns Invoice number formatted as `INV-<6-digit-zero-padded-sequence>`
    * @throws Error if sequence retrieval fails
    */
   private async generateInvoiceNumber(): Promise<string> {
     try {
       const result = await this.invoiceRepository.query(
-        `SELECT LPAD(nextval('invoice_number_seq')::text, 6, '0') as seq_value;`,
+        "SELECT LPAD(nextval('invoice_number_seq')::text, 6, '0') as seq_value;",
       );
 
       if (!result || result.length === 0) {
@@ -76,10 +82,7 @@ export class InvoicesService {
       const sequenceValue = result[0].seq_value;
       return `INV-${sequenceValue}`;
     } catch (error) {
-      this.logger.error(
-        'Failed to generate invoice number from sequence',
-        (error as Error).stack,
-      );
+      this.logger.error('Failed to generate invoice number from sequence', (error as Error).stack);
       throw new Error(`Invoice number generation failed: ${(error as Error).message}`);
     }
   }
@@ -134,14 +137,14 @@ export class InvoicesService {
       throw error;
     }
 
-function escapeHtml(val: any): string {
-  return String(val ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+    function escapeHtml(val: any): string {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     // Generate HTML template
     const htmlContent = `
@@ -186,9 +189,25 @@ function escapeHtml(val: any): string {
   }
 
   getInvoiceFilePath(fileUrl: string): string {
-    if (!fs.existsSync(fileUrl)) {
+    // Resolve the candidate path to its absolute, canonical form so that
+    // sequences such as "../" or encoded variants cannot escape the archive root.
+    const resolvedPath = path.resolve(fileUrl);
+    const archiveRoot = path.resolve(this.storagePath);
+
+    // Ensure the resolved path starts with the archive root (with a trailing
+    // separator so that a directory named "archived_invoices_evil" is not
+    // accidentally accepted as a prefix match).
+    if (!resolvedPath.startsWith(archiveRoot + path.sep) && resolvedPath !== archiveRoot) {
+      this.logger.warn(
+        `Path traversal attempt blocked: "${fileUrl}" resolved to "${resolvedPath}" which is outside archive root "${archiveRoot}"`,
+      );
+      throw new ForbiddenException('Access to the requested file is not permitted');
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
       throw new NotFoundException('Invoice file not found in archival storage');
     }
-    return fileUrl;
+
+    return resolvedPath;
   }
 }
