@@ -297,9 +297,18 @@ describe('DashboardService', () => {
             count: jest.fn().mockResolvedValue(10),
           },
         },
-        { provide: getRepositoryToken(Enrollment), useValue: { count: jest.fn().mockResolvedValue(5) } },
-        { provide: getRepositoryToken(Course), useValue: { createQueryBuilder: createQueryBuilderSpy } },
-        { provide: getRepositoryToken(AnalyticsEvent), useValue: { createQueryBuilder: jest.fn() } },
+        {
+          provide: getRepositoryToken(Enrollment),
+          useValue: { count: jest.fn().mockResolvedValue(5) },
+        },
+        {
+          provide: getRepositoryToken(Course),
+          useValue: { createQueryBuilder: createQueryBuilderSpy },
+        },
+        {
+          provide: getRepositoryToken(AnalyticsEvent),
+          useValue: { createQueryBuilder: jest.fn() },
+        },
         {
           provide: ReportingService,
           useValue: {
