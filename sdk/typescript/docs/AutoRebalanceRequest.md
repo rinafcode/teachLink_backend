@@ -1,12 +1,11 @@
 # AutoRebalanceRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**entityTypes** | **Array&lt;string&gt;** |  | [default to undefined]
-**autoExecute** | **boolean** |  | [default to undefined]
+| Name            | Type                    | Description | Notes                  |
+| --------------- | ----------------------- | ----------- | ---------------------- |
+| **entityTypes** | **Array&lt;string&gt;** |             | [default to undefined] |
+| **autoExecute** | **boolean**             |             | [default to undefined] |
 
 ## Example
 
@@ -14,8 +13,8 @@ Name | Type | Description | Notes
 import { AutoRebalanceRequest } from './api';
 
 const instance: AutoRebalanceRequest = {
-    entityTypes,
-    autoExecute,
+  entityTypes,
+  autoExecute,
 };
 ```
 

@@ -227,10 +227,7 @@ mutation DeleteAssessment($id: ID!) {
 # ============================================
 
 # Create multiple courses at once
-mutation CreateMultipleCourses(
-  $course1: CreateCourseInput!
-  $course2: CreateCourseInput!
-) {
+mutation CreateMultipleCourses($course1: CreateCourseInput!, $course2: CreateCourseInput!) {
   course1: createCourse(input: $course1) {
     id
     title

@@ -1,16 +1,15 @@
 # SearchResponse
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**results** | **List[object]** |  | [optional] 
-**total** | **int** |  | [optional] 
-**page** | **int** |  | [optional] 
-**limit** | **int** |  | [optional] 
-**filters** | **object** |  | [optional] 
-**query** | **str** |  | [optional] 
+| Name        | Type             | Description | Notes      |
+| ----------- | ---------------- | ----------- | ---------- |
+| **results** | **List[object]** |             | [optional] |
+| **total**   | **int**          |             | [optional] |
+| **page**    | **int**          |             | [optional] |
+| **limit**   | **int**          |             | [optional] |
+| **filters** | **object**       |             | [optional] |
+| **query**   | **str**          |             | [optional] |
 
 ## Example
 
@@ -29,6 +28,5 @@ search_response_dict = search_response_instance.to_dict()
 # create an instance of SearchResponse from a dict
 search_response_from_dict = SearchResponse.from_dict(search_response_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

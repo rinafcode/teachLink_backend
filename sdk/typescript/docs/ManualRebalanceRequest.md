@@ -1,12 +1,11 @@
 # ManualRebalanceRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**migrations** | **Array&lt;object&gt;** |  | [default to undefined]
-**dryRun** | **boolean** |  | [default to undefined]
+| Name           | Type                    | Description | Notes                  |
+| -------------- | ----------------------- | ----------- | ---------------------- |
+| **migrations** | **Array&lt;object&gt;** |             | [default to undefined] |
+| **dryRun**     | **boolean**             |             | [default to undefined] |
 
 ## Example
 
@@ -14,8 +13,8 @@ Name | Type | Description | Notes
 import { ManualRebalanceRequest } from './api';
 
 const instance: ManualRebalanceRequest = {
-    migrations,
-    dryRun,
+  migrations,
+  dryRun,
 };
 ```
 

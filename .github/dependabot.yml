@@ -3,27 +3,27 @@
 version: 2
 
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "UTC"
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 5
-    rebase-strategy: "auto"
+    rebase-strategy: 'auto'
     labels:
-      - "dependencies"
-      - "automation"
+      - 'dependencies'
+      - 'automation'
     commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
       include-scope: true
     groups:
       production-dependencies:
-        dependency-type: "production"
+        dependency-type: 'production'
       development-dependencies:
-        dependency-type: "development"
+        dependency-type: 'development'
     # Security advisories are produced automatically as separate PRs by
     # GitHub's security updates pipeline; the groups above apply only to
     # scheduled version updates.

@@ -18,6 +18,7 @@ export enum SubscriptionStatus {
   UNPAID = 'unpaid',
   TRIALING = 'trialing',
   INCOMPLETE = 'incomplete',
+  PAUSED = 'paused',
 }
 export enum SubscriptionInterval {
   MONTHLY = 'monthly',

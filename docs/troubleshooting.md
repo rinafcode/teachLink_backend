@@ -171,30 +171,30 @@ cp .env.example .env
 
 Common required variables for local development:
 
-| Variable | Typical value |
-|----------|--------------|
-| `DATABASE_HOST` | `localhost` |
-| `DATABASE_PORT` | `5432` |
-| `DATABASE_USER` | `postgres` |
-| `DATABASE_PASSWORD` | `postgres` |
-| `DATABASE_NAME` | `teachlink` |
-| `REDIS_HOST` | `localhost` |
-| `REDIS_PORT` | `6379` |
-| `JWT_SECRET` | Any string >= 10 chars |
-| `JWT_REFRESH_SECRET` | Any string >= 10 chars |
-| `ENCRYPTION_SECRET` | Exactly 32 characters |
-| `SESSION_SECRET` | Any string >= 10 chars |
-| `SMTP_HOST` | `localhost` (can be dummy) |
-| `SMTP_PORT` | `1025` |
-| `SMTP_USER` | (empty) |
-| `SMTP_PASS` | (empty) |
-| `EMAIL_FROM` | `noreply@teachlink.local` |
-| `AWS_ACCESS_KEY_ID` | Can be placeholder for local dev |
+| Variable                | Typical value                    |
+| ----------------------- | -------------------------------- |
+| `DATABASE_HOST`         | `localhost`                      |
+| `DATABASE_PORT`         | `5432`                           |
+| `DATABASE_USER`         | `postgres`                       |
+| `DATABASE_PASSWORD`     | `postgres`                       |
+| `DATABASE_NAME`         | `teachlink`                      |
+| `REDIS_HOST`            | `localhost`                      |
+| `REDIS_PORT`            | `6379`                           |
+| `JWT_SECRET`            | Any string >= 10 chars           |
+| `JWT_REFRESH_SECRET`    | Any string >= 10 chars           |
+| `ENCRYPTION_SECRET`     | Exactly 32 characters            |
+| `SESSION_SECRET`        | Any string >= 10 chars           |
+| `SMTP_HOST`             | `localhost` (can be dummy)       |
+| `SMTP_PORT`             | `1025`                           |
+| `SMTP_USER`             | (empty)                          |
+| `SMTP_PASS`             | (empty)                          |
+| `EMAIL_FROM`            | `noreply@teachlink.local`        |
+| `AWS_ACCESS_KEY_ID`     | Can be placeholder for local dev |
 | `AWS_SECRET_ACCESS_KEY` | Can be placeholder for local dev |
-| `AWS_S3_BUCKET` | Can be placeholder for local dev |
-| `STRIPE_SECRET_KEY` | Placeholder for local dev |
-| `STRIPE_WEBHOOK_SECRET` | Placeholder for local dev |
-| `SENDGRID_API_KEY` | Placeholder for local dev |
+| `AWS_S3_BUCKET`         | Can be placeholder for local dev |
+| `STRIPE_SECRET_KEY`     | Placeholder for local dev        |
+| `STRIPE_WEBHOOK_SECRET` | Placeholder for local dev        |
+| `SENDGRID_API_KEY`      | Placeholder for local dev        |
 
 ---
 
@@ -213,6 +213,7 @@ curl -X POST http://localhost:3000/migrations/run
 ```
 
 **Prevention:** In development, you can either:
+
 - Use `synchronize: false` and rely entirely on migrations, or
 - Accept that `synchronize` handles schema and skip migrations
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -13,6 +13,9 @@ import {
   UpgradeSubscriptionDto,
   DowngradeSubscriptionDto,
 } from './dto/subscription-action.dto';
+import { IPaymentProvider } from '../providers/payment-provider.interface';
+import { QueueService } from '../../queues/queue.service';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 
 /**
  * Handles subscription lifecycle management including pause, resume, upgrade, downgrade
@@ -25,6 +28,9 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
+    @Inject('IPaymentProvider')
+    private paymentProvider: IPaymentProvider,
+    private queueService: QueueService,
   ) {}
 
   /**
@@ -68,28 +74,71 @@ export class SubscriptionsService {
       );
     }
 
-    // Update subscription with pause metadata without canceling the subscription.
-    subscription.properties = {
-      ...subscription.properties,
-      pausedAt: new Date(),
-      pauseReason: dto.reason,
-      resumeAt: dto.resumeAt,
-      isPaused: true,
-    };
+    if (!subscription.providerSubscriptionId) {
+      throw new BadRequestException('Subscription does not have a provider subscription ID');
+    }
 
-    const updated = await this.subscriptionRepository.save(subscription);
+    const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
 
-    // Emit event for downstream processing (notify user, analytics, etc.)
-    this.eventEmitter.emit('subscription.paused', {
-      subscriptionId: updated.id,
-      userId: updated.userId,
-      resumeAt: dto.resumeAt,
-      reason: dto.reason,
-    });
+    try {
+      // Call provider to pause billing
+      await this.paymentProvider.pauseSubscription(
+        subscription.providerSubscriptionId,
+        resumeAtDate,
+      );
 
-    this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
+      // Update subscription status to PAUSED
+      subscription.status = SubscriptionStatus.PAUSED;
+      subscription.properties = {
+        ...subscription.properties,
+        pausedAt: new Date(),
+        pauseReason: dto.reason,
+        resumeAt: dto.resumeAt,
+        isPaused: true,
+      };
 
-    return updated;
+      const updated = await this.subscriptionRepository.save(subscription);
+
+      // Schedule automatic resume if resumeAt is provided
+      if (resumeAtDate) {
+        const delayMs = resumeAtDate.getTime() - Date.now();
+        if (delayMs > 0) {
+          await this.queueService.addJob(
+            QUEUE_NAMES.SUBSCRIPTIONS,
+            JOB_NAMES.RESUME_SUBSCRIPTION,
+            { subscriptionId: updated.id },
+            {
+              delay: delayMs,
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 5000,
+              },
+            },
+          );
+          this.logger.log(
+            `Scheduled automatic resume for subscription ${subscriptionId} at ${resumeAtDate.toISOString()}`,
+          );
+        }
+      }
+
+      // Emit event for downstream processing (notify user, analytics, etc.)
+      this.eventEmitter.emit('subscription.paused', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        resumeAt: dto.resumeAt,
+        reason: dto.reason,
+      });
+
+      this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
+
+      return updated;
+    } catch (error) {
+      this.logger.error(`Failed to pause subscription ${subscriptionId} at provider`, error);
+      throw new BadRequestException(
+        `Failed to pause subscription at provider: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**
@@ -101,32 +150,46 @@ export class SubscriptionsService {
   ): Promise<Subscription> {
     const subscription = await this.getSubscription(subscriptionId);
 
-    if (!subscription.properties?.isPaused) {
+    if (subscription.status !== SubscriptionStatus.PAUSED) {
       throw new BadRequestException('Subscription is not paused');
     }
 
-    // Update subscription to active
-    subscription.status = SubscriptionStatus.ACTIVE;
-    subscription.cancelAtPeriodEnd = false;
-    subscription.properties = {
-      ...subscription.properties,
-      isPaused: false,
-      resumedAt: new Date(),
-      resumeReason: dto.reason,
-    };
+    if (!subscription.providerSubscriptionId) {
+      throw new BadRequestException('Subscription does not have a provider subscription ID');
+    }
 
-    const updated = await this.subscriptionRepository.save(subscription);
+    try {
+      // Call provider to resume billing
+      await this.paymentProvider.resumeSubscription(subscription.providerSubscriptionId);
 
-    // Emit event for downstream processing
-    this.eventEmitter.emit('subscription.resumed', {
-      subscriptionId: updated.id,
-      userId: updated.userId,
-      reason: dto.reason,
-    });
+      // Update subscription status back to ACTIVE
+      subscription.status = SubscriptionStatus.ACTIVE;
+      subscription.cancelAtPeriodEnd = false;
+      subscription.properties = {
+        ...subscription.properties,
+        isPaused: false,
+        resumedAt: new Date(),
+        resumeReason: dto.reason,
+      };
 
-    this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
+      const updated = await this.subscriptionRepository.save(subscription);
 
-    return updated;
+      // Emit event for downstream processing
+      this.eventEmitter.emit('subscription.resumed', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        reason: dto.reason,
+      });
+
+      this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
+
+      return updated;
+    } catch (error) {
+      this.logger.error(`Failed to resume subscription ${subscriptionId} at provider`, error);
+      throw new BadRequestException(
+        `Failed to resume subscription at provider: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**
@@ -153,11 +216,11 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated amount
+    // Calculate prorated amount using cents to avoid floating-point precision errors
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCredit = (oldAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
+    const proratedCredit = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
+    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
     const proratedAmount = proratedCharge - proratedCredit;
 
     // Update subscription
@@ -217,11 +280,11 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated credit based on prorationType
+    // Calculate prorated credit based on prorationType using cents to avoid floating-point precision errors
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
-    const oldProratedCharge = (oldAmount * daysRemaining) / totalDaysInPeriod;
+    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
+    const oldProratedCharge = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
     const proratedCredit = oldProratedCharge - proratedCharge;
     const prorationType = dto.prorationType || 'credit';
 
@@ -291,6 +354,12 @@ export class SubscriptionsService {
    */
   async processRenewal(subscriptionId: string, maxRetries = 3): Promise<boolean> {
     const subscription = await this.getSubscription(subscriptionId);
+
+    // Skip paused subscriptions - they should not be renewed
+    if (subscription.status === SubscriptionStatus.PAUSED) {
+      this.logger.log(`Skipping renewal for paused subscription ${subscriptionId}`);
+      return false;
+    }
 
     if (
       subscription.status !== SubscriptionStatus.ACTIVE &&
@@ -416,6 +485,14 @@ export class SubscriptionsService {
     const now = new Date();
     const diffMs = endDate.getTime() - now.getTime();
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  private calculateProratedAmount(amount: number, daysRemaining: number, totalDaysInPeriod: number): number {
+    // Convert to cents to avoid floating-point precision errors
+    const amountInCents = Math.round(amount * 100);
+    const proratedCents = Math.round((amountInCents * daysRemaining) / totalDaysInPeriod);
+    // Convert back to dollars
+    return proratedCents / 100;
   }
 
   private calculateDaysInPeriod(interval: SubscriptionInterval): number {

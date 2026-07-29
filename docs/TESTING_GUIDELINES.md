@@ -128,20 +128,20 @@ All reusable mocks are in [test/utils/mock-factories.ts](test/utils/mock-factori
 
 ### Available Factories
 
-| Factory | Usage |
-|---------|-------|
-| `createMockRepository<T>()` | TypeORM repositories |
-| `createMockCachingService()` | CachingService |
-| `createMockRedisClient()` | Redis client (ioredis) |
-| `createMockBullQueue()` | Bull job queues |
-| `createMockHttpClient()` | HTTP requests (@nestjs/axios) |
-| `createMockConfigService()` | Configuration |
-| `createMockMailer()` | Email sending (nodemailer) |
-| `createMockEventEmitter()` | Event emitters (EventEmitter2) |
-| `createMockS3Client()` | AWS S3 |
-| `createMockElasticsearchClient()` | Elasticsearch |
-| `createMockExecutionContext()` | Guard testing |
-| `createMockQueryBuilder()` | TypeORM QueryBuilder |
+| Factory                           | Usage                          |
+| --------------------------------- | ------------------------------ |
+| `createMockRepository<T>()`       | TypeORM repositories           |
+| `createMockCachingService()`      | CachingService                 |
+| `createMockRedisClient()`         | Redis client (ioredis)         |
+| `createMockBullQueue()`           | Bull job queues                |
+| `createMockHttpClient()`          | HTTP requests (@nestjs/axios)  |
+| `createMockConfigService()`       | Configuration                  |
+| `createMockMailer()`              | Email sending (nodemailer)     |
+| `createMockEventEmitter()`        | Event emitters (EventEmitter2) |
+| `createMockS3Client()`            | AWS S3                         |
+| `createMockElasticsearchClient()` | Elasticsearch                  |
+| `createMockExecutionContext()`    | Guard testing                  |
+| `createMockQueryBuilder()`        | TypeORM QueryBuilder           |
 
 ### Example: Repository Mock
 
@@ -191,10 +191,7 @@ mockService.fetchData.mockReturnValue(Promise.resolve({ id: 1 })); // Less clear
 mockService.validate.mockReturnValue(true);
 
 // ✅ For multiple calls with different returns
-mockService.validate
-  .mockReturnValueOnce(true)
-  .mockReturnValueOnce(false)
-  .mockReturnValue(true);
+mockService.validate.mockReturnValueOnce(true).mockReturnValueOnce(false).mockReturnValue(true);
 ```
 
 ### For Complex Logic
@@ -266,7 +263,7 @@ expect(mockService.save).toHaveBeenCalled();
 expect(mockService.save).toHaveBeenCalledTimes(1);
 expect(mockService.save).toHaveBeenCalledWith(expectedUser);
 expect(mockService.save).toHaveBeenCalledWith(
-  expect.objectContaining({ id: '1', email: 'test@example.com' })
+  expect.objectContaining({ id: '1', email: 'test@example.com' }),
 );
 
 // ✅ Last call
@@ -307,9 +304,7 @@ describe('UserService.findWithFilters', () => {
   it('should apply where clause for role filter', async () => {
     // Create a spy on the query builder
     const mockQueryBuilder = createMockQueryBuilder();
-    mockQueryBuilder.getMany.mockResolvedValue([
-      { id: '1', role: 'ADMIN' },
-    ]);
+    mockQueryBuilder.getMany.mockResolvedValue([{ id: '1', role: 'ADMIN' }]);
     mockRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 
     const result = await service.findWithFilters({ role: 'ADMIN' });
@@ -341,7 +336,7 @@ describe('ExternalApiService', () => {
         statusText: 'OK',
         headers: {},
         config: {} as any,
-      })
+      }),
     );
 
     const result = await firstValueFrom(service.fetchData());
@@ -351,9 +346,7 @@ describe('ExternalApiService', () => {
   });
 
   it('should handle API errors', async () => {
-    mockHttp.get.mockReturnValue(
-      throwError(() => new Error('API Error'))
-    );
+    mockHttp.get.mockReturnValue(throwError(() => new Error('API Error')));
 
     await expect(firstValueFrom(service.fetchData())).rejects.toThrow('API Error');
   });
@@ -384,7 +377,7 @@ describe('EmailService', () => {
         to: 'user@example.com',
         subject: 'Test',
       }),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 });
@@ -406,12 +399,7 @@ describe('CacheManager', () => {
     const user = { id: '1', name: 'John' };
     await manager.setUser('1', user, 3600);
 
-    expect(mockRedis.set).toHaveBeenCalledWith(
-      'user:1',
-      JSON.stringify(user),
-      'EX',
-      3600
-    );
+    expect(mockRedis.set).toHaveBeenCalledWith('user:1', JSON.stringify(user), 'EX', 3600);
   });
 
   it('should retrieve cached user', async () => {
@@ -435,10 +423,7 @@ describe('CacheManager', () => {
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { 
-  createMockRepository, 
-  createMockCachingService 
-} from 'test/utils/mock-factories';
+import { createMockRepository, createMockCachingService } from 'test/utils/mock-factories';
 
 describe('UsersService', () => {
   // ─────────────────────────────────────────────────────────────────────────
@@ -483,9 +468,7 @@ describe('UsersService', () => {
     it('should throw NotFoundError when not found', async () => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findById('999')).rejects.toThrow(
-        'User not found'
-      );
+      await expect(service.findById('999')).rejects.toThrow('User not found');
     });
   });
 
@@ -613,14 +596,14 @@ describe('UserService', () => {
 
 ## 11. Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `Cannot find module 'test/utils/mock-factories'` | Ensure `tsconfig.json` has `"baseUrl": "."` |
-| Type errors with `jest.Mocked<T>` | Use `jest` types: `"jest"` in `tsconfig.json` compilerOptions.types |
-| Mock not being called as expected | Check return types - use `mockResolvedValue` for async, `mockReturnValue` for sync |
-| Tests pass locally but fail in CI | Add `afterEach(() => jest.clearAllMocks())` to reset state |
-| Mock persists across tests | Create new mock in `beforeEach`, not at module scope |
-| Tests are too slow | Reduce mock setup complexity, consider parallelization |
+| Problem                                          | Solution                                                                           |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `Cannot find module 'test/utils/mock-factories'` | Ensure `tsconfig.json` has `"baseUrl": "."`                                        |
+| Type errors with `jest.Mocked<T>`                | Use `jest` types: `"jest"` in `tsconfig.json` compilerOptions.types                |
+| Mock not being called as expected                | Check return types - use `mockResolvedValue` for async, `mockReturnValue` for sync |
+| Tests pass locally but fail in CI                | Add `afterEach(() => jest.clearAllMocks())` to reset state                         |
+| Mock persists across tests                       | Create new mock in `beforeEach`, not at module scope                               |
+| Tests are too slow                               | Reduce mock setup complexity, consider parallelization                             |
 
 ---
 
@@ -728,6 +711,7 @@ describe('ServiceName', () => {
 ## 14. Getting Help
 
 For questions about testing:
+
 1. Check [docs/testing-standards.md](testing-standards.md) for detailed mocking patterns
 2. Review examples in `test/utils/mock-factories.ts`
 3. Look at refactored test files as examples:

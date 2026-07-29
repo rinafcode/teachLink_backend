@@ -1,15 +1,14 @@
 # UpsertRewardRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**title** | **string** |  | [default to undefined]
-**description** | **string** |  | [default to undefined]
-**badgeId** | **string** |  | [optional] [default to undefined]
-**bonusPoints** | **number** |  | [optional] [default to undefined]
-**metadata** | **object** |  | [optional] [default to undefined]
+| Name            | Type       | Description | Notes                             |
+| --------------- | ---------- | ----------- | --------------------------------- |
+| **title**       | **string** |             | [default to undefined]            |
+| **description** | **string** |             | [default to undefined]            |
+| **badgeId**     | **string** |             | [optional] [default to undefined] |
+| **bonusPoints** | **number** |             | [optional] [default to undefined] |
+| **metadata**    | **object** |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -17,11 +16,11 @@ Name | Type | Description | Notes
 import { UpsertRewardRequest } from './api';
 
 const instance: UpsertRewardRequest = {
-    title,
-    description,
-    badgeId,
-    bonusPoints,
-    metadata,
+  title,
+  description,
+  badgeId,
+  bonusPoints,
+  metadata,
 };
 ```
 

@@ -29,6 +29,7 @@ import { QueryCacheService } from './query-cache.service';
     EventEmitterModule.forRoot(),
     MonitoringModule,
     SearchModule,
+    TenancyModule,
     TypeOrmModule.forFeature([Course, Enrollment, User]),
     CacheModule.registerAsync({
       imports: [ConfigModule],
