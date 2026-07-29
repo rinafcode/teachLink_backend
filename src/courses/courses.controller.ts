@@ -57,8 +57,8 @@ export class CoursesController {
   @ApiOperation({ summary: 'Get a specific course by ID' })
   @ApiResponse({ status: 200, description: 'Returns course details' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  async findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.coursesService.findOne(id, req.user);
   }
 
   @Put(':id')

@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, Inject, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -31,6 +31,8 @@ import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
 import { PaginationService } from '../common/services/pagination.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { EventType } from '../analytics/entities/event.entity';
 
 function checkUserRole(user?: User, ...roleNames: UserRole[]): boolean {
   if (!user) return false;
@@ -70,6 +72,9 @@ export class CoursesService {
     private readonly eventEmitter: EventEmitter2,
     @Optional()
     private readonly paginationService: PaginationService = new PaginationService(),
+    @Inject(forwardRef(() => AnalyticsService))
+    @Optional()
+    private readonly analyticsService?: AnalyticsService,
   ) {}
 
   // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -143,13 +148,25 @@ export class CoursesService {
   /**
    * Returns a single course by ID.
    */
-  async findOne(id: string): Promise<Course> {
+  async findOne(id: string, requestingUser?: User): Promise<Course> {
     const course = await this.courseRepo.findOne({
       where: { id },
       relations: ['instructor', 'reviews', 'reviews.reviewer', 'prerequisite'],
     });
     if (!course) {
       throw new ResourceNotFoundException('Course', id);
+    }
+    if (this.analyticsService) {
+      this.analyticsService
+        .trackEvent({
+          eventType: EventType.COURSE_VIEW,
+          category: 'course',
+          action: 'view',
+          label: course.title,
+          properties: { courseId: course.id },
+          userId: requestingUser?.id,
+        })
+        .catch(() => {});
     }
     return course;
   }
