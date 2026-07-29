@@ -27,7 +27,6 @@ describe('SubscriptionsService - Pause/Resume Functionality', () => {
     interval: SubscriptionInterval.MONTHLY,
     amount: 29.99,
     currency: 'USD',
-    currency: 'usd',
     cancelledAt: null,
     trialStart: null,
     trialEnd: null,
