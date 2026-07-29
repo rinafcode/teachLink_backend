@@ -120,7 +120,19 @@ describe('DashboardService', () => {
         },
         {
           provide: getRepositoryToken(Course),
-          useValue: { find: jest.fn().mockResolvedValue([]) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            createQueryBuilder: jest.fn().mockReturnValue({
+              leftJoin: jest.fn().mockReturnThis(),
+              select: jest.fn().mockReturnThis(),
+              addSelect: jest.fn().mockReturnThis(),
+              groupBy: jest.fn().mockReturnThis(),
+              addGroupBy: jest.fn().mockReturnThis(),
+              orderBy: jest.fn().mockReturnThis(),
+              take: jest.fn().mockReturnThis(),
+              getRawMany: jest.fn().mockResolvedValue([]),
+            }),
+          },
         },
         {
           provide: getRepositoryToken(AnalyticsEvent),
@@ -188,7 +200,19 @@ describe('DashboardService', () => {
         },
         {
           provide: getRepositoryToken(Course),
-          useValue: { find: jest.fn().mockResolvedValue([]) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            createQueryBuilder: jest.fn().mockReturnValue({
+              leftJoin: jest.fn().mockReturnThis(),
+              select: jest.fn().mockReturnThis(),
+              addSelect: jest.fn().mockReturnThis(),
+              groupBy: jest.fn().mockReturnThis(),
+              addGroupBy: jest.fn().mockReturnThis(),
+              orderBy: jest.fn().mockReturnThis(),
+              take: jest.fn().mockReturnThis(),
+              getRawMany: jest.fn().mockResolvedValue([]),
+            }),
+          },
         },
         {
           provide: getRepositoryToken(AnalyticsEvent),
