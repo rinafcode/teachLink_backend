@@ -38,6 +38,7 @@ export class InvoicesController {
 
     res.set({
       'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.html"`,
+      'X-Content-Type-Options': 'nosniff',
     });
 
     return new StreamableFile(file);

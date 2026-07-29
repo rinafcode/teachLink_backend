@@ -22,6 +22,41 @@ import { TriggerType } from '../enums/trigger-type.enum';
 import { ActionType } from '../enums/action-type.enum';
 import { WorkflowStatus } from '../enums/workflow-status.enum';
 
+function validateWebhookUrl(urlStr: string): void {
+  if (!urlStr) return;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlStr);
+  } catch {
+    throw new BusinessValidationException('Invalid webhook URL format');
+  }
+
+  if (parsedUrl.protocol !== 'https:') {
+    throw new BusinessValidationException('Webhook URL must use https scheme');
+  }
+
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new BusinessValidationException('Webhook URL credentials are not allowed');
+  }
+
+  const host = parsedUrl.hostname.toLowerCase();
+  const privatePatterns = [
+    /^localhost$/,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2[0-9]|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^::1$/,
+    /^fc00:/,
+    /^fe80:/,
+  ];
+
+  if (privatePatterns.some((p) => p.test(host))) {
+    throw new BusinessValidationException('Webhook target cannot be a private, loopback, or link-local address');
+  }
+}
+
 /**
  * Provides automation operations.
  */

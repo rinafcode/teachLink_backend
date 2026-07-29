@@ -69,20 +69,29 @@ export class InvoicesService {
 
     invoice = await this.invoiceRepository.save(invoice);
 
+function escapeHtml(val: any): string {
+  return String(val ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
     // Generate HTML template
     const htmlContent = `
       <html>
-        <head><title>Invoice ${invoice.invoiceNumber}</title></head>
+        <head><title>Invoice ${escapeHtml(invoice.invoiceNumber)}</title></head>
         <body>
           <h1>Invoice</h1>
-          <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
-          <p><strong>Date:</strong> ${invoice.issuedDate.toISOString()}</p>
-          <p><strong>Status:</strong> ${invoice.status.toUpperCase()}</p>
-          <p><strong>Total Amount:</strong> ${invoice.totalAmount} ${invoice.currency}</p>
+          <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoiceNumber)}</p>
+          <p><strong>Date:</strong> ${escapeHtml(invoice.issuedDate.toISOString())}</p>
+          <p><strong>Status:</strong> ${escapeHtml(invoice.status.toUpperCase())}</p>
+          <p><strong>Total Amount:</strong> ${escapeHtml(invoice.totalAmount)} ${escapeHtml(invoice.currency)}</p>
           <hr/>
           <h3>Items</h3>
           <ul>
-            ${invoice.items.map((i) => `<li>${i.description} - ${i.amount} x ${i.quantity}</li>`).join('')}
+            ${invoice.items.map((i) => `<li>${escapeHtml(i.description)} - ${escapeHtml(i.amount)} x ${escapeHtml(i.quantity)}</li>`).join('')}
           </ul>
         </body>
       </html>
