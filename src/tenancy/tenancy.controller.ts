@@ -24,6 +24,7 @@ import {
 } from './dto/tenant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { IpAllowlistGuard } from '../common/guards/ip-allowlist.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { Tenant, TenantPlan } from './entities/tenant.entity';
@@ -34,7 +35,7 @@ import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
  */
 @ApiTags('tenancy')
 @Controller('tenants')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(IpAllowlistGuard, JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 @ApiResponse({ status: 401, description: 'Authentication required' })
 @ApiResponse({ status: 403, description: 'Insufficient tenant permissions' })
