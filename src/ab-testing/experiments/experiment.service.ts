@@ -13,6 +13,7 @@ import { VariantMetric } from '../entities/variant-metric.entity';
 export class ExperimentService {
   private readonly logger = new Logger(ExperimentService.name);
 
+  // Injecting the repositories for experiments, variants, and metrics
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
@@ -24,6 +25,7 @@ export class ExperimentService {
     private variantMetricRepository: Repository<VariantMetric>,
   ) {}
 
+  // Method to create a new experiment
   async updateExperiment(id: string, updateData: Partial<Experiment>): Promise<Experiment> {
     this.logger.log(`Updating experiment: ${id}`);
     const experiment = await this.experimentRepository.findOne({
@@ -38,6 +40,7 @@ export class ExperimentService {
     return updatedExperiment;
   }
 
+  // Method to delete an experiment
   async addVariant(
     experimentId: string,
     variantData: Partial<IExperimentVariant>,

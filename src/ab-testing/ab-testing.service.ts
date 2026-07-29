@@ -5,6 +5,7 @@ import { Experiment, ExperimentStatus, ExperimentType } from './entities/experim
 import { IExperimentVariant } from './entities/experiment-variant.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
+// DTOs for creating experiments, variants, and metrics
 export interface ICreateExperimentDto {
   name: string;
   description: string;
@@ -25,6 +26,7 @@ export interface ICreateExperimentDto {
   templateName?: string;
 }
 
+// DTO for creating a variant
 export interface ICreateVariantDto {
   name: string;
   description: string;
