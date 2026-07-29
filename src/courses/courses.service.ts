@@ -174,14 +174,16 @@ export class CoursesService {
       throw new ResourceNotFoundException('Course', id);
     }
     if (this.analyticsService) {
-      this.analyticsService.trackEvent({
-        eventType: EventType.COURSE_VIEW,
-        category: 'course',
-        action: 'view',
-        label: course.title,
-        properties: { courseId: course.id },
-        userId: requestingUser?.id,
-      }).catch(() => {});
+      this.analyticsService
+        .trackEvent({
+          eventType: EventType.COURSE_VIEW,
+          category: 'course',
+          action: 'view',
+          label: course.title,
+          properties: { courseId: course.id },
+          userId: requestingUser?.id,
+        })
+        .catch(() => {});
     }
     return course;
   }

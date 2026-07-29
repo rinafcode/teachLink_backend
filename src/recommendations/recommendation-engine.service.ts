@@ -50,7 +50,9 @@ export class RecommendationEngineService {
       where: { id: payload.id },
     });
     if (enrollment) {
-      this.logger.debug(`Invalidating recommendations for user ${enrollment.userId} after enrollment`);
+      this.logger.debug(
+        `Invalidating recommendations for user ${enrollment.userId} after enrollment`,
+      );
       await this.invalidate(enrollment.userId);
     }
   }

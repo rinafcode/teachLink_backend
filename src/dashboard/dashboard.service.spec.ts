@@ -254,9 +254,27 @@ describe('DashboardService', () => {
       orderBy: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
       getRawMany: jest.fn().mockResolvedValue([
-        { course_id: 'c-1', course_title: 'Math', course_price: '49.99', course_status: 'published', enrollmentCount: '100' },
-        { course_id: 'c-2', course_title: 'Science', course_price: '39.99', course_status: 'published', enrollmentCount: '50' },
-        { course_id: 'c-3', course_title: 'History', course_price: '29.99', course_status: 'draft', enrollmentCount: '0' },
+        {
+          course_id: 'c-1',
+          course_title: 'Math',
+          course_price: '49.99',
+          course_status: 'published',
+          enrollmentCount: '100',
+        },
+        {
+          course_id: 'c-2',
+          course_title: 'Science',
+          course_price: '39.99',
+          course_status: 'published',
+          enrollmentCount: '50',
+        },
+        {
+          course_id: 'c-3',
+          course_title: 'History',
+          course_price: '29.99',
+          course_status: 'draft',
+          enrollmentCount: '0',
+        },
       ]),
     };
 
@@ -265,12 +283,34 @@ describe('DashboardService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DashboardService,
-        { provide: getRepositoryToken(Payment), useValue: { find: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) } },
-        { provide: getRepositoryToken(User), useValue: { find: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(10) } },
+        {
+          provide: getRepositoryToken(Payment),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(0),
+          },
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            count: jest.fn().mockResolvedValue(10),
+          },
+        },
         { provide: getRepositoryToken(Enrollment), useValue: { count: jest.fn().mockResolvedValue(5) } },
         { provide: getRepositoryToken(Course), useValue: { createQueryBuilder: createQueryBuilderSpy } },
         { provide: getRepositoryToken(AnalyticsEvent), useValue: { createQueryBuilder: jest.fn() } },
-        { provide: ReportingService, useValue: { generateRevenueRecognitionReport: jest.fn().mockResolvedValue({ grossRevenue: 100, netRevenue: 90, totalRefunds: 10, currency: 'USD' }) } },
+        {
+          provide: ReportingService,
+          useValue: {
+            generateRevenueRecognitionReport: jest.fn().mockResolvedValue({
+              grossRevenue: 100,
+              netRevenue: 90,
+              totalRefunds: 10,
+              currency: 'USD',
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -279,7 +319,10 @@ describe('DashboardService', () => {
 
     expect(createQueryBuilderSpy).toHaveBeenCalledWith('course');
     expect(courseQueryBuilder.leftJoin).toHaveBeenCalledWith('course.enrollments', 'enrollment');
-    expect(courseQueryBuilder.addSelect).toHaveBeenCalledWith('COUNT(enrollment.id)', 'enrollmentCount');
+    expect(courseQueryBuilder.addSelect).toHaveBeenCalledWith(
+      'COUNT(enrollment.id)',
+      'enrollmentCount',
+    );
     expect(courseQueryBuilder.take).toHaveBeenCalledWith(20);
     expect(courseQueryBuilder.orderBy).toHaveBeenCalledWith('enrollmentCount', 'DESC');
     expect(courseQueryBuilder.getRawMany).toHaveBeenCalled();

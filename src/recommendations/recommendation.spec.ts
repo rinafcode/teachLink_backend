@@ -117,14 +117,10 @@ describe('CollaborativeFilteringService', () => {
   });
 
   it('excludes already-enrolled courses', async () => {
-    enrollmentRepo.find.mockResolvedValue([
-      mockEnrollment('user-1', 'c1'),
-    ]);
+    enrollmentRepo.find.mockResolvedValue([mockEnrollment('user-1', 'c1')]);
     // The SQL query excludes courses from excludeCourseIds; mock what the
     // database would return after applying that exclusion.
-    enrollmentRepo.query.mockResolvedValue([
-      { courseId: 'c2', score: 0.5 },
-    ]);
+    enrollmentRepo.query.mockResolvedValue([{ courseId: 'c2', score: 0.5 }]);
     const result = await service.getRecommendedCourseIds('user-1', new Set(['c1']), 5);
     expect(result.map((r) => r.courseId)).not.toContain('c1');
     expect(result).toHaveLength(1);
@@ -137,9 +133,7 @@ describe('CollaborativeFilteringService', () => {
       mockEnrollment('user-1', 'c2'),
     ]);
     // Jaccard(c1,c2 ∩ c1,c2,c3) = 2/3 → score = 2/3
-    enrollmentRepo.query.mockResolvedValue([
-      { courseId: 'c3', score: 2 / 3 },
-    ]);
+    enrollmentRepo.query.mockResolvedValue([{ courseId: 'c3', score: 2 / 3 }]);
     const result = await service.getRecommendedCourseIds('user-1', new Set(['c1', 'c2']), 5);
     expect(result).toHaveLength(1);
     expect(result[0].courseId).toBe('c3');
@@ -157,7 +151,11 @@ describe('CollaborativeFilteringService', () => {
         { courseId: 'c5', score: 0.3 },
       ]);
 
-      const result = await service.getRecommendedCourseIds('user-1', new Set(['c1', 'c2', 'c3']), 3);
+      const result = await service.getRecommendedCourseIds(
+        'user-1',
+        new Set(['c1', 'c2', 'c3']),
+        3,
+      );
 
       // Exactly one query call — no separate neighbor-enrollment round-trips
       expect(enrollmentRepo.query).toHaveBeenCalledTimes(1);
@@ -172,9 +170,7 @@ describe('CollaborativeFilteringService', () => {
       //   1. The target user's enrollments (via find)
       //   2. The bounded SQL result set
       // No full-table scan of enrollment occurs.
-      enrollmentRepo.find.mockResolvedValue([
-        mockEnrollment('user-1', 'c1'),
-      ]);
+      enrollmentRepo.find.mockResolvedValue([mockEnrollment('user-1', 'c1')]);
       enrollmentRepo.query.mockResolvedValue(
         Array.from({ length: 5 }, (_, i) => ({
           courseId: `c${i + 10}`,

@@ -94,12 +94,7 @@ export class DashboardService {
     const results = await this.courseRepository
       .createQueryBuilder('course')
       .leftJoin('course.enrollments', 'enrollment')
-      .select([
-        'course.id',
-        'course.title',
-        'course.price',
-        'course.status',
-      ])
+      .select(['course.id', 'course.title', 'course.price', 'course.status'])
       .addSelect('COUNT(enrollment.id)', 'enrollmentCount')
       .groupBy('course.id')
       .addGroupBy('course.title')
