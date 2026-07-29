@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, QueryFailedError } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ConflictException } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';

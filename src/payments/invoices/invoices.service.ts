@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryRunner } from 'typeorm';
+import { Repository } from 'typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
 import * as fs from 'fs';
 import * as path from 'path';

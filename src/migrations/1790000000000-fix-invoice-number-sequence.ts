@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, TableUnique } from 'typeorm';
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
  * Issue #1003 — Replace timestamp+random invoice numbering with PostgreSQL sequence
