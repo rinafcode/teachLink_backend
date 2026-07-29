@@ -9,6 +9,12 @@ import { LRUCache } from 'lru-cache';
 import { IsolationService } from '../tenancy/isolation/isolation.service';
 import { MetricsService } from '../utils/masking/metrics.service';
 
+/**
+ * TTL for cached search results, expressed in milliseconds to match
+ * cache-manager v7's TTL semantics. 30_000 ms == 30 seconds.
+ */
+export const SEARCH_CACHE_TTL_MS = 30_000;
+
 export interface SearchFilters {
   category?: string | string[];
   level?: string | string[];
@@ -98,7 +104,7 @@ export class SearchService implements OnModuleInit {
     limit: number = 20,
   ): Promise<any> {
     const safeQuery = query?.trim() ?? '';
-    const cacheKey = `search:${safeQuery}:${JSON.stringify(filters)}:${sort}:${page}`;
+    const cacheKey = this.buildSearchCacheKey(safeQuery, filters, sort, page, limit);
 
     if (this.cacheManager) {
       const cached = await this.cacheManager.get<any>(cacheKey);
@@ -108,7 +114,8 @@ export class SearchService implements OnModuleInit {
     if (this.isElasticsearchAvailable) {
       const esResults = await this.tryElasticsearch(safeQuery, filters, page, limit, sort);
       if (esResults) {
-        if (this.cacheManager) await this.cacheManager.set(cacheKey, esResults, 30);
+        if (this.cacheManager)
+          await this.cacheManager.set(cacheKey, esResults, SEARCH_CACHE_TTL_MS);
         return esResults;
       }
       // If tryElasticsearch returned null due to an intermittent error, we fall through and record the fallback metric.
@@ -168,7 +175,7 @@ export class SearchService implements OnModuleInit {
       const [results, total] = await qb.getManyAndCount();
 
       const result = { results, total, page, limit, query: safeQuery };
-      if (this.cacheManager) await this.cacheManager.set(cacheKey, result, 30);
+      if (this.cacheManager) await this.cacheManager.set(cacheKey, result, SEARCH_CACHE_TTL_MS);
       return result;
     } catch (err) {
       this.logger.error(`Search failed: ${(err as Error).message}`);
@@ -223,6 +230,43 @@ export class SearchService implements OnModuleInit {
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Build a cache key that uniquely identifies every parameter that affects
+   * the search result: query, filters, sort, page, and limit. Filters are
+   * serialized canonically (keys sorted recursively) so that semantically
+   * identical filter objects produce the same key regardless of argument
+   * order.
+   */
+  private buildSearchCacheKey(
+    query: string,
+    filters: SearchFilters | undefined,
+    sort: string | undefined,
+    page: number,
+    limit: number,
+  ): string {
+    return `search:${query}:${this.canonicalize(filters)}:${sort ?? ''}:${page}:${limit}`;
+  }
+
+  /**
+   * Canonical serializer that recursively sorts object keys so the resulting
+   * string is independent of property order. Arrays preserve their order
+   * (order is semantically meaningful for filters like `category`).
+   */
+  private canonicalize(value: unknown): string {
+    if (value === undefined || value === null) return '';
+    if (Array.isArray(value)) {
+      return `[${value.map((v) => this.canonicalize(v)).join(',')}]`;
+    }
+    if (typeof value === 'object') {
+      const sortedKeys = Object.keys(value as Record<string, unknown>).sort();
+      const entries = sortedKeys.map(
+        (k) => `${k}:${this.canonicalize((value as Record<string, unknown>)[k])}`,
+      );
+      return `{${entries.join(',')}}`;
+    }
+    return JSON.stringify(value);
+  }
 
   /**
    * Attempt the Elasticsearch path; returns `null` if ES isn't available /
