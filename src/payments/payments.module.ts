@@ -13,6 +13,9 @@ import { PricingService } from './services/pricing.service';
 import { PricingController } from './controllers/pricing.controller';
 import { PaymentReconciliationJob } from './reconciliation/reconciliation.service';
 import { PaymentReconciliationController } from './reconciliation/reconciliation.controller';
+import { SubscriptionsService } from './subscriptions/subscriptions.service';
+import { SubscriptionsController } from './subscriptions/subscriptions.controller';
+import { PaymentProviderService } from './providers/payment-provider.service';
 import { StripeProvider } from './providers/stripe.provider';
 
 /**
@@ -27,6 +30,9 @@ import { StripeProvider } from './providers/stripe.provider';
  * Issue #856 — imports AuditLogModule so PaymentReconciliationJob can log
  * PAYMENT_RECONCILIATION_MISMATCH audit events.
  *
+ * Issue #1007 — registers SubscriptionsService, SubscriptionsController, and
+ * PaymentProviderService so that prorated upgrade charges and downgrade credits
+ * are wired into the DI container.
  * Issue #1005 — adds StripeProvider and QueueModule for subscription pause/resume
  * functionality with provider billing suspension.
  */
@@ -48,6 +54,9 @@ import { StripeProvider } from './providers/stripe.provider';
       useClass: StripeProvider,
     },
   ],
+  providers: [PricingService, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
+  controllers: [PricingController, PaymentReconciliationController, SubscriptionsController],
+  exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
   controllers: [PricingController, PaymentReconciliationController],
   exports: [
     PricingService,
