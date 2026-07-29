@@ -8,7 +8,7 @@ import { MetricsService } from './metrics.service';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
-import { AnalyticsEvent } from '../../analytics/entities/event.entity';
+import { AnalyticsEvent, EventType } from '../../analytics/entities/event.entity';
 import { Payment, PaymentStatus } from '../../payments/entities/payment.entity';
 
 @Injectable()
@@ -119,8 +119,11 @@ export class KpiService {
 
     for (const course of courses) {
       const enrollments = await this.enrollmentRepository.count({ where: { courseId: course.id } });
-      // Placeholder for views. In a real system, you'd query an analytics table.
-      const views = enrollments * 5 + Math.floor(Math.random() * 100); // Simulate views
+      const views = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.eventType = :eventType', { eventType: EventType.COURSE_VIEW })
+        .andWhere("event.properties->>'courseId' = :courseId", { courseId: course.id })
+        .getCount();
 
       const conversionRate = views > 0 ? (enrollments / views) * 100 : 0;
       this.metricsService.enrollmentConversionGauge.labels(course.id).set(conversionRate);

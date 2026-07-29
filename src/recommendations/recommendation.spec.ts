@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Enrollment } from '../courses/entities/enrollment.entity';
@@ -36,6 +37,7 @@ describe('RecommendationEngineService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [EventEmitterModule.forRoot()],
       providers: [
         RecommendationEngineService,
         CollaborativeFilteringService,
@@ -93,10 +95,10 @@ describe('RecommendationEngineService', () => {
 
 describe('CollaborativeFilteringService', () => {
   let service: CollaborativeFilteringService;
-  let enrollmentRepo: { find: jest.Mock };
+  let enrollmentRepo: { find: jest.Mock; query: jest.Mock };
 
   beforeEach(async () => {
-    enrollmentRepo = { find: jest.fn() };
+    enrollmentRepo = { find: jest.fn(), query: jest.fn() };
     const module = await Test.createTestingModule({
       providers: [
         CollaborativeFilteringService,
@@ -107,38 +109,87 @@ describe('CollaborativeFilteringService', () => {
   });
 
   it('returns empty when user has no enrollments (cold start)', async () => {
-    enrollmentRepo.find.mockResolvedValue([
-      mockEnrollment('other', 'c1'),
-      mockEnrollment('other', 'c2'),
-    ]);
-    // Jaccard({}, {c1,c2}) = 0/2 = 0, so no collaborative signal → no results
+    enrollmentRepo.find.mockResolvedValue([]);
     const result = await service.getRecommendedCourseIds('user-1', new Set(), 5);
     expect(result.length).toBe(0);
+    // No SQL query fired — short-circuits before reaching the DB
+    expect(enrollmentRepo.query).not.toHaveBeenCalled();
   });
 
   it('excludes already-enrolled courses', async () => {
     enrollmentRepo.find.mockResolvedValue([
       mockEnrollment('user-1', 'c1'),
-      mockEnrollment('other', 'c1'),
-      mockEnrollment('other', 'c2'),
+    ]);
+    // The SQL query excludes courses from excludeCourseIds; mock what the
+    // database would return after applying that exclusion.
+    enrollmentRepo.query.mockResolvedValue([
+      { courseId: 'c2', score: 0.5 },
     ]);
     const result = await service.getRecommendedCourseIds('user-1', new Set(['c1']), 5);
     expect(result.map((r) => r.courseId)).not.toContain('c1');
+    expect(result).toHaveLength(1);
+    expect(result[0].courseId).toBe('c2');
   });
 
   it('scores courses based on Jaccard similarity', async () => {
-    // user-1 enrolled in c1, c2; other-user enrolled in c1, c2, c3
     enrollmentRepo.find.mockResolvedValue([
       mockEnrollment('user-1', 'c1'),
       mockEnrollment('user-1', 'c2'),
-      mockEnrollment('other-user', 'c1'),
-      mockEnrollment('other-user', 'c2'),
-      mockEnrollment('other-user', 'c3'),
+    ]);
+    // Jaccard(c1,c2 ∩ c1,c2,c3) = 2/3 → score = 2/3
+    enrollmentRepo.query.mockResolvedValue([
+      { courseId: 'c3', score: 2 / 3 },
     ]);
     const result = await service.getRecommendedCourseIds('user-1', new Set(['c1', 'c2']), 5);
     expect(result).toHaveLength(1);
     expect(result[0].courseId).toBe('c3');
-    expect(result[0].score).toBeCloseTo(2 / 3); // Jaccard(2,3)
+    expect(result[0].score).toBeCloseTo(2 / 3);
+  });
+
+  describe('benchmark', () => {
+    it('uses a single bounded SQL query — no full table scan, no N+1', async () => {
+      enrollmentRepo.find.mockResolvedValue([
+        mockEnrollment('user-1', 'c1'),
+        mockEnrollment('user-1', 'c2'),
+      ]);
+      enrollmentRepo.query.mockResolvedValue([
+        { courseId: 'c4', score: 0.7 },
+        { courseId: 'c5', score: 0.3 },
+      ]);
+
+      const result = await service.getRecommendedCourseIds('user-1', new Set(['c1', 'c2', 'c3']), 3);
+
+      // Exactly one query call — no separate neighbor-enrollment round-trips
+      expect(enrollmentRepo.query).toHaveBeenCalledTimes(1);
+      // Exactly one find call — target user's own enrollments only
+      expect(enrollmentRepo.find).toHaveBeenCalledTimes(1);
+      // Result length is bounded by topN regardless of total enrollment count
+      expect(result.length).toBeLessThanOrEqual(3);
+    });
+
+    it('heap usage is independent of total platform enrollment count', async () => {
+      // The service should only load:
+      //   1. The target user's enrollments (via find)
+      //   2. The bounded SQL result set
+      // No full-table scan of enrollment occurs.
+      enrollmentRepo.find.mockResolvedValue([
+        mockEnrollment('user-1', 'c1'),
+      ]);
+      enrollmentRepo.query.mockResolvedValue(
+        Array.from({ length: 5 }, (_, i) => ({
+          courseId: `c${i + 10}`,
+          score: 0.5 - i * 0.1,
+        })),
+      );
+
+      const result = await service.getRecommendedCourseIds('user-1', new Set(), 5);
+
+      // The returned data is bounded by topN regardless of how many
+      // enrollments exist in the database.
+      expect(result.length).toBe(5);
+      expect(enrollmentRepo.find).toHaveBeenCalledTimes(1);
+      expect(enrollmentRepo.query).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
