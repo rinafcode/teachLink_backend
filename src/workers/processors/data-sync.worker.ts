@@ -27,6 +27,7 @@ export class DataSyncWorker extends BaseWorker {
 
     await job.progress(30);
 
+    // Perform the appropriate sync operation based on syncType
     try {
       this.logger.log(`Starting ${syncType} sync from ${source} to ${destination || 'local'}`);
 

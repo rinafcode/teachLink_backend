@@ -27,6 +27,7 @@ export class SubscriptionsWorker extends BaseWorker {
 
     await job.progress(30);
 
+    // Perform the appropriate subscription action based on the action type
     try {
       this.logger.log(`Processing subscription ${action}: ${subscriptionId}`);
 

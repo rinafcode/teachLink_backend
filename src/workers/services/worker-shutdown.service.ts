@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { WorkerOrchestrationService } from '../orchestration/worker-orchestration.service';
 
+// Options for configuring the worker shutdown behavior
 export interface WorkerShutdownOptions {
   gracefulTimeoutMs: number;
   jobCompletionTimeoutMs: number;
@@ -9,6 +10,7 @@ export interface WorkerShutdownOptions {
   waitForJobCompletion: boolean;
 }
 
+// Status interface to track the progress of the shutdown process
 export interface WorkerShutdownStatus {
   phase:
     | 'idle'
@@ -42,6 +44,7 @@ export class WorkerShutdownService implements OnModuleDestroy {
     isShuttingDown: false,
   };
 
+  // Default options for worker shutdown, can be overridden by environment variables
   private readonly options: WorkerShutdownOptions = {
     gracefulTimeoutMs: parseInt(process.env.WORKER_GRACEFUL_TIMEOUT_MS || '20000', 10),
     jobCompletionTimeoutMs: parseInt(process.env.WORKER_JOB_TIMEOUT_MS || '15000', 10),
