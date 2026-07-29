@@ -106,6 +106,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
     }
 
+    let retryAfter: number | undefined;
+    if (exception instanceof RateLimitExceededException) {
+      const resp = exception.getResponse();
+      if (typeof resp === 'object' && resp !== null && 'retryAfterSeconds' in resp) {
+        retryAfter = (resp as { retryAfterSeconds: number }).retryAfterSeconds;
+      }
+    }
+    if (retryAfter !== undefined) {
+      response.setHeader('Retry-After', retryAfter);
+    }
+
     response.status(status).json({
       success: false,
       error: {
