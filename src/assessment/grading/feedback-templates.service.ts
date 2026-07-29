@@ -6,6 +6,8 @@ import { Rubric } from './entities/rubric.entity';
 import { RubricCriterion } from './entities/rubric-criterion.entity';
 import { RubricLevel } from './entities/rubric-level.entity';
 import { CreateFeedbackTemplateDto, UpdateFeedbackTemplateDto } from './dto/grading.dto';
+import { clampLimit } from '../../common/utils/pagination.utils';
+import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
 
 /**
  * Context passed in when rendering a feedback template. Everything is
@@ -63,12 +65,30 @@ export class FeedbackTemplatesService {
     return tpl;
   }
 
-  /** Lists templates, optionally narrowed to a specific owner. */
-  async findAll(ownerId?: string): Promise<FeedbackTemplate[]> {
-    return this.repo.find({
+  /** Lists templates (paginated), optionally narrowed to a specific owner. */
+  async findAll(
+    ownerId?: string,
+    page = 1,
+    limit = 10,
+  ): Promise<OffsetPaginatedResponse<FeedbackTemplate>> {
+    const clampedLimit = clampLimit(limit);
+    const skip = (page - 1) * clampedLimit;
+    const [data, total] = await this.repo.findAndCount({
       where: ownerId ? { ownerId } : {},
       order: { isDefault: 'DESC', createdAt: 'DESC' },
+      skip,
+      take: clampedLimit,
     });
+    const totalPages = Math.ceil(total / clampedLimit);
+    return {
+      data,
+      total,
+      page,
+      limit: clampedLimit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
   }
 
   /** Returns the first `isDefault=true` template owned by the user, if any. */

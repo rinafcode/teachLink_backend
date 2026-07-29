@@ -5,7 +5,7 @@ import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
 import { IWorkerResult, IWorkerMetrics, IWorkerHealthCheck } from '../interfaces/worker.interfaces';
 import { extractCorrelationIdFromJob } from '../../queues/utils/correlation-job.util';
-import { generateCorrelationId, runWithCorrelationId } from '../../common/utils/correlation.utils';
+import { generateCorrelationId, getCorrelationId, runWithCorrelationId } from '../../common/utils/correlation.utils';
 
 /**
  * Abstract base worker class
@@ -113,9 +113,24 @@ export abstract class BaseWorker {
         this.workerStallThreshold * 2,
       );
 
+      const correlationId = getCorrelationId() ?? extractCorrelationIdFromJob(job) ?? 'unknown';
+      const errMsg =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `[${this.workerId}] Job ${job.name} failed after ${executionTime}ms:`,
-        error,
+        JSON.stringify({
+          event: 'job_failed',
+          workerId: this.workerId,
+          workerType: this.workerType,
+          jobName: job.name,
+          jobId: job.id,
+          attempt: job.attemptsMade + 1,
+          executionTime,
+          correlationId,
+          error: errMsg,
+        }),
+        errStack,
       );
 
       throw error;

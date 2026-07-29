@@ -6,6 +6,7 @@ import { JobPriority } from './enums/job-priority.enum';
 import { IJobOptions } from './interfaces/queue.interfaces';
 import { PrioritizationService } from './prioritization/prioritization.service';
 import { RetryStrategyService, RetryStrategyKey } from './retry/retry-strategy.service';
+import { enrichWithCorrelation } from './utils/correlation-job.util';
 
 export interface AddJobResult {
   jobId: string | number;
@@ -105,7 +106,8 @@ export class QueueService {
       priority: bullPriority,
     };
 
-    const job = await queue.add(jobName, data, jobOptions);
+    const enrichedData = enrichWithCorrelation(data);
+    const job = await queue.add(jobName, enrichedData, jobOptions);
     this.logger.debug(`Job ${job.id} added to "${queueName}" (name: ${jobName})`);
     return { jobId: job.id, queue: queueName, name: jobName };
   }
