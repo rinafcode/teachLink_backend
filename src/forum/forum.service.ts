@@ -6,6 +6,18 @@ import { ForumComment } from './entities/forum-comment.entity';
 import { ForumVote } from './entities/forum-vote.entity';
 import { AutoModerationService } from '../moderation/auto/auto-moderation.service';
 import { ManualReviewService } from '../moderation/manual/manual-review.service';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse, clampLimit } from '../common/utils/pagination.utils';
+
+export type ForumThreadListItem = Pick<
+  ForumThread,
+  'id' | 'title' | 'authorId' | 'createdAt' | 'upvotes' | 'downvotes'
+>;
+
+export type ForumThreadDetail = ForumThread & {
+  comments: OffsetPaginatedResponse<ForumComment>;
+};
 
 @Injectable()
 export class ForumService {
@@ -47,17 +59,53 @@ export class ForumService {
     return saved;
   }
 
-  async getThreads(): Promise<ForumThread[]> {
-    return this.threadRepo.find({ where: { status: 'active' }, order: { createdAt: 'DESC' } });
+  async getThreads(
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<ForumThreadListItem>> {
+    const limit = clampLimit(query?.limit);
+    const offset = query?.offset;
+    const page = offset !== undefined ? Math.floor(offset / limit) + 1 : (query?.page ?? 1);
+    const skip = offset !== undefined ? offset : (page - 1) * limit;
+
+    const qb = this.threadRepo
+      .createQueryBuilder('thread')
+      .select([
+        'thread.id',
+        'thread.title',
+        'thread.authorId',
+        'thread.createdAt',
+        'thread.upvotes',
+        'thread.downvotes',
+      ])
+      .where('thread.status = :status', { status: 'active' })
+      .orderBy('thread.createdAt', 'DESC');
+
+    const [data, total] = await qb.skip(skip).take(limit).getManyAndCount();
+    return buildOffsetResponse(data, total, page, limit);
   }
 
-  async getThread(id: string): Promise<ForumThread> {
+  async getThread(id: string, query?: PaginationQueryDto): Promise<ForumThreadDetail> {
     const thread = await this.threadRepo.findOne({
       where: { id, status: 'active' },
-      relations: ['comments'],
     });
     if (!thread) throw new NotFoundException('Thread not found');
-    return thread;
+
+    const limit = clampLimit(query?.limit);
+    const offset = query?.offset;
+    const page = offset !== undefined ? Math.floor(offset / limit) + 1 : (query?.page ?? 1);
+    const skip = offset !== undefined ? offset : (page - 1) * limit;
+
+    const [comments, total] = await this.commentRepo.findAndCount({
+      where: { threadId: id, status: 'active' },
+      order: { createdAt: 'ASC' },
+      skip,
+      take: limit,
+    });
+
+    return {
+      ...thread,
+      comments: buildOffsetResponse(comments, total, page, limit),
+    };
   }
 
   async addComment(

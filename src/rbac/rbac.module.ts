@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { Permission } from './entities/permission.entity';
@@ -12,9 +13,9 @@ import { RolesService } from './roles/roles.service';
  * RBAC module for role catalogue and role lifecycle management.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Permission, Role]), AuditLogModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([Permission, Role]), AuditLogModule],
   controllers: [PermissionsController, RolesController],
-  providers: [PermissionsService, RolesService],
+  providers: [PermissionsService, RolesService, IpAllowlistGuard],
   exports: [TypeOrmModule, RolesService, PermissionsService],
 })
 export class RbacModule {}

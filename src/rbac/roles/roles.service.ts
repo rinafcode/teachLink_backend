@@ -11,6 +11,9 @@ import { AuditLogService } from '../../audit-log/audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
 import { BUILTIN_ROLE_NAMES, Role } from '../entities/role.entity';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../../common/utils/pagination.utils';
 
 export interface RbacAuditContext {
   actorId?: string;
@@ -86,8 +89,25 @@ export class RolesService {
     return saved;
   }
 
-  async findAllRoles(): Promise<Role[]> {
-    return this.roleRepository.find({ relations: ['permissions'] });
+  async findAllRoles(
+    query?: PaginationQueryDto,
+    includePermissions = false,
+  ): Promise<OffsetPaginatedResponse<Role>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const sortBy = query?.sortBy ?? 'createdAt';
+    const order = query?.order ?? 'DESC';
+
+    const relations = includePermissions ? ['permissions'] : [];
+
+    const [data, total] = await this.roleRepository.findAndCount({
+      relations,
+      order: { [sortBy]: order },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async findRoleById(id: string, includeDeleted = false): Promise<Role> {
