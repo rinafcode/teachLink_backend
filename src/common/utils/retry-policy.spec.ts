@@ -144,9 +144,9 @@ describe('retryWithPolicy', () => {
     const error = withStatus(503);
     const operation = jest.fn().mockRejectedValue(error);
 
-    await expect(
-      retryWithPolicy(operation, { sleep, policy: { fullJitter: false } }),
-    ).rejects.toBe(error);
+    await expect(retryWithPolicy(operation, { sleep, policy: { fullJitter: false } })).rejects.toBe(
+      error,
+    );
 
     // The initial call plus three retries.
     expect(operation).toHaveBeenCalledTimes(4);
