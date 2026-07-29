@@ -8,8 +8,12 @@ import {
   HttpStatus,
   Logger,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ShardRouter } from './router/shard-router.service';
 import { ShardConfigService } from './shard-config.service';
 import { ShardMigrationService } from './migration/shard-migration.service';
@@ -42,6 +46,9 @@ import { AutoRebalanceDto } from './dto/auto-rebalance.dto';
  *   POST   /sharding/ring/rebuild        — rebuild consistent-hash ring
  */
 @ApiTags('sharding')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @Controller('sharding')
 export class ShardingController {
   private readonly logger = new Logger(ShardingController.name);
