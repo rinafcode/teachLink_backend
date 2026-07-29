@@ -65,6 +65,21 @@ export class SubscriptionsController {
   }
 
   /**
+   * Get subscription by ID, verifying ownership
+   */
+  @Get(':subscriptionId/ownership')
+  @ApiOperation({ summary: 'Get subscription by ID with ownership verification' })
+  @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
+  @ApiResponse({ status: 200, description: 'Subscription', type: SubscriptionResponseDto })
+  @ApiResponse({ status: 404, description: 'Subscription not found for this user' })
+  async getSubscriptionForUser(
+    @Param('subscriptionId') subscriptionId: string,
+    @Request() req: any,
+  ): Promise<Subscription> {
+    return this.subscriptionsService.getSubscriptionForUser(subscriptionId, req.user.id);
+  }
+
+  /**
    * Pause a subscription
    */
   @Patch(':subscriptionId/pause')

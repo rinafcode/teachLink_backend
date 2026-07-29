@@ -22,6 +22,7 @@ export enum UserRole {
   INSTRUCTOR = 'instructor',
   MODERATOR = 'moderator',
   ADMIN = 'admin',
+  SRE = 'sre',
 }
 
 export enum UserStatus {
