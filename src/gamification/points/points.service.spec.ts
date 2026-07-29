@@ -224,9 +224,7 @@ describe('PointsService', () => {
 
       // Fire N awards simultaneously
       const results = await Promise.all(
-        Array.from({ length: N }, (_, i) =>
-          service.addPoints(userId, pointsPerAward, `concurrent award ${i}`),
-        ),
+        Array.from({ length: N }, (_, i) => service.addPoints(userId, pointsPerAward, `concurrent award ${i}`)),
       );
 
       // All should succeed
@@ -263,9 +261,7 @@ describe('PointsService', () => {
 
       // Fire N awards simultaneously
       const results = await Promise.all(
-        Array.from({ length: N }, (_, i) =>
-          service.addPoints(userId, pointsPerAward, `burst ${i}`),
-        ),
+        Array.from({ length: N }, (_, i) => service.addPoints(userId, pointsPerAward, `burst ${i}`)),
       );
 
       const finalResult = results[results.length - 1];
@@ -448,9 +444,7 @@ describe('PointsService', () => {
       mockManager.insert.mockResolvedValue(undefined);
 
       await Promise.all(
-        Array.from({ length: N }, (_, i) =>
-          service.addPoints(userId, 1, `award ${i}`),
-        ),
+        Array.from({ length: N }, (_, i) => service.addPoints(userId, 1, `award ${i}`)),
       );
 
       // Each award should create exactly one ledger row
