@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, Inject, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
@@ -31,6 +31,8 @@ import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
 import { PaginationService } from '../common/services/pagination.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { EventType } from '../analytics/entities/event.entity';
 
 function checkUserRole(user?: User, ...roleNames: UserRole[]): boolean {
   if (!user) return false;

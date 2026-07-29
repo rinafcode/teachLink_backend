@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ResourceNotFoundException,
   BusinessValidationException,
@@ -388,4 +388,19 @@ export class AutomationService {
         deliveredCount > 0 ? parseFloat(((clickCount / deliveredCount) * 100).toFixed(2)) : null,
     };
   }
+
+    async handleWorkflowAction(workflowId: string, actionType: string): Promise<void> {
+    switch (actionType) {
+      case 'SEND_EMAIL':
+        // Email sending logic
+        break;
+      default:
+        this.logger.warn(`Unknown action type encountered: ${actionType}`, {
+          workflowId,
+          actionType,
+        });
+        break;
+    }
+  }
 }
+

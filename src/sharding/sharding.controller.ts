@@ -10,10 +10,7 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ShardRouter } from './router/shard-router.service';
 import { ShardConfigService } from './shard-config.service';
 import { ShardMigrationService } from './migration/shard-migration.service';
@@ -50,6 +47,10 @@ import { AutoRebalanceDto } from './dto/auto-rebalance.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 @Controller('sharding')
+@UseGuards(IpAllowlistGuard, JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Authentication required' })
+@ApiResponse({ status: 403, description: 'Admin role or allowlisted IP required' })
 export class ShardingController {
   private readonly logger = new Logger(ShardingController.name);
 
@@ -64,6 +65,7 @@ export class ShardingController {
   // ── Shard Configuration ──────────────────────────────────────────────────
 
   @Get('shards')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List all configured shards' })
   @ApiResponse({ status: 200, description: 'Array of shard configurations' })
   listShards() {
@@ -76,6 +78,7 @@ export class ShardingController {
   // ── Routing ───────────────────────────────────────────────────────────────
 
   @Post('route')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resolve which shard a key routes to' })
   @ApiResponse({ status: 200, description: 'Routing result with shard info and metadata' })
@@ -94,6 +97,7 @@ export class ShardingController {
   // ── Health ────────────────────────────────────────────────────────────────
 
   @Get('health')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Health check all shards' })
   async healthAll() {
     const statuses = await this.healthService.checkAllShards();
@@ -101,6 +105,7 @@ export class ShardingController {
   }
 
   @Get('health/:id')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Health check a single shard' })
   @ApiParam({ name: 'id', description: 'Shard ID, e.g. shard-00' })
   async healthOne(@Param('id') id: string) {
@@ -110,6 +115,7 @@ export class ShardingController {
   // ── Migrations ────────────────────────────────────────────────────────────
 
   @Post('migrations')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Start a cross-shard data migration' })
   async startMigration(@Body() dto: StartMigrationDto) {
@@ -118,18 +124,21 @@ export class ShardingController {
   }
 
   @Get('migrations')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List all migration plans and their statuses' })
   listMigrations() {
     return { migrations: this.migrationService.listMigrations() };
   }
 
   @Get('migrations/:planId')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get the status of a specific migration plan' })
   getMigrationStatus(@Param('planId') planId: string) {
     return this.migrationService.getStatus(planId);
   }
 
   @Delete('migrations/:planId')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Roll back a completed migration' })
   async rollbackMigration(@Param('planId') planId: string) {
     await this.migrationService.rollbackMigration(planId);
@@ -139,6 +148,7 @@ export class ShardingController {
   // ── Rebalancing ───────────────────────────────────────────────────────────
 
   @Post('rebalance')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Trigger a manual shard rebalance' })
   async manualRebalance(@Body() dto: ManualRebalanceDto) {
@@ -147,6 +157,7 @@ export class ShardingController {
   }
 
   @Post('rebalance/auto')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Run automated rebalance analysis (and optionally execute)' })
   async autoRebalance(@Body() dto: AutoRebalanceDto) {
@@ -158,6 +169,7 @@ export class ShardingController {
   }
 
   @Get('rebalance/plans')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List all rebalance plans' })
   listRebalancePlans() {
     return { plans: this.rebalanceService.listPlans() };
@@ -166,6 +178,7 @@ export class ShardingController {
   // ── Hash Ring ─────────────────────────────────────────────────────────────
 
   @Post('reload')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reload shard configuration and rebuild the consistent-hash ring' })
   async reloadConfig() {
@@ -174,6 +187,7 @@ export class ShardingController {
   }
 
   @Post('ring/rebuild')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Force a rebuild of the consistent-hash ring' })
   rebuildRing() {

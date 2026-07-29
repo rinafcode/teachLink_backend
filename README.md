@@ -117,6 +117,7 @@ Every pull request and every push to `main` / `develop` runs an automated pipeli
 | **Format**     | Prettier         | Any file that would be reformatted        |
 | **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
 | **Build**      | NestJS CLI       | Compilation failure                       |
+| **Migrations** | TypeORM CLI      | Migration error or schema drift         |
 | **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
 | **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
 
@@ -140,6 +141,15 @@ pnpm test:ci
 
 # E2E tests (requires Postgres + Redis running locally)
 pnpm test:e2e
+
+# Run database migrations
+pnpm run migration:run
+
+# Revert last migration (verifies reversibility)
+pnpm run migration:revert
+
+# Check for schema drift (fails if model changes exist without a migration)
+pnpm run migration:generate:check
 ```
 
 ### Coverage thresholds
@@ -170,6 +180,7 @@ Every pull request and every push to `main` / `develop` runs an automated pipeli
 | **Format**     | Prettier         | Any file that would be reformatted        |
 | **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
 | **Build**      | NestJS CLI       | Compilation failure                       |
+| **Migrations** | TypeORM CLI      | Migration error or schema drift         |
 | **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
 | **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
 
@@ -193,6 +204,15 @@ npm run test:ci
 
 # E2E tests (requires Postgres + Redis running locally)
 npm run test:e2e
+
+# Run database migrations
+npm run migration:run
+
+# Revert last migration (verifies reversibility)
+npm run migration:revert
+
+# Check for schema drift (fails if model changes exist without a migration)
+npm run migration:generate:check
 ```
 
 ### Coverage thresholds
