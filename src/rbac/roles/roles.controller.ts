@@ -26,10 +26,7 @@ export class RolesController {
     description: 'Returns paginated roles',
     type: PaginatedSwaggerDto(Role),
   })
-  async findAll(
-    @Query() query?: PaginationQueryDto,
-    @Query('include') include?: string,
-  ) {
+  async findAll(@Query() query?: PaginationQueryDto, @Query('include') include?: string) {
     const includePermissions = include === 'permissions';
     return this.rolesService.findAllRoles(query, includePermissions);
   }
