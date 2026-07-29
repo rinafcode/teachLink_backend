@@ -4,14 +4,18 @@ import { Repository } from 'typeorm';
 import { PermissionsService } from './permissions.service';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { Permission } from '../entities/permission.entity';
+import { Role } from '../entities/role.entity';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
+import { ConflictException } from '@nestjs/common';
 
 /**
  * Issue #833 — verifies PermissionsService mutations emit audit log entries.
+ * Issue #967 — verifies role-reference check on permission deletion.
  */
 describe('PermissionsService (audit integration, Issue #833)', () => {
   let service: PermissionsService;
   let permissionRepository: jest.Mocked<Repository<Permission>>;
+  let roleRepository: jest.Mocked<Repository<Role>>;
   let auditLogService: jest.Mocked<Pick<AuditLogService, 'log'>>;
 
   const basePermission: Permission = {
@@ -30,8 +34,16 @@ describe('PermissionsService (audit integration, Issue #833)', () => {
       save: jest.fn().mockImplementation(async (p) => ({ ...p, id: p.id ?? 'perm-1' })),
       find: jest.fn(),
       findOneBy: jest.fn(),
+      findAndCount: jest.fn().mockResolvedValue([[], 0]),
       update: jest.fn().mockResolvedValue({ affected: 1 }),
       delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    } as any;
+
+    roleRepository = {
+      createQueryBuilder: jest.fn().mockReturnValue({
+        innerJoin: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(0),
+      }),
     } as any;
 
     auditLogService = { log: jest.fn().mockResolvedValue({}) };
@@ -40,6 +52,7 @@ describe('PermissionsService (audit integration, Issue #833)', () => {
       providers: [
         PermissionsService,
         { provide: getRepositoryToken(Permission), useValue: permissionRepository },
+        { provide: getRepositoryToken(Role), useValue: roleRepository },
         { provide: AuditLogService, useValue: auditLogService },
       ],
     }).compile();
@@ -98,5 +111,36 @@ describe('PermissionsService (audit integration, Issue #833)', () => {
     permissionRepository.findOneBy.mockResolvedValueOnce({ ...basePermission });
     await service.deletePermission('perm-1');
     expectAudit(AuditAction.RBAC_PERMISSION_DELETED);
+  });
+
+  // ── Issue #967 — deletion conflict when permission is still attached to roles ──
+
+  it('deletePermission throws ConflictException when permission is still assigned to roles', async () => {
+    permissionRepository.findOneBy.mockResolvedValueOnce({ ...basePermission });
+
+    // Simulate 3 roles still referencing this permission
+    (roleRepository.createQueryBuilder as jest.Mock).mockReturnValue({
+      innerJoin: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(3),
+    });
+
+    await expect(service.deletePermission('perm-1')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.deletePermission('perm-1')).rejects.toMatchObject({
+      message: expect.stringContaining('3 role(s)'),
+    });
+  });
+
+  it('deletePermission succeeds when no roles reference the permission', async () => {
+    permissionRepository.findOneBy
+      .mockResolvedValueOnce({ ...basePermission }); // before lookup
+
+    // Simulate 0 roles referencing this permission
+    (roleRepository.createQueryBuilder as jest.Mock).mockReturnValue({
+      innerJoin: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(0),
+    });
+
+    await expect(service.deletePermission('perm-1')).resolves.toBeUndefined();
+    expect(permissionRepository.delete).toHaveBeenCalledWith('perm-1');
   });
 });
