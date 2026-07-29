@@ -1,10 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import Redis from 'ioredis';
 import * as fs from 'fs';
 import * as path from 'path';
 import { RunbookExecution, RunbookExecutionStatus } from '../entities/runbook-execution.entity';
 import { Incident } from '../entities/incident.entity';
+import { SESSION_REDIS_CLIENT } from '../../session/session.constants';
 
 export interface RunbookStep {
   stepNumber: number;
@@ -30,38 +32,103 @@ export class RunbookExecutionService {
   constructor(
     @InjectRepository(RunbookExecution)
     private runbookExecutionRepository: Repository<RunbookExecution>,
+    @Inject(SESSION_REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
+  private lockKey(incidentId: string, runbookName: string): string {
+    return `runbook:lock:${incidentId}:${runbookName}`;
+  }
+
+  private checkpointKey(executionId: string): string {
+    return `runbook:checkpoint:${executionId}`;
+  }
+
+  private async acquireLock(
+    incidentId: string,
+    runbookName: string,
+    ttlSeconds = 300,
+  ): Promise<boolean> {
+    const key = this.lockKey(incidentId, runbookName);
+    const acquired = await this.redis.set(key, '1', 'NX', 'EX', ttlSeconds);
+    return acquired === 'OK';
+  }
+
+  private async releaseLock(incidentId: string, runbookName: string): Promise<void> {
+    const key = this.lockKey(incidentId, runbookName);
+    await this.redis.del(key);
+  }
+
+  private async getCompletedSteps(executionId: string): Promise<Set<number>> {
+    const key = this.checkpointKey(executionId);
+    const raw = await this.redis.smembers(key);
+    return new Set(raw.map(Number));
+  }
+
+  private async markStepCompleted(executionId: string, stepNumber: number): Promise<void> {
+    const key = this.checkpointKey(executionId);
+    await this.redis.sadd(key, stepNumber.toString());
+    await this.redis.expire(key, 86400); // 24h TTL for checkpoint data
+  }
+
   /**
-   * Execute a runbook for an incident
+   * Execute a runbook for an incident with idempotency and concurrency locking.
    */
   async executeRunbook(incident: Incident, runbookName: string): Promise<RunbookExecution> {
     this.logger.log(`Starting runbook execution: ${runbookName} for incident ${incident.id}`);
 
-    // Create runbook execution record
-    let execution = this.runbookExecutionRepository.create({
-      incidentId: incident.id,
-      runbookName,
-      runbookPath: path.join(this.runbooksPath, `${runbookName}.md`),
-      status: RunbookExecutionStatus.RUNNING,
-      startedAt: new Date(),
-      stepExecutions: [],
+    // Attempt distributed lock — reject if another execution is in progress
+    const locked = await this.acquireLock(incident.id, runbookName);
+    if (!locked) {
+      throw new Error(
+        `Runbook "${runbookName}" is already executing for incident ${incident.id}. Concurrent execution rejected.`,
+      );
+    }
+
+    // Load any prior partial execution for this incident+runbook to resume from checkpoints
+    const priorExecution = await this.runbookExecutionRepository.findOne({
+      where: {
+        incidentId: incident.id,
+        runbookName,
+        status: RunbookExecutionStatus.PARTIALLY_COMPLETED,
+      },
+      order: { startedAt: 'DESC' },
     });
 
-    execution = await this.runbookExecutionRepository.save(execution);
+    let execution: RunbookExecution;
+    if (priorExecution) {
+      execution = priorExecution;
+      execution.status = RunbookExecutionStatus.RUNNING;
+      await this.runbookExecutionRepository.save(execution);
+      this.logger.log(`Resuming prior execution ${execution.id}`);
+    } else {
+      execution = this.runbookExecutionRepository.create({
+        incidentId: incident.id,
+        runbookName,
+        runbookPath: path.join(this.runbooksPath, `${runbookName}.md`),
+        status: RunbookExecutionStatus.RUNNING,
+        startedAt: new Date(),
+        stepExecutions: [],
+      });
+      execution = await this.runbookExecutionRepository.save(execution);
+    }
 
     try {
-      // Parse runbook
       const runbook = await this.parseRunbook(runbookName);
       if (!runbook) {
         throw new Error(`Runbook not found: ${runbookName}`);
       }
 
-      // Execute steps
-      const stepExecutions = [];
+      const completedSteps = await this.getCompletedSteps(execution.id);
+      const stepExecutions = (execution.stepExecutions as any[]) || [];
       let allSuccess = true;
 
       for (const step of runbook.steps) {
+        // Resume: skip steps already checkpointed
+        if (completedSteps.has(step.stepNumber)) {
+          this.logger.log(`Step ${step.stepNumber} already completed, skipping`);
+          continue;
+        }
+
         const stepExecution: {
           stepNumber: number;
           stepName: string;
@@ -76,21 +143,22 @@ export class RunbookExecutionService {
 
         try {
           this.logger.log(`Executing step ${step.stepNumber}: ${step.stepName}`);
-
           const result = await this.executeStep(step);
 
-          (stepExecution as any)['status'] = result.success ? 'completed' : 'failed';
-          stepExecution['output'] = result.output;
+          stepExecution.status = result.success ? 'completed' : 'failed';
+          stepExecution.output = result.output;
           if (!result.success) {
             stepExecution.error = result.error;
             allSuccess = false;
+          } else {
+            await this.markStepCompleted(execution.id, step.stepNumber);
           }
 
           this.logger.log(`Step ${step.stepNumber} completed: ${stepExecution.status}`);
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
-          stepExecution['status'] = 'in_progress' as any;
-          stepExecution['error'] = errorMsg;
+          stepExecution.status = 'failed';
+          stepExecution.error = errorMsg;
           allSuccess = false;
           this.logger.error(`Step ${step.stepNumber} failed: ${errorMsg}`);
         }
@@ -98,14 +166,12 @@ export class RunbookExecutionService {
         stepExecutions.push(stepExecution);
       }
 
-      // Update execution status
       execution.status = allSuccess
         ? RunbookExecutionStatus.COMPLETED
         : RunbookExecutionStatus.PARTIALLY_COMPLETED;
       execution.stepExecutions = stepExecutions;
       execution.completedAt = new Date();
       execution.executionSummary = `Executed ${stepExecutions.length} steps: ${allSuccess ? 'All successful' : 'Some failed'}`;
-
       this.logger.log(`Runbook execution completed: ${execution.status}`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -115,6 +181,7 @@ export class RunbookExecutionService {
       this.logger.error(`Runbook execution failed: ${errorMsg}`);
     }
 
+    await this.releaseLock(incident.id, runbookName);
     return this.runbookExecutionRepository.save(execution);
   }
 

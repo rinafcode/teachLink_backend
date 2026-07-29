@@ -5,7 +5,6 @@ import {
   NotFoundException,
   PaymentRequiredException,
 } from '@nestjs/common';
-import { Injectable, Logger, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -41,7 +40,7 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
-4    private paymentProviderService: PaymentProviderService,
+    private paymentProviderService: PaymentProviderService,
   ) {}
 
   /**
@@ -68,6 +67,22 @@ export class SubscriptionsService {
       where: { userId, status: SubscriptionStatus.ACTIVE },
       relations: ['user'],
     });
+  }
+
+  /**
+   * Get subscription by ID, verifying it belongs to the given user
+   */
+  async getSubscriptionForUser(subscriptionId: string, userId: string): Promise<Subscription> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId, userId },
+      relations: ['user'],
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found for this user`);
+    }
+
+    return subscription;
   }
 
   /**
