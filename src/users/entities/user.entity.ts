@@ -30,6 +30,8 @@ export enum UserStatus {
   SUSPENDED = 'suspended',
 }
 
+export const PRIVILEGED_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.MODERATOR];
+
 /**
  * Represents the user entity.
  */
@@ -91,12 +93,14 @@ export class User {
   isEmailVerified: boolean;
 
   @Column({ nullable: true })
+  @Index()
   emailVerificationToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires?: Date;
 
   @Column({ nullable: true })
+  @Index()
   passwordResetToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -113,6 +117,15 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
+  @Column({ default: false })
+  isMfaEnabled: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  totpSecret?: string;
+
+  @Column('text', { array: true, default: [] })
+  mfaRecoveryCodes: string[];
+
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable()
   roles: Role[];
@@ -127,6 +140,16 @@ export class User {
     return UserRole.STUDENT;
   }
 
+  hasRole(...roleNames: UserRole[]): boolean {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
+    return this.roles.some((role) => {
+      const name = typeof role === 'string' ? role : role.name;
+      return roleNames.includes(name as UserRole);
+    });
+  }
+
   @OneToMany(() => Course, (course) => course.instructor)
   courses: Course[];
 
@@ -134,6 +157,7 @@ export class User {
   enrollments: Enrollment[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

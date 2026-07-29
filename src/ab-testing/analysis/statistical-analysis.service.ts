@@ -139,6 +139,7 @@ export class StatisticalAnalysisService {
     const allMetrics = await this.variantMetricRepository.find({
       where: { variant: { experiment: { id: experimentId } } },
       relations: ['variant'],
+      order: { createdAt: 'ASC' },
     });
 
     const metricsByVariant = new Map<string, VariantMetric[]>();

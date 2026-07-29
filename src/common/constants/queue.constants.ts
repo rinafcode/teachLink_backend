@@ -9,6 +9,7 @@ export const QUEUE_NAMES = {
   USER_DATA_EXPORT: 'user-data-export',
   SUBSCRIPTIONS: 'subscriptions',
   WEBHOOKS: 'webhooks',
+  DEAD_LETTER: 'dead-letter',
 } as const;
 export const JOB_NAMES = {
   // Email queue
@@ -33,4 +34,5 @@ export const JOB_NAMES = {
   // Payments queues
   PROCESS_SUBSCRIPTION: 'process_subscription',
   PROCESS_WEBHOOK: 'process-webhook',
+  RESUME_SUBSCRIPTION: 'resume_subscription',
 } as const;

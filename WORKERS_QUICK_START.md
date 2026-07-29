@@ -17,7 +17,7 @@ export class MyService {
       to: 'user@example.com',
       subject: 'Welcome!',
       template: 'welcome',
-      variables: { name: 'John' }
+      variables: { name: 'John' },
     });
 
     // Return immediately - processing happens in background
@@ -45,29 +45,31 @@ async getWorkersHealth() {
 
 ## Supported Job Types
 
-| Job Name | Worker | Purpose |
-|----------|--------|---------|
-| `send-email` | EmailWorker | Send emails |
-| `process-image` | MediaProcessingWorker | Optimize images |
-| `process-video` | MediaProcessingWorker | Transcode videos |
-| `process-audio` | MediaProcessingWorker | Process audio |
-| `consistency-check` | DataSyncWorker | Check data consistency |
-| `replicate-data` | DataSyncWorker | Replicate data |
-| `reconcile` | DataSyncWorker | Reconcile data |
-| `backup-data` | BackupProcessingWorker | Full database backup |
-| `call-webhook` | WebhooksWorker | Deliver webhook |
-| `subscription-create` | SubscriptionsWorker | Create subscription |
-| `subscription-renew` | SubscriptionsWorker | Renew subscription |
+| Job Name              | Worker                 | Purpose                |
+| --------------------- | ---------------------- | ---------------------- |
+| `send-email`          | EmailWorker            | Send emails            |
+| `process-image`       | MediaProcessingWorker  | Optimize images        |
+| `process-video`       | MediaProcessingWorker  | Transcode videos       |
+| `process-audio`       | MediaProcessingWorker  | Process audio          |
+| `consistency-check`   | DataSyncWorker         | Check data consistency |
+| `replicate-data`      | DataSyncWorker         | Replicate data         |
+| `reconcile`           | DataSyncWorker         | Reconcile data         |
+| `backup-data`         | BackupProcessingWorker | Full database backup   |
+| `call-webhook`        | WebhooksWorker         | Deliver webhook        |
+| `subscription-create` | SubscriptionsWorker    | Create subscription    |
+| `subscription-renew`  | SubscriptionsWorker    | Renew subscription     |
 
 ## Common Patterns
 
 ### Pattern 1: Fire and Forget
+
 ```typescript
 // Add job and don't wait for result
 await this.queueService.addJob('send-email', emailData);
 ```
 
 ### Pattern 2: Track Job Status
+
 ```typescript
 // Add job and track progress
 const job = await this.queueService.addJob('process-image', imageData);
@@ -79,46 +81,38 @@ const progress = await status.progress();
 ```
 
 ### Pattern 3: Priority Jobs
+
 ```typescript
 // High priority job
-await this.queueService.addJob(
-  'send-email', 
-  emailData,
-  { priority: JobPriority.HIGH }
-);
+await this.queueService.addJob('send-email', emailData, { priority: JobPriority.HIGH });
 
 // Low priority job
-await this.queueService.addJob(
-  'backup-data',
-  backupData,
-  { priority: JobPriority.LOW }
-);
+await this.queueService.addJob('backup-data', backupData, { priority: JobPriority.LOW });
 ```
 
 ### Pattern 4: Scheduled Jobs
+
 ```typescript
 // Schedule for specific time
 const scheduledTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
-await this.jobSchedulerService.scheduleJob(
-  'send-email',
-  emailData,
-  scheduledTime
-);
+await this.jobSchedulerService.scheduleJob('send-email', emailData, scheduledTime);
 ```
 
 ### Pattern 5: Bulk Operations
+
 ```typescript
 // Add multiple jobs at once
 await this.queueService.addBulkJobs([
   { name: 'send-email', data: emailData1 },
   { name: 'send-email', data: emailData2 },
-  { name: 'send-email', data: emailData3 }
+  { name: 'send-email', data: emailData3 },
 ]);
 ```
 
 ## Health Check Examples
 
 ### Check if Pool is Healthy
+
 ```typescript
 const isHealthy = await this.healthCheckService.isPoolHealthy();
 if (!isHealthy) {
@@ -127,15 +121,17 @@ if (!isHealthy) {
 ```
 
 ### Get Pool Health Percentage
+
 ```typescript
 const healthPercentage = await this.healthCheckService.getPoolHealthPercentage();
 console.log(`Pool health: ${healthPercentage}%`);
 ```
 
 ### Detect Anomalies
+
 ```typescript
 const anomalies = await this.healthCheckService.detectAnomalies();
-anomalies.forEach(anomaly => {
+anomalies.forEach((anomaly) => {
   console.log(`${anomaly.workerId}: ${anomaly.message}`);
 });
 ```
@@ -146,16 +142,16 @@ anomalies.forEach(anomaly => {
 @Cron('0 * * * * *') // Every minute
 async autoScaleWorkers() {
   const health = await this.healthCheckService.performComprehensiveHealthCheck();
-  
+
   for (const workerType of ['email', 'media-processing', 'webhooks']) {
     const workers = this.workerOrchestration.getWorkersByType(workerType);
     const stats = this.workerOrchestration.getPoolStatistics();
-    
+
     // Scale up if many jobs in queue
     if (stats.totalJobsProcessed > 1000) {
       await this.workerOrchestration.scaleWorkerPool(workerType, workers.length + 1);
     }
-    
+
     // Scale down if low activity
     if (stats.totalJobsProcessed < 100 && workers.length > 1) {
       await this.workerOrchestration.scaleWorkerPool(workerType, workers.length - 1);
@@ -167,44 +163,54 @@ async autoScaleWorkers() {
 ## Troubleshooting
 
 ### Issue: Jobs Not Processing
+
 **Solution**: Check worker health
+
 ```typescript
 const health = await this.healthCheckService.performComprehensiveHealthCheck();
 console.log(health); // Check for alerts
 ```
 
 ### Issue: High Memory Usage
+
 **Solution**: Check individual worker metrics
+
 ```typescript
 const metrics = this.workerOrchestration.getAllWorkerMetrics();
-const highMemory = metrics.filter(m => m.memoryUsage > 500);
+const highMemory = metrics.filter((m) => m.memoryUsage > 500);
 console.log(`Workers with high memory:`, highMemory);
 ```
 
 ### Issue: High Failure Rate
+
 **Solution**: Check anomalies
+
 ```typescript
 const anomalies = await this.healthCheckService.detectAnomalies();
-const failures = anomalies.filter(a => a.type === 'high-failure-rate');
+const failures = anomalies.filter((a) => a.type === 'high-failure-rate');
 console.log(`Workers with high failure rate:`, failures);
 ```
 
 ### Issue: Slow Job Processing
+
 **Solution**: Check execution times
+
 ```typescript
 const metrics = this.workerOrchestration.getAllWorkerMetrics();
-const slow = metrics.filter(m => m.averageExecutionTime > 5000);
+const slow = metrics.filter((m) => m.averageExecutionTime > 5000);
 console.log(`Slow workers:`, slow);
 ```
 
 ## API Reference
 
 ### QueueService
+
 - `addJob(name, data, options?)` - Add single job
 - `addBulkJobs(jobs)` - Add multiple jobs
 - `getJob(jobId)` - Get job status
 
 ### WorkerOrchestrationService
+
 - `routeJob(job)` - Route job to worker
 - `getActiveWorkers()` - Get all active workers
 - `getWorkersByType(type)` - Get workers by type
@@ -213,6 +219,7 @@ console.log(`Slow workers:`, slow);
 - `scaleWorkerPool(type, count)` - Scale workers
 
 ### WorkerHealthCheckService
+
 - `performComprehensiveHealthCheck()` - Full health check
 - `getWorkerHealth(workerId)` - Worker health
 - `getAllWorkersHealth()` - All health statuses

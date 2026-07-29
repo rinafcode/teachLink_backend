@@ -25,6 +25,7 @@ export class SessionService implements OnModuleDestroy {
   private readonly lockTtlMs: number;
   private readonly lockRetries: number;
   private readonly lockRetryDelayMs: number;
+  private readonly maxSessionsPerUser: number;
 
   constructor(
     @Inject(SESSION_REDIS_CLIENT) private readonly redis: Redis,
@@ -46,6 +47,14 @@ export class SessionService implements OnModuleDestroy {
       this.configService.get<string>('SESSION_LOCK_RETRY_DELAY_MS') || '120',
       10,
     );
+    const configuredMaxSessionsPerUser = parseInt(
+      this.configService.get<string>('MAX_SESSIONS_PER_USER') || '5',
+      10,
+    );
+    this.maxSessionsPerUser =
+      Number.isFinite(configuredMaxSessionsPerUser) && configuredMaxSessionsPerUser > 0
+        ? configuredMaxSessionsPerUser
+        : 5;
 
     const jwtRefreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
     const jwtRefreshExpirySeconds = SessionService.parseDurationToSeconds(jwtRefreshExpiresIn);
@@ -61,11 +70,20 @@ export class SessionService implements OnModuleDestroy {
 
   /**
    * Parses a duration string (e.g. "7d", "30d", "1h", "60m", "3600s") into seconds.
-   * Falls back to parseInt for bare numeric strings.
+   * Falls back to parseInt for bare numeric strings (e.g. "604800").
+   *
+   * @throws {Error} If the duration string cannot be parsed (distinguishes from a genuine "0").
    */
   static parseDurationToSeconds(duration: string): number {
     const trimmed = duration.trim().toLowerCase();
-    const match = trimmed.match(/^(\d+)\s*(d|h|m|s)$/);
+
+    // Explicit zero
+    if (trimmed === '0' || trimmed === '0s') {
+      return 0;
+    }
+
+    // Supported format: number immediately followed by unit (d|h|m|s) - no spaces
+    const match = trimmed.match(/^(\d+)(d|h|m|s)$/);
     if (match) {
       const value = parseInt(match[1], 10);
       switch (match[2]) {
@@ -79,11 +97,18 @@ export class SessionService implements OnModuleDestroy {
           return value;
       }
     }
+
+    // Bare numeric fallback
     const numeric = parseInt(trimmed, 10);
-    if (!Number.isNaN(numeric)) {
+    if (!Number.isNaN(numeric) && String(numeric) === trimmed) {
       return numeric;
     }
-    return 0;
+
+    throw new Error(
+      `Unparseable duration string: "${duration}". ` +
+        'Supported formats: <number>d|h|m|s (e.g. "7d", "1h", "30m", "3600s") ' +
+        'or a bare numeric string of seconds (e.g. "604800").',
+    );
   }
 
   /**
@@ -119,7 +144,8 @@ export class SessionService implements OnModuleDestroy {
       'EX',
       this.sessionTtlSeconds,
     );
-    await this.addSessionToUserIndex(userId, sid);
+    await this.addSessionToUserIndex(userId, sid, now);
+    await this.trimUserSessions(userId);
     return sid;
   }
 
@@ -208,16 +234,16 @@ export class SessionService implements OnModuleDestroy {
     return deletedCount;
   }
 
-  async addSessionToUserIndex(userId: string, sid: string): Promise<void> {
-    await this.redis.zadd(`user:sessions:${userId}`, Date.now(), sid);
+  async addSessionToUserIndex(userId: string, sid: string, createdAt = Date.now()): Promise<void> {
+    await this.redis.zadd(this.userSessionIndexKey(userId), createdAt, sid);
   }
 
   async removeSessionFromUserIndex(userId: string, sid: string): Promise<void> {
-    await this.redis.zrem(`user:sessions:${userId}`, sid);
+    await this.redis.zrem(this.userSessionIndexKey(userId), sid);
   }
 
   async getUserSessionIds(userId: string): Promise<string[]> {
-    return this.redis.zrange(`user:sessions:${userId}`, 0, -1);
+    return this.redis.zrange(this.userSessionIndexKey(userId), 0, -1);
   }
 
   /**
@@ -318,6 +344,26 @@ export class SessionService implements OnModuleDestroy {
     return migrated;
   }
 
+  private async trimUserSessions(userId: string): Promise<void> {
+    const indexKey = this.userSessionIndexKey(userId);
+    const sessionCount = await this.redis.zcard(indexKey);
+    const overflow = sessionCount - this.maxSessionsPerUser;
+
+    if (overflow <= 0) {
+      return;
+    }
+
+    const evictedSessionIds = await this.redis.zrange(indexKey, 0, overflow - 1);
+    if (evictedSessionIds.length > 0) {
+      await this.redis.zremrangebyrank(indexKey, 0, overflow - 1);
+      await Promise.all(evictedSessionIds.map((sid) => this.deleteSessionRecord(sid)));
+    }
+  }
+
+  private async deleteSessionRecord(sid: string): Promise<void> {
+    await this.redis.del(this.sessionKey(sid));
+  }
+
   private async releaseLock(lockKey: string, lockToken: string): Promise<void> {
     const releaseScript = `
       if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -330,6 +376,10 @@ export class SessionService implements OnModuleDestroy {
 
   private sessionKey(sid: string): string {
     return `${this.sessionPrefix}${sid}`;
+  }
+
+  private userSessionIndexKey(userId: string): string {
+    return `user:sessions:${userId}`;
   }
 
   private async delay(ms: number): Promise<void> {

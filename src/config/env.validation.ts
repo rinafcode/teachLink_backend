@@ -26,11 +26,26 @@ export const envValidationSchema = Joi.object({
   REDIS_PORT: Joi.number().required(),
 
   // JWT Configuration
+  // Either JWT_SECRET (HS256) or JWT_PRIVATE_KEY + JWT_PUBLIC_KEY (RS256) must be configured
   JWT_SECRETS: Joi.string().optional(),
   JWT_SECRET_CURRENT_VERSION: Joi.string().optional(),
   JWT_SECRET: Joi.string()
     .min(10)
-    .when('JWT_SECRETS', { is: Joi.exist(), then: Joi.optional(), otherwise: Joi.required() }),
+    .when('JWT_PRIVATE_KEY', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.when('JWT_SECRETS', {
+        is: Joi.exist(),
+        then: Joi.optional(),
+        otherwise: Joi.required(),
+      }),
+    }),
+  JWT_PRIVATE_KEY: Joi.string().optional(),
+  JWT_PUBLIC_KEY: Joi.string().optional().when('JWT_PRIVATE_KEY', {
+    is: Joi.exist(),
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().min(10).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
@@ -39,7 +54,7 @@ export const envValidationSchema = Joi.object({
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
 
   // Security Configuration
-  BCRYPT_ROUNDS: Joi.number().integer().min(4).max(15).default(10),
+  BCRYPT_ROUNDS: Joi.number().integer().min(10).max(14).default(12),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
@@ -125,8 +140,6 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
-  // TODO: ENABLE_MALWARE_SCANNING is used in media/validation/malware-scanning.service.ts
-  // but is not defined in feature-flags.config.ts — add it there or migrate to ConfigService only
   ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
@@ -158,12 +171,20 @@ export const envValidationSchema = Joi.object({
   // Segment Analytics
   SEGMENT_WRITE_KEY: Joi.string().optional(),
 
+  // Data Retention
+  AUDIT_LOG_RETENTION_DAYS: Joi.number().integer().min(1).default(730),
+  ANALYTICS_RETENTION_DAYS: Joi.number().integer().min(1).default(365),
+
   // Circuit Breaker Configuration
   CIRCUIT_BREAKER_TIMEOUT_MS: Joi.number().integer().min(100).default(3000),
   CIRCUIT_BREAKER_ERROR_THRESHOLD: Joi.number().integer().min(1).max(100).default(50),
   CIRCUIT_BREAKER_RESET_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
   CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT: Joi.number().integer().min(1000).default(60000),
   CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS: Joi.number().integer().min(1).default(10),
+
+  // Replication Configuration
+  REGION: Joi.string().required(),
+  REPLICATION_REGIONS: Joi.string().required(),
 
   // ── Database Sharding (#602) ──────────────────────────────────────────────
   // Number of shards. Set to 0 or omit to run in single-shard fallback mode.

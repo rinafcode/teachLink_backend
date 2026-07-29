@@ -43,14 +43,24 @@
     {
       "name": "Debugging",
       "description": "Admin-only request capture and replay tools"
+    },
+    {
+      "name": "Gamification",
+      "description": "Points, leaderboards, and tier rewards"
+    },
+    {
+      "name": "Data Pipeline",
+      "description": "ETL jobs and data warehouse operations"
+    },
+    {
+      "name": "Sharding",
+      "description": "Database shard management and migrations"
     }
   ],
   "paths": {
     "/": {
       "get": {
-        "tags": [
-          "App"
-        ],
+        "tags": ["App"],
         "summary": "Get app status",
         "operationId": "getAppStatus",
         "responses": {
@@ -77,9 +87,7 @@
     },
     "/auth/register": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Register a new user",
         "operationId": "registerUser",
         "requestBody": {
@@ -178,9 +186,7 @@
     },
     "/auth/login": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Log in with email and password",
         "operationId": "loginUser",
         "requestBody": {
@@ -256,9 +262,7 @@
     },
     "/users": {
       "get": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "List users",
         "operationId": "listUsers",
         "security": [
@@ -338,9 +342,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "Create a user",
         "operationId": "createUser",
         "security": [
@@ -420,9 +422,7 @@
     },
     "/courses": {
       "get": {
-        "tags": [
-          "Courses"
-        ],
+        "tags": ["Courses"],
         "summary": "List courses",
         "operationId": "listCourses",
         "parameters": [
@@ -479,9 +479,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Courses"
-        ],
+        "tags": ["Courses"],
         "summary": "Create a course",
         "operationId": "createCourse",
         "security": [
@@ -567,9 +565,7 @@
     },
     "/payments/create-intent": {
       "post": {
-        "tags": [
-          "Payments"
-        ],
+        "tags": ["Payments"],
         "summary": "Create a payment intent",
         "operationId": "createPaymentIntent",
         "security": [
@@ -657,9 +653,7 @@
     },
     "/search": {
       "get": {
-        "tags": [
-          "Search"
-        ],
+        "tags": ["Search"],
         "summary": "Search courses and learning content",
         "operationId": "searchContent",
         "parameters": [
@@ -774,9 +768,7 @@
     },
     "/search/autocomplete": {
       "get": {
-        "tags": [
-          "Search"
-        ],
+        "tags": ["Search"],
         "summary": "Get search autocomplete suggestions",
         "operationId": "getAutocomplete",
         "parameters": [
@@ -800,11 +792,7 @@
                 },
                 "examples": {
                   "default": {
-                    "value": [
-                      "javascript",
-                      "java fundamentals",
-                      "java spring"
-                    ]
+                    "value": ["javascript", "java fundamentals", "java spring"]
                   }
                 }
               }
@@ -815,9 +803,7 @@
     },
     "/debug/requests": {
       "get": {
-        "tags": [
-          "Debugging"
-        ],
+        "tags": ["Debugging"],
         "summary": "List recently captured requests",
         "operationId": "listCapturedRequests",
         "security": [
@@ -868,9 +854,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Debugging"
-        ],
+        "tags": ["Debugging"],
         "summary": "Clear the captured request buffer",
         "operationId": "clearCapturedRequests",
         "security": [
@@ -890,6 +874,847 @@
                   "default": {
                     "value": {
                       "message": "Debug capture buffer cleared"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/points/award-activity": {
+      "post": {
+        "tags": ["Gamification"],
+        "summary": "Award points for a user activity",
+        "operationId": "awardActivity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardActivityRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "userId": "user_123",
+                    "activityType": "COURSE_COMPLETED"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activity awarded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "pointsAwarded": 500,
+                        "totalPoints": 2500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "activityType",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/points/add": {
+      "post": {
+        "tags": ["Gamification"],
+        "summary": "Add points to a user",
+        "operationId": "addPoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPointsRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "userId": "user_123",
+                    "points": 100,
+                    "activityType": "COURSE_COMPLETED"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Points added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "pointsAdded": 100,
+                        "totalPoints": 2600
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "points",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/tiers/rewards/{tier}": {
+      "post": {
+        "tags": ["Gamification"],
+        "summary": "Create or update a tier reward",
+        "operationId": "upsertReward",
+        "parameters": [
+          {
+            "name": "tier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND"]
+            },
+            "example": "GOLD"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertRewardRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "title": "Gold Badge",
+                    "description": "Awarded for reaching Gold tier",
+                    "badgeId": "badge_gold",
+                    "bonusPoints": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reward saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "id": "reward_001",
+                        "tier": "GOLD"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "title",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/points/progress/{userId}": {
+      "get": {
+        "tags": ["Gamification"],
+        "summary": "Get user progress and points",
+        "operationId": "getUserProgress",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "user_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "userId": "user_123",
+                        "totalPoints": 2500,
+                        "tier": "GOLD",
+                        "pointsToNextTier": 500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/leaderboard": {
+      "get": {
+        "tags": ["Gamification"],
+        "summary": "Get leaderboard",
+        "operationId": "getLeaderboard",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "entries": [
+                          {
+                            "userId": "user_123",
+                            "rank": 1,
+                            "points": 2500
+                          }
+                        ],
+                        "page": 1,
+                        "pageSize": 20,
+                        "total": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data-pipeline/etl/run": {
+      "post": {
+        "tags": ["Data Pipeline"],
+        "summary": "Run an ETL job",
+        "operationId": "runEtl",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunEtlRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "source": "sales_csv",
+                    "data": [
+                      {
+                        "id": 1,
+                        "name": "example"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ETL job completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "recordsProcessed": 1000,
+                        "durationMs": 1500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "source",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/route": {
+      "post": {
+        "tags": ["Sharding"],
+        "summary": "Resolve which shard a key routes to",
+        "operationId": "routeShard",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteShardRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "key": "user_123",
+                    "strategy": "hash_based",
+                    "forRead": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Routing result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "shardId": "shard-01",
+                        "host": "db-shard-01.example.com",
+                        "port": 5432,
+                        "isReplica": false,
+                        "routingKey": "user_123",
+                        "resolutionTimeMs": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "key",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/migrations": {
+      "post": {
+        "tags": ["Sharding"],
+        "summary": "Start a cross-shard data migration",
+        "operationId": "startMigration",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartMigrationRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "sourceShardId": "shard-00",
+                    "targetShardId": "shard-01",
+                    "entityType": "users",
+                    "estimatedRowCount": 50000,
+                    "batchSize": 1000,
+                    "dryRun": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Migration started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_001",
+                        "message": "Migration started"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "sourceShardId",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Sharding"],
+        "summary": "List all migration plans and their statuses",
+        "operationId": "listMigrations",
+        "responses": {
+          "200": {
+            "description": "Migration plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "migrations": [
+                          {
+                            "planId": "plan_001",
+                            "status": "running"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/migrations/{planId}": {
+      "get": {
+        "tags": ["Sharding"],
+        "summary": "Get the status of a specific migration plan",
+        "operationId": "getMigrationStatus",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "plan_001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Migration status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_001",
+                        "status": "running",
+                        "migratedRows": 10000,
+                        "totalRows": 50000
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Sharding"],
+        "summary": "Roll back a completed migration",
+        "operationId": "rollbackMigration",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "plan_001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Migration rolled back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "message": "Migration \"plan_001\" rolled back"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/rebalance": {
+      "post": {
+        "tags": ["Sharding"],
+        "summary": "Trigger a manual shard rebalance",
+        "operationId": "manualRebalance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualRebalanceRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "migrations": [
+                      {
+                        "sourceShardId": "shard-00",
+                        "targetShardId": "shard-01",
+                        "entityType": "users",
+                        "estimatedRowCount": 50000,
+                        "batchSize": 1000,
+                        "dryRun": false
+                      }
+                    ],
+                    "dryRun": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Rebalance plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_002",
+                        "plan": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "migrations",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/rebalance/auto": {
+      "post": {
+        "tags": ["Sharding"],
+        "summary": "Run automated rebalance analysis",
+        "operationId": "autoRebalance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoRebalanceRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "entityTypes": ["users", "courses"],
+                    "autoExecute": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Auto-rebalance plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_003",
+                        "plan": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "entityTypes",
+                          "message": "Validation failed"
+                        }
+                      ]
                     }
                   }
                 }
@@ -956,10 +1781,7 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string",
@@ -975,12 +1797,7 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password",
-          "firstName",
-          "lastName"
-        ],
+        "required": ["email", "password", "firstName", "lastName"],
         "properties": {
           "email": {
             "type": "string",
@@ -1002,20 +1819,14 @@
           },
           "role": {
             "type": "string",
-            "enum": [
-              "student",
-              "teacher"
-            ],
+            "enum": ["student", "teacher"],
             "example": "student"
           }
         }
       },
       "CourseRequest": {
         "type": "object",
-        "required": [
-          "title",
-          "description"
-        ],
+        "required": ["title", "description"],
         "properties": {
           "title": {
             "type": "string",
@@ -1041,11 +1852,7 @@
       },
       "PaymentIntentRequest": {
         "type": "object",
-        "required": [
-          "courseId",
-          "amount",
-          "currency"
-        ],
+        "required": ["courseId", "amount", "currency"],
         "properties": {
           "courseId": {
             "type": "string",
@@ -1089,6 +1896,181 @@
           "query": {
             "type": "string",
             "example": "javascript basics"
+          }
+        }
+      },
+      "AwardActivityRequest": {
+        "type": "object",
+        "required": ["userId", "activityType"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "user_123"
+          },
+          "activityType": {
+            "type": "string",
+            "enum": [
+              "COURSE_COMPLETED",
+              "LESSON_COMPLETED",
+              "QUIZ_PASSED",
+              "DAILY_LOGIN",
+              "PROFILE_COMPLETED",
+              "FIRST_COURSE_ENROLLED",
+              "REVIEW_SUBMITTED",
+              "STREAK_BONUS"
+            ],
+            "example": "COURSE_COMPLETED"
+          }
+        }
+      },
+      "AddPointsRequest": {
+        "type": "object",
+        "required": ["userId", "points", "activityType"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "user_123"
+          },
+          "points": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 100
+          },
+          "activityType": {
+            "type": "string",
+            "example": "COURSE_COMPLETED"
+          }
+        }
+      },
+      "UpsertRewardRequest": {
+        "type": "object",
+        "required": ["title", "description"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Gold Badge"
+          },
+          "description": {
+            "type": "string",
+            "example": "Awarded for reaching Gold tier"
+          },
+          "badgeId": {
+            "type": "string",
+            "example": "badge_gold"
+          },
+          "bonusPoints": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 500
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      },
+      "RunEtlRequest": {
+        "type": "object",
+        "required": ["source", "data"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "example": "sales_csv"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "example": [
+              {
+                "id": 1,
+                "name": "example"
+              }
+            ]
+          }
+        }
+      },
+      "RouteShardRequest": {
+        "type": "object",
+        "required": ["key"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "user_123"
+          },
+          "strategy": {
+            "type": "string",
+            "enum": ["tenant_based", "hash_based", "range_based", "read_replica"],
+            "example": "hash_based"
+          },
+          "forRead": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "StartMigrationRequest": {
+        "type": "object",
+        "required": ["sourceShardId", "targetShardId", "entityType", "estimatedRowCount", "batchSize", "dryRun"],
+        "properties": {
+          "sourceShardId": {
+            "type": "string",
+            "example": "shard-00"
+          },
+          "targetShardId": {
+            "type": "string",
+            "example": "shard-01"
+          },
+          "entityType": {
+            "type": "string",
+            "example": "users"
+          },
+          "estimatedRowCount": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 50000
+          },
+          "batchSize": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1000
+          },
+          "dryRun": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "ManualRebalanceRequest": {
+        "type": "object",
+        "required": ["migrations", "dryRun"],
+        "properties": {
+          "migrations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "dryRun": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "AutoRebalanceRequest": {
+        "type": "object",
+        "required": ["entityTypes", "autoExecute"],
+        "properties": {
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["users", "courses"]
+          },
+          "autoExecute": {
+            "type": "boolean",
+            "example": false
           }
         }
       }

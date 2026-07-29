@@ -3,7 +3,12 @@ import { Experiment, ExperimentStatus, ExperimentType } from '../entities/experi
 import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { VariantMetric } from '../entities/variant-metric.entity';
 
-function createVariant(id: string, name: string, isControl: boolean, expId: string): IExperimentVariant {
+function createVariant(
+  id: string,
+  name: string,
+  isControl: boolean,
+  expId: string,
+): IExperimentVariant {
   const variant = new IExperimentVariant();
   variant.id = id;
   variant.name = name;
@@ -18,7 +23,11 @@ function createVariant(id: string, name: string, isControl: boolean, expId: stri
   return variant;
 }
 
-function createMetric(metricId: string, variantId: string, overrides: Partial<VariantMetric> = {}): VariantMetric {
+function createMetric(
+  metricId: string,
+  variantId: string,
+  overrides: Partial<VariantMetric> = {},
+): VariantMetric {
   const metric = new VariantMetric();
   metric.id = metricId;
   metric.value = overrides.value ?? 100;
@@ -123,7 +132,7 @@ describe('StatisticalAnalysisService', () => {
       expect(variantMetricRepo.find).toHaveBeenCalledTimes(1);
     });
 
-    it('produces identical results to per-variant querying', async () => {
+    it('produces correct statistical significance results', async () => {
       const variants = [
         createVariant('v_control', 'Control', true, 'exp1'),
         createVariant('v_treatment', 'Treatment', false, 'exp1'),
@@ -152,7 +161,9 @@ describe('StatisticalAnalysisService', () => {
       expect(result.variants).toHaveLength(2);
 
       const controlResult = result.variants.find((v: any) => v.variantId === 'v_control') as any;
-      const treatmentResult = result.variants.find((v: any) => v.variantId === 'v_treatment') as any;
+      const treatmentResult = result.variants.find(
+        (v: any) => v.variantId === 'v_treatment',
+      ) as any;
 
       expect(controlResult).toBeDefined();
       expect(treatmentResult).toBeDefined();
@@ -205,12 +216,28 @@ describe('StatisticalAnalysisService', () => {
       experimentRepo.findOne.mockResolvedValue(experiment);
 
       const controlMetrics = [
-        createMetric('ctrl_m1', 'v_control', { value: 100, sampleSize: 1000, standardDeviation: 10 }),
-        createMetric('ctrl_m2', 'v_control', { value: 110, sampleSize: 1000, standardDeviation: 10 }),
+        createMetric('ctrl_m1', 'v_control', {
+          value: 100,
+          sampleSize: 1000,
+          standardDeviation: 10,
+        }),
+        createMetric('ctrl_m2', 'v_control', {
+          value: 110,
+          sampleSize: 1000,
+          standardDeviation: 10,
+        }),
       ];
       const treatmentMetrics = [
-        createMetric('treat_m1', 'v_treatment', { value: 130, sampleSize: 1000, standardDeviation: 12 }),
-        createMetric('treat_m2', 'v_treatment', { value: 140, sampleSize: 1000, standardDeviation: 12 }),
+        createMetric('treat_m1', 'v_treatment', {
+          value: 130,
+          sampleSize: 1000,
+          standardDeviation: 12,
+        }),
+        createMetric('treat_m2', 'v_treatment', {
+          value: 140,
+          sampleSize: 1000,
+          standardDeviation: 12,
+        }),
       ];
       variantMetricRepo.find.mockResolvedValue([...controlMetrics, ...treatmentMetrics]);
 
@@ -220,7 +247,11 @@ describe('StatisticalAnalysisService', () => {
       expect(result.controlVariantId).toBe('v_control');
       expect(result.effectSizes).toHaveLength(1);
       expect(result.effectSizes[0].variantId).toBe('v_treatment');
-      expect(result.effectSizes[0].effectSize).toBeGreaterThan(0);
+      // Control mean = (100+110)/2 = 105, Treatment mean = (130+140)/2 = 135
+      // pooled std dev ≈ 7.07, Cohen's d = |135-105|/7.07 ≈ 4.24
+      expect(result.effectSizes[0].effectSize).toBeGreaterThan(4);
+      expect(result.effectSizes[0].effectSize).toBeLessThan(5);
+      expect(result.effectSizes[0].interpretation).toBe('large');
     });
   });
 });

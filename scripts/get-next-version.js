@@ -53,9 +53,12 @@ if (releaseType === 'tag') {
     let hasBreaking = false;
     let hasFeature = false;
 
-    commits.forEach(commit => {
+    commits.forEach((commit) => {
       const message = commit.replace(/^\S+\s+/, '');
-      if (/BREAKING CHANGE/i.test(message) || /^!(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)/i.test(message)) {
+      if (
+        /BREAKING CHANGE/i.test(message) ||
+        /^!(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)/i.test(message)
+      ) {
         hasBreaking = true;
       }
       if (/^feat(\(.+\))?(!)?:/i.test(message)) {

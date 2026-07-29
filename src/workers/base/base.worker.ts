@@ -1,9 +1,11 @@
-import { Logger, Inject } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import Redis from 'ioredis';
 import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
 import { IWorkerResult, IWorkerMetrics, IWorkerHealthCheck } from '../interfaces/worker.interfaces';
+import { extractCorrelationIdFromJob } from '../../queues/utils/correlation-job.util';
+import { generateCorrelationId, runWithCorrelationId } from '../../common/utils/correlation.utils';
 
 /**
  * Abstract base worker class
@@ -41,9 +43,18 @@ export abstract class BaseWorker {
   abstract execute(job: Job): Promise<any>;
 
   /**
-   * Main handler for processing jobs
+   * Main handler for processing jobs. The entire execution runs inside the
+   * AsyncLocalStorage-backed correlation context so child services / spans
+   * inherit the same correlation ID as the originating HTTP request.
+   * If no correlation ID was stamped onto the job payload (e.g. for cron
+   * enqueues), a fresh one is generated so logs are still grouped.
    */
   async handle(job: Job): Promise<IWorkerResult> {
+    const correlationId = extractCorrelationIdFromJob(job) ?? generateCorrelationId();
+    return runWithCorrelationId(() => this.runHandle(job), correlationId);
+  }
+
+  private async runHandle(job: Job): Promise<IWorkerResult> {
     const startTime = Date.now();
 
     try {

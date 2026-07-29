@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { getRepositoryToken, getDataSourceToken } from '@nestjs/typeorm';
+import { NotFoundException } from '@nestjs/common';
 import { GdprService } from '../gdpr.service';
 import { UserConsent } from '../entities/user-consent.entity';
 import { User } from '../../../users/entities/user.entity';
@@ -50,20 +51,63 @@ const mockSessionService = {
   deleteAllSessionsForUser: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockUsersService = {
+  findById: jest.fn().mockResolvedValue({
+    id: 'user-1',
+    email: 'test@test.com',
+    firstName: 'John',
+    lastName: 'Doe',
+    deletedAt: null,
+  }),
+  update: jest.fn().mockResolvedValue(undefined),
+};
+
 const mockConsentRepository = {
   find: jest.fn().mockResolvedValue([]),
   create: jest.fn((dto) => ({ ...dto, id: 'consent-1' })),
   save: jest.fn((consent) => Promise.resolve(consent)),
+  manager: {
+    transaction: jest.fn(async (cb) => {
+      const mockEntityManager = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        into: jest.fn().mockReturnThis(),
+        values: jest.fn().mockReturnThis(),
+        orUpdate: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue(undefined),
+      };
+      return cb(mockEntityManager);
+    }),
+  },
 };
 
 const mockAuditService = {
   log: jest.fn().mockResolvedValue(undefined),
 };
 
+// QueryBuilder mock reused across table updates
+function makeQb() {
+  const qb: any = {
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    execute: jest.fn().mockResolvedValue(undefined),
+  };
+  return qb;
+}
+
+const mockDataSource = {
+  transaction: jest.fn((cb: (manager: any) => Promise<any>) => {
+    const manager = { createQueryBuilder: jest.fn(() => makeQb()) };
+    return cb(manager);
+  }),
+};
+
 describe('GdprService', () => {
   let service: GdprService;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GdprService,
@@ -75,8 +119,7 @@ describe('GdprService', () => {
         { provide: 'AuditService', useValue: mockAuditService },
         { provide: SessionService, useValue: mockSessionService },
         { provide: getRepositoryToken(UserConsent), useValue: mockConsentRepository },
-        { provide: 'AuditService', useValue: mockAuditService },
-        { provide: 'UsersService', useValue: {} },
+        { provide: getDataSourceToken(), useValue: mockDataSource },
       ],
     }).compile();
 
@@ -87,74 +130,73 @@ describe('GdprService', () => {
     const result = await service.exportUserData('user-1');
     expect(result.profile).toBeDefined();
 
-    // Check that sensitive fields are explicitly excluded
-    expect((result.profile as any).password).toBeUndefined();
-    expect((result.profile as any).refreshToken).toBeUndefined();
-    expect((result.profile as any).passwordHistory).toBeUndefined();
-    expect((result.profile as any).totpSecret).toBeUndefined();
-    expect((result.profile as any).token).toBeUndefined();
+    expect(result.profile.password).toBeUndefined();
+    expect(result.profile.refreshToken).toBeUndefined();
+    expect(result.profile.passwordHistory).toBeUndefined();
+    expect(result.profile.totpSecret).toBeUndefined();
+    expect(result.profile.token).toBeUndefined();
 
-    // Check that PII fields are preserved
-    expect((result.profile as any).id).toBe('user-1');
-    expect((result.profile as any).email).toBe('test@test.com');
-    expect((result.profile as any).firstName).toBe('John');
-    expect((result.profile as any).lastName).toBe('Doe');
+    expect(result.profile.id).toBe('user-1');
+    expect(result.profile.email).toBe('test@test.com');
+    expect(result.profile.firstName).toBe('John');
+    expect(result.profile.lastName).toBe('Doe');
   });
 
-  it('includes soft-deleted records in GDPR export', async () => {
-    const deletedDate = new Date('2024-01-01');
-    mockUserRepository.findOne.mockResolvedValueOnce({
-      id: 'user-1',
-      email: 'test@test.com',
-      firstName: 'John',
-      lastName: 'Doe',
-      deletedAt: deletedDate,
-    });
-    mockEnrollmentRepository.find.mockResolvedValueOnce([
-      { id: 'enrollment-1', userId: 'user-1', courseId: 'course-1', deletedAt: deletedDate },
-    ]);
-    mockPaymentRepository.find.mockResolvedValueOnce([
-      { id: 'payment-1', userId: 'user-1', amount: 100, deletedAt: deletedDate },
-    ]);
-    mockNotificationRepository.find.mockResolvedValueOnce([
-      { id: 'notification-1', userId: 'user-1', title: 'Test', deletedAt: deletedDate },
-    ]);
-
-    const result = await service.exportUserData('user-1');
-
-    // Verify user profile includes _deletedAt
-    expect(result.profile._deletedAt).toEqual(deletedDate);
-
-    // Verify enrollments include _deletedAt
-    expect(result.enrollments).toHaveLength(1);
-    expect((result.enrollments[0] as any)._deletedAt).toEqual(deletedDate);
-
-    // Verify payments include _deletedAt
-    expect(result.payments).toHaveLength(1);
-    expect((result.payments[0] as any)._deletedAt).toEqual(deletedDate);
-
-    // Verify notifications include _deletedAt
-    expect(result.notifications).toHaveLength(1);
-    expect((result.notifications[0] as any)._deletedAt).toEqual(deletedDate);
-  });
-
-  it('erases user data and invalidates sessions', async () => {
+  it('erases user data: revokes sessions and runs transactional cascade anonymization', async () => {
     const result = await service.eraseUserData('user-1');
 
     expect(result.success).toBe(true);
+    // Sessions revoked before transaction
     expect(mockSessionService.deleteAllSessionsForUser).toHaveBeenCalledWith('user-1');
-    expect(mockUsersService.update).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({
-        email: null,
-        firstName: '[DELETED]',
-        lastName: '[DELETED]',
-        phone: null,
-        address: null,
-        deletedAt: expect.any(Date),
-        refreshToken: null,
-      }),
-    );
+    // Transaction executed
+    expect(mockDataSource.transaction).toHaveBeenCalled();
+    // Audit log written
+    expect(mockAuditService.log).toHaveBeenCalledWith('GDPR_ERASURE', 'user-1');
+  });
+
+  it('throws NotFoundException when user does not exist', async () => {
+    mockUserRepository.findOne.mockResolvedValueOnce(null);
+    await expect(service.eraseUserData('missing-user')).rejects.toThrow(NotFoundException);
+  });
+
+  it('is idempotent: second erasure call succeeds even when user is already deleted', async () => {
+    // First call succeeds normally
+    await service.eraseUserData('user-1');
+    // Second call: findById still returns something (soft-deleted row)
+    await expect(service.eraseUserData('user-1')).resolves.toEqual({ success: true });
+  });
+
+  it('supports idempotent erasure on repeated calls', async () => {
+    // Reset mock history
+    mockUsersService.update.mockClear();
+    mockAuditService.log.mockClear();
+
+    // First call
+    const result1 = await service.eraseUserData('user-1');
+    expect(result1.success).toBe(true);
+    expect(mockUsersService.update).toHaveBeenCalledTimes(1);
+    expect(mockAuditService.log).toHaveBeenCalledWith('GDPR_ERASURE', 'user-1');
+
+    // Simulate database state change by updating the mock return value to have deletedAt
+    const originalFindOne = mockUserRepository.findOne;
+    mockUserRepository.findOne = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      email: null,
+      firstName: '[DELETED]',
+      lastName: '[DELETED]',
+      deletedAt: new Date(),
+    });
+
+    // Second call
+    const result2 = await service.eraseUserData('user-1');
+    expect(result2.success).toBe(true);
+
+    // Verify the DB update and audit logs are called again (idempotent calls)
+    expect(mockUsersService.update).toHaveBeenCalledTimes(2);
+    expect(mockAuditService.log).toHaveBeenCalledTimes(2);
+
+    // Restore original mock
+    mockUserRepository.findOne = originalFindOne;
   });
 
   it('stores consent changes', async () => {

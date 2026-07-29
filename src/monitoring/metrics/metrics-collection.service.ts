@@ -91,6 +91,15 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Queue job processing duration, labelled by queue_name and job_type */
   public queueProcessingTime: Histogram;
 
+  /** Current number of waiting jobs per queue */
+  public queueWaitingJobs: Gauge;
+
+  /** Current number of active jobs per queue */
+  public queueActiveJobs: Gauge;
+
+  /** Total number of failed jobs per queue */
+  public queueFailedJobs: Gauge;
+
   // ── Business Metrics – Email ───────────────────────────────────────────────
 
   /** Total email campaigns sent, labelled by campaign_type and status */
@@ -105,6 +114,9 @@ export class MetricsCollectionService implements OnModuleInit {
 
   /** Total API errors (≥ 400), labelled by route and error_code */
   public apiErrors: Counter;
+
+  /** Total security events emitted, labelled by event type */
+  public securityEventsTotal: Counter;
 
   // ── Business Metrics – Workers ────────────────────────────────────────────
 
@@ -218,6 +230,18 @@ export class MetricsCollectionService implements OnModuleInit {
     this.queueProcessingTime.observe({ queue_name: queueName, job_type: jobType }, duration);
   }
 
+  updateQueueWaitingJobs(queueName: string, count: number): void {
+    this.queueWaitingJobs.set({ queue_name: queueName }, count);
+  }
+
+  updateQueueActiveJobs(queueName: string, count: number): void {
+    this.queueActiveJobs.set({ queue_name: queueName }, count);
+  }
+
+  updateQueueFailedJobs(queueName: string, count: number): void {
+    this.queueFailedJobs.set({ queue_name: queueName }, count);
+  }
+
   // ── Recording helpers – Email ─────────────────────────────────────────────
 
   recordEmailCampaignSent(campaignType: string, status: string): void {
@@ -234,6 +258,10 @@ export class MetricsCollectionService implements OnModuleInit {
 
   recordApiError(route: string, errorCode: string): void {
     this.apiErrors.inc({ route, error_code: errorCode });
+  }
+
+  recordSecurityEvent(type: string): void {
+    this.securityEventsTotal.inc({ type });
   }
 
   // ── Recording helpers – Workers ──────────────────────────────────────────
@@ -415,6 +443,27 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
+    this.queueWaitingJobs = new Gauge({
+      name: 'queue_waiting_jobs',
+      help: 'Current number of waiting jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
+    this.queueActiveJobs = new Gauge({
+      name: 'queue_active_jobs',
+      help: 'Current number of active jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
+    this.queueFailedJobs = new Gauge({
+      name: 'queue_failed_jobs_total',
+      help: 'Total number of failed jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
     // Email
     this.emailCampaignsSent = new Counter({
       name: 'email_campaigns_sent_total',
@@ -436,6 +485,14 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'api_errors_total',
       help: 'Total number of API errors (HTTP 4xx/5xx)',
       labelNames: ['route', 'error_code'],
+      registers: [this.registry],
+    });
+
+    // Security
+    this.securityEventsTotal = new Counter({
+      name: 'security_events_total',
+      help: 'Total number of structured security events emitted',
+      labelNames: ['type'],
       registers: [this.registry],
     });
 
