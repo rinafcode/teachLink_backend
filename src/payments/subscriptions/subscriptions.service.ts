@@ -5,6 +5,7 @@ import {
   NotFoundException,
   PaymentRequiredException,
 } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -40,7 +41,7 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
-    private paymentProviderService: PaymentProviderService,
+4    private paymentProviderService: PaymentProviderService,
   ) {}
 
   /**
@@ -92,7 +93,7 @@ export class SubscriptionsService {
       isPaused: true,
     };
 
-    const updated = await this.subscriptionRepository.save(subscription);
+    const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
 
     this.eventEmitter.emit('subscription.paused', {
       subscriptionId: updated.id,
@@ -101,9 +102,58 @@ export class SubscriptionsService {
       reason: dto.reason,
     });
 
-    this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
+      // Update subscription status to PAUSED
+      subscription.status = SubscriptionStatus.PAUSED;
+      subscription.properties = {
+        ...subscription.properties,
+        pausedAt: new Date(),
+        pauseReason: dto.reason,
+        resumeAt: dto.resumeAt,
+        isPaused: true,
+      };
 
-    return updated;
+      const updated = await this.subscriptionRepository.save(subscription);
+
+      // Schedule automatic resume if resumeAt is provided
+      if (resumeAtDate) {
+        const delayMs = resumeAtDate.getTime() - Date.now();
+        if (delayMs > 0) {
+          await this.queueService.addJob(
+            QUEUE_NAMES.SUBSCRIPTIONS,
+            JOB_NAMES.RESUME_SUBSCRIPTION,
+            { subscriptionId: updated.id },
+            {
+              delay: delayMs,
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 5000,
+              },
+            },
+          );
+          this.logger.log(
+            `Scheduled automatic resume for subscription ${subscriptionId} at ${resumeAtDate.toISOString()}`,
+          );
+        }
+      }
+
+      // Emit event for downstream processing (notify user, analytics, etc.)
+      this.eventEmitter.emit('subscription.paused', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        resumeAt: dto.resumeAt,
+        reason: dto.reason,
+      });
+
+      this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
+
+      return updated;
+    } catch (error) {
+      this.logger.error(`Failed to pause subscription ${subscriptionId} at provider`, error);
+      throw new BadRequestException(
+        `Failed to pause subscription at provider: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**
@@ -115,7 +165,7 @@ export class SubscriptionsService {
   ): Promise<Subscription> {
     const subscription = await this.getSubscription(subscriptionId);
 
-    if (!subscription.properties?.isPaused) {
+    if (subscription.status !== SubscriptionStatus.PAUSED) {
       throw new BadRequestException('Subscription is not paused');
     }
 
@@ -136,9 +186,15 @@ export class SubscriptionsService {
       reason: dto.reason,
     });
 
-    this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
+      this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
 
-    return updated;
+      return updated;
+    } catch (error) {
+      this.logger.error(`Failed to resume subscription ${subscriptionId} at provider`, error);
+      throw new BadRequestException(
+        `Failed to resume subscription at provider: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**
@@ -416,6 +472,12 @@ export class SubscriptionsService {
    */
   async processRenewal(subscriptionId: string, maxRetries = 3): Promise<boolean> {
     const subscription = await this.getSubscription(subscriptionId);
+
+    // Skip paused subscriptions - they should not be renewed
+    if (subscription.status === SubscriptionStatus.PAUSED) {
+      this.logger.log(`Skipping renewal for paused subscription ${subscriptionId}`);
+      return false;
+    }
 
     if (
       subscription.status !== SubscriptionStatus.ACTIVE &&

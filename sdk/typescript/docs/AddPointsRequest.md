@@ -1,13 +1,12 @@
 # AddPointsRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**userId** | **string** |  | [default to undefined]
-**points** | **number** |  | [default to undefined]
-**activityType** | **string** |  | [default to undefined]
+| Name             | Type       | Description | Notes                  |
+| ---------------- | ---------- | ----------- | ---------------------- |
+| **userId**       | **string** |             | [default to undefined] |
+| **points**       | **number** |             | [default to undefined] |
+| **activityType** | **string** |             | [default to undefined] |
 
 ## Example
 
@@ -15,9 +14,9 @@ Name | Type | Description | Notes
 import { AddPointsRequest } from './api';
 
 const instance: AddPointsRequest = {
-    userId,
-    points,
-    activityType,
+  userId,
+  points,
+  activityType,
 };
 ```
 

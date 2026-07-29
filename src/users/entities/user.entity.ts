@@ -157,6 +157,7 @@ export class User {
   enrollments: Enrollment[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

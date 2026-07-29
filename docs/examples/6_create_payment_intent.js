@@ -5,11 +5,15 @@ async function createPaymentIntent() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-      body: JSON.stringify({"courseId":"8e4fd4f8-d8f3-46b5-8786-6f7167a654f4","amount":3999,"currency":"USD"}),
+      body: JSON.stringify({
+        courseId: '8e4fd4f8-d8f3-46b5-8786-6f7167a654f4',
+        amount: 3999,
+        currency: 'USD',
+      }),
     });
 
     if (!response.ok) {

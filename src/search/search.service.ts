@@ -1,4 +1,5 @@
 import { Injectable, Logger, Inject, Optional, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional, OnModuleInit } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 import type { Cache } from 'cache-manager';
@@ -10,6 +11,7 @@ import { IsolationService } from '../tenancy/isolation/isolation.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { CACHE_EVENTS, CACHE_TTL, CACHE_PREFIXES } from '../caching/caching.constants';
 import { SEARCH_CONSTANTS } from './search.constants';
+import { MetricsService } from '../utils/masking/metrics.service';
 
 export interface SearchFilters {
   category?: string | string[];
@@ -68,17 +70,19 @@ const FACETS_CACHE_KEY = `${CACHE_PREFIXES.SEARCH}:facets`;
  * values are validated against the live facet set.
  */
 @Injectable()
-export class SearchService {
+export class SearchService implements OnModuleInit {
   private readonly logger = new Logger(SearchService.name);
   private readonly AUTOCOMPLETE_LIMIT = 10;
   private readonly CACHE_TTL_MS = 300000; // 5 minutes
   private readonly AUTOCOMPLETE_CACHE_MAX_SIZE = 1000;
   private autocompleteCache: LRUCache<string, AutocompleteResult[]>;
+  private isElasticsearchAvailable = false;
 
   constructor(
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
     private readonly elasticsearch: NestElasticsearchService,
+    private readonly metricsService: MetricsService,
     @Optional() private readonly isolationService?: IsolationService,
     @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager?: Cache,
   ) {
@@ -86,6 +90,27 @@ export class SearchService {
       max: this.AUTOCOMPLETE_CACHE_MAX_SIZE,
       ttl: this.CACHE_TTL_MS,
     });
+  }
+
+  async onModuleInit() {
+    if (!this.elasticsearch) {
+      this.logger.warn('Elasticsearch client not injected.');
+      return;
+    }
+    try {
+      const pingResult = await this.elasticsearch.ping();
+      this.isElasticsearchAvailable = !!pingResult;
+      if (this.isElasticsearchAvailable) {
+        this.logger.log('Elasticsearch is available and will serve search queries.');
+      } else {
+        this.logger.warn('Elasticsearch ping failed. Falling back to DB search.');
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Elasticsearch ping failed: ${(error as Error).message}. Falling back to DB search.`,
+      );
+      this.isElasticsearchAvailable = false;
+    }
   }
 
   async search(
@@ -110,12 +135,16 @@ export class SearchService {
       if (cached) return cached;
     }
 
-    // Try the Elasticsearch fast-path first when present. Fall back to PostgreSQL FTS
-    // below on any failure so the API still returns results during ES outages.
-    const esResults = await this.tryElasticsearch(safeQuery, filters, page, limit, sort);
-    if (esResults) {
-      if (this.cacheManager) await this.cacheManager.set(cacheKey, esResults, 30);
-      return esResults;
+    if (this.isElasticsearchAvailable) {
+      const esResults = await this.tryElasticsearch(safeQuery, filters, page, limit, sort);
+      if (esResults) {
+        if (this.cacheManager) await this.cacheManager.set(cacheKey, esResults, 30);
+        return esResults;
+      }
+      // If tryElasticsearch returned null due to an intermittent error, we fall through and record the fallback metric.
+      this.metricsService.searchFallbackCounter.inc({ reason: 'error' });
+    } else {
+      this.metricsService.searchFallbackCounter.inc({ reason: 'unavailable' });
     }
 
     try {

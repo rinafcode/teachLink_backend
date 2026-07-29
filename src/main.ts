@@ -253,13 +253,29 @@ async function bootstrapWorker(): Promise<void> {
 
     const contentLength = parseInt(contentLengthValue || '', 10);
 
-    if (!Number.isNaN(contentLength) && contentLength > fileUploadMaxBytes) {
+    if (Number.isNaN(contentLength)) {
+      const transferEncoding = req.headers['transfer-encoding'];
+      if (!transferEncoding || !transferEncoding.includes('chunked')) {
+        res.status(411).json({
+          message: 'Length Required',
+        });
+        return;
+      }
+    } else if (contentLength > fileUploadMaxBytes) {
       res.status(413).json({
         message: 'File upload too large',
         maxBytes: fileUploadMaxBytes,
       });
       return;
     }
+
+    let bytesRead = 0;
+    req.on('data', (chunk: Buffer) => {
+      bytesRead += chunk.length;
+      if (bytesRead > fileUploadMaxBytes) {
+        req.destroy(new Error('Payload Too Large'));
+      }
+    });
 
     next();
   });

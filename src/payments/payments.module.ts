@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CurrencyModule } from '../currency/currency.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { IdempotencyModule } from '../common/modules/idempotency.module';
+import { QueueModule } from '../queues/queue.module';
 import { Payment } from './entities/payment.entity';
 import { Subscription } from './entities/subscription.entity';
 import { Invoice } from './entities/invoice.entity';
@@ -15,6 +16,7 @@ import { PaymentReconciliationController } from './reconciliation/reconciliation
 import { SubscriptionsService } from './subscriptions/subscriptions.service';
 import { SubscriptionsController } from './subscriptions/subscriptions.controller';
 import { PaymentProviderService } from './providers/payment-provider.service';
+import { StripeProvider } from './providers/stripe.provider';
 
 /**
  * PaymentsModule
@@ -31,6 +33,8 @@ import { PaymentProviderService } from './providers/payment-provider.service';
  * Issue #1007 — registers SubscriptionsService, SubscriptionsController, and
  * PaymentProviderService so that prorated upgrade charges and downgrade credits
  * are wired into the DI container.
+ * Issue #1005 — adds StripeProvider and QueueModule for subscription pause/resume
+ * functionality with provider billing suspension.
  */
 @Module({
   imports: [
@@ -39,9 +43,27 @@ import { PaymentProviderService } from './providers/payment-provider.service';
     AuditLogModule,
     IdempotencyModule,
     HttpModule,
+    QueueModule,
+  ],
+  providers: [
+    PricingService,
+    PaymentReconciliationJob,
+    StripeProvider,
+    {
+      provide: 'IPaymentProvider',
+      useClass: StripeProvider,
+    },
   ],
   providers: [PricingService, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
   controllers: [PricingController, PaymentReconciliationController, SubscriptionsController],
   exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
+  controllers: [PricingController, PaymentReconciliationController],
+  exports: [
+    PricingService,
+    CurrencyModule,
+    IdempotencyModule,
+    PaymentReconciliationJob,
+    'IPaymentProvider',
+  ],
 })
 export class PaymentsModule {}

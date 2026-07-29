@@ -11,20 +11,23 @@ import { ElasticsearchService } from '@nestjs/elasticsearch';
 describe('SearchService (Issue #814 full-text search)', () => {
   let service: SearchService;
   let courseRepository: jest.Mocked<Repository<any>>;
-  let elasticsearch: { search: jest.Mock };
+  let elasticsearch: { search: jest.Mock; ping: jest.Mock };
   let isolationService: { getTenantId: jest.Mock };
+  let metricsService: { searchFallbackCounter: { inc: jest.Mock } };
 
   beforeEach(() => {
     courseRepository = {
       createQueryBuilder: jest.fn(),
     } as any;
 
-    elasticsearch = { search: jest.fn() };
+    elasticsearch = { search: jest.fn(), ping: jest.fn().mockResolvedValue(true) };
     isolationService = { getTenantId: jest.fn().mockReturnValue(null) };
+    metricsService = { searchFallbackCounter: { inc: jest.fn() } };
 
     service = new SearchService(
       courseRepository as any,
       elasticsearch as any,
+      metricsService as any,
       isolationService as any,
       undefined as any,
     );
@@ -127,6 +130,8 @@ describe('SearchService (Issue #814 full-text search)', () => {
   });
 
   it('uses Elasticsearch fast-path when present and successful', async () => {
+    await service.onModuleInit(); // Set to available
+
     elasticsearch.search.mockResolvedValueOnce({
       hits: { total: { value: 1 }, hits: [{ _source: { id: 'c1', title: 'X' } }] },
     } as any);
@@ -137,9 +142,12 @@ describe('SearchService (Issue #814 full-text search)', () => {
     expect(result.total).toBe(1);
     expect(elasticsearch.search).toHaveBeenCalled();
     expect(courseRepository.createQueryBuilder).not.toHaveBeenCalled();
+    expect(metricsService.searchFallbackCounter.inc).not.toHaveBeenCalled();
   });
 
   it('falls back to DB when Elasticsearch throws', async () => {
+    await service.onModuleInit(); // Set to available
+
     elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
     const qb = makeQb({ rows: [], total: 0 });
     courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
@@ -148,6 +156,24 @@ describe('SearchService (Issue #814 full-text search)', () => {
 
     expect(result.source).toBeUndefined();
     expect(result.query).toBe('react');
+    expect(metricsService.searchFallbackCounter.inc).toHaveBeenCalledWith({ reason: 'error' });
+  });
+
+  it('falls back to DB when ping fails at startup', async () => {
+    elasticsearch.ping.mockRejectedValueOnce(new Error('Down'));
+    await service.onModuleInit(); // Sets to unavailable
+
+    const qb = makeQb({ rows: [], total: 0 });
+    courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+    const result = await service.search('react');
+
+    // Should skip trying ES
+    expect(elasticsearch.search).not.toHaveBeenCalled();
+    expect(result.source).toBeUndefined();
+    expect(metricsService.searchFallbackCounter.inc).toHaveBeenCalledWith({
+      reason: 'unavailable',
+    });
   });
 
   describe('Issue #889 — Tenant isolation enforcement on Elasticsearch queries', () => {

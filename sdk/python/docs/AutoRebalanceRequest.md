@@ -1,12 +1,11 @@
 # AutoRebalanceRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**entity_types** | **List[str]** |  | 
-**auto_execute** | **bool** |  | 
+| Name             | Type          | Description | Notes |
+| ---------------- | ------------- | ----------- | ----- |
+| **entity_types** | **List[str]** |             |
+| **auto_execute** | **bool**      |             |
 
 ## Example
 
@@ -25,6 +24,5 @@ auto_rebalance_request_dict = auto_rebalance_request_instance.to_dict()
 # create an instance of AutoRebalanceRequest from a dict
 auto_rebalance_request_from_dict = AutoRebalanceRequest.from_dict(auto_rebalance_request_dict)
 ```
+
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-
