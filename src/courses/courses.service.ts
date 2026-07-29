@@ -84,6 +84,9 @@ export class CoursesService {
     private readonly dataSource: DataSource,
     @Optional()
     private readonly paginationService: PaginationService = new PaginationService(),
+    @Inject(forwardRef(() => AnalyticsService))
+    @Optional()
+    private readonly analyticsService?: AnalyticsService,
   ) {}
 
   // ─── CRUD ────────────────────────────────────────────────────────────────────
@@ -162,13 +165,25 @@ export class CoursesService {
   /**
    * Returns a single course by ID.
    */
-  async findOne(id: string): Promise<Course> {
+  async findOne(id: string, requestingUser?: User): Promise<Course> {
     const course = await this.courseRepo.findOne({
       where: { id },
       relations: ['instructor', 'reviews', 'reviews.reviewer', 'prerequisite'],
     });
     if (!course) {
       throw new ResourceNotFoundException('Course', id);
+    }
+    if (this.analyticsService) {
+      this.analyticsService
+        .trackEvent({
+          eventType: EventType.COURSE_VIEW,
+          category: 'course',
+          action: 'view',
+          label: course.title,
+          properties: { courseId: course.id },
+          userId: requestingUser?.id,
+        })
+        .catch(() => {});
     }
     return course;
   }
