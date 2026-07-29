@@ -1,15 +1,24 @@
-import { Controller, Post, Get, Body, Param, Req, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ForumService } from './forum.service';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
+@ApiTags('Forum')
 @Controller('forums')
 export class ForumController {
   constructor(private readonly forumService: ForumService) {}
 
   @Post('threads')
-  createThread(@Body() body: { title: string; content: string }, @Req() req: any) {
-    const authorId = req.user?.id || 'anonymous';
-    return this.forumService.createThread(body.title, body.content, authorId);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  createThread(
+    @Body() body: { title: string; content: string },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.forumService.createThread(body.title, body.content, user.id);
   }
 
   @Get('threads')
@@ -23,24 +32,38 @@ export class ForumController {
   }
 
   @Post('threads/:id/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'Authentication required' })
   addComment(
     @Param('id') threadId: string,
     @Body() body: { content: string; parentId?: string },
-    @Req() req: any,
+    @CurrentUser() user: { id: string },
   ) {
-    const authorId = req.user?.id || 'anonymous';
-    return this.forumService.addComment(threadId, body.content, authorId, body.parentId);
+    return this.forumService.addComment(threadId, body.content, user.id, body.parentId);
   }
 
   @Post('threads/:id/vote')
-  voteThread(@Param('id') id: string, @Body() body: { value: number }, @Req() req: any) {
-    const authorId = req.user?.id || 'anonymous';
-    return this.forumService.vote('thread', id, authorId, body.value);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  voteThread(
+    @Param('id') id: string,
+    @Body() body: { value: number },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.forumService.vote('thread', id, user.id, body.value);
   }
 
   @Post('comments/:id/vote')
-  voteComment(@Param('id') id: string, @Body() body: { value: number }, @Req() req: any) {
-    const authorId = req.user?.id || 'anonymous';
-    return this.forumService.vote('comment', id, authorId, body.value);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  voteComment(
+    @Param('id') id: string,
+    @Body() body: { value: number },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.forumService.vote('comment', id, user.id, body.value);
   }
 }

@@ -66,6 +66,16 @@ export class Course {
   @Index()
   category?: string;
 
+  /** Difficulty level, e.g. 'beginner' | 'intermediate' | 'advanced'. Used by search filtering. */
+  @Column({ nullable: true })
+  @Index()
+  level?: string;
+
+  /** ISO 639-1 language code the course is taught in. Used by search filtering. */
+  @Column({ nullable: true })
+  @Index()
+  language?: string;
+
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
 
