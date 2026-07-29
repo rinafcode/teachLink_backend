@@ -43,6 +43,9 @@ import { AutoRebalanceDto } from './dto/auto-rebalance.dto';
  *   POST   /sharding/ring/rebuild        — rebuild consistent-hash ring
  */
 @ApiTags('sharding')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 @Controller('sharding')
 @UseGuards(IpAllowlistGuard, JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()

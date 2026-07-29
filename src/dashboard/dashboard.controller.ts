@@ -1,8 +1,14 @@
-import { Controller, Get, Header, Query, BadRequestException, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Header, Query, BadRequestException, Param, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { DashboardService, RevenuePeriod } from './dashboard.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('dashboard')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('instructor', 'admin')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
@@ -14,6 +20,7 @@ export class DashboardController {
   }
 
   @Get('revenue')
+  @Roles('admin')
   @ApiOperation({ summary: 'Revenue metrics by period' })
   @ApiQuery({ name: 'period', enum: ['daily', 'weekly', 'monthly'], required: false })
   getRevenue(@Query('period') period?: string) {
@@ -37,6 +44,7 @@ export class DashboardController {
   }
 
   @Get('funnel')
+  @Roles('admin')
   @ApiOperation({ summary: 'Conversion funnel tracking' })
   getFunnel() {
     return this.dashboardService.getConversionFunnel();
