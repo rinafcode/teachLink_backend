@@ -5,6 +5,7 @@ import { Queue } from 'bull';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { APP_EVENTS } from '../../common/constants/event.constants';
 import { TIME } from '../../common/constants/time.constants';
+import { enrichWithCorrelation } from '../../queues/utils/correlation-job.util';
 
 export interface IntegrityCheckResult {
   consistent: boolean;
@@ -34,11 +35,11 @@ export class DataConsistencyService {
 
     await this.syncQueue.add(
       JOB_NAMES.CONSISTENCY_CHECK,
-      {
+      enrichWithCorrelation({
         dataId,
         payload,
         timestamp: new Date(),
-      },
+      }),
       {
         attempts: 3,
         backoff: {

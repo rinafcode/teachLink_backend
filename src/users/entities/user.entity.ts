@@ -22,6 +22,7 @@ export enum UserRole {
   INSTRUCTOR = 'instructor',
   MODERATOR = 'moderator',
   ADMIN = 'admin',
+  SRE = 'sre',
 }
 
 export enum UserStatus {
@@ -29,6 +30,8 @@ export enum UserStatus {
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
 }
+
+export const PRIVILEGED_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.MODERATOR];
 
 /**
  * Represents the user entity.
@@ -138,6 +141,16 @@ export class User {
     return UserRole.STUDENT;
   }
 
+  hasRole(...roleNames: UserRole[]): boolean {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
+    return this.roles.some((role) => {
+      const name = typeof role === 'string' ? role : role.name;
+      return roleNames.includes(name as UserRole);
+    });
+  }
+
   @OneToMany(() => Course, (course) => course.instructor)
   courses: Course[];
 
@@ -145,6 +158,7 @@ export class User {
   enrollments: Enrollment[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

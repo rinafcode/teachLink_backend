@@ -1,4 +1,10 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  PaymentRequiredException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -13,9 +19,18 @@ import {
   UpgradeSubscriptionDto,
   DowngradeSubscriptionDto,
 } from './dto/subscription-action.dto';
+import { PaymentProviderService } from '../providers/payment-provider.service';
 
 /**
- * Handles subscription lifecycle management including pause, resume, upgrade, downgrade
+ * Handles subscription lifecycle management including pause, resume, upgrade, downgrade.
+ *
+ * Issue #1007 — upgradeSubscription and downgradeSubscription now:
+ *  1. Compute the prorated amount/credit BEFORE mutating the subscription.
+ *  2. Attempt the charge or credit via PaymentProviderService.
+ *  3. Only persist the plan change after the payment succeeds.
+ *  4. Leave the subscription on its original plan if the charge fails.
+ *  5. Record the provider chargeId / creditId on the subscription for reconciliation.
+ *  6. Honour prorationType='none' by deferring the plan change to currentPeriodEnd.
  */
 @Injectable()
 export class SubscriptionsService {
@@ -25,6 +40,7 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
+    private paymentProviderService: PaymentProviderService,
   ) {}
 
   /**
@@ -54,6 +70,22 @@ export class SubscriptionsService {
   }
 
   /**
+   * Get subscription by ID, verifying it belongs to the given user
+   */
+  async getSubscriptionForUser(subscriptionId: string, userId: string): Promise<Subscription> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId, userId },
+      relations: ['user'],
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found for this user`);
+    }
+
+    return subscription;
+  }
+
+  /**
    * Pause a subscription
    */
   async pauseSubscription(
@@ -68,7 +100,6 @@ export class SubscriptionsService {
       );
     }
 
-    // Update subscription with pause metadata without canceling the subscription.
     subscription.properties = {
       ...subscription.properties,
       pausedAt: new Date(),
@@ -77,9 +108,8 @@ export class SubscriptionsService {
       isPaused: true,
     };
 
-    const updated = await this.subscriptionRepository.save(subscription);
+    const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
 
-    // Emit event for downstream processing (notify user, analytics, etc.)
     this.eventEmitter.emit('subscription.paused', {
       subscriptionId: updated.id,
       userId: updated.userId,
@@ -87,9 +117,58 @@ export class SubscriptionsService {
       reason: dto.reason,
     });
 
-    this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
+      // Update subscription status to PAUSED
+      subscription.status = SubscriptionStatus.PAUSED;
+      subscription.properties = {
+        ...subscription.properties,
+        pausedAt: new Date(),
+        pauseReason: dto.reason,
+        resumeAt: dto.resumeAt,
+        isPaused: true,
+      };
 
-    return updated;
+      const updated = await this.subscriptionRepository.save(subscription);
+
+      // Schedule automatic resume if resumeAt is provided
+      if (resumeAtDate) {
+        const delayMs = resumeAtDate.getTime() - Date.now();
+        if (delayMs > 0) {
+          await this.queueService.addJob(
+            QUEUE_NAMES.SUBSCRIPTIONS,
+            JOB_NAMES.RESUME_SUBSCRIPTION,
+            { subscriptionId: updated.id },
+            {
+              delay: delayMs,
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 5000,
+              },
+            },
+          );
+          this.logger.log(
+            `Scheduled automatic resume for subscription ${subscriptionId} at ${resumeAtDate.toISOString()}`,
+          );
+        }
+      }
+
+      // Emit event for downstream processing (notify user, analytics, etc.)
+      this.eventEmitter.emit('subscription.paused', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        resumeAt: dto.resumeAt,
+        reason: dto.reason,
+      });
+
+      this.logger.log(`Subscription ${subscriptionId} paused by user ${subscription.userId}`);
+
+      return updated;
+    } catch (error) {
+      this.logger.error(`Failed to pause subscription ${subscriptionId} at provider`, error);
+      throw new BadRequestException(
+        `Failed to pause subscription at provider: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**
@@ -101,11 +180,10 @@ export class SubscriptionsService {
   ): Promise<Subscription> {
     const subscription = await this.getSubscription(subscriptionId);
 
-    if (!subscription.properties?.isPaused) {
+    if (subscription.status !== SubscriptionStatus.PAUSED) {
       throw new BadRequestException('Subscription is not paused');
     }
 
-    // Update subscription to active
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.cancelAtPeriodEnd = false;
     subscription.properties = {
@@ -117,20 +195,32 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for downstream processing
     this.eventEmitter.emit('subscription.resumed', {
       subscriptionId: updated.id,
       userId: updated.userId,
       reason: dto.reason,
     });
 
-    this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
+      this.logger.log(`Subscription ${subscriptionId} resumed by user ${subscription.userId}`);
 
-    return updated;
+      return updated;
+    } catch (error) {
+      this.logger.error(`Failed to resume subscription ${subscriptionId} at provider`, error);
+      throw new BadRequestException(
+        `Failed to resume subscription at provider: ${(error as Error).message}`,
+      );
+    }
   }
 
   /**
-   * Upgrade subscription to a different plan
+   * Upgrade subscription to a higher-priced plan.
+   *
+   * Order of operations (Issue #1007):
+   *  1. Validate state.
+   *  2. Compute proratedAmount (net charge = new prorated charge − old prorated credit).
+   *  3. Charge the customer via the payment provider.
+   *  4. Only if the charge succeeds: update the plan and persist.
+   *  5. On charge failure: leave subscription unchanged and rethrow.
    */
   async upgradeSubscription(
     subscriptionId: string,
@@ -153,14 +243,47 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated amount
+    // Compute proration — do this before any mutation so a failed charge
+    // leaves the subscription record untouched.
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
     const proratedCredit = (oldAmount * daysRemaining) / totalDaysInPeriod;
     const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
+    const proratedAmount = Number((proratedCharge - proratedCredit).toFixed(2));
+    // Calculate prorated amount using cents to avoid floating-point precision errors
+    const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
+    const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
+    const proratedCredit = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
+    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
     const proratedAmount = proratedCharge - proratedCredit;
 
-    // Update subscription
+    // Attempt the charge BEFORE mutating the subscription (Issue #1007).
+    let chargeId: string;
+    try {
+      const chargeResult = await this.paymentProviderService.chargeCustomer(
+        subscription.userId,
+        proratedAmount,
+        subscription.currency,
+        {
+          subscriptionId,
+          oldPlanAmount: oldAmount,
+          newPlanId: dto.planId,
+          type: 'subscription_upgrade_proration',
+        },
+      );
+      chargeId = chargeResult.chargeId;
+    } catch (err) {
+      // Charge failed — subscription is NOT mutated. Propagate so the
+      // controller returns 402 / 400 and the DB record stays on the old plan.
+      this.logger.warn(
+        `Prorated upgrade charge failed for subscription ${subscriptionId}: ${(err as Error).message}`,
+      );
+      throw new PaymentRequiredException(
+        `Prorated charge of ${proratedAmount} ${subscription.currency} failed: ${(err as Error).message}`,
+      );
+    }
+
+    // Payment confirmed — now update the subscription.
     subscription.amount = newAmount;
     subscription.interval = dto.billingCycle
       ? (dto.billingCycle as SubscriptionInterval)
@@ -172,29 +295,39 @@ export class SubscriptionsService {
       proratedAmount,
       proratedCredit,
       proratedCharge,
+      // Record the provider charge ID for reconciliation (Issue #1007).
+      upgradeChargeId: chargeId,
     };
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for payment processing
     this.eventEmitter.emit('subscription.upgraded', {
       subscriptionId: updated.id,
       userId: updated.userId,
       oldAmount,
       newAmount,
       proratedAmount,
+      chargeId,
       planId: dto.planId,
     });
 
     this.logger.log(
-      `Subscription ${subscriptionId} upgraded from $${oldAmount} to $${newAmount} (prorated: $${proratedAmount})`,
+      `Subscription ${subscriptionId} upgraded from $${oldAmount} to $${newAmount} ` +
+        `(prorated charge: $${proratedAmount}, chargeId: ${chargeId})`,
     );
 
     return updated;
   }
 
   /**
-   * Downgrade subscription to a different plan
+   * Downgrade subscription to a lower-priced plan.
+   *
+   * prorationType controls behaviour (Issue #1007):
+   *  - 'credit'  (default) — issue a prorated credit immediately, then apply the lower plan now.
+   *  - 'none'              — defer the plan change to currentPeriodEnd (no credit issued now).
+   *
+   * In both cases the subscription record is only mutated after the provider
+   * call returns successfully.
    */
   async downgradeSubscription(
     subscriptionId: string,
@@ -217,15 +350,88 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated credit based on prorationType
+    const prorationType = dto.prorationType ?? 'credit';
+
+    // 'none' — defer the plan change to the end of the current period.
+    // No charge or credit is issued now; the actual plan switch will be
+    // handled when the subscription renews.
+    if (prorationType === 'none') {
+      subscription.cancelAtPeriodEnd = false;
+      subscription.properties = {
+        ...subscription.properties,
+        pendingDowngrade: {
+          planId: dto.planId,
+          amount: newAmount,
+          billingCycle: dto.billingCycle,
+          scheduledAt: new Date(),
+          effectiveAt: subscription.currentPeriodEnd,
+        },
+        downgradedFrom: { planId: subscription.properties?.planId, amount: oldAmount },
+        prorationType,
+      };
+
+      const updated = await this.subscriptionRepository.save(subscription);
+
+      this.eventEmitter.emit('subscription.downgraded', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        oldAmount,
+        newAmount,
+        prorationType,
+        deferred: true,
+        effectiveAt: subscription.currentPeriodEnd,
+        planId: dto.planId,
+      });
+
+      this.logger.log(
+        `Subscription ${subscriptionId} downgrade deferred to ${subscription.currentPeriodEnd.toISOString()} ` +
+          `(new plan: ${dto.planId}, prorationType: none)`,
+      );
+
+      return updated;
+    }
+
+    // 'credit' (or any other value) — issue the prorated credit immediately
+    // and apply the lower plan now.
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
     const oldProratedCharge = (oldAmount * daysRemaining) / totalDaysInPeriod;
+    const newProratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
+    const proratedCredit = Number((oldProratedCharge - newProratedCharge).toFixed(2));
+
+    // Issue the credit BEFORE mutating the subscription (Issue #1007).
+    let creditId: string;
+    try {
+      const creditResult = await this.paymentProviderService.issueCredit(
+        subscription.userId,
+        proratedCredit,
+        subscription.currency,
+        {
+          subscriptionId,
+          oldPlanAmount: oldAmount,
+          newPlanId: dto.planId,
+          type: 'subscription_downgrade_proration',
+        },
+      );
+      creditId = creditResult.creditId;
+    } catch (err) {
+      // Credit issuance failed — subscription is NOT mutated.
+      this.logger.warn(
+        `Prorated credit issuance failed for subscription ${subscriptionId}: ${(err as Error).message}`,
+      );
+      throw new BadRequestException(
+        `Failed to issue prorated credit of ${proratedCredit} ${subscription.currency}: ${(err as Error).message}`,
+      );
+    }
+    // Calculate prorated credit based on prorationType using cents to avoid floating-point precision errors
+    const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
+    const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
+    const proratedCharge = this.calculateProratedAmount(newAmount, daysRemaining, totalDaysInPeriod);
+    const oldProratedCharge = this.calculateProratedAmount(oldAmount, daysRemaining, totalDaysInPeriod);
     const proratedCredit = oldProratedCharge - proratedCharge;
     const prorationType = dto.prorationType || 'credit';
 
-    // Update subscription
+    // Credit confirmed — now apply the lower plan.
     subscription.amount = newAmount;
     subscription.interval = dto.billingCycle
       ? (dto.billingCycle as SubscriptionInterval)
@@ -236,24 +442,27 @@ export class SubscriptionsService {
       downgradedAt: new Date(),
       prorationType,
       proratedCredit,
-      proratedCharge,
+      // Record the provider credit ID for reconciliation (Issue #1007).
+      downgradeCreditId: creditId,
     };
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for payment/credit processing
     this.eventEmitter.emit('subscription.downgraded', {
       subscriptionId: updated.id,
       userId: updated.userId,
       oldAmount,
       newAmount,
       proratedCredit,
+      creditId,
       prorationType,
+      deferred: false,
       planId: dto.planId,
     });
 
     this.logger.log(
-      `Subscription ${subscriptionId} downgraded from $${oldAmount} to $${newAmount} (credit: $${proratedCredit})`,
+      `Subscription ${subscriptionId} downgraded from $${oldAmount} to $${newAmount} ` +
+        `(prorated credit: $${proratedCredit}, creditId: ${creditId})`,
     );
 
     return updated;
@@ -292,6 +501,12 @@ export class SubscriptionsService {
   async processRenewal(subscriptionId: string, maxRetries = 3): Promise<boolean> {
     const subscription = await this.getSubscription(subscriptionId);
 
+    // Skip paused subscriptions - they should not be renewed
+    if (subscription.status === SubscriptionStatus.PAUSED) {
+      this.logger.log(`Skipping renewal for paused subscription ${subscriptionId}`);
+      return false;
+    }
+
     if (
       subscription.status !== SubscriptionStatus.ACTIVE &&
       subscription.status !== SubscriptionStatus.PAST_DUE
@@ -308,7 +523,6 @@ export class SubscriptionsService {
           `Attempting renewal for subscription ${subscriptionId} (attempt ${attempt}/${maxRetries})`,
         );
 
-        // Emit event for payment processor to handle
         this.eventEmitter.emit('subscription.renewal_attempt', {
           subscriptionId,
           userId: subscription.userId,
@@ -345,7 +559,6 @@ export class SubscriptionsService {
         );
 
         if (attempt === maxRetries) {
-          // Mark as past due after all retries exhausted
           subscription.status = SubscriptionStatus.PAST_DUE;
           subscription.properties = {
             ...subscription.properties,
@@ -365,7 +578,6 @@ export class SubscriptionsService {
           return false;
         }
 
-        // Exponential backoff before next attempt
         const backoffMs = Math.pow(2, attempt - 1) * 1000;
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
@@ -387,9 +599,12 @@ export class SubscriptionsService {
     }, delayMs);
   }
 
+  // ---------------------------------------------------------------------------
   // Helper methods
+  // ---------------------------------------------------------------------------
+
   private async getNewPlanAmount(planId: string, billingCycle?: string): Promise<number> {
-    // For now, use an in-app plan price map; replace with a plan service or database lookup when available.
+    // Static plan price map — replace with a PlanService / DB lookup when available.
     const planPrices: Record<string, number> = {
       'plan-basic': 9.99,
       'plan-pro': 19.99,
@@ -418,6 +633,14 @@ export class SubscriptionsService {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   }
 
+  private calculateProratedAmount(amount: number, daysRemaining: number, totalDaysInPeriod: number): number {
+    // Convert to cents to avoid floating-point precision errors
+    const amountInCents = Math.round(amount * 100);
+    const proratedCents = Math.round((amountInCents * daysRemaining) / totalDaysInPeriod);
+    // Convert back to dollars
+    return proratedCents / 100;
+  }
+
   private calculateDaysInPeriod(interval: SubscriptionInterval): number {
     const intervalDays: Record<SubscriptionInterval, number> = {
       [SubscriptionInterval.WEEKLY]: 7,
@@ -439,7 +662,6 @@ export class SubscriptionsService {
    * Legacy placeholder - for backward compatibility
    */
   async processSubscription(): Promise<unknown> {
-    // Logic to process subscription payments
     return { success: true };
   }
 }

@@ -3,8 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
-import * as bcrypt from 'bcrypt';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 import { User, UserStatus } from '../users/entities/user.entity';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { SecurityEventLogger, SecurityEventType } from '../security/audit/security-event-logger';
@@ -25,9 +24,34 @@ export class AuthService {
   ) {}
 
   /**
+   * Centralized security invariant asserting user account state prior to issuing tokens.
+   * Prevents inactive, suspended, pending, or banned users from obtaining access or refresh tokens.
+   */
+  public assertUserMayAuthenticate(user: User, action = 'auth', ip?: string): void {
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      if (user) {
+        this.securityEventLogger.emit({
+          eventType: SecurityEventType.ACCOUNT_LOCKED,
+          userId: user.id,
+          ip,
+          severity: 'high',
+          details: {
+            reason: 'inactive_user_auth_attempt',
+            action,
+            status: user.status,
+          },
+        });
+      }
+      throw new UnauthorizedException('User is not active');
+    }
+  }
+
+  /**
    * Generates tokens for the user and saves the refresh token hash.
    */
-  async login(user: User) {
+  async login(user: User, ip?: string) {
+    this.assertUserMayAuthenticate(user, 'login', ip);
+
     const tokens = await this.generateTokens(user);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
     return tokens;
@@ -86,22 +110,13 @@ export class AuthService {
       throw new UnauthorizedException('Access Denied');
     }
 
-    if (user.status !== UserStatus.ACTIVE) {
-      this.securityEventLogger.emit({
-        eventType: SecurityEventType.ACCOUNT_LOCKED,
-        userId,
-        ip,
-        severity: 'high',
-        details: {
-          reason: 'inactive_user_refresh_attempt',
-          action: 'refreshTokens',
-          status: user.status,
-        },
-      });
-      throw new UnauthorizedException('User is not active');
-    }
+    this.assertUserMayAuthenticate(user, 'refreshTokens', ip);
 
-    const refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+    const refreshTokenMatches = timingSafeEqual(
+      Buffer.from(this.hashRefreshToken(refreshToken)),
+      Buffer.from(user.refreshToken),
+    );
+
     if (!refreshTokenMatches) {
       this.securityEventLogger.emit({
         eventType: SecurityEventType.AUTH_FAILURE,
@@ -190,17 +205,21 @@ export class AuthService {
     await this.userRepository.update(userId, { refreshToken: null });
   }
 
+  private hashRefreshToken(token: string): string {
+    const secret =
+      process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+    return createHmac('sha256', secret).update(token).digest('hex');
+  }
+
   private async updateRefreshTokenHash(userId: string, refreshToken: string) {
-    const rounds = Number(this.configService.get('BCRYPT_ROUNDS', 12));
-    const salt = await bcrypt.genSalt(rounds);
-    const hash = await bcrypt.hash(refreshToken, salt);
+    const hash = this.hashRefreshToken(refreshToken);
     await this.userRepository.update(userId, { refreshToken: hash });
   }
 
   private async generateTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessJti = uuidv4();
-    const refreshJti = uuidv4();
+    const accessJti = randomUUID();
+    const refreshJti = randomUUID();
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(

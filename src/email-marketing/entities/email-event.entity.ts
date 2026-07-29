@@ -6,7 +6,7 @@ import {
   Index,
   VersionColumn,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EmailEventType } from '../enums/email-event-type.enum';
 
 /**
@@ -15,6 +15,7 @@ import { EmailEventType } from '../enums/email-event-type.enum';
 @Entity('email_events')
 @Index(['campaignId', 'eventType'])
 @Index(['recipientId', 'eventType'])
+@Index(['workflowId', 'eventType'])
 export class EmailEvent {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
@@ -34,6 +35,14 @@ export class EmailEvent {
   @ApiProperty({ enum: EmailEventType })
   @Column({ type: 'enum', enum: EmailEventType })
   eventType: EmailEventType;
+
+  @ApiPropertyOptional()
+  @Column({ nullable: true })
+  workflowId?: string;
+
+  @ApiPropertyOptional()
+  @Column({ type: 'jsonb', nullable: true })
+  metadata?: Record<string, unknown>;
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })

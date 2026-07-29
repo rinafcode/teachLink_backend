@@ -286,9 +286,28 @@ describe('SessionService', () => {
       expect(SessionService.parseDurationToSeconds(' 7d ')).toBe(604800);
     });
 
-    it('should return 0 for unrecognized formats', () => {
-      expect(SessionService.parseDurationToSeconds('invalid')).toBe(0);
-      expect(SessionService.parseDurationToSeconds('')).toBe(0);
+    it('should throw for unrecognized formats instead of silently returning 0', () => {
+      expect(() => SessionService.parseDurationToSeconds('invalid')).toThrow(
+        'Unparseable duration string: "invalid"',
+      );
+      expect(() => SessionService.parseDurationToSeconds('')).toThrow(
+        'Unparseable duration string: ""',
+      );
+    });
+
+    it('should throw for ambiguous formats like "7days" or "1 d"', () => {
+      expect(() => SessionService.parseDurationToSeconds('7days')).toThrow(
+        'Unparseable duration string: "7days"',
+      );
+      expect(() => SessionService.parseDurationToSeconds('1 d')).toThrow(
+        'Unparseable duration string: "1 d"',
+      );
+    });
+
+    it('should distinguish genuine "0" from unparseable values', () => {
+      expect(SessionService.parseDurationToSeconds('0')).toBe(0);
+      expect(SessionService.parseDurationToSeconds('0s')).toBe(0);
+      expect(() => SessionService.parseDurationToSeconds('zero')).toThrow();
     });
   });
 

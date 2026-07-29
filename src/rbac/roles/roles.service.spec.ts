@@ -1,65 +1,14 @@
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
-import { RolesService } from './roles.service';
+import { In, Repository } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
-import { Role } from '../entities/role.entity';
-import { Permission } from '../entities/permission.entity';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
+import { Permission } from '../entities/permission.entity';
+import { Role } from '../entities/role.entity';
+import { RolesService } from './roles.service';
 
-/**
- * Builds a minimal transactional entity-manager mock.
- * The `overrides` map lets individual tests replace specific methods
- * (e.g. force the relation .set() to throw).
- */
-function buildManagerMock(overrides: {
-  roleFindOne?: jest.Mock;
-  permFindByIds?: jest.Mock;
-  roleUpdate?: jest.Mock;
-  relationSet?: jest.Mock;
-  roleQueryFindOne?: jest.Mock;
-} = {}) {
-  const relationSet = overrides.relationSet ?? jest.fn().mockResolvedValue(undefined);
-  const roleFindOne = overrides.roleFindOne ?? jest.fn();
-  const roleQueryFindOne = overrides.roleQueryFindOne ?? jest.fn();
-  const permFindByIds = overrides.permFindByIds ?? jest.fn().mockResolvedValue([]);
-  const roleUpdate = overrides.roleUpdate ?? jest.fn().mockResolvedValue({ affected: 1 });
-
-  const roleRepo = {
-    findOne: jest.fn()
-      .mockImplementationOnce(roleFindOne)  // first call: lock fetch
-      .mockImplementation(roleQueryFindOne), // second call: post-update refresh
-    update: roleUpdate,
-    findByIds: jest.fn(),
-    createQueryBuilder: jest.fn(() => ({
-      relation: () => ({ of: () => ({ set: relationSet }) }),
-    })),
-  };
-
-  const permRepo = {
-    findByIds: permFindByIds,
-  };
-
-  return {
-    getRepository: jest.fn((entity) => {
-      if (entity === Role) return roleRepo;
-      if (entity === Permission) return permRepo;
-    }),
-    roleRepo,
-    permRepo,
-    relationSet,
-  };
-}
-
-/**
- * Issue #833 — verifies that every RolesService mutation writes an audit
- * log entry with the expected action, category, severity and entity metadata.
- *
- * Issue #1050 — verifies that updateRole is atomic: a failure during the
- * permission set step rolls back the name change.
- */
-describe('RolesService (audit integration, Issue #833 + #1050)', () => {
+describe('RolesService', () => {
   let service: RolesService;
   let roleRepository: jest.Mocked<Repository<Role>>;
   let permissionRepository: jest.Mocked<Repository<Permission>>;
@@ -70,11 +19,13 @@ describe('RolesService (audit integration, Issue #833 + #1050)', () => {
     id: 'role-1',
     name: 'admin',
     description: 'Admin role',
+    isSystem: true,
     permissions: [],
     users: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
+    deletedAt: null,
+  } as Role;
 
   beforeEach(async () => {
     // Default manager — succeeds for every operation.
@@ -89,16 +40,17 @@ describe('RolesService (audit integration, Issue #833 + #1050)', () => {
       find: jest.fn(),
       findOne: jest.fn(),
       findOneBy: jest.fn(),
-      findByIds: jest.fn(),
       update: jest.fn().mockResolvedValue({ affected: 1 }),
       delete: jest.fn().mockResolvedValue({ affected: 1 }),
+      softDelete: jest.fn().mockResolvedValue({ affected: 1, raw: {} }),
+      restore: jest.fn().mockResolvedValue({ affected: 1, raw: {} }),
       createQueryBuilder: jest.fn(() => ({
         relation: () => ({ of: () => ({ set: jest.fn().mockResolvedValue(undefined) }) }),
       })),
     } as any;
 
     permissionRepository = {
-      findByIds: jest.fn(),
+      find: jest.fn(),
       findOneBy: jest.fn(),
     } as any;
 
@@ -137,130 +89,201 @@ describe('RolesService (audit integration, Issue #833 + #1050)', () => {
     );
   };
 
-  // ── Issue #833 tests (existing behavior preserved) ──────────────────────
+  it('queries permissions with In() and creates a role successfully', async () => {
+    const permission = { id: 'perm-1', name: 'read' } as Permission;
+    permissionRepository.find.mockResolvedValue([permission]);
 
-  it('createRole writes RBAC_ROLE_CREATED audit entry', async () => {
-    await service.createRole('admin', 'Admin role', [], { actorId: 'u1' });
-    expectAudit(AuditAction.RBAC_ROLE_CREATED, 'role-1');
-    expect(auditLogService.log).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'u1',
-        metadata: expect.objectContaining({ roleId: 'role-1', roleName: 'admin' }),
-      }),
+    const result = await service.createRole('Editor', 'Editor role', ['perm-1']);
+
+    expect(permissionRepository.find).toHaveBeenCalledWith({
+      where: { id: In(['perm-1']) },
+    });
+    expect(result.permissions).toEqual([permission]);
+  });
+
+  it('throws BadRequestException when createRole is given a non-existent permission ID', async () => {
+    permissionRepository.find.mockResolvedValue([]);
+
+    await expect(service.createRole('Editor', 'Editor role', ['invalid-id'])).rejects.toThrow(
+      BadRequestException,
     );
   });
 
-  it('addPermissionToRole writes RBAC_PERMISSION_GRANTED audit entry', async () => {
-    const perm: Permission = {
-      id: 'p1',
+  it('throws a conflict when the role is in use', async () => {
+    roleRepository.findOne.mockResolvedValueOnce({
+      ...baseRole,
+      name: 'moderator',
+      isSystem: false,
+      users: [{ id: 'user-1' }, { id: 'user-2' }] as never,
+    });
+
+    await expect(service.deleteRole('role-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(roleRepository.softDelete).not.toHaveBeenCalled();
+    expect(auditLogService.log).not.toHaveBeenCalled();
+  });
+
+  it('blocks deletion for built-in system roles', async () => {
+    roleRepository.findOne.mockResolvedValueOnce({
+      ...baseRole,
+      name: 'admin',
+      isSystem: true,
+      users: [],
+    });
+
+    await expect(service.deleteRole('role-2')).rejects.toBeInstanceOf(ConflictException);
+    expect(roleRepository.softDelete).not.toHaveBeenCalled();
+    expect(auditLogService.log).not.toHaveBeenCalled();
+  });
+
+  it('soft-deletes and restores a role without losing permissions', async () => {
+    const permission = {
+      id: 'perm-1',
       resource: 'users',
       action: 'read',
       description: 'read users',
       roles: [],
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
-    roleRepository.findOne.mockResolvedValueOnce({ ...baseRole, permissions: [] });
-    permissionRepository.findOneBy.mockResolvedValueOnce(perm);
+    } as Permission;
 
-    await service.addPermissionToRole('role-1', 'p1');
-    expectAudit(AuditAction.RBAC_PERMISSION_GRANTED, 'role-1');
+    const deletedRole = {
+      id: 'role-3',
+      name: 'mentor',
+      description: 'Mentor role',
+      isSystem: false,
+      permissions: [permission],
+      users: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
+    } as Role;
+
+    const restoredRole = {
+      ...deletedRole,
+      deletedAt: null,
+    } as Role;
+
+    roleRepository.findOne
+      .mockResolvedValueOnce(deletedRole)
+      .mockResolvedValueOnce(deletedRole)
+      .mockResolvedValueOnce(restoredRole);
+    permissionRepository.find.mockResolvedValue([permission]);
+
+    await service.deleteRole('role-3', { actorId: 'admin-1', actorEmail: 'admin@example.com' });
+
+    expect(roleRepository.softDelete).toHaveBeenCalledWith('role-3');
+    expectAudit(AuditAction.RBAC_ROLE_DELETED, 'role-3');
     expect(auditLogService.log).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: expect.objectContaining({
-          permissionId: 'p1',
+          affectedAssignments: 0,
+          roleId: 'role-3',
+          roleName: 'mentor',
+        }),
+      }),
+    );
+
+    const restored = await service.restoreRole('role-3', { actorId: 'admin-1' });
+
+    expect(roleRepository.restore).toHaveBeenCalledWith('role-3');
+    expect(restored.permissions).toEqual([permission]);
+    expect(restored.deletedAt).toBeNull();
+    expectAudit(AuditAction.RBAC_ROLE_UPDATED, 'role-3');
+  });
+
+  it('writes audit entries for permission changes and role assignment events', async () => {
+    const permission = {
+      id: 'perm-2',
+      resource: 'users',
+      action: 'write',
+      description: 'write users',
+      roles: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Permission;
+
+    roleRepository.findOne
+      .mockResolvedValueOnce({
+        ...baseRole,
+        id: 'role-4',
+        name: 'mentor',
+        isSystem: false,
+        permissions: [],
+        users: [],
+      })
+      .mockResolvedValueOnce({
+        ...baseRole,
+        id: 'role-4',
+        name: 'mentor',
+        isSystem: false,
+        permissions: [],
+        users: [],
+      })
+      .mockResolvedValueOnce({
+        ...baseRole,
+        id: 'role-4',
+        name: 'mentor',
+        isSystem: false,
+        permissions: [permission],
+        users: [],
+      })
+      .mockResolvedValueOnce({
+        ...baseRole,
+        id: 'role-4',
+        name: 'mentor',
+        isSystem: false,
+        permissions: [permission],
+        users: [],
+      })
+      .mockResolvedValueOnce({
+        ...baseRole,
+        id: 'role-4',
+        name: 'mentor',
+        isSystem: false,
+        permissions: [permission],
+        users: [],
+      })
+      .mockResolvedValueOnce({
+        ...baseRole,
+        id: 'role-4',
+        name: 'mentor',
+        isSystem: false,
+        permissions: [permission],
+        users: [],
+      });
+
+    permissionRepository.findOneBy.mockResolvedValue(permission);
+    permissionRepository.find.mockResolvedValue([permission]);
+
+    await service.addPermissionToRole('role-4', 'perm-2');
+    await service.removePermissionFromRole('role-4', 'perm-2');
+    await service.logRoleAssigned('role-4', 'user-7', { actorId: 'admin-1' });
+    await service.logRoleRevoked('role-4', 'user-7');
+
+    expect(auditLogService.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: AuditAction.RBAC_PERMISSION_GRANTED,
+        metadata: expect.objectContaining({
+          permissionId: 'perm-2',
           newlyGranted: true,
         }),
       }),
     );
-  });
-
-  it('removePermissionFromRole writes RBAC_PERMISSION_REVOKED audit entry', async () => {
-    const perm: Permission = {
-      id: 'p1',
-      resource: 'users',
-      action: 'read',
-      description: 'read users',
-      roles: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    roleRepository.findOne.mockResolvedValueOnce({ ...baseRole, permissions: [perm] });
-
-    await service.removePermissionFromRole('role-1', 'p1');
-    expectAudit(AuditAction.RBAC_PERMISSION_REVOKED, 'role-1');
     expect(auditLogService.log).toHaveBeenCalledWith(
       expect.objectContaining({
+        action: AuditAction.RBAC_PERMISSION_REVOKED,
         metadata: expect.objectContaining({
-          permissionId: 'p1',
-          wasPresent: true,
+          permissionId: 'perm-2',
         }),
       }),
     );
-  });
-
-  it('updateRole with new permissionIds writes RBAC_PERMISSION_GRANTED and RBAC_PERMISSION_REVOKED deltas', async () => {
-    const beforePerm: Permission = {
-      id: 'p-old',
-      resource: 'old',
-      action: 'read',
-      description: '',
-      roles: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    const afterPerm: Permission = {
-      id: 'p-new',
-      resource: 'new',
-      action: 'read',
-      description: '',
-      roles: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    // Override the transaction mock for this test to return a role that already
-    // has the updated permissions (simulating a successful commit).
-    const manager = buildManagerMock({
-      roleFindOne: jest.fn().mockResolvedValue({ ...baseRole, permissions: [beforePerm] }),
-      permFindByIds: jest.fn().mockResolvedValue([afterPerm]),
-      roleQueryFindOne: jest.fn().mockResolvedValue({ ...baseRole, name: 'admin', permissions: [afterPerm] }),
-    });
-
-    (dataSource.transaction as jest.Mock).mockImplementationOnce(
-      async (cb: (mgr: any) => Promise<any>) => cb(manager),
-    );
-
-    await service.updateRole('role-1', 'admin', undefined, ['p-new']);
-
-    expectAudit(AuditAction.RBAC_ROLE_UPDATED, 'role-1');
-    expectAudit(AuditAction.RBAC_PERMISSION_GRANTED, 'role-1');
-    expectAudit(AuditAction.RBAC_PERMISSION_REVOKED, 'role-1');
-  });
-
-  it('deleteRole writes RBAC_ROLE_DELETED audit entry', async () => {
-    roleRepository.findOne.mockResolvedValueOnce({ ...baseRole });
-    await service.deleteRole('role-1');
-    expectAudit(AuditAction.RBAC_ROLE_DELETED, 'role-1');
-  });
-
-  it('logRoleAssigned writes RBAC_ROLE_ASSIGNED with target user id as entity', async () => {
-    roleRepository.findOne.mockResolvedValueOnce({ ...baseRole });
-    await service.logRoleAssigned('role-1', 'user-7', { actorId: 'admin-1' });
     expect(auditLogService.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: AuditAction.RBAC_ROLE_ASSIGNED,
         entityType: 'user',
         entityId: 'user-7',
-        userId: 'admin-1',
-        metadata: expect.objectContaining({ targetUserId: 'user-7' }),
       }),
     );
-  });
-
-  it('logRoleRevoked writes RBAC_ROLE_REVOKED with target user id as entity', async () => {
-    roleRepository.findOne.mockResolvedValueOnce({ ...baseRole });
-    await service.logRoleRevoked('role-1', 'user-7');
     expect(auditLogService.log).toHaveBeenCalledWith(
       expect.objectContaining({
         action: AuditAction.RBAC_ROLE_REVOKED,

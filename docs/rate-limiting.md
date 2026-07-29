@@ -4,15 +4,15 @@ The API uses a preset-based rate limiting system that applies different limits d
 
 ## Rate Limit Presets
 
-| Preset | Limit | Window | Endpoints |
-|--------|-------|--------|-----------|
-| `STRICT` | 3 requests | per hour | Registration, sensitive operations |
-| `AUTH_LOGIN` | 5 requests | per 15 minutes | Login attempts |
-| `AUTH_DEFAULT` | 5 requests | per hour | Password reset, forgot password |
-| `MODERATE` | 10 requests | per hour | Payments, media uploads |
-| `REFRESH` | 20 requests | per minute | Token refresh |
-| `SEARCH` | 30 requests | per minute | Search endpoints |
-| `QUEUE_ADMIN` | 60 requests | per minute | Admin queue operations |
+| Preset         | Limit       | Window         | Endpoints                          |
+| -------------- | ----------- | -------------- | ---------------------------------- |
+| `STRICT`       | 3 requests  | per hour       | Registration, sensitive operations |
+| `AUTH_LOGIN`   | 5 requests  | per 15 minutes | Login attempts                     |
+| `AUTH_DEFAULT` | 5 requests  | per hour       | Password reset, forgot password    |
+| `MODERATE`     | 10 requests | per hour       | Payments, media uploads            |
+| `REFRESH`      | 20 requests | per minute     | Token refresh                      |
+| `SEARCH`       | 30 requests | per minute     | Search endpoints                   |
+| `QUEUE_ADMIN`  | 60 requests | per minute     | Admin queue operations             |
 
 ## Response Headers
 

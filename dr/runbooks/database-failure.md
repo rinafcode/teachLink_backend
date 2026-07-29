@@ -2,12 +2,12 @@
 
 ## Quick Reference
 
-| Metric | Value |
-|--------|-------|
-| **Alert**: | DISASTER_RECOVERY_FAILED or DATABASE_CONNECTION_ERROR |
-| **RTO**: | ≤ 15 minutes |
-| **RPO**: | ≤ 7 days |
-| **Escalation**: | On-call Engineer → Platform Lead (if RTO exceeded) |
+| Metric          | Value                                                 |
+| --------------- | ----------------------------------------------------- |
+| **Alert**:      | DISASTER_RECOVERY_FAILED or DATABASE_CONNECTION_ERROR |
+| **RTO**:        | ≤ 15 minutes                                          |
+| **RPO**:        | ≤ 7 days                                              |
+| **Escalation**: | On-call Engineer → Platform Lead (if RTO exceeded)    |
 
 ---
 
@@ -16,6 +16,7 @@
 ### Symptom 1: API Returns 500 Errors on All Database Queries
 
 **Observable Indicators**:
+
 ```
 GET /api/courses → 500 Internal Server Error
 GET /api/users/me → 500 Internal Server Error
@@ -23,6 +24,7 @@ GET /health → "database": "down"
 ```
 
 **Root Causes**:
+
 - PostgreSQL process crashed
 - Connection pool exhausted
 - Network partition between app and database
@@ -32,11 +34,13 @@ GET /health → "database": "down"
 ### Symptom 2: Health Check Fails
 
 **Check health endpoint**:
+
 ```bash
 curl -s http://api.teachlink.local/health | jq .
 ```
 
 **Expected output on failure**:
+
 ```json
 {
   "status": "unhealthy",
@@ -49,6 +53,7 @@ curl -s http://api.teachlink.local/health | jq .
 ### Symptom 3: Alerts in Monitoring
 
 **PagerDuty alerts that trigger this runbook**:
+
 - `DISASTER_RECOVERY_FAILED` (CRITICAL)
 - `DATABASE_CONNECTION_ERROR` (CRITICAL)
 - `DB_POOL_EXHAUSTED` (CRITICAL)
@@ -89,6 +94,7 @@ aws rds describe-db-instances \
 **Expected healthy status**: `available`
 
 **Unhealthy statuses that need recovery**:
+
 - `failed` — Failure detected; recovery needed
 - `storage-full` — Out of disk space
 - `incompatible-parameters` — Parameter change failed
@@ -117,6 +123,7 @@ kubectl logs -n production api-pod-abc123 -f --tail=50
 **Timeline**: 2-3 minutes
 
 **Check if database auto-recovered**:
+
 ```bash
 # Retry connection after 30 seconds
 psql -h teachlink-primary-db.us-east-1.rds.amazonaws.com \
@@ -126,6 +133,7 @@ psql -h teachlink-primary-db.us-east-1.rds.amazonaws.com \
 ```
 
 **If successful**:
+
 ```
 ✅ Database recovered automatically
 → Skip to "Verification" section
@@ -193,6 +201,7 @@ aws rds modify-db-instance \
 **Timeline**: 12-15 minutes
 
 **Triggers this path if**:
+
 - Database volume corrupted or unrecoverable
 - Connection still fails after 2 minutes of Path B troubleshooting
 - RTO timer has < 10 minutes remaining
@@ -284,6 +293,7 @@ kubectl logs -n production deployment/api -f --all-containers=true | grep -i res
 **Step 4: Verify restore completion**
 
 Wait for restore to complete:
+
 ```bash
 # Check final status
 curl -s "http://api.teachlink.local/backup/restore/$RESTORE_ID/status" \
@@ -379,6 +389,7 @@ curl -s "http://api.teachlink.local/admin/data-integrity-check" \
 **Issue: Connection still refused after 10 minutes**
 
 **Diagnosis**:
+
 ```bash
 # Check if database process is running
 aws rds describe-db-instances \
@@ -502,12 +513,12 @@ Include:
 
 ### When to Escalate (Trigger Points)
 
-| Condition | Action | Contact |
-|-----------|--------|---------|
-| RTO exceeded (> 15 min) | Escalate immediately | Platform Lead, CTO |
-| Restore still failing (> 12 min) | Call AWS Support | +1-206-555-0100 (AWS Support) |
-| Data integrity issues post-recovery | Escalate to CTO | Schedule urgent meeting |
-| Multiple database failures in 24 hours | Escalate to infrastructure | Plan capacity increase |
+| Condition                              | Action                     | Contact                       |
+| -------------------------------------- | -------------------------- | ----------------------------- |
+| RTO exceeded (> 15 min)                | Escalate immediately       | Platform Lead, CTO            |
+| Restore still failing (> 12 min)       | Call AWS Support           | +1-206-555-0100 (AWS Support) |
+| Data integrity issues post-recovery    | Escalate to CTO            | Schedule urgent meeting       |
+| Multiple database failures in 24 hours | Escalate to infrastructure | Plan capacity increase        |
 
 ### Escalation Contacts
 
@@ -522,13 +533,13 @@ AWS Support: https://console.aws.amazon.com/support
 
 ## Appendix: Common Errors & Solutions
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `ECONNREFUSED` | Database process down | Reboot RDS instance |
-| `FATAL: password authentication failed` | Auth credentials wrong | Check AWS Secrets Manager (DB_PASSWORD) |
-| `FATAL: too many connections` | Pool exhausted | Restart application pods |
-| `ERROR: relation "users" does not exist` | Schema corruption | Restore from backup |
-| `disk space low` | Storage at 90%+ | Extend EBS volume or clean old logs |
+| Error                                    | Cause                  | Solution                                |
+| ---------------------------------------- | ---------------------- | --------------------------------------- |
+| `ECONNREFUSED`                           | Database process down  | Reboot RDS instance                     |
+| `FATAL: password authentication failed`  | Auth credentials wrong | Check AWS Secrets Manager (DB_PASSWORD) |
+| `FATAL: too many connections`            | Pool exhausted         | Restart application pods                |
+| `ERROR: relation "users" does not exist` | Schema corruption      | Restore from backup                     |
+| `disk space low`                         | Storage at 90%+        | Extend EBS volume or clean old logs     |
 
 ---
 

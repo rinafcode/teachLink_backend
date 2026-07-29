@@ -57,4 +57,27 @@ export class PreferencesService {
     preferences[channel] = !preferences[channel];
     return this.preferencesRepository.save(preferences);
   }
+
+  /**
+   * Unsubscribe user from a specific event type or all notifications.
+   * If eventType is 'all', sets globalUnsubscribe to true.
+   * Otherwise, sets the event frequency to 'never' for that event type.
+   */
+  async unsubscribe(
+    userId: string,
+    eventType: string,
+  ): Promise<NotificationPreferences> {
+    const preferences = await this.getPreferences(userId);
+
+    if (eventType === 'all') {
+      preferences.globalUnsubscribe = true;
+    } else {
+      if (!preferences.eventFrequency) {
+        preferences.eventFrequency = {};
+      }
+      preferences.eventFrequency[eventType] = 'never';
+    }
+
+    return this.preferencesRepository.save(preferences);
+  }
 }
