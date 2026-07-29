@@ -44,12 +44,15 @@ export class StatisticalAnalysisService {
     // significant margin based on confidence level and metric variance.
     const experiment = await this.experimentRepository.findOne({
       where: { id: experimentId },
-      relations: ['variants', 'variants.metrics'],
+      relations: ['variants'],
     });
 
     if (!experiment) {
       throw new Error(`Experiment with ID ${experimentId} not found`);
     }
+
+    // Batch-load all variant metrics in a single query to avoid per-variant DB reads.
+    const metricsByVariant = await this.getVariantMetricsForExperiment(experimentId);
 
     const results: ISignificanceResults = {
       experimentId: experiment.id,
@@ -59,17 +62,22 @@ export class StatisticalAnalysisService {
     };
 
     for (const variant of experiment.variants) {
-      const variantAnalysis = await this.analyzeVariant(variant, experiment.confidenceLevel);
+      const variantAnalysis = await this.analyzeVariant(
+        variant,
+        experiment.confidenceLevel,
+        metricsByVariant,
+      );
       results.variants.push(variantAnalysis);
     }
 
     const controlVariant = experiment.variants.find((v) => v.isControl);
     if (controlVariant) {
-      const controlMetrics = await this.getVariantMetrics(controlVariant.id);
+      const controlMetrics = metricsByVariant.get(controlVariant.id) || [];
       results.statisticallySignificant = await this.checkSignificanceAgainstControl(
         experiment.variants,
         controlMetrics,
         experiment.confidenceLevel,
+        metricsByVariant,
       );
     }
 
@@ -93,13 +101,16 @@ export class StatisticalAnalysisService {
       throw new Error('No control variant found');
     }
 
+    // Batch-load all variant metrics once and reuse the map.
+    const metricsByVariant = await this.getVariantMetricsForExperiment(experimentId);
+    const controlMetrics = metricsByVariant.get(controlVariant.id) || [];
+
     const effectSizes: IEffectSizeResult['effectSizes'] = [];
 
     for (const variant of experiment.variants) {
       if (variant.id === controlVariant.id) continue;
 
-      const controlMetrics = await this.getVariantMetrics(controlVariant.id);
-      const variantMetrics = await this.getVariantMetrics(variant.id);
+      const variantMetrics = metricsByVariant.get(variant.id) || [];
       const effectSize = this.calculateCohensD(controlMetrics, variantMetrics);
 
       effectSizes.push({
@@ -117,11 +128,39 @@ export class StatisticalAnalysisService {
     };
   }
 
+  /**
+   * Loads all variant metrics for the given experiment in a single query
+   * and groups them by variant ID to avoid per-variant DB round-trips.
+   */
+  private async getVariantMetricsForExperiment(
+    experimentId: string,
+  ): Promise<Map<string, VariantMetric[]>> {
+    // Fetch all metrics whose variant belongs to the experiment in one query.
+    const allMetrics = await this.variantMetricRepository.find({
+      where: { variant: { experiment: { id: experimentId } } },
+      relations: ['variant'],
+    });
+
+    const metricsByVariant = new Map<string, VariantMetric[]>();
+    for (const metric of allMetrics) {
+      const variantId = metric.variant.id;
+      const existing = metricsByVariant.get(variantId);
+      if (existing) {
+        existing.push(metric);
+      } else {
+        metricsByVariant.set(variantId, [metric]);
+      }
+    }
+
+    return metricsByVariant;
+  }
+
   private async analyzeVariant(
     variant: IExperimentVariant,
     confidenceLevel: number,
+    metricsByVariant: Map<string, VariantMetric[]>,
   ): Promise<Record<string, unknown>> {
-    const metrics = await this.getVariantMetrics(variant.id);
+    const metrics = metricsByVariant.get(variant.id) || [];
 
     const analysis = {
       variantId: variant.id,
@@ -176,16 +215,11 @@ export class StatisticalAnalysisService {
     };
   }
 
-  private async getVariantMetrics(variantId: string): Promise<VariantMetric[]> {
-    return await this.variantMetricRepository.find({
-      where: { variant: { id: variantId } },
-    });
-  }
-
   private async checkSignificanceAgainstControl(
     variants: IExperimentVariant[],
     controlMetrics: VariantMetric[],
     confidenceLevel: number,
+    metricsByVariant: Map<string, VariantMetric[]>,
   ): Promise<boolean> {
     const controlVariant = variants.find((v) => v.isControl);
     if (!controlVariant) return false;
@@ -193,7 +227,7 @@ export class StatisticalAnalysisService {
     for (const variant of variants) {
       if (variant.id === controlVariant.id) continue;
 
-      const variantMetrics = await this.getVariantMetrics(variant.id);
+      const variantMetrics = metricsByVariant.get(variant.id) || [];
 
       for (let i = 0; i < controlMetrics.length && i < variantMetrics.length; i++) {
         const controlMetric = controlMetrics[i];
