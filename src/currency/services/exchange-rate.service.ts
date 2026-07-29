@@ -8,12 +8,18 @@ interface ExchangeRates {
   [currency: string]: number;
 }
 
+interface StaleEntry {
+  rate: number;
+  recordedAt: number;
+}
+
 @Injectable()
 export class ExchangeRateService {
   private readonly logger = new Logger(ExchangeRateService.name);
   private readonly baseCurrency = 'USD';
   private readonly cacheTtlSeconds = 3600;
   private readonly staleTtlSeconds = 7200;
+  private readonly maxStaleSeconds: number;
 
   private readonly fallbackRates: ExchangeRates = {
     EUR: 0.92,
@@ -41,7 +47,9 @@ export class ExchangeRateService {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly cachingService: CachingService,
-  ) {}
+  ) {
+    this.maxStaleSeconds = this.configService.get<number>('EXCHANGE_RATE_MAX_STALE_SECONDS', 86400);
+  }
 
   async getExchangeRate(fromCurrency: string, toCurrency: string): Promise<number> {
     const from = fromCurrency.toUpperCase();
@@ -59,24 +67,43 @@ export class ExchangeRateService {
       return fresh;
     }
 
-    const stale = await this.cachingService.get<number>(staleKey);
+    const stale = await this.cachingService.get<StaleEntry>(staleKey);
     if (stale !== undefined) {
-      this.refreshInBackground(from, to, cacheKey, staleKey);
-      return stale;
+      // Bounded staleness — discard if entry is older than maxStaleSeconds
+      if (Date.now() - stale.recordedAt <= this.maxStaleSeconds * 1000) {
+        this.refreshInBackground(from, to, cacheKey, staleKey);
+        return stale.rate;
+      }
+      // Entry too stale; fall through to fetch fresh
+      await this.cachingService.delete(staleKey);
     }
 
     try {
       return await this.cachingService.getOrSet(
         cacheKey,
         async () => {
-          const rate = await this.fetchRateFromApi(from, to);
-          await this.cachingService.set(staleKey, rate, this.staleTtlSeconds);
+          const rate = await this.fetchRateWithFallback(from, to);
+          await this.cachingService.set(staleKey, { rate, recordedAt: Date.now() }, this.staleTtlSeconds);
           return rate;
         },
         this.cacheTtlSeconds,
       );
     } catch {
       return this.computeFromFallback(from, to);
+    }
+  }
+
+  private async fetchRateWithFallback(from: string, to: string): Promise<number> {
+    try {
+      return await this.fetchRateFromApi(from, to);
+    } catch (primaryError) {
+      this.logger.warn(`Primary API failed for ${from}:${to}, trying secondary`, primaryError);
+      try {
+        return await this.fetchRateFromSecondaryApi(from, to);
+      } catch (secondaryError) {
+        this.logger.warn(`Secondary API also failed for ${from}:${to}`, secondaryError);
+        throw new Error('All exchange rate providers unavailable');
+      }
     }
   }
 
@@ -107,6 +134,33 @@ export class ExchangeRateService {
     return toRate / fromRate;
   }
 
+  private async fetchRateFromSecondaryApi(from: string, to: string): Promise<number> {
+    const secondaryUrl = this.configService.get<string>(
+      'EXCHANGE_RATE_SECONDARY_API_URL',
+      'https://open.er-api.com/v6/latest/USD',
+    );
+
+    const response = await firstValueFrom(this.httpService.get(secondaryUrl, { timeout: 5000 }));
+
+    if (!response.data?.rates) {
+      throw new Error('Invalid secondary API response: missing rates');
+    }
+
+    const rates: ExchangeRates = response.data.rates;
+    const fromRate = rates[from] || 1;
+    const toRate = rates[to] || 1;
+
+    if (from === this.baseCurrency) {
+      return toRate;
+    }
+
+    if (to === this.baseCurrency) {
+      return 1 / fromRate;
+    }
+
+    return toRate / fromRate;
+  }
+
   private async refreshInBackground(
     from: string,
     to: string,
@@ -114,10 +168,10 @@ export class ExchangeRateService {
     staleKey: string,
   ): Promise<void> {
     try {
-      const rate = await this.fetchRateFromApi(from, to);
+      const rate = await this.fetchRateWithFallback(from, to);
       await Promise.all([
         this.cachingService.set(cacheKey, rate, this.cacheTtlSeconds),
-        this.cachingService.set(staleKey, rate, this.staleTtlSeconds),
+        this.cachingService.set(staleKey, { rate, recordedAt: Date.now() }, this.staleTtlSeconds),
       ]);
     } catch (error) {
       this.logger.warn(`Background refresh failed for ${from}:${to}`, error);
