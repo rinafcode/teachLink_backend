@@ -96,6 +96,7 @@ function createMockRedisClient() {
   return {
     get: jest.fn(),
     set: jest.fn(),
+    setex: jest.fn(),
     getex: jest.fn(),
     getdel: jest.fn(),
     append: jest.fn(),

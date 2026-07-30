@@ -24,6 +24,15 @@ export const envValidationSchema = Joi.object({
   // Redis Configuration
   REDIS_HOST: Joi.string().required(),
   REDIS_PORT: Joi.number().required(),
+  REDIS_PASSWORD: Joi.string().optional(),
+
+  // Redis Sentinel (optional — HA failover; see RedisModule)
+  REDIS_SENTINEL_HOSTS: Joi.string().optional(),
+  REDIS_SENTINEL_NAME: Joi.string().default('mymaster'),
+  REDIS_SENTINEL_PASSWORD: Joi.string().optional(),
+
+  // Redis Cluster (optional — sharding; takes precedence over Sentinel)
+  REDIS_CLUSTER_NODES: Joi.string().optional(),
 
   // JWT Configuration
   // Either JWT_SECRET (HS256) or JWT_PRIVATE_KEY + JWT_PUBLIC_KEY (RS256) must be configured

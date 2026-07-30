@@ -1,5 +1,6 @@
-import { Injectable, Logger, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { UPLOAD_PROGRESS_CONFIG } from './file-validation.constants';
 
 export interface IUploadProgress {
@@ -41,22 +42,16 @@ export interface IProgressUpdate {
 
 /**
  * Provides upload Progress operations.
+ *
+ * Issue #837 — uses the shared `REDIS_CLIENT` connection
+ * (standalone/Sentinel/Cluster, see `RedisModule`) instead of opening its
+ * own connection to `REDIS_URL`.
  */
 @Injectable()
 export class UploadProgressService implements OnModuleDestroy {
   private readonly logger = new Logger(UploadProgressService.name);
-  private readonly redis: Redis;
 
-  constructor(@Inject('REDIS_CLIENT') redisClient?: Redis) {
-    const redisUrl = process.env.REDIS_URL;
-    if (!redisClient && !redisUrl) {
-      this.logger.warn('REDIS_URL is not set, initializing default Redis client');
-    }
-    this.redis = redisClient || new Redis(redisUrl || 'redis://localhost:6379');
-    this.redis.on('error', (err) => {
-      this.logger.error('Redis connection error in UploadProgressService:', err);
-    });
-  }
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
   async onModuleDestroy() {
     if (this.redis) {
