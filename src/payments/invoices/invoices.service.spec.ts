@@ -8,7 +8,7 @@ import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entit
 
 /**
  * Unit and integration tests for InvoicesService
- * 
+ *
  * Covers:
  *  - Sequence-based invoice number generation
  *  - Uniqueness enforcement via database constraint
@@ -108,7 +108,7 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       await service.generateAndArchiveInvoice(mockPayment as Payment);
 
       expect(invoiceRepo.query).toHaveBeenCalledWith(
-        expect.stringContaining('nextval(\'invoice_number_seq\')'),
+        expect.stringContaining("nextval('invoice_number_seq')"),
       );
     });
 
@@ -133,13 +133,13 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       (invoiceRepo.save as jest.Mock).mockRejectedValue(uniqueViolationError);
       (paymentRepo.findOne as jest.Mock).mockResolvedValue(mockPayment);
 
-      await expect(
-        service.generateAndArchiveInvoice(mockPayment as Payment),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.generateAndArchiveInvoice(mockPayment as Payment)).rejects.toThrow(
+        ConflictException,
+      );
 
-      await expect(
-        service.generateAndArchiveInvoice(mockPayment as Payment),
-      ).rejects.toThrow(/Invoice number collision detected/);
+      await expect(service.generateAndArchiveInvoice(mockPayment as Payment)).rejects.toThrow(
+        /Invoice number collision detected/,
+      );
     });
 
     it('should throw error if sequence retrieval fails', async () => {
@@ -153,9 +153,9 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       (invoiceRepo.query as jest.Mock).mockResolvedValue([]);
       (paymentRepo.findOne as jest.Mock).mockResolvedValue(mockPayment);
 
-      await expect(
-        service.generateAndArchiveInvoice(mockPayment as Payment),
-      ).rejects.toThrow(/Failed to retrieve sequence value/);
+      await expect(service.generateAndArchiveInvoice(mockPayment as Payment)).rejects.toThrow(
+        /Failed to retrieve sequence value/,
+      );
     });
   });
 
@@ -197,18 +197,20 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       const uniqueNumbers = new Set(invoiceNumbers);
 
       expect(uniqueNumbers.size).toBe(10);
-      expect(invoiceNumbers).toEqual(expect.arrayContaining([
-        'INV-000001',
-        'INV-000002',
-        'INV-000003',
-        'INV-000004',
-        'INV-000005',
-        'INV-000006',
-        'INV-000007',
-        'INV-000008',
-        'INV-000009',
-        'INV-000010',
-      ]));
+      expect(invoiceNumbers).toEqual(
+        expect.arrayContaining([
+          'INV-000001',
+          'INV-000002',
+          'INV-000003',
+          'INV-000004',
+          'INV-000005',
+          'INV-000006',
+          'INV-000007',
+          'INV-000008',
+          'INV-000009',
+          'INV-000010',
+        ]),
+      );
     });
 
     it('should generate monotonically increasing invoice numbers', async () => {
@@ -302,13 +304,13 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       (paymentRepo.findOne as jest.Mock).mockResolvedValue(mockPayment);
 
       // Should NOT throw ConflictException; should re-throw original error
-      await expect(
-        service.generateAndArchiveInvoice(mockPayment as Payment),
-      ).rejects.toThrow(Error);
+      await expect(service.generateAndArchiveInvoice(mockPayment as Payment)).rejects.toThrow(
+        Error,
+      );
 
-      await expect(
-        service.generateAndArchiveInvoice(mockPayment as Payment),
-      ).rejects.not.toThrow(ConflictException);
+      await expect(service.generateAndArchiveInvoice(mockPayment as Payment)).rejects.not.toThrow(
+        ConflictException,
+      );
     });
   });
 });

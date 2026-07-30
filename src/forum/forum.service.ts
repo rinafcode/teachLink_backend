@@ -146,21 +146,8 @@ export class ForumService {
   async vote(entityType: 'thread' | 'comment', entityId: string, authorId: string, value: number) {
     if (value !== 1 && value !== -1) throw new BadRequestException('Vote value must be 1 or -1');
 
-    const existing = await this.voteRepo.findOne({ where: { entityType, entityId, authorId } });
-    if (existing) {
-      if (existing.value === value) {
-        return;
-      }
-
-      existing.value = value;
-      await this.voteRepo.save(existing);
-
-      await this.updateVoteTotals(entityType, entityId);
-      return;
-    }
-
     const vote = this.voteRepo.create({ entityType, entityId, authorId, value });
-    await this.voteRepo.save(vote);
+    await this.voteRepo.upsert(vote, ['entityType', 'entityId', 'authorId']);
     await this.updateVoteTotals(entityType, entityId);
   }
 

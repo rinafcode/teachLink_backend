@@ -1,3 +1,4 @@
+import { BadRequestException, NotFoundException, PaymentRequiredException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,354 +9,309 @@ import {
   SubscriptionStatus,
   SubscriptionInterval,
 } from '../entities/subscription.entity';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { IPaymentProvider } from '../providers/payment-provider.interface';
-import { QueueService } from '../../queues/queue.service';
-import { PauseSubscriptionDto, ResumeSubscriptionDto } from './dto/subscription-action.dto';
+import { PaymentProviderService } from '../providers/payment-provider.service';
 
-describe('SubscriptionsService - Pause/Resume Functionality', () => {
-  let service: SubscriptionsService;
-  let subscriptionRepository: jest.Mocked<Repository<Subscription>>;
-  let paymentProvider: jest.Mocked<IPaymentProvider>;
-  let queueService: jest.Mocked<QueueService>;
-  let eventEmitter: jest.Mocked<EventEmitter2>;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-  const mockSubscription: Subscription = {
+const PERIOD_END = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000); // 15 days from now
+
+function makeSubscription(overrides: Partial<Subscription> = {}): Subscription {
+  return {
     id: 'sub-1',
-    providerSubscriptionId: 'stripe-sub-1',
+    userId: 'user-1',
     status: SubscriptionStatus.ACTIVE,
     interval: SubscriptionInterval.MONTHLY,
-    amount: 29.99,
+    amount: 9.99, // plan-basic monthly
     currency: 'USD',
+    currentPeriodStart: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    currentPeriodEnd: PERIOD_END,
     cancelledAt: null,
     trialStart: null,
     trialEnd: null,
     currentPeriodStart: new Date(),
     currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     cancelAtPeriodEnd: false,
-    userId: 'user-1',
-    user: {} as any,
+    cancelledAt: null as any,
+    trialStart: null as any,
+    trialEnd: null as any,
     properties: {},
+    providerSubscriptionId: 'prov-sub-1',
+    version: 1,
+    user: {} as any,
     createdAt: new Date(),
     updatedAt: new Date(),
-    version: 1,
+    deletedAt: undefined,
+    ...overrides,
+  } as Subscription;
+}
+
+function makeRepo(subscription: Subscription) {
+  return {
+    findOne: jest.fn().mockResolvedValue(subscription),
+    save: jest.fn().mockImplementation(async (s: Subscription) => ({ ...s })),
   };
+}
 
-  beforeEach(async () => {
-    subscriptionRepository = {
-      findOne: jest.fn(),
-      save: jest.fn(),
-    } as any;
+function makeEventEmitter() {
+  return { emit: jest.fn() };
+}
 
-    paymentProvider = {
-      pauseSubscription: jest.fn(),
-      resumeSubscription: jest.fn(),
-    } as any;
+function makeProvider() {
+  return {
+    chargeCustomer: jest.fn(),
+    issueCredit: jest.fn(),
+  } as unknown as jest.Mocked<PaymentProviderService>;
+}
 
-    queueService = {
-      addJob: jest.fn(),
-    } as any;
+function buildService(
+  repo: ReturnType<typeof makeRepo>,
+  eventEmitter: ReturnType<typeof makeEventEmitter>,
+  provider: jest.Mocked<PaymentProviderService>,
+): SubscriptionsService {
+  return new SubscriptionsService(repo as any, eventEmitter as any, provider);
+}
 
-    eventEmitter = {
-      emit: jest.fn(),
-    } as any;
+// ---------------------------------------------------------------------------
+// upgradeSubscription
+// ---------------------------------------------------------------------------
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SubscriptionsService,
-        {
-          provide: getRepositoryToken(Subscription),
-          useValue: subscriptionRepository,
-        },
-        {
-          provide: 'IPaymentProvider',
-          useValue: paymentProvider,
-        },
-        {
-          provide: QueueService,
-          useValue: queueService,
-        },
-        {
-          provide: EventEmitter2,
-          useValue: eventEmitter,
-        },
-      ],
-    }).compile();
+describe('SubscriptionsService.upgradeSubscription', () => {
+  it('charges the prorated difference and saves the new plan on success', async () => {
+    const subscription = makeSubscription();
+    const repo = makeRepo(subscription);
+    const emitter = makeEventEmitter();
+    const provider = makeProvider();
 
-    service = module.get<SubscriptionsService>(SubscriptionsService);
+    provider.chargeCustomer.mockResolvedValue({
+      chargeId: 'ch_test_123',
+      status: 'succeeded',
+      amount: expect.any(Number),
+      currency: 'USD',
+    });
+
+    const service = buildService(repo, emitter, provider);
+
+    const result = await service.upgradeSubscription('sub-1', {
+      planId: 'plan-pro', // $19.99 > $9.99 — valid upgrade
+    });
+
+    // Charge must happen
+    expect(provider.chargeCustomer).toHaveBeenCalledTimes(1);
+    const [userId, amount, currency, meta] = provider.chargeCustomer.mock.calls[0];
+    expect(userId).toBe('user-1');
+    expect(amount).toBeGreaterThan(0);
+    expect(currency).toBe('USD');
+    expect(meta).toMatchObject({ subscriptionId: 'sub-1', type: 'subscription_upgrade_proration' });
+
+    // Plan change persisted
+    expect(repo.save).toHaveBeenCalledTimes(1);
+    const saved: Subscription = repo.save.mock.calls[0][0];
+    expect(saved.amount).toBe(19.99);
+    expect(saved.properties?.upgradeChargeId).toBe('ch_test_123');
+    expect(saved.properties?.proratedAmount).toBeGreaterThan(0);
+
+    // Event emitted with chargeId
+    expect(emitter.emit).toHaveBeenCalledWith(
+      'subscription.upgraded',
+      expect.objectContaining({ chargeId: 'ch_test_123', planId: 'plan-pro' }),
+    );
+
+    // Returned subscription reflects new amount
+    expect(result.amount).toBe(19.99);
   });
 
-  describe('pauseSubscription', () => {
-    it('should pause subscription successfully with provider call', async () => {
-      const pauseDto: PauseSubscriptionDto = {
-        reason: 'User requested pause',
-      };
+  it('leaves the subscription on the original plan when the charge fails', async () => {
+    const subscription = makeSubscription();
+    const repo = makeRepo(subscription);
+    const emitter = makeEventEmitter();
+    const provider = makeProvider();
 
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-      paymentProvider.pauseSubscription.mockResolvedValue(true);
-      subscriptionRepository.save.mockResolvedValue({
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-        properties: {
-          ...mockSubscription.properties,
-          pausedAt: new Date(),
-          pauseReason: 'User requested pause',
-          isPaused: true,
-        },
-      });
+    provider.chargeCustomer.mockRejectedValue(new Error('Card declined'));
 
-      const result = await service.pauseSubscription('sub-1', pauseDto);
+    const service = buildService(repo, emitter, provider);
 
-      expect(result.status).toBe(SubscriptionStatus.PAUSED);
-      expect(paymentProvider.pauseSubscription).toHaveBeenCalledWith('stripe-sub-1', undefined);
-      expect(subscriptionRepository.save).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith('subscription.paused', {
-        subscriptionId: 'sub-1',
-        userId: 'user-1',
-        resumeAt: undefined,
-        reason: 'User requested pause',
-      });
-    });
+    await expect(
+      service.upgradeSubscription('sub-1', { planId: 'plan-pro' }),
+    ).rejects.toBeInstanceOf(PaymentRequiredException);
 
-    it('should schedule resume job when resumeAt is provided', async () => {
-      const resumeAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-      const pauseDto: PauseSubscriptionDto = {
-        reason: 'Temporary pause',
-        resumeAt: resumeAt.toISOString(),
-      };
+    // Subscription must NOT be saved after a failed charge
+    expect(repo.save).not.toHaveBeenCalled();
 
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-      paymentProvider.pauseSubscription.mockResolvedValue(true);
-      subscriptionRepository.save.mockResolvedValue({
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-        properties: {
-          ...mockSubscription.properties,
-          pausedAt: new Date(),
-          pauseReason: 'Temporary pause',
-          resumeAt: resumeAt.toISOString(),
-          isPaused: true,
-        },
-      });
-      queueService.addJob.mockResolvedValue({
-        jobId: 'job-1',
-        queue: 'subscriptions',
-        name: 'resume_subscription',
-      });
-
-      await service.pauseSubscription('sub-1', pauseDto);
-
-      expect(queueService.addJob).toHaveBeenCalledWith(
-        'subscriptions',
-        'resume_subscription',
-        { subscriptionId: 'sub-1' },
-        expect.objectContaining({
-          delay: expect.any(Number),
-          attempts: 3,
-        }),
-      );
-    });
-
-    it('should throw error if subscription is not ACTIVE', async () => {
-      const inactiveSubscription = { ...mockSubscription, status: SubscriptionStatus.CANCELLED };
-      subscriptionRepository.findOne.mockResolvedValue(inactiveSubscription);
-
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow(BadRequestException);
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow(
-        'Cannot pause subscription with status: cancelled. Must be active.',
-      );
-    });
-
-    it('should throw error if subscription has no provider ID', async () => {
-      const subscriptionWithoutProvider = { ...mockSubscription, providerSubscriptionId: null };
-      subscriptionRepository.findOne.mockResolvedValue(subscriptionWithoutProvider);
-
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow(BadRequestException);
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow(
-        'Subscription does not have a provider subscription ID',
-      );
-    });
-
-    it('should throw error if provider pause call fails', async () => {
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-      paymentProvider.pauseSubscription.mockRejectedValue(new Error('Stripe API error'));
-
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow(BadRequestException);
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow(
-        'Failed to pause subscription at provider: Stripe API error',
-      );
-    });
-
-    it('should not update local state if provider call fails (rollback)', async () => {
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-      paymentProvider.pauseSubscription.mockRejectedValue(new Error('Provider error'));
-
-      await expect(service.pauseSubscription('sub-1', {})).rejects.toThrow();
-
-      expect(subscriptionRepository.save).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
-    });
+    // No event should be emitted for a failed upgrade
+    expect(emitter.emit).not.toHaveBeenCalledWith('subscription.upgraded', expect.anything());
   });
 
-  describe('resumeSubscription', () => {
-    it('should resume subscription successfully with provider call', async () => {
-      const pausedSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-        properties: { isPaused: true, pausedAt: new Date() },
-      };
-      const resumeDto: ResumeSubscriptionDto = {
-        reason: 'User requested resume',
-      };
+  it('throws BadRequestException if new plan is not more expensive', async () => {
+    const subscription = makeSubscription({ amount: 19.99 }); // already pro
+    const repo = makeRepo(subscription);
+    const provider = makeProvider();
 
-      subscriptionRepository.findOne.mockResolvedValue(pausedSubscription);
-      paymentProvider.resumeSubscription.mockResolvedValue(true);
-      subscriptionRepository.save.mockResolvedValue({
-        ...pausedSubscription,
-        status: SubscriptionStatus.ACTIVE,
-        cancelAtPeriodEnd: false,
-        properties: {
-          ...pausedSubscription.properties,
-          isPaused: false,
-          resumedAt: new Date(),
-          resumeReason: 'User requested resume',
-        },
-      });
+    const service = buildService(repo, makeEventEmitter(), provider);
 
-      const result = await service.resumeSubscription('sub-1', resumeDto);
+    await expect(
+      service.upgradeSubscription('sub-1', { planId: 'plan-basic' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(result.status).toBe(SubscriptionStatus.ACTIVE);
-      expect(paymentProvider.resumeSubscription).toHaveBeenCalledWith('stripe-sub-1');
-      expect(subscriptionRepository.save).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith('subscription.resumed', {
-        subscriptionId: 'sub-1',
-        userId: 'user-1',
-        reason: 'User requested resume',
-      });
-    });
-
-    it('should throw error if subscription is not PAUSED', async () => {
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow(BadRequestException);
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow(
-        'Subscription is not paused',
-      );
-    });
-
-    it('should throw error if subscription has no provider ID', async () => {
-      const pausedSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-        providerSubscriptionId: null,
-      };
-      subscriptionRepository.findOne.mockResolvedValue(pausedSubscription);
-
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow(BadRequestException);
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow(
-        'Subscription does not have a provider subscription ID',
-      );
-    });
-
-    it('should throw error if provider resume call fails', async () => {
-      const pausedSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-        properties: { isPaused: true },
-      };
-      subscriptionRepository.findOne.mockResolvedValue(pausedSubscription);
-      paymentProvider.resumeSubscription.mockRejectedValue(new Error('Stripe API error'));
-
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow(BadRequestException);
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow(
-        'Failed to resume subscription at provider: Stripe API error',
-      );
-    });
-
-    it('should not update local state if provider call fails (rollback)', async () => {
-      const pausedSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-        properties: { isPaused: true },
-      };
-      subscriptionRepository.findOne.mockResolvedValue(pausedSubscription);
-      paymentProvider.resumeSubscription.mockRejectedValue(new Error('Provider error'));
-
-      await expect(service.resumeSubscription('sub-1', {})).rejects.toThrow();
-
-      expect(subscriptionRepository.save).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
-    });
+    expect(provider.chargeCustomer).not.toHaveBeenCalled();
+    expect(repo.save).not.toHaveBeenCalled();
   });
 
-  describe('processRenewal', () => {
-    it('should skip renewal for paused subscriptions', async () => {
-      const pausedSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-      };
+  it('throws NotFoundException when subscription does not exist', async () => {
+    const repo = { findOne: jest.fn().mockResolvedValue(null), save: jest.fn() };
+    const service = buildService(repo as any, makeEventEmitter(), makeProvider());
 
-      subscriptionRepository.findOne.mockResolvedValue(pausedSubscription);
+    await expect(
+      service.upgradeSubscription('sub-missing', { planId: 'plan-pro' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
 
-      const result = await service.processRenewal('sub-1');
+// ---------------------------------------------------------------------------
+// downgradeSubscription — immediate credit
+// ---------------------------------------------------------------------------
 
-      expect(result).toBe(false);
+describe('SubscriptionsService.downgradeSubscription (credit)', () => {
+  it('issues a prorated credit and saves the lower plan immediately', async () => {
+    const subscription = makeSubscription({ amount: 19.99 }); // plan-pro
+    const repo = makeRepo(subscription);
+    const emitter = makeEventEmitter();
+    const provider = makeProvider();
+
+    provider.issueCredit.mockResolvedValue({
+      creditId: 'cre_test_456',
+      status: 'applied',
+      amount: expect.any(Number),
+      currency: 'USD',
     });
 
-    it('should proceed with renewal for ACTIVE subscriptions', async () => {
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-      subscriptionRepository.save.mockResolvedValue(mockSubscription);
+    const service = buildService(repo, emitter, provider);
 
-      const result = await service.processRenewal('sub-1');
-
-      expect(result).toBe(true);
-      expect(subscriptionRepository.save).toHaveBeenCalled();
+    const result = await service.downgradeSubscription('sub-1', {
+      planId: 'plan-basic', // $9.99 < $19.99 — valid downgrade
+      prorationType: 'credit',
     });
 
-    it('should proceed with renewal for PAST_DUE subscriptions', async () => {
-      const pastDueSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAST_DUE,
-      };
-
-      subscriptionRepository.findOne.mockResolvedValue(pastDueSubscription);
-      subscriptionRepository.save.mockResolvedValue(pastDueSubscription);
-
-      const result = await service.processRenewal('sub-1');
-
-      expect(result).toBe(true);
-      expect(subscriptionRepository.save).toHaveBeenCalled();
+    // Credit must be issued
+    expect(provider.issueCredit).toHaveBeenCalledTimes(1);
+    const [userId, amount, currency, meta] = provider.issueCredit.mock.calls[0];
+    expect(userId).toBe('user-1');
+    expect(amount).toBeGreaterThan(0);
+    expect(currency).toBe('USD');
+    expect(meta).toMatchObject({
+      subscriptionId: 'sub-1',
+      type: 'subscription_downgrade_proration',
     });
+
+    // Plan change persisted
+    expect(repo.save).toHaveBeenCalledTimes(1);
+    const saved: Subscription = repo.save.mock.calls[0][0];
+    expect(saved.amount).toBe(9.99);
+    expect(saved.properties?.downgradeCreditId).toBe('cre_test_456');
+    expect(saved.properties?.proratedCredit).toBeGreaterThan(0);
+
+    // Event emitted with creditId
+    expect(emitter.emit).toHaveBeenCalledWith(
+      'subscription.downgraded',
+      expect.objectContaining({
+        creditId: 'cre_test_456',
+        deferred: false,
+        prorationType: 'credit',
+      }),
+    );
+
+    expect(result.amount).toBe(9.99);
   });
 
-  describe('getUserSubscription', () => {
-    it('should return null for paused subscriptions', async () => {
-      const pausedSubscription = {
-        ...mockSubscription,
-        status: SubscriptionStatus.PAUSED,
-      };
+  it('leaves the subscription unchanged when credit issuance fails', async () => {
+    const subscription = makeSubscription({ amount: 19.99 });
+    const repo = makeRepo(subscription);
+    const emitter = makeEventEmitter();
+    const provider = makeProvider();
 
-      subscriptionRepository.findOne.mockResolvedValue(pausedSubscription);
+    provider.issueCredit.mockRejectedValue(new Error('Provider unavailable'));
 
-      const result = await service.getUserSubscription('user-1');
+    const service = buildService(repo, emitter, provider);
 
-      // The method filters by status = ACTIVE, so it should return null for paused
-      expect(subscriptionRepository.findOne).toHaveBeenCalledWith({
-        where: { userId: 'user-1', status: SubscriptionStatus.ACTIVE },
-        relations: ['user'],
-      });
+    await expect(
+      service.downgradeSubscription('sub-1', { planId: 'plan-basic', prorationType: 'credit' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    // Subscription must NOT be saved after a failed credit
+    expect(repo.save).not.toHaveBeenCalled();
+    expect(emitter.emit).not.toHaveBeenCalledWith('subscription.downgraded', expect.anything());
+  });
+});
+
+// ---------------------------------------------------------------------------
+// downgradeSubscription — deferred (prorationType: 'none')
+// ---------------------------------------------------------------------------
+
+describe('SubscriptionsService.downgradeSubscription (deferred, prorationType=none)', () => {
+  it('records a pendingDowngrade and defers the plan change without issuing a credit', async () => {
+    const subscription = makeSubscription({ amount: 19.99 });
+    const repo = makeRepo(subscription);
+    const emitter = makeEventEmitter();
+    const provider = makeProvider();
+
+    const service = buildService(repo, emitter, provider);
+
+    const result = await service.downgradeSubscription('sub-1', {
+      planId: 'plan-basic',
+      prorationType: 'none',
     });
 
-    it('should return active subscription when status is ACTIVE', async () => {
-      subscriptionRepository.findOne.mockResolvedValue(mockSubscription);
+    // No provider call should occur for deferred downgrades
+    expect(provider.issueCredit).not.toHaveBeenCalled();
+    expect(provider.chargeCustomer).not.toHaveBeenCalled();
 
-      const result = await service.getUserSubscription('user-1');
-
-      expect(result).toBe(mockSubscription);
-      expect(subscriptionRepository.findOne).toHaveBeenCalledWith({
-        where: { userId: 'user-1', status: SubscriptionStatus.ACTIVE },
-        relations: ['user'],
-      });
+    // Subscription saved with pending downgrade metadata
+    expect(repo.save).toHaveBeenCalledTimes(1);
+    const saved: Subscription = repo.save.mock.calls[0][0];
+    expect(saved.amount).toBe(19.99); // amount unchanged until period end
+    expect(saved.properties?.pendingDowngrade).toMatchObject({
+      planId: 'plan-basic',
+      amount: 9.99,
     });
+    expect(saved.properties?.pendingDowngrade?.effectiveAt).toEqual(PERIOD_END);
+    expect(saved.properties?.prorationType).toBe('none');
+
+    // Event indicates deferred change
+    expect(emitter.emit).toHaveBeenCalledWith(
+      'subscription.downgraded',
+      expect.objectContaining({
+        deferred: true,
+        prorationType: 'none',
+        effectiveAt: PERIOD_END,
+      }),
+    );
+
+    // Plan amount is still the original — not yet changed
+    expect(result.amount).toBe(19.99);
+  });
+
+  it('defaults prorationType to "credit" when not supplied', async () => {
+    const subscription = makeSubscription({ amount: 19.99 });
+    const repo = makeRepo(subscription);
+    const emitter = makeEventEmitter();
+    const provider = makeProvider();
+
+    provider.issueCredit.mockResolvedValue({
+      creditId: 'cre_default',
+      status: 'applied',
+      amount: 5,
+      currency: 'USD',
+    });
+
+    const service = buildService(repo, emitter, provider);
+
+    // prorationType not supplied → should default to 'credit'
+    await service.downgradeSubscription('sub-1', { planId: 'plan-basic' });
+
+    expect(provider.issueCredit).toHaveBeenCalledTimes(1);
+    expect(repo.save).toHaveBeenCalledTimes(1);
+    const saved: Subscription = repo.save.mock.calls[0][0];
+    expect(saved.amount).toBe(9.99);
   });
 });

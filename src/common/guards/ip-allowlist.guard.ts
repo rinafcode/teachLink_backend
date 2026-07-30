@@ -37,7 +37,9 @@ export class IpAllowlistGuard implements CanActivate, OnModuleInit {
   private readonly logger = new Logger(IpAllowlistGuard.name);
 
   /** Parsed allowlist entries: exact IPs and CIDR ranges */
-  private allowlist: Array<{ type: 'exact'; ip: string } | { type: 'cidr'; network: number; mask: number }> = [];
+  private allowlist: Array<
+    { type: 'exact'; ip: string } | { type: 'cidr'; network: number; mask: number }
+  > = [];
   private guardEnabled = false;
 
   constructor(private readonly configService: ConfigService) {}
@@ -62,9 +64,7 @@ export class IpAllowlistGuard implements CanActivate, OnModuleInit {
       .map((entry) => this.parseEntry(entry))
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
-    this.logger.log(
-      `IpAllowlistGuard enabled with ${this.allowlist.length} entries: ${raw}`,
-    );
+    this.logger.log(`IpAllowlistGuard enabled with ${this.allowlist.length} entries: ${raw}`);
   }
 
   canActivate(context: ExecutionContext): boolean {
@@ -166,9 +166,7 @@ export class IpAllowlistGuard implements CanActivate, OnModuleInit {
     return { type: 'exact', ip: entry };
   }
 
-  private parseCidr(
-    cidr: string,
-  ): { type: 'cidr'; network: number; mask: number } | null {
+  private parseCidr(cidr: string): { type: 'cidr'; network: number; mask: number } | null {
     const parts = cidr.split('/');
     if (parts.length !== 2) {
       this.logger.warn(`IpAllowlistGuard: ignoring malformed CIDR "${cidr}"`);
@@ -186,7 +184,7 @@ export class IpAllowlistGuard implements CanActivate, OnModuleInit {
     const network = this.ipToInt(address);
     // Build a bitmask: prefix bits set to 1, rest 0.
     // Use unsigned right-shift to keep it as a 32-bit unsigned integer.
-    const mask = prefix === 0 ? 0 : ((-1 << (32 - prefix)) >>> 0);
+    const mask = prefix === 0 ? 0 : (-1 << (32 - prefix)) >>> 0;
 
     return { type: 'cidr', network: network & mask, mask };
   }
@@ -203,11 +201,7 @@ export class IpAllowlistGuard implements CanActivate, OnModuleInit {
 
   /** Convert a dotted-decimal IPv4 string to a 32-bit unsigned integer */
   ipToInt(ip: string): number {
-    return (
-      ip
-        .split('.')
-        .reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0
-    );
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
   }
 
   /** Simple IPv4 format validator */

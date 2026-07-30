@@ -49,7 +49,10 @@ describe('CacheWarmingService', () => {
           useValue: profileCompleteness,
         },
         { provide: SearchService, useValue: searchService },
-        { provide: IsolationService, useValue: { getTenantId: jest.fn().mockReturnValue('tenant-a') } },
+        {
+          provide: IsolationService,
+          useValue: { getTenantId: jest.fn().mockReturnValue('tenant-a') },
+        },
         { provide: getRepositoryToken(Course), useValue: courseRepo },
         { provide: getRepositoryToken(Enrollment), useValue: enrollmentRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },

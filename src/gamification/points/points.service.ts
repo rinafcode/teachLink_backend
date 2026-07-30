@@ -41,6 +41,13 @@ export class PointsService {
    * Award an arbitrary number of points for a custom activity string.
    * Returns the updated progress and whether a tier promotion occurred.
    *
+   * Issue #1000 — tier computation and persistence ordering fix:
+   *  1. `previousTier` is captured from the loaded entity before any mutation.
+   *  2. `newTier` is derived from the projected `totalPoints` BEFORE save,
+   *     then assigned to `progress.tier` so a single `save()` call persists
+   *     both the new point total and the correct tier atomically.
+   *  3. The POINTS_AWARDED event is emitted only after `save()` resolves, so
+   *     a rolled-back or failed write never publishes a phantom promotion.
    * FIXES (Issue #1001):
    * - Lost-update race: replaced JS read-modify-write with atomic SQL increment
    *   (totalPoints = totalPoints + :points, xp = xp + :xp)
@@ -93,6 +100,31 @@ export class PointsService {
         createdAt: new Date(),
       });
 
+      // Capture the tier currently on the record before any mutation so we can
+      // detect a real boundary crossing after the save commits.
+      const previousTier = progress.tier ?? Tier.BRONZE;
+
+      progress.totalPoints += points;
+      progress.xp += points;
+      progress.level = Math.floor(progress.xp / 1000) + 1;
+
+      // Derive the new tier from the projected total and assign it BEFORE save
+      // so the single repository call persists both points and tier together.
+      const newTier = this.tiersService.getTierForPoints(progress.totalPoints);
+      progress.tier = newTier;
+
+      const saved = await this.userProgressRepository.save(progress);
+
+      // tierPromoted is true only when the boundary is actually crossed and the
+      // value is now durable in the database.
+      const tierPromoted = newTier !== previousTier;
+
+      // Emit only after the DB write succeeds so a save failure does not
+      // publish a promotion that never actually committed.
+      this.eventEmitter.emit(
+        GAMIFICATION_EVENTS.POINTS_AWARDED,
+        new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
+      );
       // STEP 3: Compute derived fields (level, tier) post-upsert.
       // Note: level is still computed in application layer and could be
       // moved to a trigger in future optimization.

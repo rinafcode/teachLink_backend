@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Permission } from '../entities/permission.entity';
+import { Role } from '../entities/role.entity';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { RbacAuditContext } from '../roles/roles.service';
@@ -16,6 +17,8 @@ export class PermissionsService {
   constructor(
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -106,6 +109,22 @@ export class PermissionsService {
     const before = await this.permissionRepository.findOneBy({ id });
     if (!before) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
+    }
+
+    // Prevent deletion while the permission is still attached to roles
+    const roleCount = await this.roleRepository
+      .createQueryBuilder('role')
+      .innerJoin('role.permissions', 'permission', 'permission.id = :permissionId', {
+        permissionId: id,
+      })
+      .getCount();
+
+    if (roleCount > 0) {
+      throw new ConflictException({
+        message: `Permission '${before.resource}:${before.action}' is currently assigned to ${roleCount} role(s). Remove it from all roles before deleting.`,
+        count: roleCount,
+        permissionId: before.id,
+      });
     }
 
     const result = await this.permissionRepository.delete(id);

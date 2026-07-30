@@ -6,7 +6,7 @@ import { ContentReport } from '../reports/content-report.entity';
 import { ContentReportStatus } from '../reports/content-report-status.enum';
 import { ContentReportReason } from '../reports/content-report-reason.enum';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { ReportAssignmentService } from './report-assignment.service';
+import { AdminSelectionStrategy, ReportAssignmentService } from './report-assignment.service';
 
 // ─── Mock factories ────────────────────────────────────────────────────────────
 
@@ -34,6 +34,7 @@ const mockUserRepo = {
 };
 
 const mockReportRepo = {
+  createQueryBuilder: jest.fn(),
   save: jest.fn((r: ContentReport) => Promise.resolve(r)),
   find: jest.fn().mockResolvedValue([]),
 };
@@ -46,7 +47,7 @@ const mockConfigService = {
   get: jest.fn((key: string, fallback?: unknown) => fallback),
 };
 
-// ─── QueryBuilder helper ──────────────────────────────────────────────────────
+// ─── QueryBuilder helpers ──────────────────────────────────────────────────────
 
 function buildQb(users: User[]) {
   const qb: Record<string, jest.Mock> = {
@@ -61,12 +62,36 @@ function buildQb(users: User[]) {
   return qb;
 }
 
+function buildReportQb(loadRows: Record<string, number>[]) {
+  const qb: Record<string, jest.Mock> = {
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    groupBy: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue(loadRows),
+  };
+  qb.select = jest.fn().mockReturnValue(qb);
+  qb.addSelect = jest.fn().mockReturnValue(qb);
+  qb.where = jest.fn().mockReturnValue(qb);
+  qb.andWhere = jest.fn().mockReturnValue(qb);
+  qb.groupBy = jest.fn().mockReturnValue(qb);
+  return qb;
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('ReportAssignmentService', () => {
   let service: ReportAssignmentService;
 
   beforeEach(async () => {
+    mockUserRepo.createQueryBuilder.mockClear();
+    mockReportRepo.createQueryBuilder.mockClear();
+    mockReportRepo.save.mockClear();
+    mockReportRepo.find.mockClear();
+    mockNotificationsService.send.mockClear();
+    mockConfigService.get.mockClear();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReportAssignmentService,
@@ -134,26 +159,35 @@ describe('ReportAssignmentService', () => {
 
   // ─── escalateReport ──────────────────────────────────────────────────────
 
-  describe('escalateReport', () => {
-    it('reassigns report to an admin and sets escalatedAt', async () => {
-      const admin = makeUser('admin-1', UserRole.ADMIN);
-      mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin]));
+  describe('escalateReport with least_loaded strategy', () => {
+    it('reassigns report to the least-loaded admin and sets escalatedAt', async () => {
+      const admin2 = makeUser('admin-2', UserRole.ADMIN);
+      const admin1 = makeUser('admin-1', UserRole.ADMIN);
+      const admin3 = makeUser('admin-3', UserRole.ADMIN);
+      mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin1, admin2, admin3]));
+      mockReportRepo.createQueryBuilder.mockReturnValue(
+        buildReportQb([{ moderatorId: 'admin-1', count: '5' }, { moderatorId: 'admin-2', count: '1' }, { moderatorId: 'admin-3', count: '3' }]),
+      );
 
       const report = makeReport();
       const result = await service.escalateReport(report);
 
-      expect(result.assignedModeratorId).toBe('admin-1');
+      expect(result.assignedModeratorId).toBe('admin-2');
       expect(result.escalatedAt).toBeInstanceOf(Date);
     });
 
-    it('sends an URGENT escalation notification to the admin', async () => {
-      const admin = makeUser('admin-1', UserRole.ADMIN);
-      mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin]));
+    it('sends an URGENT escalation notification to the selected admin', async () => {
+      const admin2 = makeUser('admin-2', UserRole.ADMIN);
+      const admin1 = makeUser('admin-1', UserRole.ADMIN);
+      mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin1, admin2]));
+      mockReportRepo.createQueryBuilder.mockReturnValue(
+        buildReportQb([{ moderatorId: 'admin-1', count: '5' }, { moderatorId: 'admin-2', count: '1' }]),
+      );
 
       await service.escalateReport(makeReport());
 
       expect(mockNotificationsService.send).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'admin-1', priority: 'urgent' }),
+        expect.objectContaining({ userId: 'admin-2', priority: 'urgent' }),
       );
     });
 
@@ -165,6 +199,32 @@ describe('ReportAssignmentService', () => {
 
       expect(result.escalatedAt).toBeUndefined();
       expect(mockReportRepo.save).not.toHaveBeenCalled();
+      expect(mockReportRepo.createQueryBuilder).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── selectEscalationTarget ───────────────────────────────────────────────
+
+  describe('selectEscalationTarget', () => {
+    it('selects the admin with the lowest open report count', () => {
+      const admins = [makeUser('admin-1'), makeUser('admin-2'), makeUser('admin-3')];
+      const loadMap = { 'admin-1': 5, 'admin-2': 1, 'admin-3': 3 };
+
+      expect(ReportAssignmentService.selectEscalationTarget(admins, loadMap).id).toBe('admin-2');
+    });
+
+    it('breaks loads ties by lowest admin id', () => {
+      const admins = [makeUser('admin-1'), makeUser('admin-2'), makeUser('admin-3')];
+      const loadMap = { 'admin-1': 1, 'admin-2': 1, 'admin-3': 2 };
+
+      expect(ReportAssignmentService.selectEscalationTarget(admins, loadMap).id).toBe('admin-1');
+    });
+
+    it('treats missing admins in loadMap as zero load', () => {
+      const admins = [makeUser('admin-1'), makeUser('admin-2'), makeUser('admin-3')];
+      const loadMap = { 'admin-2': 2 };
+
+      expect(ReportAssignmentService.selectEscalationTarget(admins, loadMap).id).toBe('admin-1');
     });
   });
 
@@ -177,6 +237,9 @@ describe('ReportAssignmentService', () => {
 
       const admin = makeUser('admin-1', UserRole.ADMIN);
       mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin]));
+      mockReportRepo.createQueryBuilder.mockReturnValue(
+        buildReportQb([{ moderatorId: 'admin-1', count: '3' }]),
+      );
 
       await service.escalateOverdueReports();
 
@@ -208,6 +271,9 @@ describe('ReportAssignmentService', () => {
     it('does not throw when notification send fails during escalation', async () => {
       const admin = makeUser('admin-1', UserRole.ADMIN);
       mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin]));
+      mockReportRepo.createQueryBuilder.mockReturnValue(
+        buildReportQb([{ moderatorId: 'admin-1', count: '3' }]),
+      );
       mockNotificationsService.send.mockRejectedValueOnce(new Error('SMTP down'));
 
       await expect(service.escalateReport(makeReport())).resolves.not.toThrow();

@@ -36,10 +36,7 @@ export function resolveSlowQueryLoggerOptions(
       env.DB_SLOW_QUERY_THRESHOLD_MS,
       DEFAULT_SLOW_QUERY_THRESHOLD_MS,
     ),
-    explainThresholdMs: parsePositiveInt(
-      env.DB_EXPLAIN_THRESHOLD_MS,
-      DEFAULT_EXPLAIN_THRESHOLD_MS,
-    ),
+    explainThresholdMs: parsePositiveInt(env.DB_EXPLAIN_THRESHOLD_MS, DEFAULT_EXPLAIN_THRESHOLD_MS),
     enabled: env.NODE_ENV !== 'test',
   };
 }
@@ -56,9 +53,7 @@ export function resolveSlowQueryLoggerOptions(
 export class SlowQueryLogger implements TypeOrmLogger {
   private readonly logger = new NestLogger(SlowQueryLogger.name);
 
-  constructor(
-    private readonly options: SlowQueryLoggerOptions = resolveSlowQueryLoggerOptions(),
-  ) {}
+  constructor(private readonly options: SlowQueryLoggerOptions = resolveSlowQueryLoggerOptions()) {}
 
   /**
    * Emits one structured line per slow query and, past the explain threshold,
