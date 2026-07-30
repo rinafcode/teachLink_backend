@@ -15,14 +15,16 @@ This guide explains the automatic API documentation generation system for TeachL
 ### 1. **Swagger/OpenAPI Generation**
 
 #### Runtime Swagger UI
+
 - **Location**: `http://localhost:3000/api/docs`
 - **Raw JSON**: `http://localhost:3000/api/docs-json`
 - **Setup**: [src/main.ts](../../src/main.ts#L164-L182)
 
 #### Static Documentation Site
+
 - **Location**: `docs/site/`
 - **Entry Point**: `docs/site/index.html`
-- **Features**: 
+- **Features**:
   - ReDoc for interactive browsing
   - Endpoint table
   - Examples in Markdown
@@ -39,6 +41,7 @@ npm run docs:check
 ```
 
 **Generated Files:**
+
 - `openapi-spec.json` - Core OpenAPI spec (multiple locations)
 - `docs/api/openapi-spec.json` - API docs copy
 - `docs/api/examples.md` - cURL examples
@@ -65,6 +68,7 @@ npm run sdk:generate
 ```
 
 **Requirements:**
+
 - OpenAPI Generator CLI (configured in `openapitools.json`)
 - Maven (for generator)
 
@@ -75,6 +79,7 @@ npm run sdk:generate
 **Status**: Implemented with enhancements available
 
 Current implementation uses:
+
 - NestJS Swagger module for runtime docs
 - Manual OpenAPI spec definition in `scripts/generate-api-docs.js`
 
@@ -85,6 +90,7 @@ Current implementation uses:
 **Status**: Partially implemented
 
 Currently generates:
+
 - cURL examples in `docs/api/examples.md`
 
 **Enhancement Path**: Add multi-language examples (TypeScript, Python, JavaScript)
@@ -94,6 +100,7 @@ Currently generates:
 **Status**: Not yet implemented
 
 **What's needed**:
+
 - Version-specific OpenAPI specs
 - CHANGELOG tracking endpoint changes
 - Backward compatibility indicators
@@ -103,10 +110,12 @@ Currently generates:
 **Status**: SDK generation configured, examples need expansion
 
 **Current**:
+
 - TypeScript SDK generation via OpenAPI Generator
 - Python SDK generation via OpenAPI Generator
 
 **Enhancement**:
+
 - Add JavaScript/Node.js examples
 - Add Go examples
 - Add Java examples
@@ -182,7 +191,7 @@ The spec is configured in `scripts/generate-api-docs.js`:
 
 - **Title**: TeachLink API
 - **Version**: From package.json
-- **Servers**: 
+- **Servers**:
   - Local: `http://localhost:3000`
   - Production: `https://api.teachlink.com`
 - **Tags**: Organized by feature
@@ -191,6 +200,7 @@ The spec is configured in `scripts/generate-api-docs.js`:
 ### Step 3: Generate Examples
 
 Multi-language examples are generated in:
+
 - `docs/api/examples.md` - cURL examples
 - SDK examples in generated SDK files
 
@@ -220,6 +230,7 @@ curl http://localhost:3000/api/docs-json | jq
 ### Use Generated SDKs
 
 **TypeScript:**
+
 ```typescript
 import { SearchApi } from './sdk/typescript';
 
@@ -228,6 +239,7 @@ const results = await api.searchContent('javascript basics');
 ```
 
 **Python:**
+
 ```python
 from openapi_client.apis.tags import search_api
 
@@ -269,6 +281,7 @@ export class CoursesController {
 **File**: [scripts/generate-examples-multi-language.js](./generate-examples-multi-language.js)
 
 Generate examples in:
+
 - cURL
 - TypeScript/JavaScript
 - Python
@@ -281,6 +294,7 @@ Generate examples in:
 **File**: [scripts/manage-doc-versions.js](./manage-doc-versions.js)
 
 Track versions:
+
 ```
 docs/versions/
 ├── v1.0.0/
@@ -293,6 +307,7 @@ docs/versions/
 **File**: [.github/workflows/docs.yml](.github/workflows/docs.yml)
 
 Automatically:
+
 - Generate docs on commit
 - Verify no breaking changes
 - Publish to documentation site
@@ -381,6 +396,65 @@ curl http://localhost:3000/api/docs-json | jq '.paths | keys'
 # Verify controllers have @Controller and @ApiTags decorators
 grep -r "@Controller\|@ApiTags" src/
 ```
+
+## Cursor-Based Pagination
+
+TeachLink supports opaque cursor-based pagination across list endpoints (including Courses, Notifications, and Audit Logs) alongside existing offset/limit pagination.
+
+### Cursor Format
+
+The cursor token is a Base64-encoded string of a JSON object containing `{ id, createdAt }`:
+
+```json
+{
+  "id": "uuid-or-id-string",
+  "createdAt": "2026-07-26T12:00:00.000Z"
+}
+```
+
+### Usage
+
+1. **First Page Request**:
+   To request the first page of results, call the endpoint without passing a `cursor` query parameter (or with optional `limit`):
+
+   ```http
+   GET /courses?limit=20
+   ```
+
+   The response will include the list of items and a `nextCursor` field:
+
+   ```json
+   {
+     "data": [ ... ],
+     "nextCursor": "eyJpZCI6IjEyMyIsImNyZWF0ZWRBdCI6IjIwMjYtMDctMjZUMTI6MDA6MDAuMDAwWiJ9"
+   }
+   ```
+
+2. **Subsequent Page Requests**:
+   To request the next page of results, pass the received `nextCursor` value in the `cursor` query parameter:
+
+   ```http
+   GET /courses?limit=20&cursor=eyJpZCI6IjEyMyIsImNyZWF0ZWRBdCI6IjIwMjYtMDctMjZUMTI6MDA6MDAuMDAwWiJ9
+   ```
+
+3. **Final Page**:
+   When there are no more items available, `nextCursor` in the response will be `null`:
+   ```json
+   {
+     "data": [ ... ],
+     "nextCursor": null
+   }
+   ```
+
+### Backward Compatibility
+
+Offset-based pagination via `page` / `offset` and `limit` query parameters remains fully supported for backward compatibility:
+
+```http
+GET /courses?page=1&limit=20
+```
+
+When `offset` or `page` is provided (without `cursor`), the endpoint continues to return standard offset paginated metadata (`total`, `page`, `limit`, `totalPages`, `hasNextPage`, `hasPrevPage`).
 
 ## References
 

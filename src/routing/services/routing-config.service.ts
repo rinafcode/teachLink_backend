@@ -40,7 +40,31 @@ export class RoutingConfigService implements OnModuleInit {
 
       if (configExists) {
         const configData = await fs.readFile(this.configPath, 'utf-8');
-        this.config = JSON.parse(configData);
+
+        // Guard JSON.parse with try/catch
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(configData);
+        } catch (parseError) {
+          this.logger.error(
+            `Malformed JSON in routing config at ${this.configPath}: ${parseError}. ` +
+              'Falling back to default configuration.',
+          );
+          this.config = this.getDefaultConfig();
+          return;
+        }
+
+        // Schema-validate the parsed config before applying it
+        if (!this.isValidDynamicRoutingConfig(parsed)) {
+          this.logger.error(
+            `Invalid routing config schema in ${this.configPath}. ` +
+              'Falling back to default configuration.',
+          );
+          this.config = this.getDefaultConfig();
+          return;
+        }
+
+        this.config = parsed as DynamicRoutingConfig;
         this.logger.log(`Routing configuration loaded from ${this.configPath}`);
       } else {
         await this.saveConfig();
@@ -50,6 +74,47 @@ export class RoutingConfigService implements OnModuleInit {
       this.logger.error(`Failed to load routing configuration: ${error}`);
       this.config = this.getDefaultConfig();
     }
+  }
+
+  /**
+   * Schema-validate a parsed object against the DynamicRoutingConfig shape.
+   * Rejects invalid configs rather than applying them partially.
+   */
+  private isValidDynamicRoutingConfig(value: unknown): boolean {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const candidate = value as Record<string, unknown>;
+
+    // Must have a 'rules' array
+    if (!Array.isArray(candidate.rules)) {
+      return false;
+    }
+
+    // Validate each rule has the required fields
+    for (const rule of candidate.rules) {
+      if (!rule || typeof rule !== 'object') {
+        return false;
+      }
+      const r = rule as Record<string, unknown>;
+      if (typeof r.id !== 'string' || typeof r.name !== 'string') {
+        return false;
+      }
+      if (!Array.isArray(r.conditions)) {
+        return false;
+      }
+      if (!r.action || typeof r.action !== 'object') {
+        return false;
+      }
+    }
+
+    // defaultAction is optional but must be an object if present
+    if (candidate.defaultAction !== undefined && typeof candidate.defaultAction !== 'object') {
+      return false;
+    }
+
+    return true;
   }
 
   /**

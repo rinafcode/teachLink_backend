@@ -1,24 +1,26 @@
-import { Module } from '@nestjs/common';
-import { PassportModule } from '@nestjs/passport';
-import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { RbacModule } from '../rbac/rbac.module';
 import { User } from '../users/entities/user.entity';
-import { JwtStrategy } from './jwt.strategy';
-import { AuthService } from './auth.service';
+import { createJwtOptions } from './config/jwt-config.factory';
 import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { JwtStrategy } from './jwt.strategy';
+import { PermissionsGuard } from './guards/permissions.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { AuthTokensService } from './services/auth-tokens.service';
+import { SocialAuthController } from './controllers/social-auth.controller';
+import { SocialAuthService } from './services/social-auth.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { GitHubStrategy } from './strategies/github.strategy';
-import { RolesGuard } from './guards/roles.guard';
-import { PermissionsGuard } from './guards/permissions.guard';
-import { SocialAuthService } from './services/social-auth.service';
-import { SocialAuthController } from './controllers/social-auth.controller';
-import { AuthTokensService } from './services/auth-tokens.service';
-import { MfaService } from './mfa/mfa.service';
 import { MfaController } from './mfa/mfa.controller';
+import { MfaService } from './mfa/mfa.service';
 import { SecurityModule } from '../security/security.module';
-import { createJwtOptions } from './config/jwt-config.factory';
 
 /**
  * Registers the authentication module with Passport and JWT support.
@@ -38,6 +40,8 @@ import { createJwtOptions } from './config/jwt-config.factory';
     }),
     TypeOrmModule.forFeature([User]),
     SecurityModule,
+    RbacModule,
+    AuditLogModule,
   ],
   controllers: [AuthController, SocialAuthController, MfaController],
   providers: [

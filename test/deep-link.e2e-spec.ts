@@ -54,4 +54,40 @@ describe('DeepLinkController (e2e)', () => {
 
     expect(response.header.location).toBe('teachlink://course/456');
   });
+
+  it('GET /deep-link/course/:id should reject absolute URLs in id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/deep-link/course/http%3A%2F%2Fevil.com')
+      .set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+      .expect(400);
+
+    expect(response.body.message).toContain('Absolute URLs are not allowed');
+  });
+
+  it('GET /deep-link/course/:id should reject external URL schemes in id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/deep-link/course/javascript:alert(1)')
+      .set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+      .expect(400);
+
+    expect(response.body.message).toContain('External URL schemes are not allowed');
+  });
+
+  it('GET /deep-link/course/:id should reject path traversal in id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/deep-link/course/%2E%2E%2Fadmin')
+      .set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+      .expect(400);
+
+    expect(response.body.message).toContain('Path traversal is not allowed');
+  });
+
+  it('GET /deep-link/course/:id should reject injection characters in id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/deep-link/course/%3Cscript%3E')
+      .set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
+      .expect(400);
+
+    expect(response.body.message).toContain('Invalid characters in parameter');
+  });
 });

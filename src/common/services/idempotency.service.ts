@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { Redis } from 'ioredis';
@@ -50,6 +50,7 @@ export interface IdempotencyRedisClient {
 
 @Injectable()
 export class IdempotencyService {
+  private readonly logger = new Logger(IdempotencyService.name);
   private readonly defaultTTLSeconds: number;
 
   constructor(
@@ -65,12 +66,19 @@ export class IdempotencyService {
   async getRecord(key: string): Promise<IdempotencyRecord | null> {
     try {
       const record = await this.redisClient.get(this.getRecordKey(key));
-      if (record) {
-        return JSON.parse(record);
+      if (!record) {
+        return null;
       }
-      return null;
+
+      const parsedRecord = this.parseRecord<IdempotencyRecord>(record, key);
+      if (!parsedRecord) {
+        await this.deleteRecord(key);
+        return null;
+      }
+
+      return parsedRecord;
     } catch (error) {
-      console.error('Error getting idempotency record:', error);
+      this.logger.warn(`Failed to read idempotency record for key ${key}: ${String(error)}`);
       return null;
     }
   }
@@ -99,9 +107,15 @@ export class IdempotencyService {
         return null;
       }
 
-      return JSON.parse(record);
+      const parsedRecord = this.parseRecord<IdempotencyLockRecord>(record, key);
+      if (!parsedRecord) {
+        await this.deleteLockRecord(key);
+        return null;
+      }
+
+      return parsedRecord;
     } catch (error) {
-      console.error('Error getting idempotency lock record:', error);
+      this.logger.warn(`Failed to read idempotency lock record for key ${key}: ${String(error)}`);
       return null;
     }
   }
@@ -185,6 +199,61 @@ export class IdempotencyService {
     });
 
     return crypto.createHash('sha256').update(payload).digest('hex');
+  }
+
+  private parseRecord<T>(value: string, key: string): T | null {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (!this.isValidRecordShape(parsed)) {
+        this.logger.warn(`Malformed idempotency payload for key ${key}`);
+        return null;
+      }
+      return parsed as T;
+    } catch (error) {
+      this.logger.warn(`Malformed idempotency payload for key ${key}: ${String(error)}`);
+      return null;
+    }
+  }
+
+  private isValidRecordShape(value: unknown): value is Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+
+    const record = value as Record<string, unknown>;
+    const hasValidString = (field: string) =>
+      typeof record[field] === 'string' && record[field] !== '';
+    const hasValidNumber = (field: string) =>
+      typeof record[field] === 'number' && Number.isFinite(record[field]);
+
+    if (!hasValidString('idempotencyKey') || !hasValidString('fingerprint')) {
+      return false;
+    }
+
+    if (!hasValidNumber('statusCode') || !hasValidNumber('cachedAt')) {
+      return false;
+    }
+
+    if (record.responseHeaders !== undefined) {
+      const headers = record.responseHeaders;
+      if (typeof headers !== 'object' || headers === null || Array.isArray(headers)) {
+        return false;
+      }
+    }
+
+    if (record.ttlSeconds !== undefined && typeof record.ttlSeconds !== 'number') {
+      return false;
+    }
+
+    return true;
+  }
+
+  private async deleteLockRecord(key: string): Promise<void> {
+    try {
+      await this.redisClient.del(this.getLockKey(key));
+    } catch (error) {
+      this.logger.warn(`Failed to delete lock record for key ${key}: ${String(error)}`);
+    }
   }
 
   private getRecordKey(key: string): string {

@@ -1,5 +1,19 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseUUIDPipe,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { NotificationsService } from './notifications.service';
 import { PreferencesService } from './preferences/preferences.service';
 import { NotificationTemplateService } from './templates/notification-template.service';
@@ -14,6 +28,8 @@ import { Notification } from './entities/notification.entity';
 import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
 
 @ApiTags('notifications')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(
@@ -22,25 +38,29 @@ export class NotificationsController {
     private readonly templateService: NotificationTemplateService,
   ) {}
 
+  @Get('preferences')
+  @ApiOperation({ summary: 'Get notification preferences (for authenticated user)' })
+  getPreferences(@Req() req: any) {
+    return this.preferencesService.getPreferences(req.user.id);
+  }
+
   @Get('preferences/:userId')
-  @ApiOperation({ summary: 'Get notification preferences (for preferences UI)' })
-  getPreferences(@Param('userId', ParseUUIDPipe) userId: string) {
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get notification preferences for specific user (Admin only)' })
+  getPreferencesAdmin(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.preferencesService.getPreferences(userId);
   }
 
-  @Patch('preferences/:userId')
+  @Patch('preferences')
   @ApiOperation({ summary: 'Update notification preferences' })
-  updatePreferences(
-    @Param('userId', ParseUUIDPipe) userId: string,
-    @Body() dto: UpdateNotificationPreferencesDto,
-  ) {
-    return this.preferencesService.updatePreferences(userId, dto);
+  updatePreferences(@Req() req: any, @Body() dto: UpdateNotificationPreferencesDto) {
+    return this.preferencesService.updatePreferences(req.user.id, dto);
   }
 
-  @Post('preferences/:userId/toggle/:channel')
+  @Post('preferences/toggle/:channel')
   @ApiOperation({ summary: 'Toggle email, push, in-app, or SMS channel' })
   async toggleChannel(
-    @Param('userId', ParseUUIDPipe) userId: string,
+    @Req() req: any,
     @Param('channel') channel: 'email' | 'push' | 'in-app' | 'sms',
   ) {
     const map = {
@@ -49,25 +69,25 @@ export class NotificationsController {
       'in-app': 'inAppEnabled',
       sms: 'smsEnabled',
     } as const;
-    await this.preferencesService.toggleChannel(userId, map[channel]);
-    return this.preferencesService.getPreferences(userId);
+    await this.preferencesService.toggleChannel(req.user.id, map[channel]);
+    return this.preferencesService.getPreferences(req.user.id);
   }
 
-  @Post('unsubscribe/:userId')
+  @Post('unsubscribe')
   @ApiOperation({ summary: 'Unsubscribe from event type or all notifications' })
-  unsubscribe(@Param('userId', ParseUUIDPipe) userId: string, @Body() dto: UnsubscribeDto) {
-    return this.notificationsService.unsubscribe(userId, dto.eventType);
+  unsubscribe(@Req() req: any, @Body() dto: UnsubscribeDto) {
+    return this.notificationsService.unsubscribe(req.user.id, dto.eventType);
   }
 
   @Get()
-  @ApiOperation({ summary: 'List in-app notifications for user with pagination' })
+  @ApiOperation({ summary: 'List in-app notifications for authenticated user' })
   @ApiResponse({
     status: 200,
     description: 'Paginated list of notifications',
     type: PaginatedSwaggerDto(Notification),
   })
-  list(@Query('userId', ParseUUIDPipe) userId: string, @Query() query?: PaginationQueryDto) {
-    return this.notificationsService.findForUser(userId, query);
+  list(@Req() req: any, @Query() query?: PaginationQueryDto) {
+    return this.notificationsService.findForUser(req.user.id, query);
   }
 
   @Post()
@@ -84,13 +104,13 @@ export class NotificationsController {
 
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark notification as read' })
-  markRead(@Param('id', ParseUUIDPipe) id: string, @Query('userId', ParseUUIDPipe) userId: string) {
-    return this.notificationsService.markRead(id, userId);
+  markRead(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+    return this.notificationsService.markRead(id, req.user.id);
   }
 
   @Post('bulk/read')
   @ApiOperation({ summary: 'Mark multiple notifications as read' })
-  bulkRead(@Query('userId', ParseUUIDPipe) userId: string, @Body() dto: BulkOperationDto) {
-    return this.notificationsService.markManyRead(dto.ids, userId);
+  bulkRead(@Req() req: any, @Body() dto: BulkOperationDto) {
+    return this.notificationsService.markManyRead(dto.ids, req.user.id);
   }
 }

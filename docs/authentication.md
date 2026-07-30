@@ -6,10 +6,10 @@ TeachLink API uses **JWT (JSON Web Tokens)** for authentication, validated via P
 
 The API supports two JWT signing algorithms:
 
-| Algorithm | Type | Configuration |
-|-----------|------|---------------|
-| **HS256** (default) | Symmetric (HMAC + SHA-256) | `JWT_SECRET` — single shared secret |
-| **RS256** | Asymmetric (RSA + SHA-256) | `JWT_PRIVATE_KEY` + `JWT_PUBLIC_KEY` — PEM key pair |
+| Algorithm           | Type                       | Configuration                                       |
+| ------------------- | -------------------------- | --------------------------------------------------- |
+| **HS256** (default) | Symmetric (HMAC + SHA-256) | `JWT_SECRET` — single shared secret                 |
+| **RS256**           | Asymmetric (RSA + SHA-256) | `JWT_PRIVATE_KEY` + `JWT_PUBLIC_KEY` — PEM key pair |
 
 ### HS256 (Symmetric)
 
@@ -189,9 +189,9 @@ Requests without the header default to version `1`. Deprecated versions return w
 
 ## Error Responses
 
-| Status | Meaning | Resolution |
-|--------|---------|-----------|
-| 401 | Missing or invalid token | Check `Authorization` header format (`Bearer <token>`) |
-| 401 | Invalid credentials | Verify email/password combination |
-| 401 | Token expired | Use the refresh token to obtain a new access token |
-| 403 | Insufficient permissions | Verify user has the required role/permission |
+| Status | Meaning                  | Resolution                                             |
+| ------ | ------------------------ | ------------------------------------------------------ |
+| 401    | Missing or invalid token | Check `Authorization` header format (`Bearer <token>`) |
+| 401    | Invalid credentials      | Verify email/password combination                      |
+| 401    | Token expired            | Use the refresh token to obtain a new access token     |
+| 403    | Insufficient permissions | Verify user has the required role/permission           |

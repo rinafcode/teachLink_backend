@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
@@ -8,6 +8,7 @@ export interface SocialProfile {
   provider: string;
   providerId: string;
   email: string;
+  emailVerified?: boolean;
   firstName?: string;
   lastName?: string;
   picture?: string;
@@ -44,6 +45,8 @@ export class SocialAuthService {
   ) {}
 
   async findOrCreateFromProvider(profile: SocialProfile): Promise<User> {
+    this.assertValidProviderProfile(profile);
+
     const existing = await this.users.findOne({
       where: { provider: profile.provider, providerId: profile.providerId },
     });
@@ -89,6 +92,8 @@ export class SocialAuthService {
   }
 
   async linkProvider(userId: string, profile: SocialProfile): Promise<User> {
+    this.assertValidProviderProfile(profile);
+
     const user = await this.users.findOneOrFail({ where: { id: userId } });
     user.provider = profile.provider;
     user.providerId = profile.providerId;
@@ -146,6 +151,24 @@ export class SocialAuthService {
    * JSON serialisation is used (instead of `iv.content.tag`) so the format is
    * robust against any future hex encoding change.
    */
+  private assertValidProviderProfile(profile: SocialProfile): void {
+    if (!profile || typeof profile !== 'object') {
+      throw new UnauthorizedException('Malformed provider profile payload');
+    }
+
+    if (!profile.provider || !profile.providerId) {
+      throw new UnauthorizedException('Provider profile is missing required identity data');
+    }
+
+    if (!profile.email) {
+      throw new UnauthorizedException('Provider profile is missing required identity data');
+    }
+
+    if (profile.emailVerified !== true) {
+      throw new UnauthorizedException('Provider did not assert a verified email address');
+    }
+  }
+
   private encryptToken(rawToken: string | undefined): string | null {
     if (!rawToken) return null;
     const payload = this.encryptionService.encrypt(rawToken);

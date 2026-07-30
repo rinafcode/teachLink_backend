@@ -8,6 +8,7 @@ import { ProfileCompletenessService } from '../profile-completeness/profile-comp
 import { SearchService } from '../search/search.service';
 import { CachingService } from './caching.service';
 import { CACHE_TTL, CACHE_WARMING } from './caching.constants';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 import {
   buildCourseListKey,
   buildPopularCoursesKey,
@@ -30,6 +31,7 @@ export class CacheWarmingService {
 
   constructor(
     private readonly caching: CachingService,
+    private readonly isolationService: IsolationService,
     private readonly searchService: SearchService,
     private readonly profileCompleteness: ProfileCompletenessService,
     @InjectRepository(Course)
@@ -51,7 +53,11 @@ export class CacheWarmingService {
 
   async warmCoursesList(): Promise<WarmResult> {
     const started = Date.now();
-    const key = buildCourseListKey('published');
+    const tenantId = this.caching.getCurrentTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped cache warmup');
+    }
+    const key = buildCourseListKey(tenantId, 'published');
     const courses = await this.courseRepo.find({
       where: { status: CourseStatus.PUBLISHED },
       order: { createdAt: 'DESC' },
@@ -67,7 +73,11 @@ export class CacheWarmingService {
 
   async warmPopularCourses(): Promise<WarmResult> {
     const started = Date.now();
-    const key = buildPopularCoursesKey();
+    const tenantId = this.isolationService.getTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped cache warmup');
+    }
+    const key = buildPopularCoursesKey(tenantId);
     const popular = await this.enrollmentRepo
       .createQueryBuilder('enrollment')
       .select('enrollment.courseId', 'courseId')
@@ -107,14 +117,19 @@ export class CacheWarmingService {
     const started = Date.now();
     let keysWarmed = 0;
 
+    const tenantId = this.isolationService.getTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped cache warmup');
+    }
+
     for (const query of CACHE_WARMING.SEARCH_WARM_QUERIES) {
       const result = await this.searchService.search(query);
-      const key = buildSearchCacheKey(query);
+      const key = buildSearchCacheKey(tenantId, query);
       await this.caching.set(key, result, CACHE_TTL.SEARCH_RESULTS);
       keysWarmed += 1;
     }
 
-    const filtersKey = buildSearchCacheKey('', { level: 'beginner' });
+    const filtersKey = buildSearchCacheKey(tenantId, '', { level: 'beginner' });
     const filteredResult = await this.searchService.search('', { level: 'beginner' });
     await this.caching.set(filtersKey, filteredResult, CACHE_TTL.SEARCH_RESULTS);
     keysWarmed += 1;
@@ -142,10 +157,15 @@ export class CacheWarmingService {
       });
     }
 
+    const tenantId = this.isolationService.getTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped cache warmup');
+    }
+
     await Promise.all(
       users.map(async (user) => {
         const profile = await this.profileCompleteness.getScore(user.id);
-        const key = buildUserProfileKey(user.id);
+        const key = buildUserProfileKey(tenantId, user.id);
         await this.caching.set(key, profile, CACHE_TTL.USER_PROFILE);
       }),
     );

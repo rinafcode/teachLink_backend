@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { UPLOAD_PROGRESS_CONFIG } from './file-validation.constants';
@@ -48,10 +48,18 @@ export interface IProgressUpdate {
  * own connection to `REDIS_URL`.
  */
 @Injectable()
-export class UploadProgressService {
+export class UploadProgressService implements OnModuleDestroy {
   private readonly logger = new Logger(UploadProgressService.name);
 
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+
+  async onModuleDestroy() {
+    if (this.redis) {
+      await this.redis.quit().catch((err) => {
+        this.logger.error('Error disconnecting Redis client on module destroy:', err);
+      });
+    }
+  }
 
   /**
    * Initialize upload progress tracking

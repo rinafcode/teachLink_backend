@@ -353,11 +353,14 @@ Defined in `.github/workflows/ci.yml`. Full documentation in [README.md](README.
 
 | Job          | Description                  | Blocks merge |
 | ------------ | ---------------------------- | ------------ |
-| `install`    | `npm ci` with cache          | Yes          |
+| `install`    | `pnpm install` with cache    | Yes          |
 | `lint`       | ESLint zero-warning check    | Yes          |
 | `format`     | Prettier check (no rewrite)  | Yes          |
 | `typecheck`  | `tsc --noEmit`               | Yes          |
-| `build`      | `nest build`                 | Yes          |
+| `build`      | `pnpm build`                 | Yes          |
+| `migrations` | `pnpm run migration:run`     | Yes          |
+| `drift-check` | `pnpm run migration:generate:check` | Yes |
+| `revert`     | `pnpm run migration:revert`  | Yes          |
 | `unit-tests` | Jest + coverage ≥ 70%        | Yes          |
 | `e2e-tests`  | Supertest + Postgres + Redis | Yes          |
 | `ci-success` | Aggregate gate               | Yes          |
@@ -374,12 +377,65 @@ npm run format:check
 # Type error
 npm run typecheck
 
+# Build failure
+npm run build
+
 # Unit test / coverage failure
 npm run test:ci
+
+# Migration failure (requires Postgres + Redis running locally)
+npm run migration:run
+npm run migration:revert
+
+# Schema drift check (fails if model changes exist without a migration)
+npm run migration:generate:check
 
 # E2E failure (requires local Postgres + Redis)
 npm run test:e2e
 ```
+
+### Migration testing
+
+When model definitions change, a corresponding migration file must be created and committed alongside the model changes. Failing to do so will cause the `drift-check` CI job to fail.
+
+#### Creating a new migration
+
+```bash
+# Generate a migration from model changes
+npm run migration:generate -- <migration-name>
+```
+
+#### Verifying migrations
+
+```bash
+# Apply all pending migrations
+npm run migration:run
+
+# Revert the last migration (verifies reversibility)
+npm run migration:revert
+
+# Re-apply to restore the database state
+npm run migration:run
+```
+
+#### Checking for schema drift
+
+Schema drift occurs when entity definitions have changed but no migration file has been generated to reflect those changes. The CI pipeline runs a drift check on every PR:
+
+```bash
+# Fails if model changes exist without a corresponding migration
+npm run migration:generate:check
+```
+
+If this check fails locally, run the migration generator and commit the new migration file:
+
+```bash
+npm run migration:generate -- add-example-field
+git add src/migrations/
+git commit -m "feat(module): add example field migration (#<N>)"
+```
+
+---
 
 If CI fails on your PR, fix the issue locally, confirm it passes, then push. Do not ask reviewers to approve while CI is red.
 

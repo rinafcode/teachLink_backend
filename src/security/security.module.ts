@@ -3,18 +3,27 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SecurityService } from './security.service';
 import { EncryptionService } from './encryption/encryption.service';
 import { ThreatDetectionService } from './threats/threat-detection.service';
-import { THREAT_REDIS_CLIENT } from './threats/threat-detection.constants';
 import { ComplianceService } from './compliance/compliance.service';
 import { AuditLoggingService } from './audit/audit-logging.service';
 import { SecretsModule } from './secrets/secrets.module';
 import { SecurityEventLogger } from './audit/security-event-logger';
 import { RedisModule } from '../common/redis/redis.module';
 import { REDIS_CLIENT } from '../common/redis/redis.constants';
+import { THREAT_REDIS_CLIENT } from './threats/threat-detection.constants';
+import { RequestSigningService } from './request-signing.service';
+import { ServiceAuthService } from './service-auth.service';
+import { ZeroTrustGuard } from './zero-trust.guard';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 import { StructuredLoggerService } from '../observability/logging/structured-logger.service';
 
 /**
- * Registers the security module.
+ * SecurityModule wires the zero-trust architecture:
+ *
+ *   - ZeroTrustGuard:    identity verification on every inbound request
+ *   - ServiceAuthService: HMAC service-to-service authentication
+ *   - EncryptionService:  AES-256-GCM encryption in transit and at rest
+ *   - AuditLoggingService: structured audit trail for all security events
+ *   - ThreatDetectionService: IP-level abuse detection
  *
  * Issue #798: wires the shared Redis client behind `THREAT_REDIS_CLIENT`
  * so ThreatDetectionService uses a distributed store instead of an
@@ -35,6 +44,9 @@ import { StructuredLoggerService } from '../observability/logging/structured-log
     AuditLoggingService,
     StructuredLoggerService,
     SecurityEventLogger,
+    RequestSigningService,
+    ServiceAuthService,
+    ZeroTrustGuard,
   ],
   exports: [
     SecurityService,
@@ -42,6 +54,10 @@ import { StructuredLoggerService } from '../observability/logging/structured-log
     SecretsModule,
     THREAT_REDIS_CLIENT,
     SecurityEventLogger,
+    RequestSigningService,
+    ServiceAuthService,
+    ZeroTrustGuard,
+    AuditLoggingService,
   ],
 })
 export class SecurityModule {}
