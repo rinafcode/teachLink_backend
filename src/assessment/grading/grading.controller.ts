@@ -12,7 +12,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RubricsService } from './rubrics.service';
 import { GradingService } from './grading.service';
@@ -52,9 +52,21 @@ export class GradingController {
   }
 
   @Get('rubrics')
-  @ApiOperation({ summary: 'List rubrics (optionally filtered by owner)' })
-  listRubrics(@Query('mine') mine: string | undefined, @Request() req: any) {
-    return this.rubrics.findAll(mine === 'true' ? req.user?.id : undefined);
+  @ApiOperation({ summary: 'List rubrics (paginated, optionally filtered by owner)' })
+  @ApiQuery({ name: 'mine', required: false, type: String, description: 'Filter to own rubrics' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  listRubrics(
+    @Query('mine') mine: string | undefined,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Request() req?: any,
+  ) {
+    return this.rubrics.findAll(
+      mine === 'true' ? req?.user?.id : undefined,
+      page ?? 1,
+      limit ?? 10,
+    );
   }
 
   @Get('rubrics/:id')
@@ -119,9 +131,21 @@ export class GradingController {
   }
 
   @Get('feedback-templates')
-  @ApiOperation({ summary: 'List feedback templates' })
-  listTemplates(@Query('mine') mine: string | undefined, @Request() req: any) {
-    return this.feedbackTemplates.findAll(mine === 'true' ? req.user?.id : undefined);
+  @ApiOperation({ summary: 'List feedback templates (paginated)' })
+  @ApiQuery({ name: 'mine', required: false, type: String, description: 'Filter to own templates' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  listTemplates(
+    @Query('mine') mine: string | undefined,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Request() req?: any,
+  ) {
+    return this.feedbackTemplates.findAll(
+      mine === 'true' ? req?.user?.id : undefined,
+      page ?? 1,
+      limit ?? 10,
+    );
   }
 
   @Get('feedback-templates/:id')

@@ -257,3 +257,60 @@ describe('AuthService', () => {
     });
   });
 });
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { UserStatus } from '../users/enums/user-status.enum';
+import { User } from '../users/entities/user.entity';
+
+describe('AuthService - Account Status Validation', () => {
+  let authService: AuthService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        // Mock dependencies (usersService, jwtService, etc.)
+      ],
+    }).compile();
+
+    authService = module.get<AuthService>(AuthService);
+  });
+
+  describe('assertUserMayAuthenticate', () => {
+    it('should allow authentication for ACTIVE users', () => {
+      const activeUser = { id: '1', status: UserStatus.ACTIVE } as User;
+      expect(() => authService.assertUserMayAuthenticate(activeUser)).not.toThrow();
+    });
+
+    it('should throw UnauthorizedException for SUSPENDED users', () => {
+      const suspendedUser = { id: '2', status: UserStatus.SUSPENDED } as User;
+      expect(() => authService.assertUserMayAuthenticate(suspendedUser)).toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException for BANNED users', () => {
+      const bannedUser = { id: '3', status: UserStatus.BANNED } as User;
+      expect(() => authService.assertUserMayAuthenticate(bannedUser)).toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException for PENDING_VERIFICATION users', () => {
+      const pendingUser = { id: '4', status: UserStatus.PENDING_VERIFICATION } as User;
+      expect(() => authService.assertUserMayAuthenticate(pendingUser)).toThrow(
+        UnauthorizedException,
+      );
+    });
+  });
+
+  describe('login', () => {
+    it('should reject login attempt if user is not ACTIVE', async () => {
+      const suspendedUser = { id: '2', status: UserStatus.SUSPENDED } as User;
+
+      await expect(authService.login(suspendedUser)).rejects.toThrow(UnauthorizedException);
+    });
+  });
+});

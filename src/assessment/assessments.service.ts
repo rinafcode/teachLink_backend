@@ -10,6 +10,8 @@ import { Answer } from './entities/answer.entity';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
 import { Question } from './entities/question.entity';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { clampLimit } from '../common/utils/pagination.utils';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
 /**
  * Provides assessment operations.
@@ -54,10 +56,27 @@ export class AssessmentsService {
   }
 
   /**
-   * Retrieves all assessments.
+   * Retrieves a paginated list of assessments without eager-loading questions.
+   * Questions are loaded only on the detail endpoint (findOne).
    */
-  async findAll(): Promise<Assessment[]> {
-    return this.assessmentRepo.find({ relations: ['questions'] });
+  async findAll(page = 1, limit = 10): Promise<OffsetPaginatedResponse<Assessment>> {
+    const clampedLimit = clampLimit(limit);
+    const skip = (page - 1) * clampedLimit;
+    const [data, total] = await this.assessmentRepo.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip,
+      take: clampedLimit,
+    });
+    const totalPages = Math.ceil(total / clampedLimit);
+    return {
+      data,
+      total,
+      page,
+      limit: clampedLimit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
   }
 
   /**

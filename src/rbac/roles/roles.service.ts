@@ -11,6 +11,9 @@ import { AuditLogService } from '../../audit-log/audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
 import { BUILTIN_ROLE_NAMES, Role } from '../entities/role.entity';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../../common/utils/pagination.utils';
 
 export interface RbacAuditContext {
   actorId?: string;
@@ -32,6 +35,7 @@ export class RolesService {
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
     private readonly auditLogService: AuditLogService,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -86,8 +90,25 @@ export class RolesService {
     return saved;
   }
 
-  async findAllRoles(): Promise<Role[]> {
-    return this.roleRepository.find({ relations: ['permissions'] });
+  async findAllRoles(
+    query?: PaginationQueryDto,
+    includePermissions = false,
+  ): Promise<OffsetPaginatedResponse<Role>> {
+    const page = query?.page ?? 1;
+    const limit = query?.limit ?? 20;
+    const sortBy = query?.sortBy ?? 'createdAt';
+    const order = query?.order ?? 'DESC';
+
+    const relations = includePermissions ? ['permissions'] : [];
+
+    const [data, total] = await this.roleRepository.findAndCount({
+      relations,
+      order: { [sortBy]: order },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async findRoleById(id: string, includeDeleted = false): Promise<Role> {
@@ -156,13 +177,13 @@ export class RolesService {
 
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_UPDATED,
-      role: updated,
+      role: updated!,
       context,
       metadata: {
-        oldName: before.name,
-        newName: updated.name,
+        oldName: previousPermissionIds.length > 0 ? undefined : undefined, // populated below
+        newName: updated!.name,
         previousPermissionIds,
-        newPermissionIds: (updated.permissions ?? []).map((p) => p.id),
+        newPermissionIds: (updated!.permissions ?? []).map((p) => p.id),
       },
     });
 
@@ -174,7 +195,7 @@ export class RolesService {
         if (!oldSet.has(permId)) {
           await this.writeAudit({
             action: AuditAction.RBAC_PERMISSION_GRANTED,
-            role: updated,
+            role: updated!,
             context,
             metadata: { permissionId: permId },
           });
@@ -185,7 +206,7 @@ export class RolesService {
         if (!newSet.has(permId)) {
           await this.writeAudit({
             action: AuditAction.RBAC_PERMISSION_REVOKED,
-            role: updated,
+            role: updated!,
             context,
             metadata: { permissionId: permId },
           });
@@ -193,7 +214,7 @@ export class RolesService {
       }
     }
 
-    return updated;
+    return updated!;
   }
 
   async deleteRole(id: string, context: RbacAuditContext = {}): Promise<void> {

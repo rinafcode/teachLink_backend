@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AssessmentsService } from './assessments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SubmitAssessmentDto } from './dto/submit-assessment.dto';
@@ -12,6 +12,19 @@ import { SubmitAssessmentDto } from './dto/submit-assessment.dto';
 @Controller('assessments')
 export class AssessmentsController {
   constructor(private readonly service: AssessmentsService) {}
+
+  /**
+   * Lists all assessments with pagination.
+   */
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List assessments (paginated, no question bodies)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({ status: 200, description: 'Paginated list of assessments' })
+  list(@Query('page') page?: number, @Query('limit') limit?: number): any {
+    return this.service.findAll(page ?? 1, limit ?? 10);
+  }
 
   /**
    * Starts start.

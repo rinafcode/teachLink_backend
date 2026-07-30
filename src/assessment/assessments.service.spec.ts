@@ -42,6 +42,7 @@ const BASE_ASSESSMENT = makeAssessment();
 const makeMockAssessmentRepo = () => ({
   findOne: jest.fn(),
   find: jest.fn(),
+  findAndCount: jest.fn(),
   findByIds: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
@@ -117,18 +118,57 @@ describe('AssessmentsService', () => {
   // ── findAll ──────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
-    it('returns all assessments with questions relation', async () => {
-      assessmentRepo.find.mockResolvedValue([BASE_ASSESSMENT]);
+    it('returns paginated assessments without loading questions', async () => {
+      assessmentRepo.findAndCount.mockResolvedValue([[BASE_ASSESSMENT], 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll(1, 10);
 
-      expect(result).toEqual([BASE_ASSESSMENT]);
-      expect(assessmentRepo.find).toHaveBeenCalledWith({ relations: ['questions'] });
+      expect(result.data).toEqual([BASE_ASSESSMENT]);
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+      expect(result.hasNextPage).toBe(false);
+      expect(result.hasPrevPage).toBe(false);
+      expect(assessmentRepo.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 10,
+          order: { createdAt: 'DESC' },
+        }),
+      );
+      expect(assessmentRepo.findAndCount).not.toHaveBeenCalledWith(
+        expect.objectContaining({ relations: expect.anything() }),
+      );
     });
 
-    it('returns empty array when no assessments exist', async () => {
-      assessmentRepo.find.mockResolvedValue([]);
-      expect(await service.findAll()).toEqual([]);
+    it('returns empty paginated array when no assessments exist', async () => {
+      assessmentRepo.findAndCount.mockResolvedValue([[], 0]);
+      const result = await service.findAll(1, 10);
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('clamps limit to max page size', async () => {
+      assessmentRepo.findAndCount.mockResolvedValue([[BASE_ASSESSMENT], 1]);
+      const result = await service.findAll(1, 999);
+      expect(result.limit).toBeLessThanOrEqual(100);
+    });
+
+    it('computes pagination metadata correctly', async () => {
+      const items = Array(25).fill(null).map((_, i) => makeAssessment({ id: `assess-${i}`, title: `A${i}` }));
+      assessmentRepo.findAndCount.mockResolvedValue([items.slice(0, 10), 25]);
+
+      const page1 = await service.findAll(1, 10);
+      expect(page1.data).toHaveLength(10);
+      expect(page1.total).toBe(25);
+      expect(page1.totalPages).toBe(3);
+      expect(page1.hasNextPage).toBe(true);
+      expect(page1.hasPrevPage).toBe(false);
+
+      const page3 = await service.findAll(3, 10);
+      expect(page3.data).toHaveLength(5);
+      expect(page3.hasNextPage).toBe(false);
+      expect(page3.hasPrevPage).toBe(true);
     });
   });
 

@@ -33,6 +33,7 @@ export class AnalyticsController {
     return { success: true };
   }
 
+  // Compatibility endpoint for tracking feature events
   @Post('event')
   @ApiOperation({ summary: 'Track a feature event (compatibility endpoint)' })
   @ApiResponse({ status: 201, description: 'Feature event tracked successfully' })

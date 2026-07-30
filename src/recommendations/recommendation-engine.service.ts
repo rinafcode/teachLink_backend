@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Enrollment } from '../courses/entities/enrollment.entity';
 import { CachingService } from '../caching/caching.service';
+import { CACHE_EVENTS } from '../caching/caching.constants';
 import { CollaborativeFilteringService } from './collaborative-filtering.service';
 import { ContentBasedFilteringService } from './content-based-filtering.service';
 import { RecommendedCourseDto } from './dto/recommendation.dto';
@@ -39,6 +41,20 @@ export class RecommendationEngineService {
       () => this.computeRecommendations(userId, limit),
       CACHE_TTL_SECONDS,
     );
+  }
+
+  @OnEvent(CACHE_EVENTS.ENROLLMENT_CREATED)
+  async onEnrollmentCreated(payload: { id: string }): Promise<void> {
+    const enrollment = await this.enrollmentRepo.findOne({
+      select: ['userId'],
+      where: { id: payload.id },
+    });
+    if (enrollment) {
+      this.logger.debug(
+        `Invalidating recommendations for user ${enrollment.userId} after enrollment`,
+      );
+      await this.invalidate(enrollment.userId);
+    }
   }
 
   /** Invalidate cached recommendations for a user (e.g., after a new enrollment). */

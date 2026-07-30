@@ -1,7 +1,12 @@
-import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../auth/guards/roles.guard';
+import { Roles, UserRole } from '../../../users/entities/user.entity';
 import { ReportingService } from './reporting.service';
 
 @Controller('reports')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 

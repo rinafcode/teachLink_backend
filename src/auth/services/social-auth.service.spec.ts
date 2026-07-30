@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { SocialAuthService, SocialProfile } from './social-auth.service';
 import { User } from '../../users/entities/user.entity';
 import { EncryptionService, IEncryptedPayload } from '../../security/encryption/encryption.service';
@@ -26,6 +26,7 @@ function makeProfile(overrides: Partial<SocialProfile> = {}): SocialProfile {
     provider: 'google',
     providerId: 'google-999',
     email: 'new@example.com',
+    emailVerified: true,
     firstName: 'Jane',
     lastName: 'Doe',
     ...overrides,
@@ -119,14 +120,12 @@ describe('SocialAuthService (Issue #799 — at-rest encryption)', () => {
       );
     });
 
-    it('falls back to providerId as firstName when both name and email are absent', async () => {
-      await service.findOrCreateFromProvider(
-        makeProfile({ firstName: undefined, lastName: undefined, email: undefined }),
-      );
-
-      expect(mockRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ firstName: 'google-999' }),
-      );
+    it('rejects profiles that omit an email address even when names are absent', async () => {
+      await expect(
+        service.findOrCreateFromProvider(
+          makeProfile({ firstName: undefined, lastName: undefined, email: undefined }),
+        ),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('trims whitespace-only firstName and falls back', async () => {

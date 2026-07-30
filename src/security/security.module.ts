@@ -6,6 +6,7 @@ import { ThreatDetectionService } from './threats/threat-detection.service';
 import { ComplianceService } from './compliance/compliance.service';
 import { AuditLoggingService } from './audit/audit-logging.service';
 import { SecretsModule } from './secrets/secrets.module';
+import { RequestSigningService } from './request-signing.service';
 import { ServiceAuthService } from './service-auth.service';
 import { ZeroTrustGuard } from './zero-trust.guard';
 import { MonitoringModule } from '../monitoring/monitoring.module';
@@ -27,6 +28,7 @@ import { MonitoringModule } from '../monitoring/monitoring.module';
     ThreatDetectionService,
     ComplianceService,
     AuditLoggingService,
+    RequestSigningService,
     ServiceAuthService,
     ZeroTrustGuard,
   ],
@@ -34,6 +36,7 @@ import { MonitoringModule } from '../monitoring/monitoring.module';
     SecurityService,
     EncryptionService,
     SecretsModule,
+    RequestSigningService,
     ServiceAuthService,
     ZeroTrustGuard,
     AuditLoggingService,

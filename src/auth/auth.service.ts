@@ -24,9 +24,34 @@ export class AuthService {
   ) {}
 
   /**
+   * Centralized security invariant asserting user account state prior to issuing tokens.
+   * Prevents inactive, suspended, pending, or banned users from obtaining access or refresh tokens.
+   */
+  public assertUserMayAuthenticate(user: User, action = 'auth', ip?: string): void {
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      if (user) {
+        this.securityEventLogger.emit({
+          eventType: SecurityEventType.ACCOUNT_LOCKED,
+          userId: user.id,
+          ip,
+          severity: 'high',
+          details: {
+            reason: 'inactive_user_auth_attempt',
+            action,
+            status: user.status,
+          },
+        });
+      }
+      throw new UnauthorizedException('User is not active');
+    }
+  }
+
+  /**
    * Generates tokens for the user and saves the refresh token hash.
    */
-  async login(user: User) {
+  async login(user: User, ip?: string) {
+    this.assertUserMayAuthenticate(user, 'login', ip);
+
     const tokens = await this.generateTokens(user);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
     return tokens;
@@ -85,20 +110,7 @@ export class AuthService {
       throw new UnauthorizedException('Access Denied');
     }
 
-    if (user.status !== UserStatus.ACTIVE) {
-      this.securityEventLogger.emit({
-        eventType: SecurityEventType.ACCOUNT_LOCKED,
-        userId,
-        ip,
-        severity: 'high',
-        details: {
-          reason: 'inactive_user_refresh_attempt',
-          action: 'refreshTokens',
-          status: user.status,
-        },
-      });
-      throw new UnauthorizedException('User is not active');
-    }
+    this.assertUserMayAuthenticate(user, 'refreshTokens', ip);
 
     const refreshTokenMatches = timingSafeEqual(
       Buffer.from(this.hashRefreshToken(refreshToken)),
