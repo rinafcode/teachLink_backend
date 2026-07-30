@@ -15,7 +15,7 @@ export type ForumThreadListItem = Pick<
   'id' | 'title' | 'authorId' | 'createdAt' | 'upvotes' | 'downvotes'
 >;
 
-export type ForumThreadDetail = ForumThread & {
+export type ForumThreadDetail = Omit<ForumThread, 'comments'> & {
   comments: OffsetPaginatedResponse<ForumComment>;
 };
 

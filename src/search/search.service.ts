@@ -179,7 +179,17 @@ export class SearchService implements OnModuleInit {
 
       if (filters?.category) {
         const cats = Array.isArray(filters.category) ? filters.category : [filters.category];
-        qb.andWhere('course.category IN (:cats)', { cats });
+        qb.andWhere('course.category IN (:...cats)', { cats });
+      }
+
+      if (filters?.level) {
+        const levels = Array.isArray(filters.level) ? filters.level : [filters.level];
+        qb.andWhere('course.level IN (:...levels)', { levels });
+      }
+
+      if (filters?.language) {
+        const languages = Array.isArray(filters.language) ? filters.language : [filters.language];
+        qb.andWhere('course.language IN (:...languages)', { languages });
       }
 
       if (filters?.price?.gte !== undefined)
@@ -209,8 +219,7 @@ export class SearchService implements OnModuleInit {
       if (this.cacheManager) await this.cacheManager.set(cacheKey, result, SEARCH_CACHE_TTL_MS);
       return result;
     } catch (err) {
-      this.logger.error(`Search failed: ${(err as Error).message}`);
-      return { results: [], total: 0, page, limit, query: safeQuery };
+      this.handleQueryFailure(err, 'Search');
     }
   }
 
@@ -243,8 +252,7 @@ export class SearchService implements OnModuleInit {
       this.autocompleteCache.set(query, results);
       return results;
     } catch (err) {
-      this.logger.error(`Autocomplete failed: ${(err as Error).message}`);
-      return [];
+      this.handleQueryFailure(err, 'Autocomplete');
     }
   }
 
@@ -358,6 +366,41 @@ export class SearchService implements OnModuleInit {
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * A repository/driver failure during search must never look like a
+   * genuine zero-result search — that hides real outages behind a 200 and
+   * makes error-rate metrics blind to them (issue #997). Logs, increments
+   * `search_query_failures_total` labelled by failure class, and rethrows:
+   * malformed filter values the caller supplied (bad UUID, invalid enum
+   * value — Postgres data-exception class '22xxx') become a 400; anything
+   * else (connection errors, timeouts, unexpected driver errors) becomes a
+   * 503 so the global exception filter and error-rate metrics see it.
+   */
+  private handleQueryFailure(err: unknown, context: string): never {
+    const isCallerError = this.isCallerFilterError(err);
+    const failureClass = isCallerError ? 'caller' : 'infrastructure';
+
+    this.metricsService.searchQueryFailuresCounter.inc({ failure_class: failureClass });
+    this.logger.error(`${context} failed (${failureClass}): ${(err as Error).message}`);
+
+    if (isCallerError) {
+      throw new BadRequestException('One or more search filter values are invalid');
+    }
+    throw new ServiceUnavailableException('Search is temporarily unavailable');
+  }
+
+  /**
+   * Postgres reports malformed input (invalid UUID, invalid enum value, bad
+   * numeric literal, ...) under the '22' (data exception) SQLSTATE class.
+   * Those stem directly from a filter value the caller supplied, as opposed
+   * to a connection failure, timeout, or a bug in our own SQL.
+   */
+  private isCallerFilterError(err: unknown): boolean {
+    if (!(err instanceof QueryFailedError)) return false;
+    const code = (err as QueryFailedError & { code?: string }).code;
+    return typeof code === 'string' && code.startsWith('22');
+  }
 
   /**
    * Build a cache key that uniquely identifies every parameter that affects

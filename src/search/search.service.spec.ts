@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { SearchService } from './search.service';
 import { SearchService, SEARCH_CACHE_TTL_MS } from './search.service';
-import { Repository } from 'typeorm';
+import { Repository, QueryFailedError } from 'typeorm';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 
 /**
@@ -14,7 +14,10 @@ describe('SearchService (Issue #814 full-text search)', () => {
   let courseRepository: jest.Mocked<Repository<any>>;
   let elasticsearch: { search: jest.Mock; ping: jest.Mock };
   let isolationService: { getTenantId: jest.Mock };
-  let metricsService: { searchFallbackCounter: { inc: jest.Mock } };
+  let metricsService: {
+    searchFallbackCounter: { inc: jest.Mock };
+    searchQueryFailuresCounter: { inc: jest.Mock };
+  };
 
   beforeEach(() => {
     courseRepository = {
@@ -23,7 +26,10 @@ describe('SearchService (Issue #814 full-text search)', () => {
 
     elasticsearch = { search: jest.fn(), ping: jest.fn().mockResolvedValue(true) };
     isolationService = { getTenantId: jest.fn().mockReturnValue(null) };
-    metricsService = { searchFallbackCounter: { inc: jest.fn() } };
+    metricsService = {
+      searchFallbackCounter: { inc: jest.fn() },
+      searchQueryFailuresCounter: { inc: jest.fn() },
+    };
 
     service = new SearchService(
       courseRepository as any,
@@ -92,6 +98,160 @@ describe('SearchService (Issue #814 full-text search)', () => {
 
     expect(qb.where).not.toHaveBeenCalled();
     expect(qb.orderBy).toHaveBeenCalledWith('course.createdAt', 'DESC');
+  });
+
+  describe('Issue #995 — array-valued filter parameter expansion', () => {
+    it('uses the spread form and array param for a single-value category filter', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeQb({ rows: [], total: 0 });
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await service.search('', { category: 'design' });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('course.category IN (:...cats)', {
+        cats: ['design'],
+      });
+    });
+
+    it('uses the spread form and array param for a multi-value category filter', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeQb({ rows: [], total: 0 });
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await service.search('', { category: ['design', 'business'] });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('course.category IN (:...cats)', {
+        cats: ['design', 'business'],
+      });
+    });
+
+    it('never uses the unspread single-colon form for category (regression guard)', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeQb({ rows: [], total: 0 });
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await service.search('', { category: ['design', 'business'] });
+
+      expect(qb.andWhere).not.toHaveBeenCalledWith('course.category IN (:cats)', expect.anything());
+    });
+
+    it('applies the level filter with spread-form array expansion', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeQb({ rows: [], total: 0 });
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await service.search('', { level: ['beginner', 'intermediate'] });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('course.level IN (:...levels)', {
+        levels: ['beginner', 'intermediate'],
+      });
+    });
+
+    it('applies the language filter with spread-form array expansion', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeQb({ rows: [], total: 0 });
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await service.search('', { language: 'en' });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('course.language IN (:...languages)', {
+        languages: ['en'],
+      });
+    });
+
+    it('omits filter clauses that were not supplied', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeQb({ rows: [], total: 0 });
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await service.search('', { category: 'design' });
+
+      const calledClauses = qb.andWhere.mock.calls.map((c: any[]) => c[0]);
+      expect(calledClauses).not.toContain(expect.stringContaining('course.level'));
+      expect(calledClauses).not.toContain(expect.stringContaining('course.language'));
+    });
+  });
+
+  describe('Issue #997 — search failures surface as errors, not empty results', () => {
+    function makeFailingQb(error: unknown) {
+      const qb: any = {
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orWhere: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockRejectedValue(error),
+      };
+      return qb;
+    }
+
+    it('rethrows as ServiceUnavailableException (503) on a repository/infrastructure failure', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeFailingQb(new Error('connection terminated unexpectedly'));
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await expect(service.search('react')).rejects.toMatchObject({
+        status: 503,
+      });
+    });
+
+    it('increments search_query_failures_total with failure_class="infrastructure" on a repository failure', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeFailingQb(new Error('connection terminated unexpectedly'));
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await expect(service.search('react')).rejects.toThrow();
+
+      expect(metricsService.searchQueryFailuresCounter.inc).toHaveBeenCalledWith({
+        failure_class: 'infrastructure',
+      });
+    });
+
+    it('rethrows as BadRequestException (400) when Postgres reports a data-exception (22xxx) SQLSTATE', async () => {
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const driverError = Object.assign(new QueryFailedError('SELECT 1', [], new Error('bad')), {
+        code: '22P02', // invalid_text_representation
+      });
+      const qb = makeFailingQb(driverError);
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await expect(service.search('react', { category: 'not-a-real-uuid' })).rejects.toMatchObject({
+        status: 400,
+      });
+
+      expect(metricsService.searchQueryFailuresCounter.inc).toHaveBeenCalledWith({
+        failure_class: 'caller',
+      });
+    });
+
+    it('autocomplete rethrows as ServiceUnavailableException (503) instead of returning an empty array', async () => {
+      const qb: any = {
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockRejectedValue(new Error('connection terminated unexpectedly')),
+      };
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await expect(service.getAutoComplete('java')).rejects.toMatchObject({ status: 503 });
+      expect(metricsService.searchQueryFailuresCounter.inc).toHaveBeenCalledWith({
+        failure_class: 'infrastructure',
+      });
+    });
+
+    it('does not swallow an Elasticsearch-then-DB failure into an empty result', async () => {
+      // ES throws, DB path is attempted next and also fails outright — the
+      // caller must see an error, not a 200 with an empty catalogue.
+      elasticsearch.search.mockRejectedValueOnce(new Error('ES down'));
+      const qb = makeFailingQb(new Error('ECONNREFUSED'));
+      courseRepository.createQueryBuilder.mockReturnValueOnce(qb);
+
+      await expect(service.search('react')).rejects.toBeDefined();
+    });
   });
 
   it('autocomplete uses simple tsquery with prefix operator', async () => {
