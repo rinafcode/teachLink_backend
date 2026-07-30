@@ -54,9 +54,21 @@ import { StripeProvider } from './providers/stripe.provider';
       useClass: StripeProvider,
     },
   ],
-  providers: [PricingService, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
+  providers: [
+    PricingService,
+    PaymentReconciliationJob,
+    SubscriptionsService,
+    PaymentProviderService,
+  ],
   controllers: [PricingController, PaymentReconciliationController, SubscriptionsController],
-  exports: [PricingService, CurrencyModule, IdempotencyModule, PaymentReconciliationJob, SubscriptionsService, PaymentProviderService],
+  exports: [
+    PricingService,
+    CurrencyModule,
+    IdempotencyModule,
+    PaymentReconciliationJob,
+    SubscriptionsService,
+    PaymentProviderService,
+  ],
   controllers: [PricingController, PaymentReconciliationController],
   exports: [
     PricingService,

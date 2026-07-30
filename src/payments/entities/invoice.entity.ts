@@ -42,7 +42,7 @@ export class Invoice {
    * Invoice number generated from PostgreSQL sequence.
    * Format: INV-<6-digit-zero-padded-sequence-value>
    * Example: INV-000001, INV-000042
-   * 
+   *
    * Uniqueness is enforced at the database level via unique constraint
    * (not application-level locking). This ensures no collisions under concurrent
    * invoice generation (e.g., parallel payment webhooks).

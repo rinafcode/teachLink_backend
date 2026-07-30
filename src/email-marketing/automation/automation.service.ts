@@ -53,7 +53,9 @@ function validateWebhookUrl(urlStr: string): void {
   ];
 
   if (privatePatterns.some((p) => p.test(host))) {
-    throw new BusinessValidationException('Webhook target cannot be a private, loopback, or link-local address');
+    throw new BusinessValidationException(
+      'Webhook target cannot be a private, loopback, or link-local address',
+    );
   }
 }
 
@@ -424,7 +426,7 @@ export class AutomationService {
     };
   }
 
-    async handleWorkflowAction(workflowId: string, actionType: string): Promise<void> {
+  async handleWorkflowAction(workflowId: string, actionType: string): Promise<void> {
     switch (actionType) {
       case 'SEND_EMAIL':
         // Email sending logic
@@ -438,4 +440,3 @@ export class AutomationService {
     }
   }
 }
-

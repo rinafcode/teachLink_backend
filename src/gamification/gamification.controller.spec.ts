@@ -43,13 +43,11 @@ describe('GamificationController', () => {
 
   describe('POST /gamification/points/add', () => {
     it('should reject negative points with 400 Bad Request', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/gamification/points/add')
-        .send({
-          userId: '123e4567-e89b-12d3-a456-426614174000',
-          points: -50,
-          activityType: 'MANUAL_AWARD',
-        });
+      const response = await request(app.getHttpServer()).post('/gamification/points/add').send({
+        userId: '123e4567-e89b-12d3-a456-426614174000',
+        points: -50,
+        activityType: 'MANUAL_AWARD',
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.message).toContain('points must not be less than 1');

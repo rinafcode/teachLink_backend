@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, ParseUUIDPipe, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseUUIDPipe,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -42,10 +53,7 @@ export class NotificationsController {
 
   @Patch('preferences')
   @ApiOperation({ summary: 'Update notification preferences' })
-  updatePreferences(
-    @Req() req: any,
-    @Body() dto: UpdateNotificationPreferencesDto,
-  ) {
+  updatePreferences(@Req() req: any, @Body() dto: UpdateNotificationPreferencesDto) {
     return this.preferencesService.updatePreferences(req.user.id, dto);
   }
 

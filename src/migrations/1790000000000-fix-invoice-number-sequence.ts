@@ -79,17 +79,18 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
           const invoiceNumber = dup.invoiceNumber;
           const count = dup.count;
 
-          this.logger(
-            `Resolving ${count} invoices with invoiceNumber="${invoiceNumber}"...`,
-          );
+          this.logger(`Resolving ${count} invoices with invoiceNumber="${invoiceNumber}"...`);
 
           // Get all rows with this duplicate number, ordered by createdAt then id
-          const rows = await queryInterface.query(`
+          const rows = await queryInterface.query(
+            `
             SELECT id, "invoiceNumber", "createdAt"
             FROM invoices
             WHERE "invoiceNumber" = $1
             ORDER BY "createdAt" ASC, id ASC;
-          `, [invoiceNumber]);
+          `,
+            [invoiceNumber],
+          );
 
           // Keep the first one unchanged; reassign the rest
           // Note: At this point the sequence doesn't exist yet, so we'll use
@@ -98,11 +99,14 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
             const row = rows[i];
             const newInvoiceNumber = `${invoiceNumber}-DUP-${i}`;
 
-            await queryInterface.query(`
+            await queryInterface.query(
+              `
               UPDATE invoices
               SET "invoiceNumber" = $1
               WHERE id = $2;
-            `, [newInvoiceNumber, row.id]);
+            `,
+              [newInvoiceNumber, row.id],
+            );
 
             this.logger(
               `  Reassigned invoice ${row.id}: "${invoiceNumber}" → "${newInvoiceNumber}"`,
@@ -120,7 +124,7 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
       this.logger('Step 2: Creating invoice_number_seq sequence...');
 
       // Drop if exists (shouldn't, but be safe)
-      await queryInterface.query(`DROP SEQUENCE IF EXISTS invoice_number_seq;`);
+      await queryInterface.query('DROP SEQUENCE IF EXISTS invoice_number_seq;');
 
       // Create sequence: starting at 1, no max (let it wrap naturally at bigint boundary)
       await queryInterface.query(`
@@ -138,9 +142,7 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
       // ========================================================================
 
       if (duplicates.length > 0) {
-        this.logger(
-          'Step 3: Migrating existing invoices to sequence-based numbering...',
-        );
+        this.logger('Step 3: Migrating existing invoices to sequence-based numbering...');
 
         // Get existing invoices ordered by createdAt, assign each a sequence number
         // This ensures existing invoices maintain chronological ordering
@@ -155,17 +157,23 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
           const seqNum = idx + 1;
           const newInvoiceNumber = `INV-${String(seqNum).padStart(6, '0')}`;
 
-          await queryInterface.query(`
+          await queryInterface.query(
+            `
             UPDATE invoices
             SET "invoiceNumber" = $1
             WHERE id = $2;
-          `, [newInvoiceNumber, invoice.id]);
+          `,
+            [newInvoiceNumber, invoice.id],
+          );
         }
 
         // Advance sequence to next value after migrations
-        await queryInterface.query(`
+        await queryInterface.query(
+          `
           SELECT setval('invoice_number_seq', $1, true);
-        `, [existingInvoices.length]);
+        `,
+          [existingInvoices.length],
+        );
 
         this.logger(`Migrated ${existingInvoices.length} invoices to sequence-based numbering.`);
       } else {
@@ -174,10 +182,7 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
           SELECT COUNT(*) as cnt FROM invoices;
         `);
         const nextVal = (maxSeqResult[0]?.cnt || 0) + 1;
-        await queryInterface.query(
-          `SELECT setval('invoice_number_seq', $1, true);`,
-          [nextVal - 1],
-        );
+        await queryInterface.query("SELECT setval('invoice_number_seq', $1, true);", [nextVal - 1]);
       }
 
       // ========================================================================
@@ -224,7 +229,7 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
       if (dupCount > 0) {
         throw new Error(
           `Migration safety check failed: Found ${dupCount} duplicate invoiceNumbers after resolution. ` +
-          'This indicates a bug in the resolution logic.',
+            'This indicates a bug in the resolution logic.',
         );
       }
 
@@ -269,7 +274,7 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
       // In practice, you may want to store the old value somewhere before migration for rollback
       this.logger(
         'WARNING: Down migration cannot recover original timestamp+random values. ' +
-        'Invoices have been renumbered. Consider a full restore from backup if needed.',
+          'Invoices have been renumbered. Consider a full restore from backup if needed.',
       );
     } finally {
       await queryInterface.release();

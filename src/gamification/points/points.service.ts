@@ -100,31 +100,31 @@ export class PointsService {
         createdAt: new Date(),
       });
 
-    // Capture the tier currently on the record before any mutation so we can
-    // detect a real boundary crossing after the save commits.
-    const previousTier = progress.tier ?? Tier.BRONZE;
+      // Capture the tier currently on the record before any mutation so we can
+      // detect a real boundary crossing after the save commits.
+      const previousTier = progress.tier ?? Tier.BRONZE;
 
-    progress.totalPoints += points;
-    progress.xp += points;
-    progress.level = Math.floor(progress.xp / 1000) + 1;
+      progress.totalPoints += points;
+      progress.xp += points;
+      progress.level = Math.floor(progress.xp / 1000) + 1;
 
-    // Derive the new tier from the projected total and assign it BEFORE save
-    // so the single repository call persists both points and tier together.
-    const newTier = this.tiersService.getTierForPoints(progress.totalPoints);
-    progress.tier = newTier;
+      // Derive the new tier from the projected total and assign it BEFORE save
+      // so the single repository call persists both points and tier together.
+      const newTier = this.tiersService.getTierForPoints(progress.totalPoints);
+      progress.tier = newTier;
 
-    const saved = await this.userProgressRepository.save(progress);
+      const saved = await this.userProgressRepository.save(progress);
 
-    // tierPromoted is true only when the boundary is actually crossed and the
-    // value is now durable in the database.
-    const tierPromoted = newTier !== previousTier;
+      // tierPromoted is true only when the boundary is actually crossed and the
+      // value is now durable in the database.
+      const tierPromoted = newTier !== previousTier;
 
-    // Emit only after the DB write succeeds so a save failure does not
-    // publish a promotion that never actually committed.
-    this.eventEmitter.emit(
-      GAMIFICATION_EVENTS.POINTS_AWARDED,
-      new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
-    );
+      // Emit only after the DB write succeeds so a save failure does not
+      // publish a promotion that never actually committed.
+      this.eventEmitter.emit(
+        GAMIFICATION_EVENTS.POINTS_AWARDED,
+        new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
+      );
       // STEP 3: Compute derived fields (level, tier) post-upsert.
       // Note: level is still computed in application layer and could be
       // moved to a trigger in future optimization.

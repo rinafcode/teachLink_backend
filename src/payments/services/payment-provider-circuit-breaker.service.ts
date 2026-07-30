@@ -41,18 +41,15 @@ export class PaymentProviderCircuitBreakerService implements OnModuleDestroy {
   constructor() {
     // `action` is a generic placeholder; each public method supplies its own
     // async thunk via breaker.fire(fn), so we register a no-op here.
-    this.breaker = new CircuitBreaker(
-      (fn: () => Promise<unknown>) => fn(),
-      {
-        name: PaymentProviderCircuitBreakerService.BREAKER_NAME,
-        timeout: 10_000,                // 10 s per call
-        errorThresholdPercentage: 50,   // open when ≥50 % of calls in window fail
-        resetTimeout: 30_000,           // wait 30 s before probing in half-open
-        volumeThreshold: 5,             // require at least 5 calls before tripping
-        rollingCountTimeout: 60_000,    // 60 s rolling stats window
-        rollingCountBuckets: 10,
-      },
-    );
+    this.breaker = new CircuitBreaker((fn: () => Promise<unknown>) => fn(), {
+      name: PaymentProviderCircuitBreakerService.BREAKER_NAME,
+      timeout: 10_000, // 10 s per call
+      errorThresholdPercentage: 50, // open when ≥50 % of calls in window fail
+      resetTimeout: 30_000, // wait 30 s before probing in half-open
+      volumeThreshold: 5, // require at least 5 calls before tripping
+      rollingCountTimeout: 60_000, // 60 s rolling stats window
+      rollingCountBuckets: 10,
+    });
 
     this.breaker.on('open', () =>
       this.logger.warn('[payment-provider] Circuit OPENED — fast-failing all payment calls'),
@@ -75,9 +72,7 @@ export class PaymentProviderCircuitBreakerService implements OnModuleDestroy {
     this.breaker.on('failure', (err: Error) =>
       this.logger.error(`[payment-provider] Circuit FAILURE: ${err?.message}`),
     );
-    this.breaker.on('success', () =>
-      this.logger.debug('[payment-provider] Circuit SUCCESS'),
-    );
+    this.breaker.on('success', () => this.logger.debug('[payment-provider] Circuit SUCCESS'));
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -135,10 +130,7 @@ export class PaymentProviderCircuitBreakerService implements OnModuleDestroy {
     return this.fire(() => provider.createSubscription(customerId, priceId, metadata));
   }
 
-  async cancelSubscription(
-    provider: IPaymentProvider,
-    subscriptionId: string,
-  ): Promise<boolean> {
+  async cancelSubscription(provider: IPaymentProvider, subscriptionId: string): Promise<boolean> {
     return this.fire(() => provider.cancelSubscription(subscriptionId));
   }
 

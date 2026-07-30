@@ -131,8 +131,7 @@ describe('PermissionsService (audit integration, Issue #833)', () => {
   });
 
   it('deletePermission succeeds when no roles reference the permission', async () => {
-    permissionRepository.findOneBy
-      .mockResolvedValueOnce({ ...basePermission }); // before lookup
+    permissionRepository.findOneBy.mockResolvedValueOnce({ ...basePermission }); // before lookup
 
     // Simulate 0 roles referencing this permission
     (roleRepository.createQueryBuilder as jest.Mock).mockReturnValue({

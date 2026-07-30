@@ -14,7 +14,10 @@ export class UpdatePermissionDto {
   @MaxLength(100)
   action: string;
 
-  @ApiPropertyOptional({ description: 'Optional description of the permission', example: 'Can read user profiles' })
+  @ApiPropertyOptional({
+    description: 'Optional description of the permission',
+    example: 'Can read user profiles',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
