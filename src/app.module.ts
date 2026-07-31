@@ -11,6 +11,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { envValidationSchema } from './config/env.validation';
+import { StructuredLoggerService } from './observability/logging/structured-logger.service';
+import { TracingInterceptor } from './observability/tracing/tracing.interceptor';
 
 import { AppController } from './app.controller';
 import { SearchModule } from './search/search.module';
@@ -98,6 +100,14 @@ const featureFlags = loadFeatureFlags();
     CohortsModule,
     UsersModule,
     FeatureFlagAuditModule,
+    /**
+     * Issue #828/#812 follow-on: OrchestrationModule is @Global() and exports
+     * DistributedLockService. We do NOT keep the previously-proposed
+     * LocksModule: registering DistributedLockService twice would crash the
+     * container (NestJS forbids duplicate providers). CachingService
+     * (@Optional() DistributedLockService) and any future consumer resolve
+     * through this global module instead.
+     */
     OrchestrationModule,
   ],
   controllers: [AppController],
@@ -110,7 +120,12 @@ const featureFlags = loadFeatureFlags();
     // @Idempotent() decorator (in any module) is handled, regardless of
     // which module owns the controller.
     { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
+    // Issue #828 — forwards active OpenTelemetry traceId/spanId into the
+    // structured logger so every request log entry is correlated with the
+    // trace span that produced it.
+    { provide: APP_INTERCEPTOR, useClass: TracingInterceptor },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    StructuredLoggerService,
   ],
 })
 export class AppModule implements NestModule, OnApplicationBootstrap {

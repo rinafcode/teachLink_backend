@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ResourceNotFoundException,
   BusinessValidationException,
@@ -10,14 +10,54 @@ import { Queue } from 'bull';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { APP_EVENTS } from '../../common/constants/event.constants';
+import { enrichWithCorrelation } from '../../queues/utils/correlation-job.util';
 import { AutomationWorkflow } from '../entities/automation-workflow.entity';
 import { AutomationTrigger } from '../entities/automation-trigger.entity';
 import { AutomationAction } from '../entities/automation-action.entity';
+import { EmailEvent } from '../entities/email-event.entity';
+import { EmailEventType } from '../enums/email-event-type.enum';
 import { CreateAutomationDto } from '../dto/create-automation.dto';
 import { UpdateAutomationDto } from '../dto/update-automation.dto';
 import { TriggerType } from '../enums/trigger-type.enum';
 import { ActionType } from '../enums/action-type.enum';
 import { WorkflowStatus } from '../enums/workflow-status.enum';
+
+function validateWebhookUrl(urlStr: string): void {
+  if (!urlStr) return;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlStr);
+  } catch {
+    throw new BusinessValidationException('Invalid webhook URL format');
+  }
+
+  if (parsedUrl.protocol !== 'https:') {
+    throw new BusinessValidationException('Webhook URL must use https scheme');
+  }
+
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new BusinessValidationException('Webhook URL credentials are not allowed');
+  }
+
+  const host = parsedUrl.hostname.toLowerCase();
+  const privatePatterns = [
+    /^localhost$/,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2[0-9]|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^::1$/,
+    /^fc00:/,
+    /^fe80:/,
+  ];
+
+  if (privatePatterns.some((p) => p.test(host))) {
+    throw new BusinessValidationException(
+      'Webhook target cannot be a private, loopback, or link-local address',
+    );
+  }
+}
 
 /**
  * Provides automation operations.
@@ -31,6 +71,8 @@ export class AutomationService {
     private readonly triggerRepository: Repository<AutomationTrigger>,
     @InjectRepository(AutomationAction)
     private readonly actionRepository: Repository<AutomationAction>,
+    @InjectRepository(EmailEvent)
+    private readonly emailEventRepository: Repository<EmailEvent>,
     @InjectQueue(QUEUE_NAMES.EMAIL_MARKETING)
     private readonly emailQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
@@ -281,21 +323,25 @@ export class AutomationService {
   ): Promise<void> {
     switch (action.type) {
       case ActionType.SEND_EMAIL:
-        await this.emailQueue.add(JOB_NAMES.SEND_AUTOMATION_EMAIL, {
-          actionId: action.id,
-          templateId: action.config.templateId,
-          userId: payload.userId,
-          variables: { ...payload, ...action.config.variables },
-        });
+        await this.emailQueue.add(
+          JOB_NAMES.SEND_AUTOMATION_EMAIL,
+          enrichWithCorrelation({
+            workflowId: action.workflowId,
+            actionId: action.id,
+            templateId: action.config.templateId,
+            userId: payload.userId,
+            variables: { ...payload, ...action.config.variables },
+          }),
+        );
         break;
       case ActionType.WAIT:
         await this.emailQueue.add(
           JOB_NAMES.CONTINUE_AUTOMATION,
-          {
+          enrichWithCorrelation({
             workflowId: action.workflowId,
             nextActionOrder: action.order + 1,
             payload,
-          },
+          }),
           { delay: action.config.delayMs || 0 },
         );
         break;
@@ -318,34 +364,79 @@ export class AutomationService {
         });
         break;
       case ActionType.WEBHOOK:
-        await this.emailQueue.add(JOB_NAMES.CALL_WEBHOOK, {
-          url: action.config.webhookUrl,
-          method: action.config.method || 'POST',
-          payload: { ...payload, ...action.config.webhookPayload },
-        });
+        await this.emailQueue.add(
+          JOB_NAMES.CALL_WEBHOOK,
+          enrichWithCorrelation({
+            url: action.config.webhookUrl,
+            method: action.config.method || 'POST',
+            payload: { ...payload, ...action.config.webhookPayload },
+          }),
+        );
         break;
       default:
         console.warn(`Unknown action type: ${action.type}`);
     }
   }
   /**
-   * Get workflow execution statistics
+   * Get workflow execution statistics.
+   *
+   * Email send, open, and click counts are computed from recorded delivery events.
+   * When no email events exist for the workflow, the email stats return `null`
+   * to distinguish absent instrumentation from a genuine zero. Once events are
+   * recorded, the values reflect real event counts and computed rates.
+   *
+   * - `emailsSent` — total SENT events for the workflow (`null` if no data)
+   * - `openRate`  — (unique OPENED events / DELIVERED events) × 100 (`null` if no deliveries)
+   * - `clickRate` — (unique CLICKED events / DELIVERED events) × 100 (`null` if no deliveries)
    */
   async getWorkflowStats(id: string): Promise<{
     executionCount: number;
     lastExecutedAt: Date | null;
-    emailsSent: number;
-    openRate: number;
-    clickRate: number;
+    emailsSent: number | null;
+    openRate: number | null;
+    clickRate: number | null;
   }> {
     const workflow = await this.findOne(id);
-    // TODO: Calculate email stats from analytics
+
+    const [sentCount, deliveredCount, openCount, clickCount] = await Promise.all([
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.SENT },
+      }),
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.DELIVERED },
+      }),
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.OPENED },
+      }),
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.CLICKED },
+      }),
+    ]);
+
+    const hasEvents = sentCount > 0 || deliveredCount > 0 || openCount > 0 || clickCount > 0;
+
     return {
       executionCount: workflow.executionCount || 0,
       lastExecutedAt: workflow.lastExecutedAt,
-      emailsSent: 0,
-      openRate: 0,
-      clickRate: 0,
+      emailsSent: hasEvents ? sentCount : null,
+      openRate:
+        deliveredCount > 0 ? parseFloat(((openCount / deliveredCount) * 100).toFixed(2)) : null,
+      clickRate:
+        deliveredCount > 0 ? parseFloat(((clickCount / deliveredCount) * 100).toFixed(2)) : null,
     };
+  }
+
+  async handleWorkflowAction(workflowId: string, actionType: string): Promise<void> {
+    switch (actionType) {
+      case 'SEND_EMAIL':
+        // Email sending logic
+        break;
+      default:
+        this.logger.warn(`Unknown action type encountered: ${actionType}`, {
+          workflowId,
+          actionType,
+        });
+        break;
+    }
   }
 }

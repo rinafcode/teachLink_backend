@@ -26,6 +26,7 @@ The system consists of several core components:
 ### Data Model
 
 The system tracks migrations in a dedicated `migrations` table with the following fields:
+
 - `id`: Unique identifier (UUID)
 - `name`: Migration name
 - `version`: Migration version
@@ -40,6 +41,7 @@ The system tracks migrations in a dedicated `migrations` table with the followin
 ### Running Migrations
 
 Run all pending migrations:
+
 ```bash
 curl -X POST http://localhost:3000/migrations/run
 ```
@@ -47,6 +49,7 @@ curl -X POST http://localhost:3000/migrations/run
 ### Checking Migration Status
 
 View all migrations and their status:
+
 ```bash
 curl GET http://localhost:3000/migrations
 ```
@@ -54,11 +57,13 @@ curl GET http://localhost:3000/migrations
 ### Rolling Back Migrations
 
 Roll back the last migration:
+
 ```bash
 curl -X POST http://localhost:3000/migrations/rollback
 ```
 
 Roll back multiple migrations:
+
 ```bash
 curl -X POST http://localhost:3000/migrations/rollback/3
 ```
@@ -66,6 +71,7 @@ curl -X POST http://localhost:3000/migrations/rollback/3
 ### Reset All Migrations
 
 Completely reset all migrations (development only):
+
 ```bash
 curl -X DELETE http://localhost:3000/migrations/reset
 ```
@@ -73,6 +79,7 @@ curl -X DELETE http://localhost:3000/migrations/reset
 ### Conflict History
 
 Check migration conflicts:
+
 ```bash
 curl GET http://localhost:3000/migrations/conflicts
 ```
@@ -86,6 +93,7 @@ To create a new migration:
 3. Register the migration in your migration configuration
 
 Example migration:
+
 ```typescript
 import { Injectable, Logger } from '@nestjs/common';
 import { MigrationConfig } from '../migration.service';
@@ -111,6 +119,7 @@ export class SampleUserTableMigration implements MigrationConfig {
 ## Configuration
 
 Enable automatic migration execution on startup by setting:
+
 ```bash
 AUTO_RUN_MIGRATIONS=true
 ```
@@ -127,6 +136,7 @@ AUTO_RUN_MIGRATIONS=true
 ## Error Handling
 
 The system provides comprehensive error handling:
+
 - Automatic rollback on migration failure
 - Detailed error logging
 - Conflict detection and resolution

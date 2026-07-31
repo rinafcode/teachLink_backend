@@ -4,6 +4,8 @@ import Redis from 'ioredis';
 import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
 import { IWorkerResult, IWorkerMetrics, IWorkerHealthCheck } from '../interfaces/worker.interfaces';
+import { extractCorrelationIdFromJob } from '../../queues/utils/correlation-job.util';
+import { generateCorrelationId, getCorrelationId, runWithCorrelationId } from '../../common/utils/correlation.utils';
 
 /**
  * Abstract base worker class
@@ -41,9 +43,18 @@ export abstract class BaseWorker {
   abstract execute(job: Job): Promise<any>;
 
   /**
-   * Main handler for processing jobs
+   * Main handler for processing jobs. The entire execution runs inside the
+   * AsyncLocalStorage-backed correlation context so child services / spans
+   * inherit the same correlation ID as the originating HTTP request.
+   * If no correlation ID was stamped onto the job payload (e.g. for cron
+   * enqueues), a fresh one is generated so logs are still grouped.
    */
   async handle(job: Job): Promise<IWorkerResult> {
+    const correlationId = extractCorrelationIdFromJob(job) ?? generateCorrelationId();
+    return runWithCorrelationId(() => this.runHandle(job), correlationId);
+  }
+
+  private async runHandle(job: Job): Promise<IWorkerResult> {
     const startTime = Date.now();
 
     try {
@@ -102,9 +113,24 @@ export abstract class BaseWorker {
         this.workerStallThreshold * 2,
       );
 
+      const correlationId = getCorrelationId() ?? extractCorrelationIdFromJob(job) ?? 'unknown';
+      const errMsg =
+        error instanceof Error ? error.message : 'Unknown error';
+      const errStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `[${this.workerId}] Job ${job.name} failed after ${executionTime}ms:`,
-        error,
+        JSON.stringify({
+          event: 'job_failed',
+          workerId: this.workerId,
+          workerType: this.workerType,
+          jobName: job.name,
+          jobId: job.id,
+          attempt: job.attemptsMade + 1,
+          executionTime,
+          correlationId,
+          error: errMsg,
+        }),
+        errStack,
       );
 
       throw error;

@@ -45,6 +45,7 @@ export class FeedbackTemplate {
   isDefault: boolean;
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

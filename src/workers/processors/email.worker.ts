@@ -22,7 +22,7 @@ export class EmailWorker extends BaseWorker {
    * Execute email job
    */
   async execute(job: Job): Promise<any> {
-    const { to, subject, template, variables, campaignId } = job.data;
+    const { to, subject, template, variables, campaignId, workflowId } = job.data;
 
     await job.progress(25);
 
@@ -49,10 +49,10 @@ export class EmailWorker extends BaseWorker {
         status: 'sent',
       };
 
-      // ONLY use valid EmailEvent fields
       await this.emailTracking.recordSent({
         recipientId: to,
         campaignId: campaignId || null,
+        workflowId: workflowId || null,
         eventType: EmailEventType.SENT,
       });
 

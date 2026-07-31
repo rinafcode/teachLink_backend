@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { User, PRIVILEGED_ROLES } from '../../users/entities/user.entity';
 import { ManualReviewService } from '../manual/manual-review.service';
 import { ReportAssignmentService } from '../assignment/report-assignment.service';
 import { ContentReportReason } from './content-report-reason.enum';
@@ -151,17 +151,13 @@ export class ContentReportingService {
   }
 
   private assertModerator(user: User): void {
-    const isPrivileged =
-      user.roles?.some((role) => ['admin', 'moderator'].includes(role.name)) ?? false;
-    if (!isPrivileged) {
+    if (!user.hasRole(...PRIVILEGED_ROLES)) {
       throw new ForbiddenException('Only admins or moderators may access the reporting queue.');
     }
   }
 
   private canViewReport(report: ContentReport, user: User): boolean {
-    const isPrivileged =
-      user.roles?.some((role) => ['admin', 'moderator'].includes(role.name)) ?? false;
-    return isPrivileged || report.reporterId === user.id;
+    return user.hasRole(...PRIVILEGED_ROLES) || report.reporterId === user.id;
   }
 
   private buildQueueSummary(report: ContentReport): string {

@@ -70,11 +70,20 @@ export class SessionService implements OnModuleDestroy {
 
   /**
    * Parses a duration string (e.g. "7d", "30d", "1h", "60m", "3600s") into seconds.
-   * Falls back to parseInt for bare numeric strings.
+   * Falls back to parseInt for bare numeric strings (e.g. "604800").
+   *
+   * @throws {Error} If the duration string cannot be parsed (distinguishes from a genuine "0").
    */
   static parseDurationToSeconds(duration: string): number {
     const trimmed = duration.trim().toLowerCase();
-    const match = trimmed.match(/^(\d+)\s*(d|h|m|s)$/);
+
+    // Explicit zero
+    if (trimmed === '0' || trimmed === '0s') {
+      return 0;
+    }
+
+    // Supported format: number immediately followed by unit (d|h|m|s) - no spaces
+    const match = trimmed.match(/^(\d+)(d|h|m|s)$/);
     if (match) {
       const value = parseInt(match[1], 10);
       switch (match[2]) {
@@ -88,11 +97,18 @@ export class SessionService implements OnModuleDestroy {
           return value;
       }
     }
+
+    // Bare numeric fallback
     const numeric = parseInt(trimmed, 10);
-    if (!Number.isNaN(numeric)) {
+    if (!Number.isNaN(numeric) && String(numeric) === trimmed) {
       return numeric;
     }
-    return 0;
+
+    throw new Error(
+      `Unparseable duration string: "${duration}". ` +
+        'Supported formats: <number>d|h|m|s (e.g. "7d", "1h", "30m", "3600s") ' +
+        'or a bare numeric string of seconds (e.g. "604800").',
+    );
   }
 
   /**

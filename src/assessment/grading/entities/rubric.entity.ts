@@ -62,6 +62,7 @@ export class Rubric {
   criteria: RubricCriterion[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

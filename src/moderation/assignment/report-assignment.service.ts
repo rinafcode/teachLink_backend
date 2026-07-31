@@ -12,12 +12,18 @@ import {
   NotificationType,
 } from '../../notifications/entities/notification.entity';
 
+export enum AdminSelectionStrategy {
+  LEAST_LOADED = 'least_loaded',
+  ROUND_ROBIN = 'round_robin',
+}
+
 /**
  * Manages report assignment and escalation for the moderation queue.
  *
  * Assignment strategy: round-robin over the active moderator pool.
  * Escalation: any report still in PENDING or UNDER_REVIEW status after
- * `MODERATION_SLA_HOURS` (default 24 h) is re-assigned to a random admin.
+ * `MODERATION_SLA_HOURS` (default 24 h) is re-assigned to an admin using
+ * the configured `ADMIN_SELECTION_STRATEGY` (default `least_loaded`).
  */
 @Injectable()
 export class ReportAssignmentService {
@@ -29,6 +35,12 @@ export class ReportAssignmentService {
   /** Round-robin cursor — index into the sorted moderator pool. */
   private rrCursor = 0;
 
+  /** Round-robin cursor for admin escalation when ROUND_ROBIN strategy is active. */
+  private adminRrCursor = 0;
+
+  /** Configurable strategy for selecting the escalation target admin. */
+  private readonly adminSelectionStrategy: AdminSelectionStrategy;
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -36,7 +48,16 @@ export class ReportAssignmentService {
     private readonly reportRepo: Repository<ContentReport>,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    const strategy = this.configService.get<string>(
+      'ADMIN_SELECTION_STRATEGY',
+      AdminSelectionStrategy.LEAST_LOADED,
+    );
+    this.adminSelectionStrategy =
+      strategy in AdminSelectionStrategy
+        ? (strategy as AdminSelectionStrategy)
+        : AdminSelectionStrategy.LEAST_LOADED;
+  }
 
   /**
    * Assigns `report` to the next available moderator using round-robin.
@@ -67,7 +88,8 @@ export class ReportAssignmentService {
   }
 
   /**
-   * Escalates `report` to a random admin and marks `escalatedAt`.
+   * Escalates `report` to an admin using the configured selection strategy
+   * (default: least-loaded by open report count) and marks `escalatedAt`.
    *
    * Sends a HIGH-priority IN_APP notification to the escalation recipient.
    * No-ops when no admins exist.
@@ -80,15 +102,39 @@ export class ReportAssignmentService {
       return report;
     }
 
-    const admin = admins[Math.floor(Math.random() * admins.length)];
+    let selectedAdmin: User;
 
-    report.assignedModeratorId = admin.id;
+    if (this.adminSelectionStrategy === AdminSelectionStrategy.LEAST_LOADED) {
+      const adminIds = admins.map(a => a.id);
+      const loadRows = await this.reportRepo
+        .createQueryBuilder('report')
+        .select('report.assignedModeratorId', 'moderatorId')
+        .addSelect('COUNT(report.id)', 'count')
+        .where('report.assignedModeratorId IN (:...ids)', { ids: adminIds })
+        .andWhere('report.status IN (:...openStatuses)', {
+          openStatuses: [ContentReportStatus.PENDING, ContentReportStatus.UNDER_REVIEW],
+        })
+        .groupBy('report.assignedModeratorId')
+        .getRawMany();
+
+      const loadMap: Record<string, number> = {};
+      for (const row of loadRows) {
+        loadMap[row.moderatorId] = parseInt(row.count, 10);
+      }
+
+      selectedAdmin = ReportAssignmentService.selectEscalationTarget(admins, loadMap);
+    } else {
+      selectedAdmin = admins[this.adminRrCursor % admins.length];
+      this.adminRrCursor = (this.adminRrCursor + 1) % admins.length;
+    }
+
+    report.assignedModeratorId = selectedAdmin.id;
     report.escalatedAt = new Date();
     const saved = await this.reportRepo.save(report);
 
-    this.logger.warn(`Report ${report.id} escalated to admin ${admin.id}`);
+    this.logger.warn(`Report ${report.id} escalated to admin ${selectedAdmin.id}`);
 
-    await this.sendEscalationNotification(admin, saved);
+    await this.sendEscalationNotification(selectedAdmin, saved);
 
     return saved;
   }
@@ -153,6 +199,27 @@ export class ReportAssignmentService {
       .where('role.name = :role', { role: UserRole.ADMIN })
       .orderBy('user.id', 'ASC')
       .getMany();
+  }
+
+  /**
+   * Pure helper that selects the least-loaded admin from a candidate list.
+   *
+   * @param admins - Active admins ordered by `id` ascending (lowest id first).
+   * @param loadMap - Map of admin ID to the number of open/assigned reports.
+   *   Admins not present in the map are treated as having zero load.
+   * @returns The admin with the fewest open reports; ties are broken by
+   *   lowest admin ID.
+   */
+  static selectEscalationTarget(admins: readonly User[], loadMap: Record<string, number>): User {
+    if (admins.length === 0) {
+      throw new Error('Cannot select escalation target from empty admin list');
+    }
+
+    return admins.reduce((best, admin) => {
+      const bestLoad = loadMap[best.id] ?? 0;
+      const adminLoad = loadMap[admin.id] ?? 0;
+      return adminLoad < bestLoad ? admin : best;
+    });
   }
 
   private async sendAssignmentNotification(moderator: User, report: ContentReport): Promise<void> {

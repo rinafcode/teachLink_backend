@@ -233,7 +233,6 @@ export class RoutingInterceptor implements NestInterceptor {
     // Include experimental data
     if (transformed.analytics) {
       transformed.analytics.experimental = {
-        predictiveScores: Math.random(),
         behaviorInsights: 'beta-feature-data',
       };
     }

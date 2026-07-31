@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TenancyService } from './tenancy.service';
 import { TenancyController } from './tenancy.controller';
@@ -15,12 +16,16 @@ import { TenantLimitGuard } from './guards/tenant-limit.guard';
 import { TenantMiddleware } from '../middleware/tenant/tenant.middleware';
 import { TenantRlsSubscriber } from '../middleware/tenant/tenant-rls.subscriber';
 import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-validation.guard';
+import { IpAllowlistGuard } from '../common/guards/ip-allowlist.guard';
 
 /**
  * Registers the tenancy module.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Tenant, TenantConfig, TenantBilling, TenantCustomization])],
+  imports: [
+    ConfigModule,
+    TypeOrmModule.forFeature([Tenant, TenantConfig, TenantBilling, TenantCustomization]),
+  ],
   controllers: [TenancyController],
   providers: [
     TenancyService,
@@ -33,6 +38,7 @@ import { TenantAccessValidationGuard } from '../middleware/tenant/tenant-access-
     TenantMiddleware,
     TenantRlsSubscriber,
     TenantAccessValidationGuard,
+    IpAllowlistGuard,
   ],
   exports: [
     TenancyService,

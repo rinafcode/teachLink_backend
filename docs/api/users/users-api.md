@@ -3,6 +3,7 @@
 Complete documentation for TeachLink user management endpoints.
 
 ## Table of Contents
+
 - [Create User](#create-user)
 - [Get All Users](#get-all-users)
 - [Get User by ID](#get-user-by-id)
@@ -21,11 +22,13 @@ Complete documentation for TeachLink user management endpoints.
 Create a new user account (Admin only).
 
 ### Endpoint
+
 ```
 POST /users
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `ADMIN`
 
@@ -40,14 +43,14 @@ Content-Type: application/json
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| email | string | Yes | User's email address | Valid email format, unique |
-| password | string | Yes | User's password | Min 8 chars, uppercase, lowercase, number, special char |
-| firstName | string | Yes | User's first name | 1-50 characters |
-| lastName | string | Yes | User's last name | 1-50 characters |
-| role | string | No | User role | Enum: `STUDENT`, `INSTRUCTOR`, `ADMIN` |
-| isEmailVerified | boolean | No | Email verification status | Default: `false` |
+| Field           | Type    | Required | Description               | Validation                                              |
+| --------------- | ------- | -------- | ------------------------- | ------------------------------------------------------- |
+| email           | string  | Yes      | User's email address      | Valid email format, unique                              |
+| password        | string  | Yes      | User's password           | Min 8 chars, uppercase, lowercase, number, special char |
+| firstName       | string  | Yes      | User's first name         | 1-50 characters                                         |
+| lastName        | string  | Yes      | User's last name          | 1-50 characters                                         |
+| role            | string  | No       | User role                 | Enum: `STUDENT`, `INSTRUCTOR`, `ADMIN`                  |
+| isEmailVerified | boolean | No       | Email verification status | Default: `false`                                        |
 
 ### Example Request
 
@@ -118,11 +121,13 @@ curl -X POST http://localhost:3000/users \
 Retrieve a list of all users (Admin only).
 
 ### Endpoint
+
 ```
 GET /users
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `ADMIN`
 
@@ -134,14 +139,14 @@ Authorization: Bearer <access-token>
 
 ### Query Parameters
 
-| Parameter | Type | Required | Description | Default |
-|-----------|------|----------|-------------|---------|
-| page | number | No | Page number | 1 |
-| limit | number | No | Items per page | 20 |
-| role | string | No | Filter by role | All roles |
-| search | string | No | Search by name or email | - |
-| sortBy | string | No | Sort field | `createdAt` |
-| sortOrder | string | No | Sort order | `DESC` |
+| Parameter | Type   | Required | Description             | Default     |
+| --------- | ------ | -------- | ----------------------- | ----------- |
+| page      | number | No       | Page number             | 1           |
+| limit     | number | No       | Items per page          | 20          |
+| role      | string | No       | Filter by role          | All roles   |
+| search    | string | No       | Search by name or email | -           |
+| sortBy    | string | No       | Sort field              | `createdAt` |
+| sortOrder | string | No       | Sort order              | `DESC`      |
 
 ### Example Request
 
@@ -195,11 +200,13 @@ curl http://localhost:3000/users?page=1&limit=10&role=INSTRUCTOR \
 Retrieve a specific user's information.
 
 ### Endpoint
+
 ```
 GET /users/:id
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -210,9 +217,9 @@ Authorization: Bearer <access-token>
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | User UUID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | User UUID   |
 
 ### Example Request
 
@@ -261,11 +268,13 @@ curl http://localhost:3000/users/550e8400-e29b-41d4-a716-446655440001 \
 Update user information.
 
 ### Endpoint
+
 ```
 PATCH /users/:id
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -277,22 +286,22 @@ Content-Type: application/json
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | User UUID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | User UUID   |
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| firstName | string | No | User's first name |
-| lastName | string | No | User's last name |
-| role | string | No | User role (Admin only) |
-| bio | string | No | User biography |
-| profilePicture | string | No | Profile picture URL |
-| isEmailVerified | boolean | No | Email verification status (Admin only) |
+| Field           | Type    | Required | Description                            |
+| --------------- | ------- | -------- | -------------------------------------- |
+| firstName       | string  | No       | User's first name                      |
+| lastName        | string  | No       | User's last name                       |
+| role            | string  | No       | User role (Admin only)                 |
+| bio             | string  | No       | User biography                         |
+| profilePicture  | string  | No       | Profile picture URL                    |
+| isEmailVerified | boolean | No       | Email verification status (Admin only) |
 
 ### Example Request
 
@@ -334,11 +343,13 @@ curl -X PATCH http://localhost:3000/users/550e8400-e29b-41d4-a716-446655440001 \
 Delete a user account (Admin only).
 
 ### Endpoint
+
 ```
 DELETE /users/:id
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `ADMIN`
 
@@ -350,9 +361,9 @@ Authorization: Bearer <access-token>
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | User UUID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | User UUID   |
 
 ### Example Request
 
@@ -395,11 +406,13 @@ curl -X DELETE http://localhost:3000/users/550e8400-e29b-41d4-a716-446655440001 
 Update multiple users at once (Admin only).
 
 ### Endpoint
+
 ```
 PATCH /users/bulk-update
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `ADMIN`
 
@@ -414,10 +427,10 @@ Content-Type: application/json
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| ids | string[] | Yes | Array of user UUIDs |
-| data | object | Yes | Fields to update |
+| Field | Type     | Required | Description         |
+| ----- | -------- | -------- | ------------------- |
+| ids   | string[] | Yes      | Array of user UUIDs |
+| data  | object   | Yes      | Fields to update    |
 
 ### Example Request
 
@@ -463,11 +476,13 @@ curl -X PATCH http://localhost:3000/users/bulk-update \
 Delete multiple users at once (Admin only).
 
 ### Endpoint
+
 ```
 DELETE /users/bulk-delete
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `ADMIN`
 
@@ -482,9 +497,9 @@ Content-Type: application/json
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| ids | string[] | Yes | Array of user UUIDs to delete |
+| Field | Type     | Required | Description                   |
+| ----- | -------- | -------- | ----------------------------- |
+| ids   | string[] | Yes      | Array of user UUIDs to delete |
 
 ### Example Request
 
@@ -510,10 +525,7 @@ curl -X DELETE http://localhost:3000/users/bulk-delete \
   "message": "2 users deleted successfully",
   "data": {
     "deletedCount": 2,
-    "deletedIds": [
-      "550e8400-e29b-41d4-a716-446655440001",
-      "550e8400-e29b-41d4-a716-446655440002"
-    ]
+    "deletedIds": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]
   }
 }
 ```
@@ -525,11 +537,13 @@ curl -X DELETE http://localhost:3000/users/bulk-delete \
 Request an export of your user data (GDPR compliance).
 
 ### Endpoint
+
 ```
 POST /users/me/export
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -543,11 +557,12 @@ Content-Type: application/json
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Default |
-|-------|------|----------|-------------|---------|
-| format | string | No | Export format | `json` |
+| Field  | Type   | Required | Description   | Default |
+| ------ | ------ | -------- | ------------- | ------- |
+| format | string | No       | Export format | `json`  |
 
 **Supported Formats**:
+
 - `json` - JSON format
 - `pdf` - PDF document
 
@@ -586,11 +601,13 @@ curl -X POST http://localhost:3000/users/me/export \
 View your data export request history.
 
 ### Endpoint
+
 ```
 GET /users/me/export/history
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -641,11 +658,13 @@ curl http://localhost:3000/users/me/export/history \
 Download a completed data export file.
 
 ### Endpoint
+
 ```
 GET /users/me/export/:exportId
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -656,9 +675,9 @@ Authorization: Bearer <access-token>
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| exportId | string | Yes | Export request ID |
+| Parameter | Type   | Required | Description       |
+| --------- | ------ | -------- | ----------------- |
+| exportId  | string | Yes      | Export request ID |
 
 ### Example Request
 
@@ -675,6 +694,7 @@ curl http://localhost:3000/users/me/export/export-123456 \
 Returns the exported file as a download.
 
 **Headers**:
+
 ```
 Content-Type: application/json
 Content-Disposition: attachment; filename="user-data-export-123456.json"
@@ -696,11 +716,11 @@ Content-Disposition: attachment; filename="user-data-export-123456.json"
 
 ### Role Definitions
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| `STUDENT` | Learner | Browse courses, enroll, submit assessments |
-| `INSTRUCTOR` | Course creator | Create/manage courses, view student progress |
-| `ADMIN` | Platform administrator | Full access to all features and user management |
+| Role         | Description            | Permissions                                     |
+| ------------ | ---------------------- | ----------------------------------------------- |
+| `STUDENT`    | Learner                | Browse courses, enroll, submit assessments      |
+| `INSTRUCTOR` | Course creator         | Create/manage courses, view student progress    |
+| `ADMIN`      | Platform administrator | Full access to all features and user management |
 
 ### Role-Based Access Control
 
@@ -730,17 +750,17 @@ Always use pagination for list endpoints to improve performance:
 async function getAllUsers(page = 1, limit = 20) {
   const response = await fetch(`/users?page=${page}&limit=${limit}`, {
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
-  
+
   const data = await response.json();
-  
+
   if (data.meta.page < data.meta.totalPages) {
     // Fetch next page
     return getAllUsers(page + 1, limit);
   }
-  
+
   return data.data;
 }
 ```

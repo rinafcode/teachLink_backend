@@ -5,6 +5,7 @@ import { Enrollment } from '../courses/entities/enrollment.entity';
 import { User } from '../users/entities/user.entity';
 import { ProfileCompletenessService } from '../profile-completeness/profile-completeness.service';
 import { SearchService } from '../search/search.service';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 import { CachingService } from './caching.service';
 import { CacheWarmingService } from './cache-warming.service';
 import { CACHE_TTL } from './caching.constants';
@@ -25,7 +26,10 @@ describe('CacheWarmingService', () => {
   let profileCompleteness: { getScore: jest.Mock };
 
   beforeEach(async () => {
-    caching = { set: jest.fn().mockResolvedValue(undefined) };
+    caching = {
+      set: jest.fn().mockResolvedValue(undefined),
+      getCurrentTenantId: jest.fn().mockReturnValue('tenant-a'),
+    } as any;
     courseRepo = { find: jest.fn() };
     enrollmentRepo = { createQueryBuilder: jest.fn() };
     userRepo = { find: jest.fn() };
@@ -40,8 +44,15 @@ describe('CacheWarmingService', () => {
       providers: [
         CacheWarmingService,
         { provide: CachingService, useValue: caching },
+        {
+          provide: ProfileCompletenessService,
+          useValue: profileCompleteness,
+        },
         { provide: SearchService, useValue: searchService },
-        { provide: ProfileCompletenessService, useValue: profileCompleteness },
+        {
+          provide: IsolationService,
+          useValue: { getTenantId: jest.fn().mockReturnValue('tenant-a') },
+        },
         { provide: getRepositoryToken(Course), useValue: courseRepo },
         { provide: getRepositoryToken(Enrollment), useValue: enrollmentRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
@@ -59,7 +70,7 @@ describe('CacheWarmingService', () => {
 
     expect(result.target).toBe('COURSES_LIST');
     expect(caching.set).toHaveBeenCalledWith(
-      buildCourseListKey('published'),
+      buildCourseListKey('tenant-a', 'published'),
       courses,
       CACHE_TTL.COURSE_METADATA,
     );
@@ -82,7 +93,7 @@ describe('CacheWarmingService', () => {
 
     expect(result.target).toBe('POPULAR_COURSES');
     expect(caching.set).toHaveBeenCalledWith(
-      buildPopularCoursesKey(),
+      buildPopularCoursesKey('tenant-a'),
       [{ id: 'c1' }],
       CACHE_TTL.POPULAR_COURSES,
     );
@@ -95,7 +106,7 @@ describe('CacheWarmingService', () => {
     expect(result.keysWarmed).toBeGreaterThan(0);
     expect(searchService.search).toHaveBeenCalled();
     expect(caching.set).toHaveBeenCalledWith(
-      buildSearchCacheKey(''),
+      buildSearchCacheKey('tenant-a', ''),
       expect.any(Object),
       CACHE_TTL.SEARCH_RESULTS,
     );
@@ -109,7 +120,7 @@ describe('CacheWarmingService', () => {
     expect(result.target).toBe('USER_PROFILE');
     expect(profileCompleteness.getScore).toHaveBeenCalledWith('u1');
     expect(caching.set).toHaveBeenCalledWith(
-      buildUserProfileKey('u1'),
+      buildUserProfileKey('tenant-a', 'u1'),
       expect.objectContaining({ score: 80 }),
       CACHE_TTL.USER_PROFILE,
     );

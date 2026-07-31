@@ -68,11 +68,14 @@ export class QuotaGuard implements CanActivate {
     res.setHeader('X-RateLimit-Remaining-Day', result.remaining.day);
 
     if (!result.allowed) {
-      res.setHeader('Retry-After', result.retryAfter ?? 60);
+      const retryAfter = result.retryAfter ?? 60;
+      const resetTime = Math.floor(Date.now() / 1000) + retryAfter;
+      res.setHeader('Retry-After', retryAfter);
+      res.setHeader('X-RateLimit-Reset', resetTime);
       this.logger.warn(
-        `Quota exceeded identifier=${identifier} tier=${tier} retryAfter=${result.retryAfter}s`,
+        `Quota exceeded identifier=${identifier} tier=${tier} retryAfter=${retryAfter}s`,
       );
-      throw new RateLimitExceededException(result.retryAfter);
+      throw new RateLimitExceededException(retryAfter);
     }
 
     return true;

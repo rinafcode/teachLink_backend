@@ -13,25 +13,23 @@ This document standardizes mocking approaches across the TeachLink backend codeb
 1. **NestJS `Test.createTestingModule()`** - Use for integration tests with real DI container
    - Leverage NestJS providers, guards, interceptors
    - Provides realistic module compilation
-   
 2. **Manual Mock Objects** - Use for unit tests of services/utilities
    - Fast, explicit control
    - Ideal for isolated component testing
-   
 3. **No Mocks** - Use for pure utility/helper functions
    - No external dependencies
    - Simple, deterministic logic
 
 ### 1.2 When to Mock vs. Test
 
-| Scenario | Approach | Reason |
-|----------|----------|--------|
-| External Service (API, DB) | **Mock** | Isolate test environment |
-| NestJS Infrastructure (Guards, Pipes) | **Mock with createTestingModule** | Need DI container |
-| Database Repository | **Mock** | Prevent test DB coupling |
-| Third-party Library | **Mock** | Control behavior, avoid version sensitivity |
-| Pure Function | **No Mock** | Test actual behavior |
-| Service Method (dependency has mock) | **Partial Mock** | Mock dependencies, test method logic |
+| Scenario                              | Approach                          | Reason                                      |
+| ------------------------------------- | --------------------------------- | ------------------------------------------- |
+| External Service (API, DB)            | **Mock**                          | Isolate test environment                    |
+| NestJS Infrastructure (Guards, Pipes) | **Mock with createTestingModule** | Need DI container                           |
+| Database Repository                   | **Mock**                          | Prevent test DB coupling                    |
+| Third-party Library                   | **Mock**                          | Control behavior, avoid version sensitivity |
+| Pure Function                         | **No Mock**                       | Test actual behavior                        |
+| Service Method (dependency has mock)  | **Partial Mock**                  | Mock dependencies, test method logic        |
 
 ---
 
@@ -74,6 +72,7 @@ describe('UserController', () => {
 ```
 
 **Advantages:**
+
 - Uses real NestJS DI
 - Tests actual service/controller integration
 - Detects provider configuration errors
@@ -96,9 +95,9 @@ describe('UserService', () => {
 
   it('should find user by id', async () => {
     mockRepository.findById.mockResolvedValue({ id: '1', name: 'John' });
-    
+
     const result = await service.findById('1');
-    
+
     expect(result).toEqual({ id: '1', name: 'John' });
     expect(mockRepository.findById).toHaveBeenCalledWith('1');
   });
@@ -106,6 +105,7 @@ describe('UserService', () => {
 ```
 
 **Advantages:**
+
 - Faster execution
 - Simpler setup
 - Clear, explicit mocks
@@ -130,6 +130,7 @@ describe('calculatePagination', () => {
 ```
 
 **Advantages:**
+
 - No mock setup needed
 - Fastest execution
 - Tests actual behavior without abstraction
@@ -218,15 +219,15 @@ beforeEach(() => {
 
 Located in `test/utils/mock-factories.ts`:
 
-| Factory | Returns | Common Methods |
-|---------|---------|-----------------|
-| `createMockRepository<T>()` | `jest.Mocked<Repository<T>>` | `find`, `findOne`, `create`, `save`, `delete` |
-| `createMockCachingService()` | `jest.Mocked<CachingService>` | `get`, `set`, `delete`, `getOrSet` |
-| `createMockRedisClient()` | `jest.Mocked<Redis>` | `get`, `set`, `del`, `pipeline`, `scan` |
-| `createMockBullQueue()` | `jest.Mocked<Queue>` | `add`, `process`, `remove` |
-| `createMockHttpClient()` | `jest.Mocked<HttpService>` | `get`, `post`, `put`, `delete` |
-| `createMockConfigService()` | `jest.Mocked<ConfigService>` | `get`, `getOrThrow` |
-| `createMockQueryBuilder()` | `jest.Mocked<QueryBuilder>` | Chainable TypeORM methods |
+| Factory                      | Returns                       | Common Methods                                |
+| ---------------------------- | ----------------------------- | --------------------------------------------- |
+| `createMockRepository<T>()`  | `jest.Mocked<Repository<T>>`  | `find`, `findOne`, `create`, `save`, `delete` |
+| `createMockCachingService()` | `jest.Mocked<CachingService>` | `get`, `set`, `delete`, `getOrSet`            |
+| `createMockRedisClient()`    | `jest.Mocked<Redis>`          | `get`, `set`, `del`, `pipeline`, `scan`       |
+| `createMockBullQueue()`      | `jest.Mocked<Queue>`          | `add`, `process`, `remove`                    |
+| `createMockHttpClient()`     | `jest.Mocked<HttpService>`    | `get`, `post`, `put`, `delete`                |
+| `createMockConfigService()`  | `jest.Mocked<ConfigService>`  | `get`, `getOrThrow`                           |
+| `createMockQueryBuilder()`   | `jest.Mocked<QueryBuilder>`   | Chainable TypeORM methods                     |
 
 ### 5.2 Using Mock Factories
 
@@ -268,13 +269,11 @@ describe('UserService.findAll', () => {
 
   it('should filter by role', async () => {
     const users = [{ id: '1', role: 'ADMIN' }];
-    
-    mockRepository.createQueryBuilder().mockReturnValue(
-      createMockQueryBuilder(users)
-    );
+
+    mockRepository.createQueryBuilder().mockReturnValue(createMockQueryBuilder(users));
 
     const result = await service.findAll({ role: 'ADMIN' });
-    
+
     expect(result).toEqual(users);
   });
 });
@@ -294,13 +293,13 @@ describe('ExternalApiService', () => {
 
   it('should fetch external data', async () => {
     const data = { id: 1, title: 'Item' };
-    
+
     mockHttp.get.mockReturnValue(
-      of({ data, status: 200, statusText: 'OK', headers: {}, config: {} as any })
+      of({ data, status: 200, statusText: 'OK', headers: {}, config: {} as any }),
     );
 
     const result = await firstValueFrom(service.fetchData());
-    
+
     expect(result).toEqual(data);
     expect(mockHttp.get).toHaveBeenCalledWith('https://api.example.com/data');
   });
@@ -325,7 +324,7 @@ describe('EmailQueue', () => {
     expect(mockQueue.add).toHaveBeenCalledWith(
       'send-email',
       expect.objectContaining({ to: 'test@example.com' }),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 });
@@ -402,6 +401,7 @@ it('should cache result for 5 minutes', () => {});
 ### 8.1 Migrating Old Tests
 
 **Before (Inconsistent):**
+
 ```typescript
 describe('UserService', () => {
   let service: any;
@@ -420,6 +420,7 @@ describe('UserService', () => {
 ```
 
 **After (Standardized):**
+
 ```typescript
 import { createMockRepository } from 'test/utils/mock-factories';
 
@@ -456,13 +457,13 @@ describe('UserService', () => {
 
 ## 9. Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| `Cannot find name 'jest'` | Ensure `jest` types are in `tsconfig.json` `compilerOptions.types` |
-| Mock not being called as expected | Check return types - use `mockResolvedValue` for async, `mockReturnValue` for sync |
-| Type errors with mocks | Use `as jest.Mocked<T>` or create mock with factory |
-| Tests passing locally but failing in CI | Check mock reset - add `afterEach(() => jest.clearAllMocks())` |
-| Mock persists across tests | Create new mock in `beforeEach`, not in module scope |
+| Issue                                   | Solution                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------- |
+| `Cannot find name 'jest'`               | Ensure `jest` types are in `tsconfig.json` `compilerOptions.types`                 |
+| Mock not being called as expected       | Check return types - use `mockResolvedValue` for async, `mockReturnValue` for sync |
+| Type errors with mocks                  | Use `as jest.Mocked<T>` or create mock with factory                                |
+| Tests passing locally but failing in CI | Check mock reset - add `afterEach(() => jest.clearAllMocks())`                     |
+| Mock persists across tests              | Create new mock in `beforeEach`, not in module scope                               |
 
 ---
 

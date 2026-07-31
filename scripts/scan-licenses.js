@@ -5,8 +5,18 @@ const path = require('path');
 const OUTPUT_DIR = path.join(__dirname, '../compliance/reports');
 
 const ALLOWED_LICENSES = [
-  'MIT', 'Apache-2.0', 'Apache-2', 'BSD-2-Clause', 'BSD-3-Clause', 'BSD-4-Clause',
-  'ISC', 'MPL-2.0', 'CC0-1.0', 'Unlicense', '0BSD', 'BSD'
+  'MIT',
+  'Apache-2.0',
+  'Apache-2',
+  'BSD-2-Clause',
+  'BSD-3-Clause',
+  'BSD-4-Clause',
+  'ISC',
+  'MPL-2.0',
+  'CC0-1.0',
+  'Unlicense',
+  '0BSD',
+  'BSD',
 ];
 
 const PROHIBITED_LICENSES = ['GPL-3.0', 'AGPL-3.0', 'SSPL-1.0', 'UNLICENSED', 'Proprietary'];
@@ -17,9 +27,11 @@ function ensureDirectory(dir) {
 }
 
 function parsePackageLock() {
-  const lockData = JSON.parse(fs.readFileSync(path.join(__dirname, '../package-lock.json'), 'utf-8'));
+  const lockData = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '../package-lock.json'), 'utf-8'),
+  );
   const packages = [];
-  
+
   Object.entries(lockData.packages).forEach(([pkgPath, info]) => {
     if (pkgPath === '' || pkgPath.startsWith('node_modules/')) {
       const name = info.name || pkgPath.replace('node_modules/', '').split('node_modules/').pop();
@@ -28,12 +40,12 @@ function parsePackageLock() {
           name,
           version: info.version || 'unknown',
           license: info.license || 'UNKNOWN',
-          type: pkgPath === '' ? 'root' : 'dep'
+          type: pkgPath === '' ? 'root' : 'dep',
         });
       }
     }
   });
-  
+
   return packages;
 }
 
@@ -47,31 +59,42 @@ function normalizeLicense(license) {
 function extractLicenses(license) {
   if (!license) return [];
   const cleaned = license.replace(/\(|\)/g, '').toUpperCase();
-  return cleaned.split(/\s+OR\s+/).map(l => l.trim()).filter(l => l);
+  return cleaned
+    .split(/\s+OR\s+/)
+    .map((l) => l.trim())
+    .filter((l) => l);
 }
 
 function isAllowed(license) {
   const licenses = extractLicenses(license);
-  return licenses.some(l => ALLOWED_LICENSES.some(a => l.includes(a.toUpperCase()) || l === a.toUpperCase()));
+  return licenses.some((l) =>
+    ALLOWED_LICENSES.some((a) => l.includes(a.toUpperCase()) || l === a.toUpperCase()),
+  );
 }
 
 function needsReview(license) {
   const norm = license.toUpperCase();
-  return REVIEW_LICENSES.some(l => norm.includes(l.toUpperCase()));
+  return REVIEW_LICENSES.some((l) => norm.includes(l.toUpperCase()));
 }
 
 function analyzeLicenses(packages) {
-  const results = { total: packages.length, allowed: [], prohibited: [], unknown: [], reviewRequired: [] };
+  const results = {
+    total: packages.length,
+    allowed: [],
+    prohibited: [],
+    unknown: [],
+    reviewRequired: [],
+  };
 
   for (const pkg of packages) {
     if (pkg.type === 'root') continue;
     const license = normalizeLicense(pkg.license);
-    
+
     if (license === 'UNKNOWN' || !license) {
       results.unknown.push(pkg);
     } else if (needsReview(license)) {
       results.reviewRequired.push(pkg);
-    } else if (PROHIBITED_LICENSES.some(l => license.includes(l))) {
+    } else if (PROHIBITED_LICENSES.some((l) => license.includes(l))) {
       results.prohibited.push(pkg);
     } else if (isAllowed(license)) {
       results.allowed.push(pkg);
@@ -92,10 +115,15 @@ function generateReport(results) {
       allowed: results.allowed.length,
       prohibited: results.prohibited.length,
       unknown: results.unknown.length,
-      reviewRequired: results.reviewRequired.length
+      reviewRequired: results.reviewRequired.length,
     },
-    status: results.prohibited.length > 0 ? 'FAILED' : (results.reviewRequired.length > 0 ? 'WARNING' : 'PASSED'),
-    details: results
+    status:
+      results.prohibited.length > 0
+        ? 'FAILED'
+        : results.reviewRequired.length > 0
+          ? 'WARNING'
+          : 'PASSED',
+    details: results,
   };
 
   ensureDirectory(OUTPUT_DIR);
@@ -113,7 +141,7 @@ function generateReport(results) {
 
   if (results.prohibited.length > 0) {
     console.log('PROHIBITED:');
-    results.prohibited.forEach(p => console.log(`  - ${p.name}: ${p.license}`));
+    results.prohibited.forEach((p) => console.log(`  - ${p.name}: ${p.license}`));
   }
 
   return report;
@@ -122,7 +150,7 @@ function generateReport(results) {
 function main() {
   ensureDirectory(OUTPUT_DIR);
   console.log('Scanning license compliance...');
-  
+
   try {
     const packages = parsePackageLock();
     const results = analyzeLicenses(packages);
