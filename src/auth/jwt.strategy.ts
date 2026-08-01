@@ -76,7 +76,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const userWithRolesAndPermissions = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
-      .leftJoinAndSelect('role.permissions', 'permission')
       .where('user.id = :id', { id: user.id })
       .getOne();
 
@@ -92,12 +91,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     );
 
     const roles = activeRoles.filter((entry) => entry.active).map((entry) => entry.role);
-    const permissions = roles.reduce((acc, role) => {
-      return acc.concat(role.permissions.map((p) => `${p.resource}:${p.action}`));
-    }, [] as string[]);
+    
+    // Resolve permissions using the RBAC cache
+    const permissions: string[] = [];
+    for (const role of roles) {
+      const rolePermissions = await this.rolesService.getCachedRolePermissions(role.id);
+      rolePermissions.forEach((p) => {
+        permissions.push(`${p.resource}:${p.action}`);
+      });
+    }
 
     userWithRolesAndPermissions.roles = roles;
-    (userWithRolesAndPermissions as User & { permissions: string[] }).permissions = permissions;
+    (userWithRolesAndPermissions as User & { permissions: string[] }).permissions = Array.from(new Set(permissions));
 
     return userWithRolesAndPermissions;
   }

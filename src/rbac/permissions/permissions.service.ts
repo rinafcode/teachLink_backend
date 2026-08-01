@@ -9,6 +9,7 @@ import { RbacAuditContext } from '../roles/roles.service';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
 import { buildOffsetResponse } from '../../common/utils/pagination.utils';
+import { RbacCacheService } from '../rbac-cache.service';
 
 @Injectable()
 export class PermissionsService {
@@ -20,6 +21,7 @@ export class PermissionsService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
     private readonly auditLogService: AuditLogService,
+    private readonly rbacCacheService: RbacCacheService,
   ) {}
 
   async createPermission(
@@ -84,6 +86,8 @@ export class PermissionsService {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }
 
+    await this.rbacCacheService.invalidateAllRoles();
+
     await this.writeAudit({
       action: AuditAction.RBAC_PERMISSION_UPDATED,
       permission: updated,
@@ -131,6 +135,8 @@ export class PermissionsService {
     if (result.affected === 0) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }
+
+    await this.rbacCacheService.invalidateAllRoles();
 
     await this.writeAudit({
       action: AuditAction.RBAC_PERMISSION_DELETED,
