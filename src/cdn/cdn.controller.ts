@@ -6,16 +6,20 @@ import {
   Body,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CdnService } from './cdn.service';
 import { UploadContentDto } from './dto/upload-content.dto';
+import { TenantLimitGuard, LimitType } from '../tenancy/guards/tenant-limit.guard';
 
 @Controller('cdn')
 export class CdnController {
   constructor(private readonly cdnService: CdnService) {}
 
   @Post('upload')
+  @LimitType('storage')
+  @UseGuards(TenantLimitGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {

@@ -36,7 +36,13 @@ export class CostTrackingService {
 
     try {
       const gauge = this.getOrCreateGauge();
-      const labels = billingPeriod ? { billing_period: billingPeriod } : { billing_period: 'unknown' };
+      const labels = billingPeriod
+        ? {
+            billing_period: billingPeriod,
+          }
+        : {
+            billing_period: 'unknown',
+          };
       gauge.set(labels, amountUsd);
     } catch (err) {
       this.logger.error('Failed to record cost metric', err as Error);

@@ -39,7 +39,7 @@ describe('CostSchedulerService', () => {
     );
   });
 
-  // ── Success path ───────────────────────────────────────────────────────────
+  // ── Success path ─────────────────────────────────────────────────────────[...]
 
   describe('when the collector returns a result', () => {
     const result: HourlyCostResult = { amount: 3.14, billingPeriod: '2026-07-25/2026-07-26' };
@@ -55,7 +55,10 @@ describe('CostSchedulerService', () => {
 
     it('records the amount returned by the collector', async () => {
       await scheduler.recordHourlyCost();
-      expect(costService.recordHourlyCost).toHaveBeenCalledWith(result.amount, result.billingPeriod);
+      expect(costService.recordHourlyCost).toHaveBeenCalledWith(
+        result.amount,
+        result.billingPeriod,
+      );
     });
 
     it('labels the metric with the billing period the amount covers', async () => {
@@ -79,7 +82,7 @@ describe('CostSchedulerService', () => {
     });
   });
 
-  // ── Failure path ───────────────────────────────────────────────────────────
+  // ── Failure path ─────────────────────────────────────────────────────────[...]
 
   describe('when the collector returns null (failure)', () => {
     beforeEach(() => {

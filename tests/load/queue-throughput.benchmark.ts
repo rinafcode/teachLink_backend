@@ -140,9 +140,7 @@ async function main(): Promise<void> {
   const q3 = createQueue('benchmark-high-concurrency');
   await q3.empty();
   console.log('Test 3: Concurrency x2...');
-  results.push(
-    await runBenchmark('Concurrency x2', q3, jobs, CONCURRENCY * 2),
-  );
+  results.push(await runBenchmark('Concurrency x2', q3, jobs, CONCURRENCY * 2));
   await q3.close();
 
   printResults(results);

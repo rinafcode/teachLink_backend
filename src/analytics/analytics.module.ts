@@ -13,6 +13,7 @@ import { EventValidationService } from './services/event-validation.service';
 import { EventTrackingSDK } from './sdk/event-tracking.sdk';
 import { AnalyticsRetentionTask } from './tasks/analytics-retention.task';
 
+// The AnalyticsModule is responsible for providing analytics-related services and controllers. It imports necessary modules, registers providers, and exports services for use in other parts of the application.
 @Module({
   imports: [
     TypeOrmModule.forFeature([AnalyticsEvent]),
@@ -29,6 +30,7 @@ import { AnalyticsRetentionTask } from './tasks/analytics-retention.task';
     { provide: APP_INTERCEPTOR, useClass: FingerprintInterceptor },
   ],
   controllers: [AnalyticsController],
+  // Exporting the services to make them available for other modules
   exports: [
     AnalyticsService,
     EventBatchingService,

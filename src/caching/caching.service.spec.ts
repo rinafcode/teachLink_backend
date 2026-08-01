@@ -72,10 +72,11 @@ describe('CachingService', () => {
   // ── deriveCacheType / buildCounterKeys ──────────────────────────────────────
 
   describe('deriveCacheType', () => {
-    it('returns the second segment for cache:{type}:... keys', () => {
+    it('returns the second segment for cache:{type}:... keys and the third for tenant-scoped keys', () => {
       expect(deriveCacheType('cache:test:1')).toBe('test');
       expect(deriveCacheType('cache:user:42')).toBe('user');
       expect(deriveCacheType('cache:course:popular')).toBe('course');
+      expect(deriveCacheType('cache:tenant-a:course:popular')).toBe('course');
     });
 
     it('returns "default" for keys with no cache: prefix', () => {
@@ -135,7 +136,7 @@ describe('CachingService', () => {
 
       expect(result).toEqual({ id: '2' });
       expect(factory).toHaveBeenCalledTimes(1);
-      expect(cacheManager.set).toHaveBeenCalledWith('cache:test:2', { id: '2' }, 120000);
+      expect(cacheManager.set).toHaveBeenCalledWith('cache:tenant-a:test:2', { id: '2' }, 120000);
       expect(redis.incr).toHaveBeenCalledWith('cache:misses:test');
 
       const stats = await service.getStats('test');

@@ -8,7 +8,7 @@ import { MetricsService } from './metrics.service';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
-import { AnalyticsEvent } from '../../analytics/entities/event.entity';
+import { AnalyticsEvent, EventType } from '../../analytics/entities/event.entity';
 import { Payment, PaymentStatus } from '../../payments/entities/payment.entity';
 
 @Injectable()
@@ -111,16 +111,16 @@ export class KpiService {
   }
 
   async calculateEnrollmentConversionRate(): Promise<void> {
-    // This is a simplified version. A real-world scenario would track views vs enrollments.
-    // Here we'll simulate it by looking at enrollments vs total users.
-    // For a more accurate metric, you'd need an event tracking system for 'course_viewed'.
     const courses = await this.courseRepository.find();
     this.metricsService.enrollmentConversionGauge.reset();
 
     for (const course of courses) {
       const enrollments = await this.enrollmentRepository.count({ where: { courseId: course.id } });
-      // Placeholder for views. In a real system, you'd query an analytics table.
-      const views = enrollments * 5 + Math.floor(Math.random() * 100); // Simulate views
+      const views = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.eventType = :eventType', { eventType: EventType.COURSE_VIEW })
+        .andWhere("event.properties->>'courseId' = :courseId", { courseId: course.id })
+        .getCount();
 
       const conversionRate = views > 0 ? (enrollments / views) * 100 : 0;
       this.metricsService.enrollmentConversionGauge.labels(course.id).set(conversionRate);

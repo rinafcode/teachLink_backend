@@ -1,19 +1,11 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { DistributedLockService, DISTRIBUTED_LOCK_REDIS } from './locks/distributed-lock.service';
-import { getSharedRedisClient } from '../config/cache.config';
+import { DistributedLockService } from './locks/distributed-lock.service';
+import { RedisModule } from '../common/redis/redis.module';
 
 @Global()
 @Module({
-  imports: [ConfigModule],
-  providers: [
-    {
-      provide: DISTRIBUTED_LOCK_REDIS,
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => getSharedRedisClient(configService),
-    },
-    DistributedLockService,
-  ],
+  imports: [RedisModule.forRoot()],
+  providers: [DistributedLockService],
   exports: [DistributedLockService],
 })
 export class OrchestrationModule {}

@@ -14,6 +14,9 @@ export class MetricsService {
 
   // Counters
   public readonly paymentsTotalCounter: Counter<string>;
+  public readonly searchFallbackCounter: Counter<string>;
+  public readonly searchQueryFailuresCounter: Counter<string>;
+  public readonly alertDeliveryFailuresCounter: Counter<string>;
 
   // Histograms
   public readonly apiLatencyHistogram: Histogram<string>;
@@ -67,6 +70,27 @@ export class MetricsService {
       name: 'teachlink_payments_total',
       help: 'Total number of payment attempts',
       labelNames: ['status'], // 'succeeded', 'failed'
+      registers: [this.registry],
+    });
+
+    this.searchFallbackCounter = new Counter({
+      name: 'teachlink_search_db_fallback_total',
+      help: 'Total number of search requests that fell back to the database',
+      labelNames: ['reason'], // 'unavailable', 'error'
+      registers: [this.registry],
+    });
+
+    this.searchQueryFailuresCounter = new Counter({
+      name: 'teachlink_search_query_failures_total',
+      help: 'Total number of search queries that failed outright (non-2xx response)',
+      labelNames: ['failure_class'], // 'infrastructure', 'caller'
+      registers: [this.registry],
+    });
+
+    this.alertDeliveryFailuresCounter = new Counter({
+      name: 'teachlink_alert_delivery_failures_total',
+      help: 'Total number of failed outbound alert delivery attempts',
+      labelNames: ['channel'], // 'slack', 'pagerduty'
       registers: [this.registry],
     });
 

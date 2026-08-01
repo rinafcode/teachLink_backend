@@ -1,4 +1,6 @@
-import { Injectable, CanActivate, ExecutionContext, HttpException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Request, Response } from 'express';
+import { RateLimitExceededException } from '../../common/exceptions/app.exceptions';
 
 @Injectable()
 export class TenantQuotaGuard implements CanActivate {
@@ -10,7 +12,8 @@ export class TenantQuotaGuard implements CanActivate {
   private counters = new Map<string, { count: number; resetAt: number }>();
 
   canActivate(context: ExecutionContext): boolean {
-    const req = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest<Request>();
+    const res = context.switchToHttp().getResponse<Response>();
     const tenantId = req.headers['x-tenant-id'] as string;
     if (!tenantId) return true;
 
@@ -29,7 +32,13 @@ export class TenantQuotaGuard implements CanActivate {
 
     entry.count++;
     if (entry.count > limit) {
-      throw new HttpException('Tenant rate limit exceeded', 429);
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      const resetTime = Math.floor(now / 1000) + retryAfter;
+      res.setHeader('Retry-After', retryAfter);
+      res.setHeader('X-RateLimit-Limit', limit);
+      res.setHeader('X-RateLimit-Remaining', 0);
+      res.setHeader('X-RateLimit-Reset', resetTime);
+      throw new RateLimitExceededException(retryAfter);
     }
     return true;
   }

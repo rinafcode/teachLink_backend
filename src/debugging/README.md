@@ -6,12 +6,12 @@ bounded in-memory ring buffer, never persisted.
 
 ## Capabilities
 
-| Capability                  | Where                                        |
-| --------------------------- | -------------------------------------------- |
-| Request/response inspection | `RequestCaptureService` + `GET /debug/requests/:id` |
-| Request replay (+ diff)     | `RequestReplayService` + `POST /debug/requests/:id/replay` |
+| Capability                  | Where                                                             |
+| --------------------------- | ----------------------------------------------------------------- |
+| Request/response inspection | `RequestCaptureService` + `GET /debug/requests/:id`               |
+| Request replay (+ diff)     | `RequestReplayService` + `POST /debug/requests/:id/replay`        |
 | Performance timeline        | `PerformanceTimelineService` + `GET /debug/requests/:id/timeline` |
-| Stack-trace enhancement     | `StackTraceService` + `GET /debug/requests/:id/trace` |
+| Stack-trace enhancement     | `StackTraceService` + `GET /debug/requests/:id/trace`             |
 
 ## How capture works
 
@@ -38,14 +38,14 @@ the local instance by default; override with `DEBUG_REPLAY_BASE_URL` or the
 
 ## API (admin only)
 
-| Method & path                      | Description                              |
-| ---------------------------------- | ---------------------------------------- |
-| `GET /debug/requests`              | List recent exchanges (summaries)        |
-| `GET /debug/requests/:id`          | Full captured request + response         |
-| `GET /debug/requests/:id/timeline` | Timeline with slowest-span hotspots      |
-| `GET /debug/requests/:id/trace`    | Enhanced structured stack trace          |
-| `POST /debug/requests/:id/replay`  | Replay and diff against the original     |
-| `DELETE /debug/requests`           | Clear the capture buffer                 |
+| Method & path                      | Description                          |
+| ---------------------------------- | ------------------------------------ |
+| `GET /debug/requests`              | List recent exchanges (summaries)    |
+| `GET /debug/requests/:id`          | Full captured request + response     |
+| `GET /debug/requests/:id/timeline` | Timeline with slowest-span hotspots  |
+| `GET /debug/requests/:id/trace`    | Enhanced structured stack trace      |
+| `POST /debug/requests/:id/replay`  | Replay and diff against the original |
+| `DELETE /debug/requests`           | Clear the capture buffer             |
 
 All endpoints require an authenticated `ADMIN` because captured traffic can
 contain sensitive payloads. Sensitive headers (`authorization`, `cookie`, …)

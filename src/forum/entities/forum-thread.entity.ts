@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { ForumComment } from './forum-comment.entity';
 
 @Entity('forum_threads')
+@Index(['status', 'createdAt'])
 export class ForumThread {
   @PrimaryGeneratedColumn('uuid')
   id: string;

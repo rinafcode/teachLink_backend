@@ -1,11 +1,13 @@
 # Webhook Retry Implementation - Summary
 
 ## Overview
+
 This implementation adds robust webhook delivery with automatic retry logic, exponential backoff, and dead letter queue handling for payment webhook processing from Stripe and PayPal.
 
 ## Task Status: ✅ COMPLETED
 
 ### Acceptance Criteria Met
+
 - ✅ Webhook retry implemented
 - ✅ Exponential backoff strategy added
 - ✅ Dead letter queue handling implemented
@@ -150,6 +152,7 @@ Where:
 ```
 
 Example retry timeline:
+
 - Attempt 1: Immediate
 - Retry 1: ~1 second
 - Retry 2: ~3 seconds
@@ -159,6 +162,7 @@ Example retry timeline:
 ### Database Schema
 
 The `webhook_retries` table with the following structure:
+
 - `id` (UUID): Primary key
 - `provider` (ENUM): 'stripe' or 'paypal'
 - `externalEventId` (VARCHAR): Event ID from provider
@@ -174,6 +178,7 @@ The `webhook_retries` table with the following structure:
 - `createdAt`, `updatedAt`, `processedAt` (TIMESTAMP): Timestamps
 
 Indexes:
+
 - Unique on (provider, externalEventId)
 - On (status, nextRetryTime) for pending/processing webhooks
 - On createdAt for recent webhooks
@@ -182,17 +187,20 @@ Indexes:
 ### Webhook Flow
 
 1. **Webhook Receipt**
+
    ```
    POST /webhooks/stripe → WebhookController
    ```
 
 2. **Signature Verification**
+
    ```
    WebhookController → WebhookService.handleStripeWebhook()
    → ProviderFactory.getProvider().handleWebhook()
    ```
 
 3. **Queue Webhook**
+
    ```
    WebhookService → WebhookQueueService.queueWebhook()
    → Create/Update WebhookRetry record
@@ -200,6 +208,7 @@ Indexes:
    ```
 
 4. **Process Job**
+
    ```
    WebhookRetryProcessor.processWebhook()
    → Handle event based on type
@@ -208,6 +217,7 @@ Indexes:
    ```
 
 5. **Handle Errors**
+
    ```
    If error and retries remaining:
    → Calculate next retry time (exponential backoff)
@@ -223,6 +233,7 @@ Indexes:
 ### Idempotency Handling
 
 The system prevents duplicate webhook processing:
+
 - Checks if webhook with same (provider, externalEventId) exists
 - If exists and failed: updates and requeues
 - If exists and succeeded: skips processing
@@ -233,6 +244,7 @@ The system prevents duplicate webhook processing:
 ## Testing
 
 ### Run Unit Tests
+
 ```bash
 npm test -- webhook-queue.service.spec
 npm test -- webhook-retry.processor.spec
@@ -240,11 +252,13 @@ npm test -- webhooks
 ```
 
 ### Run E2E Tests
+
 ```bash
 npm test -- webhook-retry.e2e-spec
 ```
 
 ### Test Coverage
+
 - ✅ Webhook queuing and creation
 - ✅ Exponential backoff calculation
 - ✅ Error handling and retry logic
@@ -257,10 +271,12 @@ npm test -- webhook-retry.e2e-spec
 ## API Endpoints
 
 ### Webhook Processing
+
 - `POST /webhooks/stripe` - Receive Stripe webhooks
 - `POST /webhooks/paypal` - Receive PayPal webhooks
 
 ### Webhook Management
+
 - `GET /webhooks/status/:id` - Check webhook status
 - `GET /webhooks/dead-letter?limit=100` - List dead letter webhooks
 - `GET /webhooks/pending?limit=100` - List pending webhooks
@@ -272,6 +288,7 @@ npm test -- webhook-retry.e2e-spec
 ## Configuration
 
 Default retry configuration (in `WebhookRetryProcessor`):
+
 ```typescript
 private readonly initialDelayMs = 1000;      // 1 second
 private readonly maxDelayMs = 3600000;       // 1 hour
@@ -279,6 +296,7 @@ private readonly backoffMultiplier = 2;
 ```
 
 To customize:
+
 1. Modify constants in `WebhookRetryProcessor`
 2. Update `maxRetries` in `WebhookRetry` entity creation
 3. Configure Redis settings in `BullModule`
@@ -288,6 +306,7 @@ To customize:
 ## Monitoring & Alerts
 
 ### Key Metrics to Monitor
+
 - Webhook success rate (target: >99%)
 - Retry rate (target: <10%)
 - Dead letter queue size (alert if >100)
@@ -295,6 +314,7 @@ To customize:
 - Queue depth (pending webhooks)
 
 ### Recommended Alerts
+
 - Dead letter queue size > 100 items
 - Webhook processing failure rate > 1%
 - Processing time > 5 seconds
@@ -305,6 +325,7 @@ To customize:
 ## Environment Requirements
 
 ### Dependencies
+
 - `@nestjs/bull`: ^11.0.2
 - `bull`: Job queue (required by @nestjs/bull)
 - `redis`: For Bull job storage (required)
@@ -312,10 +333,12 @@ To customize:
 - `typeorm`: ^0.3.0
 
 ### Database
+
 - PostgreSQL 12+ for ENUM types and JSON support
 - Connection pool size: 5-30 (configurable)
 
 ### Redis
+
 - Version 5.0+ recommended
 - For production: use managed Redis service
 - Recommended memory: 512MB+ for high volume
@@ -352,6 +375,7 @@ To customize:
 ## Support
 
 For issues or questions:
+
 1. Check `src/payments/webhooks/README.md` for detailed documentation
 2. Review test files for implementation examples
 3. Check application logs for error details
@@ -363,6 +387,7 @@ For issues or questions:
 ## Contribution Notes
 
 When modifying webhook retry logic:
+
 1. Update both processor and queue service
 2. Add tests for new functionality
 3. Update README.md documentation

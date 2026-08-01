@@ -116,14 +116,14 @@ export class TaskService {
 
 Default configurations for each worker type:
 
-| Worker | Concurrency | Workers | Retries | Timeout | Health Check |
-|--------|-------------|---------|---------|---------|--------------|
-| Email | 5 | 2 | 3 | 30s | 30s |
-| Media Processing | 3 | 1 | 2 | 2min | 1min |
-| Data Sync | 4 | 2 | 3 | 1min | 45s |
-| Backup Processing | 1 | 1 | 2 | 5min | 2min |
-| Webhooks | 10 | 3 | 5 | 15s | 30s |
-| Subscriptions | 5 | 2 | 3 | 45s | 30s |
+| Worker            | Concurrency | Workers | Retries | Timeout | Health Check |
+| ----------------- | ----------- | ------- | ------- | ------- | ------------ |
+| Email             | 5           | 2       | 3       | 30s     | 30s          |
+| Media Processing  | 3           | 1       | 2       | 2min    | 1min         |
+| Data Sync         | 4           | 2       | 3       | 1min    | 45s          |
+| Backup Processing | 1           | 1       | 2       | 5min    | 2min         |
+| Webhooks          | 10          | 3       | 5       | 15s     | 30s          |
+| Subscriptions     | 5           | 2       | 3       | 45s     | 30s          |
 
 ## Job Routing
 
@@ -259,16 +259,16 @@ Implement auto-scaling based on queue depth:
 @Cron('0 * * * * *') // Every minute
 async autoScaleWorkers() {
   const metrics = this.workerOrchestration.getAllWorkerMetrics();
-  
+
   for (const metric of metrics) {
-    const failureRate = metric.jobsProcessed > 0 
-      ? metric.jobsFailed / metric.jobsProcessed 
+    const failureRate = metric.jobsProcessed > 0
+      ? metric.jobsFailed / metric.jobsProcessed
       : 0;
-    
+
     if (failureRate > 0.2) {
       // Scale up degraded workers
       await this.workerOrchestration.scaleWorkerPool(
-        metric.workerType, 
+        metric.workerType,
         metric.jobsProcessed / metric.avgExecutionTime + 1
       );
     }

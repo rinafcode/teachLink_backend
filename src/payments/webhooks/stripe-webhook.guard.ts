@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   Logger,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { WebhookSecurityService } from './webhook-security.service';
@@ -12,9 +13,10 @@ import { WebhookSecurityService } from './webhook-security.service';
  * Guard that validates incoming Stripe webhook requests.
  *
  * Performs:
- * 1. Signature verification using HMAC-SHA256
+ * 1. Signature verification using HMAC-SHA256 (against raw body BEFORE parsing)
  * 2. Timestamp freshness validation (±5 minutes)
  * 3. Replay attack prevention (duplicate event ID detection)
+ * 4. JSON body parsing with proper error handling (400 on malformed payload)
  *
  * Must be applied to Stripe webhook endpoints.
  */
@@ -42,25 +44,30 @@ export class StripeWebhookGuard implements CanActivate {
       );
     }
 
-    // Parse event ID from the body for replay prevention.
-    // We attempt to parse the JSON to extract the event ID,
-    // but we verify the signature against the raw (unparsed) body.
+    // Step 1: Verify the Stripe signature against the RAW body FIRST.
+    // We use a placeholder event ID for initial signature validation;
+    // replay prevention runs after we successfully parse the body.
+    const signatureResult = this.webhookSecurityService.verifyStripeSignature(rawBody, signature);
+
+    if (!signatureResult.valid) {
+      this.logger.warn(`Stripe webhook rejected: ${signatureResult.reason}`);
+      throw new UnauthorizedException(signatureResult.reason);
+    }
+
+    // Step 2: Only AFTER signature verification, parse the JSON body.
+    // Wrap JSON.parse in try/catch and return 400 for unparseable bodies.
     let eventId: string | undefined;
     try {
       const parsed = JSON.parse(rawBody.toString('utf8'));
       eventId = parsed?.id;
     } catch {
-      // If we can't parse, signature verification will still work,
-      // but replay prevention will be skipped.
-      this.logger.warn('Could not parse webhook body to extract event ID');
+      this.logger.warn('Webhook body is not valid JSON – returning 400');
+      throw new BadRequestException('Malformed webhook body: not valid JSON');
     }
 
-    // Run the full verification pipeline
-    const result = this.webhookSecurityService.verifyStripeWebhook(rawBody, signature, eventId);
-
-    if (!result.valid) {
-      this.logger.warn(`Stripe webhook rejected: ${result.reason}`);
-      throw new UnauthorizedException(result.reason);
+    // Step 3: Replay attack prevention using the parsed event ID
+    if (this.webhookSecurityService.isReplayAttack(eventId || '')) {
+      throw new UnauthorizedException(`Duplicate event: ${eventId}`);
     }
 
     return true;

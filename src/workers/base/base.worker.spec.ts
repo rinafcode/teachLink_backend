@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getSharedRedisClient } from '../../config/cache.config';
 import { BaseWorker } from './base.worker';
@@ -12,9 +13,13 @@ jest.mock('../../config/cache.config', () => ({
   getSharedRedisClient: jest.fn(),
 }));
 
+// Spy on Logger so we can assert structured error output
+const loggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
 class TestWorker extends BaseWorker {
   public lastSeenCorrelationId: string | undefined;
   public jobDataCapture: unknown;
+  public shouldFail = false;
 
   constructor() {
     super('test-worker', { get: jest.fn().mockReturnValue(300) } as unknown as ConfigService);
@@ -24,6 +29,9 @@ class TestWorker extends BaseWorker {
     // Capture during execute() to verify ALS propagation works across awaits.
     this.lastSeenCorrelationId = getCorrelationId();
     this.jobDataCapture = job.data;
+    if (this.shouldFail) {
+      throw new Error('Simulated failure');
+    }
     return { ok: true };
   }
 }
@@ -33,6 +41,7 @@ const buildJob = (data: Record<string, unknown>) =>
     id: 'job-1',
     name: 'demo-task',
     data,
+    attemptsMade: 2,
     progress: jest.fn().mockResolvedValue(undefined),
   }) as any;
 
@@ -44,6 +53,7 @@ describe('BaseWorker', () => {
     (getSharedRedisClient as jest.Mock).mockReturnValue({
       set: redisSet,
     });
+    loggerErrorSpy.mockClear();
   });
 
   afterEach(() => {
@@ -108,5 +118,48 @@ describe('BaseWorker', () => {
     expect(inner).toBe('inner-id');
     const outer = await runWithCorrelationId(() => getCorrelationId(), 'outer-id');
     expect(outer).toBe('outer-id');
+  });
+
+  describe('structured failure logging', () => {
+    it('emits a structured JSON log with correlation id and job metadata on failure', async () => {
+      const worker = new TestWorker();
+      worker.shouldFail = true;
+      const enriched = enrichWithCorrelation({ userId: 'u-fail' });
+
+      await expect(worker.handle(buildJob(enriched as any))).rejects.toThrow('Simulated failure');
+
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      const logCall = loggerErrorSpy.mock.calls[loggerErrorSpy.mock.calls.length - 1];
+      const logArg = logCall[0] as string;
+
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(logArg);
+      } catch {
+        throw new Error(`Expected structured JSON log, got: ${logArg}`);
+      }
+
+      expect(parsed.event).toBe('job_failed');
+      expect(parsed.jobName).toBe('demo-task');
+      expect(parsed.jobId).toBe('job-1');
+      expect(parsed.attempt).toBe(3); // attemptsMade (2) + 1
+      expect(parsed.correlationId).toBe((enriched as any)[CORRELATION_JOB_FIELD]);
+      expect(parsed.error).toBe('Simulated failure');
+      expect(parsed.workerId).toBe(worker.getId());
+      expect(parsed.workerType).toBe(worker.getType());
+      expect(parsed.executionTime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('logs "unknown" correlation id when job has no correlation data', async () => {
+      const worker = new TestWorker();
+      worker.shouldFail = true;
+
+      await expect(worker.handle(buildJob({ unrelated: true }) as any)).rejects.toThrow();
+
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      const logCall = loggerErrorSpy.mock.calls[loggerErrorSpy.mock.calls.length - 1];
+      const parsed = JSON.parse(logCall[0] as string) as Record<string, unknown>;
+      expect(parsed.correlationId).toBe('unknown');
+    });
   });
 });

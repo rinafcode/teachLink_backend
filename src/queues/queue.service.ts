@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, PayloadTooLargeException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job, JobOptions as BullJobOptions } from 'bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
@@ -6,12 +6,22 @@ import { JobPriority } from './enums/job-priority.enum';
 import { IJobOptions } from './interfaces/queue.interfaces';
 import { PrioritizationService } from './prioritization/prioritization.service';
 import { RetryStrategyService, RetryStrategyKey } from './retry/retry-strategy.service';
+import { enrichWithCorrelation } from './utils/correlation-job.util';
 
 export interface AddJobResult {
   jobId: string | number;
   queue: string;
   name: string;
 }
+
+const DEFAULT_MAX_PAYLOAD_BYTES = 1_048_576; // 1 MB
+
+const QUEUE_MAX_PAYLOAD_OVERRIDES: Record<string, number> = {
+  // Media processing handles binary payloads; allow up to 10 MB
+  media_processing: 10_485_760,
+  // User data export payloads include serialized records; allow up to 5 MB
+  user_data_export: 5_242_880,
+};
 
 @Injectable()
 export class QueueService {
@@ -67,6 +77,15 @@ export class QueueService {
     options?: Partial<IJobOptions>,
     retryStrategy?: RetryStrategyKey,
   ): Promise<AddJobResult> {
+    const payloadBytes = Buffer.byteLength(JSON.stringify(data), 'utf-8');
+    const maxBytes =
+      QUEUE_MAX_PAYLOAD_OVERRIDES[queueName] ?? DEFAULT_MAX_PAYLOAD_BYTES;
+    if (payloadBytes > maxBytes) {
+      throw new PayloadTooLargeException(
+        `Job payload for queue "${queueName}" is ${payloadBytes} bytes, exceeding the ${maxBytes} byte limit`,
+      );
+    }
+
     const queue = this.getQueue(queueName);
     const priorityLevel = options?.priority ?? JobPriority.NORMAL;
     const bullPriority = this.prioritizationService.toBullPriority(priorityLevel);
@@ -87,7 +106,8 @@ export class QueueService {
       priority: bullPriority,
     };
 
-    const job = await queue.add(jobName, data, jobOptions);
+    const enrichedData = enrichWithCorrelation(data);
+    const job = await queue.add(jobName, enrichedData, jobOptions);
     this.logger.debug(`Job ${job.id} added to "${queueName}" (name: ${jobName})`);
     return { jobId: job.id, queue: queueName, name: jobName };
   }
