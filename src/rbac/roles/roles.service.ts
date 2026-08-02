@@ -14,6 +14,7 @@ import { BUILTIN_ROLE_NAMES, Role } from '../entities/role.entity';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
 import { buildOffsetResponse } from '../../common/utils/pagination.utils';
+import { RbacCacheService } from '../rbac-cache.service';
 
 export interface RbacAuditContext {
   actorId?: string;
@@ -36,6 +37,7 @@ export class RolesService {
     private readonly permissionRepository: Repository<Permission>,
     private readonly auditLogService: AuditLogService,
     private readonly dataSource: DataSource,
+    private readonly rbacCacheService: RbacCacheService,
   ) {}
 
   /**
@@ -132,12 +134,25 @@ export class RolesService {
   }
 
   async isRoleActive(name: string): Promise<boolean> {
-    const role = await this.findRoleByName(name, true);
+    const role = await this.roleRepository.findOne({ where: { name }, withDeleted: true });
     if (!role) {
       return false;
     }
 
     return role.deletedAt == null;
+  }
+
+  async getCachedRolePermissions(roleId: string): Promise<Permission[]> {
+    let permissions = await this.rbacCacheService.getRolePermissions(roleId);
+    if (!permissions) {
+      const role = await this.roleRepository.findOne({
+        where: { id: roleId },
+        relations: ['permissions'],
+      });
+      permissions = role?.permissions || [];
+      await this.rbacCacheService.setRolePermissions(roleId, permissions);
+    }
+    return permissions;
   }
 
   async updateRole(
@@ -172,6 +187,8 @@ export class RolesService {
         .of(id)
         .set(permissions);
     }
+    
+    await this.rbacCacheService.invalidateRole(id);
 
     const updated = await this.findRoleById(id, true);
 
@@ -237,6 +254,7 @@ export class RolesService {
     }
 
     await this.roleRepository.softDelete(id);
+    await this.rbacCacheService.invalidateRole(id);
 
     await this.writeAudit({
       action: AuditAction.RBAC_ROLE_DELETED,
@@ -283,6 +301,7 @@ export class RolesService {
       role.permissions.push(permission);
       await this.roleRepository.save(role);
       granted = true;
+      await this.rbacCacheService.invalidateRole(role.id);
     }
 
     await this.writeAudit({
@@ -310,6 +329,7 @@ export class RolesService {
     const hadPermission = role.permissions.some((p) => p.id === permissionId);
     role.permissions = role.permissions.filter((p) => p.id !== permissionId);
     await this.roleRepository.save(role);
+    await this.rbacCacheService.invalidateRole(role.id);
 
     await this.writeAudit({
       action: AuditAction.RBAC_PERMISSION_REVOKED,
