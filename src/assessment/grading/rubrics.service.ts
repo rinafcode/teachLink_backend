@@ -115,11 +115,7 @@ export class RubricsService {
   }
 
   /** Lists rubrics (paginated), optionally filtering by owner. */
-  async findAll(
-    ownerId?: string,
-    page = 1,
-    limit = 10,
-  ): Promise<OffsetPaginatedResponse<Rubric>> {
+  async findAll(ownerId?: string, page = 1, limit = 10): Promise<OffsetPaginatedResponse<Rubric>> {
     const clampedLimit = clampLimit(limit);
     const skip = (page - 1) * clampedLimit;
     const [data, total] = await this.rubricRepo.findAndCount({

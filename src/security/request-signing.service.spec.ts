@@ -95,7 +95,9 @@ describe('RequestSigningService', () => {
   describe('buildPayloadWithNonce', () => {
     it('includes nonce between timestamp and body', () => {
       const result = service.buildPayloadWithNonce(BASE_PARTS);
-      expect(result).toBe(`POST:/api/payments:${BASE_PARTS.timestamp}:unique-nonce-123:{"amount":1000,"currency":"USD"}`);
+      expect(result).toBe(
+        `POST:/api/payments:${BASE_PARTS.timestamp}:unique-nonce-123:{"amount":1000,"currency":"USD"}`,
+      );
     });
   });
 

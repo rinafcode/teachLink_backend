@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Achievement, AchievementType } from './entities/achievement.entity';
@@ -21,12 +21,11 @@ import {
   AchievementLeaderboardDto,
   AchievementOverviewDto,
 } from './dto/achievement-statistics.dto';
-import { PaginationQueryDto } from '../../common/dto/pagination.dto';
-import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
-import { buildOffsetResponse } from '../../common/utils/pagination.utils';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse } from '../common/utils/pagination.utils';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { Inject } from '@nestjs/common';
 
 const ACHIEVEMENTS_CACHE_KEY = 'achievements_definitions';
 
@@ -533,7 +532,7 @@ export class AchievementsService {
       .addSelect('COALESCE(SUM(ua.experienceEarned), 0)', 'totalExperience')
       .where('ua.userId = :userId', { userId })
       .getRawOne();
-      
+
     const unlockedCount = parseInt(userStats?.unlockedCount || '0', 10);
     const totalPoints = parseInt(userStats?.totalPoints || '0', 10);
     const totalExperience = parseInt(userStats?.totalExperience || '0', 10);
@@ -547,9 +546,7 @@ export class AchievementsService {
       })
       .getRawOne();
     const progressPercentage =
-      totalAchievements > 0
-        ? Math.round((unlockedCount / totalAchievements) * 100)
-        : 0;
+      totalAchievements > 0 ? Math.round((unlockedCount / totalAchievements) * 100) : 0;
 
     return {
       totalAchievements,

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ServiceUnavailableException } from '@nestjs/common';
+import CircuitBreaker from 'opossum';
 import {
   PaymentProviderCircuitBreakerService,
   CircuitState,
@@ -192,7 +193,6 @@ describe('PaymentProviderCircuitBreakerService', () => {
 
     it('should emit "halfOpen" event after resetTimeout elapses', async () => {
       // Use a fresh local breaker with a short resetTimeout so the test is fast.
-      const CircuitBreaker = require('opossum');
       const localBreaker: InstanceType<typeof CircuitBreaker> = new CircuitBreaker(
         (fn: () => Promise<unknown>) => fn(),
         { timeout: 1000, errorThresholdPercentage: 50, resetTimeout: 50, volumeThreshold: 5 },
@@ -223,7 +223,6 @@ describe('PaymentProviderCircuitBreakerService', () => {
     }, 10_000);
 
     it('should return to CLOSED after a successful probe in half-open state', async () => {
-      const CircuitBreaker = require('opossum');
       const localBreaker: InstanceType<typeof CircuitBreaker> = new CircuitBreaker(
         (fn: () => Promise<unknown>) => fn(),
         { timeout: 1000, errorThresholdPercentage: 50, resetTimeout: 50, volumeThreshold: 5 },
@@ -253,7 +252,6 @@ describe('PaymentProviderCircuitBreakerService', () => {
     }, 10_000);
 
     it('should stay OPEN after a failed probe in half-open state', async () => {
-      const CircuitBreaker = require('opossum');
       const localBreaker: InstanceType<typeof CircuitBreaker> = new CircuitBreaker(
         (fn: () => Promise<unknown>) => fn(),
         { timeout: 1000, errorThresholdPercentage: 50, resetTimeout: 50, volumeThreshold: 5 },

@@ -83,7 +83,11 @@ export class ExchangeRateService {
         cacheKey,
         async () => {
           const rate = await this.fetchRateWithFallback(from, to);
-          await this.cachingService.set(staleKey, { rate, recordedAt: Date.now() }, this.staleTtlSeconds);
+          await this.cachingService.set(
+            staleKey,
+            { rate, recordedAt: Date.now() },
+            this.staleTtlSeconds,
+          );
           return rate;
         },
         this.cacheTtlSeconds,

@@ -166,7 +166,11 @@ describe('ReportAssignmentService', () => {
       const admin3 = makeUser('admin-3', UserRole.ADMIN);
       mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin1, admin2, admin3]));
       mockReportRepo.createQueryBuilder.mockReturnValue(
-        buildReportQb([{ moderatorId: 'admin-1', count: '5' }, { moderatorId: 'admin-2', count: '1' }, { moderatorId: 'admin-3', count: '3' }]),
+        buildReportQb([
+          { moderatorId: 'admin-1', count: '5' },
+          { moderatorId: 'admin-2', count: '1' },
+          { moderatorId: 'admin-3', count: '3' },
+        ]),
       );
 
       const report = makeReport();
@@ -181,7 +185,10 @@ describe('ReportAssignmentService', () => {
       const admin1 = makeUser('admin-1', UserRole.ADMIN);
       mockUserRepo.createQueryBuilder.mockReturnValue(buildQb([admin1, admin2]));
       mockReportRepo.createQueryBuilder.mockReturnValue(
-        buildReportQb([{ moderatorId: 'admin-1', count: '5' }, { moderatorId: 'admin-2', count: '1' }]),
+        buildReportQb([
+          { moderatorId: 'admin-1', count: '5' },
+          { moderatorId: 'admin-2', count: '1' },
+        ]),
       );
 
       await service.escalateReport(makeReport());

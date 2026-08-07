@@ -78,8 +78,7 @@ export class QueueService {
     retryStrategy?: RetryStrategyKey,
   ): Promise<AddJobResult> {
     const payloadBytes = Buffer.byteLength(JSON.stringify(data), 'utf-8');
-    const maxBytes =
-      QUEUE_MAX_PAYLOAD_OVERRIDES[queueName] ?? DEFAULT_MAX_PAYLOAD_BYTES;
+    const maxBytes = QUEUE_MAX_PAYLOAD_OVERRIDES[queueName] ?? DEFAULT_MAX_PAYLOAD_BYTES;
     if (payloadBytes > maxBytes) {
       throw new PayloadTooLargeException(
         `Job payload for queue "${queueName}" is ${payloadBytes} bytes, exceeding the ${maxBytes} byte limit`,

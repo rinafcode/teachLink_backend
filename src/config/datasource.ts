@@ -4,6 +4,10 @@ import { getDatabaseConfig } from './database.config';
 export const AppDataSource = new DataSource({
   ...(getDatabaseConfig() as DataSourceOptions),
   synchronize: false,
-  migrations: ['src/migrations/**/*.{ts,js}'],
+  // Match only timestamp-prefixed migration files. This deliberately excludes
+  // non-migration helpers that live under src/migrations (e.g.
+  // schema-migration.service.ts and the entities/ subdir) which TypeORM would
+  // otherwise try to load as migrations and reject.
+  migrations: ['src/migrations/[0-9]*.{ts,js}'],
   migrationsTableName: 'migrations',
 });

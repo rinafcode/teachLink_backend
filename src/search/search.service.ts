@@ -1,10 +1,17 @@
-import { Injectable, Logger, Inject, Optional, BadRequestException } from '@nestjs/common';
-import { Injectable, Logger, Inject, Optional, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  Optional,
+  BadRequestException,
+  ServiceUnavailableException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ElasticsearchService as NestElasticsearchService } from '@nestjs/elasticsearch';
 import type { Cache } from 'cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, QueryFailedError } from 'typeorm';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { LRUCache } from 'lru-cache';
 import { IsolationService } from '../tenancy/isolation/isolation.service';
@@ -134,7 +141,6 @@ export class SearchService implements OnModuleInit {
       await this.validateFilters(filters);
     }
 
-    const cacheKey = `search:${safeQuery}:${JSON.stringify(filters)}:${sort}:${page}`;
     const cacheKey = this.buildSearchCacheKey(safeQuery, filters, sort, page, limit);
 
     if (this.cacheManager) {

@@ -100,43 +100,35 @@ export class PointsService {
         createdAt: new Date(),
       });
 
-      // Capture the tier currently on the record before any mutation so we can
-      // detect a real boundary crossing after the save commits.
-      const previousTier = progress.tier ?? Tier.BRONZE;
+      // The upsert leaves tier untouched on update, so the returned row still
+      // carries the tier persisted before this award. Capture it so we can
+      // detect a real boundary crossing after the commit.
+      const previousTier = updatedProgress.tier ?? Tier.BRONZE;
 
-      progress.totalPoints += points;
-      progress.xp += points;
-      progress.level = Math.floor(progress.xp / 1000) + 1;
-
-      // Derive the new tier from the projected total and assign it BEFORE save
-      // so the single repository call persists both points and tier together.
-      const newTier = this.tiersService.getTierForPoints(progress.totalPoints);
-      progress.tier = newTier;
-
-      const saved = await this.userProgressRepository.save(progress);
-
-      // tierPromoted is true only when the boundary is actually crossed and the
-      // value is now durable in the database.
-      const tierPromoted = newTier !== previousTier;
-
-      // Emit only after the DB write succeeds so a save failure does not
-      // publish a promotion that never actually committed.
-      this.eventEmitter.emit(
-        GAMIFICATION_EVENTS.POINTS_AWARDED,
-        new PointsAwardedEvent(userId, saved.totalPoints, saved.level),
-      );
       // STEP 3: Compute derived fields (level, tier) post-upsert.
       // Note: level is still computed in application layer and could be
       // moved to a trigger in future optimization.
       const newLevel = Math.floor(updatedProgress.xp / 1000) + 1;
       const newTier = this.tiersService.getTierForPoints(updatedProgress.totalPoints);
 
-      // Update level and tier in memory for the return value
+      // Persist derived fields inside the SAME transaction so points, level and
+      // tier all commit together.
+      await queryRunner.manager.update(
+        UserProgress,
+        { user: { id: userId } },
+        { level: newLevel, tier: newTier },
+      );
+
+      // Reflect the persisted values on the object returned to the caller.
       updatedProgress.level = newLevel;
       updatedProgress.tier = newTier;
 
       // Commit both writes atomically
       await queryRunner.commitTransaction();
+
+      // tierPromoted is true only when the boundary is actually crossed and the
+      // value is now durable in the database.
+      const tierPromoted = newTier !== previousTier;
 
       // STEP 4: Emit event after successful commit
       // Event subscribers (e.g., BadgesService) can now read consistent state
@@ -147,7 +139,7 @@ export class PointsService {
 
       return {
         progress: updatedProgress,
-        tierPromoted: false, // TODO: Track previousTier if needed for badge logic
+        tierPromoted,
       };
     } catch (error) {
       // Rollback BOTH writes (upsert + transaction ledger) on any failure

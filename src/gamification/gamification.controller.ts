@@ -19,11 +19,11 @@ import { TierReward } from './entities/tier-reward.entity';
 import { AwardActivityDto } from './dto/award-activity.dto';
 import { AddPointsDto } from './dto/add-points.dto';
 import { UpsertRewardDto } from './dto/upsert-reward.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { CurrentUser } from '../../auth/decorators/current-user.decorator';
-import { User } from '../../users/entities/user.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('gamification')
 @UseGuards(JwtAuthGuard, RolesGuard)

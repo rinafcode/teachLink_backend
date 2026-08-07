@@ -49,7 +49,7 @@ export class RunbookExecutionService {
     ttlSeconds = 300,
   ): Promise<boolean> {
     const key = this.lockKey(incidentId, runbookName);
-    const acquired = await this.redis.set(key, '1', 'NX', 'EX', ttlSeconds);
+    const acquired = await this.redis.set(key, '1', 'EX', ttlSeconds, 'NX');
     return acquired === 'OK';
   }
 

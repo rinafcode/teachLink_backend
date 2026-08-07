@@ -16,7 +16,7 @@ describe('RbacCacheService (Integration)', () => {
     // ioredis-mock shares state by default if no arguments are passed
     redisClient1 = new Redis();
     redisClient2 = redisClient1.createConnectedClient();
-    
+
     const module1: TestingModule = await Test.createTestingModule({
       providers: [
         RbacCacheService,
@@ -70,7 +70,7 @@ describe('RbacCacheService (Integration)', () => {
     // Now permission 'p2' is removed, so we update the cache via instance 1
     const updatedPermissions = [permissions[0]];
     await instance1.setRolePermissions(roleId, updatedPermissions);
-    
+
     // And instance 1 triggers an invalidation
     await instance1.invalidateRole(roleId);
 
@@ -80,12 +80,12 @@ describe('RbacCacheService (Integration)', () => {
     // Instance 2 should now read the updated permissions (or return null if deleted from Redis)
     // Actually, invalidateRole deletes from Redis. So next read should hit DB (which returns null in this test)
     const instance2ReadAfter = await instance2.getRolePermissions(roleId);
-    
+
     // In our test, because we called setRolePermissions on instance1, it updated Redis.
     // But invalidateRole deletes it from Redis AND publishes the message.
     // Let's mimic what RolesService does:
     // RolesService updates DB, calls invalidateRole.
-    
+
     expect(instance2ReadAfter).toBeNull();
   });
 });

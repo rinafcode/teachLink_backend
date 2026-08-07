@@ -3,7 +3,8 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
-  PaymentRequiredException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -250,8 +251,9 @@ export class SubscriptionsService {
       this.logger.warn(
         `Prorated upgrade charge failed for subscription ${subscriptionId}: ${(err as Error).message}`,
       );
-      throw new PaymentRequiredException(
+      throw new HttpException(
         `Prorated charge of ${proratedAmount} ${subscription.currency} failed: ${(err as Error).message}`,
+        HttpStatus.PAYMENT_REQUIRED,
       );
     }
 

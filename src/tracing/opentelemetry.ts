@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- tracing bootstrap runs before the app logger is available */
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';

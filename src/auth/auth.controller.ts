@@ -66,7 +66,6 @@ export class AuthController {
       username: registerDto.username,
       firstName: registerDto.firstName,
       lastName: registerDto.lastName,
-      displayName: registerDto.displayName || registerDto.username,
       profilePicture: registerDto.avatarUrl,
       password: passwordHash,
       tenantId: req.tenantId,

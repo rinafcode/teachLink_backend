@@ -17,14 +17,14 @@ export class DeepLinkService {
 
   private readonly absoluteUrlPattern = /^(https?:\/\/|ftp:\/\/|\/\/)/i;
   private readonly schemePattern = /^[a-zA-Z][a-zA-Z0-9+\-.]*:/;
-  private readonly pathTraversalPattern = /(\.\.[\/\\])/;
-  private readonly injectionPattern = /[<>\{\}\\"'`]/;
+  private readonly pathTraversalPattern = /(\.\.[/\\])/;
+  private readonly injectionPattern = /[<>{}\\"'`]/;
   private readonly validParamPattern = /^[a-zA-Z0-9\-_.~]+$/;
 
   private readonly signingKey = 'teachlink-deeplink-signing-key';
 
   validateRoute(route: string): boolean {
-    return this.allowedRoutes.some(r => r.path === route || r.name === route);
+    return this.allowedRoutes.some((r) => r.path === route || r.name === route);
   }
 
   validateParam(value: string): string {

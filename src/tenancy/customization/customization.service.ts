@@ -105,7 +105,8 @@ export class CustomizationService {
     };
     return await this.customizationRepository.save(customization);
   }
-  private readonly DOMAIN_REGEX = /^(?![.-])(?!.*--)[a-zA-Z0-9-]{1,63}(?:\.[a-zA-Z0-9-]{1,63})*\.[a-zA-Z]{2,}$/;
+  private readonly DOMAIN_REGEX =
+    /^(?![.-])(?!.*--)[a-zA-Z0-9-]{1,63}(?:\.[a-zA-Z0-9-]{1,63})*\.[a-zA-Z]{2,}$/;
   private readonly BLOCKED_SUFFIXES = ['.local', '.localhost', '.internal', '.example'];
 
   private validateDomain(domain: string): void {
@@ -116,7 +117,7 @@ export class CustomizationService {
     if (/^(\d{1,3}\.){3}\d{1,3}$/.test(trimmed)) {
       throw new BadRequestException('IP literals are not allowed as custom domains');
     }
-    if (trimmed.startsWith('localhost') || this.BLOCKED_SUFFIXES.some(s => trimmed.endsWith(s))) {
+    if (trimmed.startsWith('localhost') || this.BLOCKED_SUFFIXES.some((s) => trimmed.endsWith(s))) {
       throw new BadRequestException('Localhost and internal suffixes are not allowed');
     }
     if (!this.DOMAIN_REGEX.test(trimmed)) {
@@ -131,7 +132,9 @@ export class CustomizationService {
     this.validateDomain(domain);
     const normalized = domain.toLowerCase().trim();
 
-    const existing = await this.customizationRepository.findOne({ where: { customDomain: normalized } });
+    const existing = await this.customizationRepository.findOne({
+      where: { customDomain: normalized },
+    });
     if (existing && existing.tenantId !== tenantId) {
       throw new ConflictException('This domain is already claimed by another tenant');
     }
@@ -170,9 +173,7 @@ export class CustomizationService {
     }
 
     const token = customization.domainVerificationToken;
-    const matched = records.some((recordSet) =>
-      recordSet.some((entry) => entry.trim() === token),
-    );
+    const matched = records.some((recordSet) => recordSet.some((entry) => entry.trim() === token));
 
     if (!matched) {
       throw new BadRequestException(

@@ -1,5 +1,4 @@
 import { BadRequestException } from '@nestjs/common';
-import { SearchService } from './search.service';
 import { SearchService, SEARCH_CACHE_TTL_MS } from './search.service';
 import { Repository, QueryFailedError } from 'typeorm';
 import { ElasticsearchService } from '@nestjs/elasticsearch';

@@ -20,6 +20,11 @@ import { RouteShardDto } from './dto/route-shard.dto';
 import { StartMigrationDto } from './dto/start-migration.dto';
 import { ManualRebalanceDto } from './dto/manual-rebalance.dto';
 import { AutoRebalanceDto } from './dto/auto-rebalance.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { IpAllowlistGuard } from '../common/guards/ip-allowlist.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 /**
  * ShardingController
@@ -43,9 +48,6 @@ import { AutoRebalanceDto } from './dto/auto-rebalance.dto';
  *   POST   /sharding/ring/rebuild        — rebuild consistent-hash ring
  */
 @ApiTags('sharding')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
 @Controller('sharding')
 @UseGuards(IpAllowlistGuard, JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()

@@ -3,11 +3,12 @@ import {
   resetSampler,
   getSamplerState,
   buildLogObject,
+  initStructuredLogging,
 } from './structured-logging';
 
 // Test formatWithSampling by creating a simple wrapper that mimics the console override
 function invokeErrorSampling(args: unknown[]): string | null {
-  let output: string | null = null;
+  const output: string | null = null;
   const originalConfig = { firstN: 3, thenEveryM: 5 };
 
   // We'll use configureSampling + manual sampler to test the behaviour
@@ -18,9 +19,6 @@ function invokeErrorSampling(args: unknown[]): string | null {
 
   return output;
 }
-
-// Alternative approach: re-import after init
-import { initStructuredLogging } from './structured-logging';
 
 describe('Error sampling / rate limiting', () => {
   let errorOutputs: string[];

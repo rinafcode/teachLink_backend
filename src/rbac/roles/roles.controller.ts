@@ -8,27 +8,9 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { RolesService } from './roles.service';
-import { Role } from '../entities/role.entity';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { CreateRoleDto } from './dto/create-role.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
-
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
-import { Controller, Get, Post, Body, Param, Put, Delete, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { RolesService } from './roles.service';
-import { Role } from '../entities/role.entity';
-import { PaginationQueryDto } from '../../common/dto/pagination.dto';
-import { PaginatedSwaggerDto } from '../../common/dto/paginated-response.dto';
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { Role } from '../entities/role.entity';
@@ -37,6 +19,10 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { IpAllowlistGuard } from '../../common/guards/ip-allowlist.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { PaginatedSwaggerDto } from '../../common/dto/paginated-response.dto';
 
 @ApiTags('roles')
 @Controller('roles')
@@ -60,10 +46,7 @@ export class RolesController {
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new role (Admin only)' })
-  async create(
-    @Body() createRoleDto: CreateRoleDto,
-    @Req() req: Request,
-  ): Promise<Role> {
+  async create(@Body() createRoleDto: CreateRoleDto, @Req() req: Request): Promise<Role> {
     return this.rolesService.createRole(
       createRoleDto.name,
       createRoleDto.description,
@@ -82,10 +65,6 @@ export class RolesController {
   async findAll(@Query() query?: PaginationQueryDto, @Query('include') include?: string) {
     const includePermissions = include === 'permissions';
     return this.rolesService.findAllRoles(query, includePermissions);
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'List all roles (Admin only)' })
-  async findAll(): Promise<Role[]> {
-    return this.rolesService.findAllRoles();
   }
 
   @Get(':id')
@@ -115,10 +94,6 @@ export class RolesController {
   @Delete(':id')
   async remove(@Param('id') id: string, @Req() req: Request): Promise<void> {
     return this.rolesService.deleteRole(id, this.extractContext(req));
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Delete a role (Admin only)' })
-  async remove(@Param('id') id: string): Promise<void> {
-    return this.rolesService.deleteRole(id);
   }
 
   @Post(':roleId/permissions/:permissionId')
@@ -129,11 +104,7 @@ export class RolesController {
     @Param('permissionId') permissionId: string,
     @Req() req: Request,
   ): Promise<Role> {
-    return this.rolesService.addPermissionToRole(
-      roleId,
-      permissionId,
-      this.extractContext(req),
-    );
+    return this.rolesService.addPermissionToRole(roleId, permissionId, this.extractContext(req));
   }
 
   @Delete(':roleId/permissions/:permissionId')

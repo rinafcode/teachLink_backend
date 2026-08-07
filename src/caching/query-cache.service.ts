@@ -114,19 +114,28 @@ export class QueryCacheService {
   // Domain-specific helpers
   // ---------------------------------------------------------------------------
 
+  /**
+   * Resolves the tenant identifier used to namespace cache keys. Falls back to
+   * a shared `global` namespace when no tenant context is present (single-tenant
+   * dev/test or genuinely global data).
+   */
+  private resolveTenantId(): string {
+    return this.caching.getCurrentTenantId() ?? 'global';
+  }
+
   /** Fetches a single course from cache, or calls `factory` on a miss. */
   async getCourse<T>(
     courseId: string,
     factory: () => Promise<T>,
     options?: QueryCacheOptions,
   ): Promise<T> {
-    const key = buildCourseKey(courseId);
+    const key = buildCourseKey(this.resolveTenantId(), courseId);
     return this.cacheQuery(key, factory, { ttlSeconds: CACHE_TTL.COURSE_DETAILS, ...options });
   }
 
   /** Fetches the published-courses list from cache. */
   async getCourseList<T>(factory: () => Promise<T>, options?: QueryCacheOptions): Promise<T> {
-    const key = buildCourseListKey('published');
+    const key = buildCourseListKey(this.resolveTenantId(), 'published');
     return this.cacheQuery(key, factory, { ttlSeconds: CACHE_TTL.COURSE_METADATA, ...options });
   }
 
@@ -136,7 +145,7 @@ export class QueryCacheService {
     factory: () => Promise<T>,
     options?: QueryCacheOptions,
   ): Promise<T> {
-    const key = buildUserProfileKey(userId);
+    const key = buildUserProfileKey(this.resolveTenantId(), userId);
     return this.cacheQuery(key, factory, { ttlSeconds: CACHE_TTL.USER_PROFILE, ...options });
   }
 
@@ -147,7 +156,7 @@ export class QueryCacheService {
     factory: () => Promise<T>,
     options?: QueryCacheOptions,
   ): Promise<T> {
-    const key = buildSearchCacheKey(query, filters);
+    const key = buildSearchCacheKey(this.resolveTenantId(), query, filters);
     return this.cacheQuery(key, factory, { ttlSeconds: CACHE_TTL.SEARCH_RESULTS, ...options });
   }
 

@@ -38,8 +38,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) =>
-        createJwtOptions(configService),
+      useFactory: (configService: ConfigService) => createJwtOptions(configService),
     }),
     TypeOrmModule.forFeature([User]),
     SecurityModule,

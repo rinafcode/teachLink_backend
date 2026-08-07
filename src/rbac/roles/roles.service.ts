@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { Permission } from '../entities/permission.entity';
@@ -187,7 +187,7 @@ export class RolesService {
         .of(id)
         .set(permissions);
     }
-    
+
     await this.rbacCacheService.invalidateRole(id);
 
     const updated = await this.findRoleById(id, true);
