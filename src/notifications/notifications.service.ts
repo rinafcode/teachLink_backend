@@ -1,6 +1,6 @@
 import { Injectable, Optional, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, In } from 'typeorm';
 import * as crypto from 'crypto';
 import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
 import { PaginationService } from '../common/services/pagination.service';
@@ -127,12 +127,8 @@ export class NotificationsService {
       throw new BadRequestException('User has globally unsubscribed from notifications');
     }
 
-    if (
-      prefs.eventFrequency?.[dto.eventType] === 'never'
-    ) {
-      throw new BadRequestException(
-        `User has unsubscribed from event type "${dto.eventType}"`,
-      );
+    if (prefs.eventFrequency?.[dto.eventType] === 'never') {
+      throw new BadRequestException(`User has unsubscribed from event type "${dto.eventType}"`);
     }
 
     const rendered = await this.templateService.renderByName(
@@ -173,8 +169,7 @@ export class NotificationsService {
 
   async findForUser(userId: string, query?: PaginationQueryDto) {
     const limit = query?.limit ?? 20;
-    const offset =
-      query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
 
     const qb = this.notificationRepository
       .createQueryBuilder('notification')

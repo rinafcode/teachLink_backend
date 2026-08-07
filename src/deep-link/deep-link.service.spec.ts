@@ -40,22 +40,36 @@ describe('DeepLinkService', () => {
     });
 
     it('should reject absolute URLs', () => {
-      expect(() => service.validateParam('http://evil.com')).toThrow('Absolute URLs are not allowed');
-      expect(() => service.validateParam('https://evil.com')).toThrow('Absolute URLs are not allowed');
-      expect(() => service.validateParam('ftp://evil.com')).toThrow('Absolute URLs are not allowed');
+      expect(() => service.validateParam('http://evil.com')).toThrow(
+        'Absolute URLs are not allowed',
+      );
+      expect(() => service.validateParam('https://evil.com')).toThrow(
+        'Absolute URLs are not allowed',
+      );
+      expect(() => service.validateParam('ftp://evil.com')).toThrow(
+        'Absolute URLs are not allowed',
+      );
       expect(() => service.validateParam('//evil.com')).toThrow('Absolute URLs are not allowed');
     });
 
     it('should reject external URL schemes', () => {
-      expect(() => service.validateParam('javascript:alert(1)')).toThrow('External URL schemes are not allowed');
-      expect(() => service.validateParam('data:text/html,<script>alert(1)</script>')).toThrow('External URL schemes are not allowed');
-      expect(() => service.validateParam('vbscript:msgbox(1)')).toThrow('External URL schemes are not allowed');
+      expect(() => service.validateParam('javascript:alert(1)')).toThrow(
+        'External URL schemes are not allowed',
+      );
+      expect(() => service.validateParam('data:text/html,<script>alert(1)</script>')).toThrow(
+        'External URL schemes are not allowed',
+      );
+      expect(() => service.validateParam('vbscript:msgbox(1)')).toThrow(
+        'External URL schemes are not allowed',
+      );
     });
 
     it('should reject path traversal attempts', () => {
       expect(() => service.validateParam('../secret')).toThrow('Path traversal is not allowed');
       expect(() => service.validateParam('..\\secret')).toThrow('Path traversal is not allowed');
-      expect(() => service.validateParam('../../etc/passwd')).toThrow('Path traversal is not allowed');
+      expect(() => service.validateParam('../../etc/passwd')).toThrow(
+        'Path traversal is not allowed',
+      );
       expect(() => service.validateParam('foo/../bar')).toThrow('Path traversal is not allowed');
     });
 
@@ -71,10 +85,18 @@ describe('DeepLinkService', () => {
     });
 
     it('should reject invalid characters', () => {
-      expect(() => service.validateParam('hello world')).toThrow('Parameter contains invalid characters');
-      expect(() => service.validateParam('param@test')).toThrow('Parameter contains invalid characters');
-      expect(() => service.validateParam('param#test')).toThrow('Parameter contains invalid characters');
-      expect(() => service.validateParam('param?test')).toThrow('Parameter contains invalid characters');
+      expect(() => service.validateParam('hello world')).toThrow(
+        'Parameter contains invalid characters',
+      );
+      expect(() => service.validateParam('param@test')).toThrow(
+        'Parameter contains invalid characters',
+      );
+      expect(() => service.validateParam('param#test')).toThrow(
+        'Parameter contains invalid characters',
+      );
+      expect(() => service.validateParam('param?test')).toThrow(
+        'Parameter contains invalid characters',
+      );
     });
   });
 
@@ -95,12 +117,18 @@ describe('DeepLinkService', () => {
     });
 
     it('should reject non-allowlisted routes', () => {
-      expect(() => service.buildDeepLink('web', 'admin', '123')).toThrow("Route 'admin' is not allowlisted");
+      expect(() => service.buildDeepLink('web', 'admin', '123')).toThrow(
+        "Route 'admin' is not allowlisted",
+      );
     });
 
     it('should reject invalid params', () => {
-      expect(() => service.buildDeepLink('web', 'course', 'http://evil.com')).toThrow('Absolute URLs are not allowed');
-      expect(() => service.buildDeepLink('app', 'course', '../secret')).toThrow('Path traversal is not allowed');
+      expect(() => service.buildDeepLink('web', 'course', 'http://evil.com')).toThrow(
+        'Absolute URLs are not allowed',
+      );
+      expect(() => service.buildDeepLink('app', 'course', '../secret')).toThrow(
+        'Path traversal is not allowed',
+      );
     });
   });
 

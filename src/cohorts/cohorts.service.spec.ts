@@ -10,9 +10,27 @@ describe('CohortsService', () => {
   let mockAssignmentRepo: any;
 
   const mockMembership = { id: 'mem-1', cohortId: 'cohort-1', userId: 'user-1', role: 'member' };
-  const mockMember = { id: 'm-1', cohortId: 'cohort-1', userId: 'user-2', role: 'member', createdAt: new Date() };
-  const mockThread = { id: 't-1', cohortId: 'cohort-1', authorId: 'user-2', title: 'Thread', content: 'Content', createdAt: new Date() };
-  const mockAssignment = { id: 'a-1', cohortId: 'cohort-1', title: 'Assignment', createdAt: new Date() };
+  const mockMember = {
+    id: 'm-1',
+    cohortId: 'cohort-1',
+    userId: 'user-2',
+    role: 'member',
+    createdAt: new Date(),
+  };
+  const mockThread = {
+    id: 't-1',
+    cohortId: 'cohort-1',
+    authorId: 'user-2',
+    title: 'Thread',
+    content: 'Content',
+    createdAt: new Date(),
+  };
+  const mockAssignment = {
+    id: 'a-1',
+    cohortId: 'cohort-1',
+    title: 'Assignment',
+    createdAt: new Date(),
+  };
 
   beforeEach(() => {
     mockCohortRepo = {

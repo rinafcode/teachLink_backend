@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- error logging in catch blocks; predates structured-logger migration */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';

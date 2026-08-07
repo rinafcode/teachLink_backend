@@ -25,6 +25,7 @@ const mockRepo = () => ({
   // save() resolves with exactly the object passed in so the persisted state
   // is what the service assigned BEFORE calling save (Issue #1000).
   save: jest.fn((v) => Promise.resolve({ ...v })),
+  insert: jest.fn(),
 });
 
 // Real getTierForPoints logic, based on TIER_THRESHOLDS, so tier-boundary
@@ -37,11 +38,6 @@ const realGetTierForPoints = (totalPoints: number): Tier => {
   }
   return tier;
 };
-
-  create: jest.fn((v) => v),
-  save: jest.fn((v) => Promise.resolve(v)),
-  insert: jest.fn(),
-});
 
 /**
  * Mock TiersService factory
@@ -102,6 +98,8 @@ describe('PointsService', () => {
       expect(progress.totalPoints).toBe(100);
       expect(progress.xp).toBe(100);
     });
+  });
+
   describe('addPoints — basic correctness', () => {
     let mockQueryRunner: any;
     let mockManager: any;
@@ -264,6 +262,8 @@ describe('PointsService', () => {
       // 100 + 50 = 150 — still BRONZE
       const { tierPromoted } = await service.addPoints('user-1', 50, 'TEST');
       expect(tierPromoted).toBe(false);
+    });
+
     it('N concurrent awards accumulate correctly (no lost updates)', async () => {
       const N = 10;
       const pointsPerAward = 5;
@@ -290,7 +290,9 @@ describe('PointsService', () => {
 
       // Fire N awards simultaneously
       const results = await Promise.all(
-        Array.from({ length: N }, (_, i) => service.addPoints(userId, pointsPerAward, `concurrent award ${i}`)),
+        Array.from({ length: N }, (_, i) =>
+          service.addPoints(userId, pointsPerAward, `concurrent award ${i}`),
+        ),
       );
 
       // All should succeed
@@ -327,7 +329,9 @@ describe('PointsService', () => {
 
       // Fire N awards simultaneously
       const results = await Promise.all(
-        Array.from({ length: N }, (_, i) => service.addPoints(userId, pointsPerAward, `burst ${i}`)),
+        Array.from({ length: N }, (_, i) =>
+          service.addPoints(userId, pointsPerAward, `burst ${i}`),
+        ),
       );
 
       const finalResult = results[results.length - 1];

@@ -17,10 +17,10 @@ import { IpAllowlistGuard } from '../common/guards/ip-allowlist.guard';
  */
 @Module({
   imports: [
-    ConfigModule, 
-    TypeOrmModule.forFeature([Permission, Role]), 
+    ConfigModule,
+    TypeOrmModule.forFeature([Permission, Role]),
     AuditLogModule,
-    RedisModule.forRoot()
+    RedisModule.forRoot(),
   ],
   controllers: [PermissionsController, RolesController],
   providers: [PermissionsService, RolesService, RbacCacheService, IpAllowlistGuard],

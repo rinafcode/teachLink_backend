@@ -10,6 +10,7 @@ import { Enrollment } from '../courses/entities/enrollment.entity';
 import { User } from '../users/entities/user.entity';
 import { ProfileCompletenessService } from '../profile-completeness/profile-completeness.service';
 import { SearchModule } from '../search/search.module';
+import { TenancyModule } from '../tenancy/tenancy.module';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 import { RedisModule } from '../common/redis/redis.module';
 import { REDIS_CLIENT } from '../common/redis/redis.constants';

@@ -33,6 +33,7 @@ import {
   AchievementOverviewDto,
 } from './dto/achievement-statistics.dto';
 import { AchievementType } from './entities/achievement.entity';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
 /**
  * Achievements Controller
@@ -71,7 +72,7 @@ export class AchievementsController {
   async getAllAchievements(
     @Req() req: any,
     @Query('includeHidden') includeHidden?: string,
-  ): Promise<AchievementResponseDto[]> {
+  ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
     const isAdmin = req.user?.role === 'admin';
     const allowHidden = isAdmin && includeHidden === 'true';
     return this.achievementsService.getAllAchievements(allowHidden);
@@ -84,7 +85,7 @@ export class AchievementsController {
   @Get('type/:type')
   async getAchievementsByType(
     @Param('type') type: AchievementType,
-  ): Promise<AchievementResponseDto[]> {
+  ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
     return this.achievementsService.getAchievementsByType(type);
   }
 
@@ -189,7 +190,9 @@ export class AchievementsController {
    * GET /achievements/progress/:userId
    */
   @Get('progress/:userId')
-  async getUserAllProgress(@Param('userId') userId: string): Promise<AchievementProgressDto[]> {
+  async getUserAllProgress(
+    @Param('userId') userId: string,
+  ): Promise<OffsetPaginatedResponse<AchievementProgressDto>> {
     return this.achievementsService.getUserAllProgress(userId);
   }
 
@@ -216,7 +219,9 @@ export class AchievementsController {
    * GET /achievements/user/:userId/unlocked
    */
   @Get('user/:userId/unlocked')
-  async getUserAchievements(@Param('userId') userId: string): Promise<UserAchievementDto[]> {
+  async getUserAchievements(
+    @Param('userId') userId: string,
+  ): Promise<OffsetPaginatedResponse<UserAchievementDto>> {
     return this.achievementsService.getUserAchievements(userId);
   }
 

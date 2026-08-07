@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- structured request logging emitted directly to stdout */
 import { type Request, type Response, type NextFunction } from 'express';
 import { getCorrelationId } from '../common/utils/correlation.utils';
 

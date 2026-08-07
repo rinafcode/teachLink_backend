@@ -5,7 +5,11 @@ import { getSharedRedisClient } from '../../config/cache.config';
 import { ConfigService } from '@nestjs/config';
 import { IWorkerResult, IWorkerMetrics, IWorkerHealthCheck } from '../interfaces/worker.interfaces';
 import { extractCorrelationIdFromJob } from '../../queues/utils/correlation-job.util';
-import { generateCorrelationId, getCorrelationId, runWithCorrelationId } from '../../common/utils/correlation.utils';
+import {
+  generateCorrelationId,
+  getCorrelationId,
+  runWithCorrelationId,
+} from '../../common/utils/correlation.utils';
 
 /**
  * Abstract base worker class
@@ -114,8 +118,7 @@ export abstract class BaseWorker {
       );
 
       const correlationId = getCorrelationId() ?? extractCorrelationIdFromJob(job) ?? 'unknown';
-      const errMsg =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
       const errStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(

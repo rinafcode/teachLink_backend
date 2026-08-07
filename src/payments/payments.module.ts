@@ -49,16 +49,12 @@ import { StripeProvider } from './providers/stripe.provider';
     PricingService,
     PaymentReconciliationJob,
     StripeProvider,
+    SubscriptionsService,
+    PaymentProviderService,
     {
       provide: 'IPaymentProvider',
       useClass: StripeProvider,
     },
-  ],
-  providers: [
-    PricingService,
-    PaymentReconciliationJob,
-    SubscriptionsService,
-    PaymentProviderService,
   ],
   controllers: [PricingController, PaymentReconciliationController, SubscriptionsController],
   exports: [
@@ -68,13 +64,6 @@ import { StripeProvider } from './providers/stripe.provider';
     PaymentReconciliationJob,
     SubscriptionsService,
     PaymentProviderService,
-  ],
-  controllers: [PricingController, PaymentReconciliationController],
-  exports: [
-    PricingService,
-    CurrencyModule,
-    IdempotencyModule,
-    PaymentReconciliationJob,
     'IPaymentProvider',
   ],
 })

@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, HttpException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HealthIndicatorsService, PaymentProviderHealthResult } from '../health-indicators.service';
 
@@ -31,12 +31,10 @@ export class PaymentProviderHealthController {
     if (result.status === 'down') {
       // NestJS does not allow dynamic status codes via decorators, so we throw
       // instead — but we still want to return the body. Use HttpException directly.
-      const { HttpException } = require('@nestjs/common');
       throw new HttpException(result, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     if (result.status === 'degraded') {
-      const { HttpException } = require('@nestjs/common');
       throw new HttpException(result, 207);
     }
 

@@ -1,8 +1,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ABTestingService } from './ab-testing.service';
-import { Experiment } from './entities/experiment.entity';
+import { Experiment, ExperimentType } from './entities/experiment.entity';
 import { IExperimentVariant } from './entities/experiment-variant.entity';
-import { ExperimentType } from './entities/experiment.entity';
 
 describe('ABTestingService', () => {
   const makeDto = (variantCount = 2) => ({

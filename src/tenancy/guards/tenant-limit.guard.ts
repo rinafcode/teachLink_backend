@@ -10,11 +10,7 @@ import { TenancyService } from '../tenancy.service';
 export const LIMIT_TYPE_KEY = 'limit_type';
 
 export function LimitType(type: 'user' | 'storage') {
-  return function (
-    _target: unknown,
-    _propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
+  return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
     Reflect.defineMetadata(LIMIT_TYPE_KEY, type, descriptor.value);
   };
 }
@@ -24,10 +20,9 @@ export class TenantLimitGuard implements CanActivate {
   constructor(private readonly tenancyService: TenancyService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const limitType = Reflect.getMetadata(
-      LIMIT_TYPE_KEY,
-      context.getHandler(),
-    ) as string | undefined;
+    const limitType = Reflect.getMetadata(LIMIT_TYPE_KEY, context.getHandler()) as
+      | string
+      | undefined;
 
     if (!limitType) {
       return true;

@@ -155,7 +155,9 @@ describe('AssessmentsService', () => {
     });
 
     it('computes pagination metadata correctly', async () => {
-      const items = Array(25).fill(null).map((_, i) => makeAssessment({ id: `assess-${i}`, title: `A${i}` }));
+      const items = Array(25)
+        .fill(null)
+        .map((_, i) => makeAssessment({ id: `assess-${i}`, title: `A${i}` }));
       assessmentRepo.findAndCount.mockResolvedValue([items.slice(0, 10), 25]);
 
       const page1 = await service.findAll(1, 10);

@@ -19,32 +19,38 @@ export class RbacCacheService implements OnModuleInit, OnModuleDestroy {
   private missCounter: Counter<string>;
   private propagationLatency: Histogram<string>;
 
-  constructor(
-    @Inject(REDIS_CLIENT) private readonly redis: Redis,
-  ) {
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {
     this.subscriber = this.redis.duplicate();
     this.initMetrics();
   }
 
   private initMetrics() {
-    this.hitCounter = defaultRegistry.getSingleMetric('rbac_cache_hits_total') as Counter<string> || new Counter({
-      name: 'rbac_cache_hits_total',
-      help: 'Total number of RBAC cache hits',
-      registers: [defaultRegistry],
-    });
+    this.hitCounter =
+      (defaultRegistry.getSingleMetric('rbac_cache_hits_total') as Counter<string>) ||
+      new Counter({
+        name: 'rbac_cache_hits_total',
+        help: 'Total number of RBAC cache hits',
+        registers: [defaultRegistry],
+      });
 
-    this.missCounter = defaultRegistry.getSingleMetric('rbac_cache_misses_total') as Counter<string> || new Counter({
-      name: 'rbac_cache_misses_total',
-      help: 'Total number of RBAC cache misses',
-      registers: [defaultRegistry],
-    });
+    this.missCounter =
+      (defaultRegistry.getSingleMetric('rbac_cache_misses_total') as Counter<string>) ||
+      new Counter({
+        name: 'rbac_cache_misses_total',
+        help: 'Total number of RBAC cache misses',
+        registers: [defaultRegistry],
+      });
 
-    this.propagationLatency = defaultRegistry.getSingleMetric('rbac_revocation_propagation_latency_ms') as Histogram<string> || new Histogram({
-      name: 'rbac_revocation_propagation_latency_ms',
-      help: 'Latency of propagating RBAC cache revocations',
-      buckets: [1, 5, 10, 50, 100, 500, 1000],
-      registers: [defaultRegistry],
-    });
+    this.propagationLatency =
+      (defaultRegistry.getSingleMetric(
+        'rbac_revocation_propagation_latency_ms',
+      ) as Histogram<string>) ||
+      new Histogram({
+        name: 'rbac_revocation_propagation_latency_ms',
+        help: 'Latency of propagating RBAC cache revocations',
+        buckets: [1, 5, 10, 50, 100, 500, 1000],
+        registers: [defaultRegistry],
+      });
   }
 
   async onModuleInit() {
@@ -61,15 +67,15 @@ export class RbacCacheService implements OnModuleInit, OnModuleDestroy {
         try {
           const { roleId, all, timestamp } = JSON.parse(message);
           const latency = Date.now() - timestamp;
-          
+
           if (all) {
             this.localCache.clear();
-            this.logger.debug(`Invalidated all roles in local cache`);
+            this.logger.debug('Invalidated all roles in local cache');
           } else if (roleId) {
             this.localCache.delete(roleId);
             this.logger.debug(`Invalidated role ${roleId} in local cache`);
           }
-          
+
           this.propagationLatency.observe(latency);
         } catch (err) {
           this.logger.error(`Error processing invalidation message: ${(err as Error).message}`);
@@ -91,14 +97,14 @@ export class RbacCacheService implements OnModuleInit, OnModuleDestroy {
 
     const key = `${RBAC_CACHE_PREFIX}${roleId}`;
     const cached = await this.redis.get(key);
-    
+
     if (cached) {
       this.hitCounter.inc();
       const parsed = JSON.parse(cached) as Permission[];
       this.localCache.set(roleId, parsed);
       return parsed;
     }
-    
+
     this.missCounter.inc();
     return null;
   }
@@ -119,13 +125,19 @@ export class RbacCacheService implements OnModuleInit, OnModuleDestroy {
   async invalidateAllRoles(): Promise<void> {
     let cursor = '0';
     do {
-      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', `${RBAC_CACHE_PREFIX}*`, 'COUNT', 100);
+      const [nextCursor, keys] = await this.redis.scan(
+        cursor,
+        'MATCH',
+        `${RBAC_CACHE_PREFIX}*`,
+        'COUNT',
+        100,
+      );
       cursor = nextCursor;
       if (keys.length > 0) {
         await this.redis.del(...keys);
       }
     } while (cursor !== '0');
-    
+
     const message = JSON.stringify({ all: true, timestamp: Date.now() });
     await this.redis.publish(RBAC_INVALIDATION_CHANNEL, message);
   }

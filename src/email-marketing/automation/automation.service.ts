@@ -64,6 +64,8 @@ function validateWebhookUrl(urlStr: string): void {
  */
 @Injectable()
 export class AutomationService {
+  private readonly logger = new Logger(AutomationService.name);
+
   constructor(
     @InjectRepository(AutomationWorkflow)
     private readonly workflowRepository: Repository<AutomationWorkflow>,
@@ -374,6 +376,7 @@ export class AutomationService {
         );
         break;
       default:
+        // eslint-disable-next-line no-console -- warn on unhandled automation action type
         console.warn(`Unknown action type: ${action.type}`);
     }
   }

@@ -105,7 +105,7 @@ export class ReportAssignmentService {
     let selectedAdmin: User;
 
     if (this.adminSelectionStrategy === AdminSelectionStrategy.LEAST_LOADED) {
-      const adminIds = admins.map(a => a.id);
+      const adminIds = admins.map((a) => a.id);
       const loadRows = await this.reportRepo
         .createQueryBuilder('report')
         .select('report.assignedModeratorId', 'moderatorId')

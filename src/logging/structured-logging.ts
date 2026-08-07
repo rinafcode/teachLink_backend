@@ -18,7 +18,7 @@ const DEFAULT_SAMPLING: SamplingConfig = {
   thenEveryM: 10,
 };
 
-let _samplingConfig: SamplingConfig = { ...DEFAULT_SAMPLING };
+const _samplingConfig: SamplingConfig = { ...DEFAULT_SAMPLING };
 
 export function configureSampling(config: Partial<SamplingConfig>): void {
   if (config.firstN !== undefined) _samplingConfig.firstN = config.firstN;
@@ -43,7 +43,10 @@ function getSamplerKey(args: unknown[]): string | null {
 
 function evictSamplerIfNeeded(): void {
   if (samplerMap.size >= MAX_SAMPLER_ENTRIES) {
-    const keysToDelete = Array.from(samplerMap.keys()).slice(0, Math.floor(MAX_SAMPLER_ENTRIES / 2));
+    const keysToDelete = Array.from(samplerMap.keys()).slice(
+      0,
+      Math.floor(MAX_SAMPLER_ENTRIES / 2),
+    );
     for (const key of keysToDelete) samplerMap.delete(key);
   }
 }
@@ -136,7 +139,10 @@ function formatWithSampling(
     };
 
     if (message) out.message = message;
-    if (extra !== undefined && (Array.isArray(extra) ? extra.length > 0 : Object.keys((extra as any) || {}).length > 0)) {
+    if (
+      extra !== undefined &&
+      (Array.isArray(extra) ? extra.length > 0 : Object.keys((extra as any) || {}).length > 0)
+    ) {
       out.data = extra;
     }
     if (entry.count > firstN) out.sampled = true;
@@ -160,7 +166,10 @@ function formatWithSampling(
 let _serviceName = 'teachlink-backend';
 
 /* eslint-disable no-console */
-export function initStructuredLogging(serviceName?: string, samplingConfig?: Partial<SamplingConfig>): void {
+export function initStructuredLogging(
+  serviceName?: string,
+  samplingConfig?: Partial<SamplingConfig>,
+): void {
   if (serviceName) _serviceName = serviceName;
   if (samplingConfig) configureSampling(samplingConfig);
 

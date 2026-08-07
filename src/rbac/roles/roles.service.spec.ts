@@ -314,9 +314,9 @@ describe('RolesService', () => {
         },
       );
 
-      await expect(
-        service.updateRole('role-1', 'new-name', undefined, ['p-1']),
-      ).rejects.toThrow('DB constraint violation');
+      await expect(service.updateRole('role-1', 'new-name', undefined, ['p-1'])).rejects.toThrow(
+        'DB constraint violation',
+      );
 
       // The transaction threw, so the update call inside the transaction
       // is the only place the name change would be persisted.
@@ -344,9 +344,7 @@ describe('RolesService', () => {
         async (cb: (mgr: any) => Promise<any>) => cb(manager),
       );
 
-      await expect(
-        service.updateRole('missing-id', 'new-name'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.updateRole('missing-id', 'new-name')).rejects.toThrow(NotFoundException);
 
       // No audit must be written for a non-existent role.
       expect(auditLogService.log).not.toHaveBeenCalled();
@@ -362,7 +360,9 @@ describe('RolesService', () => {
 
       const manager = buildManagerMock({
         roleFindOne: jest.fn().mockResolvedValue({ ...baseRole, permissions: [] }),
-        roleQueryFindOne: jest.fn().mockResolvedValue({ ...baseRole, name: 'updated-name', permissions: [] }),
+        roleQueryFindOne: jest
+          .fn()
+          .mockResolvedValue({ ...baseRole, name: 'updated-name', permissions: [] }),
       });
 
       (dataSource.transaction as jest.Mock).mockImplementationOnce(

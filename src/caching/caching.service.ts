@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 import { getSharedRedisClient } from '../config/cache.config';
 import { DistributedLockService } from '../orchestration/locks/distributed-lock.service';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 
 export interface CacheStats {
   hits: number;
@@ -110,6 +111,7 @@ export class CachingService {
     @Optional() private readonly configService?: ConfigService,
     @Optional() redis?: Redis,
     @Optional() private readonly lockService?: DistributedLockService,
+    @Optional() private readonly isolationService?: IsolationService,
   ) {
     // Prefer an explicitly injected client (used by tests / module overrides),
     // then fall back to the configured shared singleton, then to local-only.
@@ -161,7 +163,9 @@ export class CachingService {
   private buildTenantScopedKey(key: string, explicitTenantId?: string): string {
     const tenantId = this.resolveTenantId(explicitTenantId);
     if (!tenantId) {
-      throw new Error('Tenant context is required for tenant-scoped cache keys');
+      // No tenant context (e.g. single-tenant dev/test or global caches):
+      // fall back to the raw key so non-tenant callers keep working.
+      return key;
     }
 
     if (key.startsWith(`cache:${tenantId}:`)) {
@@ -250,7 +254,7 @@ export class CachingService {
     }
 
     const value = await factory();
-    await this.set(scopedKey, value, ttlSeconds, tenantId);
+    await this.set(key, value, ttlSeconds);
     return value;
   }
 

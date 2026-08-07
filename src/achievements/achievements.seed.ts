@@ -319,17 +319,3 @@ export async function seedAchievements(achievementsService: any): Promise<void> 
     console.error('❌ Error seeding achievements:', error);
   }
 }
-
-export async function seedAchievements(): Promise<void> {
-  const logger = new Logger('AchievementsSeed');
-
-  logger.log('Starting achievements database seed process...');
-
-  try {
-    // Seed logic execution
-    logger.log('Successfully seeded default achievements.');
-  } catch (error) {
-    logger.error('Failed to seed achievements', error instanceof Error ? error.stack : error);
-    throw error;
-  }
-}

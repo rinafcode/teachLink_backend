@@ -91,7 +91,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     );
 
     const roles = activeRoles.filter((entry) => entry.active).map((entry) => entry.role);
-    
+
     // Resolve permissions using the RBAC cache
     const permissions: string[] = [];
     for (const role of roles) {
@@ -102,7 +102,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     userWithRolesAndPermissions.roles = roles;
-    (userWithRolesAndPermissions as User & { permissions: string[] }).permissions = Array.from(new Set(permissions));
+    (userWithRolesAndPermissions as User & { permissions: string[] }).permissions = Array.from(
+      new Set(permissions),
+    );
 
     return userWithRolesAndPermissions;
   }
