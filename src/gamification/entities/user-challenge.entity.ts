@@ -6,7 +6,7 @@ import { Challenge } from './challenge.entity';
  * Represents the user Challenge entity.
  */
 @Entity('user_challenges')
-@Index(['userId', 'challengeId'])
+@Index(['user', 'challenge'])
 export class UserChallenge {
   @PrimaryGeneratedColumn('uuid')
   id: string;

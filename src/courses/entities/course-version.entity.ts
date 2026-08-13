@@ -7,7 +7,8 @@ import {
   ManyToOne,
   Index,
 } from 'typeorm';
-import { Course, CourseStatus } from './course.entity';
+import { Course } from './course.entity';
+import { CourseStatus } from './course-status.enum';
 import { User } from '../../users/entities/user.entity';
 
 export enum CourseVersionEventType {

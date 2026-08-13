@@ -50,8 +50,11 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  */
 export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const connection = queryRunner.connection;
-    const queryInterface = connection.createQueryRunner();
+    // Use the queryRunner handed to us by the migration runner. Migrations run
+    // inside a single shared transaction (TypeORM's default "all" mode), so a
+    // freshly created query runner (a separate pooled connection) would not see
+    // tables created by earlier migrations in the same run.
+    const queryInterface = queryRunner;
 
     try {
       // ========================================================================
@@ -177,12 +180,19 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
 
         this.logger(`Migrated ${existingInvoices.length} invoices to sequence-based numbering.`);
       } else {
-        // No duplicates: Initialize sequence to 1 if no invoices, or max + 1 if some exist
-        const maxSeqResult = await queryInterface.query(`
+        // No duplicates: Initialize sequence to the number of existing invoices.
+        // If there are no invoices the sequence is left at its default start
+        // value (1) — setval(..., 0, true) would fail because 0 is below the
+        // sequence minimum.
+        const countResult = await queryInterface.query(`
           SELECT COUNT(*) as cnt FROM invoices;
         `);
-        const nextVal = (maxSeqResult[0]?.cnt || 0) + 1;
-        await queryInterface.query("SELECT setval('invoice_number_seq', $1, true);", [nextVal - 1]);
+        const invoiceCount = Number(countResult[0]?.cnt ?? 0);
+        if (invoiceCount > 0) {
+          await queryInterface.query("SELECT setval('invoice_number_seq', $1, true);", [
+            invoiceCount,
+          ]);
+        }
       }
 
       // ========================================================================
@@ -247,38 +257,34 @@ export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface
     } catch (error) {
       this.logger(`ERROR during migration: ${(error as Error).message}`);
       throw error;
-    } finally {
-      await queryInterface.release();
     }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    const queryInterface = queryRunner.connection.createQueryRunner();
+    // Same rationale as up(): reuse the transaction's queryRunner rather than
+    // opening a separate pooled connection.
+    const queryInterface = queryRunner;
 
-    try {
-      this.logger('Reverting migration...');
+    this.logger('Reverting migration...');
 
-      // Drop unique constraint
-      await queryInterface.query(`
-        ALTER TABLE invoices
-        DROP CONSTRAINT IF EXISTS "UQ_invoices_invoiceNumber";
-      `);
+    // Drop unique constraint
+    await queryInterface.query(`
+      ALTER TABLE invoices
+      DROP CONSTRAINT IF EXISTS "UQ_invoices_invoiceNumber";
+    `);
 
-      // Drop sequence
-      await queryInterface.query(`
-        DROP SEQUENCE IF EXISTS invoice_number_seq CASCADE;
-      `);
+    // Drop sequence
+    await queryInterface.query(`
+      DROP SEQUENCE IF EXISTS invoice_number_seq CASCADE;
+    `);
 
-      // Revert invoices back to old timestamp+random format (not recoverable, but at least
-      // the database is consistent)
-      // In practice, you may want to store the old value somewhere before migration for rollback
-      this.logger(
-        'WARNING: Down migration cannot recover original timestamp+random values. ' +
-          'Invoices have been renumbered. Consider a full restore from backup if needed.',
-      );
-    } finally {
-      await queryInterface.release();
-    }
+    // Revert invoices back to old timestamp+random format (not recoverable, but at least
+    // the database is consistent)
+    // In practice, you may want to store the old value somewhere before migration for rollback
+    this.logger(
+      'WARNING: Down migration cannot recover original timestamp+random values. ' +
+        'Invoices have been renumbered. Consider a full restore from backup if needed.',
+    );
   }
 
   /**

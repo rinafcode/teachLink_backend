@@ -2,10 +2,28 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddPausedSubscriptionStatus1790000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Add 'paused' to the subscription_status enum type
+    // Add 'paused' to the subscription status enum type.
+    //
+    // TypeORM names enum types `<table>_<column>_enum`, so the type backing
+    // `subscriptions.status` is `subscriptions_status_enum`. An older
+    // production schema used the hand-written name `subscription_status`, so we
+    // add the value to whichever of the two exists (and no-op when neither
+    // does, e.g. fresh installs where the baseline already contains 'paused').
     await queryRunner.query(`
-      ALTER TYPE "subscription_status" 
-      ADD VALUE IF NOT EXISTS 'paused'
+      DO $$
+      DECLARE
+        enum_type text;
+      BEGIN
+        SELECT typname INTO enum_type
+        FROM pg_type
+        WHERE typname IN ('subscriptions_status_enum', 'subscription_status')
+        ORDER BY (typname = 'subscriptions_status_enum') DESC
+        LIMIT 1;
+
+        IF enum_type IS NOT NULL THEN
+          EXECUTE format('ALTER TYPE %I ADD VALUE IF NOT EXISTS ''paused''', enum_type);
+        END IF;
+      END $$;
     `);
   }
 
