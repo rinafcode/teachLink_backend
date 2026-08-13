@@ -27,14 +27,6 @@ import * as crypto from 'crypto';
  */
 export class ReencryptOAuthProviderTokens1783000000001 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const secret = process.env.ENCRYPTION_SECRET;
-    if (!secret) {
-      throw new Error(
-        'ENCRYPTION_SECRET must be set in the migration environment to run Issue #799 re-encryption.',
-      );
-    }
-    const key = crypto.createHash('sha256').update(secret).digest();
-
     const rows: Array<{
       id: string;
       providerAccessToken: string | null;
@@ -48,9 +40,19 @@ export class ReencryptOAuthProviderTokens1783000000001 implements MigrationInter
            OR ("providerRefreshToken" IS NOT NULL AND "providerRefreshToken" <> '')`,
     );
 
+    // Nothing to re-encrypt (e.g. a fresh database): return before demanding
+    // ENCRYPTION_SECRET so schema migrations can run in CI/empty environments.
     if (rows.length === 0) {
       return;
     }
+
+    const secret = process.env.ENCRYPTION_SECRET;
+    if (!secret) {
+      throw new Error(
+        'ENCRYPTION_SECRET must be set in the migration environment to run Issue #799 re-encryption.',
+      );
+    }
+    const key = crypto.createHash('sha256').update(secret).digest();
 
     for (const row of rows) {
       const encryptedAccess = this.maybeEncrypt(row.providerAccessToken, key);

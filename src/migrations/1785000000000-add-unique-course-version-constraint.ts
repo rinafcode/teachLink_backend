@@ -9,8 +9,8 @@ export class AddUniqueCourseVersionConstraint1785000000000 implements MigrationI
         FROM (
           SELECT id,
                  ROW_NUMBER() OVER (
-                   PARTITION BY course_id, version_number
-                   ORDER BY created_at DESC
+                   PARTITION BY course_id, "versionNumber"
+                   ORDER BY "createdAt" DESC
                  ) AS rn
           FROM course_versions
         ) dup
@@ -21,7 +21,7 @@ export class AddUniqueCourseVersionConstraint1785000000000 implements MigrationI
 
     await queryRunner.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS "IDX_course_versions_course_id_version_number"
-      ON "course_versions" ("course_id", "version_number")
+      ON "course_versions" ("course_id", "versionNumber")
     `);
   }
 

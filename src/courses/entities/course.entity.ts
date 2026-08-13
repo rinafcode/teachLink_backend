@@ -16,16 +16,9 @@ import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
 import { CourseReview } from './course-review.entity';
 import { CourseVersion } from './course-version.entity';
+import { CourseStatus } from './course-status.enum';
 
-/** Lifecycle states a course can be in. */
-export enum CourseStatus {
-  DRAFT = 'draft',
-  PENDING_REVIEW = 'pending_review',
-  CHANGES_REQUESTED = 'changes_requested',
-  PUBLISHED = 'published',
-  REJECTED = 'rejected',
-  ARCHIVED = 'archived',
-}
+export { CourseStatus };
 
 /**
  * Represents the course entity.
