@@ -101,11 +101,23 @@ export class ReportingService {
 
     const oneOffRevenue = grossRevenue - subscriptionRevenue;
 
+    // Tax recorded on invoices issued in the period. Invoices carry the tax
+    // collected for each sale (see InvoicesService), so the revenue
+    // recognition report reflects the actual tax liability instead of zero.
+    const invoices = await this.invoiceRepository.find({
+      where: {
+        issuedDate: Between(startDate, endDate),
+        status: In([InvoiceStatus.PAID, InvoiceStatus.SENT]),
+      },
+    });
+    const totalTaxCollected = invoices.reduce((sum, inv) => sum + Number(inv.taxAmount || 0), 0);
+
     return {
       period: { startDate, endDate },
       grossRevenue,
       totalRefunds,
       netRevenue,
+      totalTaxCollected,
       breakdown: {
         subscriptionRevenue,
         oneOffRevenue,

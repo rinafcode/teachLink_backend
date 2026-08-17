@@ -13,6 +13,7 @@ import * as path from 'path';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment } from '../entities/payment.entity';
 import { APP_EVENTS } from '../../common/constants/event.constants';
+import { TaxService } from './tax.service';
 
 /**
  * PostgreSQL error codes (from PostgreSQL documentation)
@@ -20,6 +21,13 @@ import { APP_EVENTS } from '../../common/constants/event.constants';
 enum PostgresErrorCode {
   UNIQUE_VIOLATION = '23505',
   SERIALIZATION_FAILURE = '40001',
+}
+
+/**
+ * Formats a decimal tax rate (e.g. `0.075`) as a percentage string ("7.5%").
+ */
+function formatTaxRate(rate: number): string {
+  return `${parseFloat((rate * 100).toFixed(2))}%`;
 }
 
 @Injectable()
@@ -32,6 +40,7 @@ export class InvoicesService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
+    private readonly taxService: TaxService,
   ) {
     if (!fs.existsSync(this.storagePath)) {
       fs.mkdirSync(this.storagePath, { recursive: true });
@@ -90,6 +99,11 @@ export class InvoicesService {
   async generateAndArchiveInvoice(payment: Payment): Promise<Invoice> {
     const invoiceNumber = await this.generateInvoiceNumber();
 
+    const tax = this.taxService.resolveTax(
+      Number(payment.amount),
+      this.taxService.resolveJurisdiction(payment),
+    );
+
     const items = [
       {
         description: `Payment for transaction ${payment.id}`,
@@ -101,8 +115,10 @@ export class InvoicesService {
     let invoice = this.invoiceRepository.create({
       invoiceNumber,
       amount: payment.amount,
-      taxAmount: 0,
-      totalAmount: payment.amount,
+      taxAmount: tax.taxAmount,
+      totalAmount: tax.totalAmount,
+      taxRate: tax.rate,
+      taxJurisdiction: tax.jurisdiction,
       currency: payment.currency,
       items,
       status: InvoiceStatus.PAID,
@@ -147,6 +163,11 @@ export class InvoicesService {
     }
 
     // Generate HTML template
+    const taxLine =
+      invoice.taxAmount != null && Number(invoice.taxAmount) > 0
+        ? `<p><strong>Tax (${escapeHtml(formatTaxRate(Number(invoice.taxRate)))}${invoice.taxJurisdiction ? ` - ${escapeHtml(invoice.taxJurisdiction)}` : ''}):</strong> ${escapeHtml(invoice.taxAmount)} ${escapeHtml(invoice.currency)}</p>`
+        : '';
+
     const htmlContent = `
       <html>
         <head><title>Invoice ${escapeHtml(invoice.invoiceNumber)}</title></head>
@@ -155,6 +176,8 @@ export class InvoicesService {
           <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoiceNumber)}</p>
           <p><strong>Date:</strong> ${escapeHtml(invoice.issuedDate.toISOString())}</p>
           <p><strong>Status:</strong> ${escapeHtml(invoice.status.toUpperCase())}</p>
+          <p><strong>Amount:</strong> ${escapeHtml(invoice.amount)} ${escapeHtml(invoice.currency)}</p>
+          ${taxLine}
           <p><strong>Total Amount:</strong> ${escapeHtml(invoice.totalAmount)} ${escapeHtml(invoice.currency)}</p>
           <hr/>
           <h3>Items</h3>
@@ -178,6 +201,17 @@ export class InvoicesService {
 
     this.logger.log(`Invoice ${invoice.id} generated and archived at ${filePath}`);
     return invoice;
+  }
+
+  /**
+   * Resolves the tax breakdown for a payment's amount and jurisdiction.
+   * Exposed for callers that need the numbers before persisting an invoice.
+   */
+  computeTax(payment: Payment): ReturnType<TaxService['resolveTax']> {
+    return this.taxService.resolveTax(
+      Number(payment.amount),
+      this.taxService.resolveJurisdiction(payment),
+    );
   }
 
   async getInvoice(id: string): Promise<Invoice> {
