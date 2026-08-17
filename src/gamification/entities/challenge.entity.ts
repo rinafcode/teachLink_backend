@@ -4,7 +4,7 @@ import { Entity, PrimaryGeneratedColumn, Column, VersionColumn, Index } from 'ty
  * Represents the challenge entity.
  */
 @Entity('challenges')
-@Index(['type'])
+@Index('IDX_challenges_type', ['type'])
 export class Challenge {
   @PrimaryGeneratedColumn('uuid')
   id: string;

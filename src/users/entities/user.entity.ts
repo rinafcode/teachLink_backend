@@ -94,14 +94,14 @@ export class User {
   isEmailVerified: boolean;
 
   @Column({ nullable: true })
-  @Index()
+  @Index('IDX_users_emailVerificationToken')
   emailVerificationToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires?: Date;
 
   @Column({ nullable: true })
-  @Index()
+  @Index('IDX_users_passwordResetToken')
   passwordResetToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
@@ -126,6 +126,35 @@ export class User {
 
   @Column('text', { array: true, default: [] })
   mfaRecoveryCodes: string[];
+
+  // ── Localization ──────────────────────────────────────────────────────────
+
+  /** Billing country name (e.g. "Nigeria"). Populated by localization. */
+  @Column({ type: 'varchar', nullable: true })
+  country?: string;
+
+  /** ISO 3166-1 alpha-2 country code (e.g. "DE"). */
+  @Column({ name: 'country_code', type: 'varchar', length: 2, nullable: true })
+  @Index('IDX_users_country_code')
+  countryCode?: string;
+
+  /** IANA timezone name (e.g. "Africa/Lagos"). */
+  @Column({ type: 'varchar', nullable: true })
+  timezone?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  city?: string;
+
+  /** Preferred currency code (ISO 4217). */
+  @Column({
+    name: 'preferred_currency',
+    type: 'varchar',
+    length: 3,
+    default: 'USD',
+    nullable: true,
+  })
+  @Index('IDX_users_preferred_currency')
+  preferredCurrency?: string;
 
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable()
@@ -158,7 +187,7 @@ export class User {
   enrollments: Enrollment[];
 
   @CreateDateColumn()
-  @Index()
+  @Index('IDX_users_createdAt')
   createdAt: Date;
 
   @UpdateDateColumn()

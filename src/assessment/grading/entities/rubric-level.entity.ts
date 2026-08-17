@@ -19,7 +19,7 @@ export class RubricLevel {
   criterion: RubricCriterion;
 
   @Column({ name: 'criterion_id', type: 'uuid' })
-  @Index()
+  @Index('IDX_rubric_levels_criterion')
   criterionId: string;
 
   /** Short label, e.g. "Excellent". */

@@ -5,15 +5,15 @@ import { Tier } from '../enums/tier.enum';
  * Defines the reward granted when a user reaches a specific tier.
  */
 @Entity('tier_rewards')
-@Index(['tier'])
+@Index('IDX_tier_rewards_tier', ['tier'])
 export class TierReward {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @VersionColumn()
+  @VersionColumn({ default: 1 })
   version: number;
 
-  @Column({ type: 'enum', enum: Tier, unique: true })
+  @Column({ type: 'enum', enum: Tier, unique: true, enumName: 'tier_enum' })
   tier: Tier;
 
   @Column()

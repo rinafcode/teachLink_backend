@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { AuditAction, AuditSeverity, AuditCategory } from './enums/audit-action.enum';
 export enum HttpMethod {
   GET = 'GET',
@@ -22,17 +29,20 @@ export enum HttpMethod {
  *   policy runs without a full table scan.
  */
 @Entity('audit_logs')
-@Index(['userId', 'timestamp'])
-@Index(['action', 'timestamp'])
-@Index(['category', 'timestamp'])
-@Index(['severity', 'timestamp'])
-@Index(['entityType', 'entityId', 'timestamp'])
-@Index(['ipAddress', 'timestamp'])
-@Index(['timestamp'])
+@Index('IDX_audit_logs_user_timestamp', ['userId', 'timestamp'])
+@Index('IDX_audit_logs_action_timestamp', ['action', 'timestamp'])
+@Index('IDX_audit_logs_category_timestamp', ['category', 'timestamp'])
+@Index('IDX_audit_logs_severity_timestamp', ['severity', 'timestamp'])
+@Index('IDX_audit_logs_entity', ['entityType', 'entityId', 'timestamp'])
+@Index('IDX_audit_logs_ip_address', ['ipAddress', 'timestamp'])
+@Index('IDX_audit_logs_timestamp', ['timestamp'])
 @Index(['retentionUntil']) // required for efficient retention policy deletes
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn({ default: 1 })
+  version: number;
 
   // ── Actor ──────────────────────────────────────────────────────────────────
 
@@ -93,7 +103,7 @@ export class AuditLog {
   apiEndpoint: string | null;
 
   /** Constrained to known HTTP verbs — free strings invite silent typos. */
-  @Column({ name: 'http_method', type: 'enum', enum: HttpMethod, nullable: true })
+  @Column({ name: 'http_method', nullable: true })
   httpMethod: HttpMethod | null;
 
   @Column({ name: 'status_code', nullable: true })
@@ -109,7 +119,7 @@ export class AuditLog {
 
   // ── Timestamps ─────────────────────────────────────────────────────────────
 
-  @CreateDateColumn({ name: 'timestamp' })
+  @CreateDateColumn({ name: 'timestamp', type: 'timestamptz' })
   timestamp: Date;
 
   /**
@@ -117,6 +127,6 @@ export class AuditLog {
    * Null means the record is kept indefinitely (e.g. CRITICAL severity logs).
    * Indexed — see class-level @Index.
    */
-  @Column({ name: 'retention_until', nullable: true })
+  @Column({ name: 'retention_until', type: 'timestamptz', nullable: true })
   retentionUntil: Date | null;
 }

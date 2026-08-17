@@ -56,18 +56,29 @@ export class Course {
 
   /** Optional category/tag used for catalog grouping and bulk operations. */
   @Column({ nullable: true })
-  @Index()
+  @Index('IDX_course_category')
   category?: string;
 
   /** Difficulty level, e.g. 'beginner' | 'intermediate' | 'advanced'. Used by search filtering. */
   @Column({ nullable: true })
-  @Index()
+  @Index('IDX_course_level')
   level?: string;
 
   /** ISO 639-1 language code the course is taught in. Used by search filtering. */
   @Column({ nullable: true })
-  @Index()
+  @Index('IDX_course_language')
   language?: string;
+
+  /** ISO 4217 currency code the course is priced in (e.g. "USD"). */
+  @Column({
+    name: 'currency',
+    type: 'varchar',
+    length: 3,
+    default: 'USD',
+    nullable: true,
+  })
+  @Index('IDX_course_currency')
+  currency?: string;
 
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
@@ -109,6 +120,7 @@ export class Course {
    */
   @Index('IDX_course_search_vector', { synchronize: false })
   @Column({
+    name: 'search_vector',
     type: 'tsvector',
     select: false,
     generatedType: 'STORED',

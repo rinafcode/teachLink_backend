@@ -13,8 +13,8 @@ import { User } from '../../users/entities/user.entity';
  * Represents the point Transaction entity.
  */
 @Entity('point_transactions')
-@Index(['user', 'createdAt'])
-@Index(['activityType'])
+@Index('IDX_point_transactions_user_createdAt', ['user', 'createdAt'])
+@Index('IDX_point_transactions_activityType', ['activityType'])
 export class PointTransaction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
