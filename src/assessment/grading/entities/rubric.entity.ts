@@ -22,7 +22,7 @@ export class Rubric {
   id: string;
 
   @Column()
-  @Index()
+  @Index('IDX_rubrics_name')
   name: string;
 
   @Column({ type: 'text', nullable: true })
@@ -30,7 +30,7 @@ export class Rubric {
 
   /** Optional owner (instructor/admin) — used for ownership checks. */
   @Column({ name: 'owner_id', type: 'uuid', nullable: true })
-  @Index()
+  @Index('IDX_rubrics_owner')
   ownerId?: string;
 
   /**
@@ -39,7 +39,7 @@ export class Rubric {
    * across many assessments by leaving this null.
    */
   @Column({ name: 'assessment_id', type: 'uuid', nullable: true })
-  @Index()
+  @Index('IDX_rubrics_assessment')
   assessmentId?: string;
 
   /**
@@ -61,13 +61,13 @@ export class Rubric {
   })
   criteria: RubricCriterion[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   @Index()
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ type: 'timestamptz' })
   deletedAt?: Date;
 }

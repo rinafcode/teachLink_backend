@@ -38,7 +38,7 @@ export class UserProgress {
   @Index()
   xp: number;
 
-  @Column({ type: 'enum', enum: Tier, default: Tier.BRONZE })
-  @Index()
+  @Column({ type: 'enum', enum: Tier, default: Tier.BRONZE, enumName: 'tier_enum' })
+  @Index('IDX_user_progress_tier')
   tier: Tier;
 }

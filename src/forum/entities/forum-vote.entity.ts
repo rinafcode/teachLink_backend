@@ -12,7 +12,7 @@ import { User } from '../../users/entities/user.entity';
 
 @Entity('forum_votes')
 @Unique(['entityType', 'entityId', 'authorId'])
-@Index(['entityType', 'entityId'])
+@Index('IDX_forum_votes_entityType_entityId', ['entityType', 'entityId'])
 export class ForumVote {
   @PrimaryGeneratedColumn('uuid')
   id: string;

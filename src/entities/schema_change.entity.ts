@@ -42,6 +42,6 @@ export class SchemaChange {
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @ManyToOne(() => SchemaVersion, (sv) => sv.changes, { onDelete: 'CASCADE' })
+  @ManyToOne(() => SchemaVersion, (sv) => sv.changes, { onDelete: 'CASCADE', nullable: false })
   schemaVersion: SchemaVersion;
 }
