@@ -2,9 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConflictException } from '@nestjs/common';
+import * as fs from 'fs';
 import { InvoicesService } from './invoices.service';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { Payment, PaymentStatus, PaymentMethod } from '../entities/payment.entity';
+import { TaxService } from './tax.service';
 
 /**
  * Unit and integration tests for InvoicesService
@@ -26,6 +28,7 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
     module = await Test.createTestingModule({
       providers: [
         InvoicesService,
+        TaxService,
         {
           provide: getRepositoryToken(Invoice),
           useValue: {
@@ -63,6 +66,7 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
         currency: 'USD',
         status: InvoiceStatus.PAID,
         issuedDate: new Date(),
+        items: [],
       };
 
       const mockPayment: Partial<Payment> = {
@@ -98,6 +102,12 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       const mockInvoice: Partial<Invoice> = {
         id: 'inv-1',
         invoiceNumber: 'INV-000042',
+        amount: 100,
+        totalAmount: 100,
+        currency: 'USD',
+        status: InvoiceStatus.PAID,
+        issuedDate: new Date(),
+        items: [],
       };
 
       (invoiceRepo.query as jest.Mock).mockResolvedValue([{ seq_value: '000042' }]);
@@ -311,6 +321,99 @@ describe('InvoicesService (Invoice Number Sequencing)', () => {
       await expect(service.generateAndArchiveInvoice(mockPayment as Payment)).rejects.not.toThrow(
         ConflictException,
       );
+    });
+  });
+
+  describe('Tax Calculation', () => {
+    const buildInvoice = (data: Record<string, unknown>) => ({
+      id: 'inv-tax',
+      invoiceNumber: 'INV-000100',
+      issuedDate: new Date(),
+      items: [],
+      status: InvoiceStatus.PAID,
+      ...data,
+    });
+
+    it('records zero tax for a zero-rate jurisdiction', async () => {
+      const mockPayment: Partial<Payment> = {
+        id: 'pay-tax-zero',
+        userId: 'user-1',
+        amount: 100,
+        currency: 'USD',
+        metadata: { billingCountryCode: 'US' },
+      };
+
+      (invoiceRepo.query as jest.Mock).mockResolvedValue([{ seq_value: '000100' }]);
+      (invoiceRepo.create as jest.Mock).mockImplementation((data) => buildInvoice(data));
+      (invoiceRepo.save as jest.Mock).mockImplementation(async (invoice) => invoice);
+
+      const result = await service.generateAndArchiveInvoice(mockPayment as Payment);
+
+      expect(Number(result.taxAmount)).toBe(0);
+      expect(Number(result.totalAmount)).toBe(100);
+      expect(Number(result.taxRate)).toBe(0);
+      expect(result.taxJurisdiction).toBe('US');
+    });
+
+    it('applies the standard rate for a taxable jurisdiction', async () => {
+      const mockPayment: Partial<Payment> = {
+        id: 'pay-tax-de',
+        userId: 'user-1',
+        amount: 100,
+        currency: 'USD',
+        metadata: { billingCountryCode: 'DE' },
+      };
+
+      (invoiceRepo.query as jest.Mock).mockResolvedValue([{ seq_value: '000101' }]);
+      (invoiceRepo.create as jest.Mock).mockImplementation((data) => buildInvoice(data));
+      (invoiceRepo.save as jest.Mock).mockImplementation(async (invoice) => invoice);
+
+      const result = await service.generateAndArchiveInvoice(mockPayment as Payment);
+
+      expect(Number(result.taxAmount)).toBe(19);
+      expect(Number(result.totalAmount)).toBe(119);
+      expect(Number(result.taxRate)).toBeCloseTo(0.19);
+      expect(result.taxJurisdiction).toBe('DE');
+    });
+
+    it('rounds tax to the nearest cent at a rounding boundary', async () => {
+      const mockPayment: Partial<Payment> = {
+        id: 'pay-tax-ng',
+        userId: 'user-1',
+        amount: 9.99,
+        currency: 'USD',
+        metadata: { billingCountryCode: 'NG' },
+      };
+
+      (invoiceRepo.query as jest.Mock).mockResolvedValue([{ seq_value: '000102' }]);
+      (invoiceRepo.create as jest.Mock).mockImplementation((data) => buildInvoice(data));
+      (invoiceRepo.save as jest.Mock).mockImplementation(async (invoice) => invoice);
+
+      const result = await service.generateAndArchiveInvoice(mockPayment as Payment);
+
+      expect(Number(result.taxAmount)).toBe(0.75);
+      expect(Number(result.totalAmount)).toBe(10.74);
+      expect(Number(result.taxRate)).toBeCloseTo(0.075);
+    });
+
+    it('renders the tax line in the archived invoice document', async () => {
+      const mockPayment: Partial<Payment> = {
+        id: 'pay-tax-html',
+        userId: 'user-1',
+        amount: 100,
+        currency: 'USD',
+        metadata: { billingCountryCode: 'DE' },
+      };
+
+      (invoiceRepo.query as jest.Mock).mockResolvedValue([{ seq_value: '000103' }]);
+      (invoiceRepo.create as jest.Mock).mockImplementation((data) => buildInvoice(data));
+      (invoiceRepo.save as jest.Mock).mockImplementation(async (invoice) => invoice);
+
+      const result = await service.generateAndArchiveInvoice(mockPayment as Payment);
+
+      const html = fs.readFileSync(result.fileUrl as string, 'utf-8');
+      expect(html).toContain('Tax (19% - DE)');
+      expect(html).toContain('<strong>Total Amount:</strong> 119 USD');
     });
   });
 });

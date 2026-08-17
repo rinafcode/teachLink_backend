@@ -57,6 +57,20 @@ export class Invoice {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   taxAmount: number;
 
+  /**
+   * Applicable tax rate as a decimal fraction (e.g. `0.2` for 20%).
+   * Null when no jurisdiction was resolved for the invoice.
+   */
+  @Column({ type: 'decimal', precision: 5, scale: 4, nullable: true })
+  taxRate: number | null;
+
+  /**
+   * Jurisdiction the tax rate was resolved from (ISO 3166-1 alpha-2 code or
+   * country name). Kept for audit purposes.
+   */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  taxJurisdiction: string | null;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   totalAmount: number;
 
