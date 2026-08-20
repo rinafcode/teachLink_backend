@@ -36,8 +36,8 @@ export class ConvertAuditLogHttpMethodToEnum1797000000000 implements MigrationIn
     await queryRunner.query(`
       ALTER TABLE "audit_logs"
         ALTER COLUMN "http_method"
-        TYPE "character varying"
-        USING "http_method"::"text"
+        TYPE varchar
+        USING "http_method"::text
     `);
 
     await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_http_method_enum"');
