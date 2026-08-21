@@ -85,6 +85,13 @@ jobs:
       - name: Build application
         run: pnpm run build
 
+      # Migrations run in a single shared transaction (TypeORM default "all"
+      # mode): a migration that opens its own connection (createQueryRunner /
+      # queryRunner.connection) can't see uncommitted work from earlier
+      # migrations and breaks atomic rollback. See #1211.
+      - name: Check migrations use only the passed queryRunner
+        run: pnpm run migrations:check
+
       - name: Run migrations
         run: pnpm run migration:run
 

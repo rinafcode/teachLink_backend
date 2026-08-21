@@ -62,6 +62,16 @@ export class CreateMessageTable1630000000000 implements MigrationInterface {
 }
 ```
 
+### Transaction behavior (important)
+
+TypeORM's default `migrationsTransactionMode` is **`all`**: every migration in a run executes inside a **single shared transaction**. This gives atomic rollback, but it means:
+
+> A migration **must use the `QueryRunner` passed to `up()` / `down()`** and must **never open its own connection** (e.g. `queryRunner.connection.createQueryRunner()` or `dataSource.createQueryRunner()`).
+
+A freshly created query runner is a separate pooled connection that cannot see uncommitted tables/rows created by earlier migrations in the same run (`relation "X" does not exist` on fresh databases) and escapes the shared transaction, so its changes are not rolled back if a later migration fails. This was the root cause of the `fix-invoice-number-sequence` failure resolved in [#1195](https://github.com/rinafcode/teachLink_backend/pull/1195).
+
+CI enforces this rule via [`scripts/validate-migrations.js`](../scripts/validate-migrations.js), which fails the build if any migration opens its own connection.
+
 ### Current migrations
 
 | File                                                                    | Description                                         |
@@ -208,15 +218,16 @@ pnpm build
 
 ## Best practices
 
-| Practice                                       | Why                                 |
-| ---------------------------------------------- | ----------------------------------- |
-| Always implement `down()`                      | Enables safe rollback               |
-| Never modify an applied migration              | Create a new migration instead      |
-| Test rollbacks locally                         | Run `up` → verify → `down` → verify |
-| Use `IF EXISTS` / `IF NOT NULL`                | Makes migrations idempotent         |
-| Backup database before staging/prod migrations | Safety net                          |
-| Keep migrations small and focused              | Easier to review and rollback       |
-| Use timestamp-based naming                     | Ensures deterministic ordering      |
+| Practice                                       | Why                                                                                                           |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Always implement `down()`                      | Enables safe rollback                                                                                         |
+| Never modify an applied migration              | Create a new migration instead                                                                                |
+| Test rollbacks locally                         | Run `up` → verify → `down` → verify                                                                           |
+| Use `IF EXISTS` / `IF NOT NULL`                | Makes migrations idempotent                                                                                   |
+| Never open your own connection in a migration  | Migrations share one transaction; a separate connection can't see uncommitted work and breaks atomic rollback |
+| Backup database before staging/prod migrations | Safety net                                                                                                    |
+| Keep migrations small and focused              | Easier to review and rollback                                                                                 |
+| Use timestamp-based naming                     | Ensures deterministic ordering                                                                                |
 
 ---
 
