@@ -103,7 +103,7 @@ export class AuditLog {
   apiEndpoint: string | null;
 
   /** Constrained to known HTTP verbs — free strings invite silent typos. */
-  @Column({ name: 'http_method', nullable: true })
+  @Column({ name: 'http_method', type: 'enum', enum: HttpMethod, nullable: true })
   httpMethod: HttpMethod | null;
 
   @Column({ name: 'status_code', nullable: true })

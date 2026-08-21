@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuditAction, AuditSeverity } from './enums/audit-action.enum';
-import { AuditLog } from './audit-log.entity';
+import { AuditLog, HttpMethod } from './audit-log.entity';
 import { AuditLoggerService } from './services/audit-logger.service';
 import { AuditQueryService } from './services/audit-query.service';
 import { AuditReportingService } from './services/audit-reporting.service';
@@ -53,7 +53,7 @@ export interface LogApiAccessOptions {
   userId: string | null;
   userEmail: string | null;
   apiEndpoint: string;
-  httpMethod: string;
+  httpMethod: HttpMethod;
   statusCode: number;
   responseTimeMs: number;
   ipAddress: string;
