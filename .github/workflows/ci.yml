@@ -22,7 +22,7 @@ jobs:
 
       - name: Fail if build artifacts are tracked
         run: |
-          ARTIFACTS=$(git ls-files 'dist/' '*.tsbuildinfo')
+          ARTIFACTS=$(git ls-files 'dist/' '*.tsbuildinfo' 'compliance/reports/')
           if [ -n "$ARTIFACTS" ]; then
             echo "::error::Build artifacts found in git index. Remove them with 'git rm --cached' and add to .gitignore."
             echo ""
