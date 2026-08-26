@@ -27,10 +27,7 @@ describe('UsersController', () => {
 
     const response = await controller.search(
       { user: { role: UserRole.STUDENT } },
-      undefined,
-      undefined,
-      '1',
-      '20',
+      { page: 1, limit: 20 },
     );
 
     expect(Array.isArray(response)).toBe(true);
@@ -59,10 +56,7 @@ describe('UsersController', () => {
 
     const response = await controller.search(
       { user: { role: UserRole.ADMIN } },
-      undefined,
-      undefined,
-      '1',
-      '20',
+      { page: 1, limit: 20 },
     );
 
     expect(response).toEqual([

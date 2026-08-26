@@ -34,6 +34,8 @@ import {
 } from './dto/achievement-statistics.dto';
 import { AchievementType } from './entities/achievement.entity';
 import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { AchievementListQueryDto } from './dto/achievement-list-query.dto';
 
 /**
  * Achievements Controller
@@ -70,12 +72,12 @@ export class AchievementsController {
    */
   @Get()
   async getAllAchievements(
-    @Req() req: any,
-    @Query('includeHidden') includeHidden?: string,
+    @Req() req: any = {},
+    @Query() query?: AchievementListQueryDto,
   ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
     const isAdmin = req.user?.role === 'admin';
-    const allowHidden = isAdmin && includeHidden === 'true';
-    return this.achievementsService.getAllAchievements(allowHidden);
+    const allowHidden = isAdmin && query?.includeHidden === 'true';
+    return this.achievementsService.getAllAchievements(allowHidden, query);
   }
 
   /**
@@ -85,8 +87,9 @@ export class AchievementsController {
   @Get('type/:type')
   async getAchievementsByType(
     @Param('type') type: AchievementType,
+    @Query() query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
-    return this.achievementsService.getAchievementsByType(type);
+    return this.achievementsService.getAchievementsByType(type, query);
   }
 
   /**
@@ -192,8 +195,9 @@ export class AchievementsController {
   @Get('progress/:userId')
   async getUserAllProgress(
     @Param('userId') userId: string,
+    @Query() query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<AchievementProgressDto>> {
-    return this.achievementsService.getUserAllProgress(userId);
+    return this.achievementsService.getUserAllProgress(userId, query);
   }
 
   // =====================================================
@@ -221,8 +225,9 @@ export class AchievementsController {
   @Get('user/:userId/unlocked')
   async getUserAchievements(
     @Param('userId') userId: string,
+    @Query() query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<UserAchievementDto>> {
-    return this.achievementsService.getUserAchievements(userId);
+    return this.achievementsService.getUserAchievements(userId, query);
   }
 
   /**

@@ -6,7 +6,7 @@ import {
 
 const { MAX_PAGE_SIZE } = APP_CONSTANTS;
 
-export function clampLimit(limit: number | undefined, max = MAX_PAGE_SIZE): number {
+export function clampLimit(limit: number | undefined, max: number = MAX_PAGE_SIZE): number {
   const value = limit ?? APP_CONSTANTS.DEFAULT_PAGE_SIZE;
   return Math.min(Math.max(1, value), max);
 }

@@ -25,8 +25,8 @@ export class CohortsController {
 
   @Get()
   @ApiOperation({ summary: 'List cohorts the authenticated user belongs to' })
-  getCohorts(@Req() req: any) {
-    return this.cohortsService.getCohorts(req.user.id);
+  getCohorts(@Req() req: any, @Query() query?: PaginationQueryDto) {
+    return this.cohortsService.getCohorts(req.user.id, query);
   }
 
   @Get(':id')

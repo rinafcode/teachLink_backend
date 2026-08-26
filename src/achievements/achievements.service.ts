@@ -23,7 +23,7 @@ import {
 } from './dto/achievement-statistics.dto';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
-import { buildOffsetResponse } from '../common/utils/pagination.utils';
+import { buildOffsetResponse, clampLimit } from '../common/utils/pagination.utils';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
@@ -75,7 +75,7 @@ export class AchievementsService {
     query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
     const page = query?.page ?? 1;
-    const limit = query?.limit ?? 20;
+    const limit = clampLimit(query?.limit);
 
     const qb = this.achievementRepository.createQueryBuilder('achievement');
 
@@ -118,7 +118,7 @@ export class AchievementsService {
     query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
     const page = query?.page ?? 1;
-    const limit = query?.limit ?? 20;
+    const limit = clampLimit(query?.limit);
 
     const [achievements, total] = await this.achievementRepository.findAndCount({
       where: { type, isActive: true, isHidden: false },
@@ -288,7 +288,7 @@ export class AchievementsService {
     query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<AchievementProgressDto>> {
     const page = query?.page ?? 1;
-    const limit = query?.limit ?? 20;
+    const limit = clampLimit(query?.limit);
 
     const [progresses, total] = await this.progressRepository.findAndCount({
       where: { user: { id: userId } },
@@ -403,7 +403,7 @@ export class AchievementsService {
     query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<UserAchievementDto>> {
     const page = query?.page ?? 1;
-    const limit = query?.limit ?? 20;
+    const limit = clampLimit(query?.limit);
 
     const [achievements, total] = await this.userAchievementRepository.findAndCount({
       where: { user: { id: userId } },
