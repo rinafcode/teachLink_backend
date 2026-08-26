@@ -13,7 +13,7 @@ import {
   SubscriptionStatus,
   SubscriptionInterval,
 } from '../entities/subscription.entity';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OutboxService } from '../../common/events/outbox.service';
 import {
   PauseSubscriptionDto,
   ResumeSubscriptionDto,
@@ -40,7 +40,7 @@ export class SubscriptionsService {
   constructor(
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
-    private eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
     private paymentProviderService: PaymentProviderService,
   ) {}
 
@@ -135,8 +135,8 @@ export class SubscriptionsService {
     //   }
     // }
 
-    // Emit event for downstream processing (notify user, analytics, etc.)
-    this.eventEmitter.emit('subscription.paused', {
+    // Enqueue event for downstream processing (notify user, analytics, etc.).
+    await this.outbox.enqueueStandalone('subscription.paused', {
       subscriptionId: updated.id,
       userId: updated.userId,
       resumeAt: dto.resumeAt,
@@ -172,7 +172,7 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    this.eventEmitter.emit('subscription.resumed', {
+    await this.outbox.enqueueStandalone('subscription.resumed', {
       subscriptionId: updated.id,
       userId: updated.userId,
       reason: dto.reason,
@@ -275,7 +275,7 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    this.eventEmitter.emit('subscription.upgraded', {
+    await this.outbox.enqueueStandalone('subscription.upgraded', {
       subscriptionId: updated.id,
       userId: updated.userId,
       oldAmount,
@@ -346,7 +346,7 @@ export class SubscriptionsService {
 
       const updated = await this.subscriptionRepository.save(subscription);
 
-      this.eventEmitter.emit('subscription.downgraded', {
+      await this.outbox.enqueueStandalone('subscription.downgraded', {
         subscriptionId: updated.id,
         userId: updated.userId,
         oldAmount,
@@ -423,7 +423,7 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    this.eventEmitter.emit('subscription.downgraded', {
+    await this.outbox.enqueueStandalone('subscription.downgraded', {
       subscriptionId: updated.id,
       userId: updated.userId,
       oldAmount,
@@ -461,7 +461,7 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    this.eventEmitter.emit('subscription.cancelled', {
+    await this.outbox.enqueueStandalone('subscription.cancelled', {
       subscriptionId: updated.id,
       userId: updated.userId,
     });
@@ -498,7 +498,7 @@ export class SubscriptionsService {
           `Attempting renewal for subscription ${subscriptionId} (attempt ${attempt}/${maxRetries})`,
         );
 
-        this.eventEmitter.emit('subscription.renewal_attempt', {
+        await this.outbox.enqueueStandalone('subscription.renewal_attempt', {
           subscriptionId,
           userId: subscription.userId,
           amount: subscription.amount,
@@ -519,7 +519,7 @@ export class SubscriptionsService {
 
         await this.subscriptionRepository.save(subscription);
 
-        this.eventEmitter.emit('subscription.renewed', {
+        await this.outbox.enqueueStandalone('subscription.renewed', {
           subscriptionId: subscription.id,
           userId: subscription.userId,
         });
@@ -543,7 +543,7 @@ export class SubscriptionsService {
 
           await this.subscriptionRepository.save(subscription);
 
-          this.eventEmitter.emit('subscription.renewal_failed', {
+          await this.outbox.enqueueStandalone('subscription.renewal_failed', {
             subscriptionId: subscription.id,
             userId: subscription.userId,
             attempts: maxRetries,

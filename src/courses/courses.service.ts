@@ -1,5 +1,4 @@
 import { Injectable, Optional, Inject, forwardRef } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { CACHE_EVENTS } from '../caching/caching.constants';
@@ -31,6 +30,7 @@ import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
 import { PaginationService } from '../common/services/pagination.service';
+import { OutboxService } from '../common/events/outbox.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { EventType } from '../analytics/entities/event.entity';
 
@@ -80,7 +80,7 @@ export class CoursesService {
     private readonly versionRepo: Repository<CourseVersion>,
     @InjectRepository(BulkOperation)
     private readonly bulkOpRepo: Repository<BulkOperation>,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
     private readonly dataSource: DataSource,
     @Optional()
     private readonly paginationService: PaginationService = new PaginationService(),
@@ -131,7 +131,9 @@ export class CoursesService {
         status: saved.status,
       });
       await versionRepo.save(version);
-      this.eventEmitter.emit(CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
+      // Enlist the event in the SAME transaction so a rollback never leaves a
+      // ghost cache/search entry (issue #1221).
+      await this.outbox.enqueue(manager, CACHE_EVENTS.COURSE_CREATED, { id: saved.id });
       return saved;
     });
   }
@@ -243,7 +245,7 @@ export class CoursesService {
             status: saved.status,
           });
           await versionRepo.save(version);
-          this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
+          await this.outbox.enqueue(manager, CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
           return saved;
         });
       } catch (err) {
@@ -262,7 +264,7 @@ export class CoursesService {
     const course = await this.findOne(id);
     this.assertOwnerOrPrivileged(course, requestingUser);
     await this.courseRepo.softDelete(id);
-    this.eventEmitter.emit(CACHE_EVENTS.COURSE_DELETED, { id });
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.COURSE_DELETED, { id });
   }
 
   // ─── WORKFLOW ─────────────────────────────────────────────────────────────────
@@ -284,7 +286,7 @@ export class CoursesService {
     course.status = CourseStatus.PENDING_REVIEW;
     course.submissionNote = dto.submissionNote ?? null;
     const saved = await this.courseRepo.save(course);
-    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.COURSE_UPDATED, { id: saved.id });
     return saved;
   }
 
@@ -304,7 +306,7 @@ export class CoursesService {
     const previousStatus = course.status;
     course.status = DECISION_TO_STATUS[dto.decision];
     await this.courseRepo.save(course);
-    this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: course.id });
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.COURSE_UPDATED, { id: course.id });
 
     const review = this.reviewRepo.create({
       courseId: id,
@@ -638,7 +640,9 @@ export class CoursesService {
 
     if (restored.length > 0) {
       await this.courseRepo.save(restored);
-      restored.forEach((c) => this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }));
+      for (const c of restored) {
+        await this.outbox.enqueueStandalone(CACHE_EVENTS.COURSE_UPDATED, { id: c.id });
+      }
     }
 
     op.status = BulkOperationStatus.UNDONE;
@@ -694,7 +698,9 @@ export class CoursesService {
 
     if (toSave.length > 0) {
       await this.courseRepo.save(toSave);
-      toSave.forEach((c) => this.eventEmitter.emit(CACHE_EVENTS.COURSE_UPDATED, { id: c.id }));
+      for (const c of toSave) {
+        await this.outbox.enqueueStandalone(CACHE_EVENTS.COURSE_UPDATED, { id: c.id });
+      }
     }
 
     const successCount = snapshots.filter((s) => s.applied).length;

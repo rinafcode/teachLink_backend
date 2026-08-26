@@ -9,6 +9,9 @@ import {
   UseGuards,
   ConflictException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
+import { CustomThrottleGuard } from '../common/guards/throttle.guard';
 import { AuthService } from './auth.service';
 import { MfaService } from './mfa/mfa.service';
 import { LoginDto } from './dto/login.dto';
@@ -25,6 +28,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseGuards(CustomThrottleGuard)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -36,6 +40,7 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: THROTTLE.STRICT })
   @LimitType('user')
   @UseGuards(TenantLimitGuard)
   @ApiOperation({ summary: 'Register a new user account' })
@@ -82,6 +87,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: THROTTLE.AUTH_LOGIN })
   @ApiOperation({ summary: 'Log in with email and password' })
   @ApiResponse({ status: 200, description: 'Successfully authenticated' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
@@ -139,6 +145,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: THROTTLE.REFRESH })
   @ApiOperation({ summary: 'Refresh access and refresh tokens' })
   @ApiResponse({ status: 200, description: 'Successfully refreshed tokens' })
   @ApiResponse({ status: 401, description: 'Invalid or revoked refresh token' })
@@ -154,6 +161,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: THROTTLE.AUTH_DEFAULT })
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log out and invalidate refresh token' })

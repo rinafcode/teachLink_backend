@@ -23,6 +23,7 @@ import { RateLimitingModule } from './rate-limiting/rate-limiting.module';
 import { QuotaGuard } from './rate-limiting/guards/quota.guard';
 import { IdempotencyModule } from './common/modules/idempotency.module';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
+import { OutboxModule } from './common/events/outbox.module';
 import { getDatabaseConfig } from './config/database.config';
 import { loadFeatureFlags } from './config/feature-flags.config';
 import { SessionModule } from './session/session.module';
@@ -74,6 +75,11 @@ const featureFlags = loadFeatureFlags();
     // wired into any controller (Payments, Payouts, Subscriptions,
     // PaymentMethods, etc.) resolves a single shared IdempotencyInterceptor.
     IdempotencyModule,
+    // Issue #1221 — transactional outbox. Registered at the root so the
+    // OutboxRelayService runs for the process lifetime; producer modules
+    // import OutboxModule again for the write-side OutboxService (NestJS
+    // shares the module instance, so the relay still starts exactly once).
+    OutboxModule,
     // Issue #808 — rate limiting is ON by default. Only load
     // RateLimitingModule when the operator has NOT set
     // DISABLE_RATE_LIMITING=true (legacy: ENABLE_RATE_LIMITING=false).

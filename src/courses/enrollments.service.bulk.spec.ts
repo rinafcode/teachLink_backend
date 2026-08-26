@@ -4,7 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Enrollment } from './entities/enrollment.entity';
 import { Course, CourseStatus } from './entities/course.entity';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OutboxService } from '../common/events/outbox.service';
 
 describe('EnrollmentsService - Bulk Enroll', () => {
   let service: EnrollmentsService;
@@ -39,9 +39,10 @@ describe('EnrollmentsService - Bulk Enroll', () => {
           useValue: {},
         },
         {
-          provide: EventEmitter2,
+          provide: OutboxService,
           useValue: {
-            emit: jest.fn(),
+            enqueue: jest.fn(),
+            enqueueStandalone: jest.fn(),
           },
         },
         {

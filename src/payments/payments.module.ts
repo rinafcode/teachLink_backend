@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CurrencyModule } from '../currency/currency.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { IdempotencyModule } from '../common/modules/idempotency.module';
+import { OutboxModule } from '../common/events/outbox.module';
 import { QueueModule } from '../queues/queue.module';
 import { Payment } from './entities/payment.entity';
 import { Subscription } from './entities/subscription.entity';
@@ -42,6 +43,7 @@ import { StripeProvider } from './providers/stripe.provider';
     CurrencyModule,
     AuditLogModule,
     IdempotencyModule,
+    OutboxModule,
     HttpModule,
     QueueModule,
   ],

@@ -61,6 +61,19 @@ export class InvoicesService {
         return;
       }
 
+      // Idempotency guard: the outbox relay delivers at-least-once (issue
+      // #1221), so a redelivered PAYMENT_COMPLETED must not mint a duplicate
+      // invoice for the same payment.
+      const existing = await this.invoiceRepository.findOne({
+        where: { paymentId: payload.paymentId },
+      });
+      if (existing) {
+        this.logger.log(
+          `Invoice ${existing.id} already exists for payment ${payload.paymentId}, skipping`,
+        );
+        return;
+      }
+
       await this.generateAndArchiveInvoice(payment);
     } catch (error) {
       this.logger.error(`Error generating invoice for payment ${payload.paymentId}:`, error.stack);

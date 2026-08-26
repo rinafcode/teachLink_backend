@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OutboxService } from '../../common/events/outbox.service';
 import { DataSource } from 'typeorm';
 import { PointsService } from './points.service';
 import { UserProgress } from '../entities/user-progress.entity';
@@ -61,20 +61,19 @@ describe('PointsService', () => {
   let progressRepo: ReturnType<typeof mockRepo>;
   let txRepo: ReturnType<typeof mockRepo>;
   let tiersService: ReturnType<typeof mockTiersService>;
-  let emitter: { emit: jest.Mock };
+  let outbox: { enqueueStandalone: jest.Mock };
   let dataSource: ReturnType<typeof mockDataSource>;
 
   beforeEach(async () => {
-    emitter = { emit: jest.fn() };
+    outbox = { enqueueStandalone: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PointsService,
         { provide: getRepositoryToken(UserProgress), useFactory: mockRepo },
         { provide: getRepositoryToken(PointTransaction), useFactory: mockRepo },
-        { provide: EventEmitter2, useValue: emitter },
         { provide: DataSource, useFactory: mockDataSource },
-        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        { provide: OutboxService, useValue: outbox },
         { provide: TiersService, useFactory: mockTiersService },
       ],
     }).compile();
@@ -565,13 +564,13 @@ describe('PointsService', () => {
 
       const addPromise = service.addPoints('user-1', 100, 'TEST');
 
-      // Event must NOT fire before save resolves
-      expect(emitter.emit).not.toHaveBeenCalled();
+      // Event must NOT be enqueued before save resolves
+      expect(outbox.enqueueStandalone).not.toHaveBeenCalled();
 
       resolveSave({ totalPoints: 100, xp: 100, level: 1, tier: Tier.BRONZE });
       await addPromise;
 
-      expect(emitter.emit).toHaveBeenCalledWith(
+      expect(outbox.enqueueStandalone).toHaveBeenCalledWith(
         GAMIFICATION_EVENTS.POINTS_AWARDED,
         expect.any(Object),
       );
@@ -583,7 +582,7 @@ describe('PointsService', () => {
 
       await expect(service.addPoints('user-1', 100, 'TEST')).rejects.toThrow('DB write failed');
 
-      expect(emitter.emit).not.toHaveBeenCalled();
+      expect(outbox.enqueueStandalone).not.toHaveBeenCalled();
     });
   });
 
@@ -616,7 +615,7 @@ describe('PointsService', () => {
       expect(secondSaveArg.tier).toBe(Tier.SILVER);
 
       // Total POINTS_AWARDED emissions across both calls
-      const promotionEmits = emitter.emit.mock.calls.filter(
+      const promotionEmits = outbox.enqueueStandalone.mock.calls.filter(
         ([event]) => event === GAMIFICATION_EVENTS.POINTS_AWARDED,
       );
       expect(promotionEmits).toHaveLength(2); // one per award, regardless of tier change
