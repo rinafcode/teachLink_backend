@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserProgress } from '../entities/user-progress.entity';
 import { PointTransaction } from '../entities/point-transaction.entity';
 import { User } from '../../users/entities/user.entity';
-import { GAMIFICATION_EVENTS, PointsAwardedEvent } from '../events/gamification.events';
+import { OutboxService } from '../../common/events/outbox.service';
+import { GAMIFICATION_EVENTS } from '../events/gamification.events';
 import { TiersService } from '../tiers/tiers.service';
 import { PointActivityType, POINT_RULES } from '../enums/point-activity.enum';
 import { Tier } from '../enums/tier.enum';
@@ -21,7 +21,7 @@ export class PointsService {
     @InjectRepository(PointTransaction)
     private pointTransactionRepository: Repository<PointTransaction>,
     private readonly dataSource: DataSource,
-    private eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
     private tiersService: TiersService,
   ) {}
 
@@ -130,12 +130,14 @@ export class PointsService {
       // value is now durable in the database.
       const tierPromoted = newTier !== previousTier;
 
-      // STEP 4: Emit event after successful commit
-      // Event subscribers (e.g., BadgesService) can now read consistent state
-      this.eventEmitter.emit(
-        GAMIFICATION_EVENTS.POINTS_AWARDED,
-        new PointsAwardedEvent(userId, updatedProgress.totalPoints, updatedProgress.level),
-      );
+      // STEP 4: Enqueue event after successful commit so subscribers (e.g.
+      // BadgesService) read consistent state. The row is durable and delivered
+      // at-least-once by the outbox relay (issue #1221).
+      await this.outbox.enqueueStandalone(GAMIFICATION_EVENTS.POINTS_AWARDED, {
+        userId,
+        totalPoints: updatedProgress.totalPoints,
+        level: updatedProgress.level,
+      });
 
       return {
         progress: updatedProgress,

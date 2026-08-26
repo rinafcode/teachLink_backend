@@ -2,7 +2,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TIME } from '../common/constants/time.constants';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { RbacModule } from '../rbac/rbac.module';
 import { SecurityModule } from '../security/security.module';
@@ -34,6 +36,15 @@ import { GoogleStrategy } from './strategies/google.strategy';
  */
 @Module({
   imports: [
+    // Shared throttler used by the auth controllers. The per-route limits come
+    // from the documented THROTTLE presets (docs/rate-limiting.md); this
+    // default only applies to handlers without an explicit @Throttle.
+    ThrottlerModule.forRoot([
+      {
+        ttl: TIME.ONE_MINUTE_MS,
+        limit: 100,
+      },
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

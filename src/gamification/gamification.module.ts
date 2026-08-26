@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { OutboxModule } from '../common/events/outbox.module';
 
 import { Badge } from './entities/badge.entity';
 import { UserBadge } from './entities/user-badge.entity';
@@ -28,6 +29,7 @@ import { GamificationController } from './gamification.controller';
       TierReward,
     ]),
     EventEmitterModule.forRoot(),
+    OutboxModule,
   ],
   controllers: [GamificationController],
   providers: [PointsService, LeaderboardService, BadgesService, TiersService],

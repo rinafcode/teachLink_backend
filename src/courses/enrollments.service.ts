@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OutboxService } from '../common/events/outbox.service';
 
 import { Course, CourseStatus } from './entities/course.entity';
 import { Enrollment } from './entities/enrollment.entity';
@@ -32,7 +32,7 @@ export class EnrollmentsService {
     @InjectRepository(Course)
     private readonly courseRepo: Repository<Course>,
 
-    private readonly eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -81,9 +81,10 @@ export class EnrollmentsService {
 
       const saved = await enrollmentRepo.save(enrollment);
 
-      this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
-
-      this.eventEmitter.emit(APP_EVENTS.COURSE_ENROLLED, {
+      // Events are enlisted in the SAME transaction so a rollback never
+      // leaves ghost cache entries or recommendation updates (issue #1221).
+      await this.outbox.enqueue(manager, CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
+      await this.outbox.enqueue(manager, APP_EVENTS.COURSE_ENROLLED, {
         userId,
         courseId,
       });
@@ -176,10 +177,13 @@ export class EnrollmentsService {
       } else {
         await queryRunner.commitTransaction();
 
-        // Emit events for successful enrollments after commit
+        // Enqueue events for successful enrollments after commit (durable,
+        // delivered at-least-once by the outbox relay — issue #1221).
         for (const saved of successfulEnrollments) {
-          this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
-          this.eventEmitter.emit(APP_EVENTS.COURSE_ENROLLED, {
+          await this.outbox.enqueueStandalone(CACHE_EVENTS.ENROLLMENT_CREATED, {
+            id: saved.id,
+          });
+          await this.outbox.enqueueStandalone(APP_EVENTS.COURSE_ENROLLED, {
             userId: saved.userId,
             courseId: saved.courseId,
           });
@@ -282,18 +286,21 @@ export class EnrollmentsService {
 
     enrollment.progress = progress;
 
-    if (progress === 100 && !alreadyCompleted) {
+    const wasCompleted = !alreadyCompleted && progress === 100;
+    if (wasCompleted) {
       enrollment.status = APP_CONSTANTS.ENROLLMENT_STATUS.COMPLETED;
-
-      this.eventEmitter.emit(APP_EVENTS.COURSE_COMPLETED, {
-        userId: enrollment.userId,
-        courseId: enrollment.courseId,
-      });
     }
 
     const saved = await this.enrollmentRepo.save(enrollment);
 
-    this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_UPDATED, {
+    // Enqueue after the write so a failed save never produces a ghost event.
+    if (wasCompleted) {
+      await this.outbox.enqueueStandalone(APP_EVENTS.COURSE_COMPLETED, {
+        userId: enrollment.userId,
+        courseId: enrollment.courseId,
+      });
+    }
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.ENROLLMENT_UPDATED, {
       id: saved.id,
     });
 
@@ -319,11 +326,10 @@ export class EnrollmentsService {
 
     await this.enrollmentRepo.remove(enrollment);
 
-    this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_UPDATED, {
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.ENROLLMENT_UPDATED, {
       id: enrollment.id,
     });
-
-    this.eventEmitter.emit(APP_EVENTS.COURSE_UNENROLLED, {
+    await this.outbox.enqueueStandalone(APP_EVENTS.COURSE_UNENROLLED, {
       userId,
       courseId,
     });

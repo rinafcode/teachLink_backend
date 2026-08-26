@@ -11,6 +11,7 @@ import { CourseModule } from './entities/course-module.entity';
 import { BulkOperation } from './entities/bulk-operation.entity';
 import { CachingModule } from '../caching/caching.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { OutboxModule } from '../common/events/outbox.module';
 
 import { PaginationService } from '../common/services/pagination.service';
 
@@ -19,6 +20,7 @@ import { PaginationService } from '../common/services/pagination.service';
     TypeOrmModule.forFeature([Course, Enrollment, CourseReview, CourseModule, BulkOperation]),
     CachingModule,
     forwardRef(() => AnalyticsModule),
+    OutboxModule,
   ],
   providers: [CoursesService, EnrollmentsService, PaginationService],
   controllers: [CoursesController, EnrollmentsController],

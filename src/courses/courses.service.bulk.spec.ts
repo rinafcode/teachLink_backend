@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { OutboxService } from '../common/events/outbox.service';
 import {
   ResourceNotFoundException,
   ForbiddenOperationException,
@@ -33,8 +33,9 @@ describe('CoursesService - Bulk Operations', () => {
     findOne: jest.fn(),
   };
 
-  const eventEmitter = {
-    emit: jest.fn(),
+  const outbox = {
+    enqueue: jest.fn(),
+    enqueueStandalone: jest.fn(),
   };
 
   const owner = {
@@ -90,8 +91,8 @@ describe('CoursesService - Bulk Operations', () => {
           useValue: bulkOpRepo,
         },
         {
-          provide: EventEmitter2,
-          useValue: eventEmitter,
+          provide: OutboxService,
+          useValue: outbox,
         },
       ],
     }).compile();
@@ -124,7 +125,7 @@ describe('CoursesService - Bulk Operations', () => {
 
       expect(courses.every((course) => course.status === CourseStatus.PUBLISHED)).toBe(true);
 
-      expect(eventEmitter.emit).toHaveBeenCalledTimes(2);
+      expect(outbox.enqueueStandalone).toHaveBeenCalledTimes(2);
     });
 
     it('should return FAILED when no courses are found', async () => {

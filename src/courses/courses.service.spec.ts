@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource, Repository } from 'typeorm';
+import { OutboxService } from '../common/events/outbox.service';
 import { CoursesService } from './courses.service';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview } from './entities/course-review.entity';
@@ -36,8 +36,9 @@ const mockBulkOpRepo = {
   findOne: jest.fn(),
 };
 
-const mockEventEmitter = {
-  emit: jest.fn(),
+const mockOutbox = {
+  enqueue: jest.fn(),
+  enqueueStandalone: jest.fn(),
 };
 
 const mockDataSource = {
@@ -81,7 +82,7 @@ describe('CoursesService', () => {
         { provide: getRepositoryToken(CourseReview), useValue: mockReviewRepo },
         { provide: getRepositoryToken(CourseVersion), useValue: mockVersionRepo },
         { provide: getRepositoryToken(BulkOperation), useValue: mockBulkOpRepo },
-        { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: OutboxService, useValue: mockOutbox },
         { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
