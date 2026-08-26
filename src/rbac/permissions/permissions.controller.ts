@@ -34,8 +34,13 @@ export class PermissionsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new permission (Admin only)' })
   @ApiResponse({ status: 201, description: 'Permission created', type: Permission })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({
+    status: 409,
+    description: 'A permission with this resource/action already exists',
+  })
   async create(@Body() dto: CreatePermissionDto): Promise<Permission> {
     return this.permissionsService.createPermission(dto.resource, dto.action, dto.description);
   }
@@ -47,6 +52,7 @@ export class PermissionsController {
     description: 'Returns paginated permissions',
     type: PaginatedSwaggerDto(Permission),
   })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
   async findAll(@Query() query?: PaginationQueryDto) {
     return this.permissionsService.findAllPermissions(query);
   }
@@ -54,6 +60,7 @@ export class PermissionsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get permission by ID' })
   @ApiResponse({ status: 200, description: 'Permission found', type: Permission })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
   @ApiResponse({ status: 404, description: 'Permission not found' })
   async findOne(@Param('id') id: string): Promise<Permission> {
     return this.permissionsService.findPermissionById(id);
@@ -64,6 +71,7 @@ export class PermissionsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update a permission (Admin only)' })
   @ApiResponse({ status: 200, description: 'Permission updated', type: Permission })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
   @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiResponse({ status: 404, description: 'Permission not found' })

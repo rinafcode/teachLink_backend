@@ -12,7 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ABTestingService } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
 import { StatisticalAnalysisService } from './analysis/statistical-analysis.service';
@@ -55,6 +55,7 @@ export class ABTestingController {
    * Get available experiment templates
    */
   @Get('templates')
+  @ApiOperation({ summary: 'List available experiment templates' })
   @ApiResponse({
     status: 200,
     description: 'Available experiment templates',
@@ -81,6 +82,8 @@ export class ABTestingController {
   @Post('experiments/:id/analyze')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Analyze an experiment and evaluate auto-stop conditions' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
   @ApiResponse({
     status: 200,
     description: 'Analysis complete',
@@ -103,6 +106,7 @@ export class ABTestingController {
       },
     },
   })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async analyzeAndAutoStop(@Param('id') experimentId: string): Promise<any> {
     this.logger.log(`Analyzing experiment for auto-stop: ${experimentId}`);
     return await this.abTestingService.analyzeAndAutoStop(experimentId);
@@ -112,6 +116,8 @@ export class ABTestingController {
    * Get comprehensive experiment results dashboard
    */
   @Get('experiments/:id/dashboard')
+  @ApiOperation({ summary: 'Get the comprehensive results dashboard for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
   @ApiResponse({
     status: 200,
     description: 'Experiment results dashboard',
@@ -128,6 +134,7 @@ export class ABTestingController {
       },
     },
   })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async getResultsDashboard(@Param('id') experimentId: string): Promise<any> {
     this.logger.log(`Fetching results dashboard for experiment: ${experimentId}`);
     return await this.abTestingService.getExperimentResults(experimentId);
@@ -139,6 +146,8 @@ export class ABTestingController {
    */
   @Get('experiments')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: 'List all experiments' })
+  @ApiResponse({ status: 200, description: 'List of experiments' })
   async getAllExperiments(): Promise<any> {
     this.logger.log('Fetching all experiments');
     return await this.abTestingService.getAllExperiments();
@@ -150,6 +159,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('experiments/:id')
+  @ApiOperation({ summary: 'Get a single experiment by ID' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'The requested experiment' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async getExperimentById(@Param('id') id: string): Promise<any> {
     this.logger.log(`Fetching experiment: ${id}`);
     return await this.abTestingService.getExperimentById(id);
@@ -163,6 +176,9 @@ export class ABTestingController {
   @Post('experiments')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a new experiment' })
+  @ApiResponse({ status: 201, description: 'Experiment created' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   async createExperiment(@Body() createExperimentDto: CreateExperimentDto): Promise<any> {
     this.logger.log(`Creating new experiment: ${createExperimentDto.name}`);
     return await this.abTestingService.createExperiment(createExperimentDto);
@@ -176,6 +192,10 @@ export class ABTestingController {
   @Post('experiments/:id/start')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Start an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment started' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async startExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Starting experiment: ${id}`);
     return await this.abTestingService.startExperiment(id);
@@ -189,6 +209,10 @@ export class ABTestingController {
   @Post('experiments/:id/stop')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Stop an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment stopped' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async stopExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Stopping experiment: ${id}`);
     return await this.abTestingService.stopExperiment(id);
@@ -203,6 +227,11 @@ export class ABTestingController {
   @Put('experiments/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment updated' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async updateExperiment(
     @Param('id') id: string,
     @Body() updateData: UpdateExperimentDto,
@@ -219,6 +248,10 @@ export class ABTestingController {
   @Delete('experiments/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async deleteExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Deleting experiment: ${id}`);
     // Implementation would go here
@@ -231,6 +264,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('experiments/:id/results')
+  @ApiOperation({ summary: 'Get raw results for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment results' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async getExperimentResults(@Param('id') id: string): Promise<any> {
     this.logger.log(`Fetching results for experiment: ${id}`);
     return await this.experimentService.getExperimentResults(id);
@@ -245,6 +282,11 @@ export class ABTestingController {
   @Post('experiments/:id/variants')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Add a variant to an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 201, description: 'Variant added' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async addVariant(
     @Param('id') experimentId: string,
     @Body() variantData: CreateVariantDto,
@@ -261,6 +303,10 @@ export class ABTestingController {
   @Delete('variants/:id')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Remove a variant' })
+  @ApiParam({ name: 'id', description: 'Variant ID' })
+  @ApiResponse({ status: 200, description: 'Variant removed successfully' })
+  @ApiResponse({ status: 404, description: 'Variant not found' })
   async removeVariant(@Param('id') variantId: string): Promise<any> {
     this.logger.log(`Removing variant: ${variantId}`);
     await this.experimentService.removeVariant(variantId);
@@ -276,6 +322,11 @@ export class ABTestingController {
   @Put('experiments/:id/traffic-allocation')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update traffic allocation across variants' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Traffic allocation updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid allocation values' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async updateTrafficAllocation(
     @Param('id') experimentId: string,
     @Body() updateTrafficAllocationDto: UpdateTrafficAllocationDto,
@@ -294,6 +345,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('experiments/:id/statistical-analysis')
+  @ApiOperation({ summary: 'Calculate statistical significance for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Statistical analysis result' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async getStatisticalAnalysis(@Param('id') id: string): Promise<any> {
     this.logger.log(`Performing statistical analysis for experiment: ${id}`);
     return await this.statisticalAnalysisService.calculateStatisticalSignificance(id);
@@ -305,6 +360,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('experiments/:id/effect-size')
+  @ApiOperation({ summary: 'Calculate the effect size for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Effect size result' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async getEffectSize(@Param('id') id: string): Promise<any> {
     this.logger.log(`Calculating effect size for experiment: ${id}`);
     return await this.statisticalAnalysisService.calculateEffectSize(id);
@@ -319,6 +378,10 @@ export class ABTestingController {
   @Post('experiments/:id/auto-select-winner')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Automatically select the winning variant' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Winner selection result' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async autoSelectWinner(
     @Param('id') id: string,
     @Body() criteria?: AutoSelectWinnerDto,
@@ -339,6 +402,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('experiments/:id/decision-recommendations')
+  @ApiOperation({ summary: 'Get automated decision recommendations for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Decision recommendations' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async getDecisionRecommendations(@Param('id') id: string): Promise<any> {
     this.logger.log(`Getting decision recommendations for experiment: ${id}`);
     return await this.automatedDecisionService.getDecisionRecommendations(id);
@@ -352,6 +419,10 @@ export class ABTestingController {
   @Post('experiments/:id/auto-allocate-traffic')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Automatically re-allocate traffic across variants' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Traffic auto-allocated successfully' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async autoAllocateTraffic(@Param('id') id: string): Promise<any> {
     this.logger.log(`Auto-allocating traffic for experiment: ${id}`);
     await this.automatedDecisionService.autoAllocateTraffic(id);
@@ -365,6 +436,8 @@ export class ABTestingController {
    */
   @Get('reports/dashboard')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: 'Get the reporting dashboard summary' })
+  @ApiResponse({ status: 200, description: 'Dashboard summary' })
   async getDashboardSummary(@Query() filters?: DashboardFiltersDto): Promise<any> {
     this.logger.log('Generating dashboard summary');
     return await this.reportsService.getDashboardSummary(filters);
@@ -376,6 +449,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('reports/experiment/:id')
+  @ApiOperation({ summary: 'Generate a full report for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment report' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async generateExperimentReport(@Param('id') id: string): Promise<any> {
     this.logger.log(`Generating report for experiment: ${id}`);
     return await this.reportsService.generateExperimentReport(id);
@@ -386,6 +463,8 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('reports/performance-comparison')
+  @ApiOperation({ summary: 'Generate a cross-experiment performance comparison report' })
+  @ApiResponse({ status: 200, description: 'Performance comparison report' })
   async getPerformanceComparisonReport(): Promise<any> {
     this.logger.log('Generating performance comparison report');
     return await this.reportsService.generatePerformanceComparisonReport();
@@ -396,6 +475,8 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('reports/timeline')
+  @ApiOperation({ summary: 'Get the experiment activity timeline' })
+  @ApiResponse({ status: 200, description: 'Experiment timeline' })
   async getExperimentTimeline(): Promise<any> {
     this.logger.log('Generating experiment timeline');
     return await this.reportsService.getExperimentTimeline();
@@ -407,6 +488,10 @@ export class ABTestingController {
    * @returns The operation result.
    */
   @Get('reports/experiment/:id/export')
+  @ApiOperation({ summary: 'Export experiment data as CSV' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'CSV export payload with filename' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async exportExperimentData(@Param('id') id: string): Promise<any> {
     this.logger.log(`Exporting data for experiment: ${id}`);
     const csvData = await this.reportsService.exportExperimentData(id);
@@ -424,6 +509,10 @@ export class ABTestingController {
   @Post('experiments/:id/pause')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Pause an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment paused' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async pauseExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Pausing experiment: ${id}`);
     return await this.experimentService.pauseExperiment(id);
@@ -437,6 +526,10 @@ export class ABTestingController {
   @Post('experiments/:id/resume')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Resume a paused experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment resumed' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async resumeExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Resuming experiment: ${id}`);
     return await this.experimentService.resumeExperiment(id);
@@ -450,6 +543,10 @@ export class ABTestingController {
   @Post('experiments/:id/archive')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Archive an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiResponse({ status: 200, description: 'Experiment archived' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async archiveExperiment(@Param('id') id: string): Promise<any> {
     this.logger.log(`Archiving experiment: ${id}`);
     return await this.experimentService.archiveExperiment(id);
@@ -463,6 +560,11 @@ export class ABTestingController {
    */
   @Get('experiments/:id/assign-user/:userId')
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Assign a user to a variant for an experiment' })
+  @ApiParam({ name: 'id', description: 'Experiment ID' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'The variant the user was assigned to' })
+  @ApiResponse({ status: 404, description: 'Experiment not found' })
   async assignUserToVariant(
     @Param('id') experimentId: string,
     @Param('userId') userId: string,
