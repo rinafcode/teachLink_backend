@@ -80,10 +80,13 @@ export class ContentReportingService {
     if (query.reason) where.reason = query.reason;
     if (query.contentType) where.contentType = query.contentType;
 
+    const skip = (query.page - 1) * query.limit;
+
     return this.reportRepo.find({
       where,
       order: { createdAt: 'DESC' },
-      take: query.limit ?? 50,
+      take: query.limit,
+      skip,
     });
   }
 
