@@ -14,10 +14,7 @@ function readPositiveInteger(value: string | undefined, fallback: number): numbe
  */
 export const deepLinkRateLimitConfig = {
   ttlMs: readPositiveInteger(process.env.DEEP_LINK_RATE_LIMIT_TTL_MS, DEFAULT_TTL_MS),
-  defaultLimit: readPositiveInteger(
-    process.env.DEEP_LINK_RATE_LIMIT_DEFAULT,
-    DEFAULT_LIMIT,
-  ),
+  defaultLimit: readPositiveInteger(process.env.DEEP_LINK_RATE_LIMIT_DEFAULT, DEFAULT_LIMIT),
   redirectLimit: readPositiveInteger(
     process.env.DEEP_LINK_RATE_LIMIT_REDIRECT,
     DEFAULT_REDIRECT_LIMIT,

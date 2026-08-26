@@ -35,8 +35,6 @@ describe('DeepLinkController', () => {
     }
 
     expect(lastResponse?.status).toBe(429);
-    expect(
-      String(lastResponse?.body?.message ?? lastResponse?.text),
-    ).toMatch(/too many requests/i);
+    expect(String(lastResponse?.body?.message ?? lastResponse?.text)).toMatch(/too many requests/i);
   });
 });
