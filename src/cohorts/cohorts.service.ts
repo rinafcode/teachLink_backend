@@ -53,12 +53,20 @@ export class CohortsService {
     return saved;
   }
 
-  async getCohorts(userId: string): Promise<Cohort[]> {
-    return this.cohortRepo
+  async getCohorts(
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Cohort>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+    const [data, total] = await this.cohortRepo
       .createQueryBuilder('cohort')
       .innerJoin('cohort.members', 'member', 'member.userId = :userId', { userId })
       .orderBy('cohort.createdAt', 'DESC')
-      .getMany();
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async getCohort(cohortId: string, userId: string): Promise<Cohort> {

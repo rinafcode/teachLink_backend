@@ -4,6 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class GetRecommendationsDto {
   @ApiProperty({ description: 'User ID to get recommendations for' })
+  @IsOptional()
   @IsUUID()
   userId: string;
 

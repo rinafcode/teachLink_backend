@@ -9,6 +9,7 @@ import { CACHE_EVENTS } from '../caching/caching.constants';
 import { CollaborativeFilteringService } from './collaborative-filtering.service';
 import { ContentBasedFilteringService } from './content-based-filtering.service';
 import { RecommendedCourseDto } from './dto/recommendation.dto';
+import { clampLimit } from '../common/utils/pagination.utils';
 
 const CACHE_TTL_SECONDS = 300; // 5 minutes
 const COLLABORATIVE_WEIGHT = 0.6;
@@ -34,6 +35,7 @@ export class RecommendationEngineService {
   ) {}
 
   async getRecommendations(userId: string, limit = 10): Promise<RecommendedCourseDto[]> {
+    limit = clampLimit(limit, 50);
     const cacheKey = `recommendations:${userId}:${limit}`;
 
     return this.caching.getOrSet(

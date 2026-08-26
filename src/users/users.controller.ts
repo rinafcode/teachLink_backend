@@ -6,6 +6,7 @@ import { UserRole } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { UserAdminDto } from './dto/user-admin.dto';
 import { UserPublicDto } from './dto/user-public.dto';
+import { GetUsersDto } from './dto/get-users.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -29,21 +30,19 @@ export class UsersController {
       UserRole.ADMIN,
     ],
   })
-  @ApiQuery({ name: 'page', required: false, description: 'Page number', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, description: 'Items per page', example: 20 })
   @ApiResponse({ status: 200, description: 'Search results for users' })
   async search(
     @Request() req: { user?: { role?: string } },
-    @Query('q') query?: string,
-    @Query('role') role?: string,
-    @Query('page') page = '1',
-    @Query('limit') limit = '20',
+    @Query() pagination: GetUsersDto,
   ): Promise<unknown> {
-    const pageNum = Number(page) > 0 ? Number(page) : 1;
-    const limitNum = Number(limit) > 0 ? Number(limit) : 20;
-    const searchRole = role ? role.toLowerCase() : undefined;
+    const searchRole = pagination.role?.toLowerCase();
 
-    const results = await this.usersService.searchUsers(query, searchRole, pageNum, limitNum);
+    const results = await this.usersService.searchUsers(
+      pagination.q,
+      searchRole,
+      pagination.page,
+      pagination.limit,
+    );
     const isAdmin = req.user?.role === UserRole.ADMIN;
 
     return instanceToPlain(

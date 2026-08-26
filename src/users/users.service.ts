@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from './entities/user.entity';
+import { clampLimit } from '../common/utils/pagination.utils';
 
 export interface UserSearchResult {
   id: string;
@@ -21,8 +22,9 @@ export class UsersService {
     query?: string,
     role?: string,
     page = 1,
-    limit = 20,
+    limit?: number,
   ): Promise<UserSearchResult[]> {
+    const pageSize = clampLimit(limit);
     const qb = this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role')
@@ -53,8 +55,8 @@ export class UsersService {
     }
 
     qb.orderBy('user.createdAt', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+      .skip((page - 1) * pageSize)
+      .take(pageSize);
 
     const users = await qb.getMany();
 
