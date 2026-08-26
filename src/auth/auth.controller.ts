@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   HttpCode,
   HttpStatus,
+  HttpException,
   Req,
   UseGuards,
   ConflictException,
@@ -19,6 +20,7 @@ import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
+import { Tenant } from '../tenancy/entities/tenant.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -66,21 +68,46 @@ export class AuthController {
     const salt = await bcrypt.genSalt(rounds);
     const passwordHash = await bcrypt.hash(registerDto.password, salt);
 
-    const user = this.userRepository.create({
-      email: registerDto.email,
-      username: registerDto.username,
-      firstName: registerDto.firstName,
-      lastName: registerDto.lastName,
-      profilePicture: registerDto.avatarUrl,
-      password: passwordHash,
-      tenantId: req.tenantId,
+    const savedUser = await this.userRepository.manager.transaction(async (manager) => {
+      // Consume the tenant seat atomically with the user creation (issue #1343):
+      // the conditional UPDATE enforces currentUserCount < userLimit in the same
+      // statement that increments it, so concurrent registrations can never push
+      // the tenant over its limit. If the user insert fails, the increment rolls
+      // back with it.
+      if (req.tenantId) {
+        const seatTaken = await this.tenancyService.consumeUserSeat(manager, req.tenantId);
+        if (!seatTaken) {
+          throw new HttpException(
+            {
+              message: 'User limit exceeded',
+              error: 'Payment Required',
+              statusCode: HttpStatus.PAYMENT_REQUIRED,
+            },
+            HttpStatus.PAYMENT_REQUIRED,
+          );
+        }
+        const user = manager.create(User, {
+          email: registerDto.email,
+          username: registerDto.username,
+          firstName: registerDto.firstName,
+          lastName: registerDto.lastName,
+          profilePicture: registerDto.avatarUrl,
+          password: passwordHash,
+          tenantId: req.tenantId,
+        });
+        return manager.getRepository(User).save(user);
+      }
+
+      const user = this.userRepository.create({
+        email: registerDto.email,
+        username: registerDto.username,
+        firstName: registerDto.firstName,
+        lastName: registerDto.lastName,
+        profilePicture: registerDto.avatarUrl,
+        password: passwordHash,
+      });
+      return this.userRepository.save(user);
     });
-
-    const savedUser = await this.userRepository.save(user);
-
-    if (req.tenantId) {
-      await this.tenancyService.incrementUserCount(req.tenantId);
-    }
 
     return this.authService.login(savedUser);
   }

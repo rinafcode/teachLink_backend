@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +17,20 @@ import { User, PRIVILEGED_ROLES } from '../users/entities/user.entity';
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { APP_EVENTS } from '../common/constants/event.constants';
 import { APP_CONSTANTS } from '../common/constants/app.constants';
+
+/**
+ * True when the error is a PostgreSQL unique-violation (23505). Used to treat
+ * the database constraint as the authoritative "already enrolled" signal
+ * instead of relying only on the application-level pre-check (issue #1343).
+ */
+function isUniqueViolation(err: unknown): boolean {
+  const error = err as any;
+  return (
+    error?.code === '23505' ||
+    error?.driverError?.code === '23505' ||
+    (typeof error?.message === 'string' && error.message.includes('unique'))
+  );
+}
 
 @Injectable()
 export class EnrollmentsService {
@@ -67,7 +82,7 @@ export class EnrollmentsService {
       });
 
       if (existing) {
-        throw new BadRequestException('User is already enrolled in this course');
+        throw new ConflictException('User is already enrolled in this course');
       }
 
       await this.validatePrerequisites(userId, course, enrollmentRepo);
@@ -79,7 +94,18 @@ export class EnrollmentsService {
         progress: 0,
       });
 
-      const saved = await enrollmentRepo.save(enrollment);
+      let saved: Enrollment;
+      try {
+        saved = await enrollmentRepo.save(enrollment);
+      } catch (error) {
+        // The partial unique index (user_id, course_id) WHERE "deletedAt" IS NULL
+        // is the authoritative guard: a concurrent request may have inserted the
+        // same active enrollment between our pre-check and this save.
+        if (isUniqueViolation(error)) {
+          throw new ConflictException('User is already enrolled in this course');
+        }
+        throw error;
+      }
 
       // Events are enlisted in the SAME transaction so a rollback never
       // leaves ghost cache entries or recommendation updates (issue #1221).

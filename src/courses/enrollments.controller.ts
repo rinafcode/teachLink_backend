@@ -36,7 +36,8 @@ export class EnrollmentsController {
   @Post(':courseId')
   @ApiOperation({ summary: 'Enroll in a course' })
   @ApiResponse({ status: 201, description: 'Successfully enrolled in course' })
-  @ApiResponse({ status: 400, description: 'Prerequisite not met or already enrolled' })
+  @ApiResponse({ status: 400, description: 'Prerequisite not met' })
+  @ApiResponse({ status: 409, description: 'Already enrolled in course' })
   @ApiResponse({ status: 404, description: 'Course not found' })
   async enroll(@Param('courseId') courseId: string, @Request() req) {
     return this.enrollmentsService.enroll(req.user.id, courseId);
