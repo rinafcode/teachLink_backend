@@ -1,6 +1,6 @@
 import { Injectable, Optional, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, In } from 'typeorm';
+import { DataSource, Repository, MoreThan, In } from 'typeorm';
 import * as crypto from 'crypto';
 import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
 import { PaginationService } from '../common/services/pagination.service';
@@ -17,6 +17,7 @@ export class NotificationsService {
     private notificationRepository: Repository<Notification>,
     private readonly preferencesService: PreferencesService,
     private readonly templateService: NotificationTemplateService,
+    private readonly dataSource: DataSource,
     @Optional()
     private paginationService: PaginationService = new PaginationService(),
   ) {}
@@ -83,41 +84,60 @@ export class NotificationsService {
   }
 
   async send(dto: CreateNotificationDto) {
-    const notification = await this.create(dto);
+    // The base notification plus every channel dispatch is one logical
+    // operation: if any channel write fails, none of them persist (issue
+    // #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const notificationRepository = manager.getRepository(Notification);
 
-    const prefs = await this.preferencesService.getPreferences(dto.userId);
-
-    if (prefs.globalUnsubscribe) {
-      return notification;
-    }
-
-    const channels: { enabled: boolean; type: NotificationType }[] = [
-      { enabled: prefs.inAppEnabled, type: NotificationType.IN_APP },
-      { enabled: prefs.emailEnabled, type: NotificationType.EMAIL },
-      { enabled: prefs.pushEnabled, type: NotificationType.PUSH },
-      { enabled: prefs.smsEnabled, type: NotificationType.SMS },
-    ];
-
-    const dispatches: Promise<Notification>[] = [];
-
-    for (const channel of channels) {
-      if (channel.enabled) {
-        const channelNotification = this.notificationRepository.create({
+      const notification = await notificationRepository.save(
+        notificationRepository.create({
           userId: dto.userId,
           title: dto.title,
           content: dto.content,
-          type: channel.type,
+          contentHash: this.hashContent(dto.content),
+          type: dto.type ?? NotificationType.IN_APP,
           priority: dto.priority,
           metadata: dto.metadata,
-          status: NotificationStatus.SENT,
-        });
-        dispatches.push(this.notificationRepository.save(channelNotification));
+          status: NotificationStatus.PENDING,
+        }),
+      );
+
+      const prefs = await this.preferencesService.getPreferences(dto.userId);
+
+      if (prefs.globalUnsubscribe) {
+        return notification;
       }
-    }
 
-    await Promise.all(dispatches);
+      const channels: { enabled: boolean; type: NotificationType }[] = [
+        { enabled: prefs.inAppEnabled, type: NotificationType.IN_APP },
+        { enabled: prefs.emailEnabled, type: NotificationType.EMAIL },
+        { enabled: prefs.pushEnabled, type: NotificationType.PUSH },
+        { enabled: prefs.smsEnabled, type: NotificationType.SMS },
+      ];
 
-    return notification;
+      const dispatches: Promise<Notification>[] = [];
+
+      for (const channel of channels) {
+        if (channel.enabled) {
+          const channelNotification = notificationRepository.create({
+            userId: dto.userId,
+            title: dto.title,
+            content: dto.content,
+            contentHash: this.hashContent(dto.content),
+            type: channel.type,
+            priority: dto.priority,
+            metadata: dto.metadata,
+            status: NotificationStatus.SENT,
+          });
+          dispatches.push(notificationRepository.save(channelNotification));
+        }
+      }
+
+      await Promise.all(dispatches);
+
+      return notification;
+    });
   }
 
   async sendTemplated(dto: SendTemplatedNotificationDto) {
@@ -144,27 +164,32 @@ export class NotificationsService {
       { enabled: prefs.smsEnabled, type: NotificationType.SMS },
     ];
 
-    const saved: Notification[] = [];
+    // All channel dispatches are one logical operation (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const notificationRepository = manager.getRepository(Notification);
+      const saved: Notification[] = [];
 
-    for (const channel of channels) {
-      if (channel.enabled) {
-        const notification = this.notificationRepository.create({
-          userId: dto.userId,
-          title: rendered.subject ?? dto.templateName,
-          content: rendered.body,
-          type: channel.type,
-          status: NotificationStatus.SENT,
-          metadata: {
-            templateName: dto.templateName,
-            templateVersion: rendered.templateVersion,
-            eventType: dto.eventType,
-          },
-        });
-        saved.push(await this.notificationRepository.save(notification));
+      for (const channel of channels) {
+        if (channel.enabled) {
+          const notification = notificationRepository.create({
+            userId: dto.userId,
+            title: rendered.subject ?? dto.templateName,
+            content: rendered.body,
+            contentHash: this.hashContent(rendered.body),
+            type: channel.type,
+            status: NotificationStatus.SENT,
+            metadata: {
+              templateName: dto.templateName,
+              templateVersion: rendered.templateVersion,
+              eventType: dto.eventType,
+            },
+          });
+          saved.push(await notificationRepository.save(notification));
+        }
       }
-    }
 
-    return saved;
+      return saved;
+    });
   }
 
   async findForUser(userId: string, query?: PaginationQueryDto) {

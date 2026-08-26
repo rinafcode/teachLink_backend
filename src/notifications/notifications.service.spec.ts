@@ -12,7 +12,14 @@ describe('NotificationsService', () => {
       save: jest.fn(async (data) => ({ id: 'notif-1', ...data })),
     };
 
-    service = new NotificationsService(mockRepository);
+    service = new NotificationsService(
+      mockRepository,
+      {} as any,
+      {} as any,
+      {
+        transaction: jest.fn((cb: any) => cb({ getRepository: () => mockRepository })),
+      } as any,
+    );
   });
 
   it('should deliver EMAIL and PUSH with same content (different types)', async () => {

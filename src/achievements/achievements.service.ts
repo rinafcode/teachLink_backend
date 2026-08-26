@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { DataSource, EntityManager, Repository, MoreThan } from 'typeorm';
 import { Achievement, AchievementType } from './entities/achievement.entity';
 import { AchievementProgress } from './entities/achievement-progress.entity';
 import { UserAchievement } from './entities/user-achievement.entity';
@@ -43,6 +43,7 @@ export class AchievementsService {
     @InjectRepository(AchievementStatistics)
     private statisticsRepository: Repository<AchievementStatistics>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly dataSource: DataSource,
   ) {}
 
   // =====================================================
@@ -219,41 +220,62 @@ export class AchievementsService {
     achievementId: string,
     dto: UpdateAchievementProgressDto,
   ): Promise<AchievementProgressDto> {
-    let progress = await this.progressRepository.findOne({
-      where: {
-        user: { id: userId },
-        achievement: { id: achievementId },
-      },
-      relations: ['achievement'],
+    // Progress save + potential unlock are one logical operation: if the unlock
+    // writes fail, the progress change must roll back with them (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const progressRepository = manager.getRepository(AchievementProgress);
+      const achievementRepository = manager.getRepository(Achievement);
+
+      let progress = await progressRepository.findOne({
+        where: {
+          user: { id: userId },
+          achievement: { id: achievementId },
+        },
+        relations: ['achievement'],
+      });
+
+      if (!progress) {
+        // Initialize if it doesn't exist (same logic as initializeProgress).
+        const achievement = await achievementRepository.findOne({
+          where: { id: achievementId },
+        });
+        if (!achievement) {
+          throw new NotFoundException(`Achievement not found: ${achievementId}`);
+        }
+        const targetProgress = achievement.progressConfig?.maxProgress || 1;
+        progress = progressRepository.create({
+          user: { id: userId } as User,
+          achievement,
+          currentProgress: 0,
+          targetProgress,
+          percentageComplete: 0,
+          isUnlocked: false,
+        });
+      }
+
+      progress.currentProgress = Math.min(dto.currentProgress, progress.targetProgress);
+      progress.percentageComplete = Math.round(
+        (progress.currentProgress / progress.targetProgress) * 100,
+      );
+      progress.lastProgressUpdate = new Date();
+
+      if (dto.metadata) {
+        progress.metadata = { ...progress.metadata, ...dto.metadata };
+      }
+
+      const saved = await progressRepository.save(progress);
+
+      this.logger.log(
+        `Progress updated for user ${userId}: achievement ${achievementId} - ${progress.percentageComplete}%`,
+      );
+
+      // Check if achievement should be unlocked
+      if (!progress.isUnlocked && progress.currentProgress >= progress.targetProgress) {
+        await this.unlockWithManager(manager, userId, achievementId);
+      }
+
+      return this.toAchievementProgressDto(saved);
     });
-
-    if (!progress) {
-      // Initialize if doesn't exist
-      progress = await this.initializeProgress(userId, achievementId);
-    }
-
-    progress.currentProgress = Math.min(dto.currentProgress, progress.targetProgress);
-    progress.percentageComplete = Math.round(
-      (progress.currentProgress / progress.targetProgress) * 100,
-    );
-    progress.lastProgressUpdate = new Date();
-
-    if (dto.metadata) {
-      progress.metadata = { ...progress.metadata, ...dto.metadata };
-    }
-
-    const saved = await this.progressRepository.save(progress);
-
-    this.logger.log(
-      `Progress updated for user ${userId}: achievement ${achievementId} - ${progress.percentageComplete}%`,
-    );
-
-    // Check if achievement should be unlocked
-    if (!progress.isUnlocked && progress.currentProgress >= progress.targetProgress) {
-      await this.unlockAchievement(userId, achievementId);
-    }
-
-    return this.toAchievementProgressDto(saved);
   }
 
   /**
@@ -343,8 +365,25 @@ export class AchievementsService {
     achievementId: string,
     metadata?: any,
   ): Promise<AchievementUnlockedEventDto> {
+    // The unlock row, progress update and unlocked-count bump are one logical
+    // operation: all commit together or none do (issue #1344).
+    return this.dataSource.transaction(async (manager) =>
+      this.unlockWithManager(manager, userId, achievementId, metadata),
+    );
+  }
+
+  private async unlockWithManager(
+    manager: EntityManager,
+    userId: string,
+    achievementId: string,
+    metadata?: any,
+  ): Promise<AchievementUnlockedEventDto> {
+    const userAchievementRepository = manager.getRepository(UserAchievement);
+    const progressRepository = manager.getRepository(AchievementProgress);
+    const achievementRepository = manager.getRepository(Achievement);
+
     // Check if already unlocked
-    const existing = await this.userAchievementRepository.findOne({
+    const existing = await userAchievementRepository.findOne({
       where: {
         user: { id: userId },
         achievement: { id: achievementId },
@@ -356,7 +395,7 @@ export class AchievementsService {
       return this.toAchievementUnlockedEventDto(existing);
     }
 
-    const achievement = await this.achievementRepository.findOne({
+    const achievement = await achievementRepository.findOne({
       where: { id: achievementId },
     });
 
@@ -364,7 +403,7 @@ export class AchievementsService {
       throw new NotFoundException(`Achievement not found: ${achievementId}`);
     }
 
-    const userAchievement = this.userAchievementRepository.create({
+    const userAchievement = userAchievementRepository.create({
       user: { id: userId } as User,
       achievement,
       unlockedAt: new Date(),
@@ -374,10 +413,10 @@ export class AchievementsService {
       notificationSent: false,
     });
 
-    const saved = await this.userAchievementRepository.save(userAchievement);
+    const saved = await userAchievementRepository.save(userAchievement);
 
     // Update progress record
-    await this.progressRepository.update(
+    await progressRepository.update(
       {
         user: { id: userId },
         achievement: { id: achievementId },
@@ -386,7 +425,7 @@ export class AchievementsService {
     );
 
     // Increment unlocked count
-    await this.achievementRepository.increment({ id: achievementId }, 'unlockedBy', 1);
+    await achievementRepository.increment({ id: achievementId }, 'unlockedBy', 1);
 
     this.logger.log(
       `Achievement unlocked for user ${userId}: ${achievementId} - earned ${achievement.pointsReward} points, ${achievement.experienceReward} XP`,
@@ -603,14 +642,18 @@ export class AchievementsService {
     userId: string,
     achievementIds: string[],
   ): Promise<AchievementUnlockedEventDto[]> {
-    const results: AchievementUnlockedEventDto[] = [];
+    // The whole batch is one logical operation: a failure in any unlock rolls
+    // back every unlock in the batch (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const results: AchievementUnlockedEventDto[] = [];
 
-    for (const achievementId of achievementIds) {
-      const result = await this.unlockAchievement(userId, achievementId);
-      results.push(result);
-    }
+      for (const achievementId of achievementIds) {
+        const result = await this.unlockWithManager(manager, userId, achievementId);
+        results.push(result);
+      }
 
-    return results;
+      return results;
+    });
   }
 
   // =====================================================

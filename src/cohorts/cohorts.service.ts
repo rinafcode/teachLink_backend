@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Cohort } from './entities/cohort.entity';
 import { CohortMember } from './entities/cohort-member.entity';
 import { CohortThread } from './entities/cohort-thread.entity';
@@ -33,24 +33,33 @@ export class CohortsService {
     private readonly commentRepo: Repository<CohortComment>,
     @InjectRepository(CohortAssignment)
     private readonly assignmentRepo: Repository<CohortAssignment>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createCohort(dto: CreateCohortDto, ownerId: string): Promise<Cohort> {
-    const cohort = this.cohortRepo.create({
-      name: dto.name,
-      description: dto.description,
-      ownerId,
-    });
+    // The cohort and its owner membership are one logical operation: if the
+    // owner-member write fails, the cohort must not survive as an orphan that
+    // rejects everyone (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const cohortRepo = manager.getRepository(Cohort);
+      const memberRepo = manager.getRepository(CohortMember);
 
-    const saved = await this.cohortRepo.save(cohort);
-    const ownerMembership = this.memberRepo.create({
-      cohortId: saved.id,
-      userId: ownerId,
-      role: 'owner',
-    });
+      const cohort = cohortRepo.create({
+        name: dto.name,
+        description: dto.description,
+        ownerId,
+      });
 
-    await this.memberRepo.save(ownerMembership);
-    return saved;
+      const saved = await cohortRepo.save(cohort);
+      const ownerMembership = memberRepo.create({
+        cohortId: saved.id,
+        userId: ownerId,
+        role: 'owner',
+      });
+
+      await memberRepo.save(ownerMembership);
+      return saved;
+    });
   }
 
   async getCohorts(
