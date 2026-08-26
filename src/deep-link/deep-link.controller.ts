@@ -1,5 +1,7 @@
-import { Controller, Get, Param, Res, Headers } from '@nestjs/common';
+import { Controller, Get, Param, Res, Headers, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Response } from 'express';
+import { deepLinkRateLimitConfig } from './deep-link.config';
 import { DeepLinkService } from './deep-link.service';
 
 @Controller()
@@ -40,6 +42,13 @@ export class DeepLinkController {
   }
 
   @Get('deep-link/course/:id')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: deepLinkRateLimitConfig.redirectLimit,
+      ttl: deepLinkRateLimitConfig.ttlMs,
+    },
+  })
   redirectCourseLink(
     @Param('id') id: string,
     @Headers('user-agent') userAgent: string,
