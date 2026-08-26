@@ -127,7 +127,11 @@ export class RolesController {
   @Delete(':roleId/permissions/:permissionId')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Remove permission from role (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Permission successfully removed from role', type: Role })
+  @ApiResponse({
+    status: 200,
+    description: 'Permission successfully removed from role',
+    type: Role,
+  })
   @ApiResponse({ status: 404, description: 'Role or permission not found' })
   @ApiResponse({ status: 400, description: 'Permission is not assigned to this role' })
   async removePermission(
