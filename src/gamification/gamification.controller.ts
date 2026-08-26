@@ -5,12 +5,11 @@ import {
   Param,
   Body,
   Query,
-  ParseIntPipe,
-  DefaultValuePipe,
   HttpCode,
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PointsService } from './points/points.service';
 import { LeaderboardService } from './leaderboards/leaderboards.service';
 import { TiersService } from './tiers/tiers.service';
@@ -19,6 +18,7 @@ import { TierReward } from './entities/tier-reward.entity';
 import { AwardActivityDto } from './dto/award-activity.dto';
 import { AddPointsDto } from './dto/add-points.dto';
 import { UpsertRewardDto } from './dto/upsert-reward.dto';
+import { LeaderboardPaginationDto } from './dto/leaderboard-pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -62,11 +62,11 @@ export class GamificationController {
   // ── Leaderboard ─────────────────────────────────────────────────────────────
 
   @Get('leaderboard')
-  getLeaderboard(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
-  ) {
-    return this.leaderboardService.getLeaderboard(page, pageSize);
+  @ApiOperation({ summary: 'Get the points leaderboard (paginated, page size bounded)' })
+  @ApiResponse({ status: 200, description: 'Paginated leaderboard' })
+  @ApiResponse({ status: 400, description: 'Invalid pagination parameters' })
+  getLeaderboard(@Query() query: LeaderboardPaginationDto) {
+    return this.leaderboardService.getLeaderboard(query.page, query.pageSize);
   }
 
   @Get('leaderboard/rank/:userId')

@@ -25,6 +25,7 @@ import { Idempotent } from '../../common/decorators/idempotency.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 @ApiResponse({ status: 401, description: 'Authentication required' })
+@ApiResponse({ status: 403, description: 'Insufficient role for this payout operation' })
 export class PayoutsController {
   constructor(private readonly payoutsService: PayoutsService) {}
 
@@ -39,6 +40,7 @@ export class PayoutsController {
     description: 'Items per page (max 100)',
   })
   @ApiResponse({ status: 200, description: 'Returns paginated revenue breakdown with summary' })
+  @ApiResponse({ status: 400, description: "'page'/'pageSize' must be positive integers" })
   async getRevenueBreakdown(
     @Request() req,
     @Query('page') page?: string,
@@ -64,6 +66,7 @@ export class PayoutsController {
   @Roles(UserRole.INSTRUCTOR, UserRole.TEACHER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Update payout profile settings for current instructor' })
   @ApiResponse({ status: 200, description: 'Returns updated settings' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
   async updatePayoutProfile(@Request() req, @Body() dto: UpdatePayoutSettingsDto) {
     return this.payoutsService.updatePayoutProfile(req.user.id, dto);
   }
@@ -82,6 +85,9 @@ export class PayoutsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Process a payout for an instructor (Admin only)' })
   @ApiResponse({ status: 200, description: 'Payout processed successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 404, description: 'Instructor or payout profile not found' })
+  @ApiResponse({ status: 409, description: 'Duplicate payout request (idempotency conflict)' })
   async processPayout(@Body() dto: ProcessPayoutDto) {
     return this.payoutsService.processPayout(dto.instructorId, dto.amount);
   }
