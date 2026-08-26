@@ -78,6 +78,9 @@ describe('CohortsService', () => {
       mockThreadRepo,
       mockCommentRepo,
       mockAssignmentRepo,
+      {
+        transaction: jest.fn((cb: any) => cb({ getRepository: () => mockCohortRepo })),
+      } as any,
     );
 
     mockCohortRepo.findOne.mockResolvedValue({ id: 'cohort-1', ownerId: 'user-1' });

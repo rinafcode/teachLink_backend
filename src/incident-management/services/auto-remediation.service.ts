@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RemediationAction, RemediationStatus } from '../entities/remediation-action.entity';
 import { Incident } from '../entities/incident.entity';
@@ -184,11 +184,19 @@ export class AutoRemediationService {
     description: string,
     parameters: Record<string, unknown>,
     autoRollback = false,
+    manager?: EntityManager,
   ): Promise<RemediationAction> {
     this.logger.log(`Executing remediation action: ${actionType} for incident ${incident.id}`);
 
+    // When called inside a caller-owned transaction, all writes go through the
+    // transactional manager so the action commits/rolls back with the incident
+    // (issue #1344).
+    const remediationRepository = manager
+      ? manager.getRepository(RemediationAction)
+      : this.remediationRepository;
+
     // Create remediation action record
-    let remediationAction = this.remediationRepository.create({
+    let remediationAction = remediationRepository.create({
       incidentId: incident.id,
       actionType,
       description,
@@ -197,7 +205,7 @@ export class AutoRemediationService {
       autoRollback,
     });
 
-    remediationAction = await this.remediationRepository.save(remediationAction);
+    remediationAction = await remediationRepository.save(remediationAction);
 
     try {
       // Find handler for this action type
@@ -230,7 +238,7 @@ export class AutoRemediationService {
       this.logger.error(`Error executing remediation action: ${errorMsg}`);
     }
 
-    return this.remediationRepository.save(remediationAction);
+    return remediationRepository.save(remediationAction);
   }
 
   /**

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
 import { Tenant } from '../entities/tenant.entity';
 import { TENANT_BILLING_RATES } from '../tenancy.constants';
@@ -31,6 +31,7 @@ export class TenantBillingService {
     private readonly billingRepository: Repository<TenantBilling>,
     @InjectRepository(Tenant)
     private readonly tenantRepository: Repository<Tenant>,
+    private readonly dataSource: DataSource,
   ) {}
   /**
    * Get billing information for a tenant
@@ -84,46 +85,62 @@ export class TenantBillingService {
     amount: number,
     invoiceId?: string,
   ): Promise<TenantBilling> {
-    const billing = await this.getBillingInfo(tenantId);
+    // The history append and balance/total updates are one logical mutation:
+    // they commit together or not at all (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const billingRepository = manager.getRepository(TenantBilling);
+      const billing = await billingRepository.findOne({ where: { tenantId } });
+      if (!billing) {
+        throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
+      }
 
-    const billingRecord: IBillingRecord = {
-      date: new Date(),
-      amount,
-      status: 'paid',
-      invoiceId,
-    };
+      const billingRecord: IBillingRecord = {
+        date: new Date(),
+        amount,
+        status: 'paid',
+        invoiceId,
+      };
 
-    billing.billingHistory = billing.billingHistory || [];
-    billing.billingHistory.push(billingRecord);
-    billing.totalPaid = Number(billing.totalPaid) + amount;
-    billing.currentBalance = Number(billing.currentBalance) - amount;
-    billing.lastBillingDate = new Date();
+      billing.billingHistory = billing.billingHistory || [];
+      billing.billingHistory.push(billingRecord);
+      billing.totalPaid = Number(billing.totalPaid) + amount;
+      billing.currentBalance = Number(billing.currentBalance) - amount;
+      billing.lastBillingDate = new Date();
 
-    return await this.billingRepository.save(billing);
+      return await billingRepository.save(billing);
+    });
   }
 
   /**
    * Generate invoice
    */
   async generateInvoice(tenantId: string): Promise<IBillingRecord> {
-    const billing = await this.getBillingInfo(tenantId);
-    const amount = Number(billing.monthlyFee);
+    // Balance + history + next billing date are one logical mutation: they
+    // commit together or not at all (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const billingRepository = manager.getRepository(TenantBilling);
+      const billing = await billingRepository.findOne({ where: { tenantId } });
+      if (!billing) {
+        throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
+      }
+      const amount = Number(billing.monthlyFee);
 
-    const invoice: IBillingRecord = {
-      date: new Date(),
-      amount,
-      status: 'pending',
-      invoiceId: `INV-${tenantId}-${Date.now()}`,
-    };
+      const invoice: IBillingRecord = {
+        date: new Date(),
+        amount,
+        status: 'pending',
+        invoiceId: `INV-${tenantId}-${Date.now()}`,
+      };
 
-    billing.currentBalance = Number(billing.currentBalance) + amount;
-    billing.billingHistory = billing.billingHistory || [];
-    billing.billingHistory.push(invoice);
-    billing.nextBillingDate = this.calculateNextBillingDate(billing.billingCycle);
+      billing.currentBalance = Number(billing.currentBalance) + amount;
+      billing.billingHistory = billing.billingHistory || [];
+      billing.billingHistory.push(invoice);
+      billing.nextBillingDate = this.calculateNextBillingDate(billing.billingCycle);
 
-    await this.billingRepository.save(billing);
+      await billingRepository.save(billing);
 
-    return invoice;
+      return invoice;
+    });
   }
 
   /**
