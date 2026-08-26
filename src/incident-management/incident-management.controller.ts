@@ -9,7 +9,11 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { THROTTLE } from '../common/constants/throttle.constants';
+import { CustomThrottleGuard } from '../common/guards/throttle.guard';
 import { IncidentManagementService } from './incident-management.service';
 import {
   CreateIncidentDto,
@@ -27,6 +31,7 @@ import { Incident } from './entities/incident.entity';
 import { RemediationAction } from './entities/remediation-action.entity';
 import { RunbookExecution } from './entities/runbook-execution.entity';
 
+@UseGuards(CustomThrottleGuard)
 @Controller('incidents')
 export class IncidentManagementController {
   private readonly logger = new Logger(IncidentManagementController.name);
@@ -38,6 +43,7 @@ export class IncidentManagementController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: THROTTLE.MODERATE })
   async createIncident(@Body() createIncidentDto: CreateIncidentDto): Promise<IncidentResponseDto> {
     this.logger.log(`Creating incident: ${createIncidentDto.title}`);
     const incident = await this.incidentManagementService.createIncident(createIncidentDto);
@@ -74,6 +80,7 @@ export class IncidentManagementController {
    * Update incident
    */
   @Put(':incidentId')
+  @Throttle({ default: THROTTLE.MODERATE })
   async updateIncident(
     @Param('incidentId') incidentId: string,
     @Body() updateIncidentDto: UpdateIncidentDto,
@@ -89,6 +96,7 @@ export class IncidentManagementController {
    * Resolve incident
    */
   @Post(':incidentId/resolve')
+  @Throttle({ default: THROTTLE.MODERATE })
   async resolveIncident(
     @Param('incidentId') incidentId: string,
     @Body() resolveIncidentDto: ResolveIncidentDto,
@@ -105,6 +113,7 @@ export class IncidentManagementController {
    * Escalate incident
    */
   @Post(':incidentId/escalate')
+  @Throttle({ default: THROTTLE.MODERATE })
   async escalateIncident(
     @Param('incidentId') incidentId: string,
     @Body() escalateIncidentDto: EscalateIncidentDto,
@@ -123,6 +132,7 @@ export class IncidentManagementController {
    */
   @Post(':incidentId/remediation-actions')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: THROTTLE.MODERATE })
   async createRemediationAction(
     @Param('incidentId') incidentId: string,
     @Body() createDto: CreateRemediationActionDto,
@@ -152,6 +162,7 @@ export class IncidentManagementController {
    */
   @Post(':incidentId/runbook-executions')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: THROTTLE.MODERATE })
   async executeRunbook(
     @Param('incidentId') incidentId: string,
     @Body() createDto: CreateRunbookExecutionDto,
