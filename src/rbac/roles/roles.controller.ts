@@ -24,7 +24,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { PaginatedSwaggerDto } from '../../common/dto/paginated-response.dto';
 
-@ApiTags('roles')
+@ApiTags('Roles')
 @Controller('roles')
 @UseGuards(IpAllowlistGuard, JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -46,6 +46,9 @@ export class RolesController {
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new role (Admin only)' })
+  @ApiResponse({ status: 201, description: 'Role successfully created', type: Role })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 409, description: 'Role with this name already exists' })
   async create(@Body() createRoleDto: CreateRoleDto, @Req() req: Request): Promise<Role> {
     return this.rolesService.createRole(
       createRoleDto.name,
@@ -70,6 +73,8 @@ export class RolesController {
   @Get(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get role by ID (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Role found', type: Role })
+  @ApiResponse({ status: 404, description: 'Role not found' })
   async findOne(@Param('id') id: string): Promise<Role> {
     return this.rolesService.findRoleById(id);
   }
@@ -77,6 +82,10 @@ export class RolesController {
   @Put(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update a role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Role successfully updated', type: Role })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 409, description: 'Role with this name already exists' })
   async update(
     @Param('id') id: string,
     @Body() updateRoleDto: UpdateRoleDto,
@@ -92,6 +101,11 @@ export class RolesController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete a role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Role successfully deleted' })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  @ApiResponse({ status: 409, description: 'Role is in use and cannot be deleted' })
   async remove(@Param('id') id: string, @Req() req: Request): Promise<void> {
     return this.rolesService.deleteRole(id, this.extractContext(req));
   }
@@ -99,6 +113,9 @@ export class RolesController {
   @Post(':roleId/permissions/:permissionId')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Add permission to role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Permission successfully added to role', type: Role })
+  @ApiResponse({ status: 404, description: 'Role or permission not found' })
+  @ApiResponse({ status: 409, description: 'Permission already assigned to role' })
   async addPermission(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
@@ -110,6 +127,9 @@ export class RolesController {
   @Delete(':roleId/permissions/:permissionId')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Remove permission from role (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Permission successfully removed from role', type: Role })
+  @ApiResponse({ status: 404, description: 'Role or permission not found' })
+  @ApiResponse({ status: 400, description: 'Permission is not assigned to this role' })
   async removePermission(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
