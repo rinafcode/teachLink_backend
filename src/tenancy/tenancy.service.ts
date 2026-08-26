@@ -5,7 +5,7 @@ import {
   BusinessValidationException,
 } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Tenant } from './entities/tenant.entity';
 import { TenantConfig } from './entities/tenant-config.entity';
 import { TenantBilling } from './entities/tenant-billing.entity';
@@ -169,6 +169,55 @@ export class TenancyService {
     await this.tenantRepository.decrement({ id: tenantId }, 'currentUserCount', 1);
   }
 
+  /**
+   * Atomically consume one user seat for a tenant, enforcing the user limit in
+   * the same statement that increments the counter (issue #1343).
+   *
+   * Runs inside the caller's transaction (`manager`), so a later failure (e.g.
+   * the user insert) rolls the increment back. Returns `false` when the tenant
+   * is already at its limit — treat that as "user limit exceeded".
+   *
+   * `userLimit === -1` means unlimited.
+   */
+  async consumeUserSeat(manager: EntityManager, tenantId: string): Promise<boolean> {
+    const result = await manager
+      .createQueryBuilder()
+      .update(Tenant)
+      .set({ currentUserCount: () => '"currentUserCount" + 1' })
+      .where('id = :tenantId AND (userLimit = -1 OR currentUserCount < userLimit)', {
+        tenantId,
+      })
+      .execute();
+
+    return (result.affected ?? 0) > 0;
+  }
+
+  /**
+   * Atomically consume storage for a tenant, rejecting the write when it would
+   * exceed the storage limit (issue #1343). `storageLimit === -1` is unlimited.
+   */
+  async consumeStorage(
+    manager: EntityManager,
+    tenantId: string,
+    sizeInMB: number,
+  ): Promise<boolean> {
+    const result = await manager
+      .createQueryBuilder()
+      .update(Tenant)
+      .set({ currentStorageUsage: () => `"currentStorageUsage" + ${sizeInMB}` })
+      .where(
+        'id = :tenantId AND (storageLimit = -1 OR currentStorageUsage + :sizeInMB <= storageLimit)',
+        { tenantId, sizeInMB },
+      )
+      .execute();
+
+    return (result.affected ?? 0) > 0;
+  }
+
+  /**
+   * @deprecated Read-then-write storage update; kept for backwards
+   * compatibility. New callers should use {@link consumeStorage}.
+   */
   async updateStorageUsage(tenantId: string, sizeInMB: number): Promise<void> {
     const tenant = await this.findOne(tenantId);
     tenant.currentStorageUsage += sizeInMB;
