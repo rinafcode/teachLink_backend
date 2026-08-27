@@ -47,8 +47,15 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *     -- Should show monotonically increasing sequence values
  *  3. SELECT currval('invoice_number_seq');
  *     -- Shows current sequence position for debugging
+ *
+ * ## Timestamp note (issue #1196)
+ *
+ * Originally shared the timestamp `1790000000000` with
+ * `add-paused-subscription-status`, making the relative order of the two
+ * migrations dependent on file-load order. Renumbered to `1790000000001` for
+ * deterministic ordering.
  */
-export class FixInvoiceNumberSequence1790000000000 implements MigrationInterface {
+export class FixInvoiceNumberSequence1790000000001 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Use the queryRunner handed to us by the migration runner. Migrations run
     // inside a single shared transaction (TypeORM's default "all" mode), so a

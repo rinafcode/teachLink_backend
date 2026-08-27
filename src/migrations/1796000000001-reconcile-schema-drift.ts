@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class ReconcileSchemaDrift1796000000000 implements MigrationInterface {
-  name = 'ReconcileSchemaDrift1796000000000';
+export class ReconcileSchemaDrift1796000000001 implements MigrationInterface {
+  name = 'ReconcileSchemaDrift1796000000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
