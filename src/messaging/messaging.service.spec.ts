@@ -79,11 +79,14 @@ describe('MessagingService', () => {
           return qb;
         }),
         getManyAndCount: jest.fn().mockImplementation(async () => {
-          const items = dataset.filter(
-            (item) =>
-              (item.senderId === whereParams.userId && item.recipientId === whereParams.otherUserId) ||
-              (item.senderId === whereParams.otherUserId && item.recipientId === whereParams.userId),
-          );
+          const items = dataset.filter((item) => {
+            return (
+              (item.senderId === whereParams.userId &&
+                item.recipientId === whereParams.otherUserId) ||
+              (item.senderId === whereParams.otherUserId &&
+                item.recipientId === whereParams.userId)
+            );
+          });
           return [items.slice(skipVal, skipVal + takeVal), items.length];
         }),
       };
@@ -129,9 +132,7 @@ describe('MessagingService', () => {
     it('should throw when save fails', async () => {
       mockMessageRepo.save.mockRejectedValue(new Error('DB error'));
 
-      await expect(
-        service.createMessage({ text: 'fail' } as any),
-      ).rejects.toThrow('DB error');
+      await expect(service.createMessage({ text: 'fail' } as any)).rejects.toThrow('DB error');
       expect(mockTracingService.endSpan).toHaveBeenCalledWith(mockSpan);
     });
   });
@@ -158,14 +159,7 @@ describe('MessagingService', () => {
 
   describe('getConversation', () => {
     it('should paginate conversation results and clamp the page size', async () => {
-      const result = await service.getConversation(
-        'user-1',
-        'user-2',
-        {
-          page: 1,
-          limit: 999,
-        } as any,
-      );
+      const result = await service.getConversation('user-1', 'user-2', { page: 1, limit: 999 } as any);
 
       expect(result.limit).toBe(100);
       expect(result.data).toHaveLength(3);
