@@ -129,7 +129,9 @@ describe('MessagingService', () => {
     it('should throw when save fails', async () => {
       mockMessageRepo.save.mockRejectedValue(new Error('DB error'));
 
-      await expect(service.createMessage({ text: 'fail' } as any)).rejects.toThrow('DB error');
+      await expect(
+        service.createMessage({ text: 'fail' } as any),
+      ).rejects.toThrow('DB error');
       expect(mockTracingService.endSpan).toHaveBeenCalledWith(mockSpan);
     });
   });
@@ -159,7 +161,10 @@ describe('MessagingService', () => {
       const result = await service.getConversation(
         'user-1',
         'user-2',
-        { page: 1, limit: 999 } as any,
+        {
+          page: 1,
+          limit: 999,
+        } as any,
       );
 
       expect(result.limit).toBe(100);
