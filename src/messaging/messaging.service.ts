@@ -62,9 +62,7 @@ export class MessagingService {
     const span = this.tracingService.startSpan('get-conversation');
     try {
       const limit = clampLimit(query?.limit);
-      const offset =
-        query?.offset ??
-        (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+      const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
       const qb = this.messageRepo
         .createQueryBuilder('message')
         .where(
