@@ -3,6 +3,7 @@ import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { THROTTLE } from '../common/constants/throttle.constants';
 import { SearchService } from './search.service';
+import { PaginationDto } from './dto/pagination.dto';
 
 @ApiTags('Search')
 @Throttle({ default: THROTTLE.SEARCH })
@@ -29,8 +30,8 @@ export class SearchController {
     example: '{"category":"programming","level":"beginner"}',
   })
   @ApiQuery({ name: 'sort', required: false, example: 'relevance' })
-  @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  @ApiQuery({ name: 'page', required: false, description: 'The page number. Default is 1.', example: 1, type: Number })
+  @ApiQuery({ name: 'limit', required: false, description: 'The maximum number of results. Default is 20. Max is 100.', example: 20, type: Number })
   @ApiResponse({
     status: 200,
     description: 'Search results',
@@ -49,10 +50,9 @@ export class SearchController {
   @ApiResponse({ status: 503, description: 'Search is temporarily unavailable' })
   async search(
     @Query('q') query: string,
+    @Query() paginationDto: PaginationDto,
     @Query('filters') filters?: string,
     @Query('sort') sort?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
   ): Promise<any> {
     let parsedFilters: Record<string, any> = {};
     if (filters) {
@@ -63,8 +63,8 @@ export class SearchController {
       }
     }
 
-    const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const pageNum = paginationDto.page ?? 1;
+    const limitNum = paginationDto.limit ?? 20;
 
     return this.searchService.search(query, parsedFilters, sort, pageNum, limitNum);
   }
