@@ -17,7 +17,6 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@ne
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { SubscriptionsService } from './subscriptions.service';
 import {
-  SubscriptionResponseDto,
   PauseSubscriptionDto,
   ResumeSubscriptionDto,
   UpgradeSubscriptionDto,
@@ -40,10 +39,11 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Get current user subscription' })
   @ApiResponse({
     status: 200,
-    description: 'User subscription',
-    type: SubscriptionResponseDto,
+    description: 'User subscription retrieved successfully',
+    type: Subscription,
   })
-  @ApiResponse({ status: 404, description: 'No active subscription' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 404, description: 'No active subscription found' })
   async getUserSubscription(@Request() req: any): Promise<Subscription | null> {
     const subscription = await this.subscriptionsService.getUserSubscription(req.user.id);
     if (!subscription) {
@@ -58,7 +58,12 @@ export class SubscriptionsController {
   @Get(':subscriptionId')
   @ApiOperation({ summary: 'Get subscription by ID' })
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
-  @ApiResponse({ status: 200, description: 'Subscription', type: SubscriptionResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription retrieved successfully',
+    type: Subscription,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async getSubscription(@Param('subscriptionId') subscriptionId: string): Promise<Subscription> {
     return this.subscriptionsService.getSubscription(subscriptionId);
@@ -70,7 +75,12 @@ export class SubscriptionsController {
   @Get(':subscriptionId/ownership')
   @ApiOperation({ summary: 'Get subscription by ID with ownership verification' })
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
-  @ApiResponse({ status: 200, description: 'Subscription', type: SubscriptionResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription retrieved successfully',
+    type: Subscription,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   @ApiResponse({ status: 404, description: 'Subscription not found for this user' })
   async getSubscriptionForUser(
     @Param('subscriptionId') subscriptionId: string,
@@ -87,10 +97,11 @@ export class SubscriptionsController {
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
   @ApiResponse({
     status: 200,
-    description: 'Subscription paused',
-    type: SubscriptionResponseDto,
+    description: 'Subscription paused successfully',
+    type: Subscription,
   })
-  @ApiResponse({ status: 400, description: 'Invalid subscription state' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 400, description: 'Invalid subscription state or pause request' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async pauseSubscription(
     @Param('subscriptionId') subscriptionId: string,
@@ -114,10 +125,11 @@ export class SubscriptionsController {
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
   @ApiResponse({
     status: 200,
-    description: 'Subscription resumed',
-    type: SubscriptionResponseDto,
+    description: 'Subscription resumed successfully',
+    type: Subscription,
   })
-  @ApiResponse({ status: 400, description: 'Subscription is not paused' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 400, description: 'Subscription is not paused or invalid resume request' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async resumeSubscription(
     @Param('subscriptionId') subscriptionId: string,
@@ -142,10 +154,12 @@ export class SubscriptionsController {
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
   @ApiResponse({
     status: 200,
-    description: 'Subscription upgraded',
-    type: SubscriptionResponseDto,
+    description: 'Subscription upgraded successfully',
+    type: Subscription,
   })
-  @ApiResponse({ status: 400, description: 'Invalid upgrade request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 400, description: 'Invalid upgrade request or payment failed' })
+  @ApiResponse({ status: 402, description: 'Payment required - Prorated charge failed' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async upgradeSubscription(
     @Param('subscriptionId') subscriptionId: string,
@@ -170,10 +184,11 @@ export class SubscriptionsController {
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
   @ApiResponse({
     status: 200,
-    description: 'Subscription downgraded',
-    type: SubscriptionResponseDto,
+    description: 'Subscription downgraded successfully',
+    type: Subscription,
   })
-  @ApiResponse({ status: 400, description: 'Invalid downgrade request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 400, description: 'Invalid downgrade request or credit issuance failed' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async downgradeSubscription(
     @Param('subscriptionId') subscriptionId: string,
@@ -195,7 +210,9 @@ export class SubscriptionsController {
   @Delete(':subscriptionId')
   @ApiOperation({ summary: 'Cancel a subscription' })
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
-  @ApiResponse({ status: 204, description: 'Subscription cancelled' })
+  @ApiResponse({ status: 204, description: 'Subscription cancelled successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
+  @ApiResponse({ status: 400, description: 'Subscription is already cancelled' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   @HttpCode(HttpStatus.NO_CONTENT)
   async cancelSubscription(@Param('subscriptionId') subscriptionId: string): Promise<void> {
