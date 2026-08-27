@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- error logging in catch blocks; predates structured-logger migration */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -89,7 +88,10 @@ export class IdempotencyService {
       const ttlSeconds = record.ttlSeconds ?? this.defaultTTLSeconds;
       await this.redisClient.set(this.getRecordKey(key), JSON.stringify(record), 'EX', ttlSeconds);
     } catch (error) {
-      console.error('Error saving idempotency record:', error);
+      this.logger.error(
+        'Error saving idempotency record',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -97,7 +99,10 @@ export class IdempotencyService {
     try {
       await this.redisClient.del(this.getRecordKey(key));
     } catch (error) {
-      console.error('Error deleting idempotency record:', error);
+      this.logger.error(
+        'Error deleting idempotency record',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -140,7 +145,10 @@ export class IdempotencyService {
       );
       return result === 'OK';
     } catch (error) {
-      console.error('Error acquiring idempotency lock:', error);
+      this.logger.error(
+        'Error acquiring idempotency lock',
+        error instanceof Error ? error.stack : String(error),
+      );
       return false;
     }
   }
@@ -149,7 +157,10 @@ export class IdempotencyService {
     try {
       await this.redisClient.del(this.getLockKey(key));
     } catch (error) {
-      console.error('Error releasing idempotency lock:', error);
+      this.logger.error(
+        'Error releasing idempotency lock',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -179,7 +190,10 @@ export class IdempotencyService {
         await this.redisClient.del(...keys);
       }
     } catch (error) {
-      console.error('Error cleaning up idempotency records:', error);
+      this.logger.error(
+        'Error cleaning up idempotency records',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
