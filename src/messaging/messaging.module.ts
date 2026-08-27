@@ -9,6 +9,7 @@ import { Message } from './message.entity';
 import { ConnectionSessionService } from './websocket-resilience/connection-session.service';
 import { WebSocketResilienceService } from './websocket-resilience/websocket-resilience.service';
 import { TracingService } from './tracing/tracing.service';
+import { PaginationService } from '../common/services/pagination.service';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TracingService } from './tracing/tracing.service';
     ConnectionSessionService,
     WebSocketResilienceService,
     TracingService,
+    PaginationService,
   ],
   controllers: [MessagingController],
   exports: [MessagingService],

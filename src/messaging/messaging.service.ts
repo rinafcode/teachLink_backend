@@ -8,6 +8,9 @@ import { Queue, Job } from 'bull';
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { TracingService } from './tracing/tracing.service';
 import { enrichWithCorrelation } from '../queues/utils/correlation-job.util';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { clampLimit } from '../common/utils/pagination.utils';
 
 /**
  * Provides messaging operations.
@@ -21,6 +24,7 @@ export class MessagingService {
     private readonly tracingService: TracingService,
     @InjectRepository(Message)
     private readonly messageRepo: Repository<Message>,
+    private readonly paginationService: PaginationService,
   ) {}
 
   /**
@@ -50,16 +54,23 @@ export class MessagingService {
     }
   }
 
-  async getConversation(userId: string, otherUserId: string): Promise<Message[]> {
+  async getConversation(
+    userId: string,
+    otherUserId: string,
+    query?: PaginationQueryDto,
+  ): Promise<any> {
     const span = this.tracingService.startSpan('get-conversation');
     try {
-      return await this.messageRepo.find({
-        where: [
-          { senderId: userId, recipientId: otherUserId },
-          { senderId: otherUserId, recipientId: userId },
-        ],
-        order: { createdAt: 'ASC' },
-      });
+      const limit = clampLimit(query?.limit);
+      const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+      const qb = this.messageRepo
+        .createQueryBuilder('message')
+        .where(
+          '(message.senderId = :userId AND message.recipientId = :otherUserId) OR (message.senderId = :otherUserId AND message.recipientId = :userId)',
+          { userId, otherUserId },
+        );
+
+      return this.paginationService.paginate(qb, query?.cursor, limit, offset, 'createdAt');
     } finally {
       this.tracingService.endSpan(span);
     }

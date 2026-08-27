@@ -1,3 +1,7 @@
+jest.mock('./templates/notification-template.service', () => ({
+  NotificationTemplateService: class NotificationTemplateService {},
+}));
+
 import { NotificationsService } from './notifications.service';
 import { NotificationType } from './entities/notification.entity';
 
