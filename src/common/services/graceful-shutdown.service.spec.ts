@@ -55,7 +55,10 @@ describe('GracefulShutdownService', () => {
       service.registerShutdownPhase({
         name: 'blocking',
         timeout: 5000,
-        execute: () => new Promise<void>((r) => { resolvePhase = r; }),
+        execute: () =>
+          new Promise<void>((r) => {
+            resolvePhase = r;
+          }),
       });
 
       const shutdownPromise = service.shutdown();
@@ -130,7 +133,9 @@ describe('GracefulShutdownService', () => {
       const make = (name: string, timeout: number): ShutdownPhase => ({
         name,
         timeout,
-        execute: jest.fn().mockImplementation(async () => { order.push(name); }),
+        execute: jest.fn().mockImplementation(async () => {
+          order.push(name);
+        }),
       });
 
       // Register in reverse priority order
@@ -190,7 +195,10 @@ describe('GracefulShutdownService', () => {
       service.registerShutdownPhase({
         name: 'blocking',
         timeout: 5000,
-        execute: () => new Promise<void>((r) => { resolvePhase = r; }),
+        execute: () =>
+          new Promise<void>((r) => {
+            resolvePhase = r;
+          }),
       });
 
       const first = service.shutdown();
