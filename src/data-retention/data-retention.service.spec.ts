@@ -25,7 +25,7 @@ describe('DataRetentionService', () => {
           'retention.batchSize': 1000,
           'retention.enableArchiving': true,
         };
-        return key in overrides ? overrides[key] : defaults[key] ?? defaultValue;
+        return key in overrides ? overrides[key] : (defaults[key] ?? defaultValue);
       }),
     }) as unknown as ConfigService;
 
