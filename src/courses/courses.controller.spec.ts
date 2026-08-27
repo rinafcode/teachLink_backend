@@ -9,6 +9,8 @@ import { CourseVersion } from './entities/course-version.entity';
 import { BulkOperation } from './entities/bulk-operation.entity';
 import { PaginationService } from '../common/services/pagination.service';
 import { User, UserRole } from '../users/entities/user.entity';
+import { OutboxService } from '../common/events/outbox.service';
+import { DataSource } from 'typeorm';
 
 describe('CoursesController Pagination (#826)', () => {
   let controller: CoursesController;
@@ -109,6 +111,15 @@ describe('CoursesController Pagination (#826)', () => {
     }),
   };
 
+  const mockOutboxService = {
+    enqueue: jest.fn(),
+    enqueueStandalone: jest.fn(),
+  };
+
+  const mockDataSource = {
+    transaction: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CoursesController],
@@ -119,6 +130,8 @@ describe('CoursesController Pagination (#826)', () => {
         { provide: getRepositoryToken(CourseReview), useValue: {} },
         { provide: getRepositoryToken(CourseVersion), useValue: {} },
         { provide: getRepositoryToken(BulkOperation), useValue: {} },
+        { provide: OutboxService, useValue: mockOutboxService },
+        { provide: DataSource, useValue: mockDataSource },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();

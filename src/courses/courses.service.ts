@@ -30,6 +30,7 @@ import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
 import { PaginationService } from '../common/services/pagination.service';
+import { clampLimit } from '../common/utils/pagination.utils';
 import { OutboxService } from '../common/events/outbox.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { EventType } from '../analytics/entities/event.entity';
@@ -145,7 +146,7 @@ export class CoursesService {
     requestingUser?: User,
     query?: PaginationQueryDto,
   ): Promise<OffsetPaginatedResponse<Course>> {
-    const limit = query?.limit ?? 20;
+    const limit = clampLimit(query?.limit);
     const isPrivileged = checkUserRole(requestingUser, ...PRIVILEGED_ROLES);
 
     const qb = this.courseRepo.createQueryBuilder('course');

@@ -9,6 +9,7 @@ import { CreateNotificationDto } from './dto/notification.dto';
 import { SendTemplatedNotificationDto } from './dto/preferences.dto';
 import { PreferencesService } from './preferences/preferences.service';
 import { NotificationTemplateService } from './templates/notification-template.service';
+import { clampLimit } from '../common/utils/pagination.utils';
 
 @Injectable()
 export class NotificationsService {
@@ -193,7 +194,7 @@ export class NotificationsService {
   }
 
   async findForUser(userId: string, query?: PaginationQueryDto) {
-    const limit = query?.limit ?? 20;
+    const limit = clampLimit(query?.limit);
     const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
 
     const qb = this.notificationRepository
