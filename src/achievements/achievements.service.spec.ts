@@ -58,11 +58,7 @@ const mockProgress: AchievementProgress = {
 } as AchievementProgress;
 
 // Build a mock transaction that immediately invokes the callback with repo mocks
-const buildMockManager = (
-  achRepo: any,
-  progressRepo: any,
-  userAchRepo: any,
-) => ({
+const buildMockManager = (achRepo: any, progressRepo: any, userAchRepo: any) => ({
   getRepository: (entity: any) => {
     if (entity === Achievement) return achRepo;
     if (entity === AchievementProgress) return progressRepo;
@@ -127,9 +123,11 @@ describe('AchievementsService', () => {
     };
 
     dataSource = {
-      transaction: jest.fn().mockImplementation((cb: (manager: any) => any) =>
-        cb(buildMockManager(achievementRepo, progressRepo, userAchievementRepo)),
-      ),
+      transaction: jest
+        .fn()
+        .mockImplementation((cb: (manager: any) => any) =>
+          cb(buildMockManager(achievementRepo, progressRepo, userAchievementRepo)),
+        ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
