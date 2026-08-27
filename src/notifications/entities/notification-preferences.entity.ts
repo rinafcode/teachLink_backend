@@ -7,6 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -22,6 +23,7 @@ export class NotificationPreferences {
   version: number;
 
   @Column()
+  @Index('IDX_notification_preferences_user_id')
   userId: string;
 
   @OneToOne(() => User, { onDelete: 'CASCADE' })
@@ -48,6 +50,7 @@ export class NotificationPreferences {
   eventFrequency: Record<string, 'instant' | 'daily' | 'weekly' | 'never'>;
 
   @Column({ default: false })
+  @Index('IDX_notification_preferences_global_unsub')
   globalUnsubscribe: boolean;
 
   @Column({ type: 'varchar', default: '09:00' })
