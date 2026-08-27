@@ -58,7 +58,11 @@ export class SubscriptionsController {
   @Get(':subscriptionId')
   @ApiOperation({ summary: 'Get subscription by ID' })
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
-  @ApiResponse({ status: 200, description: 'Subscription retrieved successfully', type: Subscription })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription retrieved successfully',
+    type: Subscription,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   @ApiResponse({ status: 404, description: 'Subscription not found' })
   async getSubscription(@Param('subscriptionId') subscriptionId: string): Promise<Subscription> {
@@ -71,7 +75,11 @@ export class SubscriptionsController {
   @Get(':subscriptionId/ownership')
   @ApiOperation({ summary: 'Get subscription by ID with ownership verification' })
   @ApiParam({ name: 'subscriptionId', description: 'Subscription ID' })
-  @ApiResponse({ status: 200, description: 'Subscription retrieved successfully', type: Subscription })
+  @ApiResponse({
+    status: 200,
+    description: 'Subscription retrieved successfully',
+    type: Subscription,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized - Invalid or missing JWT token' })
   @ApiResponse({ status: 404, description: 'Subscription not found for this user' })
   async getSubscriptionForUser(

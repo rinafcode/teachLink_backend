@@ -48,11 +48,19 @@ export class Subscription {
 
   @Column({ type: 'enum', enum: SubscriptionStatus, default: SubscriptionStatus.ACTIVE })
   @Index()
-  @ApiProperty({ description: 'Subscription status', enum: SubscriptionStatus, example: SubscriptionStatus.ACTIVE })
+  @ApiProperty({
+    description: 'Subscription status',
+    enum: SubscriptionStatus,
+    example: SubscriptionStatus.ACTIVE,
+  })
   status: SubscriptionStatus;
 
   @Column({ type: 'enum', enum: SubscriptionInterval })
-  @ApiProperty({ description: 'Billing interval', enum: SubscriptionInterval, example: SubscriptionInterval.MONTHLY })
+  @ApiProperty({
+    description: 'Billing interval',
+    enum: SubscriptionInterval,
+    example: SubscriptionInterval.MONTHLY,
+  })
   interval: SubscriptionInterval;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
