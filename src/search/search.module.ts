@@ -11,11 +11,7 @@ import { MetricsModule } from '../utils/masking/metrics.module';
  * facets, autocomplete, and result caching when available.
  */
 @Module({
-  imports: [
-    TenancyModule,
-    MetricsModule,
-    SearchElasticsearchModule,
-  ],
+  imports: [TenancyModule, MetricsModule, SearchElasticsearchModule],
   controllers: [SearchController],
   providers: [SearchService],
   exports: [SearchService],
