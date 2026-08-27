@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ElasticsearchModule } from '@nestjs/elasticsearch';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
-import { createElasticsearchConfig } from '../config/elasticsearch.config';
 import { TenancyModule } from '../tenancy/tenancy.module';
+import { SearchElasticsearchModule } from './elasticsearch/elasticsearch.module';
 
 import { MetricsModule } from '../utils/masking/metrics.module';
 
@@ -14,14 +12,9 @@ import { MetricsModule } from '../utils/masking/metrics.module';
  */
 @Module({
   imports: [
-    ConfigModule,
     TenancyModule,
     MetricsModule,
-    ElasticsearchModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: createElasticsearchConfig,
-    }),
+    SearchElasticsearchModule,
   ],
   controllers: [SearchController],
   providers: [SearchService],
