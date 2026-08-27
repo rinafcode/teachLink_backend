@@ -50,7 +50,7 @@ describe('QueryAnalysisService', () => {
 
   it('returns slow statements when pg_stat_statements is enabled', async () => {
     const dataSource = makeDataSource(async (sql) => {
-      if (sql.includes("pg_extension")) {
+      if (sql.includes('pg_extension')) {
         return [{ exists: true }];
       }
       if (sql.includes('pg_stat_statements')) {

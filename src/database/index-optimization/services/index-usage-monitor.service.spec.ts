@@ -53,10 +53,7 @@ describe('IndexUsageMonitorService', () => {
   });
 
   it('returns a cached snapshot after sampling', async () => {
-    const service = new IndexUsageMonitorService(
-      makeDataSource([]),
-      config as any,
-    );
+    const service = new IndexUsageMonitorService(makeDataSource([]), config as any);
 
     const snapshot = await service.getSnapshot();
 

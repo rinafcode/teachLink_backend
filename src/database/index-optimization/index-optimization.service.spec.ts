@@ -20,7 +20,9 @@ describe('IndexOptimizationService', () => {
   };
 
   const analysis = {
-    analyze: jest.fn().mockResolvedValue([{ suggestedName: 'idx_demo', ddl: 'CREATE INDEX', table: 'demo' }]),
+    analyze: jest
+      .fn()
+      .mockResolvedValue([{ suggestedName: 'idx_demo', ddl: 'CREATE INDEX', table: 'demo' }]),
   } as unknown as QueryAnalysisService;
   const creation = {
     createFromRecommendations: jest.fn().mockResolvedValue([{ created: true }]),
@@ -51,13 +53,10 @@ describe('IndexOptimizationService', () => {
 
   it('skips the scheduled run when disabled', async () => {
     const run = jest.spyOn(IndexOptimizationService.prototype, 'run').mockResolvedValue({} as any);
-    const service = new IndexOptimizationService(
-      analysis,
-      creation,
-      usageMonitor,
-      staleIndex,
-      { ...config, enabled: false } as any,
-    );
+    const service = new IndexOptimizationService(analysis, creation, usageMonitor, staleIndex, {
+      ...config,
+      enabled: false,
+    } as any);
 
     await service.scheduledRun();
 
@@ -67,13 +66,10 @@ describe('IndexOptimizationService', () => {
 
   it('invokes the scheduled run when enabled', async () => {
     const run = jest.spyOn(IndexOptimizationService.prototype, 'run').mockResolvedValue({} as any);
-    const service = new IndexOptimizationService(
-      analysis,
-      creation,
-      usageMonitor,
-      staleIndex,
-      { ...config, enabled: true } as any,
-    );
+    const service = new IndexOptimizationService(analysis, creation, usageMonitor, staleIndex, {
+      ...config,
+      enabled: true,
+    } as any);
 
     await service.scheduledRun();
 
