@@ -81,8 +81,10 @@ describe('MessagingService', () => {
         getManyAndCount: jest.fn().mockImplementation(async () => {
           const items = dataset.filter(
             (item) =>
-              (item.senderId === whereParams.userId && item.recipientId === whereParams.otherUserId) ||
-              (item.senderId === whereParams.otherUserId && item.recipientId === whereParams.userId),
+              (item.senderId === whereParams.userId &&
+                item.recipientId === whereParams.otherUserId) ||
+              (item.senderId === whereParams.otherUserId &&
+                item.recipientId === whereParams.userId),
           );
           return [items.slice(skipVal, skipVal + takeVal), items.length];
         }),
