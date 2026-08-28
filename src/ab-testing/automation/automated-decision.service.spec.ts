@@ -18,7 +18,7 @@ const makeExperiment = (overrides: Partial<Experiment> = {}): Experiment =>
     autoAllocateTraffic: false,
     variants: [],
     ...overrides,
-  } as Experiment);
+  }) as Experiment;
 
 const makeVariant = (overrides: Partial<IExperimentVariant> = {}): IExperimentVariant =>
   ({
@@ -29,7 +29,7 @@ const makeVariant = (overrides: Partial<IExperimentVariant> = {}): IExperimentVa
     trafficAllocation: 0.5,
     metrics: [],
     ...overrides,
-  } as IExperimentVariant);
+  }) as IExperimentVariant;
 
 describe('AutomatedDecisionService', () => {
   let service: AutomatedDecisionService;
@@ -87,7 +87,7 @@ describe('AutomatedDecisionService', () => {
       );
       const result = await service.autoSelectWinner('exp-1');
       expect(result.decision).toBe('no_winner');
-      expect((result.reason as string)).toMatch(/duration/i);
+      expect(result.reason as string).toMatch(/duration/i);
     });
 
     it('returns no_winner when results are not statistically significant', async () => {
@@ -111,9 +111,7 @@ describe('AutomatedDecisionService', () => {
     });
 
     it('returns false when experiment is not running', async () => {
-      experimentRepo.findOne.mockResolvedValue(
-        makeExperiment({ status: ExperimentStatus.PAUSED }),
-      );
+      experimentRepo.findOne.mockResolvedValue(makeExperiment({ status: ExperimentStatus.PAUSED }));
       await expect(service.isReadyForWinnerSelection('exp-1')).resolves.toBe(false);
     });
 
@@ -147,9 +145,7 @@ describe('AutomatedDecisionService', () => {
     });
 
     it('returns not-running recommendation when experiment is not running', async () => {
-      experimentRepo.findOne.mockResolvedValue(
-        makeExperiment({ status: ExperimentStatus.PAUSED }),
-      );
+      experimentRepo.findOne.mockResolvedValue(makeExperiment({ status: ExperimentStatus.PAUSED }));
       const result = await service.getDecisionRecommendations('exp-1');
       expect(result.recommendations).toContain('Experiment is not running');
     });
@@ -171,9 +167,7 @@ describe('AutomatedDecisionService', () => {
     });
 
     it('does nothing when autoAllocateTraffic is false', async () => {
-      experimentRepo.findOne.mockResolvedValue(
-        makeExperiment({ autoAllocateTraffic: false }),
-      );
+      experimentRepo.findOne.mockResolvedValue(makeExperiment({ autoAllocateTraffic: false }));
       await expect(service.autoAllocateTraffic('exp-1')).resolves.toBeUndefined();
       expect(variantRepo.save).not.toHaveBeenCalled();
     });

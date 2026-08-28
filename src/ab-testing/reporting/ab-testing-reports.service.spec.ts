@@ -15,7 +15,7 @@ const makeVariant = (overrides: Partial<IExperimentVariant> = {}): IExperimentVa
     trafficAllocation: 0.5,
     metrics: [],
     ...overrides,
-  } as IExperimentVariant);
+  }) as IExperimentVariant;
 
 const makeExperiment = (overrides: Partial<Experiment> = {}): Experiment =>
   ({
@@ -34,7 +34,7 @@ const makeExperiment = (overrides: Partial<Experiment> = {}): Experiment =>
     metrics: [],
     createdAt: new Date(),
     ...overrides,
-  } as Experiment);
+  }) as Experiment;
 
 describe('ABTestingReportsService', () => {
   let service: ABTestingReportsService;
@@ -170,14 +170,14 @@ describe('ABTestingReportsService', () => {
   describe('getExperimentTimeline()', () => {
     it('returns an empty timeline when no experiments exist', async () => {
       experimentRepo.find.mockResolvedValue([]);
-      const result = await service.getExperimentTimeline() as any;
+      const result = (await service.getExperimentTimeline()) as any;
       expect(result.totalExperiments).toBe(0);
       expect(result.timeline).toHaveLength(0);
     });
 
     it('returns timeline entries for each experiment', async () => {
       experimentRepo.find.mockResolvedValue([makeExperiment()]);
-      const result = await service.getExperimentTimeline() as any;
+      const result = (await service.getExperimentTimeline()) as any;
       expect(result.totalExperiments).toBe(1);
       expect(result.timeline[0].id).toBe('exp-1');
     });

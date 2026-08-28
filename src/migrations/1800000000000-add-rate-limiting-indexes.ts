@@ -25,23 +25,23 @@ export class AddRateLimitingIndexes1800000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_userId" ON "rate_limiting" ("userId")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_userId" ON "rate_limiting" ("userId")',
     );
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_endpoint" ON "rate_limiting" ("endpoint")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_endpoint" ON "rate_limiting" ("endpoint")',
     );
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_userId_endpoint" ON "rate_limiting" ("userId", "endpoint")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_userId_endpoint" ON "rate_limiting" ("userId", "endpoint")',
     );
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_windowStart" ON "rate_limiting" ("windowStart")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_rate_limiting_windowStart" ON "rate_limiting" ("windowStart")',
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_rate_limiting_windowStart"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_rate_limiting_userId_endpoint"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_rate_limiting_endpoint"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_rate_limiting_userId"`);
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_rate_limiting_windowStart"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_rate_limiting_userId_endpoint"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_rate_limiting_endpoint"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_rate_limiting_userId"');
   }
 }

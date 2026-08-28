@@ -14,7 +14,7 @@ const makeExperiment = (overrides: Partial<Experiment> = {}): Experiment =>
     status: ExperimentStatus.RUNNING,
     variants: [],
     ...overrides,
-  } as Experiment);
+  }) as Experiment;
 
 const makeVariant = (overrides: Partial<IExperimentVariant> = {}): IExperimentVariant =>
   ({
@@ -25,7 +25,7 @@ const makeVariant = (overrides: Partial<IExperimentVariant> = {}): IExperimentVa
     trafficAllocation: 0.5,
     metrics: [],
     ...overrides,
-  } as IExperimentVariant);
+  }) as IExperimentVariant;
 
 describe('ExperimentService', () => {
   let service: ExperimentService;
@@ -115,16 +115,14 @@ describe('ExperimentService', () => {
       const v1 = makeVariant({ id: 'v1' });
       const v2 = makeVariant({ id: 'v2' });
       experimentRepo.findOne.mockResolvedValue(makeExperiment({ variants: [v1, v2] }));
-      await expect(
-        service.updateTrafficAllocation('exp-1', { v1: 0.3, v2: 0.3 }),
-      ).rejects.toThrow('must sum to 1');
+      await expect(service.updateTrafficAllocation('exp-1', { v1: 0.3, v2: 0.3 })).rejects.toThrow(
+        'must sum to 1',
+      );
     });
 
     it('throws if experiment not found', async () => {
       experimentRepo.findOne.mockResolvedValue(null);
-      await expect(
-        service.updateTrafficAllocation('missing', {}),
-      ).rejects.toThrow('not found');
+      await expect(service.updateTrafficAllocation('missing', {})).rejects.toThrow('not found');
     });
 
     it('updates allocations within a transaction when sum is valid', async () => {
@@ -147,7 +145,7 @@ describe('ExperimentService', () => {
     it('returns structured results for a found experiment', async () => {
       const exp = makeExperiment({ variants: [makeVariant()] });
       experimentRepo.findOne.mockResolvedValue(exp);
-      const result = await service.getExperimentResults('exp-1') as any;
+      const result = (await service.getExperimentResults('exp-1')) as any;
       expect(result.experiment.id).toBe('exp-1');
       expect(result.variants).toHaveLength(1);
     });
@@ -172,7 +170,9 @@ describe('ExperimentService', () => {
 
   describe('pauseExperiment()', () => {
     it('pauses a running experiment', async () => {
-      experimentRepo.findOne.mockResolvedValue(makeExperiment({ status: ExperimentStatus.RUNNING }));
+      experimentRepo.findOne.mockResolvedValue(
+        makeExperiment({ status: ExperimentStatus.RUNNING }),
+      );
       const result = await service.pauseExperiment('exp-1');
       expect(result.status).toBe(ExperimentStatus.PAUSED);
     });
@@ -198,7 +198,9 @@ describe('ExperimentService', () => {
     });
 
     it('throws if experiment is not paused', async () => {
-      experimentRepo.findOne.mockResolvedValue(makeExperiment({ status: ExperimentStatus.RUNNING }));
+      experimentRepo.findOne.mockResolvedValue(
+        makeExperiment({ status: ExperimentStatus.RUNNING }),
+      );
       await expect(service.resumeExperiment('exp-1')).rejects.toThrow('Only paused');
     });
 
