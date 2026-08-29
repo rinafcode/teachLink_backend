@@ -26,7 +26,26 @@ import {
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { Notification, NotificationStatus } from './entities/notification.entity';
 import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
-import { ApiQuery } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsBoolean, IsEnum } from 'class-validator';
+import { Transform } from 'class-transformer';
+
+export class NotificationsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ description: 'Filter by read status', type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === '1') return true;
+    if (value === 'false' || value === '0') return false;
+    return value;
+  })
+  @IsBoolean({ message: 'isRead must be a boolean' })
+  isRead?: boolean;
+
+  @ApiPropertyOptional({ description: 'Filter by notification status', enum: NotificationStatus })
+  @IsOptional()
+  @IsEnum(NotificationStatus)
+  status?: NotificationStatus;
+}
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -87,16 +106,7 @@ export class NotificationsController {
     description: 'Paginated list of notifications',
     type: PaginatedSwaggerDto(Notification),
   })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'order', required: false, enum: ['ASC', 'DESC'] })
-  @ApiQuery({ name: 'cursor', required: false, type: String })
-  @ApiQuery({ name: 'isRead', required: false, type: Boolean })
-  @ApiQuery({ name: 'status', required: false, enum: NotificationStatus })
-  list(
-    @Req() req: any,
-    @Query() query?: PaginationQueryDto & { isRead?: boolean | string; status?: NotificationStatus },
-  ) {
+  list(@Req() req: any, @Query() query?: NotificationsQueryDto) {
     return this.notificationsService.findForUser(req.user.id, query);
   }
 
