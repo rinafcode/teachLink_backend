@@ -5,6 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "packageManager": "pnpm@11.x.x",
   "scripts": {
     "license:scan": "node scripts/scan-licenses.js",
     "build": "nest build",
