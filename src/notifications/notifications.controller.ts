@@ -24,8 +24,9 @@ import {
   SendTemplatedNotificationDto,
 } from './dto/preferences.dto';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
-import { Notification } from './entities/notification.entity';
+import { Notification, NotificationStatus } from './entities/notification.entity';
 import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
+import { ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -86,7 +87,16 @@ export class NotificationsController {
     description: 'Paginated list of notifications',
     type: PaginatedSwaggerDto(Notification),
   })
-  list(@Req() req: any, @Query() query?: PaginationQueryDto) {
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'order', required: false, enum: ['ASC', 'DESC'] })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'isRead', required: false, type: Boolean })
+  @ApiQuery({ name: 'status', required: false, enum: NotificationStatus })
+  list(
+    @Req() req: any,
+    @Query() query?: PaginationQueryDto & { isRead?: boolean | string; status?: NotificationStatus },
+  ) {
     return this.notificationsService.findForUser(req.user.id, query);
   }
 
