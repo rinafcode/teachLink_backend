@@ -170,7 +170,11 @@ export class GradingController {
 
   @Get('feedback-templates/:id')
   @ApiOperation({ summary: 'Get a feedback template' })
-  @ApiResponse({ status: 200, description: 'Feedback template retrieved successfully', type: FeedbackTemplate })
+  @ApiResponse({
+    status: 200,
+    description: 'Feedback template retrieved successfully',
+    type: FeedbackTemplate,
+  })
   @ApiResponse({ status: 404, description: 'Feedback template not found' })
   getTemplate(@Param('id') id: string) {
     return this.feedbackTemplates.findOne(id);
@@ -178,7 +182,11 @@ export class GradingController {
 
   @Patch('feedback-templates/:id')
   @ApiOperation({ summary: 'Update a feedback template' })
-  @ApiResponse({ status: 200, description: 'Feedback template updated successfully', type: FeedbackTemplate })
+  @ApiResponse({
+    status: 200,
+    description: 'Feedback template updated successfully',
+    type: FeedbackTemplate,
+  })
   @ApiResponse({ status: 400, description: 'Bad Request - invalid update data' })
   @ApiResponse({ status: 404, description: 'Feedback template not found' })
   updateTemplate(
