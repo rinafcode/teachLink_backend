@@ -186,14 +186,18 @@ curl -X POST http://localhost:3000/migrations/run
 curl http://localhost:3000/migrations
 ```
 
-If migration endpoints are not yet wired, you can verify the database schema is set via TypeORM's `synchronize` (enabled in development):
+Or run migrations via CLI:
+
+```bash
+pnpm migrate:run
+```
 
 ```bash
 # Check that tables were created
 docker exec -it teachlink-postgres psql -U postgres -d teachlink -c "\dt"
 ```
 
-> **Note:** The `getDatabaseConfig()` sets `synchronize: true` in non-production environments, which auto-creates tables from entities. For production, run explicit migrations.
+> **Note:** The `getDatabaseConfig()` defaults `synchronize: false` across all environments (`#1210`). Database schema is managed via migrations (`pnpm migrate:run`). Temporary auto-sync can be opted into in development with `DATABASE_SYNCHRONIZE=true`.
 
 ---
 

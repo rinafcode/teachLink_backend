@@ -58,21 +58,21 @@ docker exec -it teachlink-postgres psql -U postgres -d teachlink -c "SELECT curr
 # List existing tables
 docker exec -it teachlink-postgres psql -U postgres -d teachlink -c "\dt"
 
-# Check if TypeORM synchronize is enabled (development default)
+# Check if TypeORM synchronize is enabled (disabled by default; see #1210)
 grep "synchronize" src/config/database.config.ts
 ```
 
 ### Fixes
 
 ```bash
-# Option 1: Restart with synchronize (development only)
-# In .env, ensure NODE_ENV=development (enables auto-sync)
-# Then restart the server
+# Option 1: Run pending migrations
+pnpm migrate:run
 
 # Option 2: Drop and recreate the database (development only)
 docker compose down
 docker volume rm teachlink_backend_postgres-data
 docker compose up -d postgres redis
+pnpm migrate:run
 # Then start the server — tables will be created on startup
 
 # Option 3: Manually create the database
@@ -140,13 +140,14 @@ docker exec -it teachlink-postgres psql -U postgres -d teachlink -c "\dt" | grep
 curl http://localhost:3000/health
 
 # If migration endpoints aren't available:
-# The app uses TypeORM's synchronize in development mode
-# Just restart the server and tables will auto-create
+# Run migrations directly via CLI
+pnpm migrate:run
 
 # For a full reset (development only):
 docker compose down
 docker volume rm teachlink_backend_postgres-data
 docker compose up -d postgres redis
+pnpm migrate:run
 pnpm start:dev
 ```
 

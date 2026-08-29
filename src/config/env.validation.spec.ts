@@ -25,6 +25,8 @@ const validEnv = {
   SENDGRID_SENDER_EMAIL: 'sender@example.com',
   SENDGRID_WEBHOOK_TOKEN: 'token',
   SESSION_SECRET: 'a-very-secret-session-key',
+  REGION: 'us-east-1',
+  REPLICATION_REGIONS: 'us-east-1,us-west-2',
 };
 
 function validate(env: Record<string, string | undefined>) {
@@ -95,6 +97,20 @@ describe('envValidationSchema', () => {
       const { error } = validate({ ...validEnv, BCRYPT_ROUNDS: '15' });
       expect(error).toBeDefined();
       expect(error?.message).toContain('BCRYPT_ROUNDS');
+    });
+  });
+
+  describe('DATABASE_SYNCHRONIZE validation', () => {
+    it('defaults DATABASE_SYNCHRONIZE to false when omitted', () => {
+      const { value, error } = validate(validEnv);
+      expect(error).toBeUndefined();
+      expect(value.DATABASE_SYNCHRONIZE).toBe(false);
+    });
+
+    it('accepts boolean values for DATABASE_SYNCHRONIZE', () => {
+      const { value, error } = validate({ ...validEnv, DATABASE_SYNCHRONIZE: 'true' });
+      expect(error).toBeUndefined();
+      expect(value.DATABASE_SYNCHRONIZE).toBe(true);
     });
   });
 });
