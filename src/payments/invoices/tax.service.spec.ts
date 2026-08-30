@@ -88,5 +88,13 @@ describe('TaxService', () => {
       expect(tax.taxAmount).toBe(5);
       expect(tax.totalAmount).toBe(30);
     });
+
+    it('safely handles string input from database columns without float precision bugs', () => {
+      const tax = service.resolveTax('19.99', 'NG');
+
+      // 19.99 * 0.075 = 1.49925 -> 1.50
+      expect(tax.taxAmount).toBe(1.5);
+      expect(tax.totalAmount).toBe(21.49);
+    });
   });
 });

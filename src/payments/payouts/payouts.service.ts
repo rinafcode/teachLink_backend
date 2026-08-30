@@ -9,8 +9,7 @@ import { InstructorPayoutProfile } from '../entities/payout-profile.entity';
 import { InstructorPayout, PayoutStatus } from '../entities/payout.entity';
 import { UpdatePayoutSettingsDto } from './dto/payout.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { NotificationType } from '../../notifications/entities/notification.entity';
-import Decimal from 'decimal.js';
+import { toMoneyNumber, subtract } from '../utils/money';
 
 export interface RevenueBreakdownPagination {
   page?: number;
@@ -49,18 +48,6 @@ export interface RevenueBreakdownResult {
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_CURRENCY = 'USD';
-
-/**
- * Convert an arbitrary numeric value (which may have arrived as a Number, a
- * String from SQL SUM/numeric output, or a Decimal from an arithmetic chain)
- * into a 2-decimal currency-ready JavaScript number, using Decimal arithmetic
- * to avoid IEEE-754 drift (Issue #820 / fix-820). The SQL SUM result is
- * exact; only the post-fetch subtraction and Number coercion can drift, so
- * Decimal is applied at this boundary only.
- */
-function toMoneyNumber(value: string | number | Decimal): number {
-  return new Decimal(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
-}
 
 @Injectable()
 export class PayoutsService {
@@ -362,7 +349,7 @@ export class PayoutsService {
         title: row.title,
         grossRevenue: gross,
         refunds,
-        netRevenue: toMoneyNumber(new Decimal(gross).minus(refunds)),
+        netRevenue: subtract(gross, refunds),
         salesCount: Number(row.salesCount) || 0,
       };
     });
@@ -398,7 +385,7 @@ export class PayoutsService {
     return {
       totalGrossRevenue: totalGross,
       totalRefunds,
-      totalNetRevenue: toMoneyNumber(new Decimal(totalGross).minus(totalRefunds)),
+      totalNetRevenue: subtract(totalGross, totalRefunds),
       currency: DEFAULT_CURRENCY,
     };
   }

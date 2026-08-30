@@ -324,20 +324,27 @@ describe('PayoutsService', () => {
     });
 
     it('should calculate revenue precisely avoiding floating-point rounding errors', async () => {
-      const mockCourses = [{ id: 'course-1', title: 'Course One', instructorId: 'inst-1' }];
-      mockCourseRepository.find.mockResolvedValue(mockCourses);
-
-      const mockPayments = [
-        { id: 'pay-1', courseId: 'course-1', amount: 0.1, status: PaymentStatus.COMPLETED },
-        { id: 'pay-2', courseId: 'course-1', amount: 0.2, status: PaymentStatus.COMPLETED },
-      ];
-      mockPaymentRepository.find.mockResolvedValue(mockPayments);
-      mockRefundRepository.find.mockResolvedValue([]);
+      mockCourseQueryBuilder.getCount.mockResolvedValueOnce(1);
+      mockCourseQueryBuilder.getRawMany.mockResolvedValueOnce([
+        {
+          courseId: 'course-1',
+          title: 'Course One',
+          gross: '0.30000000000000004',
+          refunds: '0.00',
+          salesCount: '2',
+        },
+      ]);
+      mockPaymentQueryBuilder.getRawOne.mockResolvedValueOnce({
+        totalGross: '0.30000000000000004',
+      });
+      mockRefundQueryBuilder.getRawOne.mockResolvedValueOnce({ totalRefunds: '0.00' });
 
       const result = await service.getRevenueBreakdown('inst-1');
 
       expect(result.summary.totalGrossRevenue).toBe(0.3);
       expect(result.summary.totalNetRevenue).toBe(0.3);
+      expect(result.courses[0].grossRevenue).toBe(0.3);
+      expect(result.courses[0].netRevenue).toBe(0.3);
     });
   });
 
