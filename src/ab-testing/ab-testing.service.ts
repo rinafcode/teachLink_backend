@@ -4,6 +4,9 @@ import { DataSource, Repository } from 'typeorm';
 import { Experiment, ExperimentStatus, ExperimentType } from './entities/experiment.entity';
 import { IExperimentVariant } from './entities/experiment-variant.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse, clampLimit } from '../common/utils/pagination.utils';
 
 // DTOs for creating experiments, variants, and metrics
 export interface ICreateExperimentDto {
@@ -200,11 +203,41 @@ export class ABTestingService {
     return this.experimentTemplates.get(templateName);
   }
 
-  async getAllExperiments(): Promise<Experiment[]> {
-    return await this.experimentRepository.find({
-      relations: ['variants', 'metrics'],
-      order: { createdAt: 'DESC' },
-    });
+  /**
+   * Get all experiments with pagination
+   * Note: Does NOT eagerly load variants/metrics for the list view to optimize performance.
+   * Use getExperimentById() for detailed experiment data with relations.
+   * @param query Pagination query parameters (page, limit, sortBy, order)
+   * @returns Paginated response with experiments and metadata
+   */
+  async getAllExperiments(
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Experiment>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+    const sortBy = query?.sortBy ?? 'createdAt';
+    const order = query?.order ?? 'DESC';
+
+    // Validate sortBy to prevent SQL injection
+    const allowedSortFields = ['createdAt', 'updatedAt', 'name', 'status', 'startDate'];
+    if (!allowedSortFields.includes(sortBy)) {
+      throw new BadRequestException(
+        `Invalid sort field. Allowed fields: ${allowedSortFields.join(', ')}`,
+      );
+    }
+
+    const queryBuilder = this.experimentRepository.createQueryBuilder('experiment');
+
+    // Apply sorting and pagination
+    queryBuilder
+      .orderBy(`experiment.${sortBy}`, order as 'ASC' | 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    // Fetch experiments and total count
+    const [experiments, total] = await queryBuilder.getManyAndCount();
+
+    return buildOffsetResponse(experiments, total, page, limit);
   }
 
   async getExperimentById(id: string): Promise<Experiment> {
