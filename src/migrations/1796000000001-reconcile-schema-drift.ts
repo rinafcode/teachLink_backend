@@ -25,13 +25,17 @@ export class ReconcileSchemaDrift1796000000001 implements MigrationInterface {
     await queryRunner.query('DROP INDEX "public"."IDX_audit_logs_entity"');
     await queryRunner.query('DROP INDEX "public"."IDX_audit_logs_ip_address"');
     await queryRunner.query('DROP INDEX "public"."UQ_forum_votes_entityType_entityId_authorId"');
-    await queryRunner.query('ALTER TABLE "course_bulk_operations" ADD "undone_by_id" uuid');
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD "reason" character varying(255)',
+      'ALTER TABLE "course_bulk_operations" ADD COLUMN IF NOT EXISTS "undone_by_id" uuid',
     );
-    await queryRunner.query('ALTER TABLE "course_bulk_operations" ADD "notes" text');
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD "version" integer NOT NULL DEFAULT \'1\'',
+      'ALTER TABLE "course_bulk_operations" ADD COLUMN IF NOT EXISTS "reason" character varying(255)',
+    );
+    await queryRunner.query(
+      'ALTER TABLE "course_bulk_operations" ADD COLUMN IF NOT EXISTS "notes" text',
+    );
+    await queryRunner.query(
+      'ALTER TABLE "course_bulk_operations" ADD COLUMN IF NOT EXISTS "version" integer NOT NULL DEFAULT \'1\'',
     );
     await queryRunner.query('DROP INDEX "public"."IDX_audit_logs_action_timestamp"');
     await queryRunner.query(
@@ -363,13 +367,13 @@ export class ReconcileSchemaDrift1796000000001 implements MigrationInterface {
       'CREATE INDEX "IDX_92fd74dcbe9b1adad11ff3091d" ON "archived_data" ("entityType", "originalId") ',
     );
     await queryRunner.query(
-      'CREATE INDEX "IDX_eda643b345dd73d5fc1a456a4b" ON "course_bulk_operations" ("undone_by_id") ',
+      'CREATE INDEX IF NOT EXISTS "IDX_eda643b345dd73d5fc1a456a4b" ON "course_bulk_operations" ("undone_by_id") ',
     );
     await queryRunner.query(
-      'CREATE INDEX "IDX_4d55d5b6642e4e9677c5af16b3" ON "course_bulk_operations" ("status") ',
+      'CREATE INDEX IF NOT EXISTS "IDX_4d55d5b6642e4e9677c5af16b3" ON "course_bulk_operations" ("status") ',
     );
     await queryRunner.query(
-      'CREATE INDEX "IDX_62e0da442361b07616d26593b3" ON "course_bulk_operations" ("createdAt") ',
+      'CREATE INDEX IF NOT EXISTS "IDX_62e0da442361b07616d26593b3" ON "course_bulk_operations" ("createdAt") ',
     );
     await queryRunner.query(
       'CREATE INDEX "IDX_e00ea7965d1ed8c53b3c85a56e" ON "cohort_members" ("cohortId") ',
@@ -502,22 +506,22 @@ export class ReconcileSchemaDrift1796000000001 implements MigrationInterface {
       'CREATE INDEX "IDX_b2f0366aa9349789527e0c36d9" ON "users_roles_roles" ("rolesId") ',
     );
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_63a6345d11ef40993abe0af7d7" CHECK ("failureCount" >= 0)',
+      `DO $$ BEGIN ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_63a6345d11ef40993abe0af7d7" CHECK ("failureCount" >= 0); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
     );
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_454249837abfcca2dce79a2941" CHECK ("successCount" >= 0)',
+      `DO $$ BEGIN ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_454249837abfcca2dce79a2941" CHECK ("successCount" >= 0); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
     );
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_dffedab4e655d35cc59b4ef18f" CHECK ("totalCount" >= 0)',
+      `DO $$ BEGIN ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_dffedab4e655d35cc59b4ef18f" CHECK ("totalCount" >= 0); EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
     );
     await queryRunner.query(
       'ALTER TABLE "forum_votes" ADD CONSTRAINT "FK_930875619d15f219f30923b724c" FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION',
     );
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "FK_1af4ba5bb120d226b6a4f994209" FOREIGN KEY ("initiated_by_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION',
+      `DO $$ BEGIN ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "FK_1af4ba5bb120d226b6a4f994209" FOREIGN KEY ("initiated_by_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
     );
     await queryRunner.query(
-      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "FK_eda643b345dd73d5fc1a456a4bf" FOREIGN KEY ("undone_by_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION',
+      `DO $$ BEGIN ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "FK_eda643b345dd73d5fc1a456a4bf" FOREIGN KEY ("undone_by_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION; EXCEPTION WHEN duplicate_object THEN NULL; END $$;`,
     );
     await queryRunner.query(
       'ALTER TABLE "rubric_levels" ADD CONSTRAINT "FK_8c0b069d24a8380f5356d22e427" FOREIGN KEY ("criterion_id") REFERENCES "rubric_criteria"("id") ON DELETE CASCADE ON UPDATE NO ACTION',
