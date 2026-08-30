@@ -37,8 +37,12 @@ export class ClearLegacyBcryptRefreshTokens1783000000006 implements MigrationInt
     `);
   }
 
-  public async down(): Promise<void> {
+  public async down(_queryRunner?: QueryRunner): Promise<void> {
     // Cannot reverse this migration - bcrypt hashes cannot be recovered from HMAC-SHA-256 hashes.
     // Affected users will need to re-login to obtain new refresh tokens.
+    console.warn(
+      'WARNING: [ClearLegacyBcryptRefreshTokens1783000000006] down() cannot restore cleared legacy ' +
+        'bcrypt refresh tokens. Affected users must re-authenticate to obtain new tokens.',
+    );
   }
 }

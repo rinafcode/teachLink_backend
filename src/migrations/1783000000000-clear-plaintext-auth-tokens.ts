@@ -27,7 +27,11 @@ export class ClearPlaintextAuthTokens1783000000000 implements MigrationInterface
     `);
   }
 
-  public async down(): Promise<void> {
+  public async down(_queryRunner?: QueryRunner): Promise<void> {
     // No-op: the cleared plaintext tokens cannot be restored.
+    console.warn(
+      'WARNING: [ClearPlaintextAuthTokens1783000000000] down() cannot restore cleared plaintext ' +
+        'tokens (passwordResetToken/emailVerificationToken). Affected users must request new verification or reset links.',
+    );
   }
 }

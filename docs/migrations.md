@@ -219,7 +219,7 @@ pnpm build
 
 | Practice                                       | Why                                                                                                           |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Always implement `down()`                      | Enables safe rollback                                                                                         |
+| Always implement `down()`                      | Enables safe rollback; log loud warnings if data changes or extension dependencies are irreversible (#1207)     |
 | Never modify an applied migration              | Create a new migration instead                                                                                |
 | Test rollbacks locally                         | Run `up` → verify → `down` → verify                                                                           |
 | Use `IF EXISTS` / `IF NOT NULL`                | Makes migrations idempotent                                                                                   |

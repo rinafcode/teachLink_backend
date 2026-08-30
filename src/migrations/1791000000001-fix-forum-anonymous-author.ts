@@ -120,5 +120,9 @@ export class FixForumAnonymousAuthor1791000000001 implements MigrationInterface 
     `);
     // Irreversible: purged anonymous votes and flagged->active status changes
     // on threads/comments cannot be reconstructed (see class JSDoc).
+    console.warn(
+      'WARNING: [FixForumAnonymousAuthor1791000000001] down() cannot restore purged anonymous forum votes ' +
+        'or reset flagged thread/comment statuses.',
+    );
   }
 }

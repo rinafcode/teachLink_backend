@@ -33,5 +33,9 @@ export class AddPausedSubscriptionStatus1790000000000 implements MigrationInterf
     // This is a limitation of PostgreSQL's enum type
     // For production, consider using a different approach for status management
     // such as a separate status table or string type with check constraints
+    console.warn(
+      'WARNING: [AddPausedSubscriptionStatus1790000000000] down() is a no-op. ' +
+        'PostgreSQL does not support removing values from an enum type; "paused" remains in subscriptions_status_enum.',
+    );
   }
 }

@@ -98,13 +98,41 @@ and fails the build if found — the same footgun cannot silently come back.
    pnpm run migration:run      # re-apply to leave the DB migrated
    ```
 
+---
+
+## Non-reversible and data migrations
+
+Certain migrations perform one-way data updates, security token scrubbing/re-encryption, or enable shared database extensions that cannot (or should not) be rolled back automatically in `down()`:
+
+- **Security & Data Sanitization:** Irreversible operations such as clearing unrecoverable plaintext tokens or wiping obsolete bcrypt hashes.
+- **Extensions & Global Types:** Shared PostgreSQL extensions (e.g. `uuid-ossp`) and enum type values that cannot be safely dropped without breaking existing dependencies.
+
+### Documented non-reversible / partial-reversal migrations
+
+| Migration | Reason for No-Op / Partial Rollback in `down()` | Mitigation / Action on Rollback |
+| :--- | :--- | :--- |
+| `1600000000000-enable-uuid-ossp.ts` | The `uuid-ossp` extension is shared by multiple tables and columns; dropping it would break dependent schemas. | Extension is retained in the database; safe no-op. |
+| `1783000000000-clear-plaintext-auth-tokens.ts` | Cleared plaintext reset/verification tokens cannot be reconstructed. | Affected users must re-request verification or password reset links. |
+| `1783000000001-reencrypt-oauth-provider-tokens.ts` | Plaintext OAuth provider tokens were encrypted at rest with AES-256-GCM. Plaintext cannot be restored. | Tokens remain encrypted; safe no-op. |
+| `1783000000006-clear-legacy-bcrypt-refresh-tokens.ts` | Legacy bcrypt refresh token hashes were wiped (transition to HMAC-SHA-256). | Affected users must re-authenticate to obtain new tokens. |
+| `1790000000000-add-paused-subscription-status.ts` | PostgreSQL does not support `ALTER TYPE ... DROP VALUE` for enum types. | The `'paused'` enum value remains in the type. |
+| `1790000000001-fix-invoice-number-sequence.ts` | Reassigned duplicate invoice numbers cannot be reverted to original collision-prone timestamp+random values. | Drops sequence and unique constraint; invoice numbers retain renumbered format. Restore from backup if needed. |
+| `1791000000001-fix-forum-anonymous-author.ts` | Purged anonymous forum votes and flagged thread/comment statuses cannot be reconstructed. | FK constraint and column type are reverted; purged anonymous votes cannot be restored. |
+
+### Rule: Loud warning on no-op / irreversible `down()`
+
+When a migration cannot reverse data or schema changes, its `down()` method **must log a clear warning** (e.g. via `console.warn`) explaining what was not restored so that `migration:revert` output is honest in CI, deployments, and incident responses.
+
+---
+
 ## Rules of thumb
 
-| Rule                                                      | Why                                          |
-| --------------------------------------------------------- | -------------------------------------------- |
-| Always implement `down()`                                 | Enables safe rollback in CI and production   |
-| Never modify an applied migration                         | Create a new migration instead               |
-| Use the passed `queryRunner`, never `createQueryRunner()` | Migrations share one transaction (see above) |
-| Prefer `IF EXISTS` / `IF NOT NULL`                        | Makes migrations idempotent                  |
-| Keep migrations small and focused                         | Easier to review and roll back               |
-| Use timestamp-based naming                                | Ensures deterministic ordering               |
+| Rule                                                      | Why                                                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Always implement `down()`                                 | Enables safe rollback; loud warnings make no-op/data rollbacks explicit (#1207) |
+| Never modify an applied migration                         | Create a new migration instead                                                  |
+| Use the passed `queryRunner`, never `createQueryRunner()` | Migrations share one transaction (see above)                                    |
+| Prefer `IF EXISTS` / `IF NOT NULL`                        | Makes migrations idempotent                                                     |
+| Keep migrations small and focused                         | Easier to review and roll back                                                  |
+| Use timestamp-based naming                                | Ensures deterministic ordering                                                  |
+
