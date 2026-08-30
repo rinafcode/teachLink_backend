@@ -16,6 +16,7 @@ import { SegmentRule } from './segment-rule.entity';
  * Represents the segment entity.
  */
 @Entity('segments')
+@Index('IDX_segments_isDynamic_createdAt', ['isDynamic', 'createdAt'])
 export class Segment {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
@@ -34,7 +35,6 @@ export class Segment {
   description?: string;
 
   @ApiProperty()
-  @Index('IDX_segments_isDynamic_createdAt', ['isDynamic', 'createdAt'])
   @Column({ default: true })
   isDynamic: boolean;
 
