@@ -19,25 +19,25 @@ export class AddSegmentRuleIndexes1803000000000 implements MigrationInterface {
     // Single-column FK index — satisfies all plain "rules for segment" lookups
     // and supports the ON DELETE CASCADE on segmentId.
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_segment_rules_segmentId" ON "segment_rules" ("segmentId")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_segment_rules_segmentId" ON "segment_rules" ("segmentId")',
     );
 
     // Composite index — satisfies "rules for segment ordered by position" in a
     // single index scan with no extra sort step.
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_segment_rules_segmentId_order" ON "segment_rules" ("segmentId", "order")`,
+      'CREATE INDEX IF NOT EXISTS "IDX_segment_rules_segmentId_order" ON "segment_rules" ("segmentId", "order")',
     );
 
     // Partial index on deletedAt — keeps soft-delete filtering cheap as the
     // table grows; only rows that have NOT been soft-deleted are indexed.
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "IDX_segment_rules_deletedAt" ON "segment_rules" ("deletedAt") WHERE "deletedAt" IS NULL`,
+      'CREATE INDEX IF NOT EXISTS "IDX_segment_rules_deletedAt" ON "segment_rules" ("deletedAt") WHERE "deletedAt" IS NULL',
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_segment_rules_deletedAt"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_segment_rules_segmentId_order"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_segment_rules_segmentId"`);
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_segment_rules_deletedAt"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_segment_rules_segmentId_order"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_segment_rules_segmentId"');
   }
 }
