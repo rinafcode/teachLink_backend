@@ -68,6 +68,14 @@ export function getReadReplicaConnections(
   return parseReplicaHosts(primary);
 }
 
+function resolveSynchronize(): boolean {
+  const flag = process.env.DATABASE_SYNCHRONIZE ?? process.env.TYPEORM_SYNCHRONIZE;
+  if (flag === undefined) {
+    return false;
+  }
+  return flag.toLowerCase() === 'true' || flag === '1';
+}
+
 /**
  * TypeORM connection options driven by DATABASE_* environment variables.
  */
@@ -78,7 +86,7 @@ export function getDatabaseConfig(): TypeOrmModuleOptions {
   const slowQuery = resolveSlowQueryLoggerOptions();
   const commonOptions = {
     autoLoadEntities: true,
-    synchronize: process.env.NODE_ENV !== 'production',
+    synchronize: resolveSynchronize(),
     // Drives TypeORM's logQuerySlow hook, consumed by SlowQueryLogger.
     maxQueryExecutionTime: slowQuery.slowQueryThresholdMs,
     ...(slowQuery.enabled ? { logger: new SlowQueryLogger(slowQuery) } : {}),

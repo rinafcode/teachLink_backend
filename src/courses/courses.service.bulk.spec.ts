@@ -182,6 +182,7 @@ describe('CoursesService - Bulk Operations', () => {
       expect(courseRepo.save).toHaveBeenCalledWith([course]);
 
       expect(result.status).toBe(BulkOperationStatus.UNDONE);
+      expect(result.undoneById).toBe(owner.id);
     });
 
     it('should throw when operation does not exist', async () => {

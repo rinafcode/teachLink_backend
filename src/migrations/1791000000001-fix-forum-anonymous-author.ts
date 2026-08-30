@@ -29,6 +29,17 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *  - Converts `forum_votes.authorId` from `varchar` to `uuid` (matching
  *    `users.id`) and adds a foreign key so a synthetic value can never be
  *    written again.
+ *
+ * **Irreversible parts** — `down()` cannot reconstruct:
+ *  - Deleted anonymous vote rows (we don't know how many distinct callers
+ *    voted, only that they collapsed into one row per entityType/entityId).
+ *  - The `status = 'flagged'` update on threads/comments (we can't distinguish
+ *    rows flagged by this migration from rows flagged by auto-moderation).
+ *
+ * **FK constraint name** — `down()` resolves the FK dynamically via
+ * `pg_constraint` instead of using a hard-coded name, because the constraint
+ * may have a TypeORM-generated hex-hash name (e.g. on dev with
+ * `synchronize: true` or after `1796000000001-reconcile-schema-drift`).
  */
 export class FixForumAnonymousAuthor1791000000001 implements MigrationInterface {
   private static readonly NOT_A_USER_ID =
@@ -87,15 +98,27 @@ export class FixForumAnonymousAuthor1791000000001 implements MigrationInterface 
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      ALTER TABLE forum_votes DROP CONSTRAINT IF EXISTS "FK_forum_votes_authorId_users"
+    // Resolve the FK dynamically — the constraint may have a hard-coded name
+    // (FK_forum_votes_authorId_users) or a TypeORM-generated hex-hash name
+    // (e.g. FK_930875619d15f219f30923b724c), depending on environment.
+    const fkRow: { conname: string } | undefined = await queryRunner.query(`
+      SELECT con.conname
+        FROM pg_constraint con
+        JOIN pg_class c ON c.oid = con.conrelid
+        JOIN pg_namespace ns ON ns.oid = c.relnamespace
+       WHERE con.contype = 'f'
+         AND c.relname = 'forum_votes'
+         AND pg_get_constraintdef(con.oid, true) ILIKE '%("authorId")%users%'
+       LIMIT 1
     `);
+    if (fkRow) {
+      await queryRunner.query(`ALTER TABLE forum_votes DROP CONSTRAINT ${fkRow.conname}`);
+    }
+
     await queryRunner.query(`
       ALTER TABLE forum_votes ALTER COLUMN "authorId" TYPE varchar USING "authorId"::varchar
     `);
-    // Purged votes and the flagged->active status change on threads/comments
-    // are not reversible: we don't retain enough information to reconstruct
-    // how many distinct anonymous callers voted, or which flagged rows were
-    // flagged for this reason versus auto-moderation.
+    // Irreversible: purged anonymous votes and flagged->active status changes
+    // on threads/comments cannot be reconstructed (see class JSDoc).
   }
 }
