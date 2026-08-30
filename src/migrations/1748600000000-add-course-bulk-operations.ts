@@ -43,6 +43,7 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
             default: 'uuid_generate_v4()',
           },
           { name: 'initiated_by_id', type: 'uuid', isNullable: true },
+          { name: 'undone_by_id', type: 'uuid', isNullable: true },
           { name: 'type', type: 'course_bulk_operations_type_enum', isNullable: false },
           {
             name: 'status',
@@ -55,7 +56,10 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
           { name: 'totalCount', type: 'int', isNullable: false, default: 0 },
           { name: 'successCount', type: 'int', isNullable: false, default: 0 },
           { name: 'failureCount', type: 'int', isNullable: false, default: 0 },
+          { name: 'reason', type: 'varchar', length: '255', isNullable: true },
+          { name: 'notes', type: 'text', isNullable: true },
           { name: 'undoneAt', type: 'timestamptz', isNullable: true },
+          { name: 'version', type: 'int', isNullable: false, default: 1 },
           { name: 'createdAt', type: 'timestamptz', default: 'now()' },
           { name: 'updatedAt', type: 'timestamptz', default: 'now()' },
         ],
@@ -69,13 +73,16 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
         columnNames: ['initiated_by_id'],
       }),
       new TableIndex({
+        name: 'IDX_course_bulk_ops_undone_by',
+        columnNames: ['undone_by_id'],
+      }),
+      new TableIndex({
         name: 'IDX_course_bulk_ops_type',
         columnNames: ['type'],
       }),
     ]);
 
-    await queryRunner.createForeignKey(
-      'course_bulk_operations',
+    await queryRunner.createForeignKeys('course_bulk_operations', [
       new TableForeignKey({
         name: 'FK_course_bulk_ops_initiator',
         columnNames: ['initiated_by_id'],
@@ -83,7 +90,14 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
         referencedColumnNames: ['id'],
         onDelete: 'SET NULL',
       }),
-    );
+      new TableForeignKey({
+        name: 'FK_course_bulk_ops_undone_by',
+        columnNames: ['undone_by_id'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'SET NULL',
+      }),
+    ]);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
