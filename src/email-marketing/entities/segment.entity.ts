@@ -7,6 +7,7 @@ import {
   DeleteDateColumn,
   OneToMany,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { SegmentRule } from './segment-rule.entity';
@@ -24,6 +25,7 @@ export class Segment {
   version: number;
 
   @ApiProperty()
+  @Index('IDX_segments_name')
   @Column()
   name: string;
 
@@ -32,6 +34,7 @@ export class Segment {
   description?: string;
 
   @ApiProperty()
+  @Index('IDX_segments_isDynamic_createdAt', ['isDynamic', 'createdAt'])
   @Column({ default: true })
   isDynamic: boolean;
 
@@ -53,6 +56,9 @@ export class Segment {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Index('IDX_segments_deletedAt', ['deletedAt'], {
+    where: '"deletedAt" IS NULL',
+  })
   @DeleteDateColumn()
   deletedAt?: Date;
 }
