@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { Payment } from '../entities/payment.entity';
 import { AuditAction, AuditCategory, AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { areAmountsEqual, toMoneyNumber } from '../utils/money';
 
 export interface PaymentReconciliationMismatch {
   providerTransactionId: string;
@@ -93,7 +94,7 @@ export class PaymentReconciliationJob {
           reason: 'missing_in_provider',
           details: {
             localStatus: payment.status,
-            localAmount: payment.amount,
+            localAmount: toMoneyNumber(payment.amount),
           },
         };
         mismatches.push(mismatch);
@@ -113,7 +114,7 @@ export class PaymentReconciliationJob {
           reason: 'missing_locally',
           details: {
             providerStatus: transaction.status,
-            providerAmount: transaction.amount,
+            providerAmount: toMoneyNumber(transaction.amount),
           },
         };
         mismatches.push(mismatch);
@@ -122,9 +123,9 @@ export class PaymentReconciliationJob {
       }
 
       const issues: string[] = [];
-      const localAmount = Number(localPayment.amount);
-      const providerAmount = Number(transaction.amount);
-      if (localAmount !== providerAmount) {
+      const localAmount = toMoneyNumber(localPayment.amount);
+      const providerAmount = toMoneyNumber(transaction.amount);
+      if (!areAmountsEqual(localPayment.amount, transaction.amount)) {
         issues.push('amount');
       }
       const normalizedLocalStatus = this.normalizeStatus(localPayment.status);
