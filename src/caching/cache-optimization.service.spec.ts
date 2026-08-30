@@ -1,6 +1,10 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CacheOptimizationService } from './cache-optimization.service';
-import { CacheAnalyticsReport, CacheAnalyticsService, TTLRecommendation } from './cache-analytics.service';
+import {
+  CacheAnalyticsReport,
+  CacheAnalyticsService,
+  TTLRecommendation,
+} from './cache-analytics.service';
 
 jest.mock('../config/cache.config', () => ({
   getSharedRedisClient: jest.fn(() => ({
@@ -231,10 +235,10 @@ describe('CacheOptimizationService', () => {
       expect(result.memoryFreed).toBe(1024);
       expect(result.recommendations).toEqual(recommendations);
       expect(result.timestamp).toBeInstanceOf(Date);
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'cache.ttl.updated',
-        { key: 'hot-key', ttl: 450 },
-      );
+      expect(eventEmitter.emit).toHaveBeenCalledWith('cache.ttl.updated', {
+        key: 'hot-key',
+        ttl: 450,
+      });
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'cache.optimization.completed',
         expect.any(Object),
@@ -349,10 +353,7 @@ describe('CacheOptimizationService', () => {
       expect(result.optimizationsApplied).toBe(0);
       expect(result.memoryFreed).toBe(0);
       // No TTL updates or deletes when everything is disabled
-      expect(eventEmitter.emit).not.toHaveBeenCalledWith(
-        'cache.ttl.updated',
-        expect.anything(),
-      );
+      expect(eventEmitter.emit).not.toHaveBeenCalledWith('cache.ttl.updated', expect.anything());
     });
 
     it('returns zero optimizations when no recommendations exist', async () => {

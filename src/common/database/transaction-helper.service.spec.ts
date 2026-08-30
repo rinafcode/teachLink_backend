@@ -80,10 +80,7 @@ describe('TransactionHelperService', () => {
       const op1 = jest.fn().mockResolvedValue('a');
       const op2 = jest.fn().mockResolvedValue('b');
 
-      const results = await service.executeWithRollback([
-        { operation: op1 },
-        { operation: op2 },
-      ]);
+      const results = await service.executeWithRollback([{ operation: op1 }, { operation: op2 }]);
 
       expect(results).toEqual(['a', 'b']);
       expect(queryRunner.commitTransaction).toHaveBeenCalledTimes(1);
@@ -114,9 +111,7 @@ describe('TransactionHelperService', () => {
     it('rolls back and rethrows on operation failure', async () => {
       const op = jest.fn().mockRejectedValue(new Error('fail'));
 
-      await expect(
-        service.executeWithRollback([{ operation: op }]),
-      ).rejects.toThrow('fail');
+      await expect(service.executeWithRollback([{ operation: op }])).rejects.toThrow('fail');
       expect(queryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
       expect(queryRunner.release).toHaveBeenCalledTimes(1);
     });
@@ -125,9 +120,9 @@ describe('TransactionHelperService', () => {
       const rollback = jest.fn().mockResolvedValue(undefined);
       const op = jest.fn().mockRejectedValue(new Error('fail'));
 
-      await expect(
-        service.executeWithRollback([{ operation: op, rollback }]),
-      ).rejects.toThrow('fail');
+      await expect(service.executeWithRollback([{ operation: op, rollback }])).rejects.toThrow(
+        'fail',
+      );
       expect(rollback).toHaveBeenCalledWith(queryRunner.manager);
     });
 
@@ -135,9 +130,9 @@ describe('TransactionHelperService', () => {
       const rollback = jest.fn().mockRejectedValue(new Error('rollback failed'));
       const op = jest.fn().mockRejectedValue(new Error('original fail'));
 
-      await expect(
-        service.executeWithRollback([{ operation: op, rollback }]),
-      ).rejects.toThrow('original fail');
+      await expect(service.executeWithRollback([{ operation: op, rollback }])).rejects.toThrow(
+        'original fail',
+      );
       // rollback error is caught and logged, original error is rethrown
     });
 
@@ -171,9 +166,7 @@ describe('TransactionHelperService', () => {
       await expect(service.createSavepoint(manager, 'has space')).rejects.toThrow(
         'Invalid savepoint name',
       );
-      await expect(service.createSavepoint(manager, '')).rejects.toThrow(
-        'Invalid savepoint name',
-      );
+      await expect(service.createSavepoint(manager, '')).rejects.toThrow('Invalid savepoint name');
     });
 
     it('accepts underscore-prefixed names', async () => {

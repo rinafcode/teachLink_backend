@@ -283,8 +283,20 @@ describe('CacheAnalyticsService', () => {
     });
 
     it('calculates overall hit rate from multiple keys', async () => {
-      const m1: CacheMetrics = { ...freshMetrics(), key: 'a', hits: 80, misses: 20, costScore: 0.5 };
-      const m2: CacheMetrics = { ...freshMetrics(), key: 'b', hits: 10, misses: 90, costScore: 0.2 };
+      const m1: CacheMetrics = {
+        ...freshMetrics(),
+        key: 'a',
+        hits: 80,
+        misses: 20,
+        costScore: 0.5,
+      };
+      const m2: CacheMetrics = {
+        ...freshMetrics(),
+        key: 'b',
+        hits: 10,
+        misses: 90,
+        costScore: 0.2,
+      };
       mockRedis.hgetall.mockResolvedValue({
         a: JSON.stringify(m1),
         b: JSON.stringify(m2),
@@ -323,7 +335,13 @@ describe('CacheAnalyticsService', () => {
 
     it('skips corrupt metrics entries gracefully', async () => {
       mockRedis.hgetall.mockResolvedValue({
-        good: JSON.stringify({ ...freshMetrics(), key: 'good', hits: 10, misses: 5, costScore: 0.5 }),
+        good: JSON.stringify({
+          ...freshMetrics(),
+          key: 'good',
+          hits: 10,
+          misses: 5,
+          costScore: 0.5,
+        }),
         bad: 'not-json',
         empty: JSON.stringify({ key: 'empty' }),
       });
@@ -532,7 +550,11 @@ describe('CacheAnalyticsService', () => {
     it('keeps old metrics that have high sample count', async () => {
       const oldDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
       const oldMetrics: CacheMetrics = {
-        ...freshMetrics(), key: 'popular-old', lastAccessed: oldDate, hits: 200, misses: 50,
+        ...freshMetrics(),
+        key: 'popular-old',
+        lastAccessed: oldDate,
+        hits: 200,
+        misses: 50,
       };
 
       mockRedis.hgetall.mockResolvedValue({ 'popular-old': JSON.stringify(oldMetrics) });
@@ -588,12 +610,26 @@ describe('CacheAnalyticsService', () => {
   describe('cost score', () => {
     it('ranks keys by costScore with high hit-rate and frequency scoring higher', async () => {
       const smallHot: CacheMetrics = {
-        ...freshMetrics(), key: 'hot-small', hits: 200, misses: 10,
-        hitRate: 200 / 210, accessFrequency: 15, dataSize: 100, avgTtl: 300, costScore: 0.3,
+        ...freshMetrics(),
+        key: 'hot-small',
+        hits: 200,
+        misses: 10,
+        hitRate: 200 / 210,
+        accessFrequency: 15,
+        dataSize: 100,
+        avgTtl: 300,
+        costScore: 0.3,
       };
       const largeCold: CacheMetrics = {
-        ...freshMetrics(), key: 'cold-large', hits: 20, misses: 80,
-        hitRate: 0.2, accessFrequency: 0.5, dataSize: 5 * 1024 * 1024, avgTtl: 60, costScore: 0.1,
+        ...freshMetrics(),
+        key: 'cold-large',
+        hits: 20,
+        misses: 80,
+        hitRate: 0.2,
+        accessFrequency: 0.5,
+        dataSize: 5 * 1024 * 1024,
+        avgTtl: 60,
+        costScore: 0.1,
       };
       mockRedis.hgetall.mockResolvedValue({
         'hot-small': JSON.stringify(smallHot),
@@ -706,10 +742,18 @@ describe('CacheAnalyticsService', () => {
 
     it('sorts recommendations by potentialSavings descending', async () => {
       const m1: CacheMetrics = makeMetrics({
-        key: 'key-a', hitRate: 0.1, accessFrequency: 10, avgTtl: 600, dataSize: 500,
+        key: 'key-a',
+        hitRate: 0.1,
+        accessFrequency: 10,
+        avgTtl: 600,
+        dataSize: 500,
       });
       const m2: CacheMetrics = makeMetrics({
-        key: 'key-b', hitRate: 0.1, accessFrequency: 10, avgTtl: 600, dataSize: 5000,
+        key: 'key-b',
+        hitRate: 0.1,
+        accessFrequency: 10,
+        avgTtl: 600,
+        dataSize: 5000,
       });
       mockRedis.hgetall.mockResolvedValue({
         'key-a': JSON.stringify(m1),
