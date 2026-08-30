@@ -73,31 +73,49 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
         columnNames: ['initiated_by_id'],
       }),
       new TableIndex({
-        name: 'IDX_course_bulk_ops_undone_by',
+        name: 'IDX_eda643b345dd73d5fc1a456a4b',
         columnNames: ['undone_by_id'],
       }),
       new TableIndex({
         name: 'IDX_course_bulk_ops_type',
         columnNames: ['type'],
       }),
+      new TableIndex({
+        name: 'IDX_4d55d5b6642e4e9677c5af16b3',
+        columnNames: ['status'],
+      }),
+      new TableIndex({
+        name: 'IDX_62e0da442361b07616d26593b3',
+        columnNames: ['createdAt'],
+      }),
     ]);
 
     await queryRunner.createForeignKeys('course_bulk_operations', [
       new TableForeignKey({
-        name: 'FK_course_bulk_ops_initiator',
+        name: 'FK_1af4ba5bb120d226b6a4f994209',
         columnNames: ['initiated_by_id'],
         referencedTableName: 'users',
         referencedColumnNames: ['id'],
         onDelete: 'SET NULL',
       }),
       new TableForeignKey({
-        name: 'FK_course_bulk_ops_undone_by',
+        name: 'FK_eda643b345dd73d5fc1a456a4bf',
         columnNames: ['undone_by_id'],
         referencedTableName: 'users',
         referencedColumnNames: ['id'],
         onDelete: 'SET NULL',
       }),
     ]);
+
+    await queryRunner.query(
+      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_63a6345d11ef40993abe0af7d7" CHECK ("failureCount" >= 0)',
+    );
+    await queryRunner.query(
+      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_454249837abfcca2dce79a2941" CHECK ("successCount" >= 0)',
+    );
+    await queryRunner.query(
+      'ALTER TABLE "course_bulk_operations" ADD CONSTRAINT "CHK_dffedab4e655d35cc59b4ef18f" CHECK ("totalCount" >= 0)',
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
