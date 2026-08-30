@@ -58,16 +58,25 @@ describe('RubricsService', () => {
     beforeEach(() => {
       mockTxRubricRepo = {
         create: jest.fn((dto) => ({ ...dto })),
-        save: jest.fn(async (v) => { v.id = 'r1'; return v; }),
+        save: jest.fn(async (v) => {
+          v.id = 'r1';
+          return v;
+        }),
         findOne: jest.fn(),
       };
       mockTxCriterionRepo = {
         create: jest.fn((dto) => ({ ...dto })),
-        save: jest.fn(async (v) => { v.id = 'c1'; return v; }),
+        save: jest.fn(async (v) => {
+          v.id = 'c1';
+          return v;
+        }),
       };
       mockTxLevelRepo = {
         create: jest.fn((dto) => ({ ...dto })),
-        save: jest.fn(async (v) => { v.id = 'l1'; return v; }),
+        save: jest.fn(async (v) => {
+          v.id = 'l1';
+          return v;
+        }),
       };
 
       mockTxManager = {
@@ -131,7 +140,7 @@ describe('RubricsService', () => {
       const result = await service.create(dto);
       expect(result.autoGradeEnabled).toBe(true);
       expect(mockTxRubricRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ autoGradeEnabled: true })
+        expect.objectContaining({ autoGradeEnabled: true }),
       );
     });
 
@@ -203,7 +212,14 @@ describe('RubricsService', () => {
       const rubric = {
         id: 'r1',
         criteria: [
-          { id: 'c2', orderIndex: 2, levels: [{ id: 'l2', orderIndex: 2 }, { id: 'l1', orderIndex: 1 }] },
+          {
+            id: 'c2',
+            orderIndex: 2,
+            levels: [
+              { id: 'l2', orderIndex: 2 },
+              { id: 'l1', orderIndex: 1 },
+            ],
+          },
           { id: 'c1', orderIndex: 1, levels: [] },
         ],
       } as unknown as Rubric;
@@ -258,7 +274,9 @@ describe('RubricsService', () => {
     it('throws ForbiddenException when requester is not the owner', async () => {
       const rubric = { id: 'r1', ownerId: 'owner-1' } as Rubric;
       rubricRepo.findOne.mockResolvedValue(rubric);
-      await expect(service.update('r1', { name: 'new' }, 'someone-else')).rejects.toThrow(ForbiddenException);
+      await expect(service.update('r1', { name: 'new' }, 'someone-else')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws BadRequestException when enabling autoGrade but missing default level on criteria', async () => {
@@ -269,7 +287,9 @@ describe('RubricsService', () => {
       } as unknown as Rubric;
       rubricRepo.findOne.mockResolvedValue(rubric);
 
-      await expect(service.update('r1', { autoGradeEnabled: true }, 'owner-1')).rejects.toThrow(BadRequestException);
+      await expect(service.update('r1', { autoGradeEnabled: true }, 'owner-1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('enables autoGrade if all criteria have default level', async () => {
@@ -281,7 +301,9 @@ describe('RubricsService', () => {
       rubricRepo.findOne.mockResolvedValue(rubric);
 
       await service.update('r1', { autoGradeEnabled: true }, 'owner-1');
-      expect(rubricRepo.save).toHaveBeenCalledWith(expect.objectContaining({ autoGradeEnabled: true }));
+      expect(rubricRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ autoGradeEnabled: true }),
+      );
     });
   });
 
