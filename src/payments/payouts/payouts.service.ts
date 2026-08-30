@@ -9,6 +9,7 @@ import { InstructorPayoutProfile } from '../entities/payout-profile.entity';
 import { InstructorPayout, PayoutStatus } from '../entities/payout.entity';
 import { UpdatePayoutSettingsDto } from './dto/payout.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationType } from '../../notifications/entities/notification.entity';
 import { toMoneyNumber, subtract } from '../utils/money';
 
 export interface RevenueBreakdownPagination {
