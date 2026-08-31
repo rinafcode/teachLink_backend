@@ -1,9 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, VersionColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, VersionColumn, Index } from 'typeorm';
 
 /**
  * Represents the review Item entity.
  */
 @Entity()
+@Index('IDX_review_items_status', ['status'])
+@Index('IDX_review_items_safetyScore_createdAt', ['safetyScore', 'createdAt'])
+@Index('IDX_review_items_sourceType', ['sourceType'])
+@Index('IDX_review_items_sourceId', ['sourceId'])
+@Index('IDX_review_items_reportId', ['reportId'])
 export class ReviewItem {
   @PrimaryGeneratedColumn()
   id: number;
