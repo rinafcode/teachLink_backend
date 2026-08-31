@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThanOrEqual, Repository } from 'typeorm';
 import { UserAchievement } from './entities/user-achievement.entity';
 
 /**
@@ -62,25 +62,45 @@ export class AchievementsNotificationsService {
 
   /**
    * Send batch notifications for achievements unlocked today
+   * Processes achievements in bounded chunks so a large backlog is not
+   * loaded or sent in a single tight loop.
    */
   async sendBatchNotifications(): Promise<number> {
+    const BATCH_SIZE = 100;
+
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const achievements = await this.userAchievementRepository.find({
-        where: {
-          unlockedAt: new Date(),
-          notificationSent: false,
-        },
-        relations: ['user', 'achievement'],
-      });
-
       let sentCount = 0;
+      let skip = 0;
+      let keepProcessing = true;
 
-      for (const userAchievement of achievements) {
-        await this.sendAchievementUnlockedNotification(userAchievement);
-        sentCount++;
+      while (keepProcessing) {
+        const achievements = await this.userAchievementRepository.find({
+          where: {
+            unlockedAt: MoreThanOrEqual(today),
+            notificationSent: false,
+          },
+          relations: ['user', 'achievement'],
+          take: BATCH_SIZE,
+          skip,
+        });
+
+        if (achievements.length === 0) {
+          keepProcessing = false;
+          continue;
+        }
+
+        for (const userAchievement of achievements) {
+          await this.sendAchievementUnlockedNotification(userAchievement);
+          sentCount++;
+        }
+
+        skip += achievements.length;
+
+        // Stop when a chunk returns fewer than the batch size (no more pending).
+        keepProcessing = achievements.length === BATCH_SIZE;
       }
 
       this.logger.log(`Sent ${sentCount} achievement notifications`);
