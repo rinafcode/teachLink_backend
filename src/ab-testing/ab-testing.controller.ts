@@ -12,7 +12,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { ABTestingService } from './ab-testing.service';
 import { ExperimentService } from './experiments/experiment.service';
 import { StatisticalAnalysisService } from './analysis/statistical-analysis.service';
@@ -22,6 +22,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 import {
   AutoSelectWinnerDto,
   CreateExperimentDto,
@@ -30,6 +32,7 @@ import {
   UpdateExperimentDto,
   UpdateTrafficAllocationDto,
 } from './dto';
+import { Experiment } from './entities/experiment.entity';
 
 /**
  * Exposes AB testing endpoints.
@@ -141,16 +144,69 @@ export class ABTestingController {
   }
 
   /**
-   * Returns all Experiments.
-   * @returns The operation result.
+   * Returns all Experiments with pagination.
+   * @param query Pagination query parameters
+   * @returns Paginated list of experiments
    */
   @Get('experiments')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ summary: 'List all experiments' })
-  @ApiResponse({ status: 200, description: 'List of experiments' })
-  async getAllExperiments(): Promise<any> {
-    this.logger.log('Fetching all experiments');
-    return await this.abTestingService.getAllExperiments();
+  @ApiOperation({ summary: 'List all experiments with pagination' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10, max: 100)',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Field to sort by (createdAt, updatedAt, name, status, startDate)',
+    example: 'createdAt',
+  })
+  @ApiQuery({
+    name: 'order',
+    required: false,
+    type: String,
+    enum: ['ASC', 'DESC'],
+    description: 'Sort order',
+    example: 'DESC',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of experiments',
+    schema: {
+      example: {
+        data: [
+          {
+            id: 'exp-1',
+            name: 'Homepage Button Test',
+            status: 'running',
+            createdAt: '2025-01-15T10:00:00Z',
+          },
+        ],
+        total: 45,
+        page: 1,
+        limit: 10,
+        totalPages: 5,
+        hasNextPage: true,
+        hasPrevPage: false,
+      },
+    },
+  })
+  async getAllExperiments(
+    @Query() query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Experiment>> {
+    this.logger.log('Fetching all experiments with pagination');
+    return await this.abTestingService.getAllExperiments(query);
   }
 
   /**
