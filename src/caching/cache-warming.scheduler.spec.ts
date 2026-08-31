@@ -38,8 +38,17 @@ describe('CacheWarmingScheduler', () => {
     );
   });
 
-  it('runs full warm-up on module init', async () => {
-    await scheduler.onModuleInit();
+  it('defers full warm-up to after bootstrap without blocking readiness', async () => {
+    scheduler.onApplicationBootstrap();
+
+    // Warming is dispatched via setImmediate, so it must not run synchronously
+    // during bootstrap.
+    expect(warming.warmAll).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setImmediate(resolve));
+    // Allow the swallowed promise chain inside runWarmUp to settle.
+    await Promise.resolve();
+
     expect(warming.warmAll).toHaveBeenCalledTimes(1);
   });
 
