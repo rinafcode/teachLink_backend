@@ -11,19 +11,19 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class AddNotificationsPaginationIndexes1810000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "idx_notifications_user_created" ON "notifications" ("userId", "createdAt" DESC)`,
+      'CREATE INDEX IF NOT EXISTS "idx_notifications_user_created" ON "notifications" ("userId", "createdAt" DESC)',
     );
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "idx_notifications_user_isread_created" ON "notifications" ("userId", "isRead", "createdAt" DESC)`,
+      'CREATE INDEX IF NOT EXISTS "idx_notifications_user_isread_created" ON "notifications" ("userId", "isRead", "createdAt" DESC)',
     );
     await queryRunner.query(
-      `CREATE INDEX IF NOT EXISTS "idx_notifications_user_status_created" ON "notifications" ("userId", "status", "createdAt" DESC)`,
+      'CREATE INDEX IF NOT EXISTS "idx_notifications_user_status_created" ON "notifications" ("userId", "status", "createdAt" DESC)',
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "idx_notifications_user_status_created"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "idx_notifications_user_isread_created"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "idx_notifications_user_created"`);
+    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_user_status_created"');
+    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_user_isread_created"');
+    await queryRunner.query('DROP INDEX IF EXISTS "idx_notifications_user_created"');
   }
 }
