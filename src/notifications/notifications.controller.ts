@@ -10,7 +10,13 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -26,7 +32,6 @@ import {
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { Notification, NotificationStatus } from './entities/notification.entity';
 import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
-import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsBoolean, IsEnum } from 'class-validator';
 import { Transform } from 'class-transformer';
 

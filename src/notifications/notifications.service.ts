@@ -71,8 +71,7 @@ export class NotificationsService {
     query?: PaginationQueryDto & { status?: NotificationStatus; isRead?: boolean | string },
   ) {
     const limit = clampLimit(query?.limit);
-    const offset =
-      query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
     const rawOrder = query?.order ? String(query.order).toUpperCase() : 'DESC';
     const order = (rawOrder === 'ASC' ? 'ASC' : 'DESC') as 'ASC' | 'DESC';
 
