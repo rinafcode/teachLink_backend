@@ -66,8 +66,41 @@ export class NotificationsService {
     return this.notificationRepository.save(notification);
   }
 
-  async getNotifications(userId: string) {
-    return this.notificationRepository.find({ where: { userId } });
+  async getNotifications(
+    userId: string,
+    query?: PaginationQueryDto & { status?: NotificationStatus; isRead?: boolean | string },
+  ) {
+    const limit = clampLimit(query?.limit);
+    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+    const rawOrder = query?.order ? String(query.order).toUpperCase() : 'DESC';
+    const order = (rawOrder === 'ASC' ? 'ASC' : 'DESC') as 'ASC' | 'DESC';
+
+    const qb = this.notificationRepository
+      .createQueryBuilder('notification')
+      .where('notification.userId = :userId', { userId });
+
+    if (query?.isRead !== undefined) {
+      let isReadVal: boolean | undefined;
+      if (typeof query.isRead === 'string') {
+        if (query.isRead === 'true' || query.isRead === '1') isReadVal = true;
+        else if (query.isRead === 'false' || query.isRead === '0') isReadVal = false;
+        else isReadVal = undefined;
+      } else {
+        isReadVal = query.isRead;
+      }
+      if (isReadVal !== undefined) {
+        qb.andWhere('notification.isRead = :isRead', { isRead: isReadVal });
+      }
+    }
+
+    if (query?.status !== undefined) {
+      qb.andWhere('notification.status = :status', { status: query.status });
+    }
+
+    // Ensure deterministic ordering newest-first when no explicit order,
+    // using the composite index on (userId, createdAt DESC) and
+    // (userId, isRead, createdAt) / (userId, status, createdAt) for filtered queries.
+    return this.paginationService.paginate(qb, query?.cursor, limit, offset, 'createdAt', order);
   }
 
   async create(dto: CreateNotificationDto) {
@@ -193,15 +226,13 @@ export class NotificationsService {
     });
   }
 
-  async findForUser(userId: string, query?: PaginationQueryDto) {
-    const limit = clampLimit(query?.limit);
-    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
-
-    const qb = this.notificationRepository
-      .createQueryBuilder('notification')
-      .where('notification.userId = :userId', { userId });
-
-    return this.paginationService.paginate(qb, query?.cursor, limit, offset, 'createdAt');
+  async findForUser(
+    userId: string,
+    query?: PaginationQueryDto & { status?: NotificationStatus; isRead?: boolean | string },
+  ) {
+    // Delegate to getNotifications to ensure single source of truth for
+    // pagination, ordering (DESC newest-first), and indexed filtering.
+    return this.getNotifications(userId, query);
   }
 
   async markRead(id: string, userId: string) {
