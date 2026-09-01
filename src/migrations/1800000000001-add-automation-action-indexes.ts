@@ -23,23 +23,11 @@ export class AddAutomationActionIndexes1800000000001 implements MigrationInterfa
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      'DROP INDEX IF EXISTS "IDX_automation_actions_workflowId_type"',
-    );
-    await queryRunner.query(
-      'DROP INDEX IF EXISTS "IDX_automation_actions_workflowId_order"',
-    );
-    await queryRunner.query(
-      'DROP INDEX IF EXISTS "IDX_automation_actions_deletedAt"',
-    );
-    await queryRunner.query(
-      'DROP INDEX IF EXISTS "IDX_automation_actions_order"',
-    );
-    await queryRunner.query(
-      'DROP INDEX IF EXISTS "IDX_automation_actions_type"',
-    );
-    await queryRunner.query(
-      'DROP INDEX IF EXISTS "IDX_automation_actions_workflowId"',
-    );
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_automation_actions_workflowId_type"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_automation_actions_workflowId_order"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_automation_actions_deletedAt"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_automation_actions_order"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_automation_actions_type"');
+    await queryRunner.query('DROP INDEX IF EXISTS "IDX_automation_actions_workflowId"');
   }
 }
