@@ -30,26 +30,27 @@ export class FeedbackTemplate {
   id: string;
 
   @Column()
-  @Index()
+  @Index('IDX_feedback_templates_name')
   name: string;
 
   @Column({ type: 'text' })
   body: string;
 
   @Column({ name: 'owner_id', type: 'uuid', nullable: true })
-  @Index()
+  @Index('IDX_feedback_templates_owner')
   ownerId?: string;
 
   /** When true, this template is auto-selected when none is supplied. */
   @Column({ default: false })
   isDefault: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
+  @Index()
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ type: 'timestamptz' })
   deletedAt?: Date;
 }

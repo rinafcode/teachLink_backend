@@ -1,6 +1,6 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { DataSource, EntityManager, Repository, MoreThan } from 'typeorm';
 import { Achievement, AchievementType } from './entities/achievement.entity';
 import { AchievementProgress } from './entities/achievement-progress.entity';
 import { UserAchievement } from './entities/user-achievement.entity';
@@ -21,6 +21,13 @@ import {
   AchievementLeaderboardDto,
   AchievementOverviewDto,
 } from './dto/achievement-statistics.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse, clampLimit } from '../common/utils/pagination.utils';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+const ACHIEVEMENTS_CACHE_KEY = 'achievements_definitions';
 
 @Injectable()
 export class AchievementsService {
@@ -35,6 +42,8 @@ export class AchievementsService {
     private userAchievementRepository: Repository<UserAchievement>,
     @InjectRepository(AchievementStatistics)
     private statisticsRepository: Repository<AchievementStatistics>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly dataSource: DataSource,
   ) {}
 
   // =====================================================
@@ -54,26 +63,37 @@ export class AchievementsService {
     const saved = await this.achievementRepository.save(achievement);
     this.logger.log(`Achievement created: ${saved.id} - ${saved.name}`);
 
+    await this.cacheManager.del(ACHIEVEMENTS_CACHE_KEY);
+
     return this.toAchievementResponseDto(saved);
   }
 
   /**
    * Get all achievements
    */
-  async getAllAchievements(includeHidden: boolean = false): Promise<AchievementResponseDto[]> {
-    const query = this.achievementRepository.createQueryBuilder('achievement');
+  async getAllAchievements(
+    includeHidden: boolean = false,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+
+    const qb = this.achievementRepository.createQueryBuilder('achievement');
 
     if (!includeHidden) {
-      query.andWhere('achievement.isHidden = :isHidden', { isHidden: false });
+      qb.andWhere('achievement.isHidden = :isHidden', { isHidden: false });
     }
 
-    const achievements = await query
-      .andWhere('achievement.isActive = :isActive', { isActive: true })
+    qb.andWhere('achievement.isActive = :isActive', { isActive: true })
       .orderBy('achievement.difficulty', 'ASC')
       .addOrderBy('achievement.createdAt', 'ASC')
-      .getMany();
+      .skip((page - 1) * limit)
+      .take(limit);
 
-    return achievements.map((a) => this.toAchievementResponseDto(a));
+    const [achievements, total] = await qb.getManyAndCount();
+
+    const dtos = achievements.map((a) => this.toAchievementResponseDto(a));
+    return buildOffsetResponse(dtos, total, page, limit);
   }
 
   /**
@@ -94,13 +114,22 @@ export class AchievementsService {
   /**
    * Get achievements by type
    */
-  async getAchievementsByType(type: AchievementType): Promise<AchievementResponseDto[]> {
-    const achievements = await this.achievementRepository.find({
+  async getAchievementsByType(
+    type: AchievementType,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+
+    const [achievements, total] = await this.achievementRepository.findAndCount({
       where: { type, isActive: true, isHidden: false },
       order: { difficulty: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return achievements.map((a) => this.toAchievementResponseDto(a));
+    const dtos = achievements.map((a) => this.toAchievementResponseDto(a));
+    return buildOffsetResponse(dtos, total, page, limit);
   }
 
   /**
@@ -122,6 +151,7 @@ export class AchievementsService {
     const saved = await this.achievementRepository.save(achievement);
 
     this.logger.log(`Achievement updated: ${achievementId}`);
+    await this.cacheManager.del(ACHIEVEMENTS_CACHE_KEY);
     return this.toAchievementResponseDto(saved);
   }
 
@@ -131,6 +161,7 @@ export class AchievementsService {
   async deactivateAchievement(achievementId: string): Promise<void> {
     await this.achievementRepository.update({ id: achievementId }, { isActive: false });
 
+    await this.cacheManager.del(ACHIEVEMENTS_CACHE_KEY);
     this.logger.log(`Achievement deactivated: ${achievementId}`);
   }
 
@@ -189,41 +220,62 @@ export class AchievementsService {
     achievementId: string,
     dto: UpdateAchievementProgressDto,
   ): Promise<AchievementProgressDto> {
-    let progress = await this.progressRepository.findOne({
-      where: {
-        user: { id: userId },
-        achievement: { id: achievementId },
-      },
-      relations: ['achievement'],
+    // Progress save + potential unlock are one logical operation: if the unlock
+    // writes fail, the progress change must roll back with them (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const progressRepository = manager.getRepository(AchievementProgress);
+      const achievementRepository = manager.getRepository(Achievement);
+
+      let progress = await progressRepository.findOne({
+        where: {
+          user: { id: userId },
+          achievement: { id: achievementId },
+        },
+        relations: ['achievement'],
+      });
+
+      if (!progress) {
+        // Initialize if it doesn't exist (same logic as initializeProgress).
+        const achievement = await achievementRepository.findOne({
+          where: { id: achievementId },
+        });
+        if (!achievement) {
+          throw new NotFoundException(`Achievement not found: ${achievementId}`);
+        }
+        const targetProgress = achievement.progressConfig?.maxProgress || 1;
+        progress = progressRepository.create({
+          user: { id: userId } as User,
+          achievement,
+          currentProgress: 0,
+          targetProgress,
+          percentageComplete: 0,
+          isUnlocked: false,
+        });
+      }
+
+      progress.currentProgress = Math.min(dto.currentProgress, progress.targetProgress);
+      progress.percentageComplete = Math.round(
+        (progress.currentProgress / progress.targetProgress) * 100,
+      );
+      progress.lastProgressUpdate = new Date();
+
+      if (dto.metadata) {
+        progress.metadata = { ...progress.metadata, ...dto.metadata };
+      }
+
+      const saved = await progressRepository.save(progress);
+
+      this.logger.log(
+        `Progress updated for user ${userId}: achievement ${achievementId} - ${progress.percentageComplete}%`,
+      );
+
+      // Check if achievement should be unlocked
+      if (!progress.isUnlocked && progress.currentProgress >= progress.targetProgress) {
+        await this.unlockWithManager(manager, userId, achievementId);
+      }
+
+      return this.toAchievementProgressDto(saved);
     });
-
-    if (!progress) {
-      // Initialize if doesn't exist
-      progress = await this.initializeProgress(userId, achievementId);
-    }
-
-    progress.currentProgress = Math.min(dto.currentProgress, progress.targetProgress);
-    progress.percentageComplete = Math.round(
-      (progress.currentProgress / progress.targetProgress) * 100,
-    );
-    progress.lastProgressUpdate = new Date();
-
-    if (dto.metadata) {
-      progress.metadata = { ...progress.metadata, ...dto.metadata };
-    }
-
-    const saved = await this.progressRepository.save(progress);
-
-    this.logger.log(
-      `Progress updated for user ${userId}: achievement ${achievementId} - ${progress.percentageComplete}%`,
-    );
-
-    // Check if achievement should be unlocked
-    if (!progress.isUnlocked && progress.currentProgress >= progress.targetProgress) {
-      await this.unlockAchievement(userId, achievementId);
-    }
-
-    return this.toAchievementProgressDto(saved);
   }
 
   /**
@@ -253,14 +305,23 @@ export class AchievementsService {
   /**
    * Get all progress records for a user
    */
-  async getUserAllProgress(userId: string): Promise<AchievementProgressDto[]> {
-    const progresses = await this.progressRepository.find({
+  async getUserAllProgress(
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<AchievementProgressDto>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+
+    const [progresses, total] = await this.progressRepository.findAndCount({
       where: { user: { id: userId } },
       relations: ['achievement'],
       order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return progresses.map((p) => this.toAchievementProgressDto(p));
+    const dtos = progresses.map((p) => this.toAchievementProgressDto(p));
+    return buildOffsetResponse(dtos, total, page, limit);
   }
 
   /**
@@ -304,8 +365,25 @@ export class AchievementsService {
     achievementId: string,
     metadata?: any,
   ): Promise<AchievementUnlockedEventDto> {
+    // The unlock row, progress update and unlocked-count bump are one logical
+    // operation: all commit together or none do (issue #1344).
+    return this.dataSource.transaction(async (manager) =>
+      this.unlockWithManager(manager, userId, achievementId, metadata),
+    );
+  }
+
+  private async unlockWithManager(
+    manager: EntityManager,
+    userId: string,
+    achievementId: string,
+    metadata?: any,
+  ): Promise<AchievementUnlockedEventDto> {
+    const userAchievementRepository = manager.getRepository(UserAchievement);
+    const progressRepository = manager.getRepository(AchievementProgress);
+    const achievementRepository = manager.getRepository(Achievement);
+
     // Check if already unlocked
-    const existing = await this.userAchievementRepository.findOne({
+    const existing = await userAchievementRepository.findOne({
       where: {
         user: { id: userId },
         achievement: { id: achievementId },
@@ -317,7 +395,7 @@ export class AchievementsService {
       return this.toAchievementUnlockedEventDto(existing);
     }
 
-    const achievement = await this.achievementRepository.findOne({
+    const achievement = await achievementRepository.findOne({
       where: { id: achievementId },
     });
 
@@ -325,7 +403,7 @@ export class AchievementsService {
       throw new NotFoundException(`Achievement not found: ${achievementId}`);
     }
 
-    const userAchievement = this.userAchievementRepository.create({
+    const userAchievement = userAchievementRepository.create({
       user: { id: userId } as User,
       achievement,
       unlockedAt: new Date(),
@@ -335,10 +413,10 @@ export class AchievementsService {
       notificationSent: false,
     });
 
-    const saved = await this.userAchievementRepository.save(userAchievement);
+    const saved = await userAchievementRepository.save(userAchievement);
 
     // Update progress record
-    await this.progressRepository.update(
+    await progressRepository.update(
       {
         user: { id: userId },
         achievement: { id: achievementId },
@@ -347,7 +425,7 @@ export class AchievementsService {
     );
 
     // Increment unlocked count
-    await this.achievementRepository.increment({ id: achievementId }, 'unlockedBy', 1);
+    await achievementRepository.increment({ id: achievementId }, 'unlockedBy', 1);
 
     this.logger.log(
       `Achievement unlocked for user ${userId}: ${achievementId} - earned ${achievement.pointsReward} points, ${achievement.experienceReward} XP`,
@@ -359,14 +437,23 @@ export class AchievementsService {
   /**
    * Get all unlocked achievements for a user
    */
-  async getUserAchievements(userId: string): Promise<UserAchievementDto[]> {
-    const achievements = await this.userAchievementRepository.find({
+  async getUserAchievements(
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<UserAchievementDto>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+
+    const [achievements, total] = await this.userAchievementRepository.findAndCount({
       where: { user: { id: userId } },
       relations: ['achievement'],
       order: { unlockedAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    return achievements.map((a) => this.toUserAchievementDto(a));
+    const dtos = achievements.map((a) => this.toUserAchievementDto(a));
+    return buildOffsetResponse(dtos, total, page, limit);
   }
 
   /**
@@ -469,34 +556,40 @@ export class AchievementsService {
    * Get user achievement overview
    */
   async getUserAchievementOverview(userId: string): Promise<AchievementOverviewDto> {
-    const allAchievements = await this.achievementRepository.find({
-      where: { isActive: true },
-    });
+    // 1. Get total number of active achievements (cacheable)
+    let totalAchievements = await this.cacheManager.get<number>('total_achievements');
+    if (totalAchievements === undefined || totalAchievements === null) {
+      totalAchievements = await this.achievementRepository.count({ where: { isActive: true } });
+      await this.cacheManager.set('total_achievements', totalAchievements, 3600 * 1000); // 1 hour TTL
+    }
 
-    const userAchievements = await this.userAchievementRepository.find({
-      where: { user: { id: userId } },
-    });
+    // 2. Fetch user's achievements count, points, and XP in one query
+    const userStats = await this.userAchievementRepository
+      .createQueryBuilder('ua')
+      .select('COUNT(ua.id)', 'unlockedCount')
+      .addSelect('COALESCE(SUM(ua.pointsEarned), 0)', 'totalPoints')
+      .addSelect('COALESCE(SUM(ua.experienceEarned), 0)', 'totalExperience')
+      .where('ua.userId = :userId', { userId })
+      .getRawOne();
 
-    const totalPoints = userAchievements.reduce((sum, a) => sum + a.pointsEarned, 0);
-    const totalExperience = userAchievements.reduce((sum, a) => sum + a.experienceEarned, 0);
+    const unlockedCount = parseInt(userStats?.unlockedCount || '0', 10);
+    const totalPoints = parseInt(userStats?.totalPoints || '0', 10);
+    const totalExperience = parseInt(userStats?.totalExperience || '0', 10);
 
     // Get rank (users with more achievements ranked higher)
     const rank = await this.userAchievementRepository
       .createQueryBuilder('ua')
       .select('COUNT(DISTINCT ua.userId)', 'count')
       .where('(SELECT COUNT(*) FROM user_achievements WHERE "userId" = ua."userId") > :userCount', {
-        userCount: userAchievements.length,
+        userCount: unlockedCount,
       })
       .getRawOne();
-
     const progressPercentage =
-      allAchievements.length > 0
-        ? Math.round((userAchievements.length / allAchievements.length) * 100)
-        : 0;
+      totalAchievements > 0 ? Math.round((unlockedCount / totalAchievements) * 100) : 0;
 
     return {
-      totalAchievements: allAchievements.length,
-      unlockedAchievements: userAchievements.length,
+      totalAchievements,
+      unlockedAchievements: unlockedCount,
       progressPercentage,
       totalPointsEarned: totalPoints,
       totalExperienceEarned: totalExperience,
@@ -549,14 +642,18 @@ export class AchievementsService {
     userId: string,
     achievementIds: string[],
   ): Promise<AchievementUnlockedEventDto[]> {
-    const results: AchievementUnlockedEventDto[] = [];
+    // The whole batch is one logical operation: a failure in any unlock rolls
+    // back every unlock in the batch (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const results: AchievementUnlockedEventDto[] = [];
 
-    for (const achievementId of achievementIds) {
-      const result = await this.unlockAchievement(userId, achievementId);
-      results.push(result);
-    }
+      for (const achievementId of achievementIds) {
+        const result = await this.unlockWithManager(manager, userId, achievementId);
+        results.push(result);
+      }
 
-    return results;
+      return results;
+    });
   }
 
   // =====================================================

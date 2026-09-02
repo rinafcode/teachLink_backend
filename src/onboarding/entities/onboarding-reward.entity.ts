@@ -16,7 +16,6 @@ export enum RewardType {
 }
 
 @Entity('onboarding_rewards')
-@Index(['type'])
 @Index(['isActive'])
 export class OnboardingReward {
   @PrimaryGeneratedColumn('uuid')

@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Course, CourseStatus } from '../courses/entities/course.entity';
 import { Enrollment } from '../courses/entities/enrollment.entity';
 import { CachingService } from '../caching/caching.service';
+import { CACHE_EVENTS } from '../caching/caching.constants';
 import { CollaborativeFilteringService } from './collaborative-filtering.service';
 import { ContentBasedFilteringService } from './content-based-filtering.service';
 import { RecommendedCourseDto } from './dto/recommendation.dto';
+import { clampLimit } from '../common/utils/pagination.utils';
 
 const CACHE_TTL_SECONDS = 300; // 5 minutes
 const COLLABORATIVE_WEIGHT = 0.6;
@@ -32,6 +35,7 @@ export class RecommendationEngineService {
   ) {}
 
   async getRecommendations(userId: string, limit = 10): Promise<RecommendedCourseDto[]> {
+    limit = clampLimit(limit, 50);
     const cacheKey = `recommendations:${userId}:${limit}`;
 
     return this.caching.getOrSet(
@@ -41,11 +45,24 @@ export class RecommendationEngineService {
     );
   }
 
+  @OnEvent(CACHE_EVENTS.ENROLLMENT_CREATED)
+  async onEnrollmentCreated(payload: { id: string }): Promise<void> {
+    const enrollment = await this.enrollmentRepo.findOne({
+      select: ['userId'],
+      where: { id: payload.id },
+    });
+    if (enrollment) {
+      this.logger.debug(
+        `Invalidating recommendations for user ${enrollment.userId} after enrollment`,
+      );
+      await this.invalidate(enrollment.userId);
+    }
+  }
+
   /** Invalidate cached recommendations for a user (e.g., after a new enrollment). */
   async invalidate(userId: string): Promise<void> {
-    // Pattern-style deletion: remove all limit variants by trying the common ones
-    const keys = [5, 10, 20, 50].map((l) => `recommendations:${userId}:${l}`);
-    await this.caching.deleteMany(keys);
+    // Delete all variants (any limit) matching the namespace prefix
+    await this.caching.deleteByPattern(`recommendations:${userId}:*`);
   }
 
   private async computeRecommendations(

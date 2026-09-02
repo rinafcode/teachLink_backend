@@ -11,6 +11,7 @@ import { QuotaDefinitionService } from './services/quota-definition.service';
 import { QuotaTrackingService } from './services/quota-tracking.service';
 import { QuotaResetScheduler } from './services/quota-reset.scheduler';
 import { AdaptiveRateLimitingService } from './services/adaptive-rate-limiting.service';
+import { ContainerCpuMetricsService } from './services/container-cpu-metrics.service';
 
 // Guard & Decorator
 import { QuotaGuard } from './guards/quota.guard';
@@ -28,6 +29,7 @@ import { UserQuotaController } from './controllers/user-quota.controller';
     QuotaManagementService,
     QuotaResetScheduler,
     AdaptiveRateLimitingService,
+    ContainerCpuMetricsService,
     QuotaGuard,
   ],
   exports: [QuotaManagementService, QuotaDefinitionService, QuotaTrackingService, QuotaGuard],

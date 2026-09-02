@@ -10,6 +10,8 @@ import { Rubric } from './entities/rubric.entity';
 import { RubricCriterion } from './entities/rubric-criterion.entity';
 import { RubricLevel } from './entities/rubric-level.entity';
 import { CreateRubricCriterionDto, CreateRubricDto, UpdateRubricDto } from './dto/rubric.dto';
+import { clampLimit } from '../../common/utils/pagination.utils';
+import { OffsetPaginatedResponse } from '../../common/interfaces/pagination.interface';
 
 /**
  * Manages rubric definitions: a `Rubric` is the parent record, holding
@@ -112,13 +114,26 @@ export class RubricsService {
     return this.findOneById(id, this.rubricRepo);
   }
 
-  /** Lists rubrics, optionally filtering by owner. */
-  async findAll(ownerId?: string): Promise<Rubric[]> {
-    return this.rubricRepo.find({
+  /** Lists rubrics (paginated), optionally filtering by owner. */
+  async findAll(ownerId?: string, page = 1, limit = 10): Promise<OffsetPaginatedResponse<Rubric>> {
+    const clampedLimit = clampLimit(limit);
+    const skip = (page - 1) * clampedLimit;
+    const [data, total] = await this.rubricRepo.findAndCount({
       where: ownerId ? { ownerId } : {},
       order: { createdAt: 'DESC' },
-      relations: ['criteria', 'criteria.levels'],
+      skip,
+      take: clampedLimit,
     });
+    const totalPages = Math.ceil(total / clampedLimit);
+    return {
+      data,
+      total,
+      page,
+      limit: clampedLimit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
   }
 
   /**

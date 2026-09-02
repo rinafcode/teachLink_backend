@@ -1,3 +1,6 @@
+packages:
+  - '.'
+
 allowBuilds:
   '@apollo/protobufjs': true
   '@nestjs/core': true
@@ -7,3 +10,6 @@ allowBuilds:
   msgpackr-extract: true
   protobufjs: true
   sharp: true
+
+overrides:
+  protobufjs: '>=7.5.5'

@@ -10,12 +10,14 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+
 export enum NotificationType {
   EMAIL = 'email',
   PUSH = 'push',
   IN_APP = 'in_app',
   SMS = 'sms',
 }
+
 export enum NotificationPriority {
   LOW = 'low',
   MEDIUM = 'medium',
@@ -32,6 +34,10 @@ export enum NotificationStatus {
 }
 
 @Entity('notifications')
+@Index('idx_notifications_dedup', ['userId', 'type', 'contentHash', 'createdAt'])
+@Index('idx_notifications_user_created', ['userId', 'createdAt'])
+@Index('idx_notifications_user_isread_created', ['userId', 'isRead', 'createdAt'])
+@Index('idx_notifications_user_status_created', ['userId', 'status', 'createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -51,6 +57,9 @@ export class Notification {
 
   @Column('text')
   content: string;
+
+  @Column({ name: 'content_hash', type: 'varchar', length: 64 })
+  contentHash: string;
 
   @Column({
     type: 'enum',

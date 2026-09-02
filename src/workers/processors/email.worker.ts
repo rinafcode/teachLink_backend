@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 import { EmailTrackingService } from '../../email-marketing/services/email-tracking.service';
 import { EmailEventType } from '../../email-marketing/enums/email-event-type.enum';
@@ -10,15 +11,18 @@ import { EmailEventType } from '../../email-marketing/enums/email-event-type.enu
  */
 @Injectable()
 export class EmailWorker extends BaseWorker {
-  constructor(private readonly emailTracking: EmailTrackingService) {
-    super('email');
+  constructor(
+    private readonly emailTracking: EmailTrackingService,
+    configService: ConfigService,
+  ) {
+    super('email', configService);
   }
 
   /**
    * Execute email job
    */
   async execute(job: Job): Promise<any> {
-    const { to, subject, template, variables, campaignId } = job.data;
+    const { to, subject, template, variables, campaignId, workflowId } = job.data;
 
     await job.progress(25);
 
@@ -45,10 +49,10 @@ export class EmailWorker extends BaseWorker {
         status: 'sent',
       };
 
-      // ONLY use valid EmailEvent fields
       await this.emailTracking.recordSent({
         recipientId: to,
         campaignId: campaignId || null,
+        workflowId: workflowId || null,
         eventType: EmailEventType.SENT,
       });
 

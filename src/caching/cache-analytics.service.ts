@@ -109,7 +109,30 @@ export class CacheAnalyticsService {
     const metricsData = await this.redis.hget(this.metricsKey, key);
 
     if (metricsData) {
-      return JSON.parse(metricsData);
+      try {
+        const parsed = JSON.parse(metricsData) as CacheMetrics;
+        // Validate the parsed shape has required fields before using it
+        if (typeof parsed?.hits === 'number' && typeof parsed?.misses === 'number') {
+          return parsed;
+        }
+        this.logger.warn(
+          `Corrupt metrics data for key "${key}" – treating as miss and recomputing`,
+        );
+        try {
+          await this.redis.incr('cache:metrics:deserialization_failures_total');
+        } catch {
+          // Silently ignore counter increment failures
+        }
+      } catch {
+        this.logger.warn(
+          `Unparseable metrics data for key "${key}" – treating as miss and recomputing`,
+        );
+        try {
+          await this.redis.incr('cache:metrics:deserialization_failures_total');
+        } catch {
+          // Silently ignore counter increment failures
+        }
+      }
     }
 
     return {
@@ -331,7 +354,31 @@ export class CacheAnalyticsService {
   private async getAllMetrics(): Promise<CacheMetrics[]> {
     const allMetricsData = await this.redis.hgetall(this.metricsKey);
 
-    return Object.values(allMetricsData).map((data) => JSON.parse(data));
+    const results: CacheMetrics[] = [];
+    for (const data of Object.values(allMetricsData)) {
+      try {
+        const parsed = JSON.parse(data) as CacheMetrics;
+        // Validate the parsed shape has the required fields
+        if (typeof parsed?.hits === 'number' && typeof parsed?.misses === 'number') {
+          results.push(parsed);
+        } else {
+          this.logger.warn('Corrupt metrics entry in getAllMetrics – skipping');
+          try {
+            await this.redis.incr('cache:metrics:deserialization_failures_total');
+          } catch {
+            // Silently ignore counter increment failures
+          }
+        }
+      } catch {
+        this.logger.warn('Unparseable metrics entry in getAllMetrics – skipping');
+        try {
+          await this.redis.incr('cache:metrics:deserialization_failures_total');
+        } catch {
+          // Silently ignore counter increment failures
+        }
+      }
+    }
+    return results;
   }
 
   /**

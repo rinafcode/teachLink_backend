@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { CacheWarmingService } from './cache-warming.service';
 import { CachingService } from './caching.service';
@@ -7,7 +7,7 @@ import { CachingService } from './caching.service';
  * Schedules background cache warming for high-traffic query patterns.
  */
 @Injectable()
-export class CacheWarmingScheduler implements OnModuleInit {
+export class CacheWarmingScheduler implements OnApplicationBootstrap {
   private readonly logger = new Logger(CacheWarmingScheduler.name);
 
   constructor(
@@ -15,9 +15,16 @@ export class CacheWarmingScheduler implements OnModuleInit {
     private readonly caching: CachingService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    this.logger.log('Running initial cache warm-up on startup');
-    await this.runWarmUp('startup');
+  /**
+   * Startup warming is deferred to `onApplicationBootstrap` and dispatched on the
+   * next tick without being awaited, so it runs once the app is up and accepting
+   * traffic rather than blocking bootstrap/readiness. Failures are swallowed by
+   * `runWarmUp`, so a cold cache never prevents the server from starting.
+   */
+  onApplicationBootstrap(): void {
+    setImmediate(() => {
+      void this.runWarmUp('startup');
+    });
   }
 
   /** Search results — TTL 2 min */

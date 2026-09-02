@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuditAction, AuditSeverity } from './enums/audit-action.enum';
-import { AuditLog } from './audit-log.entity';
+import { AuditLog, HttpMethod } from './audit-log.entity';
 import { AuditLoggerService } from './services/audit-logger.service';
 import { AuditQueryService } from './services/audit-query.service';
 import { AuditReportingService } from './services/audit-reporting.service';
@@ -53,7 +53,7 @@ export interface LogApiAccessOptions {
   userId: string | null;
   userEmail: string | null;
   apiEndpoint: string;
-  httpMethod: string;
+  httpMethod: HttpMethod;
   statusCode: number;
   responseTimeMs: number;
   ipAddress: string;
@@ -158,8 +158,14 @@ export class AuditLogService {
 
   // ── Query ──────────────────────────────────────────────────────────────────
 
-  search(filters: IAuditLogSearchFilters, page = 1, limit = 50): Promise<IAuditLogSearchResult> {
-    return this.queryService.search(filters, page, limit);
+  search(
+    filters: IAuditLogSearchFilters,
+    page = 1,
+    limit = 50,
+    cursor?: string,
+    offset?: number,
+  ): Promise<IAuditLogSearchResult> {
+    return this.queryService.search(filters, page, limit, cursor, offset);
   }
 
   findAll(limit = 100): Promise<AuditLog[]> {

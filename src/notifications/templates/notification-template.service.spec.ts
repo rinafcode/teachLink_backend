@@ -52,6 +52,23 @@ describe('NotificationTemplateService', () => {
       expect(result.subject).toBeUndefined();
       expect(result.body).toContain('Ada');
     });
+
+    it('should sanitize XSS payloads in template variables', () => {
+      const xssTemplate = {
+        ...mockTemplate,
+        bodyTemplate: '<p>Hello {{userName}}, your course is {{courseName}}</p>',
+      };
+      const result = service.render(xssTemplate, {
+        userName: '<script>alert("xss")</script>',
+        courseName: '<img src=x onerror=alert(1)>',
+      });
+      // Verify that the malicious scripts are escaped/sanitized
+      expect(result.body).not.toContain('<script>');
+      expect(result.body).not.toContain('onerror=alert(1)');
+      // Verify the malicious content is completely stripped by sanitize-html
+      expect(result.body).not.toContain('alert("xss")');
+      expect(result.body).not.toContain('img src=x');
+    });
   });
 
   describe('renderByName', () => {

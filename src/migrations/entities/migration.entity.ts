@@ -1,55 +1,28 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  VersionColumn,
-} from 'typeorm';
-
-export enum MigrationStatus {
-  PENDING = 'pending',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  ROLLED_BACK = 'rolled_back',
-}
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 /**
- * Represents the migration entity.
+ * TypeORM's internal `migrations` table.
+ *
+ * Tracks which migrations have been applied. TypeORM queries this table by
+ * `name` (to check whether a migration has already run) and orders by
+ * `timestamp` (to determine the order in which migrations are applied).
+ *
+ * Index strategy:
+ *   - `name`      — TypeORM looks up applied migrations by name on every
+ *                   `migration:run` / `migration:revert`.
+ *   - `timestamp` — migrations are ordered by timestamp to determine the
+ *                   next pending migration.
  */
-@Entity({ name: 'migrations' })
+@Entity('migrations')
+@Index('IDX_migrations_name', ['name'])
+@Index('IDX_migrations_timestamp', ['timestamp'])
 export class Migration {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @VersionColumn()
-  lockVersion: number;
-
-  @Column({ unique: true })
-  name: string;
+  @Column('bigint')
+  timestamp: number;
 
   @Column()
-  version: string;
-
-  @Column({
-    type: 'enum',
-    enum: MigrationStatus,
-    default: MigrationStatus.PENDING,
-  })
-  status: MigrationStatus;
-
-  @Column({ nullable: true })
-  appliedAt?: Date;
-
-  @Column({ nullable: true })
-  rolledBackAt?: Date;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @Column({ type: 'text', nullable: true })
-  errorMessage?: string;
+  name: string;
 }

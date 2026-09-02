@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Req, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Req, UseGuards, Delete, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CohortsService } from './cohorts.service';
@@ -7,6 +7,7 @@ import { AddCohortMemberDto } from './dto/add-cohort-member.dto';
 import { CreateCohortThreadDto } from './dto/create-cohort-thread.dto';
 import { CreateCohortCommentDto } from './dto/create-cohort-comment.dto';
 import { CreateCohortAssignmentDto } from './dto/create-cohort-assignment.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Cohorts')
 @Controller('cohorts')
@@ -24,8 +25,8 @@ export class CohortsController {
 
   @Get()
   @ApiOperation({ summary: 'List cohorts the authenticated user belongs to' })
-  getCohorts(@Req() req: any) {
-    return this.cohortsService.getCohorts(req.user.id);
+  getCohorts(@Req() req: any, @Query() query?: PaginationQueryDto) {
+    return this.cohortsService.getCohorts(req.user.id, query);
   }
 
   @Get(':id')
@@ -52,8 +53,8 @@ export class CohortsController {
 
   @Get(':id/members')
   @ApiOperation({ summary: 'List cohort members' })
-  listMembers(@Param('id') id: string, @Req() req: any) {
-    return this.cohortsService.listMembers(id, req.user.id);
+  listMembers(@Param('id') id: string, @Req() req: any, @Query() query?: PaginationQueryDto) {
+    return this.cohortsService.listMembers(id, req.user.id, query);
   }
 
   @Post(':id/threads')
@@ -64,8 +65,8 @@ export class CohortsController {
 
   @Get(':id/threads')
   @ApiOperation({ summary: 'List discussion threads inside a cohort' })
-  getThreads(@Param('id') id: string, @Req() req: any) {
-    return this.cohortsService.listThreads(id, req.user.id);
+  getThreads(@Param('id') id: string, @Req() req: any, @Query() query?: PaginationQueryDto) {
+    return this.cohortsService.listThreads(id, req.user.id, query);
   }
 
   @Get(':id/threads/:threadId')
@@ -96,8 +97,8 @@ export class CohortsController {
 
   @Get(':id/assignments')
   @ApiOperation({ summary: 'List assignments for a cohort' })
-  getAssignments(@Param('id') id: string, @Req() req: any) {
-    return this.cohortsService.listAssignments(id, req.user.id);
+  getAssignments(@Param('id') id: string, @Req() req: any, @Query() query?: PaginationQueryDto) {
+    return this.cohortsService.listAssignments(id, req.user.id, query);
   }
 
   @Get(':id/assignments/:assignmentId')

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuditLog } from '../audit-log.entity';
+import { AuditLog, HttpMethod } from '../audit-log.entity';
 import { AuditAction, AuditSeverity, AuditCategory } from '../enums/audit-action.enum';
 import { ConfigService } from '@nestjs/config';
 import { sanitizePii } from '../../common/utils/pii-sanitizer.utils';
@@ -42,7 +42,7 @@ export class AuditLoggerService {
       ...entry,
       severity: (entry.severity || AuditSeverity.INFO) as any,
       retentionUntil,
-      httpMethod: entry.httpMethod as any,
+      httpMethod: entry.httpMethod,
     });
 
     try {
@@ -118,7 +118,7 @@ export class AuditLoggerService {
     userId: string | null,
     userEmail: string | null,
     apiEndpoint: string,
-    httpMethod: string,
+    httpMethod: HttpMethod,
     statusCode: number,
     responseTimeMs: number,
     ipAddress: string,

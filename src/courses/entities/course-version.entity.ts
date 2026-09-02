@@ -7,7 +7,8 @@ import {
   ManyToOne,
   Index,
 } from 'typeorm';
-import { Course, CourseStatus } from './course.entity';
+import { Course } from './course.entity';
+import { CourseStatus } from './course-status.enum';
 import { User } from '../../users/entities/user.entity';
 
 export enum CourseVersionEventType {
@@ -17,7 +18,9 @@ export enum CourseVersionEventType {
 }
 
 @Entity('course_versions')
-@Index(['courseId', 'versionNumber'], { unique: true })
+@Index('IDX_course_versions_course_id_version_number', ['courseId', 'versionNumber'], {
+  unique: true,
+})
 export class CourseVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;

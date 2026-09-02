@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, VersionColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToOne, Column, VersionColumn, Index } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Challenge } from './challenge.entity';
 
@@ -6,6 +6,7 @@ import { Challenge } from './challenge.entity';
  * Represents the user Challenge entity.
  */
 @Entity('user_challenges')
+@Index('IDX_user_challenges_user_challenge', ['user', 'challenge'])
 export class UserChallenge {
   @PrimaryGeneratedColumn('uuid')
   id: string;

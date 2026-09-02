@@ -130,12 +130,22 @@ export class TransactionHelperService {
     }
   }
   /**
-   * Set transaction timeout
+   * Set transaction lock timeout (PostgreSQL)
    */
   async setTransactionTimeout(manager: EntityManager, timeoutMs: number): Promise<void> {
     if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
       throw new Error(`Invalid timeout value: ${timeoutMs}`);
     }
-    await manager.query(`SET LOCK_TIMEOUT ${timeoutMs}`);
+    await manager.query('SET lock_timeout = $1', [timeoutMs.toString()]);
+  }
+
+  /**
+   * Set statement timeout (PostgreSQL)
+   */
+  async setStatementTimeout(manager: EntityManager, timeoutMs: number): Promise<void> {
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
+      throw new Error(`Invalid timeout value: ${timeoutMs}`);
+    }
+    await manager.query('SET statement_timeout = $1', [timeoutMs.toString()]);
   }
 }

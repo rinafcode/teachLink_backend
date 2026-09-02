@@ -24,6 +24,9 @@ import {
   BulkPublishDto,
 } from './dto/bulk-operations.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
+import { Course } from './entities/course.entity';
 
 @ApiTags('courses')
 @Controller('courses')
@@ -40,18 +43,22 @@ export class CoursesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all courses' })
-  @ApiResponse({ status: 200, description: 'Returns all courses' })
-  async findAll(@Request() req) {
-    return this.coursesService.findAll(req.user);
+  @ApiOperation({ summary: 'Get all courses with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns paginated courses',
+    type: PaginatedSwaggerDto(Course),
+  })
+  async findAll(@Request() req, @Query() query?: PaginationQueryDto) {
+    return this.coursesService.findAll(req.user, query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific course by ID' })
   @ApiResponse({ status: 200, description: 'Returns course details' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  async findOne(@Param('id') id: string) {
-    return this.coursesService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.coursesService.findOne(id, req.user);
   }
 
   @Put(':id')

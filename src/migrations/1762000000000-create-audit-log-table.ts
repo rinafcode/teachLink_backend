@@ -76,6 +76,14 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
       EXCEPTION WHEN duplicate_object THEN NULL; END $$;
     `);
 
+    await queryRunner.query(`
+      DO $$ BEGIN
+        CREATE TYPE "audit_logs_http_method_enum" AS ENUM (
+          'GET', 'POST', 'PUT', 'DELETE', 'PATCH'
+        );
+      EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+    `);
+
     await queryRunner.createTable(
       new Table({
         name: 'audit_logs',
@@ -117,7 +125,11 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
           { name: 'session_id', type: 'varchar', isNullable: true },
           { name: 'request_id', type: 'varchar', isNullable: true },
           { name: 'api_endpoint', type: 'varchar', isNullable: true },
-          { name: 'http_method', type: 'varchar', isNullable: true },
+          {
+            name: 'http_method',
+            type: 'audit_logs_http_method_enum',
+            isNullable: true,
+          },
           { name: 'status_code', type: 'int', isNullable: true },
           { name: 'response_time_ms', type: 'int', isNullable: true },
           { name: 'tenant_id', type: 'varchar', isNullable: true },
@@ -171,6 +183,7 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
     await queryRunner.query('DROP TRIGGER IF EXISTS trg_audit_logs_block_update ON audit_logs;');
     await queryRunner.query('DROP FUNCTION IF EXISTS audit_logs_block_mutation();');
     await queryRunner.dropTable('audit_logs', true);
+    await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_http_method_enum"');
     await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_severity_enum"');
     await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_category_enum"');
     await queryRunner.query('DROP TYPE IF EXISTS "audit_logs_action_enum"');

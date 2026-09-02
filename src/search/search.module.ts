@@ -1,23 +1,17 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ElasticsearchModule } from '@nestjs/elasticsearch';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
-import { createElasticsearchConfig } from '../config/elasticsearch.config';
+import { TenancyModule } from '../tenancy/tenancy.module';
+import { SearchElasticsearchModule } from './elasticsearch/elasticsearch.module';
+
+import { MetricsModule } from '../utils/masking/metrics.module';
 
 /**
  * Search module supports Elasticsearch-backed course searching,
  * facets, autocomplete, and result caching when available.
  */
 @Module({
-  imports: [
-    ConfigModule,
-    ElasticsearchModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: createElasticsearchConfig,
-    }),
-  ],
+  imports: [TenancyModule, MetricsModule, SearchElasticsearchModule],
   controllers: [SearchController],
   providers: [SearchService],
   exports: [SearchService],

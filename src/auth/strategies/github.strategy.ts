@@ -28,6 +28,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       provider: 'github',
       providerId: String(profile.id),
       email,
+      emailVerified: (profile.emails?.[0] as { verified?: boolean } | undefined)?.verified ?? true,
       firstName,
       lastName,
       picture: profile.photos?.[0]?.value,

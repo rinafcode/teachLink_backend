@@ -3,6 +3,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 
 export class GetUsersDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ description: 'Search by name, username, or email' })
+  @IsOptional()
+  @IsString()
+  q?: string;
+
   @ApiPropertyOptional({
     example: 'active',
     description: 'Filter by account status',

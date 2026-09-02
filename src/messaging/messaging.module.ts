@@ -9,13 +9,11 @@ import { Message } from './message.entity';
 import { ConnectionSessionService } from './websocket-resilience/connection-session.service';
 import { WebSocketResilienceService } from './websocket-resilience/websocket-resilience.service';
 import { TracingService } from './tracing/tracing.service';
+import { PaginationService } from '../common/services/pagination.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Message]),
-    BullModule.forRoot({
-      redis: process.env.QUEUE_REDIS_URL || process.env.REDIS_URL || 'redis://127.0.0.1:6379',
-    }),
     BullModule.registerQueue({ name: QUEUE_NAMES.MESSAGE_QUEUE }),
   ],
   providers: [
@@ -24,6 +22,7 @@ import { TracingService } from './tracing/tracing.service';
     ConnectionSessionService,
     WebSocketResilienceService,
     TracingService,
+    PaginationService,
   ],
   controllers: [MessagingController],
   exports: [MessagingService],

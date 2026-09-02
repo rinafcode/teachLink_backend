@@ -95,12 +95,20 @@ describe('AchievementsController', () => {
 
   describe('getAllAchievements', () => {
     it('should get all achievements', async () => {
-      jest.spyOn(service, 'getAllAchievements').mockResolvedValue([mockAchievementResponseDto]);
+      jest.spyOn(service, 'getAllAchievements').mockResolvedValue({
+        data: [mockAchievementResponseDto],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
 
-      const result = await controller.getAllAchievements();
+      const result = await controller.getAllAchievements({});
 
-      expect(result).toEqual([mockAchievementResponseDto]);
-      expect(service.getAllAchievements).toHaveBeenCalledWith(false);
+      expect(result.data).toEqual([mockAchievementResponseDto]);
+      expect(service.getAllAchievements).toHaveBeenCalledWith(false, undefined);
     });
   });
 
@@ -168,12 +176,20 @@ describe('AchievementsController', () => {
         },
       ];
 
-      jest.spyOn(service, 'getUserAchievements').mockResolvedValue(mockUserAchievements);
+      jest.spyOn(service, 'getUserAchievements').mockResolvedValue({
+        data: mockUserAchievements,
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
 
       const result = await controller.getUserAchievements('user-123');
 
-      expect(result).toEqual(mockUserAchievements);
-      expect(service.getUserAchievements).toHaveBeenCalledWith('user-123');
+      expect(result.data).toEqual(mockUserAchievements);
+      expect(service.getUserAchievements).toHaveBeenCalledWith('user-123', undefined);
     });
   });
 

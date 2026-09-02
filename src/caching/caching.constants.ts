@@ -62,7 +62,23 @@ export const CACHE_WARMING = {
   POPULAR_COURSES_LIMIT: 20,
   USER_PROFILE_WARM_LIMIT: 50,
   SEARCH_WARM_QUERIES: ['', 'programming', 'math', 'science'],
+  /**
+   * Upper bound on how many rows any single warming query may load. Overridable
+   * via the `CACHE_WARM_MAX_ENTRIES` env var (read through ConfigService). This
+   * keeps startup/scheduled warming from loading full courses/users tables into
+   * memory; the warmed set is prioritised by a real signal (see service).
+   */
+  MAX_ENTRIES_DEFAULT: 100,
+  /** How many entries are processed per batch before yielding to the event loop. */
+  BATCH_SIZE_DEFAULT: 25,
+  /** Delay (ms) inserted between batches to bound DB/memory pressure. */
+  BATCH_DELAY_MS_DEFAULT: 50,
 } as const;
+
+/** ConfigService/env key controlling the per-query warming cap. */
+export const CACHE_WARM_MAX_ENTRIES_ENV = 'CACHE_WARM_MAX_ENTRIES';
+export const CACHE_WARM_BATCH_SIZE_ENV = 'CACHE_WARM_BATCH_SIZE';
+export const CACHE_WARM_BATCH_DELAY_MS_ENV = 'CACHE_WARM_BATCH_DELAY_MS';
 
 export const CACHE_EVENTS = {
   COURSE_CREATED: 'cache.course.created',

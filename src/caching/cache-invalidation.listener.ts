@@ -9,6 +9,9 @@ interface EntityEventPayload {
 
 /**
  * Listens for cache invalidation events and clears stale entries on write.
+ *
+ * Handlers are idempotent: deleting a cache key/pattern twice has the same
+ * effect as deleting it once, so outbox redelivery (issue #1221) is safe.
  */
 @Injectable()
 export class CacheInvalidationListener {

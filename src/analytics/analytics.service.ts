@@ -7,12 +7,14 @@ import { MetricsCollectionService } from '../monitoring/metrics/metrics-collecti
 import { EventBatchingService, ITrackEventDto } from './services/event-batching.service';
 import { EventValidationService } from './services/event-validation.service';
 
+// The AnalyticsService is responsible for tracking and managing analytics events. It provides methods to track events, retrieve events with filtering, and generate analytics summaries. It also integrates with Prometheus metrics for monitoring event counts and assessment durations.
 @Injectable()
 export class AnalyticsService implements OnModuleInit {
   private readonly logger = new Logger(AnalyticsService.name);
   private featureEventsCounter: Counter<'category' | 'action' | 'eventType'> | null = null;
   private assessmentDuration: Histogram<'status'> | null = null;
 
+  // Injecting the necessary repositories and services for analytics operations
   constructor(
     @InjectRepository(AnalyticsEvent)
     private readonly eventRepository: Repository<AnalyticsEvent>,
@@ -21,6 +23,7 @@ export class AnalyticsService implements OnModuleInit {
     private readonly validationService: EventValidationService,
   ) {}
 
+  // Initialize Prometheus metrics for feature events and assessment durations when the module is initialized
   async onModuleInit(): Promise<void> {
     try {
       const registry = this.metrics.getRegistry();

@@ -2,10 +2,10 @@
 
 /**
  * Environment Variables Validation Script
- * 
+ *
  * Validates that all required environment variables are set and contain valid values.
  * Provides detailed feedback on missing or invalid configurations.
- * 
+ *
  * Usage:
  *   npm run validate:env          # Validate against .env.example
  *   node scripts/validate-env.js  # Direct execution
@@ -213,9 +213,9 @@ const ENV_SPEC = {
   BCRYPT_ROUNDS: {
     required: false,
     type: 'integer',
-    min: 4,
-    max: 15,
-    default: 10,
+    min: 10,
+    max: 14,
+    default: 12,
     description: 'Bcrypt hashing rounds',
   },
   JWT_EXPIRES_IN: {
@@ -372,7 +372,10 @@ function validateEnvironment() {
 
     const result = {
       key,
-      value: value === undefined ? '<not set>' : value.substring(0, 20) + (value.length > 20 ? '...' : ''),
+      value:
+        value === undefined
+          ? '<not set>'
+          : value.substring(0, 20) + (value.length > 20 ? '...' : ''),
       description: spec.description,
       spec,
       errors: validationErrors,
@@ -405,9 +408,13 @@ function validateEnvironment() {
   }
 
   // Print results
-  console.log('\n' + colorize('═══════════════════════════════════════════════════════', colors.blue));
+  console.log(
+    '\n' + colorize('═══════════════════════════════════════════════════════', colors.blue),
+  );
   console.log(colorize('   Environment Variables Validation Report', colors.blue));
-  console.log(colorize('═══════════════════════════════════════════════════════', colors.blue) + '\n');
+  console.log(
+    colorize('═══════════════════════════════════════════════════════', colors.blue) + '\n',
+  );
 
   // Summary
   const requiredPassed = results.required.filter((r) => r.errors.length === 0).length;
@@ -464,7 +471,12 @@ function validateEnvironment() {
   // Status
   if (hasErrors) {
     console.log(colorize('❌ Validation Failed', colors.red));
-    console.log(colorize(`   ${results.required.filter((r) => r.errors.length > 0).length} required variables have errors`, colors.red));
+    console.log(
+      colorize(
+        `   ${results.required.filter((r) => r.errors.length > 0).length} required variables have errors`,
+        colors.red,
+      ),
+    );
   } else {
     console.log(colorize('✅ Validation Passed', colors.green));
     console.log(colorize('   All required variables are properly configured', colors.green));
