@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
 
-export class AddVariantMetricIndexes1689999999999 implements MigrationInterface {
+export class AddVariantMetricIndexes1802000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createIndices('variant_metrics', [
       new TableIndex({

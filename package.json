@@ -5,7 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
-  "packageManager": "pnpm@11.x.x",
+  "packageManager": "pnpm@9.1.0",
   "prNote": "Added packageManager field per issue #1209",
   "scripts": {
     "license:scan": "node scripts/scan-licenses.js",
