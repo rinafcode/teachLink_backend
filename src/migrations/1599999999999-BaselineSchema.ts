@@ -2310,7 +2310,7 @@ export class BaselineSchema1599999999999 implements MigrationInterface {
     `);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
+  public async down(_queryRunner: QueryRunner): Promise<void> {
     // Dropping the entire baseline schema is handled by `migration:revert`
     // in reverse order; the tables are dropped as their corresponding
     // migrations are reverted.
