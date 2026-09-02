@@ -61,7 +61,9 @@ export class AddConsumerPrivacyPreferenceIndexes1806000000000 implements Migrati
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query('DROP INDEX IF EXISTS "IDX_consumer_privacy_preferences_last_request_date"');
+    await queryRunner.query(
+      'DROP INDEX IF EXISTS "IDX_consumer_privacy_preferences_last_request_date"',
+    );
     await queryRunner.query('DROP INDEX IF EXISTS "IDX_consumer_privacy_preferences_do_not_sell"');
     await queryRunner.query('DROP INDEX IF EXISTS "IDX_consumer_privacy_preferences_tenant_user"');
     await queryRunner.query('DROP INDEX IF EXISTS "IDX_consumer_privacy_preferences_tenant_id"');
