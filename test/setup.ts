@@ -21,16 +21,8 @@ process.env.DATABASE_PASSWORD = 'password';
 process.env.DATABASE_NAME = 'test_db';
 process.env.ENCRYPTION_SECRET = 'super-secret-key-32-chars-long-x';
 
-// Mock console methods to reduce output noise
-global.console = {
-  ...console,
-  // Uncomment to suppress console output during tests
-  // log: jest.fn(),
-  // debug: jest.fn(),
-  // info: jest.fn(),
-  // warn: jest.fn(),
-  // error: jest.fn(),
-};
+// Mock console methods to reduce output noise if needed
+
 
 // Set test timeout
 jest.setTimeout(10000);

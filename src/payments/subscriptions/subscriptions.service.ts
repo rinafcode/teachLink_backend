@@ -1,12 +1,15 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import {
   Subscription,
   SubscriptionStatus,
   SubscriptionInterval,
 } from '../entities/subscription.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import {
   PauseSubscriptionDto,
   ResumeSubscriptionDto,
@@ -25,6 +28,8 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
+    @InjectQueue(QUEUE_NAMES.SUBSCRIPTIONS)
+    private subscriptionQueue: Queue,
   ) {}
 
   /**
@@ -68,6 +73,16 @@ export class SubscriptionsService {
       );
     }
 
+    let delay: number | undefined;
+    if (dto.resumeAt) {
+      const resumeDate = new Date(dto.resumeAt);
+      const now = Date.now();
+      if (isNaN(resumeDate.getTime()) || resumeDate.getTime() <= now) {
+        throw new BadRequestException('resumeAt must be a future date');
+      }
+      delay = resumeDate.getTime() - now;
+    }
+
     // Update subscription with pause metadata without canceling the subscription.
     subscription.properties = {
       ...subscription.properties,
@@ -78,6 +93,26 @@ export class SubscriptionsService {
     };
 
     const updated = await this.subscriptionRepository.save(subscription);
+
+    // Schedule delayed automatic resume if resumeAt is specified
+    if (delay !== undefined) {
+      await this.subscriptionQueue.add(
+        JOB_NAMES.RESUME_SUBSCRIPTION,
+        {
+          subscriptionId: updated.id,
+          userId: updated.userId,
+        },
+        {
+          delay,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+          removeOnComplete: true,
+        },
+      );
+    }
 
     // Emit event for downstream processing (notify user, analytics, etc.)
     this.eventEmitter.emit('subscription.paused', {
