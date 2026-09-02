@@ -22,7 +22,7 @@ import { TriggerType } from '../enums/trigger-type.enum';
 import { ActionType } from '../enums/action-type.enum';
 import { WorkflowStatus } from '../enums/workflow-status.enum';
 
-function validateWebhookUrl(urlStr: string): void {
+function _validateWebhookUrl(urlStr: string): void {
   if (!urlStr) return;
   let parsedUrl: URL;
   try {

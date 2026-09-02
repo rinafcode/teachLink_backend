@@ -27,17 +27,8 @@ export class AddExperimentMetricIndexes1801000000000 implements MigrationInterfa
       'experiment_metrics',
       'IDX_experiment_metrics_experiment_is_primary',
     );
-    await queryRunner.dropIndex(
-      'experiment_metrics',
-      'IDX_experiment_metrics_created_at',
-    );
-    await queryRunner.dropIndex(
-      'experiment_metrics',
-      'IDX_experiment_metrics_type',
-    );
-    await queryRunner.dropIndex(
-      'experiment_metrics',
-      'IDX_experiment_metrics_experiment_id',
-    );
+    await queryRunner.dropIndex('experiment_metrics', 'IDX_experiment_metrics_created_at');
+    await queryRunner.dropIndex('experiment_metrics', 'IDX_experiment_metrics_type');
+    await queryRunner.dropIndex('experiment_metrics', 'IDX_experiment_metrics_experiment_id');
   }
 }

@@ -60,4 +60,3 @@ export class ExperimentMetric {
   @ManyToOne(() => Experiment, (experiment) => experiment.metrics)
   experiment: Experiment;
 }
-
