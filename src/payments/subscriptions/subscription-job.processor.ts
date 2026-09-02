@@ -1,25 +1,20 @@
 import { Processor, Process, OnQueueActive, OnQueueCompleted, OnQueueFailed } from '@nestjs/bull';
-
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Job } from 'bull';
-import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { SubscriptionsService } from './subscriptions.service';
 import { Subscription, SubscriptionStatus } from '../entities/subscription.entity';
+import { IPaymentProvider } from '../providers/payment-provider.interface';
 
 export interface ResumeSubscriptionJobData {
   subscriptionId: string;
   userId?: string;
   reason?: string;
 }
-import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Subscription, SubscriptionStatus } from '../entities/subscription.entity';
-import { IPaymentProvider } from '../providers/payment-provider.interface';
 
+@Injectable()
 @Processor(QUEUE_NAMES.SUBSCRIPTIONS)
 export class SubscriptionJobProcessor {
   private readonly logger = new Logger(SubscriptionJobProcessor.name);
@@ -28,21 +23,21 @@ export class SubscriptionJobProcessor {
     private readonly subscriptionsService: SubscriptionsService,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
-    @InjectRepository(Subscription)
-    private subscriptionRepository: Repository<Subscription>,
+    @Optional()
     @Inject('IPaymentProvider')
-    private paymentProvider: IPaymentProvider,
+    private readonly paymentProvider?: IPaymentProvider,
   ) {}
 
   @Process(JOB_NAMES.PROCESS_SUBSCRIPTION)
   async handleSubscription(job: Job<unknown>): Promise<unknown> {
-    // Process subscription job
     this.logger.log('Processing subscription job:', job.data);
     return { success: true };
   }
 
   @Process(JOB_NAMES.RESUME_SUBSCRIPTION)
-  async handleResumeSubscription(job: Job<ResumeSubscriptionJobData>): Promise<unknown> {
+  async handleResumeSubscription(
+    job: Job<ResumeSubscriptionJobData>,
+  ): Promise<{ success: boolean; reason?: string; message?: string }> {
     const { subscriptionId } = job.data;
     this.logger.log(`Processing automatic resume for subscription: ${subscriptionId}`);
 
@@ -67,11 +62,23 @@ export class SubscriptionJobProcessor {
     }
 
     // Idempotency check: Guard against double-resume or already resumed subscriptions
-    if (!subscription.properties?.isPaused) {
+    if (!subscription.properties?.isPaused && subscription.status !== SubscriptionStatus.PAUSED) {
       this.logger.log(
         `Subscription ${subscriptionId} is not paused (already resumed). Skipping auto-resume.`,
       );
       return { success: true, reason: 'Subscription not paused' };
+    }
+
+    // Resume at provider (Stripe) if provider subscription ID is present
+    if (subscription.providerSubscriptionId && this.paymentProvider?.resumeSubscription) {
+      try {
+        await this.paymentProvider.resumeSubscription(subscription.providerSubscriptionId);
+      } catch (error) {
+        this.logger.error(
+          `Failed to resume subscription ${subscriptionId} at payment provider: ${(error as Error).message}`,
+        );
+        throw error;
+      }
     }
 
     try {
@@ -84,63 +91,6 @@ export class SubscriptionJobProcessor {
       this.logger.error(
         `Failed to auto-resume subscription ${subscriptionId}: ${(error as Error).message}`,
       );
-      throw error;
-    }
-  }
-  async handleResumeSubscription(
-    job: Job<{ subscriptionId: string }>,
-  ): Promise<{ success: boolean; message: string }> {
-    const { subscriptionId } = job.data;
-
-    try {
-      this.logger.log(`Processing resume subscription job for ${subscriptionId}`);
-
-      const subscription = await this.subscriptionRepository.findOne({
-        where: { id: subscriptionId },
-      });
-
-      if (!subscription) {
-        this.logger.error(`Subscription ${subscriptionId} not found`);
-        return { success: false, message: 'Subscription not found' };
-      }
-
-      if (subscription.status !== SubscriptionStatus.PAUSED) {
-        this.logger.warn(
-          `Subscription ${subscriptionId} is not paused (status: ${subscription.status})`,
-        );
-        return { success: false, message: 'Subscription is not paused' };
-      }
-
-      if (!subscription.providerSubscriptionId) {
-        this.logger.error(`Subscription ${subscriptionId} has no provider subscription ID`);
-        return { success: false, message: 'No provider subscription ID' };
-      }
-
-      // Resume at provider (Stripe) first
-      try {
-        await this.paymentProvider.resumeSubscription(subscription.providerSubscriptionId);
-      } catch (error) {
-        this.logger.error(`Failed to resume subscription ${subscriptionId} at provider`, error);
-        return { success: false, message: 'Provider resume failed' };
-      }
-
-      // Resume the subscription locally only after provider succeeds
-      subscription.status = SubscriptionStatus.ACTIVE;
-      subscription.cancelAtPeriodEnd = false;
-      subscription.properties = {
-        ...subscription.properties,
-        isPaused: false,
-        resumedAt: new Date(),
-        resumeReason: 'Scheduled automatic resume',
-      };
-
-      await this.subscriptionRepository.save(subscription);
-
-      this.logger.log(`Successfully resumed subscription ${subscriptionId} via scheduled job`);
-
-      return { success: true, message: 'Subscription resumed successfully' };
-    } catch (error) {
-      this.logger.error(`Failed to resume subscription ${subscriptionId}`, error);
       throw error;
     }
   }

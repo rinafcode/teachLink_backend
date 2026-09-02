@@ -1,13 +1,20 @@
+import { BadRequestException, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { SubscriptionsService } from './subscriptions.service';
-import { Subscription, SubscriptionStatus, SubscriptionInterval } from '../entities/subscription.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+  SubscriptionInterval,
+} from '../entities/subscription.entity';
 import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { OutboxService } from '../../common/events/outbox.service';
+import { PaymentProviderService } from '../providers/payment-provider.service';
 
-describe('SubscriptionsService', () => {
+describe('SubscriptionsService (Lifecycle & Pause/Resume)', () => {
   let service: SubscriptionsService;
 
   const mockSubscriptionRepository = {
@@ -21,6 +28,16 @@ describe('SubscriptionsService', () => {
 
   const mockQueue = {
     add: jest.fn().mockResolvedValue({ id: 'job-1' }),
+  };
+
+  const mockOutbox = {
+    enqueueStandalone: jest.fn().mockResolvedValue(undefined),
+    enqueue: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPaymentProvider = {
+    chargeCustomer: jest.fn(),
+    issueCredit: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -40,6 +57,14 @@ describe('SubscriptionsService', () => {
         {
           provide: getQueueToken(QUEUE_NAMES.SUBSCRIPTIONS),
           useValue: mockQueue,
+        },
+        {
+          provide: OutboxService,
+          useValue: mockOutbox,
+        },
+        {
+          provide: PaymentProviderService,
+          useValue: mockPaymentProvider,
         },
       ],
     }).compile();
@@ -68,9 +93,9 @@ describe('SubscriptionsService', () => {
         status: SubscriptionStatus.ACTIVE,
       });
 
-      await expect(
-        service.pauseSubscription('sub-1', { resumeAt: pastDate }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.pauseSubscription('sub-1', { resumeAt: pastDate })).rejects.toThrow(
+        BadRequestException,
+      );
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 
@@ -168,16 +193,16 @@ describe('SubscriptionsService', () => {
         properties: { isPaused: false },
       });
 
-      await expect(
-        service.resumeSubscription('sub-1', { reason: 'Back now' }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.resumeSubscription('sub-1', { reason: 'Back now' })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should resume paused subscription successfully', async () => {
       const sub = {
         id: 'sub-1',
         userId: 'user-1',
-        status: SubscriptionStatus.ACTIVE,
+        status: SubscriptionStatus.PAUSED,
         properties: { isPaused: true, pausedAt: new Date() },
       };
       mockSubscriptionRepository.findOne.mockResolvedValue(sub);
@@ -196,20 +221,11 @@ describe('SubscriptionsService', () => {
         }),
       );
     });
-import { BadRequestException, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { SubscriptionsService } from './subscriptions.service';
-import {
-  Subscription,
-  SubscriptionStatus,
-  SubscriptionInterval,
-} from '../entities/subscription.entity';
-import { PaymentProviderService } from '../providers/payment-provider.service';
+  });
+});
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers for proration/upgrade/downgrade suites
 // ---------------------------------------------------------------------------
 
 const PERIOD_END = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000); // 15 days from now
@@ -265,7 +281,13 @@ function buildService(
   outbox: ReturnType<typeof makeOutbox>,
   provider: jest.Mocked<PaymentProviderService>,
 ): SubscriptionsService {
-  return new SubscriptionsService(repo as any, outbox as any, provider);
+  return new SubscriptionsService(
+    repo as any,
+    { emit: jest.fn() } as any,
+    { add: jest.fn() } as any,
+    outbox as any,
+    provider,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -298,7 +320,10 @@ describe('SubscriptionsService.upgradeSubscription', () => {
     expect(userId).toBe('user-1');
     expect(amount).toBeGreaterThan(0);
     expect(currency).toBe('USD');
-    expect(meta).toMatchObject({ subscriptionId: 'sub-1', type: 'subscription_upgrade_proration' });
+    expect(meta).toMatchObject({
+      subscriptionId: 'sub-1',
+      type: 'subscription_upgrade_proration',
+    });
 
     // Plan change persisted
     expect(repo.save).toHaveBeenCalledTimes(1);

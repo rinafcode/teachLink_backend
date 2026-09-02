@@ -24,7 +24,6 @@ process.env.BCRYPT_ROUNDS = '10';
 
 // Mock console methods to reduce output noise if needed
 
-
 // Set test timeout
 jest.setTimeout(10000);
 

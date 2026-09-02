@@ -19,8 +19,6 @@ import { SubscriptionJobProcessor } from './subscriptions/subscription-job.proce
 import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { PaymentReconciliationJob } from './reconciliation/reconciliation.service';
 import { PaymentReconciliationController } from './reconciliation/reconciliation.controller';
-import { SubscriptionsService } from './subscriptions/subscriptions.service';
-import { SubscriptionsController } from './subscriptions/subscriptions.controller';
 import { PaymentProviderService } from './providers/payment-provider.service';
 import { StripeProvider } from './providers/stripe.provider';
 
@@ -46,24 +44,21 @@ import { StripeProvider } from './providers/stripe.provider';
   imports: [
     TypeOrmModule.forFeature([Payment, Subscription, Invoice, Refund]),
     CurrencyModule,
-    BullModule.registerQueue({
-      name: QUEUE_NAMES.SUBSCRIPTIONS,
-    }),
-  ],
-  providers: [PricingService, SubscriptionsService, SubscriptionJobProcessor],
-  controllers: [PricingController, SubscriptionsController],
-  exports: [PricingService, SubscriptionsService, CurrencyModule],
     AuditLogModule,
     IdempotencyModule,
     OutboxModule,
     HttpModule,
     QueueModule,
+    BullModule.registerQueue({
+      name: QUEUE_NAMES.SUBSCRIPTIONS,
+    }),
   ],
   providers: [
     PricingService,
     PaymentReconciliationJob,
     StripeProvider,
     SubscriptionsService,
+    SubscriptionJobProcessor,
     PaymentProviderService,
     {
       provide: 'IPaymentProvider',
@@ -82,4 +77,3 @@ import { StripeProvider } from './providers/stripe.provider';
   ],
 })
 export class PaymentsModule {}
-

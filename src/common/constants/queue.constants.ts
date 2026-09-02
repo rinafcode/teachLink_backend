@@ -34,6 +34,5 @@ export const JOB_NAMES = {
   // Payments queues
   PROCESS_SUBSCRIPTION: 'process_subscription',
   PROCESS_WEBHOOK: 'process-webhook',
-  RESUME_SUBSCRIPTION: 'resume-subscription',
   RESUME_SUBSCRIPTION: 'resume_subscription',
 } as const;

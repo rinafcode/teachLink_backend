@@ -153,32 +153,17 @@ export class SubscriptionsService {
       );
     }
 
-    // Emit event for downstream processing (notify user, analytics, etc.)
-    this.eventEmitter.emit('subscription.paused', {
-    // TODO: Schedule automatic resume if resumeAt is provided.
-    // This requires injecting queueService and QUEUE_NAMES constants.
-    // const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
-    // if (resumeAtDate) {
-    //   const delayMs = resumeAtDate.getTime() - Date.now();
-    //   if (delayMs > 0) {
-    //     await this.queueService.addJob(
-    //       QUEUE_NAMES.SUBSCRIPTIONS,
-    //       JOB_NAMES.RESUME_SUBSCRIPTION,
-    //       { subscriptionId: updated.id },
-    //       {
-    //         delay: delayMs,
-    //         attempts: 3,
-    //         backoff: {
-    //           type: 'exponential',
-    //           delay: 5000,
-    //         },
-    //       },
-    //     );
-    //   }
-    // }
-
     // Enqueue event for downstream processing (notify user, analytics, etc.).
-    await this.outbox.enqueueStandalone('subscription.paused', {
+    if (this.outbox) {
+      await this.outbox.enqueueStandalone('subscription.paused', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        resumeAt: dto.resumeAt,
+        reason: dto.reason,
+      });
+    }
+
+    this.eventEmitter.emit('subscription.paused', {
       subscriptionId: updated.id,
       userId: updated.userId,
       resumeAt: dto.resumeAt,
@@ -214,7 +199,15 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    await this.outbox.enqueueStandalone('subscription.resumed', {
+    if (this.outbox) {
+      await this.outbox.enqueueStandalone('subscription.resumed', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        reason: dto.reason,
+      });
+    }
+
+    this.eventEmitter.emit('subscription.resumed', {
       subscriptionId: updated.id,
       userId: updated.userId,
       reason: dto.reason,
