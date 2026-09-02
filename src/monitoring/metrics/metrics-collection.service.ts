@@ -86,6 +86,15 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Cache hit rate percentage, labelled by cache_type */
   public cacheHitRate: Gauge;
 
+  /** Duration of a cache warming pass in seconds, labelled by warm target */
+  public cacheWarmDuration: Histogram;
+
+  /** Total cache entries warmed, labelled by warm target */
+  public cacheWarmEntries: Counter;
+
+  /** Number of entries warmed on the most recent pass, labelled by warm target */
+  public cacheWarmLastEntries: Gauge;
+
   // ── Business Metrics – Queues ──────────────────────────────────────────────
 
   /** Queue job processing duration, labelled by queue_name and job_type */
@@ -222,6 +231,19 @@ export class MetricsCollectionService implements OnModuleInit {
 
   updateCacheHitRate(cacheType: string, hitRate: number): void {
     this.cacheHitRate.set({ cache_type: cacheType }, hitRate);
+  }
+
+  /**
+   * Records the outcome of a cache warming pass.
+   *
+   * @param target           Warm target (e.g. COURSES_LIST, USER_PROFILE)
+   * @param entries          Number of entries warmed on this pass
+   * @param durationSeconds  Wall-clock duration of the pass in **seconds**
+   */
+  recordCacheWarming(target: string, entries: number, durationSeconds: number): void {
+    this.cacheWarmDuration.observe({ target }, durationSeconds);
+    this.cacheWarmEntries.inc({ target }, entries);
+    this.cacheWarmLastEntries.set({ target }, entries);
   }
 
   // ── Recording helpers – Queues ────────────────────────────────────────────
@@ -431,6 +453,28 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'cache_hit_rate_percentage',
       help: 'Cache hit rate percentage',
       labelNames: ['cache_type'],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmDuration = new Histogram({
+      name: 'cache_warm_duration_seconds',
+      help: 'Duration of cache warming passes in seconds',
+      labelNames: ['target'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmEntries = new Counter({
+      name: 'cache_warm_entries_total',
+      help: 'Total number of cache entries warmed',
+      labelNames: ['target'],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmLastEntries = new Gauge({
+      name: 'cache_warm_last_entries',
+      help: 'Number of cache entries warmed on the most recent pass',
+      labelNames: ['target'],
       registers: [this.registry],
     });
 

@@ -35,6 +35,9 @@ export enum NotificationStatus {
 
 @Entity('notifications')
 @Index('idx_notifications_dedup', ['userId', 'type', 'contentHash', 'createdAt'])
+@Index('idx_notifications_user_created', ['userId', 'createdAt'])
+@Index('idx_notifications_user_isread_created', ['userId', 'isRead', 'createdAt'])
+@Index('idx_notifications_user_status_created', ['userId', 'status', 'createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;

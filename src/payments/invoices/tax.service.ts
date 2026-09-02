@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import Decimal from 'decimal.js';
 import { Payment } from '../entities/payment.entity';
+import { add, multiply, roundToCents } from '../utils/money';
+
+export { roundToCents };
 
 /**
  * Result of a tax resolution step.
@@ -48,14 +52,6 @@ const DEFAULT_TAX_RATES: Record<string, number> = {
   US: 0, // No federal sales tax
 };
 
-/**
- * Rounds a monetary value to the nearest cent using half-up rounding, avoiding
- * floating-point drift by rounding in minor units (hundredths).
- */
-function roundToCents(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
 @Injectable()
 export class TaxService {
   /**
@@ -102,10 +98,13 @@ export class TaxService {
    * jurisdiction. `totalAmount` is `amount + taxAmount` by construction and
    * both figures are rounded to the nearest cent.
    */
-  resolveTax(amount: number, jurisdiction: string | null | undefined): TaxBreakdown {
+  resolveTax(
+    amount: number | string | Decimal,
+    jurisdiction: string | null | undefined,
+  ): TaxBreakdown {
     const rate = this.getRateForJurisdiction(jurisdiction);
-    const taxAmount = roundToCents(amount * rate);
-    const totalAmount = roundToCents(amount + taxAmount);
+    const taxAmount = multiply(amount, rate);
+    const totalAmount = add(amount, taxAmount);
 
     return {
       jurisdiction: jurisdiction ?? null,

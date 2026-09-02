@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { Payment } from './payment.entity';
 import { User } from '../../users/entities/user.entity';
+import { columnNumericTransformer, ColumnNumericTransformer } from '../utils/money';
 
 export enum InvoiceStatus {
   PENDING = 'pending',
@@ -51,17 +52,34 @@ export class Invoice {
   @Index()
   invoiceNumber: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: columnNumericTransformer,
+  })
   amount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    transformer: columnNumericTransformer,
+  })
   taxAmount: number;
 
   /**
    * Applicable tax rate as a decimal fraction (e.g. `0.2` for 20%).
    * Null when no jurisdiction was resolved for the invoice.
    */
-  @Column({ type: 'decimal', precision: 5, scale: 4, nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 4,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(4),
+  })
   taxRate: number | null;
 
   /**
@@ -71,7 +89,12 @@ export class Invoice {
   @Column({ type: 'varchar', length: 64, nullable: true })
   taxJurisdiction: string | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: columnNumericTransformer,
+  })
   totalAmount: number;
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })

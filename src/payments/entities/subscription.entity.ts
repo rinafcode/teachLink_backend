@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { User } from '../../users/entities/user.entity';
+import { columnNumericTransformer } from '../utils/money';
 export enum SubscriptionStatus {
   ACTIVE = 'active',
   CANCELLED = 'cancelled',
@@ -63,7 +64,12 @@ export class Subscription {
   })
   interval: SubscriptionInterval;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: columnNumericTransformer,
+  })
   @ApiProperty({ description: 'Subscription amount', example: 29.99 })
   amount: number;
 

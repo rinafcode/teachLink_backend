@@ -202,20 +202,17 @@ Common required variables for local development:
 
 ### "Migration failed: relation already exists"
 
-**Cause:** A migration is trying to create a table that already exists (often because `synchronize: true` auto-created it first).
+**Cause:** A migration is trying to create a table that already exists (for example, if `DATABASE_SYNCHRONIZE=true` was previously enabled or a previous run partially created objects).
 
 **Fix:**
 
 ```bash
 # Drop the conflicting table and re-run migration
 docker exec -it teachlink-postgres psql -U postgres -d teachlink -c "DROP TABLE IF EXISTS <tablename> CASCADE;"
-curl -X POST http://localhost:3000/migrations/run
+pnpm migrate:run
 ```
 
-**Prevention:** In development, you can either:
-
-- Use `synchronize: false` and rely entirely on migrations, or
-- Accept that `synchronize` handles schema and skip migrations
+**Prevention:** Keep `DATABASE_SYNCHRONIZE=false` (default) and manage all schema changes via migrations (`#1210`).
 
 ### "Cannot roll back: later migrations depend on this one"
 
@@ -235,7 +232,13 @@ curl -X DELETE http://localhost:3000/migrations/reset
 
 **Cause:** The migration HTTP endpoints may not be wired into the application yet.
 
-**Fix:** Verify tables are created via TypeORM's `synchronize` feature (enabled in development). Check directly in PostgreSQL:
+**Fix:** Run migrations directly via TypeORM CLI:
+
+```bash
+pnpm migrate:run
+```
+
+Check tables directly in PostgreSQL:
 
 ```bash
 docker exec -it teachlink-postgres psql -U postgres -d teachlink -c "\dt"

@@ -9,9 +9,9 @@ How to manage database schema changes safely.
 The TeachLink backend uses **TypeORM migrations** for schema management. Migration files are standard TypeORM `MigrationInterface` classes located in `src/migrations/`.
 
 There are two mechanisms for schema updates:
-
-1. **TypeORM `synchronize`** (development only — auto-creates tables from entities)
-2. **Explicit migration files** (all environments — controlled, versioned changes)
+ 
+1. **Explicit migration files** (all environments — controlled, versioned changes; default mechanism)
+2. **TypeORM `synchronize`** (disabled by default across all environments; opt-in via `DATABASE_SYNCHRONIZE=true`)
 
 ---
 
@@ -125,16 +125,15 @@ npx typeorm migration:run -d src/config/datasource.ts
 
 ## Development mode (synchronize)
 
-In development (`NODE_ENV=development`), TypeORM's `synchronize: true` is enabled. This means:
+By default, TypeORM's `synchronize` is **disabled (`false`)** across all environments, including development (`#1210`). Schema changes are managed strictly via migrations to prevent schema drift and avoid dropping migration-managed columns.
 
-- Tables are **auto-created** from entity definitions on server startup
-- You do NOT need to run migrations for schema changes during active development
-- This is fast for prototyping but provides no version tracking
+If you need temporary schema auto-generation for local prototyping, you can opt in via the environment variable:
 
-> **Important:** When `synchronize` is on, running explicit migrations may fail with "relation already exists" because tables are already created. In that case, either:
->
-> - Disable synchronize (`NODE_ENV=production` or edit `database.config.ts`)
-> - Drop tables first, then run migrations
+```bash
+DATABASE_SYNCHRONIZE=true pnpm start:dev
+```
+
+> **Important:** When `synchronize` is enabled, running explicit migrations may fight the schema or cause columns not declared in entity files to be dropped. For standard development workflows, keep `DATABASE_SYNCHRONIZE=false` and run migrations via `pnpm migrate:run`.
 
 ---
 
@@ -238,19 +237,19 @@ pnpm build
 | `relation already exists`                   | Table created by `synchronize` or a prior migration | Drop the table or disable `synchronize`             |
 | `column "X" of relation "Y" already exists` | Duplicate migration                                 | Create a new migration to handle the state          |
 | `Cannot roll back: later migrations depend` | Dependency chain                                    | Roll back later migrations first                    |
-| `migration:run` returns 404                 | Migration endpoints not wired                       | Check if endpoints exist; use `synchronize` for dev |
+| `migration:run` returns 404                 | Migration endpoints not wired                       | Check if endpoints exist; ensure migrations are run |
 | Foreign key violation during migration      | Data integrity issue                                | Clean data, then retry                              |
 
 ---
 
 ## Environment-specific settings
 
-| Environment | `synchronize`    | Migrations                            |
-| ----------- | ---------------- | ------------------------------------- |
-| Development | `true` (default) | Optional (synchronize handles schema) |
-| Test        | `true`           | Run before test suite                 |
-| Staging     | `false`          | Run manually after deployment         |
-| Production  | `false`          | Run manually with backup              |
+| Environment | `synchronize`                                         | Migrations                       |
+| ----------- | ----------------------------------------------------- | -------------------------------- |
+| Development | `false` (default; opt-in via `DATABASE_SYNCHRONIZE=true`) | Run migrations (`pnpm migrate:run`) |
+| Test        | `false`                                               | Run before test suite            |
+| Staging     | `false`                                               | Run after deployment             |
+| Production  | `false`                                               | Run with backup                  |
 
 ---
 
