@@ -13,11 +13,7 @@ export class AddUserConsentIndexes1802000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      'DROP INDEX "IDX_user_consents_consentType"',
-    );
-    await queryRunner.query(
-      'DROP INDEX "IDX_user_consents_userId"',
-    );
+    await queryRunner.query('DROP INDEX "IDX_user_consents_consentType"');
+    await queryRunner.query('DROP INDEX "IDX_user_consents_userId"');
   }
 }
