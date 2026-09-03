@@ -21,7 +21,7 @@ export class AddInvoiceTaxColumns1796000000000 implements MigrationInterface {
 
     if (!table.findColumnByName('taxRate')) {
       await queryRunner.addColumn(
-        'invoices',
+        table,
         new TableColumn({
           name: 'taxRate',
           type: 'numeric',
@@ -34,7 +34,7 @@ export class AddInvoiceTaxColumns1796000000000 implements MigrationInterface {
 
     if (!table.findColumnByName('taxJurisdiction')) {
       await queryRunner.addColumn(
-        'invoices',
+        table,
         new TableColumn({
           name: 'taxJurisdiction',
           type: 'varchar',
@@ -53,11 +53,11 @@ export class AddInvoiceTaxColumns1796000000000 implements MigrationInterface {
     }
 
     if (table.findColumnByName('taxJurisdiction')) {
-      await queryRunner.dropColumn('invoices', 'taxJurisdiction');
+      await queryRunner.dropColumn(table, 'taxJurisdiction');
     }
 
     if (table.findColumnByName('taxRate')) {
-      await queryRunner.dropColumn('invoices', 'taxRate');
+      await queryRunner.dropColumn(table, 'taxRate');
     }
   }
 }

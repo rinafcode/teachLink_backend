@@ -140,7 +140,8 @@ export class CreateAuditLogTable1762000000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('audit_logs', [
+    const auditLogsTable = (await queryRunner.getTable('audit_logs'))!;
+    await queryRunner.createIndices(auditLogsTable, [
       new TableIndex({
         name: 'IDX_audit_logs_user_timestamp',
         columnNames: ['user_id', 'timestamp'],
