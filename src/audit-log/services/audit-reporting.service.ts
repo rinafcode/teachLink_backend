@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AuditLog } from '../audit-log.entity';
 import { AuditSeverity } from '../enums/audit-action.enum';
 import { IAuditReport } from '../interfaces/audit-log.interfaces';
@@ -21,8 +21,8 @@ export class AuditReportingService {
    * Generate audit report for a date range
    */
   async generateReport(startDate: Date, endDate: Date): Promise<IAuditReport> {
-    const queryBuilder = this.auditRepo.createQueryBuilder('audit');
-    queryBuilder.where('audit.timestamp BETWEEN :startDate AND :endDate', {
+    const queryBuilder = this.createTenantScopedQueryBuilder();
+    queryBuilder.andWhere('audit.timestamp BETWEEN :startDate AND :endDate', {
       startDate,
       endDate,
     });
@@ -30,11 +30,10 @@ export class AuditReportingService {
     const totalEvents = await queryBuilder.getCount();
 
     // Events by category
-    const categoryStats = await this.auditRepo
-      .createQueryBuilder('audit')
+    const categoryStats = await this.createTenantScopedQueryBuilder()
       .select('audit.category', 'category')
       .addSelect('COUNT(*)', 'count')
-      .where('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
       .groupBy('audit.category')
       .getRawMany();
 
@@ -44,11 +43,10 @@ export class AuditReportingService {
     });
 
     // Events by action
-    const actionStats = await this.auditRepo
-      .createQueryBuilder('audit')
+    const actionStats = await this.createTenantScopedQueryBuilder()
       .select('audit.action', 'action')
       .addSelect('COUNT(*)', 'count')
-      .where('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
       .groupBy('audit.action')
       .getRawMany();
 
@@ -58,11 +56,10 @@ export class AuditReportingService {
     });
 
     // Events by severity
-    const severityStats = await this.auditRepo
-      .createQueryBuilder('audit')
+    const severityStats = await this.createTenantScopedQueryBuilder()
       .select('audit.severity', 'severity')
       .addSelect('COUNT(*)', 'count')
-      .where('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
       .groupBy('audit.severity')
       .getRawMany();
 
@@ -72,12 +69,11 @@ export class AuditReportingService {
     });
 
     // Top users
-    const topUsers = await this.auditRepo
-      .createQueryBuilder('audit')
+    const topUsers = await this.createTenantScopedQueryBuilder()
       .select('audit.userId', 'userId')
       .addSelect('audit.userEmail', 'userEmail')
       .addSelect('COUNT(*)', 'count')
-      .where('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
       .andWhere('audit.userId IS NOT NULL')
       .groupBy('audit.userId')
       .addGroupBy('audit.userEmail')
@@ -86,11 +82,10 @@ export class AuditReportingService {
       .getRawMany();
 
     // Top endpoints
-    const topEndpoints = await this.auditRepo
-      .createQueryBuilder('audit')
+    const topEndpoints = await this.createTenantScopedQueryBuilder()
       .select('audit.apiEndpoint', 'endpoint')
       .addSelect('COUNT(*)', 'count')
-      .where('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
       .andWhere('audit.apiEndpoint IS NOT NULL')
       .groupBy('audit.apiEndpoint')
       .orderBy('count', 'DESC')
@@ -98,11 +93,10 @@ export class AuditReportingService {
       .getRawMany();
 
     // Failed actions (status code >= 400)
-    const failedActions = await this.auditRepo
-      .createQueryBuilder('audit')
+    const failedActions = await this.createTenantScopedQueryBuilder()
       .select('audit.action', 'action')
       .addSelect('COUNT(*)', 'count')
-      .where('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
+      .andWhere('audit.timestamp BETWEEN :startDate AND :endDate', { startDate, endDate })
       .andWhere('audit.statusCode >= 400')
       .groupBy('audit.action')
       .orderBy('count', 'DESC')
@@ -149,12 +143,22 @@ export class AuditReportingService {
 
     const [totalLogs, logsToday, logsThisWeek, logsThisMonth, criticalEvents, errorEvents] =
       await Promise.all([
-        this.auditRepo.count(),
-        this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(today) } }),
-        this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(weekAgo) } }),
-        this.auditRepo.count({ where: { timestamp: MoreThanOrEqual(monthAgo) } }),
-        this.auditRepo.count({ where: { severity: AuditSeverity.CRITICAL } }),
-        this.auditRepo.count({ where: { severity: AuditSeverity.ERROR } }),
+        this.createTenantScopedQueryBuilder().getCount(),
+        this.createTenantScopedQueryBuilder()
+          .andWhere('audit.timestamp >= :today', { today })
+          .getCount(),
+        this.createTenantScopedQueryBuilder()
+          .andWhere('audit.timestamp >= :weekAgo', { weekAgo })
+          .getCount(),
+        this.createTenantScopedQueryBuilder()
+          .andWhere('audit.timestamp >= :monthAgo', { monthAgo })
+          .getCount(),
+        this.createTenantScopedQueryBuilder()
+          .andWhere('audit.severity = :severity', { severity: AuditSeverity.CRITICAL })
+          .getCount(),
+        this.createTenantScopedQueryBuilder()
+          .andWhere('audit.severity = :severity', { severity: AuditSeverity.ERROR })
+          .getCount(),
       ]);
 
     return {
@@ -166,9 +170,12 @@ export class AuditReportingService {
       errorEvents,
     };
   }
+
+  private createTenantScopedQueryBuilder() {
+    return this.auditRepo
+      .createQueryBuilder('audit')
+      .where("audit.tenantId = NULLIF(current_setting('app.current_tenant', true), '')::uuid");
+  }
 }
 
-// Helper function for date comparison
-function MoreThanOrEqual(date: Date) {
-  return MoreThan(date);
-}
+

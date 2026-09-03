@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 import { AuditAction, AuditSeverity } from './enums/audit-action.enum';
 import { AuditLog, HttpMethod } from './audit-log.entity';
 import { AuditLoggerService } from './services/audit-logger.service';
@@ -96,12 +97,21 @@ export class AuditLogService {
     private readonly queryService: AuditQueryService,
     private readonly reportingService: AuditReportingService,
     private readonly exportService: AuditExportService,
+    private readonly isolationService: IsolationService,
   ) {}
+
+  private getTenantId(): string {
+    const tenantId = this.isolationService.getTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for audit operations');
+    }
+    return tenantId;
+  }
 
   // ── Write ──────────────────────────────────────────────────────────────────
 
   log(entry: IAuditLogEntry): Promise<AuditLog> {
-    return this.loggerService.log(entry);
+    return this.loggerService.log({ ...entry, tenantId: this.getTenantId() });
   }
 
   logAuth(options: LogAuthOptions): Promise<AuditLog> {
@@ -113,6 +123,7 @@ export class AuditLogService {
       options.userAgent,
       options.metadata,
       options.severity ?? AuditSeverity.INFO,
+      this.getTenantId(),
     );
   }
 
@@ -127,6 +138,7 @@ export class AuditLogService {
       options.newValues,
       options.ipAddress,
       options.description,
+      this.getTenantId(),
     );
   }
 
@@ -141,6 +153,7 @@ export class AuditLogService {
       options.ipAddress,
       options.userAgent,
       options.requestId,
+      this.getTenantId(),
     );
   }
 
@@ -153,6 +166,7 @@ export class AuditLogService {
       options.userAgent,
       options.description,
       options.metadata,
+      this.getTenantId(),
     );
   }
 
@@ -165,56 +179,56 @@ export class AuditLogService {
     cursor?: string,
     offset?: number,
   ): Promise<IAuditLogSearchResult> {
-    return this.queryService.search(filters, page, limit, cursor, offset);
+    return this.queryService.search(filters, page, limit, cursor, offset, this.getTenantId());
   }
 
   findAll(limit = 100): Promise<AuditLog[]> {
-    return this.queryService.findAll(limit);
+    return this.queryService.findAll(limit, this.getTenantId());
   }
 
   findByUser(userId: string, limit = 100): Promise<AuditLog[]> {
-    return this.queryService.findByUser(userId, limit);
+    return this.queryService.findByUser(userId, limit, this.getTenantId());
   }
 
   findByAction(action: AuditAction, limit = 100): Promise<AuditLog[]> {
-    return this.queryService.findByAction(action, limit);
+    return this.queryService.findByAction(action, limit, this.getTenantId());
   }
 
   findByEntity(entityType: string, entityId: string, limit = 100): Promise<AuditLog[]> {
-    return this.queryService.findByEntity(entityType, entityId, limit);
+    return this.queryService.findByEntity(entityType, entityId, limit, this.getTenantId());
   }
 
   findByIpAddress(ipAddress: string, limit = 100): Promise<AuditLog[]> {
-    return this.queryService.findByIpAddress(ipAddress, limit);
+    return this.queryService.findByIpAddress(ipAddress, limit, this.getTenantId());
   }
 
   findByDateRange(startDate: Date, endDate: Date, limit = 1000): Promise<AuditLog[]> {
-    return this.queryService.findByDateRange(startDate, endDate, limit);
+    return this.queryService.findByDateRange(startDate, endDate, limit, this.getTenantId());
   }
 
   // ── Reporting ──────────────────────────────────────────────────────────────
 
   generateReport(startDate: Date, endDate: Date): Promise<IAuditReport> {
-    return this.reportingService.generateReport(startDate, endDate);
+    return this.reportingService.generateReport(startDate, endDate, this.getTenantId());
   }
 
   getStatistics(): Promise<AuditStatistics> {
-    return this.reportingService.getStatistics();
+    return this.reportingService.getStatistics(this.getTenantId());
   }
 
   // ── Maintenance ────────────────────────────────────────────────────────────
 
   applyRetentionPolicy(): Promise<number> {
-    return this.loggerService.applyRetentionPolicy();
+    return this.loggerService.applyRetentionPolicy(this.getTenantId());
   }
 
   // ── Export ─────────────────────────────────────────────────────────────────
 
   exportToJson(filters: IAuditLogSearchFilters): Promise<string> {
-    return this.exportService.exportToJson(filters);
+    return this.exportService.exportToJson(filters, this.getTenantId());
   }
 
   exportToCsv(filters: IAuditLogSearchFilters): Promise<string> {
-    return this.exportService.exportToCsv(filters);
+    return this.exportService.exportToCsv(filters, this.getTenantId());
   }
 }

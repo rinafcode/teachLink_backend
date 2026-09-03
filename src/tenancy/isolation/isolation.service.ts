@@ -1,134 +1,106 @@
-import { Injectable, Scope } from '@nestjs/common';
-import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
-import { Tenant, TenantStatus } from '../entities/tenant.entity';
-/**
- * IsolationService manages tenant context and data isolation
- * This service is request-scoped to maintain tenant context per request
- */
-@Injectable({ scope: Scope.REQUEST })
+import { Injectable } from '@nestjs/common'; import { AsyncLocalStorage } from 'async_hooks'; import { InjectRepository } from '@nestjs/typeorm'; import { Repository, SelectQueryBuilder } from 'typeorm'; import { Tenant, TenantStatus } from '../entities/tenant.entity'; import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions'; 
+@Injectable()
 export class IsolationService {
-  private currentTenantId: string | null = null;
-  private currentTenant: Tenant | null = null;
+  private readonly storage = new AsyncLocalStorage<IsolationContext>();
+
   constructor(
     @InjectRepository(Tenant)
     private readonly tenantRepository: Repository<Tenant>,
   ) {}
-  /**
-   * Set the current tenant context
-   */
+
+  runWithTenant<T>(tenant: Tenant, callback: () => T): T {
+    return this.storage.run({ tenant }, callback);
+  }
+
+  async runWithTenantId<T>(tenantId: string, callback: () => Promise<T>): Promise<T> {
+    const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+    if (!tenant) throw new ResourceNotFoundException('Tenant', tenantId);
+    return this.storage.run({ tenant }, callback);
+  }
+
   async setTenant(tenantId: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
-    if (!tenant) {
-      throw new ResourceNotFoundException('Tenant', tenantId);
-    }
-    this.currentTenantId = tenantId;
-    this.currentTenant = tenant;
+    if (!tenant) throw new ResourceNotFoundException('Tenant', tenantId);
+    this.getContext().tenant = tenant;
   }
-  /**
-   * Set tenant by slug
-   */
+
   async setTenantBySlug(slug: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { slug } });
-    if (!tenant) {
-      throw new ResourceNotFoundException(`Tenant with slug '${slug}'`);
-    }
-    this.currentTenantId = tenant.id;
-    this.currentTenant = tenant;
+    if (!tenant) throw new ResourceNotFoundException(`Tenant with slug '${slug}'`);
+    this.getContext().tenant = tenant;
   }
-  /**
-   * Set tenant by domain
-   */
+
   async setTenantByDomain(domain: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { domain } });
-    if (!tenant) {
-      throw new ResourceNotFoundException(`Tenant with domain '${domain}'`);
-    }
-    this.currentTenantId = tenant.id;
-    this.currentTenant = tenant;
+    if (!tenant) throw new ResourceNotFoundException(`Tenant with domain '$domain'');
+    this.getContext().tenant = tenant;
   }
-  /**
-   * Get the current tenant ID
-   */
+
   getTenantId(): string | null {
-    return this.currentTenantId;
+    return this.getContext().tenant?.id ?? null;
   }
-  /**
-   * Get the current tenant
-   */
+
   getTenant(): Tenant | null {
-    return this.currentTenant;
+    return this.getContext().tenant;
   }
-  /**
-   * Check if tenant context is set
-   */
+
   hasTenantContext(): boolean {
-    return this.currentTenantId !== null;
+    return this.getTenantId() !== null;
   }
-  /**
-   * Clear tenant context
-   */
+
   clearTenant(): void {
-    this.currentTenantId = null;
-    this.currentTenant = null;
+    this.getContext().tenant = null;
   }
-  /**
-   * Ensure tenant context is set, throw error if not
-   */
+
   ensureTenantContext(): void {
-    if (!this.hasTenantContext()) {
-      throw new Error('Tenant context is not set');
-    }
+    if (!this.hasTenantContext()) throw new Error('Tenant context is not set');
   }
-  /**
-   * Add tenant filter to query builder
-   */
+
   applyTenantFilter<Entity>(
     queryBuilder: SelectQueryBuilder<Entity>,
     entityAlias: string,
   ): SelectQueryBuilder<Entity> {
-    if (!this.currentTenantId) {
-      throw new Error('Cannot apply tenant filter without tenant context');
-    }
-    return queryBuilder.andWhere(`${entityAlias}.tenantId = :tenantId`, {
-      tenantId: this.currentTenantId,
+    const tenantId = this.getTenantId();
+    if (!tenantId) throw new Error('Cannot apply tenant filter without tenant context');
+    return queryBuilder.andWhere(${entityAlias}.tenantId = :tenantId, {
+      tenantId,
     });
   }
-  /**
-   * Check if tenant is active
-   */
+
   isActiveTenant(): boolean {
-    return this.currentTenant?.status === TenantStatus.ACTIVE;
+    return this.getTenant()?.status === TenantStatus.ACTIVE;
   }
-  /**
-   * Check if tenant is in trial
-   */
+
   isTrialTenant(): boolean {
-    return this.currentTenant?.status === TenantStatus.TRIAL;
+    return this.getTenant()?.status === TenantStatus.TRIAL;
   }
-  /**
-   * Check if tenant has reached user limit
-   */
+
   hasReachedUserLimit(): boolean {
-    if (!this.currentTenant) return false;
-    return this.currentTenant.currentUserCount >= this.currentTenant.userLimit;
+    const tenant = this.getTenant();
+    return tenant ? tenant.currentUserCount >= tenant.userLimit : false;
   }
-  /**
-   * Check if tenant has reached storage limit
-   */
+
   hasReachedStorageLimit(): boolean {
-    if (!this.currentTenant) return false;
-    return this.currentTenant.currentStorageUsage >= this.currentTenant.storageLimit;
+    const tenant = this.getTenant();
+    return tenant ? tenant.currentStorageUsage >= tenant.storageLimit : false;
   }
-  /**
-   * Get tenant feature flags
-   */
+
   async getTenantFeatures(): Promise<Record<string, unknown>> {
-    if (!this.currentTenant) {
-      return {};
-    }
-    // This would typically fetch from TenantConfig
-    return this.currentTenant.metadata?.features || {};
+    const tenant = this.getTenant();
+    if (!tenant) { return {}; }
+    return tenant.metadata?.features || {};
   }
+
+  private getContext(): IsolationContext {
+    let ctx = this.storage.getStore();
+    if (!ctx) {
+      ctx = { tenant: null };
+      this.storage.enterWith(ctx);
+    }
+    return ctx;
+  }
+}
+
+interface IsolationContext {
+  tenant: Tenant | null;
 }
