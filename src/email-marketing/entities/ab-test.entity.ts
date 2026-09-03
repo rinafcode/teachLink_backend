@@ -7,6 +7,7 @@ import {
   OneToMany,
   JoinColumn,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Campaign } from './campaign.entity';
@@ -30,6 +31,7 @@ export class ABTest {
   name: string;
 
   @ApiProperty()
+  @Index('IDX_ab_tests_campaignId')
   @Column()
   campaignId: string;
 
@@ -50,6 +52,7 @@ export class ABTest {
   sampleSize: number; // Percentage of total recipients for test
 
   @ApiProperty({ enum: ABTestStatus })
+  @Index('IDX_ab_tests_status')
   @Column({ type: 'enum', enum: ABTestStatus, default: ABTestStatus.DRAFT })
   status: ABTestStatus;
 
@@ -57,6 +60,7 @@ export class ABTest {
   variants: ABTestVariant[];
 
   @ApiProperty({ required: false })
+  @Index('IDX_ab_tests_winnerId')
   @Column({ nullable: true })
   winnerId?: string;
 
@@ -69,6 +73,7 @@ export class ABTest {
   endedAt?: Date;
 
   @ApiProperty()
+  @Index('IDX_ab_tests_createdAt')
   @CreateDateColumn()
   createdAt: Date;
 }
