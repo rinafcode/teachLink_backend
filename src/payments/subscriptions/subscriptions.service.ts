@@ -8,11 +8,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import {
   Subscription,
   SubscriptionStatus,
   SubscriptionInterval,
 } from '../entities/subscription.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
 import { OutboxService } from '../../common/events/outbox.service';
 import {
   PauseSubscriptionDto,
@@ -42,6 +46,9 @@ export class SubscriptionsService {
   constructor(
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    private eventEmitter: EventEmitter2,
+    @InjectQueue(QUEUE_NAMES.SUBSCRIPTIONS)
+    private subscriptionQueue: Queue,
     private readonly outbox: OutboxService,
     private paymentProviderService: PaymentProviderService,
   ) {}
@@ -103,6 +110,17 @@ export class SubscriptionsService {
       );
     }
 
+    let delay: number | undefined;
+    if (dto.resumeAt) {
+      const resumeDate = new Date(dto.resumeAt);
+      const now = Date.now();
+      if (isNaN(resumeDate.getTime()) || resumeDate.getTime() <= now) {
+        throw new BadRequestException('resumeAt must be a future date');
+      }
+      delay = resumeDate.getTime() - now;
+    }
+
+    // Update subscription with pause metadata without canceling the subscription.
     // Update subscription status to PAUSED
     subscription.status = SubscriptionStatus.PAUSED;
     subscription.properties = {
@@ -115,30 +133,37 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // TODO: Schedule automatic resume if resumeAt is provided.
-    // This requires injecting queueService and QUEUE_NAMES constants.
-    // const resumeAtDate = dto.resumeAt ? new Date(dto.resumeAt) : undefined;
-    // if (resumeAtDate) {
-    //   const delayMs = resumeAtDate.getTime() - Date.now();
-    //   if (delayMs > 0) {
-    //     await this.queueService.addJob(
-    //       QUEUE_NAMES.SUBSCRIPTIONS,
-    //       JOB_NAMES.RESUME_SUBSCRIPTION,
-    //       { subscriptionId: updated.id },
-    //       {
-    //         delay: delayMs,
-    //         attempts: 3,
-    //         backoff: {
-    //           type: 'exponential',
-    //           delay: 5000,
-    //         },
-    //       },
-    //     );
-    //   }
-    // }
+    // Schedule delayed automatic resume if resumeAt is specified
+    if (delay !== undefined) {
+      await this.subscriptionQueue.add(
+        JOB_NAMES.RESUME_SUBSCRIPTION,
+        {
+          subscriptionId: updated.id,
+          userId: updated.userId,
+        },
+        {
+          delay,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+          removeOnComplete: true,
+        },
+      );
+    }
 
     // Enqueue event for downstream processing (notify user, analytics, etc.).
-    await this.outbox.enqueueStandalone('subscription.paused', {
+    if (this.outbox) {
+      await this.outbox.enqueueStandalone('subscription.paused', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        resumeAt: dto.resumeAt,
+        reason: dto.reason,
+      });
+    }
+
+    this.eventEmitter.emit('subscription.paused', {
       subscriptionId: updated.id,
       userId: updated.userId,
       resumeAt: dto.resumeAt,
@@ -174,7 +199,15 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    await this.outbox.enqueueStandalone('subscription.resumed', {
+    if (this.outbox) {
+      await this.outbox.enqueueStandalone('subscription.resumed', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        reason: dto.reason,
+      });
+    }
+
+    this.eventEmitter.emit('subscription.resumed', {
       subscriptionId: updated.id,
       userId: updated.userId,
       reason: dto.reason,

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bull';
 import { CurrencyModule } from '../currency/currency.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { IdempotencyModule } from '../common/modules/idempotency.module';
@@ -12,10 +13,12 @@ import { Invoice } from './entities/invoice.entity';
 import { Refund } from './entities/refund.entity';
 import { PricingService } from './services/pricing.service';
 import { PricingController } from './controllers/pricing.controller';
-import { PaymentReconciliationJob } from './reconciliation/reconciliation.service';
-import { PaymentReconciliationController } from './reconciliation/reconciliation.controller';
 import { SubscriptionsService } from './subscriptions/subscriptions.service';
 import { SubscriptionsController } from './subscriptions/subscriptions.controller';
+import { SubscriptionJobProcessor } from './subscriptions/subscription-job.processor';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
+import { PaymentReconciliationJob } from './reconciliation/reconciliation.service';
+import { PaymentReconciliationController } from './reconciliation/reconciliation.controller';
 import { PaymentProviderService } from './providers/payment-provider.service';
 import { StripeProvider } from './providers/stripe.provider';
 
@@ -46,12 +49,16 @@ import { StripeProvider } from './providers/stripe.provider';
     OutboxModule,
     HttpModule,
     QueueModule,
+    BullModule.registerQueue({
+      name: QUEUE_NAMES.SUBSCRIPTIONS,
+    }),
   ],
   providers: [
     PricingService,
     PaymentReconciliationJob,
     StripeProvider,
     SubscriptionsService,
+    SubscriptionJobProcessor,
     PaymentProviderService,
     {
       provide: 'IPaymentProvider',
