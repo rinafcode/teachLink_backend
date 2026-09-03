@@ -67,9 +67,13 @@ export class ReencryptOAuthProviderTokens1783000000001 implements MigrationInter
     }
   }
 
-  public async down(): Promise<void> {
+  public async down(_queryRunner?: QueryRunner): Promise<void> {
     // No-op: AES-GCM ciphertext cannot be reversed without the key, and the
     // migration is not the place to log or stash the raw values.
+    console.warn(
+      'WARNING: [ReencryptOAuthProviderTokens1783000000001] down() is a no-op. ' +
+        'AES-GCM encrypted OAuth provider tokens cannot be reverted to plaintext.',
+    );
   }
 
   private maybeEncrypt(stored: string | null, key: Buffer): string | null {

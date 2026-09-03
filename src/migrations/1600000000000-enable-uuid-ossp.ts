@@ -20,8 +20,12 @@ export class EnableUuidOssp1600000000000 implements MigrationInterface {
     await queryRunner.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
   }
 
-  public async down(): Promise<void> {
+  public async down(_queryRunner?: QueryRunner): Promise<void> {
     // No-op: other schema objects depend on this extension, so dropping it
     // during a rollback could break the database. Leaving it in place is safe.
+    console.warn(
+      'WARNING: [EnableUuidOssp1600000000000] down() is a no-op. ' +
+        'The "uuid-ossp" extension is retained because other database objects depend on it.',
+    );
   }
 }
