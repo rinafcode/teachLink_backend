@@ -63,7 +63,8 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
       true,
     );
 
-    await queryRunner.createIndices('course_bulk_operations', [
+    const bulkOpsTable = (await queryRunner.getTable('course_bulk_operations'))!;
+    await queryRunner.createIndices(bulkOpsTable, [
       new TableIndex({
         name: 'IDX_course_bulk_ops_initiator',
         columnNames: ['initiated_by_id'],
@@ -75,7 +76,7 @@ export class AddCourseBulkOperations1748600000000 implements MigrationInterface 
     ]);
 
     await queryRunner.createForeignKey(
-      'course_bulk_operations',
+      bulkOpsTable,
       new TableForeignKey({
         name: 'FK_course_bulk_ops_initiator',
         columnNames: ['initiated_by_id'],

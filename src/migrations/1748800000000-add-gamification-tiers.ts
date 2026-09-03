@@ -51,8 +51,9 @@ export class AddGamificationTiers1748800000000 implements MigrationInterface {
       true,
     );
 
+    const tierRewardsTable = (await queryRunner.getTable('tier_rewards'))!;
     await queryRunner.createIndex(
-      'tier_rewards',
+      tierRewardsTable,
       new TableIndex({ name: 'IDX_tier_rewards_tier', columnNames: ['tier'] }),
     );
   }

@@ -2,7 +2,8 @@ import { MigrationInterface, QueryRunner, TableIndex } from 'typeorm';
 
 export class AddNotificationPreferencesIndexes1800000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.createIndices('notification_preferences', [
+    const table = (await queryRunner.getTable('notification_preferences'))!;
+    await queryRunner.createIndices(table, [
       new TableIndex({
         name: 'IDX_notification_preferences_user_id',
         columnNames: ['userId'],

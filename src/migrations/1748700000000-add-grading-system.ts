@@ -63,7 +63,8 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('rubrics', [
+    const rubricsTable = (await queryRunner.getTable('rubrics'))!;
+    await queryRunner.createIndices(rubricsTable, [
       new TableIndex({ name: 'IDX_rubrics_name', columnNames: ['name'] }),
       new TableIndex({ name: 'IDX_rubrics_owner', columnNames: ['owner_id'] }),
       new TableIndex({
@@ -103,8 +104,9 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
       true,
     );
 
+    const rubricCriteriaTable = (await queryRunner.getTable('rubric_criteria'))!;
     await queryRunner.createIndex(
-      'rubric_criteria',
+      rubricCriteriaTable,
       new TableIndex({
         name: 'IDX_rubric_criteria_rubric',
         columnNames: ['rubric_id'],
@@ -112,7 +114,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     );
 
     await queryRunner.createForeignKey(
-      'rubric_criteria',
+      rubricCriteriaTable,
       new TableForeignKey({
         name: 'FK_rubric_criteria_rubric',
         columnNames: ['rubric_id'],
@@ -152,8 +154,9 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
       true,
     );
 
+    const rubricLevelsTable = (await queryRunner.getTable('rubric_levels'))!;
     await queryRunner.createIndex(
-      'rubric_levels',
+      rubricLevelsTable,
       new TableIndex({
         name: 'IDX_rubric_levels_criterion',
         columnNames: ['criterion_id'],
@@ -161,7 +164,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     );
 
     await queryRunner.createForeignKey(
-      'rubric_levels',
+      rubricLevelsTable,
       new TableForeignKey({
         name: 'FK_rubric_levels_criterion',
         columnNames: ['criterion_id'],
@@ -197,7 +200,8 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('feedback_templates', [
+    const feedbackTemplatesTable = (await queryRunner.getTable('feedback_templates'))!;
+    await queryRunner.createIndices(feedbackTemplatesTable, [
       new TableIndex({
         name: 'IDX_feedback_templates_name',
         columnNames: ['name'],
@@ -260,7 +264,8 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('submission_grades', [
+    const submissionGradesTable = (await queryRunner.getTable('submission_grades'))!;
+    await queryRunner.createIndices(submissionGradesTable, [
       new TableIndex({
         name: 'IDX_submission_grades_attempt',
         columnNames: ['attempt_id'],
@@ -272,7 +277,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     ]);
 
     await queryRunner.createUniqueConstraint(
-      'submission_grades',
+      submissionGradesTable,
       new TableUnique({
         name: 'UQ_submission_grade_attempt',
         columnNames: ['attempt_id'],
@@ -280,7 +285,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     );
 
     await queryRunner.createForeignKey(
-      'submission_grades',
+      submissionGradesTable,
       new TableForeignKey({
         name: 'FK_submission_grades_rubric',
         columnNames: ['rubric_id'],
@@ -320,7 +325,8 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createIndices('criterion_grades', [
+    const criterionGradesTable = (await queryRunner.getTable('criterion_grades'))!;
+    await queryRunner.createIndices(criterionGradesTable, [
       new TableIndex({
         name: 'IDX_criterion_grades_grade',
         columnNames: ['grade_id'],
@@ -332,7 +338,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     ]);
 
     await queryRunner.createUniqueConstraint(
-      'criterion_grades',
+      criterionGradesTable,
       new TableUnique({
         name: 'UQ_criterion_grade_per_grade',
         columnNames: ['grade_id', 'criterion_id'],
@@ -340,7 +346,7 @@ export class AddGradingSystem1748700000000 implements MigrationInterface {
     );
 
     await queryRunner.createForeignKey(
-      'criterion_grades',
+      criterionGradesTable,
       new TableForeignKey({
         name: 'FK_criterion_grades_grade',
         columnNames: ['grade_id'],
