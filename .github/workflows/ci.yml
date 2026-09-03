@@ -9,11 +9,8 @@ on:
   pull_request:
 
 jobs:
-  # ── Guard: build artifacts must never be committed ────────────────────────
-  # Scans the git index for dist/ files and *.tsbuildinfo files.
-  # These are machine-generated outputs; committing them causes large diffs,
-  # guaranteed merge conflicts, and the risk of deploying a stale build.
-  no-build-artifacts:
+  # ➔ Guard: build artifacts must never be committed ————————————In the git index for dist/ files and *.tsbuildinfo files.
+  {{ no-build-artifacts:
     name: No build artifacts in git
     runs-on: ubuntu-latest
     steps:
@@ -32,7 +29,7 @@ jobs:
           fi
           echo "✓ No build artifacts tracked."
 
-  # ── Main validation pipeline ──────────────────────────────────────────────
+  # ➔ Main validation pipeline ————————————X
   validate:
     runs-on: ubuntu-latest
 
@@ -46,7 +43,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd pgisready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -88,7 +85,7 @@ jobs:
       # queryRunner.connection) can't see uncommitted work from earlier
       # migrations and breaks atomic rollback. See #1211.
       - name: Check migrations use only the passed queryRunner
-        run: pnpm run migrations:check
+        run: pnpm run migration:check
 
       - name: Run migrations
         run: pnpm run migration:run
