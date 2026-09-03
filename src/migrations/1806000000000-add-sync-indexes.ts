@@ -1,9 +1,4 @@
-import {
-  MigrationInterface,
-  QueryRunner,
-  Table,
-  TableIndex,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 /**
  * Issue #1247 — Create the sync table and add database indexes.
@@ -177,8 +172,6 @@ export class AddSyncIndexes1806000000000 implements MigrationInterface {
     await queryRunner.dropIndex('sync', 'IDX_sync_entity');
     await queryRunner.dropTable('sync');
     await queryRunner.query('DROP TYPE IF EXISTS "public"."sync_status_enum"');
-    await queryRunner.query(
-      'DROP TYPE IF EXISTS "public"."sync_operation_enum"',
-    );
+    await queryRunner.query('DROP TYPE IF EXISTS "public"."sync_operation_enum"');
   }
 }
