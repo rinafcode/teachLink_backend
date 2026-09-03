@@ -15,7 +15,7 @@ export class AddCurrencyFieldToCourses1685000001001 implements MigrationInterfac
     // Add currency field
     if (!table.findColumnByName('currency')) {
       await queryRunner.addColumn(
-        'course',
+        table,
         new TableColumn({
           name: 'currency',
           type: 'varchar',
@@ -26,7 +26,7 @@ export class AddCurrencyFieldToCourses1685000001001 implements MigrationInterfac
       );
       // Add index
       await queryRunner.createIndex(
-        'course',
+        table,
         new TableIndex({
           columnNames: ['currency'],
           name: 'IDX_course_currency',
@@ -45,12 +45,12 @@ export class AddCurrencyFieldToCourses1685000001001 implements MigrationInterfac
     // Drop index first
     const currencyIndex = table.indices.find((i) => i.name === 'IDX_course_currency');
     if (currencyIndex) {
-      await queryRunner.dropIndex('course', currencyIndex);
+      await queryRunner.dropIndex(table, currencyIndex);
     }
 
     // Drop column
     if (table.findColumnByName('currency')) {
-      await queryRunner.dropColumn('course', 'currency');
+      await queryRunner.dropColumn(table, 'currency');
     }
   }
 }
