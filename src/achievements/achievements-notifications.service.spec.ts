@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { MoreThanOrEqual } from 'typeorm';
 import { AchievementsNotificationsService } from './achievements-notifications.service';
 import { UserAchievement } from './entities/user-achievement.entity';
 import { Achievement } from './entities/achievement.entity';
@@ -81,6 +82,41 @@ describe('AchievementsNotificationsService', () => {
       const count = await service.sendBatchNotifications();
 
       expect(count).toBe(2);
+    });
+
+    it('selects achievements unlocked since midnight today with notificationSent=false', async () => {
+      const achievement = makeUserAchievement();
+      mockRepo.find.mockResolvedValue([achievement]);
+      mockRepo.update.mockResolvedValue({ affected: 1 });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const count = await service.sendBatchNotifications();
+
+      expect(count).toBe(1);
+      expect(mockRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            unlockedAt: MoreThanOrEqual(today),
+            notificationSent: false,
+          },
+        }),
+      );
+    });
+
+    it('processes a large backlog in bounded chunks', async () => {
+      const batchA = Array.from({ length: 100 }, () => makeUserAchievement());
+      const batchB = Array.from({ length: 3 }, () => makeUserAchievement());
+      // First call returns a full batch, second returns a short batch (loop ends).
+      mockRepo.find.mockResolvedValueOnce(batchA).mockResolvedValueOnce(batchB);
+      mockRepo.update.mockResolvedValue({ affected: 1 });
+
+      const count = await service.sendBatchNotifications();
+
+      expect(count).toBe(103);
+      expect(mockRepo.find).toHaveBeenCalledWith(expect.objectContaining({ take: 100 }));
+      expect(mockRepo.update).toHaveBeenCalledTimes(103);
     });
 
     it('returns 0 when find throws', async () => {

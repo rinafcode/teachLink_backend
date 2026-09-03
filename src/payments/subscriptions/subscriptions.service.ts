@@ -21,6 +21,8 @@ import {
   DowngradeSubscriptionDto,
 } from './dto/subscription-action.dto';
 import { PaymentProviderService } from '../providers/payment-provider.service';
+import Decimal from 'decimal.js';
+import { subtract, multiply, roundToCents } from '../utils/money';
 
 /**
  * Handles subscription lifecycle management including pause, resume, upgrade, downgrade.
@@ -228,7 +230,7 @@ export class SubscriptionsService {
       daysRemaining,
       totalDaysInPeriod,
     );
-    const proratedAmount = proratedCharge - proratedCredit;
+    const proratedAmount = subtract(proratedCharge, proratedCredit);
 
     // Attempt the charge BEFORE mutating the subscription (Issue #1007).
     let chargeId: string;
@@ -379,7 +381,7 @@ export class SubscriptionsService {
       daysRemaining,
       totalDaysInPeriod,
     );
-    const proratedCredit = oldProratedCharge - newProratedCharge;
+    const proratedCredit = subtract(oldProratedCharge, newProratedCharge);
 
     // Issue the credit BEFORE mutating the subscription (Issue #1007).
     let creditId: string;
@@ -592,11 +594,11 @@ export class SubscriptionsService {
     }
 
     if (billingCycle === SubscriptionInterval.YEARLY) {
-      amount = Number((amount * 10).toFixed(2));
+      amount = multiply(amount, 10);
     } else if (billingCycle === SubscriptionInterval.QUARTERLY) {
-      amount = Number((amount * 2.75).toFixed(2));
+      amount = multiply(amount, 2.75);
     } else if (billingCycle === SubscriptionInterval.WEEKLY) {
-      amount = Number((amount / 4).toFixed(2));
+      amount = roundToCents(new Decimal(amount).div(4));
     }
 
     return amount;
@@ -613,11 +615,7 @@ export class SubscriptionsService {
     daysRemaining: number,
     totalDaysInPeriod: number,
   ): number {
-    // Convert to cents to avoid floating-point precision errors
-    const amountInCents = Math.round(amount * 100);
-    const proratedCents = Math.round((amountInCents * daysRemaining) / totalDaysInPeriod);
-    // Convert back to dollars
-    return proratedCents / 100;
+    return roundToCents(new Decimal(amount).times(daysRemaining).div(totalDaysInPeriod));
   }
 
   private calculateDaysInPeriod(interval: SubscriptionInterval): number {

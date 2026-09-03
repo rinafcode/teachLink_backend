@@ -615,6 +615,7 @@ export class CoursesService {
     if (appliedSnapshots.length === 0) {
       op.status = BulkOperationStatus.UNDONE;
       op.undoneAt = new Date();
+      op.undoneById = user.id;
       return this.bulkOpRepo.save(op);
     }
 
@@ -648,6 +649,7 @@ export class CoursesService {
 
     op.status = BulkOperationStatus.UNDONE;
     op.undoneAt = new Date();
+    op.undoneById = user.id;
     return this.bulkOpRepo.save(op);
   }
 

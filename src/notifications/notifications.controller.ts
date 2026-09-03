@@ -10,7 +10,13 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -24,8 +30,27 @@ import {
   SendTemplatedNotificationDto,
 } from './dto/preferences.dto';
 import { PaginationQueryDto } from '../common/dto/pagination.dto';
-import { Notification } from './entities/notification.entity';
+import { Notification, NotificationStatus } from './entities/notification.entity';
 import { PaginatedSwaggerDto } from '../common/dto/paginated-response.dto';
+import { IsOptional, IsBoolean, IsEnum } from 'class-validator';
+import { Transform } from 'class-transformer';
+
+export class NotificationsQueryDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ description: 'Filter by read status', type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === '1') return true;
+    if (value === 'false' || value === '0') return false;
+    return value;
+  })
+  @IsBoolean({ message: 'isRead must be a boolean' })
+  isRead?: boolean;
+
+  @ApiPropertyOptional({ description: 'Filter by notification status', enum: NotificationStatus })
+  @IsOptional()
+  @IsEnum(NotificationStatus)
+  status?: NotificationStatus;
+}
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -86,7 +111,7 @@ export class NotificationsController {
     description: 'Paginated list of notifications',
     type: PaginatedSwaggerDto(Notification),
   })
-  list(@Req() req: any, @Query() query?: PaginationQueryDto) {
+  list(@Req() req: any, @Query() query?: NotificationsQueryDto) {
     return this.notificationsService.findForUser(req.user.id, query);
   }
 

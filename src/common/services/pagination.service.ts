@@ -53,8 +53,11 @@ export class PaginationService {
     limit: number = 20,
     offset?: number,
     dateColumn: string = 'createdAt',
+    order: 'ASC' | 'DESC' = 'DESC',
   ): Promise<PaginationResult<T>> {
     const alias = qb.alias;
+    const normalizedOrder = order === 'ASC' ? 'ASC' : 'DESC';
+    const cursorOp = normalizedOrder === 'DESC' ? '<' : '>';
 
     if (cursor) {
       const decoded = decodeCursor(cursor);
@@ -63,12 +66,15 @@ export class PaginationService {
         const cursorId = decoded.id;
 
         qb.andWhere(
-          `(${alias}.${dateColumn} > :cursorDate OR (${alias}.${dateColumn} = :cursorDate AND ${alias}.id > :cursorId))`,
+          `(${alias}.${dateColumn} ${cursorOp} :cursorDate OR (${alias}.${dateColumn} = :cursorDate AND ${alias}.id ${cursorOp} :cursorId))`,
           { cursorDate, cursorId },
         );
       }
 
-      qb.orderBy(`${alias}.${dateColumn}`, 'ASC').addOrderBy(`${alias}.id`, 'ASC');
+      qb.orderBy(`${alias}.${dateColumn}`, normalizedOrder as 'ASC' | 'DESC').addOrderBy(
+        `${alias}.id`,
+        normalizedOrder as 'ASC' | 'DESC',
+      );
       qb.take(limit + 1);
 
       const items = await qb.getMany();
@@ -93,7 +99,10 @@ export class PaginationService {
       const page = offset !== undefined ? Math.floor(offset / limit) + 1 : 1;
       const skip = offset !== undefined ? offset : (page - 1) * limit;
 
-      qb.orderBy(`${alias}.${dateColumn}`, 'ASC').addOrderBy(`${alias}.id`, 'ASC');
+      qb.orderBy(`${alias}.${dateColumn}`, normalizedOrder as 'ASC' | 'DESC').addOrderBy(
+        `${alias}.id`,
+        normalizedOrder as 'ASC' | 'DESC',
+      );
       qb.skip(skip).take(limit);
 
       const [data, total] = await qb.getManyAndCount();

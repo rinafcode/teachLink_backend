@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import Decimal from 'decimal.js';
 import { CurrencyService } from '../../currency/services/currency.service';
 import { ExchangeRateService } from '../../currency/services/exchange-rate.service';
 import { PricingDto, LocalizedPriceDto } from '../../currency/dtos/currency.dto';
+import { roundToCents, multiply } from '../utils/money';
 
 /**
  * Pricing Service
@@ -47,7 +49,7 @@ export class PricingService {
     return {
       baseAmount: basePrice,
       baseCurrency,
-      convertedAmount: Number(convertedAmount.toFixed(2)),
+      convertedAmount: roundToCents(convertedAmount),
       targetCurrency: userCurrency,
       formattedPrice,
       currencySymbol: currencyDetails.symbol,
@@ -122,15 +124,13 @@ export class PricingService {
    * @returns Updated pricing with discount applied
    */
   applyDiscount(price: PricingDto, discountPercent: number): PricingDto {
-    const discountMultiplier = (100 - discountPercent) / 100;
+    const discountMultiplier = new Decimal(100).minus(discountPercent).div(100);
+    const localPrice = multiply(price.localPrice, discountMultiplier);
 
     return {
       ...price,
-      localPrice: Number((price.localPrice * discountMultiplier).toFixed(2)),
-      formattedPrice: this.currencyService.formatPrice(
-        price.localPrice * discountMultiplier,
-        price.localCurrency,
-      ),
+      localPrice,
+      formattedPrice: this.currencyService.formatPrice(localPrice, price.localCurrency),
     };
   }
 
@@ -141,15 +141,13 @@ export class PricingService {
    * @returns Updated pricing with tax applied
    */
   applyTax(price: PricingDto, taxPercent: number): PricingDto {
-    const taxMultiplier = (100 + taxPercent) / 100;
+    const taxMultiplier = new Decimal(100).plus(taxPercent).div(100);
+    const localPrice = multiply(price.localPrice, taxMultiplier);
 
     return {
       ...price,
-      localPrice: Number((price.localPrice * taxMultiplier).toFixed(2)),
-      formattedPrice: this.currencyService.formatPrice(
-        price.localPrice * taxMultiplier,
-        price.localCurrency,
-      ),
+      localPrice,
+      formattedPrice: this.currencyService.formatPrice(localPrice, price.localCurrency),
     };
   }
 }

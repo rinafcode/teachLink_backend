@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 import { SchemaVersion } from './schema_version.entity';
 
 export enum ChangeType {
@@ -14,6 +21,9 @@ export enum ChangeType {
 }
 
 @Entity('schema_change')
+@Index('IDX_schema_change_schema_name_created_at', ['schemaName', 'createdAt'])
+@Index('IDX_schema_change_schema_version_created_at', ['schemaVersion', 'createdAt'])
+@Index('IDX_schema_change_change_type', ['changeType'])
 export class SchemaChange {
   @PrimaryGeneratedColumn('uuid')
   id: string;
