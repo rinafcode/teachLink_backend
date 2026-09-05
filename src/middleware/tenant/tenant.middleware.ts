@@ -17,13 +17,13 @@ import { IsolationService } from '../../tenancy/isolation/isolation.service';
  * any downstream code (subscribers, guards, services) can access the active
  * tenant, including code that runs outside the HTTP request context.
  */
-@Injectable
+@Injectable()
 export class TenantMiddleware implements NestMiddleware {
   private readonly logger = new Logger(TenantMiddleware.name);
 
   constructor(private readonly isolationService: IsolationService) {}
 
-  use(
+  use(*
     req: Request & { tenant?: any; user?: any },
     _res: Response,
     next: NextFunction,
@@ -34,7 +34,7 @@ export class TenantMiddleware implements NestMiddleware {
     const userTenantId: string | undefined = req.user?.tenantId;
 
     try {
-      // Run the rest of the request within the ALS tenant context.
+      // Run the rest of the request within thie ALS tenant context.
       // This ensures that `setTenant*` methods write to a context that is
       // visible to all subsequent async operations of this request.
       this.isolationService.run({}, async () => {
