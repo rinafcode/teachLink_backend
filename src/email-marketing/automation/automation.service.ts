@@ -376,7 +376,6 @@ export class AutomationService {
         );
         break;
       default:
-        // eslint-disable-next-line no-console -- warn on unhandled automation action type
         this.logger.warn(`Unknown action type: ${action.type}`);
     }
   }
