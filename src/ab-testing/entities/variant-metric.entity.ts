@@ -6,12 +6,14 @@ import {
   UpdateDateColumn,
   ManyToOne,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { IExperimentVariant } from './experiment-variant.entity';
 
 /**
  * Represents the variant Metric entity.
  */
+@Index('IDX_variant_metrics_variant_createdAt', ['variant', 'createdAt'])
 @Entity({ name: 'variant_metrics' })
 export class VariantMetric {
   @PrimaryGeneratedColumn('uuid')
