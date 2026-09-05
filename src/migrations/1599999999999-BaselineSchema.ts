@@ -617,6 +617,10 @@ export class BaselineSchema1599999999999 implements MigrationInterface {
     "questionId" uuid
 )
     `);
+    await queryRunner.query(`CREATE INDEX idx_answer_attempt_id ON public.answer USING btree ("attemptId")
+    `);
+    await queryRunner.query(`CREATE INDEX idx_answer_question_id ON public.answer USING btree ("questionId")
+    `);
     await queryRunner.query(`CREATE TABLE public.archived_data (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     "entityType" character varying NOT NULL,
