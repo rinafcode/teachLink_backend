@@ -2311,8 +2311,9 @@ export class BaselineSchema1599999999999 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Dropping the entire baseline schema is handled by `migration:revert`
-    // in reverse order; the tables are dropped as their corresponding
-    // migrations are reverted.
+    console.warn(
+      'WARNING: BaselineSchema1599999999999 is an irreversible migration. ' +
+        'If you need to undo it, restore from a backup or create a new migration.',
+    );
   }
 }
