@@ -50,15 +50,23 @@ export class AuthController {
   @ApiResponse({ status: 402, description: 'Tenant user limit exceeded' })
   @ApiResponse({ status: 409, description: 'Email or username already exists' })
   async register(@Body() registerDto: RegisterDto, @Req() req: any) {
+    const where_existing_email: any = { email: registerDto.email };
+    if (req.tenantId) {
+      where_existing_email.tenantId = req.tenantId;
+    }
     const existingEmail = await this.userRepository.findOne({
-      where: { email: registerDto.email },
+      where: where_existing_email,
     });
     if (existingEmail) {
       throw new ConflictException('Email already registered');
     }
 
+    const where_existing_username: any = { username: registerDto.username };
+    if (req.tenantId) {
+      where_existing_username.tenantId = req.tenantId;
+    }
     const existingUsername = await this.userRepository.findOne({
-      where: { username: registerDto.username },
+      where: where_existing_username,
     });
     if (existingUsername) {
       throw new ConflictException('Username already taken');
@@ -69,11 +77,6 @@ export class AuthController {
     const passwordHash = await bcrypt.hash(registerDto.password, salt);
 
     const savedUser = await this.userRepository.manager.transaction(async (manager) => {
-      // Consume the tenant seat atomically with the user creation (issue #1343):
-      // the conditional UPDATE enforces currentUserCount < userLimit in the same
-      // statement that increments it, so concurrent registrations can never push
-      // the tenant over its limit. If the user insert fails, the increment rolls
-      // back with it.
       if (req.tenantId) {
         const seatTaken = await this.tenancyService.consumeUserSeat(manager, req.tenantId);
         if (!seatTaken) {
@@ -118,7 +121,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Log in with email and password' })
   @ApiResponse({ status: 200, description: 'Successfully authenticated' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto, @Req() req: any) {
+  async login() {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
       relations: ['roles'],
@@ -177,12 +180,6 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Successfully refreshed tokens' })
   @ApiResponse({ status: 401, description: 'Invalid or revoked refresh token' })
   async refreshTokens(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: any) {
-    // Note: In a real implementation, you might want to decode the refresh token first
-    // to get the userId without needing it in the request body, or require a separate strategy.
-    // For this, we'll extract the userId from the payload inside the service after verifying the token.
-
-    // Actually, our service needs userId. Let's fix auth.service to decode and find userId.
-    // We will pass just the token to the service.
     return this.authService.refreshTokens(refreshTokenDto.refreshToken, req.ip);
   }
 
@@ -190,7 +187,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: THROTTLE.AUTH_DEFAULT })
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
+  @HuttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Log out and invalidate refresh token' })
   async logout(@Req() req: any) {
     const authHeader: string | undefined = req.headers?.authorization;
