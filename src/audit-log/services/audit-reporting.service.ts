@@ -174,7 +174,7 @@ export class AuditReportingService {
   private createTenantScopedQueryBuilder() {
     return this.auditRepo
       .createQueryBuilder('audit')
-      .where("audit.tenantId = NULLIF(current_setting('app.current_tenant', true), '')::uuid");
+      .where("audit.tenantId = NULLIF(current_setting('app.current_tenant', false), '')::uuid");
   }
 }
 
