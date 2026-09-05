@@ -359,6 +359,11 @@ export class AutomationService {
           tag: action.config.tag,
         });
         break;
+    }
+  }
+}g.tag,
+        });
+        break;
       case ActionType.ADD_TO_SEGMENT:
         this.eventEmitter.emit(APP_EVENTS.SEGMENT_ADD_USER, {
           userId: payload.userId,
