@@ -314,8 +314,8 @@ export async function seedAchievements(achievementsService: any): Promise<void> 
     for (const achievementData of DEFAULT_ACHIEVEMENTS) {
       await achievementsService.createAchievement(achievementData);
     }
-    console.log(`✅ Seeded ${DEFAULT_ACHIEVEMENTS.length} achievements`);
+    Logger.log(`✅ Seeded ${DEFAULT_ACHIEVEMENTS.length} achievements`);
   } catch (error) {
-    console.error('❌ Error seeding achievements:', error);
+    Logger.error('❌ Error seeding achievements:', error);
   }
 }
