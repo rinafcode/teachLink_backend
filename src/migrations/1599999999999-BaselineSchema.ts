@@ -516,6 +516,7 @@ export class BaselineSchema1599999999999 implements MigrationInterface {
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     version integer NOT NULL,
     "abTestId" uuid NOT NULL,
+    "tenantId" uuid NOT NULL,
     name character varying NOT NULL,
     subject character varying,
     "templateId" character varying,
