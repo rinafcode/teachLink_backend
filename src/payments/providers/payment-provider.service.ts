@@ -25,7 +25,7 @@ export interface CreditResult {
  * Issue #1007 — extracted so SubscriptionsService can inject it and
  * tests can mock it without touching the real provider.
  */
-@Injectable()
+@Injectable
 export class PaymentProviderService {
   private readonly logger = new Logger(PaymentProviderService.name);
 

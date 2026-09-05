@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { IExperimentVariant } from './experiment-variant.entity';
 import { ExperimentMetric } from './experiment-metric.entity';
@@ -39,6 +40,7 @@ export class Experiment {
   @Column({ type: 'text' })
   description: string;
 
+  @Index('IDX_experiments_type')
   @Column({
     type: 'enum',
     enum: ExperimentType,
@@ -46,6 +48,7 @@ export class Experiment {
   })
   type: ExperimentType;
 
+  @Index('IDX_experiments_status')
   @Column({
     type: 'enum',
     enum: ExperimentStatus,
@@ -53,9 +56,11 @@ export class Experiment {
   })
   status: ExperimentStatus;
 
+  @Index('IDX_experiments_start_date')
   @Column({ type: 'timestamp' })
   startDate: Date;
 
+  @Index('IDX_experiments_end_date')
   @Column({ type: 'timestamp', nullable: true })
   endDate?: Date;
 
@@ -83,15 +88,17 @@ export class Experiment {
   @Column({ type: 'json', nullable: true })
   properties?: Record<string, any>;
 
+  @Index('IDX_experiments_created_at')
   @CreateDateColumn()
   createdAt: Date;
 
+  @Index('IDX_experiments_updated_at')
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => IExperimentVariant, (variant) => variant.experiment)
+  @OneToMany()=> IExperimentVariant, (variant) => variant.experiment)
   variants: IExperimentVariant[];
 
-  @OneToMany(() => ExperimentMetric, (metric) => metric.experiment)
+  @OneToMany()=> ExperimentMetric, (metric) => metric.experiment)
   metrics: ExperimentMetric[];
 }

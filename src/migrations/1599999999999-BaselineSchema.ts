@@ -2105,6 +2105,8 @@ export class BaselineSchema1599999999999 implements MigrationInterface {
     `);
     await queryRunner.query(`CREATE UNIQUE INDEX "IDX_e865d6f59667897a7fb67ff69a" ON public.user_quota_usage USING btree ("userId", period)
     `);
+    await queryRunner.query(`CREATE INDEX "IDX_experiments_status_start_date_end_date" ON public.experiments USING btree (status, "startDate", "endDate")
+    `);
     await queryRunner.query(`CREATE INDEX idx_notifications_dedup ON public.notifications USING btree ("userId", type, content_hash, "createdAt")
     `);
     await queryRunner.query(`ALTER TABLE ONLY public.invoices

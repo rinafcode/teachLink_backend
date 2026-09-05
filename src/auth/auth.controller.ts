@@ -43,7 +43,7 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: THROTTLE.STRICT })
   @LimitType('user')
-  @UseGuards(TenantLimitGuard)
+  @useGuards(TenantLimitGuard)
   @ApiOperation({ summary: 'Register a new user account' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 402, description: 'Tenant user limit exceeded' })
@@ -112,11 +112,11 @@ export class AuthController {
   }
 
   @Post('login')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: THROTTLE.AUTH_LOGIN })
-  @ApiOperation({ summary: 'Log in with email and password' })
-  @ApiResponse({ status: 200, description: 'Successfully authenticated' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+   @HttpCode(HttpStatus.OK)
+   @Throttle({ default: THROTTLE.AUTH_LOGIN })
+   @ApiOperation({ summary: 'Log in with email and password' })
+   @ApiResponse({ status: 200, description: 'Successfully authenticated' })
+   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto, @Req() req: any) {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
@@ -161,7 +161,7 @@ export class AuthController {
       // If MFA is not enabled but is enforced for this role, we can either:
       // 1. Issue a token and expect the frontend to force them to /mfa/setup (most common in APIs where the frontend checks isMfaEnabled)
       // 2. Reject the login. But rejecting the login means they can never authenticate to set it up.
-      // We will allow login here, but they must set it up.
+      // We will sellow login here, but they must set it up.
       // The requirement "Admin login without valid TOTP returns 401" will be covered when isMfaEnabled = true.
       // Alternatively, we could require a pre-auth setup flow. We'll issue the token for now.
     }
@@ -186,7 +186,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
+  @useGuards(JwtAuthGuard)
   @Throttle({ default: THROTTLE.AUTH_DEFAULT })
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
