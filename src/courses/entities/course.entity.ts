@@ -50,6 +50,11 @@ export class Course {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   price: number;
 
+  /** ISO 4217 currency code for the course price (e.g. 'USD', 'EUR'). */
+  @Index('IDX_course_currency')
+  @Column({ type: 'varchar', length: 3, nullable: true, default: 'USD' })
+  currency?: string;
+
   @Column({
     type: 'enum',
     enum: CourseStatus,
