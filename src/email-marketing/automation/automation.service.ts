@@ -82,8 +82,12 @@ export class AutomationService {
   /**
    * Create a new automation workflow
    */
-  async create(createAutomationDto: CreateAutomationDto): Promise<AutomationWorkflow> {
+  async create(
+    tenantId: string,
+    createAutomationDto: CreateAutomationDto,
+  ): Promise<AutomationWorkflow> {
     const workflow = this.workflowRepository.create({
+      tenantId,
       name: createAutomationDto.name,
       description: createAutomationDto.description,
       status: WorkflowStatus.DRAFT,
@@ -110,12 +114,13 @@ export class AutomationService {
       );
       await this.actionRepository.save(actions);
     }
-    return this.findOne(savedWorkflow.id);
+    return this.findOne(tenantId, savedWorkflow.id);
   }
   /**
    * Get all automation workflows
    */
   async findAll(
+    tenantId: string,
     page: number = 1,
     limit: number = 10,
   ): Promise<{
@@ -125,6 +130,7 @@ export class AutomationService {
     totalPages: number;
   }> {
     const [workflows, total] = await this.workflowRepository.findAndCount({
+      where: { tenantId },
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
@@ -140,9 +146,9 @@ export class AutomationService {
   /**
    * Get a single workflow by ID
    */
-  async findOne(id: string): Promise<AutomationWorkflow> {
+  async findOne(tenantId: string, id: string): Promise<AutomationWorkflow> {
     const workflow = await this.workflowRepository.findOne({
-      where: { id },
+      where: { id, tenantId },
       relations: ['triggers', 'actions'],
     });
     if (!workflow) {
@@ -153,8 +159,12 @@ export class AutomationService {
   /**
    * Update a workflow
    */
-  async update(id: string, updateAutomationDto: UpdateAutomationDto): Promise<AutomationWorkflow> {
-    const workflow = await this.findOne(id);
+  async update(
+    tenantId: string,
+    id: string,
+    updateAutomationDto: UpdateAutomationDto,
+  ): Promise<AutomationWorkflow> {
+    const workflow = await this.findOne(tenantId, id);
     if (workflow.status === WorkflowStatus.ACTIVE) {
       throw new BusinessValidationException('Deactivate workflow before making changes');
     }
@@ -186,13 +196,13 @@ export class AutomationService {
       );
       await this.actionRepository.save(actions);
     }
-    return this.findOne(id);
+    return this.findOne(tenantId, id);
   }
   /**
    * Delete a workflow
    */
-  async remove(id: string): Promise<void> {
-    const workflow = await this.findOne(id);
+  async remove(tenantId: string, id: string): Promise<void> {
+    const workflow = await this.findOne(tenantId, id);
     if (workflow.status === WorkflowStatus.ACTIVE) {
       throw new BusinessValidationException('Deactivate workflow before deleting');
     }
@@ -205,8 +215,8 @@ export class AutomationService {
   /**
    * Activate a workflow
    */
-  async activate(id: string): Promise<AutomationWorkflow> {
-    const workflow = await this.findOne(id);
+  async activate(tenantId: string, id: string): Promise<AutomationWorkflow> {
+    const workflow = await this.findOne(tenantId, id);
     if (!workflow.triggers?.length) {
       throw new BusinessValidationException('Workflow must have at least one trigger');
     }
@@ -220,8 +230,8 @@ export class AutomationService {
   /**
    * Deactivate a workflow
    */
-  async deactivate(id: string): Promise<AutomationWorkflow> {
-    const workflow = await this.findOne(id);
+  async deactivate(tenantId: string, id: string): Promise<AutomationWorkflow> {
+    const workflow = await this.findOne(tenantId, id);
     workflow.status = WorkflowStatus.INACTIVE;
     workflow.deactivatedAt = new Date();
     return this.workflowRepository.save(workflow);
@@ -230,34 +240,35 @@ export class AutomationService {
    * Handle user signup event
    */
   @OnEvent(APP_EVENTS.USER_SIGNUP)
-  async handleUserSignup(payload: { userId: string; email: string }) {
+  async handleUserSignup(payload: { tenantId: string; userId: string; email: string }) {
     await this.executeTriggeredWorkflows(TriggerType.USER_SIGNUP, payload);
   }
   /**
    * Handle course enrollment event
    */
   @OnEvent(APP_EVENTS.COURSE_ENROLLED)
-  async handleCourseEnrollment(payload: { userId: string; courseId: string }) {
+  async handleCourseEnrollment(payload: { tenantId: string; userId: string; courseId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.COURSE_ENROLLED, payload);
   }
   /**
    * Handle course completion event
    */
   @OnEvent(APP_EVENTS.COURSE_COMPLETED)
-  async handleCourseCompletion(payload: { userId: string; courseId: string }) {
+  async handleCourseCompletion(payload: { tenantId: string; userId: string; courseId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.COURSE_COMPLETED, payload);
   }
   /**
    * Handle purchase event
    */
   @OnEvent(APP_EVENTS.PAYMENT_COMPLETED)
-  async handlePurchase(payload: { userId: string; amount: number; productId: string }) {
+  async handlePurchase(payload: { tenantId: string; userId: string; amount: number; productId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.PURCHASE_MADE, payload);
   }
   /**
    * Handle user inactivity (called by scheduled job)
    */
   async handleUserInactivity(payload: { userId: string; daysSinceLastActivity: number }) {
+  async handleUserInactivity(payload: { tenantId: string; userId: string; daysSinceLastActivity: number }) {
     await this.executeTriggeredWorkflows(TriggerType.USER_INACTIVE, payload);
   }
   /**
@@ -268,8 +279,12 @@ export class AutomationService {
     payload: Record<string, unknown>,
   ): Promise<void> {
     // Find all active workflows with matching trigger
+    const tenantId = payload.tenantId as string;
     const triggers = await this.triggerRepository.find({
-      where: { type: triggerType },
+      where: {
+        type: triggerType,
+        workflow: { tenantId },
+      },
       relations: ['workflow', 'workflow.actions'],
     });
     for (const trigger of triggers) {
@@ -392,14 +407,14 @@ export class AutomationService {
    * - `openRate`  — (unique OPENED events / DELIVERED events) × 100 (`null` if no deliveries)
    * - `clickRate` — (unique CLICKED events / DELIVERED events) × 100 (`null` if no deliveries)
    */
-  async getWorkflowStats(id: string): Promise<{
+  async getWorkflowStats(tenantId: string, id: string): Promise<{
     executionCount: number;
     lastExecutedAt: Date | null;
     emailsSent: number | null;
     openRate: number | null;
     clickRate: number | null;
   }> {
-    const workflow = await this.findOne(id);
+    const workflow = await this.findOne(tenantId, id);
 
     const [sentCount, deliveredCount, openCount, clickCount] = await Promise.all([
       this.emailEventRepository.count({
