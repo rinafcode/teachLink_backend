@@ -2107,6 +2107,10 @@ export class BaselineSchema1599999999999 implements MigrationInterface {
     `);
     await queryRunner.query(`CREATE INDEX idx_notifications_dedup ON public.notifications USING btree ("userId", type, content_hash, "createdAt")
     `);
+    await queryRunner.query(`CREATE INDEX idx_ab_tests_status ON public.ab_tests USING btree (status)
+    `);
+    await queryRunner.query(`CREATE INDEX idx_ab_test_variants_ab_test_id ON public.ab_test_variants USING btree ("abTestId")
+    `);
     await queryRunner.query(`ALTER TABLE ONLY public.invoices
     ADD CONSTRAINT "FK_02781c49b25ceb502571f0315f6" FOREIGN KEY (payment_id) REFERENCES public.payments(id)
     `);
