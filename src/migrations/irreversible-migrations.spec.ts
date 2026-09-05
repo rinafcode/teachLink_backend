@@ -73,7 +73,7 @@ describe('Irreversible migrations down() loud warnings (Issue #1207)', () => {
     const migration = new FixInvoiceNumberSequence1790000000001();
     await migration.down(mockQueryRunner);
 
-    const loggedWarnings = logSpy.mock.calls.some(([msg]) =>
+    const loggedWarnings = warnSpy.mock.calls.some(([msg]) =>
       typeof msg === 'string' && msg.includes('WARNING: Down migration cannot recover original timestamp'),
     );
     expect(loggedWarnings).toBe(true);
