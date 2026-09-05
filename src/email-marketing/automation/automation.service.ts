@@ -196,6 +196,9 @@ export class AutomationService {
     if (workflow.status === WorkflowStatus.ACTIVE) {
       throw new BusinessValidationException('Deactivate workflow before deleting');
     }
+    this.logger.warn(
+      `Removing automation workflow ${id} will permanently delete its triggers and actions. This action is irreversible.`,
+    );
     await this.workflowRepository.manager.transaction(async (manager) => {
       await manager.getRepository(AutomationTrigger).softDelete({ workflowId: id });
       await manager.getRepository(AutomationAction).softDelete({ workflowId: id });
@@ -351,6 +354,11 @@ export class AutomationService {
         this.eventEmitter.emit(APP_EVENTS.USER_ADD_TAG, {
           userId: payload.userId,
           tag: action.config.tag,
+        });
+        break;
+    }
+  }
+}g.tag,
         });
         break;
       case ActionType.REMOVE_TAG:
