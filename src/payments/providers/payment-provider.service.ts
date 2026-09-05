@@ -38,7 +38,7 @@ export class PaymentProviderService {
     userId: string,
     amount: number,
     currency: string,
-    metadata: Record<string, unknown> = {},
+    _metadata: Record<string, unknown> = {},
   ): Promise<ChargeResult> {
     // TODO: replace with real Stripe call:
     //   const intent = await stripe.paymentIntents.create({ amount: Math.round(amount * 100), currency, ... });
@@ -58,7 +58,7 @@ export class PaymentProviderService {
     userId: string,
     amount: number,
     currency: string,
-    metadata: Record<string, unknown> = {},
+    _metadata: Record<string, unknown> = {},
   ): Promise<CreditResult> {
     // TODO: replace with real Stripe call:
     //   const credit = await stripe.customers.createBalanceTransaction(customerId, { amount: -Math.round(amount * 100), currency });
