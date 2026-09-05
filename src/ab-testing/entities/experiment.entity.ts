@@ -96,9 +96,9 @@ export class Experiment {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @LOneToMany(() => IExperimentVariant, (variant) => variant.experiment)
+  @OneToMany()=> IExperimentVariant, (variant) => variant.experiment)
   variants: IExperimentVariant[];
 
-  @LOneToMany(() => ExperimentMetric, (metric) => metric.experiment)
+  @OneToMany()=> ExperimentMetric, (metric) => metric.experiment)
   metrics: ExperimentMetric[];
 }
