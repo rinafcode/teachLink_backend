@@ -35,3 +35,32 @@ open to the community.
 
 Incomplete nominations stay open for up to seven days for the missing detail to
 be supplied, after which they may be closed and reopened later.
+
+## Seconding Requirement
+
+A nomination must be seconded before it moves to a decision. Seconding shows
+the nomination has support beyond the person who raised it.
+
+- At least one existing maintainer must second the nomination by commenting in
+  support on the issue.
+- The nominator cannot second their own nomination, and a self-nominated
+  candidate cannot act as their own seconder.
+- A second from a current holder of the role being nominated for carries the
+  strongest weight and is preferred where one is available.
+- If no maintainer seconds the nomination within fourteen days, it is closed as
+  lapsed and may be raised again later once more supporting evidence exists.
+
+## Decision Timeline
+
+Once a nomination is seconded, it moves to a decision on a fixed timeline so
+candidates are not left waiting.
+
+- A discussion and objection window of seven days opens from the second.
+- Maintainers signal support or raise concerns on the issue during the window.
+  Concerns must be specific and actionable so the candidate can respond.
+- A nomination is confirmed when it has majority support from maintainers and
+  no unresolved blocking objection at the end of the window.
+- A confirmed nomination is recorded by a maintainer, who grants the access for
+  the role and closes the issue with the outcome.
+- A nomination that does not reach majority support is closed with a short,
+  respectful summary, and may be raised again after further contributions.
