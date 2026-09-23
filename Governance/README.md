@@ -33,6 +33,13 @@ documents are added and refined over time (tracked as issues):
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
 
+## Policies
+
+Standalone policies live in `Governance/policies/`:
+
+- [`policies/INACTIVITY.md`](policies/INACTIVITY.md) — inactivity thresholds per
+  role, the notification process, consequences, and the reinstatement path.
+
 ## Contributing to governance
 
 Proposals to add or change governance are made by opening an issue or a pull
