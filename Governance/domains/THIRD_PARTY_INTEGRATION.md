@@ -43,3 +43,38 @@ must satisfy all items below before it is merged.
   is unavailable and does not block core learning flows.
 - [ ] **Maintenance signal.** The dependency is actively maintained, with a
   recent release and a responsive security channel.
+
+## Data-Sharing Limits
+
+Integrations are held to data minimisation. The following limits apply to
+every integration in scope.
+
+- Share only the fields required for the integration to function. Bulk exports
+  of user records are prohibited without an explicit, issue-tracked approval.
+- Never share credentials, password hashes, private keys, or full wallet seed
+  material with any external provider.
+- Personally identifiable information may leave the platform only when the
+  provider has a signed data-processing agreement recorded by a maintainer.
+- Pseudonymise or hash identifiers wherever the provider does not strictly need
+  the raw value.
+- Configure the shortest retention the provider allows, and prefer providers
+  that support deletion on request.
+- Route all outbound calls over encrypted transport, and reject providers that
+  cannot offer it.
+
+## Review Cadence
+
+Integrations are reviewed on a fixed schedule so that the policy stays enforced
+after adoption.
+
+- **Quarterly.** The integration owner confirms the provider is still in use,
+  still maintained, and still within its declared data footprint.
+- **On dependency alert.** A security advisory against an integrated dependency
+  triggers an immediate review by the owner, ahead of the quarterly cycle.
+- **On scope change.** Any change to the fields shared or the capability used
+  requires a new vetting pass against the checklist above.
+- **Annually.** Maintainers review the full register of integrations and retire
+  any that are unused or unmaintained.
+
+Each review is recorded as a comment on the tracking issue for the integration
+so the history stays versioned alongside the rest of governance.
