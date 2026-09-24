@@ -33,6 +33,13 @@ documents are added and refined over time (tracked as issues):
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
 
+## Policies
+
+Versioned policies live in [`Governance/policies/`](policies/):
+
+- [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
+  privileges, who can initiate revocation, and the appeal path.
+
 ## Contributing to governance
 
 Proposals to add or change governance are made by opening an issue or a pull
