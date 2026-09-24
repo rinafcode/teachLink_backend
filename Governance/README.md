@@ -35,6 +35,10 @@ documents are added and refined over time (tracked as issues):
 
 ## Policies
 
+Standalone policies live in `Governance/policies/`:
+
+- [`policies/INACTIVITY.md`](policies/INACTIVITY.md) — inactivity thresholds per
+  role, the notification process, consequences, and the reinstatement path.
 Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
