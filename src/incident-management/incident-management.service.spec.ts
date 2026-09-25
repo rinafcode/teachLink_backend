@@ -115,7 +115,12 @@ describe('IncidentManagementService', () => {
       } as RemediationAction;
 
       autoRemediationService.suggestRemediationActions.mockReturnValue([
-        { actionType: 'restart_service', description: 'Restart', parameters: {}, autoRollback: false },
+        {
+          actionType: 'restart_service',
+          description: 'Restart',
+          parameters: {},
+          autoRollback: false,
+        },
       ]);
       autoRemediationService.executeRemediationAction.mockResolvedValue(remediationAction);
 
@@ -142,9 +147,17 @@ describe('IncidentManagementService', () => {
       const incident = baseIncident();
       incidentDetectionService.processAlert.mockResolvedValue(incident);
 
-      const failedAction = { id: 'action-2', status: RemediationStatus.FAILED } as RemediationAction;
+      const failedAction = {
+        id: 'action-2',
+        status: RemediationStatus.FAILED,
+      } as RemediationAction;
       autoRemediationService.suggestRemediationActions.mockReturnValue([
-        { actionType: 'restart_service', description: 'Restart', parameters: {}, autoRollback: true },
+        {
+          actionType: 'restart_service',
+          description: 'Restart',
+          parameters: {},
+          autoRollback: true,
+        },
       ]);
       autoRemediationService.executeRemediationAction.mockResolvedValue(failedAction);
 
@@ -367,9 +380,9 @@ describe('IncidentManagementService', () => {
     it('throws when the incident does not exist', async () => {
       incidentRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.executeRunbookForIncident('missing', 'restart-runbook'),
-      ).rejects.toThrow('Incident not found');
+      await expect(service.executeRunbookForIncident('missing', 'restart-runbook')).rejects.toThrow(
+        'Incident not found',
+      );
     });
   });
 
@@ -378,9 +391,7 @@ describe('IncidentManagementService', () => {
       const executions = [{ id: 'run-1' }];
       runbookExecutionService.getRunbookExecutionsForIncident.mockResolvedValue(executions);
 
-      await expect(service.getRunbookExecutionsForIncident('incident-1')).resolves.toBe(
-        executions,
-      );
+      await expect(service.getRunbookExecutionsForIncident('incident-1')).resolves.toBe(executions);
     });
   });
 
