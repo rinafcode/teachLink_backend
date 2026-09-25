@@ -44,6 +44,8 @@ Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
+- [Voting Quorum Policy](policies/QUORUM.md) — the quorum threshold for a
+  formal vote, how quorum is measured, and what happens when it is not met.
 
 ## Processes
 
