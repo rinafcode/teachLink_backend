@@ -29,7 +29,7 @@ documents are added and refined over time (tracked as issues):
 - **Community & conduct** — code of conduct, enforcement, moderation, and conflict
   resolution.
 - **Contribution governance** — review policy, triage, labels, and roadmap governance.
-- **Security & disclosure** — vulnerability reporting, embargo, and advisory processes.
+- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, and [incident postmortems](domains/POSTMORTEM_POLICY.md).
 - **Releases & change** — versioning, release cadence, deprecation, and change policy.
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
@@ -40,7 +40,7 @@ Standalone policies live in `Governance/policies/`:
 
 - [`policies/INACTIVITY.md`](policies/INACTIVITY.md) — inactivity thresholds per
   role, the notification process, consequences, and the reinstatement path.
-Versioned policies live in [`Governance/policies/`](policies/):
+  Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
