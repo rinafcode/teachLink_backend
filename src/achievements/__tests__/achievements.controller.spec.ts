@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AchievementsController } from '../achievements.controller';
 import { AchievementsService } from '../achievements.service';
@@ -254,6 +255,59 @@ describe('AchievementsController', () => {
 
       expect(result).toEqual(mockOverview);
       expect(service.getUserAchievementOverview).toHaveBeenCalledWith('user-123');
+    });
+  });
+
+  describe('incrementProgress', () => {
+    const mockProgressDto = {
+      id: 'prog-1',
+      achievementId: 'ach-123',
+      userId: 'user-123',
+      currentProgress: 1,
+      targetProgress: 10,
+      percentageComplete: 10,
+      isUnlocked: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should pass incrementBy: 0 through as 0', async () => {
+      jest.spyOn(service, 'incrementProgress').mockResolvedValue({
+        ...mockProgressDto,
+        currentProgress: 0,
+        percentageComplete: 0,
+      });
+
+      const result = await controller.incrementProgress('ach-123', 'user-123', {
+        incrementBy: 0,
+        metadata: { source: 'noop' },
+      });
+
+      expect(result.currentProgress).toBe(0);
+      expect(service.incrementProgress).toHaveBeenCalledWith('user-123', 'ach-123', 0, {
+        source: 'noop',
+      });
+    });
+
+    it('should default incrementBy to 1 when omitted', async () => {
+      jest.spyOn(service, 'incrementProgress').mockResolvedValue(mockProgressDto);
+
+      const result = await controller.incrementProgress('ach-123', 'user-123', {});
+
+      expect(result).toEqual(mockProgressDto);
+      expect(service.incrementProgress).toHaveBeenCalledWith('user-123', 'ach-123', 1, undefined);
+    });
+
+    it('should reject negative or non-integer incrementBy values', async () => {
+      await expect(
+        controller.incrementProgress('ach-123', 'user-123', { incrementBy: -1 }),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        controller.incrementProgress('ach-123', 'user-123', { incrementBy: 1.5 }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(service.incrementProgress).not.toHaveBeenCalled();
     });
   });
 });

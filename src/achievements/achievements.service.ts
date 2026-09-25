@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository, MoreThan } from 'typeorm';
 import { Achievement, AchievementType } from './entities/achievement.entity';
@@ -333,6 +333,11 @@ export class AchievementsService {
     incrementBy: number = 1,
     metadata?: any,
   ): Promise<AchievementProgressDto> {
+    const resolvedIncrement = incrementBy ?? 1;
+    if (!Number.isInteger(resolvedIncrement) || resolvedIncrement < 0) {
+      throw new BadRequestException('incrementBy must be a non-negative integer');
+    }
+
     let progress = await this.progressRepository.findOne({
       where: {
         user: { id: userId },
@@ -345,7 +350,10 @@ export class AchievementsService {
       progress = await this.initializeProgress(userId, achievementId);
     }
 
-    const newProgress = Math.min(progress.currentProgress + incrementBy, progress.targetProgress);
+    const newProgress = Math.min(
+      progress.currentProgress + resolvedIncrement,
+      progress.targetProgress,
+    );
 
     return this.updateProgress(userId, achievementId, {
       currentProgress: newProgress,
