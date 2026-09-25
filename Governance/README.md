@@ -29,7 +29,7 @@ documents are added and refined over time (tracked as issues):
 - **Community & conduct** — code of conduct, enforcement, moderation, and conflict
   resolution.
 - **Contribution governance** — review policy, triage, labels, and roadmap governance.
-- **Security & disclosure** — vulnerability reporting, embargo, and advisory processes.
+- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, and [incident postmortems](domains/POSTMORTEM_POLICY.md).
 - **Releases & change** — versioning, release cadence, deprecation, and change policy.
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
@@ -40,7 +40,7 @@ Standalone policies live in `Governance/policies/`:
 
 - [`policies/INACTIVITY.md`](policies/INACTIVITY.md) — inactivity thresholds per
   role, the notification process, consequences, and the reinstatement path.
-Versioned policies live in [`Governance/policies/`](policies/):
+  Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
@@ -48,6 +48,9 @@ Versioned policies live in [`Governance/policies/`](policies/):
   formal vote, how quorum is measured, and what happens when it is not met.
 - [Supermajority Policy](policies/SUPERMAJORITY.md) — which decisions require
   a supermajority, the two-thirds threshold, and how it is calculated.
+- [Asynchronous Decision Policy](policies/ASYNC_DECISIONS.md) — when a decision
+  may be taken asynchronously, the minimum response window, and the recording
+  requirement.
 
 ## Processes
 
@@ -63,3 +66,4 @@ Standalone process documents live in `Governance/processes/`:
 Proposals to add or change governance are made by opening an issue or a pull
 request that touches **only** this `Governance/` folder. Keep changes small and
 focused (at most two files), and document what changed.
+
