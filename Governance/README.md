@@ -43,6 +43,8 @@ Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
+- [Supermajority Policy](policies/SUPERMAJORITY.md) — which decisions require
+  a supermajority, the two-thirds threshold, and how it is calculated.
 
 ## Contributing to governance
 
