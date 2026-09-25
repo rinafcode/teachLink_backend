@@ -22,7 +22,8 @@ documents are added and refined over time (tracked as issues):
 
 - **Foundations** — charter, mission, values, principles, and glossary.
 - **Roles & membership** — contributor ladder, maintainer/reviewer roles, and the
-  onboarding/offboarding lifecycle.
+  onboarding/offboarding lifecycle, including
+  [working group dissolution](processes/WORKING_GROUP_DISSOLUTION.md).
 - **Decision-making** — consensus and voting rules, the RFC/proposal process, and
   decision records.
 - **Community & conduct** — code of conduct, enforcement, moderation, and conflict
@@ -43,6 +44,15 @@ Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
+
+## Processes
+
+Standalone process documents live in `Governance/processes/`:
+
+- [`processes/NOMINATION.md`](processes/NOMINATION.md) — role nomination process.
+- [`processes/OFFBOARDING.md`](processes/OFFBOARDING.md) — contributor offboarding checklist and timeline.
+- [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
+- [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
 
 ## Contributing to governance
 
