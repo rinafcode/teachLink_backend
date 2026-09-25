@@ -46,6 +46,8 @@ Versioned policies live in [`Governance/policies/`](policies/):
   privileges, who can initiate revocation, and the appeal path.
 - [Voting Quorum Policy](policies/QUORUM.md) — the quorum threshold for a
   formal vote, how quorum is measured, and what happens when it is not met.
+- [Supermajority Policy](policies/SUPERMAJORITY.md) — which decisions require
+  a supermajority, the two-thirds threshold, and how it is calculated.
 
 ## Processes
 
