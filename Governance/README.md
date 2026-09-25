@@ -48,6 +48,9 @@ Versioned policies live in [`Governance/policies/`](policies/):
   formal vote, how quorum is measured, and what happens when it is not met.
 - [Supermajority Policy](policies/SUPERMAJORITY.md) — which decisions require
   a supermajority, the two-thirds threshold, and how it is calculated.
+- [Asynchronous Decision Policy](policies/ASYNC_DECISIONS.md) — when a decision
+  may be taken asynchronously, the minimum response window, and the recording
+  requirement.
 
 ## Processes
 
@@ -63,3 +66,4 @@ Standalone process documents live in `Governance/processes/`:
 Proposals to add or change governance are made by opening an issue or a pull
 request that touches **only** this `Governance/` folder. Keep changes small and
 focused (at most two files), and document what changed.
+
