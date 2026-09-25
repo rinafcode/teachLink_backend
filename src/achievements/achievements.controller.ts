@@ -11,6 +11,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -178,13 +179,18 @@ export class AchievementsController {
   async incrementProgress(
     @Param('achievementId') achievementId: string,
     @Param('userId') userId: string,
-    @Body() body: { incrementBy?: number; metadata?: any },
+    @Body() body: { incrementBy?: number; metadata?: any } = {},
   ): Promise<AchievementProgressDto> {
+    const incrementBy = body?.incrementBy ?? 1;
+    if (!Number.isInteger(incrementBy) || incrementBy < 0) {
+      throw new BadRequestException('incrementBy must be a non-negative integer');
+    }
+
     return this.achievementsService.incrementProgress(
       userId,
       achievementId,
-      body.incrementBy || 1,
-      body.metadata,
+      incrementBy,
+      body?.metadata,
     );
   }
 

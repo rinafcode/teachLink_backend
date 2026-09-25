@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { AchievementsService } from './achievements.service';
 import { Achievement, AchievementType, AchievementDifficulty } from './entities/achievement.entity';
@@ -335,6 +335,50 @@ describe('AchievementsService', () => {
       await expect(service.getUserProgressForAchievement('user-1', 'missing')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  // ── incrementProgress ────────────────────────────────────────────────────
+
+  describe('incrementProgress', () => {
+    it('defaults incrementBy to 1 when omitted', async () => {
+      progressRepo.findOne.mockResolvedValue({ ...mockProgress, currentProgress: 2 });
+      const updateSpy = jest
+        .spyOn(service, 'updateProgress')
+        .mockResolvedValue({ ...mockProgress, currentProgress: 3 } as any);
+
+      const result = await service.incrementProgress('user-1', 'ach-1');
+
+      expect(updateSpy).toHaveBeenCalledWith('user-1', 'ach-1', {
+        currentProgress: 3,
+        metadata: undefined,
+      });
+      expect(result.currentProgress).toBe(3);
+    });
+
+    it('preserves an explicit incrementBy of 0 without coercing to 1', async () => {
+      progressRepo.findOne.mockResolvedValue({ ...mockProgress, currentProgress: 2 });
+      const updateSpy = jest
+        .spyOn(service, 'updateProgress')
+        .mockResolvedValue({ ...mockProgress, currentProgress: 2 } as any);
+
+      const result = await service.incrementProgress('user-1', 'ach-1', 0, { reason: 'noop' });
+
+      expect(updateSpy).toHaveBeenCalledWith('user-1', 'ach-1', {
+        currentProgress: 2,
+        metadata: { reason: 'noop' },
+      });
+      expect(result.currentProgress).toBe(2);
+    });
+
+    it('throws BadRequestException for negative or non-integer incrementBy', async () => {
+      await expect(service.incrementProgress('user-1', 'ach-1', -1)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.incrementProgress('user-1', 'ach-1', 1.5)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(progressRepo.findOne).not.toHaveBeenCalled();
     });
   });
 });
