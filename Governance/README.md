@@ -51,6 +51,9 @@ Standalone policies live in `Governance/policies/`:
 - [Asynchronous Decision Policy](policies/ASYNC_DECISIONS.md) — when a decision
   may be taken asynchronously, the minimum response window, and the recording
   requirement.
+- [Public Metrics Policy](policies/PUBLIC_METRICS.md) — which metrics the
+  scrape endpoints expose, how often they change, and where each metric
+  family's data comes from.
 
 ## Processes
 
