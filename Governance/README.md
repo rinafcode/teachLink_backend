@@ -29,7 +29,7 @@ documents are added and refined over time (tracked as issues):
 - **Community & conduct** — code of conduct, enforcement, moderation, and conflict
   resolution.
 - **Contribution governance** — review policy, triage, labels, and roadmap governance.
-- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, and [incident postmortems](domains/POSTMORTEM_POLICY.md).
+- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, [incident postmortems](domains/POSTMORTEM_POLICY.md), and [access control](domains/ACCESS_CONTROL.md).
 - **Releases & change** — versioning, release cadence, deprecation, and change policy.
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
@@ -53,6 +53,9 @@ Standalone policies live in `Governance/policies/`:
   requirement.
 - [Transparency Report Policy](policies/TRANSPARENCY_REPORTS.md) — the report
   cadence, the metrics disclosed, and where reports are published.
+- [Public Metrics Policy](policies/PUBLIC_METRICS.md) — which metrics the
+  scrape endpoints expose, how often they change, and where each metric
+  family's data comes from.
 
 ## Processes
 
@@ -62,6 +65,11 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/OFFBOARDING.md`](processes/OFFBOARDING.md) — contributor offboarding checklist and timeline.
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
+
+## Recognition
+
+- [`RECOGNITION.md`](RECOGNITION.md) — contributor recognition tiers, the criteria
+  for each, and the nomination process.
 
 ## Contributing to governance
 
