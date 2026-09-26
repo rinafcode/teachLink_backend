@@ -29,7 +29,7 @@ documents are added and refined over time (tracked as issues):
 - **Community & conduct** — code of conduct, enforcement, moderation, and conflict
   resolution.
 - **Contribution governance** — review policy, triage, labels, and roadmap governance.
-- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, and [incident postmortems](domains/POSTMORTEM_POLICY.md).
+- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, [incident postmortems](domains/POSTMORTEM_POLICY.md), and [access control](domains/ACCESS_CONTROL.md).
 - **Releases & change** — versioning, release cadence, deprecation, and change policy.
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
