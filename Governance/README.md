@@ -64,6 +64,11 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
 
+## Recognition
+
+- [`RECOGNITION.md`](RECOGNITION.md) — contributor recognition tiers, the criteria
+  for each, and the nomination process.
+
 ## Contributing to governance
 
 Proposals to add or change governance are made by opening an issue or a pull
