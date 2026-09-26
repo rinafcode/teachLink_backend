@@ -64,6 +64,19 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
 
+## Templates
+
+Reusable templates live in `Governance/templates/`:
+
+- [`templates/AGENDA_TEMPLATE.md`](templates/AGENDA_TEMPLATE.md) — the standard sections,
+  time-boxing guidance, and submission process for a governance meeting agenda.
+- [`templates/MINUTES_TEMPLATE.md`](templates/MINUTES_TEMPLATE.md) — the structure used to
+  record decisions and action items from a meeting.
+- [`templates/RFC_TEMPLATE.md`](templates/RFC_TEMPLATE.md) — the starting point for a
+  request for comments.
+- [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPLATE.md) — the starting point for an
+  architecture decision record.
+
 ## Recognition
 
 - [`RECOGNITION.md`](RECOGNITION.md) — contributor recognition tiers, the criteria
