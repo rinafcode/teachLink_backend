@@ -54,6 +54,12 @@ section. Each entry captures:
 | 2026-01-15 | Adopt the objection-handling process | policy | #1582 | @example-maintainer |
 ```
 
+| Date | Decision | Type | Reference | Maintained by |
+| --- | --- | --- | --- | --- |
+| 2026-09-26 | Adopt the backup policy (frequency, restore-test cadence, retention) | policy | — | @maintainer |
+| 2026-09-26 | Adopt the SBOM policy (generation triggers, publication, update cadence) | policy | — | @maintainer |
+| 2026-09-26 | Adopt the rate limit governance (limit setting, exemption process, review cadence) | policy | — | @maintainer |
+
 Entries are never edited after the fact to change what was decided — this log
 is append-only, matching the immutability principle used for the audit log
 (`Governance/domains/AUDIT_LOG.md`). A decision that is later reversed gets a
