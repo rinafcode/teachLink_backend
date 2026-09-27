@@ -24,8 +24,8 @@ documents are added and refined over time (tracked as issues):
 - **Roles & membership** — contributor ladder, maintainer/reviewer roles, and the
   onboarding/offboarding lifecycle, including
   [working group dissolution](processes/WORKING_GROUP_DISSOLUTION.md).
-- **Decision-making** — consensus and voting rules, the RFC/proposal process, and
-  decision records.
+- **Decision-making** — consensus and voting rules, the RFC/proposal process,
+  [proposal lifecycle](processes/PROPOSAL_LIFECYCLE.md), and decision records.
 - **Community & conduct** — code of conduct, enforcement, moderation, and conflict
   resolution.
 - **Contribution governance** — review policy, triage, labels, and roadmap governance.
@@ -66,6 +66,7 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/NOMINATION.md`](processes/NOMINATION.md) — role nomination process.
 - [`processes/OFFBOARDING.md`](processes/OFFBOARDING.md) — contributor offboarding checklist and timeline.
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
+- [`processes/PROPOSAL_LIFECYCLE.md`](processes/PROPOSAL_LIFECYCLE.md) — stages from draft to decision, stage ownership, and exit criteria.
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
 
 ## Templates
