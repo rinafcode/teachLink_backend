@@ -32,7 +32,7 @@ documents are added and refined over time (tracked as issues):
 - **Operations & reliability** — service ownership, on-call, incident response,
   [service-level objectives](domains/SLA_SLO.md), backup, and disaster recovery.
 - **Security & disclosure** — vulnerability reporting, embargo, advisory processes, [incident postmortems](domains/POSTMORTEM_POLICY.md), and [access control](domains/ACCESS_CONTROL.md).
-- **Releases & change** — versioning, release cadence, deprecation, and change policy.
+- **Releases & change** — versioning, release cadence, deprecation, change policy, and [environment promotion](domains/ENV_PROMOTION.md).
 - **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
 - **Community & on-chain governance** — treasury, grants, and proposal governance.
 
