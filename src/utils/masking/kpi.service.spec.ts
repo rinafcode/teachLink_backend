@@ -144,8 +144,8 @@ describe('KpiService', () => {
       expect(mockQb.innerJoin).toHaveBeenCalled();
       expect(mockQb.groupBy).toHaveBeenCalled();
 
-      const whereCalls = [...mockQb.where.mock.calls, ...mockQb.andWhere.mock.calls].map(
-        (args) => String(args[0]),
+      const whereCalls = [...mockQb.where.mock.calls, ...mockQb.andWhere.mock.calls].map((args) =>
+        String(args[0]),
       );
       expect(whereCalls.join(' ')).not.toMatch(/IN\s*\(/i);
 
