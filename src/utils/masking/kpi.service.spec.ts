@@ -19,7 +19,9 @@ describe('KpiService', () => {
     innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
+    setParameters: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
+    addGroupBy: jest.fn().mockReturnThis(),
     getRawMany: jest.fn(),
     getRawOne: jest.fn(),
   };
@@ -105,6 +107,74 @@ describe('KpiService', () => {
 
       expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 1000);
       expect(gaugeSpy).toHaveBeenCalledWith(expect.any(Object), 2500);
+    });
+  });
+
+  describe('calculateUserRetention', () => {
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(new Date('2025-04-15T12:00:00Z'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should compute retention from grouped aggregates without find() or IN-lists', async () => {
+      mockQb.getRawMany.mockReset();
+      mockQb.getRawMany
+        .mockResolvedValueOnce([
+          { cohort_month: '2025-01', cohort_size: '100' },
+          { cohort_month: '2025-02', cohort_size: '50' },
+          { cohort_month: '2025-03', cohort_size: '200' },
+        ])
+        .mockResolvedValueOnce([
+          { cohort_month: '2025-01', retained_month: '2025-02', retained_count: '40' },
+          { cohort_month: '2025-01', retained_month: '2025-03', retained_count: '20' },
+        ]);
+
+      const setMock = jest.fn();
+      const labelsSpy = jest
+        .spyOn(metricsService.userRetentionGauge, 'labels')
+        .mockReturnValue({ set: setMock } as any);
+
+      await kpiService.calculateUserRetention();
+
+      expect(mockRepo.find).not.toHaveBeenCalled();
+      expect(mockRepo.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQb.innerJoin).toHaveBeenCalled();
+      expect(mockQb.groupBy).toHaveBeenCalled();
+
+      const whereCalls = [...mockQb.where.mock.calls, ...mockQb.andWhere.mock.calls].map(
+        (args) => String(args[0]),
+      );
+      expect(whereCalls.join(' ')).not.toMatch(/IN\s*\(/i);
+
+      // 40/100*100=40, 20/100*100=20 for the mocked cohort pair
+      expect(setMock).toHaveBeenCalledWith(40);
+      expect(setMock).toHaveBeenCalledWith(20);
+      labelsSpy.mockRestore();
+    });
+
+    it('should report 0 when a retention bucket has no events and skip empty cohorts', async () => {
+      mockQb.getRawMany.mockReset();
+      mockQb.getRawMany
+        .mockResolvedValueOnce([
+          { cohort_month: '2025-01', cohort_size: '100' },
+          // second cohort intentionally missing (empty) to verify skip
+        ])
+        .mockResolvedValueOnce([]);
+
+      const setMock = jest.fn();
+      const labelsSpy = jest
+        .spyOn(metricsService.userRetentionGauge, 'labels')
+        .mockReturnValue({ set: setMock } as any);
+
+      await kpiService.calculateUserRetention();
+
+      expect(mockRepo.find).not.toHaveBeenCalled();
+      // Missing retention rows resolve to 0% rather than missing gauges
+      expect(setMock).toHaveBeenCalledWith(0);
+      labelsSpy.mockRestore();
     });
   });
 
