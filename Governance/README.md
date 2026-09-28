@@ -58,6 +58,8 @@ Standalone policies live in `Governance/policies/`:
 - [Public Metrics Policy](policies/PUBLIC_METRICS.md) — which metrics the
   scrape endpoints expose, how often they change, and where each metric
   family's data comes from.
+- [Changelog Policy](policies/CHANGELOG_POLICY.md) — the required changelog
+  format, change categories, and when entries are required.
 
 ## Processes
 
