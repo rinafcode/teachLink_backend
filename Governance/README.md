@@ -177,6 +177,9 @@ Standalone policies live in `Governance/policies/`:
   family's data comes from.
 - [Changelog Policy](policies/CHANGELOG_POLICY.md) — the required changelog
   format, change categories, and when entries are required.
+- [Code Review Policy](policies/REVIEW_POLICY.md) — the requirements that must be
+  met before a change is merged, what reviewers check, and the reviewer
+  independence rule.
 
 ## Processes
 
