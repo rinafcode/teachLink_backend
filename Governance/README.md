@@ -187,6 +187,7 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
 - [`processes/PROPOSAL_LIFECYCLE.md`](processes/PROPOSAL_LIFECYCLE.md) — stages from draft to decision, stage ownership, and exit criteria.
 - [`processes/RELEASE_SIGNOFF.md`](processes/RELEASE_SIGNOFF.md) — required release sign-offs, gating checks, and final production release authority.
+- [`processes/ESCALATION_PATH.md`](processes/ESCALATION_PATH.md) — incident escalation tiers, role-based contacts, and response SLAs.
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
 
 ## Templates
