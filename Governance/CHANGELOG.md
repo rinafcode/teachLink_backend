@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `Governance/policies/GOOD_FIRST_ISSUE.md` — criteria for the `good first issue` label, who may apply it, and mentorship expectations (issue #1610)
+- `Governance/processes/VULN_DISCLOSURE.md` — private reporting channels, triage steps, and coordinated-disclosure timeline (issue #1612)
+- `Governance/processes/COORDINATED_DISCLOSURE.md` — reporter coordination, public-disclosure timing, and credit policy (issue #1616)
+- `Governance/SECURITY_RESPONSE_TEAM.md` — security response team membership, responsibilities, and on-call rotation (issue #1614)
 - `Governance/SECURITY_POLICY.md` — supported versions, private vulnerability reporting channels, and response-time commitments (issue #1611)
 - `Governance/templates/ADVISORY_TEMPLATE.md` — security advisory sections including severity, CVSS, and remediation fields (issue #1615)
 - `Governance/policies/EMBARGO.md` — default embargo durations by severity, embargo list membership, and early-disclosure exceptions (issue #1613)
