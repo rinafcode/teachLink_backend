@@ -4,22 +4,29 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
-
 export enum BillingCycle {
   MONTHLY = 'monthly',
   QUARTERLY = 'quarterly',
   YEARLY = 'yearly',
 }
 
+/**
+ * Represents the tenant Billing entity.
+ */
 @Entity('tenant_billing')
 export class TenantBilling {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()
@@ -85,4 +92,7 @@ export class TenantBilling {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

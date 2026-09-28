@@ -4,19 +4,35 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   OneToMany,
+  VersionColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { AutomationTrigger } from './automation-trigger.entity';
 import { AutomationAction } from './automation-action.entity';
 import { WorkflowStatus } from '../enums/workflow-status.enum';
 
+/**
+ * Represents the automation Workflow entity.
+ *
+ * Indexes:
+ *  - IDX_automation_workflows_status           – filters active/inactive workflows
+ *  - IDX_automation_workflows_createdAt        – default descending sort in findAll
+ *  - IDX_automation_workflows_status_createdAt – covers the combined filter+sort path
+ */
 @Entity('automation_workflows')
+@Index('IDX_automation_workflows_status', ['status'])
+@Index('IDX_automation_workflows_createdAt', ['createdAt'])
+@Index('IDX_automation_workflows_status_createdAt', ['status', 'createdAt'])
 export class AutomationWorkflow {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()
@@ -59,4 +75,7 @@ export class AutomationWorkflow {
   @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

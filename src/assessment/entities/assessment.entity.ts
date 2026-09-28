@@ -1,18 +1,35 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  Index,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  VersionColumn,
+} from 'typeorm';
 import { Question } from './question.entity';
 
+/**
+ * Represents the assessment entity.
+ */
 @Entity()
 export class Assessment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @Column()
+  @Index()
   title: string;
 
   @Column({ nullable: true })
   description?: string;
 
   @Column()
+  @Index()
   durationMinutes: number;
 
   @OneToMany(() => Question, (q) => q.assessment, {
@@ -21,5 +38,9 @@ export class Assessment {
   questions: Question[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

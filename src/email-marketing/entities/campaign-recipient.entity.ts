@@ -1,15 +1,29 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  DeleteDateColumn,
+  VersionColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { Campaign } from './campaign.entity';
 import { RecipientStatus } from '../enums/recipient-status.enum';
 
+/**
+ * Represents the campaign Recipient entity.
+ */
 @Entity('campaign_recipients')
 @Index(['campaignId', 'status'])
 export class CampaignRecipient {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()
@@ -38,4 +52,7 @@ export class CampaignRecipient {
   @ApiProperty({ required: false })
   @Column({ nullable: true })
   variantId?: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

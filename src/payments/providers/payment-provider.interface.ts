@@ -1,4 +1,4 @@
-export interface PaymentProvider {
+export interface IPaymentProvider {
   name: string;
 
   createPaymentIntent(
@@ -22,6 +22,10 @@ export interface PaymentProvider {
   }>;
 
   cancelSubscription(subscriptionId: string): Promise<boolean>;
+
+  pauseSubscription(subscriptionId: string, resumeAt?: Date): Promise<boolean>;
+
+  resumeSubscription(subscriptionId: string): Promise<boolean>;
 
   refundPayment(
     paymentId: string,

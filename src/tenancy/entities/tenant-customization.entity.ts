@@ -4,16 +4,24 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 
+/**
+ * Represents the tenant Customization entity.
+ */
 @Entity('tenant_customizations')
 export class TenantCustomization {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()
@@ -47,7 +55,7 @@ export class TenantCustomization {
     colors?: Record<string, string>;
     fonts?: Record<string, string>;
     spacing?: Record<string, string>;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'text', nullable: true })
@@ -61,7 +69,7 @@ export class TenantCustomization {
     welcome?: string;
     passwordReset?: string;
     notification?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
   @Column({ type: 'jsonb', nullable: true })
@@ -76,14 +84,17 @@ export class TenantCustomization {
       description: string;
       icon?: string;
     }>;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   customDomain?: string;
 
   @Column({ default: false })
   customDomainVerified: boolean;
+
+  @Column({ nullable: true })
+  domainVerificationToken?: string;
 
   @Column({ type: 'jsonb', nullable: true })
   socialLinks?: {
@@ -99,4 +110,7 @@ export class TenantCustomization {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

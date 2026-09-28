@@ -35,6 +35,7 @@ The framework uses four main entities:
 ## API Endpoints
 
 ### Experiment Management
+
 - `GET /ab-testing/experiments` - List all experiments
 - `GET /ab-testing/experiments/:id` - Get experiment details
 - `POST /ab-testing/experiments` - Create new experiment
@@ -42,6 +43,7 @@ The framework uses four main entities:
 - `DELETE /ab-testing/experiments/:id` - Delete experiment
 
 ### Experiment Lifecycle
+
 - `POST /ab-testing/experiments/:id/start` - Start experiment
 - `POST /ab-testing/experiments/:id/stop` - Stop experiment
 - `POST /ab-testing/experiments/:id/pause` - Pause experiment
@@ -49,21 +51,25 @@ The framework uses four main entities:
 - `POST /ab-testing/experiments/:id/archive` - Archive experiment
 
 ### Variant Management
+
 - `POST /ab-testing/experiments/:id/variants` - Add variant to experiment
 - `DELETE /ab-testing/variants/:id` - Remove variant
 - `PUT /ab-testing/experiments/:id/traffic-allocation` - Update traffic allocation
 
 ### Analysis and Results
+
 - `GET /ab-testing/experiments/:id/results` - Get experiment results
 - `GET /ab-testing/experiments/:id/statistical-analysis` - Perform statistical analysis
 - `GET /ab-testing/experiments/:id/effect-size` - Calculate effect size
 - `GET /ab-testing/experiments/:id/decision-recommendations` - Get decision recommendations
 
 ### Automated Features
+
 - `POST /ab-testing/experiments/:id/auto-select-winner` - Auto-select winner
 - `POST /ab-testing/experiments/:id/auto-allocate-traffic` - Auto-allocate traffic
 
 ### Reporting
+
 - `GET /ab-testing/reports/dashboard` - Get dashboard summary
 - `GET /ab-testing/reports/experiment/:id` - Generate detailed experiment report
 - `GET /ab-testing/reports/performance-comparison` - Performance comparison report
@@ -71,6 +77,7 @@ The framework uses four main entities:
 - `GET /ab-testing/reports/experiment/:id/export` - Export data as CSV
 
 ### User Assignment
+
 - `GET /ab-testing/experiments/:id/assign-user/:userId` - Assign user to variant
 
 ## Usage Examples
@@ -79,37 +86,37 @@ The framework uses four main entities:
 
 ```typescript
 const experimentData = {
-  name: "Homepage CTA Button Test",
-  description: "Testing different CTA button colors",
-  type: "a_b_test",
+  name: 'Homepage CTA Button Test',
+  description: 'Testing different CTA button colors',
+  type: 'a_b_test',
   startDate: new Date(),
   trafficAllocation: 1.0,
   autoAllocateTraffic: false,
   confidenceLevel: 95,
   minimumSampleSize: 1000,
-  hypothesis: "Red CTA button will increase conversion rate",
+  hypothesis: 'Red CTA button will increase conversion rate',
   variants: [
     {
-      name: "Control",
-      description: "Blue CTA button",
-      configuration: { color: "blue" },
-      isControl: true
+      name: 'Control',
+      description: 'Blue CTA button',
+      configuration: { color: 'blue' },
+      isControl: true,
     },
     {
-      name: "Variant A",
-      description: "Red CTA button",
-      configuration: { color: "red" },
-      isControl: false
-    }
+      name: 'Variant A',
+      description: 'Red CTA button',
+      configuration: { color: 'red' },
+      isControl: false,
+    },
   ],
   metrics: [
     {
-      name: "Conversion Rate",
-      description: "Percentage of users who click CTA",
-      type: "conversion",
-      isPrimary: true
-    }
-  ]
+      name: 'Conversion Rate',
+      description: 'Percentage of users who click CTA',
+      type: 'conversion',
+      isPrimary: true,
+    },
+  ],
 };
 
 // Create the experiment
@@ -129,7 +136,7 @@ const analysis = await statisticalAnalysisService.calculateStatisticalSignifican
 if (analysis.statisticallySignificant) {
   // Auto-select winner
   const decision = await automatedDecisionService.autoSelectWinner(experimentId);
-  
+
   if (decision.decision === 'winner_selected') {
     console.log(`Winner: ${decision.winnerName}`);
     console.log(`Effect size: ${decision.effectSize}`);
@@ -145,9 +152,9 @@ const report = await reportsService.generateExperimentReport(experimentId);
 ```typescript
 // Manual traffic allocation
 const allocations = {
-  [variant1Id]: 0.5,  // 50% traffic
-  [variant2Id]: 0.3,  // 30% traffic
-  [variant3Id]: 0.2   // 20% traffic
+  [variant1Id]: 0.5, // 50% traffic
+  [variant2Id]: 0.3, // 30% traffic
+  [variant3Id]: 0.2, // 20% traffic
 };
 
 await experimentService.updateTrafficAllocation(experimentId, allocations);
@@ -179,16 +186,19 @@ The framework implements industry-standard statistical methods:
 ## Configuration Options
 
 ### Experiment Types
+
 - `A_B_TEST`: Traditional A/B testing with control and variants
 - `MULTIVARIATE`: Test multiple variables simultaneously
 - `MULTI_ARMED_BANDIT`: Dynamic allocation based on performance
 
 ### Statistical Parameters
+
 - **Confidence Level**: 90%, 95%, or 99% (default: 95%)
 - **Minimum Sample Size**: Per variant (default: 100)
 - **Effect Size Threshold**: Minimum detectable effect (default: 0.1)
 
 ### Automation Settings
+
 - **Auto Traffic Allocation**: Enable/disable dynamic allocation
 - **Winner Selection Criteria**: Customizable decision thresholds
 - **Duration Thresholds**: Minimum experiment duration requirements
@@ -196,6 +206,7 @@ The framework implements industry-standard statistical methods:
 ## Error Handling
 
 The framework provides comprehensive error handling:
+
 - Validation of experiment configurations
 - Sample size and duration checks
 - Statistical calculation safeguards

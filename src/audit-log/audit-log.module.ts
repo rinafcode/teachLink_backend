@@ -1,28 +1,34 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AuditLog } from './audit-log.entity';
 import { AuditLogService } from './audit-log.service';
-import { AuditLogController } from './audit-log.controller';
-import { AuditLogInterceptor } from './interceptors/audit-log.interceptor';
+import { AuditLoggerService } from './services/audit-logger.service';
+import { AuditQueryService } from './services/audit-query.service';
+import { AuditReportingService } from './services/audit-reporting.service';
+import { AuditExportService } from './services/audit-export.service';
 import { AuditRetentionTask } from './tasks/audit-retention.task';
+import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 
+/**
+ * Audit Log Module
+ * Provides audit logging, querying, reporting, and export functionality.
+ * Uses Single Responsibility Principle with specialized services:
+ * - AuditLoggerService: Handles creating audit logs
+ * - AuditQueryService: Handles searching and retrieving audit logs
+ * - AuditReportingService: Handles report generation and statistics
+ * - AuditExportService: Handles exporting logs to various formats
+ */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([AuditLog]),
-    ConfigModule,
-    ScheduleModule.forRoot(),
-  ],
-  controllers: [AuditLogController],
+  imports: [TypeOrmModule.forFeature([AuditLog])],
   providers: [
-    AuditLogService,
-    AuditLogInterceptor,
+    AuditLoggerService,
+    AuditQueryService,
+    AuditReportingService,
+    AuditExportService,
     AuditRetentionTask,
-  ],
-  exports: [
     AuditLogService,
-    AuditLogInterceptor,
+    MetricsCollectionService,
   ],
+  exports: [AuditLogService],
 })
 export class AuditLogModule {}

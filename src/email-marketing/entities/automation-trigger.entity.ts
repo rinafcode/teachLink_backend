@@ -1,14 +1,30 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  DeleteDateColumn,
+  VersionColumn,
+  Index,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { AutomationWorkflow } from './automation-workflow.entity';
 import { TriggerType } from '../enums/trigger-type.enum';
 
+/**
+ * Represents the automation Trigger entity.
+ */
 @Entity('automation_triggers')
+@Index('IDX_automation_triggers_workflowId', ['workflowId'])
+@Index('IDX_automation_triggers_type', ['type'])
 export class AutomationTrigger {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()
@@ -29,4 +45,7 @@ export class AutomationTrigger {
   @ApiProperty({ required: false })
   @Column({ type: 'text', nullable: true })
   description?: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

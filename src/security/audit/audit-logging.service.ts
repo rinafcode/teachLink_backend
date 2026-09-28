@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+/**
+ * Provides audit Logging operations.
+ */
 @Injectable()
 export class AuditLoggingService {
   private readonly logger = new Logger(AuditLoggingService.name);
-
-  log(event: string, data: Record<string, any>) {
+  log(event: string, data: Record<string, unknown>): void {
     this.logger.log(
       JSON.stringify({
         event,
@@ -13,16 +15,13 @@ export class AuditLoggingService {
       }),
     );
   }
-
-  logLogin(userId: string) {
+  logLogin(userId: string): void {
     this.log('USER_LOGIN', { userId });
   }
-
-  logDataAccess(userId: string, resource: string) {
+  logDataAccess(userId: string, resource: string): void {
     this.log('DATA_ACCESS', { userId, resource });
   }
-
-  logDeletion(userId: string, resource: string) {
+  logDeletion(userId: string, resource: string): void {
     this.log('DATA_DELETION', { userId, resource });
   }
 }

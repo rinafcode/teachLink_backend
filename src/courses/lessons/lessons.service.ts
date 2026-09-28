@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Lesson } from '../entities/lesson.entity';
 import { CreateLessonDto } from '../dto/create-lesson.dto';
 import { CourseModule } from '../entities/course-module.entity';
 
+/**
+ * Provides lessons operations.
+ */
 @Injectable()
 export class LessonsService {
   constructor(
@@ -14,10 +18,15 @@ export class LessonsService {
     private modulesRepository: Repository<CourseModule>,
   ) {}
 
+  /**
+   * Creates a new record.
+   * @param createLessonDto The request payload.
+   * @returns The resulting lesson.
+   */
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
     const module = await this.modulesRepository.findOneBy({ id: createLessonDto.moduleId });
     if (!module) {
-      throw new NotFoundException(`Module with ID ${createLessonDto.moduleId} not found`);
+      throw new ResourceNotFoundException('CourseModule', createLessonDto.moduleId);
     }
 
     const lesson = this.lessonsRepository.create({
@@ -27,22 +36,37 @@ export class LessonsService {
     return this.lessonsRepository.save(lesson);
   }
 
+  /**
+   * Retrieves the requested record.
+   * @param id The identifier.
+   * @returns The resulting lesson.
+   */
   async findOne(id: string): Promise<Lesson> {
     const lesson = await this.lessonsRepository.findOneBy({ id });
     if (!lesson) {
-      throw new NotFoundException(`Lesson with ID ${id} not found`);
+      throw new ResourceNotFoundException('Lesson', id);
     }
     return lesson;
   }
 
+  /**
+   * Updates the requested record.
+   * @param id The identifier.
+   * @param updateData The data to process.
+   * @returns The resulting lesson.
+   */
   async update(id: string, updateData: Partial<CreateLessonDto>): Promise<Lesson> {
     const lesson = await this.findOne(id);
     Object.assign(lesson, updateData);
     return this.lessonsRepository.save(lesson);
   }
 
+  /**
+   * Removes the requested record.
+   * @param id The identifier.
+   */
   async remove(id: string): Promise<void> {
-    const lesson = await this.findOne(id);
-    await this.lessonsRepository.remove(lesson);
+    await this.findOne(id);
+    await this.lessonsRepository.softDelete(id);
   }
 }

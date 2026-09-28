@@ -1,0 +1,55 @@
+# Environment Configuration
+environment = "dev"
+aws_region  = "us-east-1"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+
+# ECS Cluster Configuration
+cluster_name   = "teachlink-cluster"
+service_name   = "teachlink-service"
+container_port = 3000
+container_image = "nginx:latest"
+
+# Task Configuration
+task_cpu    = 256
+task_memory = 512
+
+# Auto-scaling Configuration
+desired_count = 2
+min_capacity  = 2
+max_capacity  = 10
+
+# Database Configuration
+db_instance_class      = "db.t3.micro"
+db_allocated_storage   = 20
+db_max_allocated_storage = 100
+db_name = "teachlink_db"
+
+# Redis Configuration
+redis_node_type        = "cache.t3.micro"
+redis_num_cache_nodes  = 1
+
+# S3 Configuration
+s3_bucket_prefix = "teachlink"
+
+# State Management (Required - must be created manually first)
+# state_bucket_name = "teachlink-terraform-state"
+# state_lock_table_name = "teachlink-terraform-state-lock"
+
+# Load Balancer Configuration
+health_check_path = "/health"
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxx"  # Uncomment for HTTPS
+
+# Monitoring
+enable_monitoring = true
+
+# Tags
+tags = {
+  Project     = "teachlink"
+  Team        = "backend"
+  CostCenter  = "engineering"
+}

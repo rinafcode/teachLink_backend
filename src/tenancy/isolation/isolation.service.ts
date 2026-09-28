@@ -1,8 +1,8 @@
-import { Injectable, Scope, NotFoundException } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Tenant } from '../entities/tenant.entity';
-
+import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Tenant, TenantStatus } from '../entities/tenant.entity';
 /**
  * IsolationService manages tenant context and data isolation
  * This service is request-scoped to maintain tenant context per request
@@ -11,69 +11,61 @@ import { Tenant } from '../entities/tenant.entity';
 export class IsolationService {
   private currentTenantId: string | null = null;
   private currentTenant: Tenant | null = null;
-
   constructor(
     @InjectRepository(Tenant)
     private readonly tenantRepository: Repository<Tenant>,
   ) {}
-
   /**
    * Set the current tenant context
    */
   async setTenant(tenantId: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
     this.currentTenantId = tenantId;
     this.currentTenant = tenant;
   }
-
   /**
    * Set tenant by slug
    */
   async setTenantBySlug(slug: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { slug } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with slug ${slug} not found`);
+      throw new ResourceNotFoundException(`Tenant with slug '${slug}'`);
     }
     this.currentTenantId = tenant.id;
     this.currentTenant = tenant;
   }
-
   /**
    * Set tenant by domain
    */
   async setTenantByDomain(domain: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { domain } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant with domain ${domain} not found`);
+      throw new ResourceNotFoundException(`Tenant with domain '${domain}'`);
     }
     this.currentTenantId = tenant.id;
     this.currentTenant = tenant;
   }
-
   /**
    * Get the current tenant ID
    */
   getTenantId(): string | null {
     return this.currentTenantId;
   }
-
   /**
    * Get the current tenant
    */
   getTenant(): Tenant | null {
     return this.currentTenant;
   }
-
   /**
    * Check if tenant context is set
    */
   hasTenantContext(): boolean {
     return this.currentTenantId !== null;
   }
-
   /**
    * Clear tenant context
    */
@@ -81,7 +73,6 @@ export class IsolationService {
     this.currentTenantId = null;
     this.currentTenant = null;
   }
-
   /**
    * Ensure tenant context is set, throw error if not
    */
@@ -90,11 +81,13 @@ export class IsolationService {
       throw new Error('Tenant context is not set');
     }
   }
-
   /**
    * Add tenant filter to query builder
    */
-  applyTenantFilter(queryBuilder: any, entityAlias: string): any {
+  applyTenantFilter<Entity>(
+    queryBuilder: SelectQueryBuilder<Entity>,
+    entityAlias: string,
+  ): SelectQueryBuilder<Entity> {
     if (!this.currentTenantId) {
       throw new Error('Cannot apply tenant filter without tenant context');
     }
@@ -102,21 +95,18 @@ export class IsolationService {
       tenantId: this.currentTenantId,
     });
   }
-
   /**
    * Check if tenant is active
    */
   isActiveTenant(): boolean {
-    return this.currentTenant?.status === 'active';
+    return this.currentTenant?.status === TenantStatus.ACTIVE;
   }
-
   /**
    * Check if tenant is in trial
    */
   isTrialTenant(): boolean {
-    return this.currentTenant?.status === 'trial';
+    return this.currentTenant?.status === TenantStatus.TRIAL;
   }
-
   /**
    * Check if tenant has reached user limit
    */
@@ -124,7 +114,6 @@ export class IsolationService {
     if (!this.currentTenant) return false;
     return this.currentTenant.currentUserCount >= this.currentTenant.userLimit;
   }
-
   /**
    * Check if tenant has reached storage limit
    */
@@ -132,11 +121,10 @@ export class IsolationService {
     if (!this.currentTenant) return false;
     return this.currentTenant.currentStorageUsage >= this.currentTenant.storageLimit;
   }
-
   /**
    * Get tenant feature flags
    */
-  async getTenantFeatures(): Promise<Record<string, any>> {
+  async getTenantFeatures(): Promise<Record<string, unknown>> {
     if (!this.currentTenant) {
       return {};
     }

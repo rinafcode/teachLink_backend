@@ -5,7 +5,6 @@ export enum JobPriority {
   LOW = 4,
   BACKGROUND = 5,
 }
-
 export enum JobStatus {
   WAITING = 'waiting',
   ACTIVE = 'active',

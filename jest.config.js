@@ -3,7 +3,21 @@ module.exports = {
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': [
+      'ts-jest',
+      {
+        isolatedModules: true,
+        tsconfig: {
+          types: ['node', 'jest'],
+          skipLibCheck: true,
+          strict: false,
+          strictNullChecks: false,
+          noImplicitAny: false,
+          emitDecoratorMetadata: true,
+          experimentalDecorators: true,
+        },
+      },
+    ],
   },
 
   // ─── Coverage ──────────────────────────────────────────────────────────────
@@ -54,8 +68,15 @@ module.exports = {
   // ─── Setup ─────────────────────────────────────────────────────────────────
   setupFilesAfterEnv: ['<rootDir>/../test/setup.ts'],
 
+  moduleNameMapper: {
+    '^uuid$': '<rootDir>/../test/mocks/uuid.ts',
+  },
+
   // ─── Ignore patterns ───────────────────────────────────────────────────────
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/', '\\.integration\\.spec\\.ts$'],
+  transformIgnorePatterns: [
+    '[/\\\\]node_modules[/\\\\](?!(\\.pnpm|sanitize-html|htmlparser2|entities|dom-serializer|domelementtype|domhandler|domutils)[/\\\\])',
+  ],
 
   // ─── Output & lifecycle ────────────────────────────────────────────────────
   verbose: true,

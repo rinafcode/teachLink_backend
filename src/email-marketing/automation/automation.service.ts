@@ -1,22 +1,71 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  ResourceNotFoundException,
+  BusinessValidationException,
+} from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { APP_EVENTS } from '../../common/constants/event.constants';
+import { enrichWithCorrelation } from '../../queues/utils/correlation-job.util';
 import { AutomationWorkflow } from '../entities/automation-workflow.entity';
 import { AutomationTrigger } from '../entities/automation-trigger.entity';
 import { AutomationAction } from '../entities/automation-action.entity';
-
+import { EmailEvent } from '../entities/email-event.entity';
+import { EmailEventType } from '../enums/email-event-type.enum';
 import { CreateAutomationDto } from '../dto/create-automation.dto';
 import { UpdateAutomationDto } from '../dto/update-automation.dto';
 import { TriggerType } from '../enums/trigger-type.enum';
 import { ActionType } from '../enums/action-type.enum';
 import { WorkflowStatus } from '../enums/workflow-status.enum';
 
+function _validateWebhookUrl(urlStr: string): void {
+  if (!urlStr) return;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlStr);
+  } catch {
+    throw new BusinessValidationException('Invalid webhook URL format');
+  }
+
+  if (parsedUrl.protocol !== 'https:') {
+    throw new BusinessValidationException('Webhook URL must use https scheme');
+  }
+
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new BusinessValidationException('Webhook URL credentials are not allowed');
+  }
+
+  const host = parsedUrl.hostname.toLowerCase();
+  const privatePatterns = [
+    /^localhost$/,
+    /^127\./,
+    /^10\./,
+    /^172\.(1[6-9]|2[0-9]|3[01])\./,
+    /^192\.168\./,
+    /^169\.254\./,
+    /^::1$/,
+    /^fc00:/,
+    /^fe80:/,
+  ];
+
+  if (privatePatterns.some((p) => p.test(host))) {
+    throw new BusinessValidationException(
+      'Webhook target cannot be a private, loopback, or link-local address',
+    );
+  }
+}
+
+/**
+ * Provides automation operations.
+ */
 @Injectable()
 export class AutomationService {
+  private readonly logger = new Logger(AutomationService.name);
+
   constructor(
     @InjectRepository(AutomationWorkflow)
     private readonly workflowRepository: Repository<AutomationWorkflow>,
@@ -24,11 +73,12 @@ export class AutomationService {
     private readonly triggerRepository: Repository<AutomationTrigger>,
     @InjectRepository(AutomationAction)
     private readonly actionRepository: Repository<AutomationAction>,
-    @InjectQueue('email-marketing')
+    @InjectRepository(EmailEvent)
+    private readonly emailEventRepository: Repository<EmailEvent>,
+    @InjectQueue(QUEUE_NAMES.EMAIL_MARKETING)
     private readonly emailQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
   ) {}
-
   /**
    * Create a new automation workflow
    */
@@ -38,9 +88,7 @@ export class AutomationService {
       description: createAutomationDto.description,
       status: WorkflowStatus.DRAFT,
     });
-
     const savedWorkflow = await this.workflowRepository.save(workflow);
-
     // Create triggers
     if (createAutomationDto.triggers?.length) {
       const triggers = createAutomationDto.triggers.map((trigger) =>
@@ -51,7 +99,6 @@ export class AutomationService {
       );
       await this.triggerRepository.save(triggers);
     }
-
     // Create actions
     if (createAutomationDto.actions?.length) {
       const actions = createAutomationDto.actions.map((action, index) =>
@@ -63,10 +110,8 @@ export class AutomationService {
       );
       await this.actionRepository.save(actions);
     }
-
     return this.findOne(savedWorkflow.id);
   }
-
   /**
    * Get all automation workflows
    */
@@ -85,7 +130,6 @@ export class AutomationService {
       order: { createdAt: 'DESC' },
       relations: ['triggers', 'actions'],
     });
-
     return {
       workflows,
       total,
@@ -93,7 +137,6 @@ export class AutomationService {
       totalPages: Math.ceil(total / limit),
     };
   }
-
   /**
    * Get a single workflow by ID
    */
@@ -102,34 +145,27 @@ export class AutomationService {
       where: { id },
       relations: ['triggers', 'actions'],
     });
-
     if (!workflow) {
-      throw new NotFoundException(`Automation workflow with ID ${id} not found`);
+      throw new ResourceNotFoundException('AutomationWorkflow', id);
     }
-
     return workflow;
   }
-
   /**
    * Update a workflow
    */
   async update(id: string, updateAutomationDto: UpdateAutomationDto): Promise<AutomationWorkflow> {
     const workflow = await this.findOne(id);
-
     if (workflow.status === WorkflowStatus.ACTIVE) {
-      throw new BadRequestException('Deactivate workflow before making changes');
+      throw new BusinessValidationException('Deactivate workflow before making changes');
     }
-
     Object.assign(workflow, {
       name: updateAutomationDto.name ?? workflow.name,
       description: updateAutomationDto.description ?? workflow.description,
     });
-
     await this.workflowRepository.save(workflow);
-
     // Update triggers if provided
     if (updateAutomationDto.triggers) {
-      await this.triggerRepository.delete({ workflowId: id });
+      await this.triggerRepository.softDelete({ workflowId: id });
       const triggers = updateAutomationDto.triggers.map((trigger) =>
         this.triggerRepository.create({
           ...trigger,
@@ -138,10 +174,9 @@ export class AutomationService {
       );
       await this.triggerRepository.save(triggers);
     }
-
     // Update actions if provided
     if (updateAutomationDto.actions) {
-      await this.actionRepository.delete({ workflowId: id });
+      await this.actionRepository.softDelete({ workflowId: id });
       const actions = updateAutomationDto.actions.map((action, index) =>
         this.actionRepository.create({
           ...action,
@@ -151,43 +186,37 @@ export class AutomationService {
       );
       await this.actionRepository.save(actions);
     }
-
     return this.findOne(id);
   }
-
   /**
    * Delete a workflow
    */
   async remove(id: string): Promise<void> {
     const workflow = await this.findOne(id);
-
     if (workflow.status === WorkflowStatus.ACTIVE) {
-      throw new BadRequestException('Deactivate workflow before deleting');
+      throw new BusinessValidationException('Deactivate workflow before deleting');
     }
-
-    await this.workflowRepository.remove(workflow);
+    await this.workflowRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(AutomationTrigger).softDelete({ workflowId: id });
+      await manager.getRepository(AutomationAction).softDelete({ workflowId: id });
+      await manager.getRepository(AutomationWorkflow).softDelete(id);
+    });
   }
-
   /**
    * Activate a workflow
    */
   async activate(id: string): Promise<AutomationWorkflow> {
     const workflow = await this.findOne(id);
-
     if (!workflow.triggers?.length) {
-      throw new BadRequestException('Workflow must have at least one trigger');
+      throw new BusinessValidationException('Workflow must have at least one trigger');
     }
-
     if (!workflow.actions?.length) {
-      throw new BadRequestException('Workflow must have at least one action');
+      throw new BusinessValidationException('Workflow must have at least one action');
     }
-
     workflow.status = WorkflowStatus.ACTIVE;
     workflow.activatedAt = new Date();
-
     return this.workflowRepository.save(workflow);
   }
-
   /**
    * Deactivate a workflow
    */
@@ -195,196 +224,222 @@ export class AutomationService {
     const workflow = await this.findOne(id);
     workflow.status = WorkflowStatus.INACTIVE;
     workflow.deactivatedAt = new Date();
-
     return this.workflowRepository.save(workflow);
   }
-
   /**
    * Handle user signup event
    */
-  @OnEvent('user.signup')
+  @OnEvent(APP_EVENTS.USER_SIGNUP)
   async handleUserSignup(payload: { userId: string; email: string }) {
     await this.executeTriggeredWorkflows(TriggerType.USER_SIGNUP, payload);
   }
-
   /**
    * Handle course enrollment event
    */
-  @OnEvent('course.enrolled')
+  @OnEvent(APP_EVENTS.COURSE_ENROLLED)
   async handleCourseEnrollment(payload: { userId: string; courseId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.COURSE_ENROLLED, payload);
   }
-
   /**
    * Handle course completion event
    */
-  @OnEvent('course.completed')
+  @OnEvent(APP_EVENTS.COURSE_COMPLETED)
   async handleCourseCompletion(payload: { userId: string; courseId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.COURSE_COMPLETED, payload);
   }
-
   /**
    * Handle purchase event
    */
-  @OnEvent('payment.completed')
+  @OnEvent(APP_EVENTS.PAYMENT_COMPLETED)
   async handlePurchase(payload: { userId: string; amount: number; productId: string }) {
     await this.executeTriggeredWorkflows(TriggerType.PURCHASE_MADE, payload);
   }
-
   /**
    * Handle user inactivity (called by scheduled job)
    */
   async handleUserInactivity(payload: { userId: string; daysSinceLastActivity: number }) {
     await this.executeTriggeredWorkflows(TriggerType.USER_INACTIVE, payload);
   }
-
   /**
    * Execute workflows that match the trigger type
    */
   private async executeTriggeredWorkflows(
     triggerType: TriggerType,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): Promise<void> {
     // Find all active workflows with matching trigger
     const triggers = await this.triggerRepository.find({
       where: { type: triggerType },
       relations: ['workflow', 'workflow.actions'],
     });
-
     for (const trigger of triggers) {
       if (trigger.workflow.status !== WorkflowStatus.ACTIVE) {
         continue;
       }
-
       // Check trigger conditions
       if (this.evaluateTriggerConditions(trigger, payload)) {
         await this.executeWorkflowActions(trigger.workflow, payload);
       }
     }
   }
-
   /**
    * Evaluate trigger conditions
    */
   private evaluateTriggerConditions(
     trigger: AutomationTrigger,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): boolean {
     if (!trigger.conditions || Object.keys(trigger.conditions).length === 0) {
       return true;
     }
-
     // Simple condition matching
     for (const [key, value] of Object.entries(trigger.conditions)) {
       if (payload[key] !== value) {
         return false;
       }
     }
-
     return true;
   }
-
   /**
    * Execute workflow actions in order
    */
   private async executeWorkflowActions(
     workflow: AutomationWorkflow,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): Promise<void> {
     const sortedActions = workflow.actions.sort((a, b) => a.order - b.order);
-
     for (const action of sortedActions) {
       await this.executeAction(action, payload);
     }
-
     // Update workflow stats
     workflow.executionCount = (workflow.executionCount || 0) + 1;
     workflow.lastExecutedAt = new Date();
     await this.workflowRepository.save(workflow);
   }
-
   /**
    * Execute a single action
    */
   private async executeAction(
     action: AutomationAction,
-    payload: Record<string, any>,
+    payload: Record<string, unknown>,
   ): Promise<void> {
     switch (action.type) {
       case ActionType.SEND_EMAIL:
-        await this.emailQueue.add('send-automation-email', {
-          actionId: action.id,
-          templateId: action.config.templateId,
-          userId: payload.userId,
-          variables: { ...payload, ...action.config.variables },
-        });
+        await this.emailQueue.add(
+          JOB_NAMES.SEND_AUTOMATION_EMAIL,
+          enrichWithCorrelation({
+            workflowId: action.workflowId,
+            actionId: action.id,
+            templateId: action.config.templateId,
+            userId: payload.userId,
+            variables: { ...payload, ...action.config.variables },
+          }),
+        );
         break;
-
       case ActionType.WAIT:
         await this.emailQueue.add(
-          'continue-automation',
-          {
+          JOB_NAMES.CONTINUE_AUTOMATION,
+          enrichWithCorrelation({
             workflowId: action.workflowId,
             nextActionOrder: action.order + 1,
             payload,
-          },
+          }),
           { delay: action.config.delayMs || 0 },
         );
         break;
-
       case ActionType.ADD_TAG:
-        this.eventEmitter.emit('user.addTag', {
+        this.eventEmitter.emit(APP_EVENTS.USER_ADD_TAG, {
           userId: payload.userId,
           tag: action.config.tag,
         });
         break;
-
       case ActionType.REMOVE_TAG:
-        this.eventEmitter.emit('user.removeTag', {
+        this.eventEmitter.emit(APP_EVENTS.USER_REMOVE_TAG, {
           userId: payload.userId,
           tag: action.config.tag,
         });
         break;
-
       case ActionType.ADD_TO_SEGMENT:
-        this.eventEmitter.emit('segment.addUser', {
+        this.eventEmitter.emit(APP_EVENTS.SEGMENT_ADD_USER, {
           userId: payload.userId,
           segmentId: action.config.segmentId,
         });
         break;
-
       case ActionType.WEBHOOK:
-        await this.emailQueue.add('call-webhook', {
-          url: action.config.webhookUrl,
-          method: action.config.method || 'POST',
-          payload: { ...payload, ...action.config.webhookPayload },
-        });
+        await this.emailQueue.add(
+          JOB_NAMES.CALL_WEBHOOK,
+          enrichWithCorrelation({
+            url: action.config.webhookUrl,
+            method: action.config.method || 'POST',
+            payload: { ...payload, ...action.config.webhookPayload },
+          }),
+        );
         break;
-
       default:
-        console.warn(`Unknown action type: ${action.type}`);
+        // eslint-disable-next-line no-console -- warn on unhandled automation action type
+        this.logger.warn(`Unknown action type: ${action.type}`);
     }
   }
-
   /**
-   * Get workflow execution statistics
+   * Get workflow execution statistics.
+   *
+   * Email send, open, and click counts are computed from recorded delivery events.
+   * When no email events exist for the workflow, the email stats return `null`
+   * to distinguish absent instrumentation from a genuine zero. Once events are
+   * recorded, the values reflect real event counts and computed rates.
+   *
+   * - `emailsSent` — total SENT events for the workflow (`null` if no data)
+   * - `openRate`  — (unique OPENED events / DELIVERED events) × 100 (`null` if no deliveries)
+   * - `clickRate` — (unique CLICKED events / DELIVERED events) × 100 (`null` if no deliveries)
    */
   async getWorkflowStats(id: string): Promise<{
     executionCount: number;
     lastExecutedAt: Date | null;
-    emailsSent: number;
-    openRate: number;
-    clickRate: number;
+    emailsSent: number | null;
+    openRate: number | null;
+    clickRate: number | null;
   }> {
     const workflow = await this.findOne(id);
 
-    // TODO: Calculate email stats from analytics
+    const [sentCount, deliveredCount, openCount, clickCount] = await Promise.all([
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.SENT },
+      }),
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.DELIVERED },
+      }),
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.OPENED },
+      }),
+      this.emailEventRepository.count({
+        where: { workflowId: id, eventType: EmailEventType.CLICKED },
+      }),
+    ]);
+
+    const hasEvents = sentCount > 0 || deliveredCount > 0 || openCount > 0 || clickCount > 0;
+
     return {
       executionCount: workflow.executionCount || 0,
       lastExecutedAt: workflow.lastExecutedAt,
-      emailsSent: 0,
-      openRate: 0,
-      clickRate: 0,
+      emailsSent: hasEvents ? sentCount : null,
+      openRate:
+        deliveredCount > 0 ? parseFloat(((openCount / deliveredCount) * 100).toFixed(2)) : null,
+      clickRate:
+        deliveredCount > 0 ? parseFloat(((clickCount / deliveredCount) * 100).toFixed(2)) : null,
     };
+  }
+
+  async handleWorkflowAction(workflowId: string, actionType: string): Promise<void> {
+    switch (actionType) {
+      case 'SEND_EMAIL':
+        // Email sending logic
+        break;
+      default:
+        this.logger.warn(`Unknown action type encountered: ${actionType}`, {
+          workflowId,
+          actionType,
+        });
+        break;
+    }
   }
 }

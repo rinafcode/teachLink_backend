@@ -20,10 +20,12 @@ async function run() {
   for (const sourceFile of sourceFiles) {
     // Skip explicitly modified files
     const filePath = sourceFile.getFilePath();
-    if (filePath.includes('auth.dto.ts') || 
-        filePath.includes('create-user.dto.ts') || 
-        filePath.includes('create-payment.dto.ts') || 
-        filePath.includes('create-course.dto.ts')) {
+    if (
+      filePath.includes('auth.dto.ts') ||
+      filePath.includes('create-user.dto.ts') ||
+      filePath.includes('create-payment.dto.ts') ||
+      filePath.includes('create-course.dto.ts')
+    ) {
       continue;
     }
 
@@ -38,13 +40,24 @@ async function run() {
         const typeNode = prop.getTypeNode();
         if (!typeNode) continue;
         const typeText = typeNode.getText();
-        
+
         const hasOptionalToken = prop.hasQuestionToken();
         let hasValidation = false;
 
         for (const dec of prop.getDecorators()) {
           const decName = dec.getName();
-          if (['IsString', 'IsNumber', 'IsBoolean', 'IsEmail', 'IsOptional', 'IsNotEmpty', 'IsEnum', 'IsUUID'].includes(decName)) {
+          if (
+            [
+              'IsString',
+              'IsNumber',
+              'IsBoolean',
+              'IsEmail',
+              'IsOptional',
+              'IsNotEmpty',
+              'IsEnum',
+              'IsUUID',
+            ].includes(decName)
+          ) {
             hasValidation = true;
             break;
           }
@@ -76,17 +89,19 @@ async function run() {
     }
 
     if (fileChanged) {
-      const existingImport = sourceFile.getImportDeclaration(decl => decl.getModuleSpecifierValue() === 'class-validator');
+      const existingImport = sourceFile.getImportDeclaration(
+        (decl) => decl.getModuleSpecifierValue() === 'class-validator',
+      );
       if (existingImport) {
         for (const imp of requiredImports) {
-          if (!existingImport.getNamedImports().some(ni => ni.getName() === imp)) {
+          if (!existingImport.getNamedImports().some((ni) => ni.getName() === imp)) {
             existingImport.addNamedImport(imp);
           }
         }
       } else if (requiredImports.size > 0) {
         sourceFile.addImportDeclaration({
           namedImports: Array.from(requiredImports),
-          moduleSpecifier: 'class-validator'
+          moduleSpecifier: 'class-validator',
         });
       }
       sourceFile.saveSync();

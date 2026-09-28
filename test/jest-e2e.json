@@ -1,16 +1,24 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": ["ts", "js", "json"],
   "rootDir": ".",
-  "testEnvironment": "node",
+  "testEnvironment": "./utils/test-environment.js",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "transformIgnorePatterns": ["node_modules/(?!(@scure|otplib)/)"],
   "setupFilesAfterEnv": ["<rootDir>/setup.ts"],
-  "testTimeout": 30000,
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/../test/mocks/uuid.ts"
+  },
+  "testTimeout": 60000,
   "forceExit": true,
   "verbose": true,
   "maxWorkers": 1,
+  "detectOpenHandles": true,
+  "testRunner": "jest-circus",
+  "bail": false,
+  "reporters": ["default", "./utils/flakiness-reporter.js"],
   "globals": {
     "ts-jest": {
       "tsconfig": {
@@ -32,5 +40,6 @@
         "esModuleInterop": true
       }
     }
-  }
+  },
+  "testSequencer": "./utils/test-sequencer.js"
 }

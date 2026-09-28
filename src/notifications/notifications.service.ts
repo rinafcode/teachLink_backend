@@ -1,255 +1,288 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Optional, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { OnEvent } from '@nestjs/event-emitter';
-import {
-  Notification,
-  NotificationType,
-  NotificationPriority,
-} from './entities/notification.entity';
-import { NotificationPreferences } from './entities/notification-preferences.entity';
+import { DataSource, Repository, MoreThan, In } from 'typeorm';
+import * as crypto from 'crypto';
+import { Notification, NotificationType, NotificationStatus } from './entities/notification.entity';
+import { PaginationService } from '../common/services/pagination.service';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
 import { CreateNotificationDto } from './dto/notification.dto';
-import { NotificationsGateway } from './notifications.gateway';
-import { NotificationTemplatesService } from './notification-templates.service';
+import { SendTemplatedNotificationDto } from './dto/preferences.dto';
 import { PreferencesService } from './preferences/preferences.service';
-import { EmailService } from './email/email.service';
-import { sanitizeEmail } from '../common/utils/pii-sanitizer.utils';
+import { NotificationTemplateService } from './templates/notification-template.service';
+import { clampLimit } from '../common/utils/pagination.utils';
 
 @Injectable()
 export class NotificationsService {
-  private readonly logger = new Logger(NotificationsService.name);
-
   constructor(
     @InjectRepository(Notification)
-    private readonly notificationRepository: Repository<Notification>,
-    private readonly gateway: NotificationsGateway,
-    private readonly templatesService: NotificationTemplatesService,
+    private notificationRepository: Repository<Notification>,
     private readonly preferencesService: PreferencesService,
-    private readonly emailService: EmailService,
+    private readonly templateService: NotificationTemplateService,
+    private readonly dataSource: DataSource,
+    @Optional()
+    private paginationService: PaginationService = new PaginationService(),
   ) {}
 
-  async sendVerificationEmail(email: string, token: string): Promise<void> {
-    try {
-      await this.emailService.sendVerificationEmail(email, token);
-      this.logger.log(`Verification email sent to ${sanitizeEmail(email)}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send verification email to ${sanitizeEmail(email)}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-      throw error;
-    }
-  }
-
-  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    try {
-      await this.emailService.sendPasswordResetEmail(email, token);
-      this.logger.log(`Password reset email sent to ${sanitizeEmail(email)}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to send password reset email to ${sanitizeEmail(email)}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-      throw error;
-    }
-  }
-
   /**
-   * Create and send a notification
+   * Generates a deterministic SHA-256 hash for raw content.
    */
-  async create(createNotificationDto: CreateNotificationDto): Promise<Notification> {
-    const { userId, title, content, type, priority, metadata } = createNotificationDto;
+  private hashContent(content: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(content || '')
+      .digest('hex');
+  }
 
-    const preferences = await this.preferencesService.getPreferences(userId);
-    const shouldSend = this.shouldSendNotification(type || NotificationType.IN_APP, preferences);
+  async findDuplicate(userId: string, type: NotificationType, content: string) {
+    const contentHash = this.hashContent(content);
 
-    if (!shouldSend) {
-      this.logger.debug(`Notification skipped for user ${userId} based on preferences`);
+    return this.notificationRepository.findOne({
+      where: {
+        userId,
+        type,
+        contentHash,
+        createdAt: MoreThan(new Date(Date.now() - 5 * 60 * 1000)),
+      },
+    });
+  }
+
+  async sendNotification(userId: string, type: NotificationType, content: string) {
+    const duplicate = await this.findDuplicate(userId, type, content);
+    if (duplicate) {
+      return duplicate;
     }
+
+    const contentHash = this.hashContent(content);
 
     const notification = this.notificationRepository.create({
       userId,
-      title,
+      type,
+      title: 'Notification',
       content,
-      type: type || NotificationType.IN_APP,
-      priority: priority || NotificationPriority.MEDIUM,
-      metadata,
+      contentHash,
+      status: NotificationStatus.SENT,
     });
 
-    const savedNotification = await this.notificationRepository.save(notification);
-
-    if (shouldSend) {
-      await this.sendNotification(savedNotification);
-    }
-
-    return savedNotification;
+    return this.notificationRepository.save(notification);
   }
 
-  /**
-   * Send notification via the specified channel
-   */
-  private async sendNotification(notification: Notification): Promise<void> {
-    try {
-      if (
-        notification.type === NotificationType.IN_APP ||
-        notification.type === NotificationType.PUSH
-      ) {
-        await this.gateway.sendToUser(notification.userId, notification);
-      }
-
-      if (notification.type === NotificationType.EMAIL) {
-        await this.sendEmailNotification(notification);
-      }
-
-      if (notification.type === NotificationType.PUSH) {
-        await this.sendExternalPushNotification(notification);
-      }
-    } catch (error) {
-      this.logger.error(
-        `Failed to send notification ${notification.id}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
-  }
-
-  private async sendEmailNotification(notification: Notification): Promise<void> {
-    this.logger.log(
-      `Sending email notification to user ${notification.userId}: ${notification.title}`,
-    );
-    // Integrate with EmailService or MailerService here if notification email delivery is required
-  }
-
-  private async sendExternalPushNotification(notification: Notification): Promise<void> {
-    this.logger.log(
-      `Sending external push notification to user ${notification.userId}: ${notification.title}`,
-    );
-    // Integrate with FCM, OneSignal, etc.
-  }
-
-  /**
-   * Get all notifications for a user
-   */
-  async findAllForUser(
+  async getNotifications(
     userId: string,
-    options: { isRead?: boolean; limit?: number; offset?: number } = {},
-  ): Promise<[Notification[], number]> {
-    const query = this.notificationRepository
+    query?: PaginationQueryDto & { status?: NotificationStatus; isRead?: boolean | string },
+  ) {
+    const limit = clampLimit(query?.limit);
+    const offset = query?.offset ?? (query?.cursor ? undefined : ((query?.page ?? 1) - 1) * limit);
+    const rawOrder = query?.order ? String(query.order).toUpperCase() : 'DESC';
+    const order = (rawOrder === 'ASC' ? 'ASC' : 'DESC') as 'ASC' | 'DESC';
+
+    const qb = this.notificationRepository
       .createQueryBuilder('notification')
       .where('notification.userId = :userId', { userId });
 
-    if (options.isRead !== undefined) {
-      query.andWhere('notification.isRead = :isRead', {
-        isRead: options.isRead,
-      });
+    if (query?.isRead !== undefined) {
+      let isReadVal: boolean | undefined;
+      if (typeof query.isRead === 'string') {
+        if (query.isRead === 'true' || query.isRead === '1') isReadVal = true;
+        else if (query.isRead === 'false' || query.isRead === '0') isReadVal = false;
+        else isReadVal = undefined;
+      } else {
+        isReadVal = query.isRead;
+      }
+      if (isReadVal !== undefined) {
+        qb.andWhere('notification.isRead = :isRead', { isRead: isReadVal });
+      }
     }
 
-    query
-      .orderBy('notification.createdAt', 'DESC')
-      .take(options.limit || 20)
-      .skip(options.offset || 0);
+    if (query?.status !== undefined) {
+      qb.andWhere('notification.status = :status', { status: query.status });
+    }
 
-    return query.getManyAndCount();
+    // Ensure deterministic ordering newest-first when no explicit order,
+    // using the composite index on (userId, createdAt DESC) and
+    // (userId, isRead, createdAt) / (userId, status, createdAt) for filtered queries.
+    return this.paginationService.paginate(qb, query?.cursor, limit, offset, 'createdAt', order);
   }
 
-  /**
-   * Mark a notification as read
-   */
-  async markAsRead(id: string, userId: string): Promise<Notification> {
+  async create(dto: CreateNotificationDto) {
+    const notification = this.notificationRepository.create({
+      userId: dto.userId,
+      title: dto.title,
+      content: dto.content,
+      type: dto.type ?? NotificationType.IN_APP,
+      priority: dto.priority,
+      metadata: dto.metadata,
+      status: NotificationStatus.PENDING,
+    });
+
+    return this.notificationRepository.save(notification);
+  }
+
+  async send(dto: CreateNotificationDto) {
+    // The base notification plus every channel dispatch is one logical
+    // operation: if any channel write fails, none of them persist (issue
+    // #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const notificationRepository = manager.getRepository(Notification);
+
+      const notification = await notificationRepository.save(
+        notificationRepository.create({
+          userId: dto.userId,
+          title: dto.title,
+          content: dto.content,
+          contentHash: this.hashContent(dto.content),
+          type: dto.type ?? NotificationType.IN_APP,
+          priority: dto.priority,
+          metadata: dto.metadata,
+          status: NotificationStatus.PENDING,
+        }),
+      );
+
+      const prefs = await this.preferencesService.getPreferences(dto.userId);
+
+      if (prefs.globalUnsubscribe) {
+        return notification;
+      }
+
+      const channels: { enabled: boolean; type: NotificationType }[] = [
+        { enabled: prefs.inAppEnabled, type: NotificationType.IN_APP },
+        { enabled: prefs.emailEnabled, type: NotificationType.EMAIL },
+        { enabled: prefs.pushEnabled, type: NotificationType.PUSH },
+        { enabled: prefs.smsEnabled, type: NotificationType.SMS },
+      ];
+
+      const dispatches: Promise<Notification>[] = [];
+
+      for (const channel of channels) {
+        if (channel.enabled) {
+          const channelNotification = notificationRepository.create({
+            userId: dto.userId,
+            title: dto.title,
+            content: dto.content,
+            contentHash: this.hashContent(dto.content),
+            type: channel.type,
+            priority: dto.priority,
+            metadata: dto.metadata,
+            status: NotificationStatus.SENT,
+          });
+          dispatches.push(notificationRepository.save(channelNotification));
+        }
+      }
+
+      await Promise.all(dispatches);
+
+      return notification;
+    });
+  }
+
+  async sendTemplated(dto: SendTemplatedNotificationDto) {
+    const prefs = await this.preferencesService.getPreferences(dto.userId);
+
+    if (prefs.globalUnsubscribe) {
+      throw new BadRequestException('User has globally unsubscribed from notifications');
+    }
+
+    if (prefs.eventFrequency?.[dto.eventType] === 'never') {
+      throw new BadRequestException(`User has unsubscribed from event type "${dto.eventType}"`);
+    }
+
+    const rendered = await this.templateService.renderByName(
+      dto.templateName,
+      dto.context,
+      dto.templateVersion,
+    );
+
+    const channels: { enabled: boolean; type: NotificationType }[] = [
+      { enabled: prefs.inAppEnabled, type: NotificationType.IN_APP },
+      { enabled: prefs.emailEnabled, type: NotificationType.EMAIL },
+      { enabled: prefs.pushEnabled, type: NotificationType.PUSH },
+      { enabled: prefs.smsEnabled, type: NotificationType.SMS },
+    ];
+
+    // All channel dispatches are one logical operation (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const notificationRepository = manager.getRepository(Notification);
+      const saved: Notification[] = [];
+
+      for (const channel of channels) {
+        if (channel.enabled) {
+          const notification = notificationRepository.create({
+            userId: dto.userId,
+            title: rendered.subject ?? dto.templateName,
+            content: rendered.body,
+            contentHash: this.hashContent(rendered.body),
+            type: channel.type,
+            status: NotificationStatus.SENT,
+            metadata: {
+              templateName: dto.templateName,
+              templateVersion: rendered.templateVersion,
+              eventType: dto.eventType,
+            },
+          });
+          saved.push(await notificationRepository.save(notification));
+        }
+      }
+
+      return saved;
+    });
+  }
+
+  async findForUser(
+    userId: string,
+    query?: PaginationQueryDto & { status?: NotificationStatus; isRead?: boolean | string },
+  ) {
+    // Delegate to getNotifications to ensure single source of truth for
+    // pagination, ordering (DESC newest-first), and indexed filtering.
+    return this.getNotifications(userId, query);
+  }
+
+  async markRead(id: string, userId: string) {
     const notification = await this.notificationRepository.findOne({
-      where: { id, userId },
+      where: { id },
     });
 
     if (!notification) {
-      throw new NotFoundException(`Notification with ID ${id} not found`);
+      throw new NotFoundException(`Notification ${id} not found`);
+    }
+
+    if (notification.userId !== userId) {
+      throw new BadRequestException('You do not own this notification');
+    }
+
+    if (notification.isRead) {
+      return notification;
     }
 
     notification.isRead = true;
     notification.readAt = new Date();
+
     return this.notificationRepository.save(notification);
   }
 
-  /**
-   * Mark all notifications as read for a user
-   */
-  async markAllAsRead(userId: string): Promise<void> {
+  async markManyRead(ids: string[], userId: string) {
+    if (!ids.length) {
+      return;
+    }
+
+    const notifications = await this.notificationRepository.find({
+      where: { id: In(ids) },
+    });
+
+    if (notifications.length !== ids.length) {
+      throw new NotFoundException('One or more notifications not found');
+    }
+
+    const owned = notifications.filter((n) => n.userId === userId);
+    if (owned.length !== ids.length) {
+      throw new BadRequestException('You do not own one or more of these notifications');
+    }
+
     await this.notificationRepository.update(
-      { userId, isRead: false },
+      { id: In(ids), userId },
       { isRead: true, readAt: new Date() },
     );
   }
 
-  /**
-   * Delete a notification
-   */
-  async remove(id: string, userId: string): Promise<void> {
-    const result = await this.notificationRepository.delete({ id, userId });
-
-    if (result.affected === 0) {
-      throw new NotFoundException(`Notification with ID ${id} not found`);
-    }
-  }
-
-  /**
-   * Update notification preferences
-   */
-  async updatePreferences(
-    userId: string,
-    updateDto: Partial<NotificationPreferences>,
-  ): Promise<NotificationPreferences> {
-    return this.preferencesService.updatePreferences(userId, updateDto);
-  }
-
-  /**
-   * Get user preferences
-   */
-  async getPreferences(userId: string): Promise<NotificationPreferences> {
-    return this.preferencesService.getPreferences(userId);
-  }
-
-  private shouldSendNotification(
-    type: NotificationType,
-    preferences: NotificationPreferences,
-  ): boolean {
-    switch (type) {
-      case NotificationType.EMAIL:
-        return preferences.emailEnabled;
-      case NotificationType.PUSH:
-        return preferences.pushEnabled;
-      case NotificationType.IN_APP:
-        return preferences.inAppEnabled;
-      case NotificationType.SMS:
-        return preferences.smsEnabled;
-      default:
-        return true;
-    }
-  }
-
-  /**
-   * Event listener for system-wide notifications
-   */
-  @OnEvent('notification.send')
-  async handleSendNotification(payload: CreateNotificationDto): Promise<void> {
-    await this.create(payload);
-  }
-
-  /**
-   * Event listener for specific templates
-   */
-  @OnEvent('notification.template.send')
-  async handleSendTemplateNotification(payload: {
-    userId: string;
-    templateType: string;
-    data: any;
-    type?: NotificationType;
-  }): Promise<void> {
-    const template = this.templatesService.renderTemplate(payload.templateType, payload.data);
-
-    await this.create({
-      userId: payload.userId,
-      title: template.title,
-      content: template.content,
-      type: payload.type || NotificationType.IN_APP,
-      priority: NotificationPriority.MEDIUM,
-    });
+  async unsubscribe(userId: string, eventType: string) {
+    return this.preferencesService.unsubscribe(userId, eventType);
   }
 }

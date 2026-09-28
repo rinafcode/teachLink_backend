@@ -1,14 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { APP_EVENTS } from '../common/constants/event.constants';
 import {
   ConflictResolutionService,
   ConflictResolutionStrategy,
-  SyncData,
+  ISyncData,
 } from './conflicts/conflict-resolution.service';
 import { DataConsistencyService } from './consistency/data-consistency.service';
-import { CacheInvalidationService } from './cache/cache-invalidation.service';
+import { CacheInvalidationService } from '../caching/cache-invalidation.service';
 import { ReplicationService } from './replication/replication.service';
 
+/**
+ * Provides sync operations.
+ */
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
@@ -24,10 +28,10 @@ export class SyncService {
    * Synchronizes data between two sources.
    */
   async synchronize(
-    localData: SyncData,
-    remoteData: SyncData,
+    localData: ISyncData,
+    remoteData: ISyncData,
     strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.LAST_WRITE_WINS,
-  ): Promise<SyncData> {
+  ): Promise<ISyncData> {
     this.logger.log(`Starting synchronization for ${localData.id}`);
 
     // Resolve any conflicts
@@ -40,13 +44,18 @@ export class SyncService {
     await this.cacheInvalidation.handleDataChange('entity', resolvedData.id);
 
     // Replicate to other regions
-    await this.replicationService.broadcastToAllRegions(resolvedData.id, resolvedData.data);
+    await this.replicationService.broadcastToAllRegions(
+      resolvedData.id,
+      resolvedData.data.entity,
+      resolvedData.data.version,
+      resolvedData.data,
+    );
 
     this.logger.log(`Synchronization completed for ${resolvedData.id}`);
     return resolvedData;
   }
 
-  @OnEvent('data.updated')
+  @OnEvent(APP_EVENTS.DATA_UPDATED)
   async handleDataUpdate(payload: { entity: string; id: string; data: any }) {
     this.logger.log(`Handling data update event for ${payload.entity}:${payload.id}`);
 
@@ -54,6 +63,11 @@ export class SyncService {
     await this.cacheInvalidation.handleDataChange(payload.entity, payload.id);
 
     // Broadcast change
-    await this.replicationService.broadcastToAllRegions(payload.id, payload.data);
+    await this.replicationService.broadcastToAllRegions(
+      payload.id,
+      payload.entity,
+      payload.data.version,
+      payload.data,
+    );
   }
 }

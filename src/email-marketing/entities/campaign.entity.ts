@@ -4,30 +4,40 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
   OneToOne,
   JoinColumn,
+  Index,
+  VersionColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { EmailTemplate } from './email-template.entity';
 import { ABTest } from './ab-test.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
 import { CampaignStatus } from '../enums/campaign-status.enum';
 
+/**
+ * Represents the campaign entity.
+ */
 @Entity('email_campaigns')
 export class Campaign {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @ApiProperty()
   @Column()
+  @Index()
   name: string;
 
   @ApiProperty()
   @Column()
+  @Index()
   subject: string;
 
   @ApiProperty({ required: false })
@@ -40,6 +50,7 @@ export class Campaign {
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  @Index()
   templateId?: string;
 
   @ManyToOne(() => EmailTemplate, { nullable: true })
@@ -52,14 +63,17 @@ export class Campaign {
 
   @ApiProperty({ enum: CampaignStatus })
   @Column({ type: 'enum', enum: CampaignStatus, default: CampaignStatus.DRAFT })
+  @Index()
   status: CampaignStatus;
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  @Index()
   scheduledAt?: Date;
 
   @ApiProperty({ required: false })
   @Column({ nullable: true })
+  @Index()
   sentAt?: Date;
 
   @ApiProperty()
@@ -79,4 +93,7 @@ export class Campaign {
   @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

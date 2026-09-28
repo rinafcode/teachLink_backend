@@ -1,6 +1,9 @@
 import { IsOptional, IsString, IsNumber, IsBoolean, Min, Max } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
+/**
+ * Defines the upload Content payload.
+ */
 export class UploadContentDto {
   @ApiPropertyOptional({
     description: 'Whether to optimize the content automatically',
@@ -9,7 +12,6 @@ export class UploadContentDto {
   @IsOptional()
   @IsBoolean()
   optimize?: boolean = true;
-
   @ApiPropertyOptional({
     description: 'Target width for image optimization',
     minimum: 1,
@@ -20,7 +22,6 @@ export class UploadContentDto {
   @Min(1)
   @Max(4096)
   width?: number;
-
   @ApiPropertyOptional({
     description: 'Target height for image optimization',
     minimum: 1,
@@ -31,7 +32,6 @@ export class UploadContentDto {
   @Min(1)
   @Max(4096)
   height?: number;
-
   @ApiPropertyOptional({
     description: 'Image quality (1-100)',
     minimum: 1,
@@ -42,7 +42,6 @@ export class UploadContentDto {
   @Min(1)
   @Max(100)
   quality?: number;
-
   @ApiPropertyOptional({
     description: 'Output format',
     enum: ['webp', 'jpeg', 'png'],
@@ -50,14 +49,12 @@ export class UploadContentDto {
   @IsOptional()
   @IsString()
   format?: 'webp' | 'jpeg' | 'png';
-
   @ApiPropertyOptional({
     description: 'User location for geo-optimization',
   })
   @IsOptional()
   @IsString()
   userLocation?: string;
-
   @ApiPropertyOptional({
     description: 'User bandwidth in Mbps for optimization',
     minimum: 0,
@@ -66,7 +63,6 @@ export class UploadContentDto {
   @IsNumber()
   @Min(0)
   bandwidth?: number;
-
   @ApiPropertyOptional({
     description: 'Generate responsive image variants',
   })

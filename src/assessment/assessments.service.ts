@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AssessmentStatus } from './enums/assessment-status.enum';
@@ -7,7 +8,14 @@ import { AssessmentAttempt } from './entities/assessment-attempt.entity';
 import { FeedbackGenerationService } from './feedback/feedback-generation.service';
 import { Answer } from './entities/answer.entity';
 import { ScoreCalculationService } from './scoring/score-calculation.service';
+import { Question } from './entities/question.entity';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { clampLimit } from '../common/utils/pagination.utils';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
 
+/**
+ * Provides assessment operations.
+ */
 @Injectable()
 export class AssessmentsService {
   constructor(
@@ -19,66 +27,127 @@ export class AssessmentsService {
     private readonly answerRepo: Repository<Answer>,
     private readonly scoringService: ScoreCalculationService,
     private readonly feedbackService: FeedbackGenerationService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
+  /**
+   * Starts assessment.
+   */
   async startAssessment(studentId: string, assessmentId: string) {
     const assessment = await this.assessmentRepo.findOne({
       where: { id: assessmentId },
       relations: ['questions'],
     });
 
-    return this.attemptRepo.save({
+    if (!assessment) {
+      throw new ResourceNotFoundException('Assessment', assessmentId);
+    }
+
+    const attempt = await this.attemptRepo.save({
       studentId,
       assessment,
       status: AssessmentStatus.IN_PROGRESS,
       startedAt: new Date(),
     });
+
+    this.analytics.recordAssessmentStarted(assessmentId);
+
+    return attempt;
   }
 
-  async findAll(): Promise<Assessment[]> {
-    return await this.assessmentRepo.find({
-      relations: ['questions'],
+  /**
+   * Retrieves a paginated list of assessments without eager-loading questions.
+   * Questions are loaded only on the detail endpoint (findOne).
+   */
+  async findAll(page = 1, limit = 10): Promise<OffsetPaginatedResponse<Assessment>> {
+    const clampedLimit = clampLimit(limit);
+    const skip = (page - 1) * clampedLimit;
+    const [data, total] = await this.assessmentRepo.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip,
+      take: clampedLimit,
     });
+    const totalPages = Math.ceil(total / clampedLimit);
+    return {
+      data,
+      total,
+      page,
+      limit: clampedLimit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
   }
 
+  /**
+   * Retrieves an assessment by id.
+   */
   async findOne(id: string): Promise<Assessment> {
-    return await this.assessmentRepo.findOne({
-      where: { id },
-      relations: ['questions'],
-    });
+    return this.assessmentRepo.findOne({ where: { id }, relations: ['questions'] });
   }
 
+  /**
+   * Retrieves assessments by ids.
+   */
   async findByIds(ids: string[]): Promise<Assessment[]> {
     if (ids.length === 0) return [];
-    return await this.assessmentRepo.findByIds(ids);
+    return this.assessmentRepo.findByIds(ids);
   }
 
+  /**
+   * Creates a new assessment.
+   */
   async create(data: any): Promise<Assessment> {
     const assessment = this.assessmentRepo.create(data);
     const saved = await this.assessmentRepo.save(assessment);
     return Array.isArray(saved) ? saved[0] : saved;
   }
 
+  /**
+   * Updates an assessment.
+   */
   async update(id: string, data: any): Promise<Assessment> {
     await this.assessmentRepo.update(id, data);
     return this.findOne(id);
   }
 
+  /**
+   * Soft-deletes an assessment and its questions.
+   */
   async remove(id: string): Promise<void> {
-    await this.assessmentRepo.delete(id);
+    const assessment = await this.findOne(id);
+    if (!assessment) return;
+
+    await this.assessmentRepo.manager.transaction(async (manager) => {
+      await manager
+        .getRepository(Question)
+        .createQueryBuilder()
+        .softDelete()
+        .where('"assessmentId" = :assessmentId', { assessmentId: id })
+        .execute();
+      await manager.getRepository(Assessment).softDelete(id);
+    });
   }
 
+  /**
+   * Submits an assessment attempt, grades answers, and generates feedback.
+   */
   async submitAssessment(attemptId: string, answers: any[]) {
     const attempt = await this.attemptRepo.findOne({
       where: { id: attemptId },
       relations: ['assessment', 'assessment.questions'],
     });
 
+    if (!attempt?.assessment?.questions) {
+      throw new ResourceNotFoundException('AssessmentAttempt', attemptId);
+    }
+
     const endTime =
       new Date(attempt.startedAt).getTime() + attempt.assessment.durationMinutes * 60000;
 
     if (Date.now() > endTime) {
       attempt.status = AssessmentStatus.TIMED_OUT;
+      this.analytics.recordAssessmentTimedOut(attempt.assessment.id, attempt.startedAt);
       return this.attemptRepo.save(attempt);
     }
 
@@ -87,22 +156,18 @@ export class AssessmentsService {
 
     for (const question of attempt.assessment.questions) {
       const response = answers.find((a) => a.questionId === question.id)?.response;
-
       const score = this.scoringService.calculate(question, response);
       maxScore += question.points;
       totalScore += score;
-
-      await this.answerRepo.save({
-        attempt,
-        question,
-        response,
-        awardedPoints: score,
-      });
+      await this.answerRepo.save({ attempt, question, response, awardedPoints: score });
     }
 
     attempt.score = totalScore;
     attempt.status = AssessmentStatus.GRADED;
     attempt.submittedAt = new Date();
+
+    this.analytics.recordAssessmentSubmitted(attempt.assessment.id, attempt.startedAt);
+    this.analytics.recordAssessmentScore(totalScore, maxScore);
 
     const feedback = this.feedbackService.generate(totalScore, maxScore);
 
@@ -112,6 +177,9 @@ export class AssessmentsService {
     };
   }
 
+  /**
+   * Retrieves attempt results with answers.
+   */
   getResults(attemptId: string) {
     return this.attemptRepo.findOne({
       where: { id: attemptId },

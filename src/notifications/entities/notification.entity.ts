@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   Index,
+  VersionColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -23,10 +25,25 @@ export enum NotificationPriority {
   URGENT = 'urgent',
 }
 
+export enum NotificationStatus {
+  PENDING = 'pending',
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  FAILED = 'failed',
+  RETRYING = 'retrying',
+}
+
 @Entity('notifications')
+@Index('idx_notifications_dedup', ['userId', 'type', 'contentHash', 'createdAt'])
+@Index('idx_notifications_user_created', ['userId', 'createdAt'])
+@Index('idx_notifications_user_isread_created', ['userId', 'isRead', 'createdAt'])
+@Index('idx_notifications_user_status_created', ['userId', 'status', 'createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   @Index()
@@ -41,12 +58,22 @@ export class Notification {
   @Column('text')
   content: string;
 
+  @Column({ name: 'content_hash', type: 'varchar', length: 64 })
+  contentHash: string;
+
   @Column({
     type: 'enum',
     enum: NotificationType,
     default: NotificationType.IN_APP,
   })
   type: NotificationType;
+
+  @Column({
+    type: 'enum',
+    enum: NotificationStatus,
+    default: NotificationStatus.PENDING,
+  })
+  status: NotificationStatus;
 
   @Column({
     type: 'enum',
@@ -61,6 +88,15 @@ export class Notification {
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
+  @Column({ default: 0 })
+  deliveryAttempts: number;
+
+  @Column({ nullable: true })
+  lastAttemptAt: Date;
+
+  @Column({ type: 'text', nullable: true })
+  failureReason: string;
+
   @Column({ nullable: true })
   readAt: Date;
 
@@ -70,4 +106,7 @@ export class Notification {
   @UpdateDateColumn()
   @Index()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

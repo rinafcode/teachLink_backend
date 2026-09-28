@@ -1,15 +1,162 @@
-# 🧠 TeachLink Backend
+# TeachLink Backend
 
-[![CI](https://github.com/teachlink/backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/teachlink/backend/actions/workflows/ci.yml)
+[![CI](https://github.com/rinafcode/teachLink_backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/rinafcode/teachLink_backend/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-70%25%20threshold-brightgreen)](#-ci--testing)
 [![Branch Protection](https://img.shields.io/badge/branch%20protection-enabled-blue)](#-branch-protection)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
-> **Replace** `teachlink/backend` in the badge URLs above with your actual `org/repo` slug once the repository is on GitHub.
+**TeachLink** is a decentralized platform for sharing, analyzing, and monetizing knowledge — technocrats and learners publish and analyze content and earn for it, while learners also earn by completing tasks, competitions, and learning games. This repository is the **NestJS backend API**, the core service powering the TeachLink ecosystem (web, mobile, and the Stellar/Soroban rewards contract).
 
-**TeachLink** is a decentralized platform built to enable technocrats to **share, analyze, and monetize knowledge, skills, and ideas**. This repository contains the **backend API** built with **NestJS**, **TypeORM**, and powered by **Starknet** and **PostgreSQL**, serving as the core of the TeachLink ecosystem.
+---
 
-This is the **NestJS** backend powering TeachLink — offering APIs, authentication, user management, notifications, and knowledge monetization features.
+## Quick Start (5 minutes)
+
+```bash
+# 1. Clone and install
+git clone https://github.com/rinafcode/teachLink_backend.git
+cd teachLink_backend
+pnpm install
+
+# 2. Configure environment
+cp .env.example .env
+# (edit .env with your settings, defaults work for local dev)
+
+# 3. Start databases
+docker compose up -d postgres redis
+
+# 4. Start the server
+pnpm start:dev
+
+# 5. Verify it works
+curl http://localhost:3000/health
+```
+
+Open http://localhost:3000/api/docs for the interactive API documentation.
+
+> **New developer?** See the full [setup guide](docs/setup.md) for detailed instructions, prerequisites, and troubleshooting.
+
+---
+
+## Prerequisites
+
+| Tool           | Version | Install                                                       |
+| -------------- | ------- | ------------------------------------------------------------- |
+| Node.js        | >= 18   | [nodejs.org](https://nodejs.org/)                             |
+| pnpm           | >= 8    | `npm install -g pnpm`                                         |
+| Docker         | >= 24   | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| Docker Compose | >= 2.24 | Included with Docker Desktop                                  |
+| Git            | >= 2    | [git-scm.com](https://git-scm.com/)                           |
+
+---
+
+## Onboarding Documentation
+
+| Document                                            | Description                          |
+| --------------------------------------------------- | ------------------------------------ |
+| [Setup guide](docs/setup.md)                        | Step-by-step setup from scratch      |
+| [Troubleshooting guide](docs/troubleshooting.md)    | Common issues and fixes              |
+| [Developer runbook](docs/runbook.md)                | Day-to-day operational commands      |
+| [Migrations guide](docs/migrations.md)              | Database migration commands          |
+| [API documentation](http://localhost:3000/api/docs) | Swagger UI (requires running server) |
+
+---
+
+## Setup Video Tutorial
+
+A video walkthrough for visual learners. Covers installation, configuration, and first API call.
+
+**Video link:** https://example.com/setup-video _(placeholder — to be recorded)_
+
+**What the video covers:**
+
+1. Installing prerequisites (Node.js, pnpm, Docker)
+2. Cloning the repo and installing dependencies
+3. Environment variable configuration explained
+4. Starting PostgreSQL and Redis with Docker
+5. Running database migrations
+6. Starting the development server
+7. Making your first API request
+8. Running the verification script
+
+---
+
+## Available Commands
+
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `pnpm start:dev`      | Start dev server with hot-reload |
+| `pnpm build`          | Compile TypeScript to `dist/`    |
+| `pnpm lint`           | Lint and auto-fix                |
+| `pnpm typecheck`      | TypeScript type checking         |
+| `pnpm test`           | Run unit tests                   |
+| `pnpm test:e2e`       | Run end-to-end tests             |
+| `pnpm validate:env`   | Validate environment variables   |
+| `pnpm migrate:run`    | Run pending migrations           |
+| `pnpm migrate:status` | Check migration status           |
+| `pnpm verify`         | Run setup verification           |
+
+---
+
+## CI / Testing
+
+Every pull request and every push to `main` / `develop` runs an automated pipeline defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+### Pipeline stages
+
+| Stage          | Tool             | Fails on                                  |
+| -------------- | ---------------- | ----------------------------------------- |
+| **Install**    | `pnpm install`   | Dependency resolution error               |
+| **Lint**       | ESLint           | Any warning or error (`--max-warnings 0`) |
+| **Format**     | Prettier         | Any file that would be reformatted        |
+| **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
+| **Build**      | NestJS CLI       | Compilation failure                       |
+| **Migrations** | TypeORM CLI      | Migration error or schema drift         |
+| **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
+| **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
+
+### Running checks locally
+
+```bash
+# Lint (auto-fix)
+pnpm lint
+
+# Lint (CI-strict, no auto-fix)
+pnpm lint:ci
+
+# Format check (no rewrite)
+pnpm format:check
+
+# TypeScript type check only
+pnpm typecheck
+
+# Unit tests with coverage report
+pnpm test:ci
+
+# E2E tests (requires Postgres + Redis running locally)
+pnpm test:e2e
+
+# Run database migrations
+pnpm run migration:run
+
+# Revert last migration (verifies reversibility)
+pnpm run migration:revert
+
+# Check for schema drift (fails if model changes exist without a migration)
+pnpm run migration:generate:check
+```
+
+### Coverage thresholds
+
+Configured in `jest.config.js`. The pipeline fails if **any** global metric falls below:
+
+| Metric     | Threshold |
+| ---------- | --------- |
+| Statements | 70 %      |
+| Branches   | 70 %      |
+| Functions  | 70 %      |
+| Lines      | 70 %      |
+
+Coverage HTML report is uploaded as a GitHub Actions artifact (`coverage-report`) on every run.
 
 ---
 
@@ -26,6 +173,7 @@ Every pull request and every push to `main` / `develop` runs an automated pipeli
 | **Format**     | Prettier         | Any file that would be reformatted        |
 | **Type Check** | `tsc --noEmit`   | Any TypeScript error                      |
 | **Build**      | NestJS CLI       | Compilation failure                       |
+| **Migrations** | TypeORM CLI      | Migration error or schema drift         |
 | **Unit Tests** | Jest + ts-jest   | Test failure or coverage below 70 %       |
 | **E2E Tests**  | Jest + Supertest | Test failure (uses real Postgres + Redis) |
 
@@ -49,6 +197,15 @@ npm run test:ci
 
 # E2E tests (requires Postgres + Redis running locally)
 npm run test:e2e
+
+# Run database migrations
+npm run migration:run
+
+# Revert last migration (verifies reversibility)
+npm run migration:revert
+
+# Check for schema drift (fails if model changes exist without a migration)
+npm run migration:generate:check
 ```
 
 ### Coverage thresholds
@@ -92,19 +249,45 @@ For the full contribution and review policy, see [CONTRIBUTING.md](CONTRIBUTING.
 ```
 src/
 ├── modules/
-│   ├── auth/             # JWT, Google OAuth, Refresh tokens
-│   ├── users/            # Profile, roles, preferences
-│   ├── knowledge/        # Courses, content, categories
-│   ├── consulting/       # 1:1 sessions, scheduling, payments
-│   ├── messaging/        # Real-time chat, discussions
-│   ├── notifications/    # In-app/email alerts
-│   ├── analytics/        # Insights, course tracking
-│   ├── web3/             # Wallet connection, token gating
-│   └── file-upload/      # Cloudinary upload, avatar, files
-├── config/              # TypeORM, validation, ENV configs
-├── common/              # DTOs, guards, interceptors, pipes
-└── main.ts              # Entry point
+│   ├── auth/                 # JWT, session management, wallet login
+│   ├── users/                # Profile management, roles, preferences
+│   ├── courses/              # Course creation, enrollment, content
+│   ├── payments/             # Stripe integration, transactions
+│   ├── search/               # Elasticsearch integration, search APIs
+│   ├── notifications/        # Real-time alerts, email, push notifications
+│   ├── messaging/            # Real-time chat, discussions
+│   ├── media/                # File upload, processing, CDN
+│   ├── collaboration/        # Real-time collaboration features
+│   ├── assessment/           # Quizzes, tests, grading
+│   ├── learning-paths/       # Personalized learning journeys
+│   ├── gamification/         # Points, badges, leaderboards
+│   ├── moderation/           # Content moderation, reporting
+│   ├── email-marketing/      # Campaign management, templates
+│   ├── ab-testing/           # Feature experimentation
+│   ├── data-warehouse/       # Analytics, reporting
+│   ├── backup/               # Data backup and recovery
+│   ├── sync/                 # Data synchronization
+│   ├── tenancy/              # Multi-tenant support
+│   ├── security/             # Security utilities, monitoring
+│   ├── caching/              # Redis caching strategies
+│   ├── rate-limiting/        # API rate limiting
+│   ├── observability/        # Metrics, logging, tracing
+│   ├── queue/                # Background job processing
+│   └── health/               # Health checks, monitoring
+├── common/
+│   ├── database/             # Database configuration, connection
+│   ├── decorators/           # Custom decorators
+│   ├── guards/               # Authentication & authorization guards
+│   ├── interceptors/         # Request/response interceptors
+│   ├── pipes/                # Data validation pipes
+│   ├── dto/                  # Data transfer objects
+│   └── utils/                # Utility functions
+├── config/                   # Environment configuration
+├── graphql/                  # GraphQL schemas and resolvers
+└── main.ts                   # Application entry point
 ```
+
+- Algorithm documentation: [docs/complex-algorithms.md](docs/complex-algorithms.md)
 
 ## 🔧 Project Overview
 
@@ -117,28 +300,178 @@ TeachLink Backend provides secure and scalable APIs to power features such as:
 - 🎖️ Gamified reputation and contribution tracking
 - 🔔 Real-time notifications via WebSockets
 - 📊 Analytics and activity insights
+- 🧭 User reporting and moderation queue processing for inappropriate content
 - 🧾 DAO integration for content moderation and governance
+
+## 🔀 API Versioning
+
+TeachLink uses a header-based API versioning strategy for application endpoints.
+
+- Send `X-API-Version: 1` with every versioned API request.
+- Supported versions are configured through `API_SUPPORTED_VERSIONS` and default to `1`.
+- Deprecated versions return `Deprecation`, `Sunset`, `Link`, and `X-API-Deprecation-Notice` headers.
+- Requests with a missing or invalid API version header return a client error before the request reaches the controller.
+- Deprecated versions remain available until sunset and then return HTTP `410 Gone` at end of life.
+
+Example:
+
+```bash
+curl -H "X-API-Version: 1" http://localhost:3000/users
+```
+
+Read more in the API versioning documentation:
+
+- `docs/api/versioning.md`
 
 ## 📊 Architecture
 
 ## ⚙️ Tech Stack
 
-| Layer         | Technology                 |
-| ------------- | -------------------------- |
-| Framework     | NestJS                     |
-| Database      | PostgreSQL + TypeORM       |
-| Blockchain    | Starknet + Starknet.js     |
-| Realtime      | WebSockets (Gateway)       |
-| Queues/Async  | BullMQ + Redis (optional)  |
-| File Uploads  | Cloudinary                 |
-| Config Mgmt   | @nestjs/config             |
-| Testing       | Jest + Supertest           |
-| Auth          | JWT + Wallet Sign-In       |
-| Deployment    | Docker, Railway, or Fly.io |
-| File Upload   | Cloudinary                 |
-| Documentation | Swagger                    |
+| Layer        | Technology                 |
+| ------------ | -------------------------- | ------------------------------------- |
+| Framework    | NestJS                     |
+| Database     | PostgreSQL + TypeORM       |
+| Blockchain   | Starknet + Starknet.js     |
+| Realtime     | WebSockets (Gateway)       |
+| Queues/Async | BullMQ + Redis (optional)  |
+| File Uploads | Cloudinary                 |
+| Config Mgmt  | @nestjs/config             |
+| Testing      | Jest + Supertest           |
+| Auth         | JWT + Wallet Sign-In       |
+| Deployment   | Docker, Railway, or Fly.io |
+| File Upload  | Cloudinary                 |
+| Security     | Helmet + bcrypt            | Security headers and password hashing |
 
-## �️ Database
+### System Overview
+
+TeachLink Backend follows a **modular microservices architecture** built on NestJS, designed for scalability and maintainability. The system uses a layered approach with clear separation of concerns:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    API Gateway Layer                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │   REST API  │ │   GraphQL   │ │    WebSocket Gateway    │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                  Business Logic Layer                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │    Auth     │ │   Users     │ │      Courses            │ │
+│  │   Module    │ │   Module    │ │      Module             │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │  Payments   │ │   Search    │ │     Notifications       │ │
+│  │   Module    │ │   Module    │ │      Module             │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                                │
+┌─────────────────────────────────────────────────────────────┐
+│                   Infrastructure Layer                       │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
+│  │ PostgreSQL  │ │    Redis    │ │      File Storage       │ │
+│  │ (Primary)   │ │  (Caching)  │ │     (AWS S3)            │ │
+│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Architectural Patterns
+
+- **Modular Design**: Each business domain is encapsulated in its own module
+- **Dependency Injection**: Leverages NestJS DI for loose coupling
+- **Repository Pattern**: Data access abstraction via TypeORM
+- **Event-Driven Architecture**: Uses EventEmitter for inter-module communication
+- **CQRS Pattern**: Separation of read/write operations in complex modules
+- **Feature Flags**: Dynamic module loading based on configuration
+
+### Data Flow
+
+1. **Request Processing**: API Gateway → Authentication → Authorization → Business Logic
+2. **Data Persistence**: Business Logic → Repository → PostgreSQL
+3. **Caching Strategy**: Redis for frequently accessed data and session management
+4. **Async Operations**: BullMQ for background jobs and email processing
+5. **File Handling**: AWS S3/Cloudinary for media storage with CDN distribution
+
+## 📦 Tech Stack
+
+| Layer              | Technology                          | Purpose                               |
+| ------------------ | ----------------------------------- | ------------------------------------- |
+| **Framework**      | NestJS                              | Node.js application framework         |
+| **Language**       | TypeScript                          | Type-safe JavaScript                  |
+| **Database**       | PostgreSQL + TypeORM                | Primary data storage                  |
+| **Caching**        | Redis + IORedis                     | Session store, caching, queues        |
+| **Authentication** | JWT + Passport                      | Token-based authentication            |
+| **GraphQL**        | Apollo Server                       | GraphQL API (optional)                |
+| **Real-time**      | Socket.io                           | WebSocket connections                 |
+| **File Storage**   | AWS S3 + Cloudinary                 | Media file storage and CDN            |
+| **Email**          | SendGrid + Nodemailer               | Email delivery and marketing          |
+| **Payments**       | Stripe                              | Payment processing                    |
+| **Search**         | Elasticsearch                       | Full-text search capabilities         |
+| **Queue**          | BullMQ                              | Background job processing             |
+| **Monitoring**     | OpenTelemetry + Prometheus          | Metrics and observability             |
+| **Testing**        | Jest + Supertest                    | Unit and integration tests            |
+| **Documentation**  | Swagger                             | API documentation                     |
+| **Validation**     | class-validator + class-transformer | DTO validation                        |
+| **Security**       | Helmet + bcrypt                     | Security headers and password hashing |
+
+## 🔐 Security
+
+### Password Hashing Configuration
+
+The application uses **bcrypt** for password hashing with configurable rounds via the `BCRYPT_ROUNDS` environment variable.
+
+#### Recommended Bcrypt Rounds by Environment
+
+| Environment     | Recommended Rounds | Hash Time (ms) | Security Level | Performance Impact |
+| --------------- | ------------------ | -------------- | -------------- | ------------------ |
+| **Development** | 8-10               | 50-100         | Good           | Low                |
+| **Staging**     | 10-12              | 100-300        | High           | Medium             |
+| **Production**  | 12-14              | 300-1000       | Very High      | High               |
+
+#### Security vs Performance Tradeoffs
+
+**Lower Rounds (4-8):**
+
+- ✅ Faster authentication
+- ✅ Lower CPU usage
+- ⚠️ Reduced security against brute force attacks
+- ⚠️ May be vulnerable to GPU-based cracking
+
+**Higher Rounds (12-15):**
+
+- ✅ Strong resistance against brute force attacks
+- ✅ Future-proof against computational advances
+- ❌ Slower authentication (may impact user experience)
+- ❌ Higher CPU usage (may affect scalability)
+
+#### Configuration Example
+
+```env
+# Development (faster, less secure)
+BCRYPT_ROUNDS=8
+
+# Production (slower, more secure)
+BCRYPT_ROUNDS=12
+```
+
+#### Security Best Practices
+
+1. **Minimum 10 rounds** for production environments
+2. **Monitor authentication performance** when increasing rounds
+3. **Consider rate limiting** to prevent brute force attacks
+4. **Use hardware security modules** for high-security applications
+5. **Regular security audits** to assess adequate protection levels
+
+#### Migration Considerations
+
+When changing `BCRYPT_ROUNDS`:
+
+- Existing passwords remain valid until users change them
+- New passwords will use the configured rounds
+- Consider forcing password reset for sensitive accounts
+- Gradually increase rounds to monitor performance impact
+
+## 🗄️ Database
 
 ### Index Strategy
 
@@ -178,7 +511,7 @@ The application uses strategic database indexes to optimize query performance, e
 
 ### Connection Pooling (TypeORM + PostgreSQL)
 
-The backend now supports explicit database pool tuning through environment variables:
+The backend supports explicit database pool tuning through environment variables:
 
 - `DATABASE_POOL_MAX` (default: `30`)
 - `DATABASE_POOL_MIN` (default: `5`)
@@ -199,170 +532,107 @@ Sizing rule:
 - Formula: `DATABASE_POOL_MAX x app_instances x cluster_workers <= postgres_max_connections - reserved_connections`.
 - Reserve at least 20 to 30 connections for migrations, admin access, and background jobs.
 
-Load testing checklist:
+### Read Replicas (TypeORM + PostgreSQL)
 
-```bash
-# 1) Start API
-npm run start:dev
+Read replicas can be enabled without changing the primary database settings. Add one or more replicas with `DATABASE_REPLICA_URLS`:
 
-# 2) In another terminal, run concurrent load against a DB-backed endpoint
-npx autocannon -c 100 -d 60 http://localhost:3000/health
-
-# 3) Observe active connections in PostgreSQL (replace DB name)
-psql -d teachlink -c "select count(*) as active_connections from pg_stat_activity where datname='teachlink';"
+```env
+DATABASE_REPLICA_URLS=postgres://teachlink_ro:secret@replica-1.db:5432/teachlink,postgres://teachlink_ro:secret@replica-2.db:5432/teachlink
 ```
 
-Expected result: no connection-acquire timeouts, stable latency under sustained concurrency, and active connections staying within configured pool bounds.
+Or use host-based configuration:
 
-## �🚀 Deployment
+```env
+DATABASE_REPLICA_HOSTS=replica-1.db,replica-2.db
+DATABASE_REPLICA_PORTS=5432,5432
+DATABASE_REPLICA_USER=teachlink_ro
+DATABASE_REPLICA_PASSWORD=secret
+DATABASE_REPLICA_NAME=teachlink
+```
 
-### Prerequisites
+When replicas are configured, TypeORM replication routes writes to the primary and eligible reads to replicas. Use `ReadReplicaRoutingService.consistentRead()` for read-after-write, authorization, and workflow reads that must prefer the primary. Replica read failures are retried on the primary by default so read paths can fail over during a replica outage.
 
-- Node.js 18+
-- PostgreSQL
-- Redis
-- Docker (optional)
+See [docs/database-read-replicas.md](docs/database-read-replicas.md) for setup, routing behavior, consistent-read guidance, and failover operations.
 
-### Steps
+## Getting Started
 
-1. Set up `.env`
-2. Run `npm i`
-3. Start: `npm run start:dev` or Docker Compose
-4. Swagger: `http://localhost:3000/api`
+Detailed setup instructions are available in the [setup guide](docs/setup.md).
 
-## 🤝 Contribution
+**Quick reference:**
 
-# 🤝 Contributing to TeachLink
+```bash
+pnpm install                    # Install dependencies
+cp .env.example .env            # Configure environment
+docker compose up -d postgres redis  # Start databases
+pnpm start:dev                  # Start dev server
+pnpm verify                     # Verify setup
+```
 
-## 🛠 Development Workflow
+### Access the API
 
-1. Fork the repo and clone locally.
-2. Set up your environment using `.env.example`
-3. Use conventional commits.
-4. Run tests locally before PR.
-5. Open a PR with title like: `✨ Add: Tutor Booking API`
+| Endpoint          | URL                            |
+| ----------------- | ------------------------------ |
+| REST API          | http://localhost:3000          |
+| API Documentation | http://localhost:3000/api/docs |
+| Health Check      | http://localhost:3000/health   |
 
-## 🧪 PR Must Include:
+### Docker Compose
+
+A development `docker-compose.yml` is provided at the project root:
+
+```bash
+# Start all infrastructure services
+docker compose up -d
+
+# Start only database services (for local dev)
+docker compose up -d postgres redis
+
+# View logs
+docker compose logs -f
+
+# Stop everything
+docker compose down
+```
+
+For the full monitoring stack (Prometheus, Grafana, Elasticsearch, Kibana), see `infra/monitoring/docker-compose.yml`.
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Please follow our guidelines to ensure a smooth contribution process.
+
+### Development Workflow
+
+1. **Fork the repository** and clone locally
+2. **Set up your environment** using `.env.example`
+3. **Create a feature branch** from `develop`
+4. **Make your changes** following our coding standards
+5. **Run tests locally** to ensure everything works
+6. **Submit a pull request** with a clear description
+
+### Code Standards
+
+- Use **conventional commits** (feat:, fix:, docs:, etc.)
+- Follow **TypeScript** best practices
+- Write **unit tests** for new features
+- Update **documentation** as needed
+- Ensure **linting** and **formatting** pass
+
+### Pull Request Requirements
 
 - [ ] Linked issue (`Closes #issue_number`)
 - [ ] Clear title and description
-- [ ] Screenshots (if UI)
-- [ ] Tests (if backend)
+- [ ] Tests pass locally (`npm run test:ci`)
+- [ ] Code follows style guidelines (`npm run lint:ci`)
+- [ ] Documentation updated if applicable
 
-## 📬 Join the Community
+### Getting Help
 
-- [Telegram](t.me/teachlinkOD)
-
-## 📁 Folder Structure
-
-/src
-/auth → Wallet-based login, JWT, refresh tokens
-/posts → CRUD for markdown posts
-/topics → Topic entities and filtering
-/users → Profiles, roles, reputation
-/tipping → On-chain tipping integrations
-/notifications → Real-time alerts (email, WebSocket)
-/analytics → Activity tracking & metrics
-/dao → Governance logic for post moderation
-/common → DTOs, decorators, interceptors, guards
-
-yaml
-Copy
-Edit
+- 📖 [Documentation](./docs/)
+- 💬 [Telegram Community](https://t.me/teachlinkOD)
+- 🐛 [Report Issues](https://github.com/rinafcode/teachLink_backend/issues)
 
 ---
 
-## 🛠 Setup Instructions
+## 📄 License
 
-1. **Clone the repository**
-
-```bash
-git clone https://github.com/teachlink/backend.git
-cd backend
-Install dependencies
-
-bash
-Copy
-Edit
-npm install
-Create .env file
-
-env
-Copy
-Edit
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=yourpassword
-DB_NAME=teachlink
-
-JWT_SECRET=your_jwt_secret
-ENCRYPTION_SECRET=your_32_char_encryption_secret
-JWT_EXPIRATION=3600
-
-CLOUDINARY_API_KEY=your_key
-CLOUDINARY_API_SECRET=your_secret
-CLOUDINARY_CLOUD_NAME=your_name
-Run PostgreSQL locally or connect to remote DB
-
-Start the development server
-
-bash
-Copy
-Edit
-npm run start:dev
-Database Migration (if applicable)
-
-bash
-Copy
-Edit
-npm run typeorm migration:run
-📌 Key Development Milestones
-✅ PostgreSQL + TypeORM setup
-
-✅ JWT-based auth with Starknet wallet login
-
-✅ Post CRUD with markdown support
-
-✅ Topic categorization + filtering
-
-✅ Tipping logic integration
-
-✅ Real-time notifications setup
-
-🚧 Governance API for moderation
-
-🚧 Contribution analytics and scoring
-
-🔐 API Modules
-Module	Description
-Auth Module	Wallet login, JWT, refresh tokens
-Post Module	Markdown post management
-User Module	Profile management and reputation
-Topic Module	Knowledge categories & filtering
-Tip Module	Send/receive tips on-chain
-Notif Module	In-app + external notifications
-DAO Module	Voting and governance decisions
-File Module	Upload and serve media via Cloudinary
-
-✅ Contribution Guidelines
-Fork the repo and create a feature branch
-
-All PRs must link to a GitHub Issue (Close #5)
-
-Follow NestJS best practices and clean code principles
-
-Include unit tests for services/controllers
-
-Join our Telegram Group for support
-
-🧪 Testing
-Run unit and integration tests:
-
-bash
-Copy
-Edit
-npm run test
-📜 License
 MIT © 2025 TeachLink DAO
-```

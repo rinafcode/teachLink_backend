@@ -1,16 +1,33 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  Index,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  VersionColumn,
+} from 'typeorm';
 import { QuestionType } from '../enums/question-type.enum';
 import { Assessment } from './assessment.entity';
 
+/**
+ * Represents the question entity.
+ */
 @Entity()
 export class Question {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @Column({ type: 'enum', enum: QuestionType })
+  @Index()
   type: QuestionType;
 
   @Column()
+  @Index()
   prompt: string;
 
   @Column({ type: 'json', nullable: true })
@@ -22,8 +39,15 @@ export class Question {
   @Column({ default: 1 })
   points: number;
 
+  @CreateDateColumn()
+  @Index()
+  createdAt: Date;
+
   @ManyToOne(() => Assessment, (a) => a.questions, {
     onDelete: 'CASCADE',
   })
   assessment: Assessment;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

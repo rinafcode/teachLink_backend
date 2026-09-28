@@ -1,12 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Represents the email Subscription entity.
+ */
 @Entity('email_subscriptions')
 @Index(['email'], { unique: true })
 export class EmailSubscription {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column({ unique: true })

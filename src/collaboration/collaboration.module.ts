@@ -1,29 +1,31 @@
 import { Module } from '@nestjs/common';
-import { SharedDocumentService } from './documents/shared-document.service';
-import { WhiteboardService } from './whiteboard/whiteboard.service';
-import { VersionControlService } from './versioning/version-control.service';
-import { CollaborationPermissionsService } from './permissions/collaboration-permissions.service';
-import { CollaborationService } from './collaboration.service';
-import { CollaborationGateway } from './gateway/collaboration.gateway';
-import { CollaborationController } from './collaboration.controller';
+import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { OtCrdtService } from './ot-crdt.service';
+import { PresenceService } from './presence.service';
+import { ChangeHistoryService } from './change-history.service';
+import { CollaborationGateway } from './collaboration.gateway';
+import { WsPayloadSizeGuardService } from './guards/ws-payload-size-guard.service';
+import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
+import { RedisSocketRegistryService } from './redis-socket-registry.service';
 
 @Module({
-  imports: [],
-  controllers: [CollaborationController],
+  imports: [
+    ConfigModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'default-jwt-secret',
+      signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any },
+    }),
+  ],
   providers: [
-    CollaborationService,
-    SharedDocumentService,
-    WhiteboardService,
-    VersionControlService,
-    CollaborationPermissionsService,
+    OtCrdtService,
+    PresenceService,
+    ChangeHistoryService,
     CollaborationGateway,
+    WsPayloadSizeGuardService,
+    WsJwtAuthGuard,
+    RedisSocketRegistryService,
   ],
-  exports: [
-    CollaborationService,
-    SharedDocumentService,
-    WhiteboardService,
-    VersionControlService,
-    CollaborationPermissionsService,
-  ],
+  exports: [OtCrdtService, PresenceService, ChangeHistoryService],
 })
 export class CollaborationModule {}

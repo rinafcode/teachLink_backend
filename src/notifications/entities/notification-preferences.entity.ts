@@ -6,15 +6,24 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  VersionColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
+/**
+ * Represents the notification Preferences entity.
+ */
 @Entity('notification_preferences')
 export class NotificationPreferences {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @Column()
+  @Index('IDX_notification_preferences_user_id')
   userId: string;
 
   @OneToOne(() => User, { onDelete: 'CASCADE' })
@@ -35,6 +44,14 @@ export class NotificationPreferences {
 
   @Column({ type: 'jsonb', nullable: true })
   topicSubscriptions: Record<string, boolean>;
+
+  /** Per-event delivery frequency: instant | daily | weekly | never */
+  @Column({ type: 'jsonb', nullable: true })
+  eventFrequency: Record<string, 'instant' | 'daily' | 'weekly' | 'never'>;
+
+  @Column({ default: false })
+  @Index('IDX_notification_preferences_global_unsub')
+  globalUnsubscribe: boolean;
 
   @Column({ type: 'varchar', default: '09:00' })
   quietTimeStart: string;

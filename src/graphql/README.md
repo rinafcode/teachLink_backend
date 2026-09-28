@@ -42,6 +42,7 @@ A comprehensive GraphQL API implementation with advanced querying, mutations, re
 ### Starting the Server
 
 The GraphQL API is automatically available at:
+
 - **Endpoint**: `http://localhost:3000/graphql`
 - **Playground**: `http://localhost:3000/graphql` (in browser)
 - **Subscriptions**: `ws://localhost:3000/graphql`
@@ -49,6 +50,7 @@ The GraphQL API is automatically available at:
 ### Example Queries
 
 #### Get User with Courses
+
 ```graphql
 query GetUser($id: ID!) {
   user(id: $id) {
@@ -68,6 +70,7 @@ query GetUser($id: ID!) {
 ```
 
 #### Search Courses
+
 ```graphql
 query SearchCourses($filter: CourseFilterInput) {
   courses(filter: $filter) {
@@ -85,6 +88,7 @@ query SearchCourses($filter: CourseFilterInput) {
 ```
 
 #### Get Current User
+
 ```graphql
 query Me {
   me {
@@ -104,6 +108,7 @@ query Me {
 ### Example Mutations
 
 #### Create User
+
 ```graphql
 mutation CreateUser($input: CreateUserInput!) {
   createUser(input: $input) {
@@ -117,6 +122,7 @@ mutation CreateUser($input: CreateUserInput!) {
 ```
 
 Variables:
+
 ```json
 {
   "input": {
@@ -130,6 +136,7 @@ Variables:
 ```
 
 #### Create Course
+
 ```graphql
 mutation CreateCourse($input: CreateCourseInput!) {
   createCourse(input: $input) {
@@ -147,6 +154,7 @@ mutation CreateCourse($input: CreateCourseInput!) {
 ```
 
 Variables:
+
 ```json
 {
   "input": {
@@ -159,6 +167,7 @@ Variables:
 ```
 
 #### Update Course
+
 ```graphql
 mutation UpdateCourse($id: ID!, $input: UpdateCourseInput!) {
   updateCourse(id: $id, input: $input) {
@@ -172,6 +181,7 @@ mutation UpdateCourse($id: ID!, $input: UpdateCourseInput!) {
 ### Example Subscriptions
 
 #### Subscribe to New Courses
+
 ```graphql
 subscription OnCourseCreated {
   courseCreated {
@@ -187,6 +197,7 @@ subscription OnCourseCreated {
 ```
 
 #### Subscribe to User Updates
+
 ```graphql
 subscription OnUserUpdated {
   userUpdated {
@@ -200,6 +211,7 @@ subscription OnUserUpdated {
 ```
 
 #### Subscribe to Assessment Changes
+
 ```graphql
 subscription OnAssessmentCreated {
   assessmentCreated {
@@ -226,6 +238,7 @@ Most queries and all mutations require JWT authentication. Include the token in 
 ```
 
 In GraphQL Playground, set headers in the bottom-left panel:
+
 ```json
 {
   "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -237,6 +250,7 @@ In GraphQL Playground, set headers in the bottom-left panel:
 The DataLoader service automatically batches and caches database queries:
 
 ### Without DataLoader (N+1 Problem)
+
 ```
 Query: Get 10 courses with instructors
 - 1 query to fetch courses
@@ -245,6 +259,7 @@ Query: Get 10 courses with instructors
 ```
 
 ### With DataLoader (Optimized)
+
 ```
 Query: Get 10 courses with instructors
 - 1 query to fetch courses
@@ -270,11 +285,13 @@ The GraphQL schema is auto-generated from TypeScript decorators:
 ## Error Handling
 
 Errors are formatted with:
+
 - `message`: Human-readable error description
 - `code`: Error code for client handling
 - `path`: GraphQL query path where error occurred
 
 Example error response:
+
 ```json
 {
   "errors": [
@@ -387,21 +404,25 @@ async createComment(@Args('input') input: CreateCommentInput) {
 ## Troubleshooting
 
 ### Schema Not Generating
+
 - Check TypeScript decorators are correct
 - Ensure all types are imported in module
 - Verify `autoSchemaFile` path is writable
 
 ### N+1 Queries Still Occurring
+
 - Verify DataLoader is in context
 - Check field resolver uses loader
 - Ensure loader is created per request
 
 ### Subscriptions Not Working
+
 - Check WebSocket connection
 - Verify PubSub is injected correctly
 - Ensure subscription resolver returns asyncIterator
 
 ### Authentication Errors
+
 - Verify JWT token is valid
 - Check Authorization header format
 - Ensure JwtAuthGuard is applied

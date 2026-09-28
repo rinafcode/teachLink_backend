@@ -1,9 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, VersionColumn, Index } from 'typeorm';
 
+/**
+ * Represents the challenge entity.
+ */
 @Entity('challenges')
+@Index('IDX_challenges_type', ['type'])
 export class Challenge {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   title: string;

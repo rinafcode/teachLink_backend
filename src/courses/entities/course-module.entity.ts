@@ -1,11 +1,26 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  Index,
+  DeleteDateColumn,
+  VersionColumn,
+} from 'typeorm';
 import { Course } from './course.entity';
 import { Lesson } from './lesson.entity';
 
+/**
+ * Represents the course entity.
+ */
 @Entity()
 export class CourseModule {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   title: string;
@@ -22,4 +37,7 @@ export class CourseModule {
 
   @OneToMany(() => Lesson, (lesson) => lesson.module)
   lessons: Lesson[];
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

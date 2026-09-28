@@ -1,4 +1,4 @@
-export interface LogContext {
+export interface ILogContext {
   correlationId: string;
   traceId?: string;
   spanId?: string;
@@ -10,23 +10,22 @@ export interface LogContext {
   metadata?: Record<string, any>;
 }
 
-export interface StructuredLog {
+export interface IStructuredLog {
   level: LogLevel;
   message: string;
-  context: LogContext;
-  error?: ErrorDetails;
+  context: ILogContext;
+  error?: IErrorDetails;
   duration?: number;
   tags?: string[];
 }
 
-export interface ErrorDetails {
+export interface IErrorDetails {
   name: string;
   message: string;
   stack?: string;
   code?: string;
   statusCode?: number;
 }
-
 export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
@@ -35,14 +34,13 @@ export enum LogLevel {
   FATAL = 'fatal',
 }
 
-export interface MetricData {
+export interface IMetricData {
   name: string;
   value: number;
   type: MetricType;
   tags?: Record<string, string>;
   timestamp: Date;
 }
-
 export enum MetricType {
   COUNTER = 'counter',
   GAUGE = 'gauge',
@@ -50,7 +48,7 @@ export enum MetricType {
   SUMMARY = 'summary',
 }
 
-export interface TraceSpan {
+export interface ITraceSpan {
   traceId: string;
   spanId: string;
   parentSpanId?: string;
@@ -60,22 +58,21 @@ export interface TraceSpan {
   duration?: number;
   status: SpanStatus;
   attributes: Record<string, any>;
-  events: SpanEvent[];
+  events: ISpanEvent[];
 }
-
 export enum SpanStatus {
   OK = 'ok',
   ERROR = 'error',
   UNSET = 'unset',
 }
 
-export interface SpanEvent {
+export interface ISpanEvent {
   name: string;
   timestamp: Date;
   attributes?: Record<string, any>;
 }
 
-export interface AnomalyDetectionResult {
+export interface IAnomalyDetectionResult {
   isAnomaly: boolean;
   score: number;
   threshold: number;
@@ -84,7 +81,7 @@ export interface AnomalyDetectionResult {
   details?: string;
 }
 
-export interface LogQuery {
+export interface ILogQuery {
   level?: LogLevel;
   service?: string;
   correlationId?: string;
@@ -96,8 +93,8 @@ export interface LogQuery {
   offset?: number;
 }
 
-export interface LogSearchResult {
-  logs: StructuredLog[];
+export interface ILogSearchResult {
+  logs: IStructuredLog[];
   total: number;
   page: number;
   pageSize: number;

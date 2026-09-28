@@ -99,31 +99,49 @@ type QuestionType {
 }
 
 type Subscription {
-  """Subscribe to new assessment creation events"""
+  """
+  Subscribe to new assessment creation events
+  """
   assessmentCreated: AssessmentType!
 
-  """Subscribe to assessment deletion events"""
+  """
+  Subscribe to assessment deletion events
+  """
   assessmentDeleted: AssessmentType!
 
-  """Subscribe to assessment update events"""
+  """
+  Subscribe to assessment update events
+  """
   assessmentUpdated: AssessmentType!
 
-  """Subscribe to new course creation events"""
+  """
+  Subscribe to new course creation events
+  """
   courseCreated: CourseType!
 
-  """Subscribe to course deletion events"""
+  """
+  Subscribe to course deletion events
+  """
   courseDeleted: CourseType!
 
-  """Subscribe to course update events"""
+  """
+  Subscribe to course update events
+  """
   courseUpdated: CourseType!
 
-  """Subscribe to new user creation events"""
+  """
+  Subscribe to new user creation events
+  """
   userCreated: UserType!
 
-  """Subscribe to user deletion events"""
+  """
+  Subscribe to user deletion events
+  """
   userDeleted: UserType!
 
-  """Subscribe to user update events"""
+  """
+  Subscribe to user update events
+  """
   userUpdated: UserType!
 }
 
@@ -155,14 +173,18 @@ input UserFilterInput {
   status: String
 }
 
-"""User role in the system"""
+"""
+User role in the system
+"""
 enum UserRole {
   ADMIN
   STUDENT
   TEACHER
 }
 
-"""User account status"""
+"""
+User account status
+"""
 enum UserStatus {
   ACTIVE
   INACTIVE

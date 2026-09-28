@@ -7,9 +7,12 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  VersionColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
+import { columnNumericTransformer } from '../utils/money';
 
 export enum PaymentStatus {
   PENDING = 'pending',
@@ -19,7 +22,6 @@ export enum PaymentStatus {
   REFUNDED = 'refunded',
   CANCELLED = 'cancelled',
 }
-
 export enum PaymentMethod {
   CREDIT_CARD = 'credit_card',
   BANK_TRANSFER = 'bank_transfer',
@@ -28,13 +30,24 @@ export enum PaymentMethod {
   WALLET = 'wallet',
 }
 
+/**
+ * Represents the payment entity.
+ */
 @Entity('payments')
 @Index(['userId', 'status'])
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @VersionColumn()
+  version: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: columnNumericTransformer,
+  })
   amount: number;
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })
@@ -72,6 +85,10 @@ export class Payment {
   @Index()
   courseId: string;
 
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Index()
+  idempotencyKey: string | null;
+
   @Column({ type: 'boolean', default: false })
   isSubscription: boolean;
 
@@ -83,4 +100,7 @@ export class Payment {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

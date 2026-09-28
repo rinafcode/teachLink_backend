@@ -1,31 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bull';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
 import { User } from './entities/user.entity';
-import { Enrollment } from '../courses/entities/enrollment.entity';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  ExportService,
-  UserDataExportProcessor,
-  UserExportHistory,
-} from '../common/export/export.service';
+import { UserActivityController } from './controllers/user-activity.controller';
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
+/**
+ * Users module to handle user-specific operations.
+ * Currently focuses on user search, activity timeline, and history.
+ */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Enrollment, UserExportHistory]),
-    BullModule.registerQueue({ name: 'user-data-export' }),
-  ],
-  controllers: [UsersController],
-  providers: [
-    UsersService,
-    ExportService,
-    UserDataExportProcessor,
-    RolesGuard,
-    JwtAuthGuard,
-  ],
+  imports: [TypeOrmModule.forFeature([User]), AuditLogModule],
+  controllers: [UserActivityController, UsersController],
+  providers: [UsersService],
   exports: [UsersService],
 })
 export class UsersModule {}

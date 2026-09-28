@@ -1,6 +1,5 @@
 import { ConfigService } from '@nestjs/config';
 import { ElasticsearchModuleOptions } from '@nestjs/elasticsearch';
-
 export const createElasticsearchConfig = (
   configService: ConfigService,
 ): ElasticsearchModuleOptions => {
@@ -11,7 +10,6 @@ export const createElasticsearchConfig = (
   const caFingerprint = configService.get<string>('ELASTICSEARCH_CA_FINGERPRINT');
   const requestTimeout = configService.get<number>('ELASTICSEARCH_REQUEST_TIMEOUT') ?? 30000;
   const maxRetries = configService.get<number>('ELASTICSEARCH_MAX_RETRIES') ?? 3;
-
   const options: ElasticsearchModuleOptions = {
     node,
     maxRetries,
@@ -19,16 +17,13 @@ export const createElasticsearchConfig = (
     sniffOnStart: false,
     compression: true,
   };
-
   if (apiKey) {
     options.auth = { apiKey };
   } else if (username && password) {
     options.auth = { username, password };
   }
-
   if (caFingerprint) {
     options.caFingerprint = caFingerprint;
   }
-
   return options;
 };

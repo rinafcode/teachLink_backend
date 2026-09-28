@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 
 export enum ContentType {
@@ -13,7 +14,6 @@ export enum ContentType {
   DOCUMENT = 'document',
   AUDIO = 'audio',
 }
-
 export enum ContentStatus {
   UPLOADING = 'uploading',
   PROCESSING = 'processing',
@@ -22,6 +22,9 @@ export enum ContentStatus {
   FAILED = 'failed',
 }
 
+/**
+ * Represents the content Metadata entity.
+ */
 @Entity('content_metadata')
 @Index(['contentId'], { unique: true })
 @Index(['status'])
@@ -29,6 +32,9 @@ export enum ContentStatus {
 export class ContentMetadata {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ name: 'content_id', unique: true })
   contentId: string;
@@ -116,6 +122,10 @@ export class ContentMetadata {
 
   @Column({ name: 'access_count', default: 0 })
   accessCount: number;
+
+  @Column({ name: 'expires_at', type: 'timestamp', nullable: true })
+  @Index()
+  expiresAt: Date;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -1,249 +1,126 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Cache } from 'cache-manager';
-import { AssetOptimizationService } from './optimization/asset-optimization.service';
-import { EdgeCachingService } from './caching/edge-caching.service';
-import { GeoLocationService } from './geo/geo-location.service';
-import { CloudflareService } from './providers/cloudflare.service';
-import { ContentMetadata, ContentType, ContentStatus } from './entities/content-metadata.entity';
-import { UploadedFile } from '../common/types/file.types';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { resolveCdnConfig, resolveCacheHeaderConfig } from './cdn.config';
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
+import CircuitBreaker from 'opossum';
+import * as fileType from 'file-type';
 
-export interface ContentDeliveryOptions {
-  optimize?: boolean;
-  quality?: number;
-  format?: 'webp' | 'jpeg' | 'png';
-  width?: number;
-  height?: number;
-  userLocation?: string;
-  bandwidth?: number;
-  responsive?: boolean;
+export interface CacheHeaders {
+  'Cache-Control': string;
+  'CDN-Cache-Control'?: string;
+}
+
+export interface InvalidationResult {
+  success: boolean;
+  paths: string[];
+  message: string;
 }
 
 @Injectable()
 export class CdnService {
   private readonly logger = new Logger(CdnService.name);
+  private readonly cdn = resolveCdnConfig();
+  private readonly cacheHeaders = resolveCacheHeaderConfig();
+  private readonly cfClient = new CloudFrontClient({});
+  private readonly invalidationBreaker: CircuitBreaker<[string[]], any>;
 
-  constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    @InjectRepository(ContentMetadata)
-    private contentMetadataRepository: Repository<ContentMetadata>,
-    private assetOptimizationService: AssetOptimizationService,
-    private edgeCachingService: EdgeCachingService,
-    private geoLocationService: GeoLocationService,
-    private cloudflareService: CloudflareService,
-  ) {}
-
-  async deliverContent(contentId: string, options: ContentDeliveryOptions = {}): Promise<string> {
-    const cacheKey = `cdn:${contentId}:${JSON.stringify(options)}`;
-
-    // Check cache first
-    const cachedUrl = await this.cacheManager.get<string>(cacheKey);
-    if (cachedUrl) {
-      return cachedUrl;
-    }
-
-    // Get content metadata
-    const metadata = await this.getContentMetadata(contentId);
-    if (!metadata) {
-      throw new Error(`Content not found: ${contentId}`);
-    }
-
-    // Update access statistics
-    await this.updateAccessStats(metadata);
-
-    // Determine optimal delivery strategy
-    const optimalLocation = await this.geoLocationService.getOptimalLocation(options.userLocation);
-
-    // Optimize content if needed
-    let deliveryUrl = metadata.cdnUrl || metadata.originalUrl;
-    if (options.optimize && metadata.contentType === ContentType.IMAGE) {
-      deliveryUrl = await this.assetOptimizationService.optimizeImage(deliveryUrl, options);
-    }
-
-    // Apply bandwidth optimization
-    if (options.bandwidth) {
-      deliveryUrl = await this.optimizeForBandwidth(deliveryUrl, options.bandwidth);
-    }
-
-    // Get edge-cached URL
-    const edgeUrl = await this.edgeCachingService.getEdgeUrl(deliveryUrl, optimalLocation);
-
-    // Cache the result
-    await this.cacheManager.set(cacheKey, edgeUrl, 3600000); // 1 hour
-
-    return edgeUrl;
-  }
-
-  async invalidateContent(contentId: string): Promise<void> {
-    // Purge from edge caches
-    await this.edgeCachingService.purgeContent(contentId);
-
-    // Clear local cache - simplified approach
-    // In a real implementation, you might need to track cache keys separately
-    // or use a cache store that supports key pattern deletion
-    this.logger.warn(`Cache invalidation for ${contentId} - manual cleanup may be required`);
-  }
-
-  async uploadContent(
-    file: UploadedFile,
-    options: ContentDeliveryOptions = {},
-  ): Promise<ContentMetadata> {
-    try {
-      // Upload to primary CDN provider with failover
-      const uploadResult = await this.uploadWithFailover(file);
-
-      // Create metadata entity
-      const contentId = this.generateContentId();
-      const metadata = this.contentMetadataRepository.create({
-        contentId,
-        originalUrl: uploadResult.url,
-        cdnUrl: uploadResult.url,
-        contentType: this.mapContentType(file.mimetype),
-        fileName: file.originalname,
-        mimeType: file.mimetype,
-        fileSize: file.size,
-        status: ContentStatus.READY,
-        etag: uploadResult.etag,
-        provider: uploadResult.provider,
-        optimizationSettings: options.optimize
-          ? {
-              width: options.width,
-              height: options.height,
-              quality: options.quality,
-              format: options.format,
-              responsive: options.responsive,
-            }
-          : undefined,
-      });
-
-      // Store metadata
-      await this.contentMetadataRepository.save(metadata);
-
-      // Optimize asynchronously if needed
-      if (options.optimize && this.isImageFile(file)) {
-        setImmediate(async () => {
-          try {
-            await this.optimizeContentAsync(metadata, options);
-          } catch (error) {
-            this.logger.error(`Async optimization failed for ${contentId}:`, error);
-          }
+  constructor() {
+    this.invalidationBreaker = new CircuitBreaker(
+      async (paths: string[]) => {
+        const command = new CreateInvalidationCommand({
+          DistributionId: this.cdn.distributionId,
+          InvalidationBatch: {
+            Paths: { Quantity: paths.length, Items: paths },
+            CallerReference: Date.now().toString(),
+          },
         });
-      }
+        return this.cfClient.send(command);
+      },
+      {
+        timeout: 5000,
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+      },
+    );
+  }
 
-      return metadata;
-    } catch (error) {
-      this.logger.error('Upload failed:', error);
-      throw error;
+  /**
+   * Returns optimised Cache-Control headers for a given asset path.
+   * Immutable assets (contain a content hash) get a 1-year max-age.
+   * HTML and other assets get a short TTL with stale-while-revalidate.
+   */
+  getCacheHeaders(assetPath: string): CacheHeaders {
+    const isImmutable = /\.[a-f0-9]{8,}\.(js|css|woff2?|png|jpg|webp|svg)$/i.test(assetPath);
+
+    if (isImmutable) {
+      return {
+        'Cache-Control': `public, max-age=${this.cacheHeaders.immutableMaxAge}, immutable`,
+        'CDN-Cache-Control': `public, max-age=${this.cacheHeaders.immutableMaxAge}`,
+      };
     }
+
+    return {
+      'Cache-Control': `public, max-age=${this.cacheHeaders.htmlMaxAge}, stale-while-revalidate=${this.cacheHeaders.staleWhileRevalidate}`,
+      'CDN-Cache-Control': `public, max-age=${this.cacheHeaders.htmlMaxAge}`,
+    };
   }
 
-  private async getContentMetadata(contentId: string): Promise<ContentMetadata | null> {
-    return this.contentMetadataRepository.findOne({
-      where: { contentId },
-    });
-  }
-
-  private async storeContentMetadata(metadata: ContentMetadata): Promise<void> {
-    await this.contentMetadataRepository.save(metadata);
-  }
-
-  private async updateAccessStats(metadata: ContentMetadata): Promise<void> {
-    metadata.accessCount += 1;
-    metadata.lastAccessedAt = new Date();
-    await this.contentMetadataRepository.save(metadata);
-  }
-
-  private async uploadWithFailover(file: UploadedFile): Promise<{
-    url: string;
-    etag?: string;
-    provider: string;
-  }> {
-    // Try primary provider (Cloudflare)
-    try {
-      const result = await this.cloudflareService.uploadFile(file);
-      return { ...result, provider: 'cloudflare' };
-    } catch (error) {
-      this.logger.warn('Primary provider failed, trying fallback:', error);
-
-      // Try fallback provider (AWS CloudFront)
-      try {
-        // Note: AWS service would need to be injected
-        // For now, return mock fallback
-        throw new Error('AWS provider not implemented in this context');
-      } catch (fallbackError) {
-        this.logger.error('All providers failed:', fallbackError);
-        throw new Error('All CDN providers failed to upload file');
-      }
-    }
-  }
-
-  private async optimizeContentAsync(
-    metadata: ContentMetadata,
-    options: ContentDeliveryOptions,
-  ): Promise<void> {
-    try {
-      metadata.status = ContentStatus.PROCESSING;
-      await this.contentMetadataRepository.save(metadata);
-
-      const _optimizedUrl = await this.assetOptimizationService.optimizeImage(
-        metadata.cdnUrl,
-        options,
+  /**
+   * Invalidates CDN cache for the given paths.
+   * In production this would call the CloudFront CreateInvalidation API.
+   * The distribution ID is read from CLOUDFRONT_DISTRIBUTION_ID env var.
+   */
+  async invalidate(paths: string[]): Promise<InvalidationResult> {
+    if (!this.cdn.enabled || !this.cdn.distributionId) {
+      this.logger.warn(
+        'CDN invalidation skipped — CDN_ENABLED is false or CLOUDFRONT_DISTRIBUTION_ID not set',
       );
+      return { success: false, paths, message: 'CDN not configured' };
+    }
 
-      // Generate responsive variants if requested
-      let variants = [];
-      if (options.responsive) {
-        variants = await this.assetOptimizationService.generateResponsiveImages(metadata.cdnUrl);
-      }
+    this.logger.log(
+      `Invalidating ${paths.length} path(s) on distribution ${this.cdn.distributionId}: ${paths.join(', ')}`,
+    );
 
-      metadata.status = ContentStatus.OPTIMIZED;
-      metadata.optimizedSize = variants.reduce(
-        (total, variant) => total + variant.optimizedSize,
-        0,
-      );
-      metadata.variants = variants.map((v) => ({
-        name: v.url.split('/').pop(),
-        url: v.url,
-        width: options.width || 0,
-        height: options.height || 0,
-        size: v.optimizedSize,
-      }));
-
-      await this.contentMetadataRepository.save(metadata);
-    } catch (error) {
-      metadata.status = ContentStatus.FAILED;
-      metadata.errorMessage = error.message;
-      await this.contentMetadataRepository.save(metadata);
-      throw error;
+    try {
+      await this.invalidationBreaker.fire(paths);
+      return {
+        success: true,
+        paths,
+        message: `Invalidation queued for distribution ${this.cdn.distributionId}`,
+      };
+    } catch (error: any) {
+      this.logger.error(`CloudFront invalidation failed: ${error.message}`, error.stack);
+      return { success: false, paths, message: 'CDN invalidation failed' };
     }
   }
 
-  private async optimizeForBandwidth(url: string, _bandwidth: number): Promise<string> {
-    // Implementation would adjust quality/format based on bandwidth
-    // For now, return original URL
-    return url;
+  /** Returns the CDN URL for a given asset path. */
+  getAssetUrl(assetPath: string): string {
+    if (!this.cdn.enabled || !this.cdn.domain) return assetPath;
+    return `https://${this.cdn.domain}${assetPath.startsWith('/') ? '' : '/'}${assetPath}`;
   }
 
-  private isImageFile(file: UploadedFile): boolean {
-    return file.mimetype.startsWith('image/');
+  getConfig() {
+    return { ...this.cdn, cacheHeaders: this.cacheHeaders };
   }
 
-  private getContentType(file: UploadedFile): 'image' | 'video' | 'document' {
-    if (file.mimetype.startsWith('image/')) return 'image';
-    if (file.mimetype.startsWith('video/')) return 'video';
-    return 'document';
-  }
+  /**
+   * Validates uploaded file size and magic bytes against expected MIME.
+   * Throws 413 Payload Too Large if size exceeds limits (500MB video, 10MB image).
+   * Throws 415 Unsupported Media Type if magic bytes do not match.
+   */
+  async validateUpload(buffer: Buffer, declaredMimeType: string): Promise<void> {
+    const isVideo = declaredMimeType.startsWith('video/');
+    const maxSize = isVideo ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
 
-  private generateContentId(): string {
-    return `cdn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
+    if (buffer.length > maxSize) {
+      throw new HttpException('Payload Too Large', HttpStatus.PAYLOAD_TOO_LARGE);
+    }
 
-  private mapContentType(mimeType: string): ContentType {
-    if (mimeType.startsWith('image/')) return ContentType.IMAGE;
-    if (mimeType.startsWith('video/')) return ContentType.VIDEO;
-    if (mimeType.startsWith('audio/')) return ContentType.AUDIO;
-    return ContentType.DOCUMENT;
+    const type = await fileType.fromBuffer(buffer);
+    if (!type || type.mime !== declaredMimeType) {
+      this.logger.warn(`MIME type mismatch: declared ${declaredMimeType}, detected ${type?.mime}`);
+      throw new HttpException('Unsupported Media Type', HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
   }
 }

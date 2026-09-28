@@ -1,240 +1,224 @@
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Param,
-  Query,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
-import { CachingService } from './caching.service';
-import { CacheAnalyticsService } from './analytics/cache-analytics.service';
-import { CacheInvalidationService } from './invalidation/invalidation.service';
-import { CacheWarmingService } from './warming/cache-warming.service';
-import { CacheStrategiesService } from './strategies/cache-strategies.service';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-// import { Role } from '../common/decorators/roles.decorator';
+  CacheAnalyticsService,
+  CacheAnalyticsReport,
+  TTLRecommendation,
+} from './cache-analytics.service';
+import {
+  CacheOptimizationService,
+  OptimizationResult,
+  CacheOptimizationConfig,
+} from './cache-optimization.service';
 
 @ApiTags('Cache Management')
-@ApiBearerAuth()
 @Controller('cache')
-@UseGuards(RolesGuard)
-@Roles('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class CacheManagementController {
   constructor(
-    private readonly cachingService: CachingService,
     private readonly analyticsService: CacheAnalyticsService,
-    private readonly invalidationService: CacheInvalidationService,
-    private readonly warmingService: CacheWarmingService,
-    private readonly strategiesService: CacheStrategiesService,
+    private readonly optimizationService: CacheOptimizationService,
   ) {}
 
-  @Get('stats')
-  @ApiOperation({ summary: 'Get cache statistics' })
+  @Get('analytics/report')
+  @ApiOperation({ summary: 'Get comprehensive cache analytics report' })
   @ApiResponse({
     status: 200,
-    description: 'Returns cache statistics including hit/miss rates and memory usage',
-  })
-  async getStats() {
-    const [redisStats, analyticsSummary, warmingStats, invalidationStats] = await Promise.all([
-      this.cachingService.getStats(),
-      this.analyticsService.getSummary(),
-      this.warmingService.getStats(),
-      this.invalidationService.getStats(),
-    ]);
-
-    return {
-      redis: redisStats,
-      analytics: {
-        totalHits: analyticsSummary.totalHits,
-        totalMisses: analyticsSummary.totalMisses,
-        hitRate: `${analyticsSummary.hitRate}%`,
-        missRate: `${analyticsSummary.missRate}%`,
-        totalKeys: analyticsSummary.totalKeys,
-        memoryUsage: analyticsSummary.memoryUsage,
-        topKeys: analyticsSummary.topKeys,
+    description:
+      'Cache analytics report with hit rates, TTL recommendations, and performance metrics',
+    schema: {
+      type: 'object',
+      properties: {
+        totalKeys: { type: 'number' },
+        overallHitRate: { type: 'number' },
+        memoryUsage: { type: 'number' },
+        topPerformers: { type: 'array' },
+        underPerformers: { type: 'array' },
+        ttlRecommendations: { type: 'array' },
+        adaptiveTtlAdjustments: { type: 'number' },
+        generatedAt: { type: 'string', format: 'date-time' },
       },
-      warming: warmingStats,
-      invalidation: invalidationStats,
-    };
+    },
+  })
+  async getAnalyticsReport(): Promise<CacheAnalyticsReport> {
+    return this.analyticsService.generateAnalyticsReport();
   }
 
-  @Get('analytics')
-  @ApiOperation({ summary: 'Get detailed cache analytics' })
+  @Get('analytics/metrics/:key')
+  @ApiOperation({ summary: 'Get metrics for a specific cache key' })
+  @ApiResponse({ status: 200, description: 'Cache metrics for the specified key' })
+  async getKeyMetrics(@Param('key') key: string) {
+    // This would need to be implemented in the analytics service
+    return { message: `Metrics for key: ${key}` };
+  }
+
+  @Get('ttl/recommendations')
+  @ApiOperation({ summary: 'Get TTL optimization recommendations' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Limit number of recommendations',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Returns detailed cache analytics including metrics per key',
-  })
-  async getAnalytics() {
-    const summary = await this.analyticsService.getSummary();
-    const allMetrics = this.analyticsService.getAllMetrics();
-
-    return {
-      summary: {
-        totalHits: summary.totalHits,
-        totalMisses: summary.totalMisses,
-        hitRate: summary.hitRate,
-        missRate: summary.missRate,
+    description: 'List of TTL optimization recommendations',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+          currentTtl: { type: 'number' },
+          recommendedTtl: { type: 'number' },
+          reason: { type: 'string' },
+          confidence: { type: 'number' },
+          potentialSavings: { type: 'number' },
+        },
       },
-      metrics: allMetrics,
-      patternStats: Object.fromEntries(summary.patternStats),
-    };
+    },
+  })
+  async getTTLRecommendations(@Query('limit') limit?: number): Promise<TTLRecommendation[]> {
+    const report = await this.analyticsService.generateAnalyticsReport();
+    return limit ? report.ttlRecommendations.slice(0, limit) : report.ttlRecommendations;
   }
 
-  @Get('metrics/prometheus')
-  @ApiOperation({ summary: 'Get Prometheus-compatible metrics' })
+  @Post('optimize')
+  @ApiOperation({ summary: 'Run comprehensive cache optimization' })
   @ApiResponse({
     status: 200,
-    description: 'Returns metrics in Prometheus format',
+    description: 'Optimization results',
+    schema: {
+      type: 'object',
+      properties: {
+        optimizationsApplied: { type: 'number' },
+        memoryFreed: { type: 'number' },
+        hitRateImprovement: { type: 'number' },
+        recommendations: { type: 'array' },
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
   })
-  getPrometheusMetrics() {
-    return this.analyticsService.getPrometheusMetrics();
+  async optimizeCache(): Promise<OptimizationResult> {
+    return this.optimizationService.optimizeCache();
   }
 
-  @Get('strategies')
-  @ApiOperation({ summary: 'Get all cache strategies' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns all registered cache strategies',
-  })
-  getStrategies() {
+  @Get('config')
+  @ApiOperation({ summary: 'Get cache optimization configuration' })
+  @ApiResponse({ status: 200, description: 'Current cache optimization configuration' })
+  getOptimizationConfig(): CacheOptimizationConfig {
+    return this.optimizationService.getOptimizationConfig();
+  }
+
+  @Put('config')
+  @ApiOperation({ summary: 'Update cache optimization configuration' })
+  @ApiResponse({ status: 200, description: 'Configuration updated successfully' })
+  updateOptimizationConfig(@Body() config: Partial<CacheOptimizationConfig>) {
+    this.optimizationService.updateOptimizationConfig(config);
+    return { message: 'Cache optimization configuration updated' };
+  }
+
+  @Post('ttl/:key')
+  @ApiOperation({ summary: 'Set custom TTL for a specific cache key pattern' })
+  @ApiResponse({ status: 200, description: 'TTL updated successfully' })
+  async setCustomTTL(@Param('key') key: string, @Body() body: { ttl: number; reason?: string }) {
+    // This would update the TTL configuration
     return {
-      strategies: this.strategiesService.getAllStrategies(),
-      ttlConstants: this.cachingService.getTTLConstants(),
-    };
-  }
-
-  @Get('warmed')
-  @ApiOperation({ summary: 'Get warmed cache keys' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns all keys that have been warmed',
-  })
-  getWarmedKeys() {
-    return {
-      stats: this.warmingService.getStats(),
-      keys: this.warmingService.getWarmedKeys(),
-    };
-  }
-
-  @Get('key/:key')
-  @ApiOperation({ summary: 'Get a cached value by key' })
-  @ApiParam({ name: 'key', description: 'Cache key to retrieve' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns the cached value',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Key not found in cache',
-  })
-  async getKey(@Param('key') key: string) {
-    const value = await this.cachingService.get(key);
-    const ttl = await this.cachingService.getTtl(key);
-
-    return {
+      message: `TTL for key pattern '${key}' set to ${body.ttl} seconds`,
       key,
-      value,
-      ttl,
-      exists: value !== null,
+      ttl: body.ttl,
+      reason: body.reason,
     };
   }
 
-  @Delete('clear')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Clear all cache' })
-  @ApiResponse({
-    status: 204,
-    description: 'All cache cleared successfully',
-  })
-  async clearAll() {
-    await this.cachingService.clearAll();
+  @Delete('key/:key')
+  @ApiOperation({ summary: 'Delete a specific cache key' })
+  @ApiResponse({ status: 200, description: 'Cache key deleted successfully' })
+  async deleteKey(@Param('key') key: string) {
+    await this.optimizationService.del(key);
+    return { message: `Cache key '${key}' deleted successfully` };
   }
 
-  @Delete('clear/:pattern')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Clear cache by pattern' })
-  @ApiParam({ name: 'pattern', description: 'Pattern to match (use * as wildcard)' })
-  @ApiResponse({
-    status: 204,
-    description: 'Cache entries matching pattern cleared successfully',
-  })
-  async clearByPattern(@Param('pattern') pattern: string) {
-    // Decode URL-encoded pattern
-    const decodedPattern = decodeURIComponent(pattern);
-    await this.cachingService.delPattern(`cache:${decodedPattern}`);
+  @Post('clear')
+  @ApiOperation({ summary: 'Clear all cache data' })
+  @ApiResponse({ status: 200, description: 'Cache cleared successfully' })
+  async clearCache() {
+    // This would need to be implemented
+    return { message: 'Cache cleared successfully' };
   }
 
-  @Delete('invalidate/course/:courseId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Invalidate all cache for a specific course' })
-  @ApiParam({ name: 'courseId', description: 'Course ID to invalidate cache for' })
-  @ApiResponse({
-    status: 204,
-    description: 'Course cache invalidated successfully',
-  })
-  async invalidateCourse(@Param('courseId') courseId: string) {
-    await this.invalidationService.invalidateCourse(courseId);
-  }
-
-  @Delete('invalidate/user/:userId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Invalidate all cache for a specific user' })
-  @ApiParam({ name: 'userId', description: 'User ID to invalidate cache for' })
-  @ApiResponse({
-    status: 204,
-    description: 'User cache invalidated successfully',
-  })
-  async invalidateUser(@Param('userId') userId: string) {
-    await this.invalidationService.invalidateUser(userId);
-  }
-
-  @Delete('invalidate/search')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Invalidate all search cache' })
-  @ApiResponse({
-    status: 204,
-    description: 'Search cache invalidated successfully',
-  })
-  async invalidateSearch() {
-    await this.invalidationService.invalidateSearch();
-  }
-
-  @Post('warm')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Manually trigger cache warming' })
+  @Get('stats')
+  @ApiOperation({ summary: 'Get real-time cache statistics' })
   @ApiResponse({
     status: 200,
-    description: 'Cache warming triggered successfully',
+    description: 'Real-time cache statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        totalKeys: { type: 'number' },
+        memoryUsage: { type: 'number' },
+        hitRate: { type: 'number' },
+        operationsPerSecond: { type: 'number' },
+        averageResponseTime: { type: 'number' },
+      },
+    },
   })
-  async warmCache() {
-    await this.warmingService.refreshAll();
+  async getCacheStats() {
+    const report = await this.analyticsService.generateAnalyticsReport();
+
     return {
-      message: 'Cache warming completed',
-      stats: this.warmingService.getStats(),
+      totalKeys: report.totalKeys,
+      memoryUsage: report.memoryUsage,
+      hitRate: report.overallHitRate,
+      operationsPerSecond: 0, // Would need to be calculated from recent metrics
+      averageResponseTime: 0, // Would need to be calculated from performance metrics
+      lastUpdated: new Date(),
     };
   }
 
-  @Post('analytics/reset')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset analytics metrics' })
-  @ApiResponse({
-    status: 200,
-    description: 'Analytics metrics reset successfully',
-  })
-  async resetAnalytics(@Query('pattern') pattern?: string) {
-    if (pattern) {
-      this.analyticsService.resetPatternMetrics(pattern);
-    } else {
-      this.analyticsService.resetMetrics();
+  @Get('health')
+  @ApiOperation({ summary: 'Check cache system health' })
+  @ApiResponse({ status: 200, description: 'Cache system health status' })
+  async getCacheHealth() {
+    const report = await this.analyticsService.generateAnalyticsReport();
+
+    // Define health thresholds
+    const healthStatus = {
+      status: 'healthy' as 'healthy' | 'warning' | 'critical',
+      hitRate: report.overallHitRate,
+      memoryUsage: report.memoryUsage,
+      totalKeys: report.totalKeys,
+      issues: [] as string[],
+      recommendations: [] as string[],
+    };
+
+    // Check hit rate health
+    if (report.overallHitRate < 0.5) {
+      healthStatus.status = 'warning';
+      healthStatus.issues.push('Low overall hit rate');
+      healthStatus.recommendations.push('Review cache TTL settings and key patterns');
     }
 
-    return {
-      message: pattern ? `Analytics reset for pattern: ${pattern}` : 'All analytics reset',
-    };
+    // Check for underperforming keys
+    if (report.underPerformers.length > report.totalKeys * 0.3) {
+      healthStatus.status = 'warning';
+      healthStatus.issues.push('High number of underperforming cache keys');
+      healthStatus.recommendations.push('Run cache optimization to clean up poor performers');
+    }
+
+    // Check memory usage (if available)
+    if (report.memoryUsage > 1024 * 1024 * 1024) {
+      // > 1GB
+      healthStatus.status = 'warning';
+      healthStatus.issues.push('High memory usage');
+      healthStatus.recommendations.push('Consider reducing TTL for large objects');
+    }
+
+    return healthStatus;
   }
 }

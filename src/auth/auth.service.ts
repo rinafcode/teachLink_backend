@@ -1,404 +1,251 @@
-import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { UsersService } from '../users/users.service';
-import { RegisterDto, LoginDto, ResetPasswordDto, ChangePasswordDto } from './dto/auth.dto';
-import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
-import { SessionService } from '../session/session.service';
-import { TransactionService } from '../common/database/transaction.service';
-import { UserRole } from '../users/entities/user.entity';
-import {
-  ensureValidCredentials,
-  ensureUserIsActive,
-  ensureValidUserToken,
-} from '../common/utils/user.utils';
-import { NotificationsService } from '../notifications/notifications.service';
-import { AuditLogService } from '../audit-log/audit-log.service';
-import { AuditAction, AuditSeverity } from '../audit-log/enums/audit-action.enum';
-
-interface JwtTokenPayload {
-  sub: string;
-  email: string;
-  role: UserRole;
-  sid: string;
-}
-
-interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface AuthUserResponse {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  isEmailVerified: boolean;
-}
-
-interface RegisterResponse {
-  user: AuthUserResponse;
-  accessToken: string;
-  refreshToken: string;
-  message: string;
-}
-
-interface LoginResponse {
-  user: AuthUserResponse;
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface TokenUser {
-  id: string;
-  email: string;
-  role: UserRole;
-}
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
+import { User, UserStatus } from '../users/entities/user.entity';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { SecurityEventLogger, SecurityEventType } from '../security/audit/security-event-logger';
+import { loadPEMKey } from './config/jwt-config.factory';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
+  // Default refresh token expiration (7 days)
+  private readonly refreshTokenExpiryMs = 7 * 24 * 60 * 60 * 1000;
 
   constructor(
-    private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly securityEventLogger: SecurityEventLogger,
     private readonly configService: ConfigService,
-    private readonly sessionService: SessionService,
-    private readonly transactionService: TransactionService,
-    private readonly notificationsService: NotificationsService,
-    private readonly auditLogService: AuditLogService,
   ) {}
 
-  async register(registerDto: RegisterDto, ipAddress?: string, userAgent?: string): Promise<RegisterResponse> {
-    return await this.transactionService.runInTransaction(async (_manager) => {
-      // Create user
-      const user = await this.usersService.create(registerDto);
+  /**
+   * Centralized security invariant asserting user account state prior to issuing tokens.
+   * Prevents inactive, suspended, pending, or banned users from obtaining access or refresh tokens.
+   */
+  public assertUserMayAuthenticate(user: User, action = 'auth', ip?: string): void {
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      if (user) {
+        this.securityEventLogger.emit({
+          eventType: SecurityEventType.ACCOUNT_LOCKED,
+          userId: user.id,
+          ip,
+          severity: 'high',
+          details: {
+            reason: 'inactive_user_auth_attempt',
+            action,
+            status: user.status,
+          },
+        });
+      }
+      throw new UnauthorizedException('User is not active');
+    }
+  }
 
-      // Generate email verification token
-      const verificationToken = this.generateRandomToken();
-      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  /**
+   * Generates tokens for the user and saves the refresh token hash.
+   */
+  async login(user: User, ip?: string) {
+    this.assertUserMayAuthenticate(user, 'login', ip);
 
-      await this.usersService.updateEmailVerificationToken(
-        user.id,
-        verificationToken,
-        verificationExpires,
-      );
+    const tokens = await this.generateTokens(user);
+    await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+    return tokens;
+  }
 
-      // Send verification email
-      await this.notificationsService.sendVerificationEmail(user.email, verificationToken);
-
-      const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-register' });
-      const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
-
-      // Save refresh token
-      const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-      await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
-
-      // Log registration
-      await this.auditLogService.logAuth(
-        AuditAction.REGISTER,
-        user.id,
-        user.email,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
-        { sessionId },
-      );
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          isEmailVerified: user.isEmailVerified,
-        },
-        accessToken,
-        refreshToken,
-        message: 'Registration successful. Please check your email to verify your account.',
-      };
+  emitAuthFailure(details: Record<string, unknown>, userId?: string | null, ip?: string | null) {
+    this.securityEventLogger.emit({
+      eventType: SecurityEventType.AUTH_FAILURE,
+      userId,
+      ip,
+      severity: 'medium',
+      details,
     });
   }
 
-  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string): Promise<LoginResponse> {
-    // Find user
-    const userOrNull = await this.usersService.findByEmail(loginDto.email);
-
-    // Log failed login attempt if user not found
-    if (!userOrNull) {
-      await this.auditLogService.logAuth(
-        AuditAction.LOGIN_FAILED,
-        null,
-        loginDto.email,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
-        { reason: 'User not found' },
-        AuditSeverity.WARNING,
-      );
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const user = ensureValidCredentials(userOrNull);
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) {
-      await this.auditLogService.logAuth(
-        AuditAction.LOGIN_FAILED,
-        user.id,
-        user.email,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
-        { reason: 'Invalid password' },
-        AuditSeverity.WARNING,
-      );
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Check if user is active
+  /**
+   * Refreshes the tokens if the provided refresh token is valid and not blacklisted.
+   */
+  async refreshTokens(refreshToken: string, ip?: string) {
+    let decoded: any;
     try {
-      ensureUserIsActive(user);
-    } catch (error) {
-      await this.auditLogService.logAuth(
-        AuditAction.LOGIN_FAILED,
-        user.id,
-        user.email,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
-        { reason: 'User account inactive' },
-        AuditSeverity.WARNING,
-      );
-      throw error;
+      // Verify token signature and expiration
+      decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+    } catch (_e) {
+      this.securityEventLogger.emit({
+        eventType: SecurityEventType.AUTH_FAILURE,
+        ip,
+        severity: 'medium',
+        details: {
+          reason: 'invalid_or_expired_refresh_token',
+          action: 'refreshTokens',
+        },
+      });
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Update last login
-    await this.usersService.updateLastLogin(user.id);
+    const userId = decoded.sub;
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
+    });
 
-    const sessionId = await this.sessionService.createSession(user.id, { type: 'auth-login' });
-    const { accessToken, refreshToken } = await this.generateTokens(user, sessionId);
+    if (!user || !user.refreshToken) {
+      this.securityEventLogger.emit({
+        eventType: SecurityEventType.AUTH_FAILURE,
+        userId,
+        ip,
+        severity: 'medium',
+        details: {
+          reason: !user ? 'user_not_found' : 'missing_refresh_token',
+          action: 'refreshTokens',
+        },
+      });
+      throw new UnauthorizedException('Access Denied');
+    }
 
-    // Save refresh token
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
+    this.assertUserMayAuthenticate(user, 'refreshTokens', ip);
 
-    // Log successful login
-    await this.auditLogService.logAuth(
-      AuditAction.LOGIN,
-      user.id,
-      user.email,
-      ipAddress || 'unknown',
-      userAgent || 'unknown',
-      { sessionId },
+    const refreshTokenMatches = timingSafeEqual(
+      Buffer.from(this.hashRefreshToken(refreshToken)),
+      Buffer.from(user.refreshToken),
     );
 
+    if (!refreshTokenMatches) {
+      this.securityEventLogger.emit({
+        eventType: SecurityEventType.AUTH_FAILURE,
+        userId,
+        ip,
+        severity: 'high',
+        details: {
+          reason: 'refresh_token_hash_mismatch',
+          action: 'refreshTokens',
+        },
+      });
+      throw new UnauthorizedException('Access Denied');
+    }
+
+    try {
+      const jti = decoded.jti;
+      if (!jti) {
+        this.securityEventLogger.emit({
+          eventType: SecurityEventType.AUTH_FAILURE,
+          userId,
+          ip,
+          severity: 'medium',
+          details: {
+            reason: 'missing_refresh_token_jti',
+            action: 'refreshTokens',
+          },
+        });
+        throw new UnauthorizedException('Invalid token format');
+      }
+
+      // Check blacklist
+      const isBlacklisted = await this.tokenBlacklistService.isBlacklisted(jti);
+      if (isBlacklisted) {
+        // Token reuse detected. We should invalidate the current active session.
+        this.securityEventLogger.emit({
+          eventType: SecurityEventType.TOKEN_REUSE,
+          userId,
+          ip,
+          severity: 'critical',
+          details: {
+            reason: 'blacklisted_refresh_token_reused',
+            action: 'refreshTokens',
+            jti,
+          },
+        });
+        await this.revokeUserTokens(userId);
+        throw new UnauthorizedException('Token has been revoked');
+      }
+
+      // Automatically invalidate the old token (rotation)
+      const expiresInMs = decoded.exp * 1000 - Date.now();
+      if (expiresInMs > 0) {
+        await this.tokenBlacklistService.addToBlacklist(jti, expiresInMs);
+      }
+
+      // Issue new tokens
+      const tokens = await this.generateTokens(user);
+      await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+      return tokens;
+    } catch (e) {
+      if (e instanceof UnauthorizedException) {
+        throw e;
+      }
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+  }
+
+  async logout(userId: string, accessToken?: string) {
+    if (accessToken) {
+      try {
+        const decoded = this.jwtService.decode(accessToken) as any;
+        if (decoded?.jti) {
+          const remainingMs = decoded.exp * 1000 - Date.now();
+          if (remainingMs > 0) {
+            await this.tokenBlacklistService.addToBlacklist(decoded.jti, remainingMs);
+          }
+        }
+      } catch {
+        // malformed token — still revoke refresh token below
+      }
+    }
+    await this.revokeUserTokens(userId);
+  }
+
+  private async revokeUserTokens(userId: string) {
+    await this.userRepository.update(userId, { refreshToken: null });
+  }
+
+  private hashRefreshToken(token: string): string {
+    const secret =
+      process.env.HMAC_SECRET || process.env.JWT_REFRESH_SECRET || 'default-hmac-secret';
+    return createHmac('sha256', secret).update(token).digest('hex');
+  }
+
+  private async updateRefreshTokenHash(userId: string, refreshToken: string) {
+    const hash = this.hashRefreshToken(refreshToken);
+    await this.userRepository.update(userId, { refreshToken: hash });
+  }
+
+  private async generateTokens(user: User) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessJti = randomUUID();
+    const refreshJti = randomUUID();
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(
+        { ...payload, jti: accessJti },
+        {
+          secret: process.env.JWT_SECRET || 'default-jwt-secret',
+          expiresIn: (process.env.JWT_EXPIRES_IN || '15m') as any,
+        },
+      ),
+      this.jwtService.signAsync(
+        { ...payload, jti: refreshJti },
+        {
+          secret: process.env.JWT_REFRESH_SECRET,
+          expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
+        },
+      ),
+    ]);
+
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-      },
       accessToken,
       refreshToken,
     };
   }
 
-  async refreshToken(refreshToken: string): Promise<AuthTokens> {
-    try {
-      // Verify refresh token
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
-      });
-      return this.sessionService.withLock(`refresh:${payload.sub}`, async () => {
-        // Find user
-        const user = await this.usersService.findOne(payload.sub);
-        if (!user || !user.refreshToken) {
-          throw new UnauthorizedException('Invalid refresh token');
-        }
-
-        // Verify stored refresh token
-        const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
-        if (!isRefreshTokenValid) {
-          throw new UnauthorizedException('Invalid refresh token');
-        }
-
-        let sessionId = payload.sid as string | undefined;
-        if (sessionId) {
-          const session = await this.sessionService.getSession(sessionId);
-          if (!session) {
-            sessionId = await this.sessionService.createSession(user.id, { type: 'auth-refresh' });
-          } else {
-            await this.sessionService.touchSession(sessionId, {
-              lastRefreshAt: Date.now(),
-            });
-          }
-        } else {
-          sessionId = await this.sessionService.createSession(user.id, { type: 'auth-refresh' });
-        }
-
-        // Generate new tokens
-        const tokens = await this.generateTokens(user, sessionId);
-
-        // Update refresh token
-        const hashedRefreshToken = await bcrypt.hash(tokens.refreshToken, 10);
-        await this.usersService.updateRefreshToken(user.id, hashedRefreshToken);
-
-        return tokens;
-      });
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-  }
-
-  async logout(userId: string, sessionId?: string, ipAddress?: string, userAgent?: string): Promise<{ message: string }> {
-    const user = await this.usersService.findOne(userId);
-
-    await this.sessionService.withLock(`logout:${userId}`, async () => {
-      if (sessionId) {
-        await this.sessionService.removeSession(sessionId);
-      }
-      await this.usersService.updateRefreshToken(userId, null);
-    });
-
-    // Log logout
-    await this.auditLogService.logAuth(
-      AuditAction.LOGOUT,
-      userId,
-      user?.email || null,
-      ipAddress || 'unknown',
-      userAgent || 'unknown',
-      { sessionId },
-    );
-
-    return { message: 'Logout successful' };
-  }
-
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    const user = await this.usersService.findByEmail(email);
-    if (!user) {
-      // Don't reveal if user exists
-      return { message: 'If the email exists, a password reset link has been sent.' };
-    }
-
-    // Generate reset token
-    const resetToken = this.generateRandomToken();
-    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    await this.usersService.updatePasswordResetToken(user.id, resetToken, resetExpires);
-
-    // Send password reset email
-    await this.notificationsService.sendPasswordResetEmail(user.email, resetToken);
-
-    return { message: 'If the email exists, a password reset link has been sent.' };
-  }
-
-  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
-    // Find user by reset token
-    const userOrNull = await this.usersService.findByPasswordResetToken(resetPasswordDto.token);
-    const user = ensureValidUserToken(
-      userOrNull,
-      'passwordResetToken',
-      'passwordResetExpires',
-      'Invalid or expired reset token',
-    );
-
-    // Update password
-    await this.usersService.update(user.id, { password: resetPasswordDto.newPassword });
-
-    // Clear reset token
-    await this.usersService.updatePasswordResetToken(user.id, null, null);
-
-    return { message: 'Password has been reset successfully' };
-  }
-
-  async changePassword(
-    userId: string,
-    changePasswordDto: ChangePasswordDto,
-    ipAddress?: string,
-    userAgent?: string,
-  ): Promise<{ message: string }> {
-    const user = await this.usersService.findOne(userId);
-
-    // Verify current password
-    const isPasswordValid = await bcrypt.compare(changePasswordDto.currentPassword, user.password);
-    if (!isPasswordValid) {
-      await this.auditLogService.logAuth(
-        AuditAction.PASSWORD_CHANGE,
-        userId,
-        user.email,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
-        { success: false, reason: 'Current password incorrect' },
-        AuditSeverity.WARNING,
-      );
-      throw new BadRequestException('Current password is incorrect');
-    }
-
-    // Update password
-    await this.usersService.update(userId, { password: changePasswordDto.newPassword });
-
-    // Log password change
-    await this.auditLogService.logAuth(
-      AuditAction.PASSWORD_CHANGE,
-      userId,
-      user.email,
-      ipAddress || 'unknown',
-      userAgent || 'unknown',
-      { success: true },
-    );
-
-    return { message: 'Password changed successfully' };
-  }
-
-  async verifyEmail(token: string): Promise<{ message: string }> {
-    // Find user by verification token
-    const userOrNull = await this.usersService.findByEmailVerificationToken(token);
-    const user = ensureValidUserToken(
-      userOrNull,
-      'emailVerificationToken',
-      'emailVerificationExpires',
-      'Invalid or expired verification token',
-    );
-
-    // Update user as verified
-    await this.usersService.update(user.id, { isEmailVerified: true });
-
-    // Clear verification token
-    await this.usersService.updateEmailVerificationToken(user.id, null, null);
-
-    return { message: 'Email verified successfully' };
-  }
-
-  private async generateTokens(user: TokenUser, sessionId: string): Promise<AuthTokens> {
-    const payload: JwtTokenPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      sid: sessionId,
-    };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET') || 'your-secret-key',
-        expiresIn: parseInt(this.configService.get<string>('JWT_EXPIRES_IN') || '900', 10), // 900s = 15m
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret-key',
-        expiresIn: parseInt(
-          this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '604800',
-          10,
-        ), // 604800s = 7d
-      }),
-    ]);
-
-    return { accessToken, refreshToken };
-  }
-
-  private generateRandomToken(): string {
-    return randomBytes(32).toString('hex');
+  private getPrivateKey(): string | Buffer {
+    const key = process.env.JWT_PRIVATE_KEY || '';
+    return loadPEMKey(key) || key;
   }
 }

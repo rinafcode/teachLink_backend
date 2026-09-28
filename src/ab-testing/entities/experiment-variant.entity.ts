@@ -4,16 +4,24 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
 import { Experiment } from './experiment.entity';
 import { VariantMetric } from './variant-metric.entity';
 
+/**
+ * Represents the experiment Variant entity.
+ */
 @Entity({ name: 'experiment_variants' })
-export class ExperimentVariant {
+export class IExperimentVariant {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column()
   name: string;
@@ -38,6 +46,9 @@ export class ExperimentVariant {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 
   @ManyToOne(() => Experiment, (experiment) => experiment.variants)
   experiment: Experiment;

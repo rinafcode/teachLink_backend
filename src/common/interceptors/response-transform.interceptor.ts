@@ -1,56 +1,58 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { Response } from 'express';
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message?: string;
-  data: T;
-  metadata?: Record<string, any>;
-}
+import { FormattingService } from '../../localization/services/formatting.service';
+import { UserPreferenceReaderService } from '../../user-preferences/services/user-preference-reader.service';
 
 @Injectable()
-export class ResponseTransformInterceptor<T = any> implements NestInterceptor<T, ApiResponse<T>> {
-  intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiResponse<T>> {
-    const ctx = context.switchToHttp();
-    const response = ctx.getResponse<Response>();
+export class ResponseFormatInterceptor implements NestInterceptor {
+  constructor(
+    private readonly formattingService: FormattingService,
+    private readonly preferenceReader: UserPreferenceReaderService,
+  ) {}
 
-    // Exclude file/stream responses (Content-Type or underlying stream)
-    const contentType = response.getHeader('Content-Type');
-    if (
-      response.headersSent ||
-      (contentType &&
-        (contentType.toString().includes('octet-stream') ||
-          contentType.toString().includes('application/pdf') ||
-          contentType.toString().startsWith('image/') ||
-          contentType.toString().startsWith('audio/') ||
-          contentType.toString().startsWith('video/')))
-    ) {
-      // Return as Observable<ApiResponse<T>> by casting, since we skip transformation
-      return next.handle() as unknown as Observable<ApiResponse<T>>;
-    }
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    const request = context.switchToHttp().getRequest();
+    const userId = request.user?.id;
 
     return next.handle().pipe(
-      map((data: any) => {
-        // Allow controllers to return { data, message, metadata } for custom messages/metadata
-        let message: string | undefined;
-        let metadata: Record<string, any> | undefined;
-        let responseData = data;
-        if (data && typeof data === 'object' && !Array.isArray(data)) {
-          if ('data' in data && typeof data.data !== 'undefined') {
-            responseData = data.data;
-            message = data.message;
-            metadata = data.metadata;
-          }
-        }
-        return {
-          success: true,
-          message,
-          data: responseData,
-          metadata,
-        };
+      map(async (data) => {
+        if (!userId) return data;
+
+        const prefs = await this.preferenceReader.getByUserId(userId);
+
+        if (!prefs) return data;
+
+        return this.formatResponse(data, prefs.locale, prefs.timezone);
       }),
     );
+  }
+
+  private formatResponse(data: any, locale: string, timezone: string): any {
+    if (!data) return data;
+
+    if (Array.isArray(data)) {
+      return data.map((item) => this.formatResponse(item, locale, timezone));
+    }
+
+    if (typeof data === 'object') {
+      const formatted: any = {};
+
+      for (const key in data) {
+        const value = data[key];
+
+        if (value instanceof Date) {
+          formatted[key] = this.formattingService.formatDate(value, locale as any, timezone);
+        } else if (typeof value === 'object') {
+          formatted[key] = this.formatResponse(value, locale, timezone);
+        } else {
+          formatted[key] = value;
+        }
+      }
+
+      return formatted;
+    }
+
+    return data;
   }
 }

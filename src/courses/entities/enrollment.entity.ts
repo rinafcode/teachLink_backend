@@ -6,16 +6,35 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  VersionColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from './course.entity';
 
+/**
+ * Represents the enrollment entity.
+ */
 @Entity()
 @Index(['userId', 'status'])
 @Index(['courseId', 'status'])
+@Index(['userId', 'enrolledAt'])
+@Index(['courseId', 'enrolledAt'])
+// Partial unique index (userId, courseId) WHERE "deletedAt" IS NULL, created by
+// migration 1799000000000. A plain unique index would also cover soft-deleted
+// rows and block re-enrollment after unenroll; the partial predicate excludes
+// them. The `where` predicate mirrors the migration so the schema drift check
+// (migration:generate --check) stays green.
+@Index('UQ_enrollments_active_user_course', ['userId', 'courseId'], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export class Enrollment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ManyToOne(() => User, (user) => user.enrollments, { onDelete: 'CASCADE' })
   user: User;
@@ -39,8 +58,12 @@ export class Enrollment {
   status: string;
 
   @CreateDateColumn()
+  @Index()
   enrolledAt: Date;
 
   @UpdateDateColumn()
   lastAccessedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

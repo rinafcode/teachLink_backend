@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
+  VersionColumn,
 } from 'typeorm';
 
 export enum TenantStatus {
@@ -13,7 +15,6 @@ export enum TenantStatus {
   INACTIVE = 'inactive',
   TRIAL = 'trial',
 }
-
 export enum TenantPlan {
   FREE = 'free',
   BASIC = 'basic',
@@ -21,10 +22,16 @@ export enum TenantPlan {
   ENTERPRISE = 'enterprise',
 }
 
+/**
+ * Represents the tenant entity.
+ */
 @Entity('tenants')
 export class Tenant {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ unique: true })
   @Index()
@@ -94,4 +101,7 @@ export class Tenant {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

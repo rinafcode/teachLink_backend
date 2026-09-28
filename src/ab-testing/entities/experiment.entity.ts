@@ -5,10 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  VersionColumn,
 } from 'typeorm';
-import { ExperimentVariant } from './experiment-variant.entity';
+import { IExperimentVariant } from './experiment-variant.entity';
 import { ExperimentMetric } from './experiment-metric.entity';
-
 export enum ExperimentStatus {
   DRAFT = 'draft',
   RUNNING = 'running',
@@ -16,17 +16,22 @@ export enum ExperimentStatus {
   COMPLETED = 'completed',
   ARCHIVED = 'archived',
 }
-
 export enum ExperimentType {
   A_B_TEST = 'a_b_test',
   MULTIVARIATE = 'multivariate',
   MULTI_ARMED_BANDIT = 'multi_armed_bandit',
 }
 
+/**
+ * Represents the experiment entity.
+ */
 @Entity({ name: 'experiments' })
 export class Experiment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ unique: true })
   name: string;
@@ -75,14 +80,17 @@ export class Experiment {
   @Column({ type: 'json', nullable: true })
   exclusionCriteria: any;
 
+  @Column({ type: 'json', nullable: true })
+  properties?: Record<string, any>;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => ExperimentVariant, (variant) => variant.experiment)
-  variants: ExperimentVariant[];
+  @OneToMany(() => IExperimentVariant, (variant) => variant.experiment)
+  variants: IExperimentVariant[];
 
   @OneToMany(() => ExperimentMetric, (metric) => metric.experiment)
   metrics: ExperimentMetric[];

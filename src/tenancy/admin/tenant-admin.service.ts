@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { sanitizeSqlLike } from '../../common/utils/sanitization.utils';
 import { Tenant, TenantStatus, TenantPlan } from '../entities/tenant.entity';
 import { TenantConfig } from '../entities/tenant-config.entity';
 import { TenantBilling } from '../entities/tenant-billing.entity';
 import { TenantCustomization } from '../entities/tenant-customization.entity';
+import { TENANT_PLAN_LIMITS, TENANT_HEALTH_SCORE, TENANT_DEFAULTS } from '../tenancy.constants';
 
-export interface TenantStatistics {
+export interface ITenantStatistics {
   totalUsers: number;
   activeUsers: number;
   storageUsed: number;
@@ -15,12 +17,15 @@ export interface TenantStatistics {
   lastActivityAt?: Date;
 }
 
-export interface TenantHealth {
+export interface ITenantHealth {
   status: string;
   issues: string[];
   score: number;
 }
 
+/**
+ * Provides tenant Admin operations.
+ */
 @Injectable()
 export class TenantAdminService {
   constructor(
@@ -32,56 +37,43 @@ export class TenantAdminService {
     private readonly billingRepository: Repository<TenantBilling>,
     @InjectRepository(TenantCustomization)
     private readonly customizationRepository: Repository<TenantCustomization>,
+    private readonly dataSource: DataSource,
   ) {}
 
-  /**
-   * Get tenant statistics
-   */
-  async getTenantStatistics(tenantId: string): Promise<TenantStatistics> {
+  async getTenantStatistics(tenantId: string): Promise<ITenantStatistics> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
-
-    const billing = await this.billingRepository.findOne({ where: { tenantId } });
 
     return {
       totalUsers: tenant.currentUserCount,
-      activeUsers: billing?.usageMetrics?.activeUsers || 0,
+      activeUsers: tenant.currentUserCount,
       storageUsed: tenant.currentStorageUsage,
-      apiCalls: billing?.usageMetrics?.apiCalls || 0,
+      apiCalls: 0,
       lastActivityAt: tenant.updatedAt,
     };
   }
 
-  /**
-   * Suspend tenant
-   */
   async suspendTenant(tenantId: string, reason?: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
-
     tenant.status = TenantStatus.SUSPENDED;
     tenant.metadata = {
       ...tenant.metadata,
       suspensionReason: reason,
       suspendedAt: new Date(),
     };
-
     return await this.tenantRepository.save(tenant);
   }
 
-  /**
-   * Activate tenant
-   */
   async activateTenant(tenantId: string): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
-
     tenant.status = TenantStatus.ACTIVE;
     tenant.metadata = {
       ...tenant.metadata,
@@ -89,27 +81,19 @@ export class TenantAdminService {
       suspendedAt: undefined,
       activatedAt: new Date(),
     };
-
     return await this.tenantRepository.save(tenant);
   }
 
-  /**
-   * Upgrade tenant plan
-   */
   async upgradePlan(tenantId: string, newPlan: TenantPlan): Promise<Tenant> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
-
     const oldPlan = tenant.plan;
     tenant.plan = newPlan;
-
-    // Update limits based on plan
     const limits = this.getPlanLimits(newPlan);
     tenant.userLimit = limits.userLimit;
     tenant.storageLimit = limits.storageLimit;
-
     tenant.metadata = {
       ...tenant.metadata,
       planUpgradeHistory: [
@@ -121,91 +105,89 @@ export class TenantAdminService {
         },
       ],
     };
-
     return await this.tenantRepository.save(tenant);
   }
 
-  /**
-   * Check tenant health
-   */
-  async checkTenantHealth(tenantId: string): Promise<TenantHealth> {
+  async checkTenantHealth(tenantId: string): Promise<ITenantHealth> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
 
     const issues: string[] = [];
-    let score = 100;
+    let score = TENANT_HEALTH_SCORE.MAX_SCORE;
 
-    // Check if tenant is suspended
     if (tenant.status === TenantStatus.SUSPENDED) {
       issues.push('Tenant is suspended');
-      score -= 50;
+      score -= TENANT_HEALTH_SCORE.SUSPENSION_PENALTY;
     }
 
-    // Check if approaching user limit
-    const userUsagePercent = (tenant.currentUserCount / tenant.userLimit) * 100;
-    if (userUsagePercent > 90) {
+    const userLimit = Math.max(tenant.userLimit, 1);
+    const userUsagePercent = (tenant.currentUserCount / userLimit) * 100;
+    if (userUsagePercent > TENANT_HEALTH_SCORE.USAGE_WARNING_PERCENT) {
       issues.push('Approaching user limit');
-      score -= 10;
+      score -= TENANT_HEALTH_SCORE.USAGE_LIMIT_PENALTY;
     }
 
-    // Check if approaching storage limit
-    const storageUsagePercent = (tenant.currentStorageUsage / tenant.storageLimit) * 100;
-    if (storageUsagePercent > 90) {
+    const storageLimit = Math.max(tenant.storageLimit, 1);
+    const storageUsagePercent = (tenant.currentStorageUsage / storageLimit) * 100;
+    if (storageUsagePercent > TENANT_HEALTH_SCORE.USAGE_WARNING_PERCENT) {
       issues.push('Approaching storage limit');
-      score -= 10;
+      score -= TENANT_HEALTH_SCORE.USAGE_LIMIT_PENALTY;
     }
 
-    // Check billing status
     const billing = await this.billingRepository.findOne({ where: { tenantId } });
     if (billing && Number(billing.currentBalance) > 0) {
       issues.push('Outstanding billing balance');
-      score -= 15;
+      score -= TENANT_HEALTH_SCORE.OUTSTANDING_BALANCE_PENALTY;
     }
 
-    // Check if trial expired
     if (
       tenant.status === TenantStatus.TRIAL &&
       tenant.trialEndsAt &&
       tenant.trialEndsAt < new Date()
     ) {
       issues.push('Trial period expired');
-      score -= 20;
+      score -= TENANT_HEALTH_SCORE.TRIAL_EXPIRED_PENALTY;
     }
 
     return {
-      status: score > 70 ? 'healthy' : score > 40 ? 'warning' : 'critical',
+      status:
+        score > TENANT_HEALTH_SCORE.HEALTHY_THRESHOLD
+          ? 'healthy'
+          : score > TENANT_HEALTH_SCORE.WARNING_THRESHOLD
+            ? 'warning'
+            : 'critical',
       issues,
       score,
     };
   }
 
-  /**
-   * Reset tenant data
-   */
   async resetTenantData(tenantId: string): Promise<void> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
 
-    // Reset counters
-    tenant.currentUserCount = 0;
-    tenant.currentStorageUsage = 0;
-    await this.tenantRepository.save(tenant);
+    // Resetting the tenant counters and clearing billing usage are one logical
+    // operation: if the billing write fails, the tenant counters must not be
+    // reset (issue #1344).
+    await this.dataSource.transaction(async (manager) => {
+      const tenantRepository = manager.getRepository(Tenant);
+      const billingRepository = manager.getRepository(TenantBilling);
 
-    // Reset billing
-    const billing = await this.billingRepository.findOne({ where: { tenantId } });
-    if (billing) {
-      billing.usageMetrics = {};
-      await this.billingRepository.save(billing);
-    }
+      tenant.currentUserCount = 0;
+      tenant.currentStorageUsage = 0;
+      await tenantRepository.save(tenant);
+
+      const billing = await billingRepository.findOne({ where: { tenantId } });
+      if (billing) {
+        billing.usageMetrics = {};
+        await billingRepository.save(billing);
+      }
+    });
   }
 
-  /**
-   * Export tenant data
-   */
   async exportTenantData(tenantId: string): Promise<any> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     const config = await this.configRepository.findOne({ where: { tenantId } });
@@ -221,12 +203,9 @@ export class TenantAdminService {
     };
   }
 
-  /**
-   * Get all tenants with pagination
-   */
   async getAllTenants(
     page: number = 1,
-    limit: number = 10,
+    limit: number = TENANT_DEFAULTS.DEFAULT_PAGE_SIZE,
   ): Promise<{ tenants: Tenant[]; total: number }> {
     const [tenants, total] = await this.tenantRepository.findAndCount({
       skip: (page - 1) * limit,
@@ -237,9 +216,6 @@ export class TenantAdminService {
     return { tenants, total };
   }
 
-  /**
-   * Search tenants
-   */
   async searchTenants(query: string): Promise<Tenant[]> {
     const safeQuery = sanitizeSqlLike(query);
 
@@ -251,17 +227,13 @@ export class TenantAdminService {
       .getMany();
   }
 
-  /**
-   * Get plan limits
-   */
   private getPlanLimits(plan: TenantPlan): { userLimit: number; storageLimit: number } {
-    const limits = {
-      [TenantPlan.FREE]: { userLimit: 10, storageLimit: 1024 }, // 1GB
-      [TenantPlan.BASIC]: { userLimit: 50, storageLimit: 10240 }, // 10GB
-      [TenantPlan.PROFESSIONAL]: { userLimit: 200, storageLimit: 51200 }, // 50GB
-      [TenantPlan.ENTERPRISE]: { userLimit: -1, storageLimit: -1 }, // Unlimited
+    const byPlan: Record<TenantPlan, { userLimit: number; storageLimit: number }> = {
+      [TenantPlan.FREE]: TENANT_PLAN_LIMITS.FREE,
+      [TenantPlan.BASIC]: TENANT_PLAN_LIMITS.BASIC,
+      [TenantPlan.PROFESSIONAL]: TENANT_PLAN_LIMITS.PROFESSIONAL,
+      [TenantPlan.ENTERPRISE]: TENANT_PLAN_LIMITS.ENTERPRISE,
     };
-
-    return limits[plan] || limits[TenantPlan.FREE];
+    return byPlan[plan] ?? TENANT_PLAN_LIMITS.FREE;
   }
 }

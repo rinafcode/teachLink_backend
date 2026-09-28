@@ -1,13 +1,27 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  VersionColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { ABTest } from './ab-test.entity';
 
+/**
+ * Represents the aBTest Variant entity.
+ */
 @Entity('ab_test_variants')
+@Index('IDX_ab_test_variants_abTestId_weight', ['abTestId', 'weight'])
 export class ABTestVariant {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @ApiProperty()
   @Column()

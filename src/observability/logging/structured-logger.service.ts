@@ -1,10 +1,11 @@
 import { Injectable, Logger, LoggerService, Scope } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import { trace } from '@opentelemetry/api';
 import {
-  LogContext,
-  StructuredLog,
+  ILogContext,
+  IStructuredLog,
   LogLevel,
-  ErrorDetails,
+  IErrorDetails,
 } from '../interfaces/observability.interfaces';
 
 /**
@@ -14,7 +15,7 @@ import {
 @Injectable({ scope: Scope.TRANSIENT })
 export class StructuredLoggerService implements LoggerService {
   private readonly nestLogger = new Logger(StructuredLoggerService.name);
-  private context: Partial<LogContext> = {};
+  private context: Partial<ILogContext> = {};
   private serviceName: string = 'teachlink';
 
   constructor() {
@@ -27,7 +28,7 @@ export class StructuredLoggerService implements LoggerService {
   /**
    * Set context for all subsequent logs
    */
-  setContext(context: Partial<LogContext>): void {
+  setContext(context: Partial<ILogContext>): void {
     this.context = { ...this.context, ...context };
   }
 
@@ -64,7 +65,19 @@ export class StructuredLoggerService implements LoggerService {
    * Log info message
    */
   log(message: string, metadata?: Record<string, any>): void;
+  /**
+   * Executes log.
+   * @param level The level.
+   * @param message The message.
+   * @param metadata The data to process.
+   */
   log(level: LogLevel, message: string, metadata?: Record<string, any>): void;
+  /**
+   * Executes log.
+   * @param messageOrLevel The message or level.
+   * @param messageOrMetadata The data to process.
+   * @param metadata The data to process.
+   */
   log(
     messageOrLevel: string | LogLevel,
     messageOrMetadata?: string | Record<string, any>,
@@ -105,9 +118,21 @@ export class StructuredLoggerService implements LoggerService {
    * Log error message
    */
   error(message: string, trace?: string, metadata?: Record<string, any>): void;
+  /**
+   * Executes error.
+   * @param message The message.
+   * @param error The error.
+   * @param metadata The data to process.
+   */
   error(message: string, error?: Error, metadata?: Record<string, any>): void;
+  /**
+   * Executes error.
+   * @param message The message.
+   * @param traceOrError The trace or error.
+   * @param metadata The data to process.
+   */
   error(message: string, traceOrError?: string | Error, metadata?: Record<string, any>): void {
-    let errorDetails: ErrorDetails | undefined;
+    let errorDetails: IErrorDetails | undefined;
 
     if (traceOrError instanceof Error) {
       errorDetails = {
@@ -130,7 +155,7 @@ export class StructuredLoggerService implements LoggerService {
    * Log fatal error
    */
   fatal(message: string, error?: Error, metadata?: Record<string, any>): void {
-    const errorDetails: ErrorDetails | undefined = error
+    const errorDetails: IErrorDetails | undefined = error
       ? {
           name: error.name,
           message: error.message,
@@ -155,18 +180,22 @@ export class StructuredLoggerService implements LoggerService {
   }
 
   /**
-   * Write structured log
+   * Write structured log. Trace metadata is read from the active
+   * OpenTelemetry span at write time so logs are always correlated even
+   * when the logger instance lives in a different scope than the trace
+   * observer.
    */
   private writeLog(
     level: LogLevel,
     message: string,
     metadata?: Record<string, any>,
-    error?: ErrorDetails,
+    error?: IErrorDetails,
   ): void {
-    const logContext: LogContext = {
+    const { traceId, spanId } = this.resolveActiveTraceInfo();
+    const logContext: ILogContext = {
       correlationId: this.context.correlationId || uuidv4(),
-      traceId: this.context.traceId,
-      spanId: this.context.spanId,
+      traceId: traceId ?? this.context.traceId,
+      spanId: spanId ?? this.context.spanId,
       userId: this.context.userId,
       requestId: this.context.requestId,
       service: this.context.service || this.serviceName,
@@ -175,7 +204,7 @@ export class StructuredLoggerService implements LoggerService {
       metadata,
     };
 
-    const structuredLog: StructuredLog = {
+    const structuredLog: IStructuredLog = {
       level,
       message,
       context: logContext,
@@ -206,9 +235,33 @@ export class StructuredLoggerService implements LoggerService {
   }
 
   /**
+   * Resolve trace/span ids from the current OpenTelemetry active span, if
+   * any. Falls back to undefined when no SDK is installed or no span is
+   * active for the current async context. Filters out the all-zero
+   * placeholder span ids emitted by the noop tracer.
+   */
+  private resolveActiveTraceInfo(): { traceId?: string; spanId?: string } {
+    try {
+      const span = trace.getActiveSpan();
+      if (!span) {
+        return {};
+      }
+      const ctx = span.spanContext();
+      const traceId =
+        ctx?.traceId && ctx.traceId !== '00000000000000000000000000000000'
+          ? ctx.traceId
+          : undefined;
+      const spanId = ctx?.spanId && ctx.spanId !== '0000000000000000' ? ctx.spanId : undefined;
+      return { traceId, spanId };
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Create child logger with additional context
    */
-  child(additionalContext: Partial<LogContext>): StructuredLoggerService {
+  child(additionalContext: Partial<ILogContext>): StructuredLoggerService {
     const childLogger = new StructuredLoggerService();
     childLogger.setContext({ ...this.context, ...additionalContext });
     return childLogger;

@@ -1,10 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { UPLOAD_PROGRESS_CONFIG } from './file-validation.constants';
 
-export interface UploadProgress {
+export interface IUploadProgress {
   uploadId: string;
-  status: 'pending' | 'validating' | 'scanning' | 'processing' | 'uploading' | 'completed' | 'failed';
+  status:
+    | 'pending'
+    | 'validating'
+    | 'scanning'
+    | 'processing'
+    | 'uploading'
+    | 'completed'
+    | 'failed';
   progress: number; // 0-100
   fileName: string;
   fileSize: number;
@@ -22,27 +30,35 @@ export interface UploadProgress {
   };
 }
 
-export interface ProgressUpdate {
-  status?: UploadProgress['status'];
+export interface IProgressUpdate {
+  status?: IUploadProgress['status'];
   progress?: number;
   stage?: string;
   message?: string;
   bytesProcessed?: number;
   error?: string;
-  result?: UploadProgress['result'];
+  result?: IUploadProgress['result'];
 }
 
+/**
+ * Provides upload Progress operations.
+ *
+ * Issue #837 — uses the shared `REDIS_CLIENT` connection
+ * (standalone/Sentinel/Cluster, see `RedisModule`) instead of opening its
+ * own connection to `REDIS_URL`.
+ */
 @Injectable()
-export class UploadProgressService {
+export class UploadProgressService implements OnModuleDestroy {
   private readonly logger = new Logger(UploadProgressService.name);
-  private readonly redis: Redis;
 
-  constructor() {
-    // Initialize Redis client
-    this.redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-    this.redis.on('error', () => {
-      // Prevent unhandled error events during Redis outages
-    });
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+
+  async onModuleDestroy() {
+    if (this.redis) {
+      await this.redis.quit().catch((err) => {
+        this.logger.error('Error disconnecting Redis client on module destroy:', err);
+      });
+    }
   }
 
   /**
@@ -52,8 +68,8 @@ export class UploadProgressService {
     uploadId: string,
     fileName: string,
     fileSize: number,
-  ): Promise<UploadProgress> {
-    const progress: UploadProgress = {
+  ): Promise<IUploadProgress> {
+    const progress: IUploadProgress = {
       uploadId,
       status: 'pending',
       progress: 0,
@@ -75,13 +91,13 @@ export class UploadProgressService {
   /**
    * Update upload progress
    */
-  async updateProgress(uploadId: string, update: ProgressUpdate): Promise<UploadProgress> {
+  async updateProgress(uploadId: string, update: IProgressUpdate): Promise<IUploadProgress> {
     const existing = await this.getProgress(uploadId);
     if (!existing) {
       throw new Error(`Upload ${uploadId} not found`);
     }
 
-    const progress: UploadProgress = {
+    const progress: IUploadProgress = {
       ...existing,
       ...update,
       updatedAt: new Date().toISOString(),
@@ -105,7 +121,7 @@ export class UploadProgressService {
   /**
    * Get upload progress
    */
-  async getProgress(uploadId: string): Promise<UploadProgress | null> {
+  async getProgress(uploadId: string): Promise<IUploadProgress | null> {
     try {
       const key = this.getRedisKey(uploadId);
       const data = await this.redis.get(key);
@@ -114,7 +130,7 @@ export class UploadProgressService {
         return null;
       }
 
-      return JSON.parse(data) as UploadProgress;
+      return JSON.parse(data) as IUploadProgress;
     } catch (error) {
       this.logger.error(`Failed to get progress for ${uploadId}:`, error);
       return null;
@@ -124,7 +140,7 @@ export class UploadProgressService {
   /**
    * Mark upload as failed
    */
-  async markFailed(uploadId: string, error: string): Promise<UploadProgress> {
+  async markFailed(uploadId: string, error: string): Promise<IUploadProgress> {
     return this.updateProgress(uploadId, {
       status: 'failed',
       progress: 0,
@@ -137,7 +153,10 @@ export class UploadProgressService {
   /**
    * Mark upload as completed
    */
-  async markCompleted(uploadId: string, result: UploadProgress['result']): Promise<UploadProgress> {
+  async markCompleted(
+    uploadId: string,
+    result: IUploadProgress['result'],
+  ): Promise<IUploadProgress> {
     return this.updateProgress(uploadId, {
       status: 'completed',
       progress: 100,
@@ -159,7 +178,7 @@ export class UploadProgressService {
   /**
    * List active uploads
    */
-  async listActiveUploads(): Promise<UploadProgress[]> {
+  async listActiveUploads(): Promise<IUploadProgress[]> {
     try {
       const pattern = `${UPLOAD_PROGRESS_CONFIG.REDIS_KEY_PREFIX}*`;
       const keys = await this.redis.keys(pattern);
@@ -169,11 +188,11 @@ export class UploadProgressService {
       }
 
       const values = await this.redis.mget(...keys);
-      const uploads: UploadProgress[] = [];
+      const uploads: IUploadProgress[] = [];
 
       for (const value of values) {
         if (value) {
-          const progress = JSON.parse(value) as UploadProgress;
+          const progress = JSON.parse(value) as IUploadProgress;
           // Only include non-completed and non-failed uploads
           if (progress.status !== 'completed' && progress.status !== 'failed') {
             uploads.push(progress);
@@ -181,8 +200,8 @@ export class UploadProgressService {
         }
       }
 
-      return uploads.sort((a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      return uploads.sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
     } catch (error) {
       this.logger.error('Failed to list active uploads:', error);
@@ -210,12 +229,14 @@ export class UploadProgressService {
       for (let i = 0; i < values.length; i++) {
         const value = values[i];
         if (value) {
-          const progress = JSON.parse(value) as UploadProgress;
+          const progress = JSON.parse(value) as IUploadProgress;
           const updatedAt = new Date(progress.updatedAt).getTime();
 
           // Delete if old and completed/failed
-          if ((progress.status === 'completed' || progress.status === 'failed') &&
-              (now - updatedAt > maxAgeMs)) {
+          if (
+            (progress.status === 'completed' || progress.status === 'failed') &&
+            now - updatedAt > maxAgeMs
+          ) {
             await this.redis.del(keys[i]);
             deletedCount++;
           }
@@ -274,7 +295,7 @@ export class UploadProgressService {
 
       for (const value of values) {
         if (value) {
-          const progress = JSON.parse(value) as UploadProgress;
+          const progress = JSON.parse(value) as IUploadProgress;
           stats.total++;
           stats[progress.status]++;
         }
@@ -299,13 +320,9 @@ export class UploadProgressService {
   /**
    * Save progress to Redis
    */
-  private async saveProgress(uploadId: string, progress: UploadProgress): Promise<void> {
+  private async saveProgress(uploadId: string, progress: IUploadProgress): Promise<void> {
     const key = this.getRedisKey(uploadId);
-    await this.redis.setex(
-      key,
-      UPLOAD_PROGRESS_CONFIG.EXPIRY_SECONDS,
-      JSON.stringify(progress),
-    );
+    await this.redis.setex(key, UPLOAD_PROGRESS_CONFIG.EXPIRY_SECONDS, JSON.stringify(progress));
   }
 
   /**

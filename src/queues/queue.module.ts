@@ -1,49 +1,34 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
-import { ScheduleModule } from '@nestjs/schedule';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { QueueService } from './queue.service';
-import { QueueController } from './queue.controller';
 import { PrioritizationService } from './prioritization/prioritization.service';
-import { RetryLogicService } from './retry/retry-logic.service';
-import { QueueMonitoringService } from './monitoring/queue-monitoring.service';
-import { JobSchedulerService } from './scheduler/job-scheduler.service';
-import { DefaultQueueProcessor } from './processors/default-queue.processor';
+import { RetryStrategyService } from './retry/retry-strategy.service';
+import { QueueMetricsService } from './metrics/queue-metrics.service';
+import { MonitoringModule } from '../monitoring/monitoring.module';
 
-/**
- * Queue Module
- * Comprehensive queue management with prioritization, retry logic, and monitoring
- */
+@Global()
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'default',
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
+    MonitoringModule,
+    BullModule.forRoot({
+      redis: process.env.QUEUE_REDIS_URL || process.env.REDIS_URL || 'redis://127.0.0.1:6379',
     }),
-    ScheduleModule.forRoot(),
+    BullModule.registerQueue(
+      { name: QUEUE_NAMES.EMAIL },
+      { name: QUEUE_NAMES.EMAIL_MARKETING },
+      { name: QUEUE_NAMES.SYNC_TASKS },
+      { name: QUEUE_NAMES.BACKUP_PROCESSING },
+      { name: QUEUE_NAMES.MESSAGE_QUEUE },
+      { name: QUEUE_NAMES.MEDIA_PROCESSING },
+      { name: QUEUE_NAMES.DEFAULT },
+      { name: QUEUE_NAMES.USER_DATA_EXPORT },
+      { name: QUEUE_NAMES.SUBSCRIPTIONS },
+      { name: QUEUE_NAMES.WEBHOOKS },
+      { name: QUEUE_NAMES.DEAD_LETTER },
+    ),
   ],
-  controllers: [QueueController],
-  providers: [
-    QueueService,
-    PrioritizationService,
-    RetryLogicService,
-    QueueMonitoringService,
-    JobSchedulerService,
-    DefaultQueueProcessor,
-  ],
-  exports: [
-    QueueService,
-    PrioritizationService,
-    RetryLogicService,
-    QueueMonitoringService,
-    JobSchedulerService,
-  ],
+  providers: [QueueService, PrioritizationService, RetryStrategyService, QueueMetricsService],
+  exports: [BullModule, QueueService, PrioritizationService, RetryStrategyService],
 })
 export class QueueModule {}

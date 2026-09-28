@@ -4,19 +4,29 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   OneToMany,
+  VersionColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
 import { SegmentRule } from './segment-rule.entity';
 
+/**
+ * Represents the segment entity.
+ */
 @Entity('segments')
+@Index('IDX_segments_isDynamic_createdAt', ['isDynamic', 'createdAt'])
 export class Segment {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @ApiProperty()
+  @Index('IDX_segments_name')
   @Column()
   name: string;
 
@@ -45,4 +55,10 @@ export class Segment {
   @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Index('IDX_segments_deletedAt', ['deletedAt'], {
+    where: '"deletedAt" IS NULL',
+  })
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

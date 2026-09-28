@@ -1,24 +1,37 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
-import { MonitoringController } from './monitoring.controller';
-import { MonitoringService } from './monitoring.service';
-import { MetricsCollectionService } from './metrics/metrics-collection.service';
-import { PerformanceAnalysisService } from './performance/performance-analysis.service';
-import { OptimizationService } from './optimization/optimization.service';
+import { ConfigModule } from '@nestjs/config';
 import { AlertingService } from './alerting/alerting.service';
-import { ScheduledTaskMonitoringService } from './scheduled-task-monitoring.service';
+import { MetricsCollectionService } from './metrics/metrics-collection.service';
+import { CustomMetricsService } from './custom-metrics.service';
+import { CostTrackingService } from './cost-tracking.service';
+import { CostSchedulerService } from './cost-scheduler.service';
+import { AwsCostCollectorService } from './cloud/aws-cost-collector.service';
+import { PrometheusController } from './metrics/prometheus.controller';
+import { DbPoolMetricsCollector } from './metrics/db-pool-metrics.collector';
+import { DbMetricsSubscriber } from './metrics/db-metrics.subscriber';
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
-  controllers: [MonitoringController],
+  imports: [ConfigModule],
+  controllers: [PrometheusController],
   providers: [
-    MonitoringService,
-    MetricsCollectionService,
-    PerformanceAnalysisService,
-    OptimizationService,
     AlertingService,
-    ScheduledTaskMonitoringService,
+    MetricsCollectionService,
+    CustomMetricsService,
+    CostTrackingService,
+    CostSchedulerService,
+    AwsCostCollectorService,
+    DbPoolMetricsCollector,
+    DbMetricsSubscriber,
   ],
-  exports: [MetricsCollectionService, AlertingService, ScheduledTaskMonitoringService],
+  exports: [
+    AlertingService,
+    MetricsCollectionService,
+    CustomMetricsService,
+    CostTrackingService,
+    CostSchedulerService,
+    AwsCostCollectorService,
+    DbPoolMetricsCollector,
+    DbMetricsSubscriber,
+  ],
 })
 export class MonitoringModule {}

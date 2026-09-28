@@ -1,46 +1,103 @@
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
-import { GamificationService } from './gamification.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PointsService } from './points/points.service';
-import { BadgesService } from './badges/badges.service';
 import { LeaderboardService } from './leaderboards/leaderboards.service';
-import { ChallengesService } from './challenges/challenges.service';
+import { TiersService } from './tiers/tiers.service';
+import { Tier } from './enums/tier.enum';
+import { TierReward } from './entities/tier-reward.entity';
+import { AwardActivityDto } from './dto/award-activity.dto';
+import { AddPointsDto } from './dto/add-points.dto';
+import { UpsertRewardDto } from './dto/upsert-reward.dto';
+import { LeaderboardPaginationDto } from './dto/leaderboard-pagination.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('gamification')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class GamificationController {
   constructor(
-    private readonly gamificationService: GamificationService,
     private readonly pointsService: PointsService,
-    private readonly badgesService: BadgesService,
     private readonly leaderboardService: LeaderboardService,
-    private readonly challengesService: ChallengesService,
+    private readonly tiersService: TiersService,
   ) {}
 
-  @Get('progress/:userId')
-  async getProgress(@Param('userId') userId: string) {
+  // ── Points ──────────────────────────────────────────────────────────────────
+
+  @Post('points/award-activity')
+  @HttpCode(HttpStatus.OK)
+  awardActivity(@CurrentUser() user: User, @Body() dto: AwardActivityDto) {
+    return this.pointsService.awardActivity(user.id, dto.activityType);
+  }
+
+  @Post('points/add')
+  @Roles('admin')
+  @HttpCode(HttpStatus.OK)
+  addPoints(@Body() dto: AddPointsDto) {
+    return this.pointsService.addPoints(dto.userId, dto.points, dto.activityType);
+  }
+
+  @Get('points/progress/:userId')
+  getUserProgress(@Param('userId') userId: string) {
     return this.pointsService.getUserProgress(userId);
   }
 
-  @Get('badges/:userId')
-  async getBadges(@Param('userId') userId: string) {
-    return this.badgesService.getUserBadges(userId);
+  @Get('points/history/:userId')
+  getPointHistory(@Param('userId') userId: string) {
+    return this.pointsService.getPointHistory(userId);
   }
 
-  @Get('challenges/:userId')
-  async getChallenges(@Param('userId') userId: string) {
-    return this.challengesService.getUserChallenges(userId);
-  }
+  // ── Leaderboard ─────────────────────────────────────────────────────────────
 
   @Get('leaderboard')
-  async getLeaderboard(@Query('limit') limit?: number) {
-    return this.leaderboardService.getTopPlayers(limit);
+  @ApiOperation({ summary: 'Get the points leaderboard (paginated, page size bounded)' })
+  @ApiResponse({ status: 200, description: 'Paginated leaderboard' })
+  @ApiResponse({ status: 400, description: 'Invalid pagination parameters' })
+  getLeaderboard(@Query() query: LeaderboardPaginationDto) {
+    return this.leaderboardService.getLeaderboard(query.page, query.pageSize);
   }
 
-  @Post('activity/:userId')
-  async recordActivity(
-    @Param('userId') userId: string,
-    @Body('type') type: string,
-    @Body('points') points?: number,
-  ) {
-    return this.gamificationService.handleActivity(userId, type, points);
+  @Get('leaderboard/rank/:userId')
+  getUserRank(@Param('userId') userId: string) {
+    return this.leaderboardService.getUserRank(userId);
+  }
+
+  // ── Tiers ───────────────────────────────────────────────────────────────────
+
+  @Get('tiers/rewards')
+  getAllRewards(): Promise<TierReward[]> {
+    return this.tiersService.getAllRewards();
+  }
+
+  @Get('tiers/rewards/:tier')
+  getRewardForTier(@Param('tier') tier: Tier) {
+    return this.tiersService.getRewardForTier(tier);
+  }
+
+  @Post('tiers/rewards/:tier')
+  @HttpCode(HttpStatus.OK)
+  upsertReward(@Param('tier') tier: Tier, @Body() dto: UpsertRewardDto) {
+    return this.tiersService.upsertReward(tier, dto);
+  }
+
+  @Get('tiers/next/:userId')
+  async getNextTierInfo(@Param('userId') userId: string) {
+    const progress = await this.pointsService.getUserProgress(userId);
+    if (!progress) return null;
+    const nextTier = this.tiersService.getNextTier(progress.tier);
+    const pointsNeeded = this.tiersService.pointsToNextTier(progress.totalPoints);
+    return { currentTier: progress.tier, nextTier, pointsNeeded };
   }
 }

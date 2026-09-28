@@ -1,5 +1,4 @@
 import { SetMetadata } from '@nestjs/common';
-
 /**
  * #158 – System roles
  *
@@ -10,9 +9,7 @@ export enum Role {
   MODERATOR = 'moderator',
   ADMIN = 'admin',
 }
-
 export const ROLES_KEY = 'roles';
-
 /**
  * Attach required roles to a route or controller.
  *
@@ -25,4 +22,4 @@ export const ROLES_KEY = 'roles';
  * \@Delete('posts/:id')
  * deletePost() {}
  */
-export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+export const Roles = (...roles: string[]): unknown => SetMetadata(ROLES_KEY, roles);

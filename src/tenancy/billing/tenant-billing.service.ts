@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { TenantBilling, BillingCycle } from '../entities/tenant-billing.entity';
 import { Tenant } from '../entities/tenant.entity';
+import { TENANT_BILLING_RATES } from '../tenancy.constants';
 
-export interface UsageMetrics {
+export interface IUsageMetrics {
   activeUsers?: number;
   storageUsed?: number;
   apiCalls?: number;
@@ -12,13 +14,16 @@ export interface UsageMetrics {
   [key: string]: any;
 }
 
-export interface BillingRecord {
+export interface IBillingRecord {
   date: Date;
   amount: number;
   status: string;
   invoiceId?: string;
 }
 
+/**
+ * Provides tenant Billing operations.
+ */
 @Injectable()
 export class TenantBillingService {
   constructor(
@@ -26,19 +31,18 @@ export class TenantBillingService {
     private readonly billingRepository: Repository<TenantBilling>,
     @InjectRepository(Tenant)
     private readonly tenantRepository: Repository<Tenant>,
+    private readonly dataSource: DataSource,
   ) {}
-
   /**
    * Get billing information for a tenant
    */
   async getBillingInfo(tenantId: string): Promise<TenantBilling> {
     const billing = await this.billingRepository.findOne({ where: { tenantId } });
     if (!billing) {
-      throw new NotFoundException(`Billing info not found for tenant ${tenantId}`);
+      throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
     }
     return billing;
   }
-
   /**
    * Create billing record for a tenant
    */
@@ -48,23 +52,21 @@ export class TenantBillingService {
   ): Promise<TenantBilling> {
     const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
     if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} not found`);
+      throw new ResourceNotFoundException('Tenant', tenantId);
     }
-
     const billing = this.billingRepository.create({
       tenantId,
       billingCycle,
       monthlyFee: this.calculateMonthlyFee(tenant.plan),
       nextBillingDate: this.calculateNextBillingDate(billingCycle),
     });
-
     return await this.billingRepository.save(billing);
   }
 
   /**
    * Update usage metrics
    */
-  async updateUsageMetrics(tenantId: string, metrics: UsageMetrics): Promise<TenantBilling> {
+  async updateUsageMetrics(tenantId: string, metrics: IUsageMetrics): Promise<TenantBilling> {
     const billing = await this.getBillingInfo(tenantId);
 
     billing.usageMetrics = {
@@ -83,46 +85,62 @@ export class TenantBillingService {
     amount: number,
     invoiceId?: string,
   ): Promise<TenantBilling> {
-    const billing = await this.getBillingInfo(tenantId);
+    // The history append and balance/total updates are one logical mutation:
+    // they commit together or not at all (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const billingRepository = manager.getRepository(TenantBilling);
+      const billing = await billingRepository.findOne({ where: { tenantId } });
+      if (!billing) {
+        throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
+      }
 
-    const billingRecord: BillingRecord = {
-      date: new Date(),
-      amount,
-      status: 'paid',
-      invoiceId,
-    };
+      const billingRecord: IBillingRecord = {
+        date: new Date(),
+        amount,
+        status: 'paid',
+        invoiceId,
+      };
 
-    billing.billingHistory = billing.billingHistory || [];
-    billing.billingHistory.push(billingRecord);
-    billing.totalPaid = Number(billing.totalPaid) + amount;
-    billing.currentBalance = Number(billing.currentBalance) - amount;
-    billing.lastBillingDate = new Date();
+      billing.billingHistory = billing.billingHistory || [];
+      billing.billingHistory.push(billingRecord);
+      billing.totalPaid = Number(billing.totalPaid) + amount;
+      billing.currentBalance = Number(billing.currentBalance) - amount;
+      billing.lastBillingDate = new Date();
 
-    return await this.billingRepository.save(billing);
+      return await billingRepository.save(billing);
+    });
   }
 
   /**
    * Generate invoice
    */
-  async generateInvoice(tenantId: string): Promise<BillingRecord> {
-    const billing = await this.getBillingInfo(tenantId);
-    const amount = Number(billing.monthlyFee);
+  async generateInvoice(tenantId: string): Promise<IBillingRecord> {
+    // Balance + history + next billing date are one logical mutation: they
+    // commit together or not at all (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const billingRepository = manager.getRepository(TenantBilling);
+      const billing = await billingRepository.findOne({ where: { tenantId } });
+      if (!billing) {
+        throw new ResourceNotFoundException(`TenantBilling for tenant '${tenantId}'`);
+      }
+      const amount = Number(billing.monthlyFee);
 
-    const invoice: BillingRecord = {
-      date: new Date(),
-      amount,
-      status: 'pending',
-      invoiceId: `INV-${tenantId}-${Date.now()}`,
-    };
+      const invoice: IBillingRecord = {
+        date: new Date(),
+        amount,
+        status: 'pending',
+        invoiceId: `INV-${tenantId}-${Date.now()}`,
+      };
 
-    billing.currentBalance = Number(billing.currentBalance) + amount;
-    billing.billingHistory = billing.billingHistory || [];
-    billing.billingHistory.push(invoice);
-    billing.nextBillingDate = this.calculateNextBillingDate(billing.billingCycle);
+      billing.currentBalance = Number(billing.currentBalance) + amount;
+      billing.billingHistory = billing.billingHistory || [];
+      billing.billingHistory.push(invoice);
+      billing.nextBillingDate = this.calculateNextBillingDate(billing.billingCycle);
 
-    await this.billingRepository.save(billing);
+      await billingRepository.save(billing);
 
-    return invoice;
+      return invoice;
+    });
   }
 
   /**
@@ -138,7 +156,7 @@ export class TenantBillingService {
   /**
    * Get billing history
    */
-  async getBillingHistory(tenantId: string): Promise<BillingRecord[]> {
+  async getBillingHistory(tenantId: string): Promise<IBillingRecord[]> {
     const billing = await this.getBillingInfo(tenantId);
     return billing.billingHistory || [];
   }
@@ -153,9 +171,9 @@ export class TenantBillingService {
     let cost = 0;
 
     // Example pricing logic (customize as needed)
-    cost += (metrics.activeUsers || 0) * 5; // $5 per active user
-    cost += ((metrics.storageUsed || 0) / 1024) * 0.1; // $0.10 per GB
-    cost += ((metrics.apiCalls || 0) / 1000) * 0.01; // $0.01 per 1000 API calls
+    cost += (metrics.activeUsers || 0) * TENANT_BILLING_RATES.COST_PER_ACTIVE_USER;
+    cost += ((metrics.storageUsed || 0) / 1024) * TENANT_BILLING_RATES.STORAGE_COST_PER_GB;
+    cost += ((metrics.apiCalls || 0) / 1000) * TENANT_BILLING_RATES.API_COST_PER_THOUSAND;
 
     return cost;
   }
@@ -190,9 +208,9 @@ export class TenantBillingService {
   private calculateMonthlyFee(plan: string): number {
     const pricing = {
       free: 0,
-      basic: 29,
-      professional: 99,
-      enterprise: 299,
+      basic: TENANT_BILLING_RATES.MONTHLY_FEE_BASIC,
+      professional: TENANT_BILLING_RATES.MONTHLY_FEE_PROFESSIONAL,
+      enterprise: TENANT_BILLING_RATES.MONTHLY_FEE_ENTERPRISE,
     };
     return pricing[plan] || 0;
   }

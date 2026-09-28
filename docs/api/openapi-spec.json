@@ -1,0 +1,2196 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TeachLink API",
+    "description": "Automatically generated OpenAPI documentation for TeachLink backend APIs, including request and response examples.",
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    },
+    {
+      "url": "https://api.teachlink.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "App",
+      "description": "Service metadata and status"
+    },
+    {
+      "name": "Auth",
+      "description": "Registration, login, and token management"
+    },
+    {
+      "name": "Users",
+      "description": "User account management"
+    },
+    {
+      "name": "Courses",
+      "description": "Course catalog and authoring"
+    },
+    {
+      "name": "Payments",
+      "description": "Payments, subscriptions, and refunds"
+    },
+    {
+      "name": "Search",
+      "description": "Search, filters, autocomplete, and analytics"
+    },
+    {
+      "name": "Debugging",
+      "description": "Admin-only request capture and replay tools"
+    },
+    {
+      "name": "Gamification",
+      "description": "Points, leaderboards, and tier rewards"
+    },
+    {
+      "name": "Data Pipeline",
+      "description": "ETL jobs and data warehouse operations"
+    },
+    {
+      "name": "Sharding",
+      "description": "Database shard management and migrations"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "App"
+        ],
+        "summary": "Get app status",
+        "operationId": "getAppStatus",
+        "responses": {
+          "200": {
+            "description": "App is running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "message": "TeachLink API is running",
+                      "timestamp": "2026-05-27T18:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a new user",
+        "operationId": "registerUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "email": "learner@example.com",
+                    "password": "Password123!",
+                    "firstName": "Ada",
+                    "lastName": "Lovelace",
+                    "role": "student"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Registration successful",
+                      "data": {
+                        "id": "2f4d8b5f-91d2-43a1-bd1e-877b4f97d7b9",
+                        "email": "learner@example.com",
+                        "firstName": "Ada",
+                        "lastName": "Lovelace",
+                        "role": "student",
+                        "status": "active"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "email",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Email already exists",
+                      "errors": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Log in with email and password",
+        "operationId": "loginUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "email": "learner@example.com",
+                    "password": "Password123!"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Login successful",
+                      "data": {
+                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "refreshToken": "refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P",
+                        "user": {
+                          "id": "2f4d8b5f-91d2-43a1-bd1e-877b4f97d7b9",
+                          "email": "learner@example.com",
+                          "firstName": "Ada",
+                          "lastName": "Lovelace",
+                          "role": "student",
+                          "status": "active"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Invalid credentials",
+                      "errors": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List users",
+        "operationId": "listUsers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": [
+                        {
+                          "id": "2f4d8b5f-91d2-43a1-bd1e-877b4f97d7b9",
+                          "email": "learner@example.com",
+                          "firstName": "Ada",
+                          "lastName": "Lovelace",
+                          "role": "student",
+                          "status": "active"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Authentication required",
+                      "errors": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create a user",
+        "operationId": "createUser",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "email": "teacher@example.com",
+                    "password": "Password123!",
+                    "firstName": "Grace",
+                    "lastName": "Hopper",
+                    "role": "teacher"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "User created",
+                      "data": {
+                        "id": "2f4d8b5f-91d2-43a1-bd1e-877b4f97d7b9",
+                        "email": "learner@example.com",
+                        "firstName": "Ada",
+                        "lastName": "Lovelace",
+                        "role": "teacher",
+                        "status": "active"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid user data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courses": {
+      "get": {
+        "tags": [
+          "Courses"
+        ],
+        "summary": "List courses",
+        "operationId": "listCourses",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Courses found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": [
+                        {
+                          "id": "8e4fd4f8-d8f3-46b5-8786-6f7167a654f4",
+                          "title": "JavaScript Foundations",
+                          "description": "Learn modern JavaScript from first principles.",
+                          "category": "programming",
+                          "level": "beginner",
+                          "price": 3999,
+                          "status": "published"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Courses"
+        ],
+        "summary": "Create a course",
+        "operationId": "createCourse",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "title": "JavaScript Foundations",
+                    "description": "Learn modern JavaScript from first principles.",
+                    "category": "programming",
+                    "level": "beginner",
+                    "price": 3999
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Course created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Course created",
+                      "data": {
+                        "id": "8e4fd4f8-d8f3-46b5-8786-6f7167a654f4",
+                        "title": "JavaScript Foundations",
+                        "description": "Learn modern JavaScript from first principles.",
+                        "category": "programming",
+                        "level": "beginner",
+                        "price": 3999,
+                        "status": "published"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid course data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "title",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/create-intent": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Create a payment intent",
+        "operationId": "createPaymentIntent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "payment-8e4fd4f8-d8f3-46b5"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentIntentRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "courseId": "8e4fd4f8-d8f3-46b5-8786-6f7167a654f4",
+                    "amount": 3999,
+                    "currency": "USD"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment intent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Payment intent created",
+                      "data": {
+                        "id": "pay_01JZ0D4R8R2Y3R9H2W6E5R4T1P",
+                        "amount": 3999,
+                        "currency": "USD",
+                        "status": "pending",
+                        "providerClientSecret": "pi_123_secret_456"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate idempotency key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Request already processed",
+                      "errors": []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search courses and learning content",
+        "operationId": "searchContent",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "javascript basics"
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "{\"category\":\"programming\",\"level\":\"beginner\"}"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "relevance"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "results": [
+                        {
+                          "id": "8e4fd4f8-d8f3-46b5-8786-6f7167a654f4",
+                          "title": "JavaScript Foundations",
+                          "description": "Learn modern JavaScript from first principles.",
+                          "category": "programming",
+                          "level": "beginner",
+                          "price": 3999,
+                          "status": "published"
+                        }
+                      ],
+                      "total": 1,
+                      "page": 1,
+                      "limit": 20,
+                      "filters": {
+                        "category": "programming",
+                        "level": "beginner"
+                      },
+                      "query": "javascript basics"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filters JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "filters must be valid JSON",
+                      "errors": [
+                        {
+                          "field": "filters",
+                          "message": "filters must be valid JSON"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search/autocomplete": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Get search autocomplete suggestions",
+        "operationId": "getAutocomplete",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "java"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Autocomplete suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": [
+                      "javascript",
+                      "java fundamentals",
+                      "java spring"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debug/requests": {
+      "get": {
+        "tags": [
+          "Debugging"
+        ],
+        "summary": "List recently captured requests",
+        "operationId": "listCapturedRequests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Captured request summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "total": 1,
+                      "records": [
+                        {
+                          "id": "req_01",
+                          "timestamp": "2026-05-27T18:00:00.000Z",
+                          "method": "GET",
+                          "path": "/search?q=javascript",
+                          "statusCode": 200,
+                          "durationMs": 18,
+                          "hasError": false
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Debugging"
+        ],
+        "summary": "Clear the captured request buffer",
+        "operationId": "clearCapturedRequests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Capture buffer cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "message": "Debug capture buffer cleared"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/points/award-activity": {
+      "post": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Award points for a user activity",
+        "operationId": "awardActivity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardActivityRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "userId": "user_123",
+                    "activityType": "COURSE_COMPLETED"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activity awarded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "pointsAwarded": 500,
+                        "totalPoints": 2500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "activityType",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/points/add": {
+      "post": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Add points to a user",
+        "operationId": "addPoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPointsRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "userId": "user_123",
+                    "points": 100,
+                    "activityType": "COURSE_COMPLETED"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Points added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "pointsAdded": 100,
+                        "totalPoints": 2600
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "points",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/tiers/rewards/{tier}": {
+      "post": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Create or update a tier reward",
+        "operationId": "upsertReward",
+        "parameters": [
+          {
+            "name": "tier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BRONZE",
+                "SILVER",
+                "GOLD",
+                "PLATINUM",
+                "DIAMOND"
+              ]
+            },
+            "example": "GOLD"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertRewardRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "title": "Gold Badge",
+                    "description": "Awarded for reaching Gold tier",
+                    "badgeId": "badge_gold",
+                    "bonusPoints": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reward saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "id": "reward_001",
+                        "tier": "GOLD"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "title",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/points/progress/{userId}": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get user progress and points",
+        "operationId": "getUserProgress",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "user_123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "userId": "user_123",
+                        "totalPoints": 2500,
+                        "tier": "GOLD",
+                        "pointsToNextTier": 500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gamification/leaderboard": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get leaderboard",
+        "operationId": "getLeaderboard",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "entries": [
+                          {
+                            "userId": "user_123",
+                            "rank": 1,
+                            "points": 2500
+                          }
+                        ],
+                        "page": 1,
+                        "pageSize": 20,
+                        "total": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data-pipeline/etl/run": {
+      "post": {
+        "tags": [
+          "Data Pipeline"
+        ],
+        "summary": "Run an ETL job",
+        "operationId": "runEtl",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunEtlRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "source": "sales_csv",
+                    "data": [
+                      {
+                        "id": 1,
+                        "name": "example"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ETL job completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "recordsProcessed": 1000,
+                        "durationMs": 1500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "source",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/route": {
+      "post": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "Resolve which shard a key routes to",
+        "operationId": "routeShard",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteShardRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "key": "user_123",
+                    "strategy": "hash_based",
+                    "forRead": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Routing result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "shardId": "shard-01",
+                        "host": "db-shard-01.example.com",
+                        "port": 5432,
+                        "isReplica": false,
+                        "routingKey": "user_123",
+                        "resolutionTimeMs": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "key",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/migrations": {
+      "post": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "Start a cross-shard data migration",
+        "operationId": "startMigration",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartMigrationRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "sourceShardId": "shard-00",
+                    "targetShardId": "shard-01",
+                    "entityType": "users",
+                    "estimatedRowCount": 50000,
+                    "batchSize": 1000,
+                    "dryRun": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Migration started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_001",
+                        "message": "Migration started"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "sourceShardId",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "List all migration plans and their statuses",
+        "operationId": "listMigrations",
+        "responses": {
+          "200": {
+            "description": "Migration plans",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "migrations": [
+                          {
+                            "planId": "plan_001",
+                            "status": "running"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/migrations/{planId}": {
+      "get": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "Get the status of a specific migration plan",
+        "operationId": "getMigrationStatus",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "plan_001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Migration status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_001",
+                        "status": "running",
+                        "migratedRows": 10000,
+                        "totalRows": 50000
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "Roll back a completed migration",
+        "operationId": "rollbackMigration",
+        "parameters": [
+          {
+            "name": "planId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "plan_001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Migration rolled back",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "message": "Migration \"plan_001\" rolled back"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/rebalance": {
+      "post": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "Trigger a manual shard rebalance",
+        "operationId": "manualRebalance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualRebalanceRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "migrations": [
+                      {
+                        "sourceShardId": "shard-00",
+                        "targetShardId": "shard-01",
+                        "entityType": "users",
+                        "estimatedRowCount": 50000,
+                        "batchSize": 1000,
+                        "dryRun": false
+                      }
+                    ],
+                    "dryRun": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Rebalance plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_002",
+                        "plan": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "migrations",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sharding/rebalance/auto": {
+      "post": {
+        "tags": [
+          "Sharding"
+        ],
+        "summary": "Run automated rebalance analysis",
+        "operationId": "autoRebalance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoRebalanceRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "entityTypes": [
+                      "users",
+                      "courses"
+                    ],
+                    "autoExecute": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Auto-rebalance plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": true,
+                      "message": "Operation completed successfully",
+                      "data": {
+                        "planId": "plan_003",
+                        "plan": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "success": false,
+                      "message": "Validation failed",
+                      "errors": [
+                        {
+                          "field": "entityTypes",
+                          "message": "Validation failed"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiSuccess": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Operation completed successfully"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Validation failed"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "example": "email"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "email must be valid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "learner@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "Password123!"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "learner@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "Password123!"
+          },
+          "firstName": {
+            "type": "string",
+            "example": "Ada"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Lovelace"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "student",
+              "teacher"
+            ],
+            "example": "student"
+          }
+        }
+      },
+      "CourseRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "description"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "JavaScript Foundations"
+          },
+          "description": {
+            "type": "string",
+            "example": "Learn modern JavaScript from first principles."
+          },
+          "category": {
+            "type": "string",
+            "example": "programming"
+          },
+          "level": {
+            "type": "string",
+            "example": "beginner"
+          },
+          "price": {
+            "type": "number",
+            "example": 3999
+          }
+        }
+      },
+      "PaymentIntentRequest": {
+        "type": "object",
+        "required": [
+          "courseId",
+          "amount",
+          "currency"
+        ],
+        "properties": {
+          "courseId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "8e4fd4f8-d8f3-46b5-8786-6f7167a654f4"
+          },
+          "amount": {
+            "type": "number",
+            "example": 3999
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "example": 1
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "filters": {
+            "type": "object"
+          },
+          "query": {
+            "type": "string",
+            "example": "javascript basics"
+          }
+        }
+      },
+      "AwardActivityRequest": {
+        "type": "object",
+        "required": [
+          "userId",
+          "activityType"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "user_123"
+          },
+          "activityType": {
+            "type": "string",
+            "enum": [
+              "COURSE_COMPLETED",
+              "LESSON_COMPLETED",
+              "QUIZ_PASSED",
+              "DAILY_LOGIN",
+              "PROFILE_COMPLETED",
+              "FIRST_COURSE_ENROLLED",
+              "REVIEW_SUBMITTED",
+              "STREAK_BONUS"
+            ],
+            "example": "COURSE_COMPLETED"
+          }
+        }
+      },
+      "AddPointsRequest": {
+        "type": "object",
+        "required": [
+          "userId",
+          "points",
+          "activityType"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "user_123"
+          },
+          "points": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 100
+          },
+          "activityType": {
+            "type": "string",
+            "example": "COURSE_COMPLETED"
+          }
+        }
+      },
+      "UpsertRewardRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "description"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Gold Badge"
+          },
+          "description": {
+            "type": "string",
+            "example": "Awarded for reaching Gold tier"
+          },
+          "badgeId": {
+            "type": "string",
+            "example": "badge_gold"
+          },
+          "bonusPoints": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 500
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      },
+      "RunEtlRequest": {
+        "type": "object",
+        "required": [
+          "source",
+          "data"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "example": "sales_csv"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "example": [
+              {
+                "id": 1,
+                "name": "example"
+              }
+            ]
+          }
+        }
+      },
+      "RouteShardRequest": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "user_123"
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "tenant_based",
+              "hash_based",
+              "range_based",
+              "read_replica"
+            ],
+            "example": "hash_based"
+          },
+          "forRead": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "StartMigrationRequest": {
+        "type": "object",
+        "required": [
+          "sourceShardId",
+          "targetShardId",
+          "entityType",
+          "estimatedRowCount",
+          "batchSize",
+          "dryRun"
+        ],
+        "properties": {
+          "sourceShardId": {
+            "type": "string",
+            "example": "shard-00"
+          },
+          "targetShardId": {
+            "type": "string",
+            "example": "shard-01"
+          },
+          "entityType": {
+            "type": "string",
+            "example": "users"
+          },
+          "estimatedRowCount": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 50000
+          },
+          "batchSize": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1000
+          },
+          "dryRun": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "ManualRebalanceRequest": {
+        "type": "object",
+        "required": [
+          "migrations",
+          "dryRun"
+        ],
+        "properties": {
+          "migrations": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "dryRun": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "AutoRebalanceRequest": {
+        "type": "object",
+        "required": [
+          "entityTypes",
+          "autoExecute"
+        ],
+        "properties": {
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "users",
+              "courses"
+            ]
+          },
+          "autoExecute": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      }
+    }
+  }
+}

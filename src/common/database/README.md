@@ -27,12 +27,12 @@ export class PaymentService {
   async processPayment(userId: string, amount: number) {
     return this.transactionService.runInTransaction(async (manager) => {
       // All operations within this block are atomic
-      
+
       // Deduct from sender
-      await manager.query(
-        'UPDATE users SET balance = balance - $1 WHERE id = $2',
-        [amount, userId],
-      );
+      await manager.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [
+        amount,
+        userId,
+      ]);
 
       // Create payment record
       const payment = await manager.query(
@@ -110,7 +110,7 @@ Execute multiple independent operations in parallel:
 
 ```typescript
 async batchUpdate(items: any[]) {
-  const operations = items.map(item => 
+  const operations = items.map(item =>
     (manager) => manager.query('UPDATE items SET status = $1 WHERE id = $2', ['processed', item.id])
   );
 
@@ -323,48 +323,44 @@ async castVote(userId: string, proposalId: string, voteType: string) {
 ## Isolation Levels
 
 ### READ UNCOMMITTED
+
 Lowest isolation, allows dirty reads:
+
 ```typescript
-await this.transactionService.runWithIsolationLevel(
-  'READ UNCOMMITTED',
-  async (manager) => {
-    // Can read uncommitted changes from other transactions
-  },
-);
+await this.transactionService.runWithIsolationLevel('READ UNCOMMITTED', async (manager) => {
+  // Can read uncommitted changes from other transactions
+});
 ```
 
 ### READ COMMITTED (Default)
+
 Prevents dirty reads:
+
 ```typescript
-await this.transactionService.runWithIsolationLevel(
-  'READ COMMITTED',
-  async (manager) => {
-    // Only reads committed data
-  },
-);
+await this.transactionService.runWithIsolationLevel('READ COMMITTED', async (manager) => {
+  // Only reads committed data
+});
 ```
 
 ### REPEATABLE READ
+
 Prevents non-repeatable reads:
+
 ```typescript
-await this.transactionService.runWithIsolationLevel(
-  'REPEATABLE READ',
-  async (manager) => {
-    // Same query returns same results throughout transaction
-  },
-);
+await this.transactionService.runWithIsolationLevel('REPEATABLE READ', async (manager) => {
+  // Same query returns same results throughout transaction
+});
 ```
 
 ### SERIALIZABLE
+
 Highest isolation, prevents phantom reads:
+
 ```typescript
-await this.transactionService.runWithIsolationLevel(
-  'SERIALIZABLE',
-  async (manager) => {
-    // Complete isolation from other transactions
-    // Use for critical operations like voting, payments
-  },
-);
+await this.transactionService.runWithIsolationLevel('SERIALIZABLE', async (manager) => {
+  // Complete isolation from other transactions
+  // Use for critical operations like voting, payments
+});
 ```
 
 ## Error Handling
@@ -375,10 +371,10 @@ Transactions automatically rollback on errors:
 try {
   await this.transactionService.runInTransaction(async (manager) => {
     await manager.query('INSERT INTO users (name) VALUES ($1)', ['John']);
-    
+
     // This will cause rollback
     throw new Error('Something went wrong');
-    
+
     // This won't execute
     await manager.query('INSERT INTO logs (message) VALUES ($1)', ['Done']);
   });
@@ -467,6 +463,7 @@ async processBatch(items: any[]) {
 ### Deadlocks
 
 If you encounter deadlocks:
+
 1. Use retry logic
 2. Ensure consistent lock ordering
 3. Keep transactions short
@@ -485,6 +482,7 @@ await manager.query('SELECT * FROM users WHERE id = $1 FOR UPDATE', [userId2]);
 ### Long-Running Transactions
 
 Avoid:
+
 ```typescript
 // BAD: External API call in transaction
 await this.transactionService.runInTransaction(async (manager) => {
@@ -494,6 +492,7 @@ await this.transactionService.runInTransaction(async (manager) => {
 ```
 
 Do instead:
+
 ```typescript
 // GOOD: External call after transaction
 const order = await this.transactionService.runInTransaction(async (manager) => {
@@ -507,6 +506,7 @@ await this.externalApi.notify(order);
 ### Transaction Timeout
 
 Set appropriate timeouts:
+
 ```typescript
 // In TypeORM configuration
 {
@@ -523,9 +523,9 @@ Set appropriate timeouts:
 ```typescript
 describe('PaymentService', () => {
   it('should rollback on insufficient balance', async () => {
-    await expect(
-      service.processPayment('user1', 1000, 'user2'),
-    ).rejects.toThrow('Insufficient balance');
+    await expect(service.processPayment('user1', 1000, 'user2')).rejects.toThrow(
+      'Insufficient balance',
+    );
 
     // Verify no changes were made
     const user = await userRepo.findOne('user1');
@@ -539,9 +539,9 @@ describe('PaymentService', () => {
 ```typescript
 describe('Transaction Integration', () => {
   it('should handle concurrent updates correctly', async () => {
-    const promises = Array(10).fill(null).map(() =>
-      service.incrementCounter('counter1'),
-    );
+    const promises = Array(10)
+      .fill(null)
+      .map(() => service.incrementCounter('counter1'));
 
     await Promise.all(promises);
 

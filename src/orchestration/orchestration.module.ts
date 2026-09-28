@@ -1,27 +1,11 @@
-import { Module, Global } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
-import { ServiceMeshService } from './service-mesh/service-mesh.service';
-import { WorkflowEngineService } from './workflow/workflow-engine.service';
+import { Global, Module } from '@nestjs/common';
 import { DistributedLockService } from './locks/distributed-lock.service';
-import { ServiceDiscoveryService } from './discovery/service-discovery.service';
-import { HealthCheckerService } from './health/health-checker.service';
+import { RedisModule } from '../common/redis/redis.module';
 
 @Global()
 @Module({
-  imports: [HttpModule],
-  providers: [
-    ServiceMeshService,
-    WorkflowEngineService,
-    DistributedLockService,
-    ServiceDiscoveryService,
-    HealthCheckerService,
-  ],
-  exports: [
-    ServiceMeshService,
-    WorkflowEngineService,
-    DistributedLockService,
-    ServiceDiscoveryService,
-    HealthCheckerService,
-  ],
+  imports: [RedisModule.forRoot()],
+  providers: [DistributedLockService],
+  exports: [DistributedLockService],
 })
 export class OrchestrationModule {}

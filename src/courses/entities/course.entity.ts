@@ -4,20 +4,37 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   OneToMany,
   Index,
+  VersionColumn,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { CourseModule } from './course-module.entity';
 import { Enrollment } from './enrollment.entity';
+import { CourseReview } from './course-review.entity';
+import { CourseVersion } from './course-version.entity';
+import { CourseStatus } from './course-status.enum';
 
+export { CourseStatus };
+
+/**
+ * Represents the course entity.
+ */
 @Entity()
+@Index(['status', 'createdAt'])
+@Index(['instructorId', 'createdAt'])
 export class Course {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @Column()
+  @Index()
   title: string;
 
   @Column('text')
@@ -26,12 +43,42 @@ export class Course {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   price: number;
 
-  @Column({ default: 'draft' }) // draft, published, archived
+  @Column({
+    type: 'enum',
+    enum: CourseStatus,
+    default: CourseStatus.DRAFT,
+  })
   @Index()
-  status: string;
+  status: CourseStatus;
 
   @Column({ nullable: true })
   thumbnailUrl: string;
+
+  /** Optional category/tag used for catalog grouping and bulk operations. */
+  @Column({ nullable: true })
+  @Index('IDX_course_category')
+  category?: string;
+
+  /** Difficulty level, e.g. 'beginner' | 'intermediate' | 'advanced'. Used by search filtering. */
+  @Column({ nullable: true })
+  @Index('IDX_course_level')
+  level?: string;
+
+  /** ISO 639-1 language code the course is taught in. Used by search filtering. */
+  @Column({ nullable: true })
+  @Index('IDX_course_language')
+  language?: string;
+
+  /** ISO 4217 currency code the course is priced in (e.g. "USD"). */
+  @Column({
+    name: 'currency',
+    type: 'varchar',
+    length: 3,
+    default: 'USD',
+    nullable: true,
+  })
+  @Index('IDX_course_currency')
+  currency?: string;
 
   @ManyToOne(() => User, (user) => user.courses)
   instructor: User;
@@ -46,9 +93,49 @@ export class Course {
   @OneToMany(() => Enrollment, (enrollment) => enrollment.course)
   enrollments: Enrollment[];
 
+  @ManyToOne(() => Course, (course) => course.prerequisiteFor, { nullable: true })
+  @JoinColumn({ name: 'prerequisite_course_id' })
+  prerequisite?: Course;
+
+  @OneToMany(() => Course, (course) => course.prerequisite)
+  prerequisiteFor: Course[];
+
+  @OneToMany(() => CourseReview, (review) => review.course, { eager: false })
+  reviews: CourseReview[];
+
+  @OneToMany(() => CourseVersion, (version) => version.course)
+  versions: CourseVersion[];
+
+  /** The submission note provided by the instructor when submitting for review. */
+  @Column({ type: 'text', nullable: true })
+  submissionNote?: string;
+
+  /**
+   * Issue #814 — generated `tsvector` column maintained by PostgreSQL.
+   * Indexed with GIN and queried by `SearchService` for full-text search.
+   * Marked read-only via `generatedType: 'STORED'` and `asExpression` so
+   * TypeORM doesn't try to write/read this column directly even if
+   * `synchronize: true` is enabled. The `@Index` keeps the entity in sync
+   * with the migration (idempotent name matches the migration's index).
+   */
+  @Index('IDX_course_search_vector', { synchronize: false })
+  @Column({
+    name: 'search_vector',
+    type: 'tsvector',
+    select: false,
+    generatedType: 'STORED',
+    asExpression:
+      "to_tsvector('english', coalesce(\"title\", '') || ' ' || coalesce(\"description\", '') || ' ' || coalesce(\"category\", ''))",
+  })
+  searchVector?: unknown;
+
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

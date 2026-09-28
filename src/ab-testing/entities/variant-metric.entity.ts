@@ -5,13 +5,20 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  VersionColumn,
 } from 'typeorm';
-import { ExperimentVariant } from './experiment-variant.entity';
+import { IExperimentVariant } from './experiment-variant.entity';
 
+/**
+ * Represents the variant Metric entity.
+ */
 @Entity({ name: 'variant_metrics' })
 export class VariantMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @VersionColumn()
+  version: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
   value: number;
@@ -43,6 +50,6 @@ export class VariantMetric {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => ExperimentVariant, (variant) => variant.metrics)
-  variant: ExperimentVariant;
+  @ManyToOne(() => IExperimentVariant, (variant) => variant.metrics)
+  variant: IExperimentVariant;
 }

@@ -1,40 +1,35 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BullModule } from '@nestjs/bull';
-import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
-import { NotificationsService } from './notifications.service';
-import { NotificationsController } from './notifications.controller';
-import { NotificationsGateway } from './notifications.gateway';
-import { NotificationTemplatesService } from './notification-templates.service';
-import { PreferencesService } from './preferences/preferences.service';
-import { EmailService } from './email/email.service';
-import { EmailProcessor } from './email/email.processor';
+import { ScheduleModule } from '@nestjs/schedule';
 import { Notification } from './entities/notification.entity';
 import { NotificationPreferences } from './entities/notification-preferences.entity';
+import { NotificationTemplate } from './entities/notification-template.entity';
+import { NotificationsController } from './notifications.controller';
+import { NotificationsQueueService } from './notifications.queue';
+import { NotificationsService } from './notifications.service';
+import { PreferencesService } from './preferences/preferences.service';
+import { NotificationTemplateService } from './templates/notification-template.service';
+import { PaginationService } from '../common/services/pagination.service';
 
-@Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Notification, NotificationPreferences]),
-    ConfigModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'default-secret',
-      signOptions: { expiresIn: '24h' },
-    }),
-    BullModule.registerQueue({
-      name: 'email',
-    }),
+    TypeOrmModule.forFeature([Notification, NotificationPreferences, NotificationTemplate]),
+    ScheduleModule.forRoot(),
   ],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
-    NotificationsGateway,
-    NotificationTemplatesService,
     PreferencesService,
-    EmailService,
-    EmailProcessor,
+    NotificationsQueueService,
+    NotificationTemplateService,
+    PaginationService,
   ],
-  exports: [NotificationsService, PreferencesService],
+  exports: [NotificationsService, PreferencesService, NotificationTemplateService],
 })
-export class NotificationsModule {}
+export class NotificationsModule implements OnModuleInit {
+  constructor(private readonly templateService: NotificationTemplateService) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.templateService.seedDefaultTemplates();
+  }
+}

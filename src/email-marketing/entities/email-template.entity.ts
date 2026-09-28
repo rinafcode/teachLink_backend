@@ -4,16 +4,26 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
+  VersionColumn,
+  Index,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
+/**
+ * Represents the email Template entity.
+ */
 @Entity('email_templates')
 export class EmailTemplate {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @VersionColumn()
+  version: number;
+
   @ApiProperty()
+  @Index('IDX_email_templates_name')
   @Column()
   name: string;
 
@@ -30,6 +40,7 @@ export class EmailTemplate {
   textContent?: string;
 
   @ApiProperty({ required: false })
+  @Index('IDX_email_templates_category')
   @Column({ nullable: true })
   category?: string;
 
@@ -42,14 +53,19 @@ export class EmailTemplate {
   thumbnailUrl?: string;
 
   @ApiProperty()
+  @Index('IDX_email_templates_is_active')
   @Column({ default: true })
   isActive: boolean;
 
   @ApiProperty()
+  @Index('IDX_email_templates_created_at')
   @CreateDateColumn()
   createdAt: Date;
 
   @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }

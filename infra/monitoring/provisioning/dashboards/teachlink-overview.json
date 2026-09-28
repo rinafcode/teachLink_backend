@@ -1,0 +1,334 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Request rate (by status)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "showLegend": true, "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(api_requests_total[1m]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Request rate (by endpoint)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (endpoint) (rate(api_requests_total[5m])))",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Hourly Infrastructure Cost (USD)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "targets": [
+        { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Estimated Spend (24h)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+      ]
+    }
+  ]
+}
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 6, "x": 18, "y": 24 },
+            "id": 11,
+            "fieldConfig": { "defaults": {}, "overrides": [] },
+            "options": {
+              "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+              "colorMode": "value",
+              "graphMode": "area"
+            },
+            "targets": [{ "expr": "sum(anomalies_detected_total)", "refId": "A" }]
+          },
+          {
+            "title": "Hourly Infrastructure Cost (USD)",
+            "type": "timeseries",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
+            "id": 12,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+            ]
+          },
+          {
+            "title": "Estimated Spend (24h)",
+            "type": "stat",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
+            "id": 13,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+            ]
+          }
+        ]
+      }
+        {
+      ],
+    }
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
+          "id": 12,
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+          "targets": [
+            { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+          ]
+        },
+        {
+          "title": "Estimated Spend (24h)",
+          "type": "stat",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
+          "id": 13,
+          "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+          "targets": [
+            { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+          ]
+        }
+          "expr": "topk(10, sum by (endpoint) (rate(api_requests_total[5m])))",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "API latency p50 / p95 / p99",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(api_response_time_bucket[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(api_response_time_bucket[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(api_response_time_bucket[5m])))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "5xx error rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "id": 4,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(api_requests_total{status=~\"5..\"}[5m])) / sum(rate(api_requests_total[5m]))",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Service up",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "id": 5,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background"
+      },
+      "targets": [{ "expr": "up{job=\"teachlink-backend\"}", "refId": "A" }]
+    },
+    {
+      "title": "Node.js event loop lag",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [{ "expr": "nodejs_eventloop_lag_seconds", "refId": "A" }]
+    },
+    {
+      "title": "Database query duration p95",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 7,
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(database_query_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "User signups / hr",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 24 },
+      "id": 8,
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [{ "expr": "sum(increase(user_signups_total[1h]))", "refId": "A" }]
+    },
+    {
+      "title": "Course enrollments / hr",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 24 },
+      "id": 9,
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [{ "expr": "sum(increase(course_enrollments_total[1h]))", "refId": "A" }]
+    },
+    {
+      "title": "Payments volume (USD) / hr",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 24 },
+      "id": 10,
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "targets": [{ "expr": "sum(increase(payment_amount_usd_total[1h]))", "refId": "A" }]
+    },
+    {
+      "title": "Anomalies detected (15m)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 24 },
+      "id": 11,
+      "fieldConfig": {
+        "defaults": {
+          {
+          "defaults": {},
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+          "colorMode": "value",
+          "graphMode": "area"
+        },
+        "targets": [{ "expr": "sum(anomalies_detected_total)", "refId": "A" }]
+      },
+            "title": "Hourly Infrastructure Cost (USD)",
+            "type": "timeseries",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
+            "id": 12,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "infrastructure_hourly_cost_usd", "legendFormat": "hourly_cost_usd", "refId": "A" }
+            ]
+          },
+          {
+            "title": "Estimated Spend (24h)",
+            "type": "stat",
+            "datasource": { "type": "prometheus", "uid": "Prometheus" },
+            "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
+            "id": 13,
+            "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+            "targets": [
+              { "expr": "sum(increase(infrastructure_hourly_cost_usd[24h]))", "refId": "A" }
+            ]
+          },

@@ -1,5 +1,4 @@
 import * as Joi from 'joi';
-
 export const envValidationSchema = Joi.object({
   // Node Environment
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
@@ -8,6 +7,12 @@ export const envValidationSchema = Joi.object({
   // Database Configuration
   DATABASE_HOST: Joi.string().required(),
   DATABASE_PORT: Joi.number().required(),
+  DATABASE_REPLICA_URLS: Joi.string().optional(),
+  DATABASE_REPLICA_HOSTS: Joi.string().optional(),
+  DATABASE_REPLICA_PORTS: Joi.string().optional(),
+  DATABASE_REPLICA_USER: Joi.string().optional(),
+  DATABASE_REPLICA_PASSWORD: Joi.string().optional(),
+  DATABASE_REPLICA_NAME: Joi.string().optional(),
   DATABASE_USER: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
@@ -15,19 +20,52 @@ export const envValidationSchema = Joi.object({
   DATABASE_POOL_MIN: Joi.number().integer().min(0).default(5),
   DATABASE_POOL_ACQUIRE_TIMEOUT_MS: Joi.number().integer().min(1000).default(10000),
   DATABASE_POOL_IDLE_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
+  DATABASE_SYNCHRONIZE: Joi.boolean().default(false),
+  TYPEORM_SYNCHRONIZE: Joi.boolean().default(false),
 
   // Redis Configuration
   REDIS_HOST: Joi.string().required(),
   REDIS_PORT: Joi.number().required(),
+  REDIS_PASSWORD: Joi.string().optional(),
+
+  // Redis Sentinel (optional — HA failover; see RedisModule)
+  REDIS_SENTINEL_HOSTS: Joi.string().optional(),
+  REDIS_SENTINEL_NAME: Joi.string().default('mymaster'),
+  REDIS_SENTINEL_PASSWORD: Joi.string().optional(),
+
+  // Redis Cluster (optional — sharding; takes precedence over Sentinel)
+  REDIS_CLUSTER_NODES: Joi.string().optional(),
 
   // JWT Configuration
-  JWT_SECRET: Joi.string().min(10).required(),
+  // Either JWT_SECRET (HS256) or JWT_PRIVATE_KEY + JWT_PUBLIC_KEY (RS256) must be configured
+  JWT_SECRETS: Joi.string().optional(),
+  JWT_SECRET_CURRENT_VERSION: Joi.string().optional(),
+  JWT_SECRET: Joi.string()
+    .min(10)
+    .when('JWT_PRIVATE_KEY', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.when('JWT_SECRETS', {
+        is: Joi.exist(),
+        then: Joi.optional(),
+        otherwise: Joi.required(),
+      }),
+    }),
+  JWT_PRIVATE_KEY: Joi.string().optional(),
+  JWT_PUBLIC_KEY: Joi.string().optional().when('JWT_PRIVATE_KEY', {
+    is: Joi.exist(),
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   JWT_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().min(10).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   // Encryption
   ENCRYPTION_SECRET: Joi.string().min(32).required(),
+
+  // Security Configuration
+  BCRYPT_ROUNDS: Joi.number().integer().min(10).max(14).default(12),
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: Joi.string().required(),
@@ -56,6 +94,8 @@ export const envValidationSchema = Joi.object({
 
   // SendGrid Configuration
   SENDGRID_API_KEY: Joi.string().required(),
+  SENDGRID_SENDER_EMAIL: Joi.string().email().required(),
+  SENDGRID_WEBHOOK_TOKEN: Joi.string().required(),
   SENDGRID_HEALTH_URL: Joi.string().uri().optional(),
 
   // Elasticsearch Configuration
@@ -85,7 +125,7 @@ export const envValidationSchema = Joi.object({
 
   // Feature Flags
   ENABLE_AUTH: Joi.boolean().default(true),
-  ENABLE_SESSION_MANAGEMENT: Joi.boolean().default(true),
+
   ENABLE_PAYMENTS: Joi.boolean().default(true),
   ENABLE_AB_TESTING: Joi.boolean().default(false),
   ENABLE_DATA_WAREHOUSE: Joi.boolean().default(false),
@@ -111,6 +151,7 @@ export const envValidationSchema = Joi.object({
   ENABLE_TENANCY: Joi.boolean().default(true),
   ENABLE_CDN: Joi.boolean().default(true),
   ENABLE_LOCALIZATION: Joi.boolean().default(true),
+  ENABLE_MALWARE_SCANNING: Joi.boolean().default(false),
 
   // i18n / localization
   I18N_DEFAULT_LOCALE: Joi.string().default('en'),
@@ -123,4 +164,45 @@ export const envValidationSchema = Joi.object({
 
   // Application URL
   APP_URL: Joi.string().uri().default('http://localhost:3000'),
+
+  // CORS Configuration
+  CORS_ALLOWED_ORIGINS: Joi.string().default('http://localhost:3000,http://localhost:4000'),
+
+  // Secrets Management
+  SECRET_CACHE_TTL_MS: Joi.number().integer().min(1000).default(300000),
+  SECRETS_TO_ROTATE: Joi.string().optional(),
+  VAULT_ADDR: Joi.string().uri().optional(),
+  VAULT_TOKEN: Joi.string().optional(),
+  VAULT_SECRET_PATH: Joi.string().default('secret/data'),
+  SECRET_PROVIDER: Joi.string().valid('aws', 'vault', 'env').default('env'),
+
+  // Idempotency Configuration
+  IDEMPOTENCY_TTL_SECONDS: Joi.number().integer().min(60).default(86400),
+
+  // Segment Analytics
+  SEGMENT_WRITE_KEY: Joi.string().optional(),
+
+  // Data Retention
+  AUDIT_LOG_RETENTION_DAYS: Joi.number().integer().min(1).default(730),
+  ANALYTICS_RETENTION_DAYS: Joi.number().integer().min(1).default(365),
+
+  // Circuit Breaker Configuration
+  CIRCUIT_BREAKER_TIMEOUT_MS: Joi.number().integer().min(100).default(3000),
+  CIRCUIT_BREAKER_ERROR_THRESHOLD: Joi.number().integer().min(1).max(100).default(50),
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS: Joi.number().integer().min(1000).default(30000),
+  CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT: Joi.number().integer().min(1000).default(60000),
+  CIRCUIT_BREAKER_ROLLING_COUNT_BUCKETS: Joi.number().integer().min(1).default(10),
+
+  // Replication Configuration
+  REGION: Joi.string().required(),
+  REPLICATION_REGIONS: Joi.string().required(),
+
+  // ── Database Sharding (#602) ──────────────────────────────────────────────
+  // Number of shards. Set to 0 or omit to run in single-shard fallback mode.
+  SHARD_COUNT: Joi.number().integer().min(0).default(0),
+
+  // Rebalance thresholds (pool utilisation %)
+  SHARD_REBALANCE_HIGH_WATERMARK: Joi.number().integer().min(1).max(100).default(80),
+  SHARD_REBALANCE_LOW_WATERMARK: Joi.number().integer().min(0).max(99).default(20),
+  SHARD_REBALANCE_BATCH_SIZE: Joi.number().integer().min(1).max(10000).default(500),
 });

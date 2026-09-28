@@ -1,0 +1,260 @@
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { OnEvent } from '@nestjs/event-emitter';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
+import { Payment } from '../entities/payment.entity';
+import { APP_EVENTS } from '../../common/constants/event.constants';
+import { TaxService } from './tax.service';
+
+/**
+ * PostgreSQL error codes (from PostgreSQL documentation)
+ */
+enum PostgresErrorCode {
+  UNIQUE_VIOLATION = '23505',
+  SERIALIZATION_FAILURE = '40001',
+}
+
+/**
+ * Formats a decimal tax rate (e.g. `0.075`) as a percentage string ("7.5%").
+ */
+function formatTaxRate(rate: number): string {
+  return `${parseFloat((rate * 100).toFixed(2))}%`;
+}
+
+@Injectable()
+export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+  private readonly storagePath = path.join(process.cwd(), 'archived_invoices');
+
+  constructor(
+    @InjectRepository(Invoice)
+    private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
+    private readonly taxService: TaxService,
+  ) {
+    if (!fs.existsSync(this.storagePath)) {
+      fs.mkdirSync(this.storagePath, { recursive: true });
+    }
+  }
+
+  @OnEvent(APP_EVENTS.PAYMENT_COMPLETED)
+  async handlePaymentCompletedEvent(payload: { paymentId: string }) {
+    this.logger.log(`Received PAYMENT_COMPLETED event for payment ${payload.paymentId}`);
+    try {
+      const payment = await this.paymentRepository.findOne({
+        where: { id: payload.paymentId },
+        relations: ['user'],
+      });
+
+      if (!payment) {
+        this.logger.warn(`Payment ${payload.paymentId} not found, skipping invoice generation`);
+        return;
+      }
+
+      // Idempotency guard: the outbox relay delivers at-least-once (issue
+      // #1221), so a redelivered PAYMENT_COMPLETED must not mint a duplicate
+      // invoice for the same payment.
+      const existing = await this.invoiceRepository.findOne({
+        where: { paymentId: payload.paymentId },
+      });
+      if (existing) {
+        this.logger.log(
+          `Invoice ${existing.id} already exists for payment ${payload.paymentId}, skipping`,
+        );
+        return;
+      }
+
+      await this.generateAndArchiveInvoice(payment);
+    } catch (error) {
+      this.logger.error(`Error generating invoice for payment ${payload.paymentId}:`, error.stack);
+    }
+  }
+
+  /**
+   * Generate a unique invoice number from PostgreSQL sequence.
+   *
+   * Atomicity guarantee:
+   *  - nextval() is atomic at the database level
+   *  - Each concurrent call gets a distinct sequence value
+   *  - No application-level locking needed
+   *
+   * @returns Invoice number formatted as `INV-<6-digit-zero-padded-sequence>`
+   * @throws Error if sequence retrieval fails
+   */
+  private async generateInvoiceNumber(): Promise<string> {
+    try {
+      const result = await this.invoiceRepository.query(
+        "SELECT LPAD(nextval('invoice_number_seq')::text, 6, '0') as seq_value;",
+      );
+
+      if (!result || result.length === 0) {
+        throw new Error('Failed to retrieve sequence value from database');
+      }
+
+      const sequenceValue = result[0].seq_value;
+      return `INV-${sequenceValue}`;
+    } catch (error) {
+      this.logger.error('Failed to generate invoice number from sequence', (error as Error).stack);
+      throw new Error(`Invoice number generation failed: ${(error as Error).message}`);
+    }
+  }
+
+  async generateAndArchiveInvoice(payment: Payment): Promise<Invoice> {
+    const invoiceNumber = await this.generateInvoiceNumber();
+
+    const tax = this.taxService.resolveTax(
+      Number(payment.amount),
+      this.taxService.resolveJurisdiction(payment),
+    );
+
+    const items = [
+      {
+        description: `Payment for transaction ${payment.id}`,
+        amount: Number(payment.amount),
+        quantity: 1,
+      },
+    ];
+
+    let invoice = this.invoiceRepository.create({
+      invoiceNumber,
+      amount: payment.amount,
+      taxAmount: tax.taxAmount,
+      totalAmount: tax.totalAmount,
+      taxRate: tax.rate,
+      taxJurisdiction: tax.jurisdiction,
+      currency: payment.currency,
+      items,
+      status: InvoiceStatus.PAID,
+      issuedDate: new Date(),
+      paymentId: payment.id,
+      userId: payment.userId,
+    });
+
+    // Attempt to insert with explicit unique-violation handling
+    try {
+      invoice = await this.invoiceRepository.save(invoice);
+    } catch (error) {
+      const dbError = error as any;
+
+      // Check for unique constraint violation (PostgreSQL error code 23505)
+      if (dbError?.code === PostgresErrorCode.UNIQUE_VIOLATION) {
+        const message =
+          `Invoice number collision detected: "${invoiceNumber}" is already in use. ` +
+          'This should not occur under normal operation (database sequence ensures uniqueness). ' +
+          'Possible causes: manual invoice insertion, sequence reset, or data corruption. ' +
+          'Action: investigate database state and contact support.';
+
+        this.logger.error(message);
+        throw new ConflictException(message);
+      }
+
+      // Re-throw other database errors (connection failures, etc.)
+      this.logger.error(
+        `Unexpected database error during invoice insert: ${dbError?.message}`,
+        dbError?.stack,
+      );
+      throw error;
+    }
+
+    function escapeHtml(val: any): string {
+      return String(val ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Generate HTML template
+    const taxLine =
+      invoice.taxAmount != null && Number(invoice.taxAmount) > 0
+        ? `<p><strong>Tax (${escapeHtml(formatTaxRate(Number(invoice.taxRate)))}${invoice.taxJurisdiction ? ` - ${escapeHtml(invoice.taxJurisdiction)}` : ''}):</strong> ${escapeHtml(invoice.taxAmount)} ${escapeHtml(invoice.currency)}</p>`
+        : '';
+
+    const htmlContent = `
+      <html>
+        <head><title>Invoice ${escapeHtml(invoice.invoiceNumber)}</title></head>
+        <body>
+          <h1>Invoice</h1>
+          <p><strong>Invoice Number:</strong> ${escapeHtml(invoice.invoiceNumber)}</p>
+          <p><strong>Date:</strong> ${escapeHtml(invoice.issuedDate.toISOString())}</p>
+          <p><strong>Status:</strong> ${escapeHtml(invoice.status.toUpperCase())}</p>
+          <p><strong>Amount:</strong> ${escapeHtml(invoice.amount)} ${escapeHtml(invoice.currency)}</p>
+          ${taxLine}
+          <p><strong>Total Amount:</strong> ${escapeHtml(invoice.totalAmount)} ${escapeHtml(invoice.currency)}</p>
+          <hr/>
+          <h3>Items</h3>
+          <ul>
+            ${invoice.items.map((i) => `<li>${escapeHtml(i.description)} - ${escapeHtml(i.amount)} x ${escapeHtml(i.quantity)}</li>`).join('')}
+          </ul>
+        </body>
+      </html>
+    `;
+
+    // Save to archival storage
+    // Note: fileName is still derived from invoiceNumber to maintain the coupling;
+    // the unique constraint and sequence ensure the filename will be unique
+    const fileName = `${invoice.invoiceNumber}.html`;
+    const filePath = path.join(this.storagePath, fileName);
+    fs.writeFileSync(filePath, htmlContent, 'utf-8');
+
+    // Update entity with fileUrl
+    invoice.fileUrl = filePath;
+    await this.invoiceRepository.save(invoice);
+
+    this.logger.log(`Invoice ${invoice.id} generated and archived at ${filePath}`);
+    return invoice;
+  }
+
+  /**
+   * Resolves the tax breakdown for a payment's amount and jurisdiction.
+   * Exposed for callers that need the numbers before persisting an invoice.
+   */
+  computeTax(payment: Payment): ReturnType<TaxService['resolveTax']> {
+    return this.taxService.resolveTax(
+      Number(payment.amount),
+      this.taxService.resolveJurisdiction(payment),
+    );
+  }
+
+  async getInvoice(id: string): Promise<Invoice> {
+    const invoice = await this.invoiceRepository.findOne({ where: { id } });
+    if (!invoice) {
+      throw new NotFoundException(`Invoice with ID ${id} not found`);
+    }
+    return invoice;
+  }
+
+  getInvoiceFilePath(fileUrl: string): string {
+    // Resolve the candidate path to its absolute, canonical form so that
+    // sequences such as "../" or encoded variants cannot escape the archive root.
+    const resolvedPath = path.resolve(fileUrl);
+    const archiveRoot = path.resolve(this.storagePath);
+
+    // Ensure the resolved path starts with the archive root (with a trailing
+    // separator so that a directory named "archived_invoices_evil" is not
+    // accidentally accepted as a prefix match).
+    if (!resolvedPath.startsWith(archiveRoot + path.sep) && resolvedPath !== archiveRoot) {
+      this.logger.warn(
+        `Path traversal attempt blocked: "${fileUrl}" resolved to "${resolvedPath}" which is outside archive root "${archiveRoot}"`,
+      );
+      throw new ForbiddenException('Access to the requested file is not permitted');
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new NotFoundException('Invoice file not found in archival storage');
+    }
+
+    return resolvedPath;
+  }
+}

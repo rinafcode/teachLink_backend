@@ -1,204 +1,131 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   HttpStatus,
   Logger,
+  BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { QueryFailedError, EntityNotFoundError } from 'typeorm';
-import { ApiError, ValidationErrorDetail } from '../../interfaces/api-error.interface';
-import { CORRELATION_ID_HEADER, getCorrelationId } from '../utils/correlation.utils';
+import { getCorrelationId } from '../utils/correlation.utils';
+import { ErrorCode } from '../exceptions/error-codes';
+import {
+  ResourceNotFoundException,
+  ForbiddenOperationException,
+  ResourceConflictException,
+  BusinessValidationException,
+  ServiceUnavailableException,
+  InvalidCredentialsException,
+  InvalidTokenException,
+  RateLimitExceededException,
+} from '../exceptions/app.exceptions';
+
+export function getErrorCode(exception: unknown): ErrorCode {
+  if (exception instanceof InvalidCredentialsException) {
+    return ErrorCode.AUTH_INVALID_CREDENTIALS;
+  }
+  if (exception instanceof InvalidTokenException) {
+    return ErrorCode.AUTH_INVALID_TOKEN;
+  }
+  if (exception instanceof ForbiddenOperationException) {
+    return ErrorCode.AUTH_FORBIDDEN;
+  }
+  if (exception instanceof UnauthorizedException) {
+    return ErrorCode.AUTH_UNAUTHORIZED;
+  }
+  if (exception instanceof ResourceNotFoundException) {
+    return ErrorCode.RESOURCE_NOT_FOUND;
+  }
+  if (exception instanceof ResourceConflictException) {
+    return ErrorCode.RESOURCE_CONFLICT;
+  }
+  if (exception instanceof BadRequestException) {
+    return ErrorCode.VALIDATION_ERROR;
+  }
+  if (exception instanceof BusinessValidationException) {
+    return ErrorCode.BUSINESS_RULE_VIOLATION;
+  }
+  if (exception instanceof RateLimitExceededException) {
+    return ErrorCode.RATE_LIMIT_EXCEEDED;
+  }
+  if (exception instanceof ServiceUnavailableException) {
+    return ErrorCode.SERVICE_UNAVAILABLE;
+  }
+
+  const constructorName = exception?.constructor?.name;
+  if (constructorName === 'InvalidCredentialsException') return ErrorCode.AUTH_INVALID_CREDENTIALS;
+  if (constructorName === 'InvalidTokenException') return ErrorCode.AUTH_INVALID_TOKEN;
+  if (constructorName === 'ForbiddenOperationException') return ErrorCode.AUTH_FORBIDDEN;
+  if (constructorName === 'UnauthorizedException') return ErrorCode.AUTH_UNAUTHORIZED;
+  if (constructorName === 'ResourceNotFoundException') return ErrorCode.RESOURCE_NOT_FOUND;
+  if (constructorName === 'ResourceConflictException') return ErrorCode.RESOURCE_CONFLICT;
+  if (constructorName === 'BadRequestException') return ErrorCode.VALIDATION_ERROR;
+  if (constructorName === 'BusinessValidationException') return ErrorCode.BUSINESS_RULE_VIOLATION;
+  if (constructorName === 'RateLimitExceededException') return ErrorCode.RATE_LIMIT_EXCEEDED;
+  if (constructorName === 'ServiceUnavailableException') return ErrorCode.SERVICE_UNAVAILABLE;
+
+  return ErrorCode.INTERNAL_SERVER_ERROR;
+}
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
-  private readonly isProduction = process.env.NODE_ENV === 'production';
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const isHttpException = exception instanceof HttpException;
+    const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const exceptionResponse = isHttpException ? exception.getResponse() : undefined;
 
-    const { statusCode, message, error, details, stack } = this.resolveException(exception);
+    const rawMessage =
+      typeof exceptionResponse === 'object' &&
+      exceptionResponse !== null &&
+      'message' in exceptionResponse
+        ? (exceptionResponse as { message: string | string[] }).message
+        : exception instanceof Error
+          ? exception.message
+          : 'Internal server error';
 
-    const correlationId = getCorrelationId();
+    const message = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage;
+    const errorCode = getErrorCode(exception);
+    const requestId = (request as any).requestId || getCorrelationId() || 'unknown';
 
-    const errorResponse: ApiError = {
-      statusCode,
-      message,
-      error,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      correlationId,
-      ...(details?.length && { details }),
-      ...(!this.isProduction && stack && { stack }),
-    };
-
-    if (correlationId) {
-      response.setHeader(CORRELATION_ID_HEADER, correlationId);
+    if (!isHttpException) {
+      this.logger.error(
+        `Unhandled exception on ${request.method} ${request.url} [Request ID: ${requestId}]`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else if (status >= 500) {
+      this.logger.error(
+        `Server error ${status} on ${request.method} ${request.url} [Request ID: ${requestId}]`,
+        exception.stack,
+      );
     }
 
-    this.logger.error(
-      `[${request.method}] ${request.url} → ${statusCode} ${error}: ${
-        Array.isArray(message) ? message.join(', ') : message
-      }`,
-      !this.isProduction ? stack : undefined,
-      GlobalExceptionFilter.name,
-    );
-
-    response.status(statusCode).json(errorResponse);
-  }
-
-  // ─── Resolution helpers ────────────────────────────────────────────────────
-
-  private resolveException(exception: unknown): {
-    statusCode: number;
-    message: string | string[];
-    error: string;
-    details?: ValidationErrorDetail[];
-    stack?: string;
-  } {
-    // 1. NestJS HttpException (includes class-validator BadRequestException)
-    if (exception instanceof HttpException) {
-      return this.fromHttpException(exception);
-    }
-
-    // 2. TypeORM – query/constraint failures
-    if (exception instanceof QueryFailedError) {
-      return this.fromQueryFailedError(exception);
-    }
-
-    // 3. TypeORM – entity not found
-    if (exception instanceof EntityNotFoundError) {
-      return {
-        statusCode: HttpStatus.NOT_FOUND,
-        message: 'The requested resource was not found.',
-        error: 'Not Found',
-        stack: (exception as Error).stack,
-      };
-    }
-
-    // 4. Generic / unexpected Error
-    if (exception instanceof Error) {
-      return {
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: this.isProduction
-          ? 'An unexpected error occurred. Please try again later.'
-          : exception.message,
-        error: 'Internal Server Error',
-        stack: exception.stack,
-      };
-    }
-
-    // 5. Non-Error throw (strings, objects, etc.)
-    return {
-      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: 'An unexpected error occurred.',
-      error: 'Internal Server Error',
-    };
-  }
-
-  private fromHttpException(exception: HttpException): {
-    statusCode: number;
-    message: string | string[];
-    error: string;
-    details?: ValidationErrorDetail[];
-    stack?: string;
-  } {
-    const statusCode = exception.getStatus();
-    const exceptionResponse = exception.getResponse();
-    const stack = exception.stack;
-
-    // class-validator wraps errors as { message: string[], error: string }
-    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-      const res = exceptionResponse as Record<string, unknown>;
-
-      const rawMessages = res['message'];
-      const messages: string[] = Array.isArray(rawMessages)
-        ? (rawMessages as string[])
-        : typeof rawMessages === 'string'
-          ? [rawMessages]
-          : [exception.message];
-
-      // Parse class-validator constraint objects when present
-      const details = this.extractValidationDetails(rawMessages);
-
-      return {
-        statusCode,
-        message: messages.length === 1 ? messages[0] : messages,
-        error: (res['error'] as string) ?? exception.message,
-        ...(details.length && { details }),
-        stack,
-      };
-    }
-
-    return {
-      statusCode,
-      message: typeof exceptionResponse === 'string' ? exceptionResponse : exception.message,
-      error: exception.message,
-      stack,
-    };
-  }
-
-  private fromQueryFailedError(exception: QueryFailedError): {
-    statusCode: number;
-    message: string;
-    error: string;
-    stack?: string;
-  } {
-    const driverError = (exception as QueryFailedError & { code?: string }).code;
-
-    // PostgreSQL unique-violation
-    if (driverError === '23505') {
-      return {
-        statusCode: HttpStatus.CONFLICT,
-        message: 'A record with the provided value already exists.',
-        error: 'Conflict',
-        stack: exception.stack,
-      };
-    }
-
-    // PostgreSQL foreign-key violation
-    if (driverError === '23503') {
-      return {
-        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        message: 'Referenced resource does not exist.',
-        error: 'Unprocessable Entity',
-        stack: exception.stack,
-      };
-    }
-
-    // Generic DB error – never expose query details in production
-    return {
-      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: this.isProduction ? 'A database error occurred.' : exception.message,
-      error: 'Database Error',
-      stack: exception.stack,
-    };
-  }
-
-  /**
-   * Converts class-validator nested error objects into structured details when
-   * the raw message array contains constraint objects rather than plain strings.
-   */
-  private extractValidationDetails(raw: unknown): ValidationErrorDetail[] {
-    if (!Array.isArray(raw)) return [];
-
-    return raw.reduce<ValidationErrorDetail[]>((acc, item) => {
-      if (
-        typeof item === 'object' &&
-        item !== null &&
-        'property' in item &&
-        'constraints' in item
-      ) {
-        acc.push({
-          property: (item as { property: string }).property,
-          constraints: (item as { constraints: Record<string, string> }).constraints,
-        });
+    let retryAfter: number | undefined;
+    if (exception instanceof RateLimitExceededException) {
+      const resp = exception.getResponse();
+      if (typeof resp === 'object' && resp !== null && 'retryAfterSeconds' in resp) {
+        retryAfter = (resp as { retryAfterSeconds: number }).retryAfterSeconds;
       }
-      return acc;
-    }, []);
+    }
+    if (retryAfter !== undefined) {
+      response.setHeader('Retry-After', retryAfter);
+    }
+
+    response.status(status).json({
+      success: false,
+      error: {
+        code: errorCode,
+        message,
+        statusCode: status,
+        timestamp: new Date().toISOString(),
+        requestId,
+      },
+    });
   }
 }

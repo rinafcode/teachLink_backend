@@ -1,40 +1,30 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
 import { MessagingService } from './messaging.service';
-import { EventBusService } from './event-bus/event-bus.service';
-import { ServiceDiscoveryService } from './discovery/service-discovery.service';
-import { CircuitBreakerService } from './circuit-breaker/circuit-breaker.service';
+import { MessagingController } from './message.controller';
+import { MessageGateway } from './message.gateway';
+import { Message } from './message.entity';
+import { ConnectionSessionService } from './websocket-resilience/connection-session.service';
+import { WebSocketResilienceService } from './websocket-resilience/websocket-resilience.service';
 import { TracingService } from './tracing/tracing.service';
-import { createBullRedisClient } from '../common/utils/bull-redis.util';
+import { PaginationService } from '../common/services/pagination.service';
 
 @Module({
   imports: [
-    BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      },
-      createClient: createBullRedisClient,
-    }),
-    BullModule.registerQueue({
-      name: 'message-queue',
-    }),
-    EventEmitterModule.forRoot(),
+    TypeOrmModule.forFeature([Message]),
+    BullModule.registerQueue({ name: QUEUE_NAMES.MESSAGE_QUEUE }),
   ],
   providers: [
     MessagingService,
-    EventBusService,
-    ServiceDiscoveryService,
-    CircuitBreakerService,
+    MessageGateway,
+    ConnectionSessionService,
+    WebSocketResilienceService,
     TracingService,
+    PaginationService,
   ],
-  exports: [
-    MessagingService,
-    EventBusService,
-    ServiceDiscoveryService,
-    CircuitBreakerService,
-    TracingService,
-  ],
+  controllers: [MessagingController],
+  exports: [MessagingService],
 })
 export class MessagingModule {}

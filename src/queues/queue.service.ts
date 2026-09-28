@@ -1,180 +1,130 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, PayloadTooLargeException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue, Job } from 'bull';
-import { JobOptions, JobMetrics } from './interfaces/queue.interfaces';
-import { JobPriority, JobStatus } from './enums/job-priority.enum';
+import { Queue, Job, JobOptions as BullJobOptions } from 'bull';
+import { QUEUE_NAMES } from '../common/constants/queue.constants';
+import { JobPriority } from './enums/job-priority.enum';
+import { IJobOptions } from './interfaces/queue.interfaces';
+import { PrioritizationService } from './prioritization/prioritization.service';
+import { RetryStrategyService, RetryStrategyKey } from './retry/retry-strategy.service';
+import { enrichWithCorrelation } from './utils/correlation-job.util';
 
-/**
- * Core Queue Service
- * Provides centralized queue management with priority support
- */
+export interface AddJobResult {
+  jobId: string | number;
+  queue: string;
+  name: string;
+}
+
+const DEFAULT_MAX_PAYLOAD_BYTES = 1_048_576; // 1 MB
+
+const QUEUE_MAX_PAYLOAD_OVERRIDES: Record<string, number> = {
+  // Media processing handles binary payloads; allow up to 10 MB
+  media_processing: 10_485_760,
+  // User data export payloads include serialized records; allow up to 5 MB
+  user_data_export: 5_242_880,
+};
+
 @Injectable()
 export class QueueService {
   private readonly logger = new Logger(QueueService.name);
 
-  constructor(@InjectQueue('default') private readonly defaultQueue: Queue) {}
+  constructor(
+    @InjectQueue(QUEUE_NAMES.EMAIL) private readonly emailQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.EMAIL_MARKETING) private readonly emailMarketingQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.SYNC_TASKS) private readonly syncTasksQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.BACKUP_PROCESSING) private readonly backupProcessingQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.MESSAGE_QUEUE) private readonly messageQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.MEDIA_PROCESSING) private readonly mediaProcessingQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.DEFAULT) private readonly defaultQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.USER_DATA_EXPORT) private readonly userDataExportQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.SUBSCRIPTIONS) private readonly subscriptionsQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.WEBHOOKS) private readonly webhooksQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.DEAD_LETTER) private readonly deadLetterQueue: Queue,
+    private readonly prioritizationService: PrioritizationService,
+    private readonly retryStrategyService: RetryStrategyService,
+  ) {}
 
-  /**
-   * Add a job to the queue with priority and options
-   */
-  async addJob<T = any>(name: string, data: T, options?: JobOptions): Promise<Job<T>> {
-    try {
-      const job = await this.defaultQueue.add(name, data, {
-        priority: options?.priority || JobPriority.NORMAL,
-        attempts: options?.attempts || 3,
-        backoff: options?.backoff || {
-          type: 'exponential',
-          delay: 2000,
-        },
-        delay: options?.delay,
-        timeout: options?.timeout || 30000,
-        removeOnComplete: options?.removeOnComplete ?? true,
-        removeOnFail: options?.removeOnFail ?? false,
-      });
+  private readonly queueMap = new Map<string, Queue>();
 
-      this.logger.log(
-        `Job ${name} added to queue with ID: ${job.id}, Priority: ${options?.priority || JobPriority.NORMAL}`,
+  private getQueue(queueName: string): Queue {
+    let queue = this.queueMap.get(queueName);
+    if (!queue) {
+      const map: Record<string, Queue> = {
+        [QUEUE_NAMES.EMAIL]: this.emailQueue,
+        [QUEUE_NAMES.EMAIL_MARKETING]: this.emailMarketingQueue,
+        [QUEUE_NAMES.SYNC_TASKS]: this.syncTasksQueue,
+        [QUEUE_NAMES.BACKUP_PROCESSING]: this.backupProcessingQueue,
+        [QUEUE_NAMES.MESSAGE_QUEUE]: this.messageQueue,
+        [QUEUE_NAMES.MEDIA_PROCESSING]: this.mediaProcessingQueue,
+        [QUEUE_NAMES.DEFAULT]: this.defaultQueue,
+        [QUEUE_NAMES.USER_DATA_EXPORT]: this.userDataExportQueue,
+        [QUEUE_NAMES.SUBSCRIPTIONS]: this.subscriptionsQueue,
+        [QUEUE_NAMES.WEBHOOKS]: this.webhooksQueue,
+        [QUEUE_NAMES.DEAD_LETTER]: this.deadLetterQueue,
+      };
+      queue = map[queueName];
+      if (!queue) {
+        throw new NotFoundException(`Queue "${queueName}" not found`);
+      }
+      this.queueMap.set(queueName, queue);
+    }
+    return queue;
+  }
+
+  async addJob(
+    queueName: string,
+    jobName: string,
+    data: Record<string, any>,
+    options?: Partial<IJobOptions>,
+    retryStrategy?: RetryStrategyKey,
+  ): Promise<AddJobResult> {
+    const payloadBytes = Buffer.byteLength(JSON.stringify(data), 'utf-8');
+    const maxBytes = QUEUE_MAX_PAYLOAD_OVERRIDES[queueName] ?? DEFAULT_MAX_PAYLOAD_BYTES;
+    if (payloadBytes > maxBytes) {
+      throw new PayloadTooLargeException(
+        `Job payload for queue "${queueName}" is ${payloadBytes} bytes, exceeding the ${maxBytes} byte limit`,
       );
-
-      return job;
-    } catch (error) {
-      this.logger.error(`Failed to add job ${name}:`, error);
-      throw error;
     }
-  }
 
-  /**
-   * Add multiple jobs in bulk
-   */
-  async addBulkJobs<T = any>(
-    jobs: Array<{ name: string; data: T; options?: JobOptions }>,
-  ): Promise<Array<Job<T>>> {
-    try {
-      const bulkJobs = jobs.map((job) => ({
-        name: job.name,
-        data: job.data,
-        opts: {
-          priority: job.options?.priority || JobPriority.NORMAL,
-          attempts: job.options?.attempts || 3,
-          backoff: job.options?.backoff || {
-            type: 'exponential',
-            delay: 2000,
-          },
-        },
-      }));
+    const queue = this.getQueue(queueName);
+    const priorityLevel = options?.priority ?? JobPriority.NORMAL;
+    const bullPriority = this.prioritizationService.toBullPriority(priorityLevel);
 
-      const addedJobs = await this.defaultQueue.addBulk(bulkJobs);
-      this.logger.log(`Added ${addedJobs.length} jobs in bulk`);
-      return addedJobs;
-    } catch (error) {
-      this.logger.error('Failed to add bulk jobs:', error);
-      throw error;
+    const { priority: _, ...restOptions } = options ?? {};
+
+    let retryOpts: Record<string, any> = {};
+    if (retryStrategy) {
+      retryOpts = {
+        attempts: this.retryStrategyService.getBullAttempts(retryStrategy),
+        backoff: this.retryStrategyService.getBullBackoff(retryStrategy),
+      };
     }
-  }
 
-  /**
-   * Get job by ID
-   */
-  async getJob(jobId: string): Promise<Job | null> {
-    return this.defaultQueue.getJob(jobId);
-  }
-
-  /**
-   * Get job metrics
-   */
-  async getJobMetrics(jobId: string): Promise<JobMetrics | null> {
-    const job = await this.getJob(jobId);
-    if (!job) return null;
-
-    const state = await job.getState();
-
-    return {
-      jobId: job.id.toString(),
-      name: job.name,
-      status: state as JobStatus,
-      priority: job.opts.priority as JobPriority,
-      attempts: job.attemptsMade,
-      maxAttempts: job.opts.attempts || 3,
-      progress: await job.progress(),
-      createdAt: new Date(job.timestamp),
-      processedAt: job.processedOn ? new Date(job.processedOn) : undefined,
-      finishedAt: job.finishedOn ? new Date(job.finishedOn) : undefined,
-      failedReason: job.failedReason,
-      data: job.data,
+    const jobOptions: BullJobOptions = {
+      ...restOptions,
+      ...retryOpts,
+      priority: bullPriority,
     };
+
+    const enrichedData = enrichWithCorrelation(data);
+    const job = await queue.add(jobName, enrichedData, jobOptions);
+    this.logger.debug(`Job ${job.id} added to "${queueName}" (name: ${jobName})`);
+    return { jobId: job.id, queue: queueName, name: jobName };
   }
 
-  /**
-   * Remove a job from the queue
-   */
-  async removeJob(jobId: string): Promise<void> {
-    const job = await this.getJob(jobId);
-    if (job) {
-      await job.remove();
-      this.logger.log(`Job ${jobId} removed from queue`);
-    }
+  async getJob(queueName: string, jobId: string): Promise<Job | null> {
+    const queue = this.getQueue(queueName);
+    return queue.getJob(jobId);
   }
 
-  /**
-   * Retry a failed job
-   */
-  async retryJob(jobId: string): Promise<void> {
-    const job = await this.getJob(jobId);
-    if (job) {
-      await job.retry();
-      this.logger.log(`Job ${jobId} retried`);
-    }
-  }
-
-  /**
-   * Pause the queue
-   */
-  async pauseQueue(): Promise<void> {
-    await this.defaultQueue.pause();
-    this.logger.log('Queue paused');
-  }
-
-  /**
-   * Resume the queue
-   */
-  async resumeQueue(): Promise<void> {
-    await this.defaultQueue.resume();
-    this.logger.log('Queue resumed');
-  }
-
-  /**
-   * Clean old jobs from the queue
-   */
-  async cleanQueue(grace: number = 5000, status?: 'completed' | 'failed'): Promise<void> {
-    if (status) {
-      await this.defaultQueue.clean(grace, status);
-      this.logger.log(`Cleaned ${status} jobs older than ${grace}ms`);
-    } else {
-      await this.defaultQueue.clean(grace, 'completed');
-      await this.defaultQueue.clean(grace, 'failed');
-      this.logger.log(`Cleaned all jobs older than ${grace}ms`);
-    }
-  }
-
-  /**
-   * Get queue counts
-   */
-  async getQueueCounts() {
-    return {
-      waiting: await this.defaultQueue.getWaitingCount(),
-      active: await this.defaultQueue.getActiveCount(),
-      completed: await this.defaultQueue.getCompletedCount(),
-      failed: await this.defaultQueue.getFailedCount(),
-      delayed: await this.defaultQueue.getDelayedCount(),
-      paused: await this.defaultQueue.getPausedCount(),
-    };
-  }
-
-  /**
-   * Empty the queue (remove all jobs)
-   */
-  async emptyQueue(): Promise<void> {
-    await this.defaultQueue.empty();
-    this.logger.warn('Queue emptied - all jobs removed');
+  async getQueueCounts(queueName: string): Promise<{
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  }> {
+    const queue = this.getQueue(queueName);
+    const counts = await queue.getJobCounts();
+    return counts;
   }
 }
