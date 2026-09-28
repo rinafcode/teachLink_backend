@@ -1,4 +1,4 @@
-/* eslint-disable no-console -- tracing bootstrap runs before the app logger is available */
+import { Logger } from '@nestjs/common';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
@@ -10,6 +10,8 @@ import { JaegerPropagator } from '@opentelemetry/propagator-jaeger';
 const serviceName = process.env.SERVICE_NAME ?? 'teachlink-backend';
 const jaegerHost = process.env.JAEGER_AGENT_HOST ?? 'localhost';
 const jaegerPort = parseInt(process.env.JAEGER_AGENT_PORT ?? '6831', 10);
+
+const logger = new Logger('OpenTelemetry');
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
@@ -29,17 +31,17 @@ try {
   sdk.start();
   diag.debug('OpenTelemetry SDK started');
 } catch (error) {
-  console.error('OpenTelemetry SDK failed to start', error);
+  logger.error('OpenTelemetry SDK failed to start', error);
 }
 
 process.on('SIGINT', () => {
   sdk.shutdown().catch((error) => {
-    console.error('Error shutting down OpenTelemetry SDK', error);
+    logger.error('Error shutting down OpenTelemetry SDK', error);
   });
 });
 
 process.on('SIGTERM', () => {
   sdk.shutdown().catch((error) => {
-    console.error('Error shutting down OpenTelemetry SDK', error);
+    logger.error('Error shutting down OpenTelemetry SDK', error);
   });
 });
