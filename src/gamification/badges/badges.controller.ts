@@ -8,11 +8,14 @@ import {
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { BadgesService } from './badges.service';
 import { LeaderboardService } from '../leaderboards/leaderboards.service';
 import { CreateBadgeDto, BadgeFilterDto, LeaderboardQueryDto } from '../dto/badge.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CustomThrottleGuard } from '../../common/guards/throttle.guard';
+import { THROTTLE } from '../../common/constants/throttle.constants';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { BadgeCategory } from '../enums/badge-category.enum';
 
@@ -52,14 +55,24 @@ export class BadgesController {
     return this.badgesService.getBadgeById(id);
   }
 
+  // State-changing admin operations are throttled to guard against abuse and
+  // accidental hammering. Reads above stay unthrottled so normal usage (badge
+  // browsing, leaderboards) is unaffected. Limits use the shared, documented
+  // THROTTLE presets rather than hardcoded values; exceeding them returns 429.
   @Post('badges')
+  @UseGuards(CustomThrottleGuard)
+  @Throttle({ default: THROTTLE.MODERATE })
   @ApiOperation({ summary: 'Create a new badge definition (admin)' })
+  @ApiResponse({ status: 429, description: 'Too many requests — rate limit exceeded' })
   createBadge(@Body() dto: CreateBadgeDto) {
     return this.badgesService.createBadge(dto);
   }
 
   @Post('badges/seed')
+  @UseGuards(CustomThrottleGuard)
+  @Throttle({ default: THROTTLE.STRICT })
   @ApiOperation({ summary: 'Seed default badge definitions (admin/dev)' })
+  @ApiResponse({ status: 429, description: 'Too many requests — rate limit exceeded' })
   seedBadges() {
     return this.badgesService.seedDefaultBadges();
   }

@@ -14,6 +14,7 @@ import {
 import { Course } from '../../courses/entities/course.entity';
 import { Enrollment } from '../../courses/entities/enrollment.entity';
 import { Role } from '../../rbac/entities/role.entity';
+import { VisibleTo } from '../../common/decorators/visible-to.decorator';
 
 export enum UserRole {
   STUDENT = 'student',
@@ -21,6 +22,7 @@ export enum UserRole {
   INSTRUCTOR = 'instructor',
   MODERATOR = 'moderator',
   ADMIN = 'admin',
+  SRE = 'sre',
 }
 
 export enum UserStatus {
@@ -28,6 +30,8 @@ export enum UserStatus {
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
 }
+
+export const PRIVILEGED_ROLES: UserRole[] = [UserRole.ADMIN, UserRole.MODERATOR];
 
 /**
  * Represents the user entity.
@@ -58,9 +62,11 @@ export class User {
   @Index()
   providerId: string | null;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column({ nullable: true })
   providerAccessToken: string | null;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column({ nullable: true })
   providerRefreshToken: string | null;
 
@@ -88,35 +94,90 @@ export class User {
   isEmailVerified: boolean;
 
   @Column({ nullable: true })
+  @Index('IDX_users_emailVerificationToken')
   emailVerificationToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   emailVerificationExpires?: Date;
 
   @Column({ nullable: true })
+  @Index('IDX_users_passwordResetToken')
   passwordResetToken?: string;
 
   @Column({ type: 'timestamp', nullable: true })
   passwordResetExpires?: Date;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column({ nullable: true })
   refreshToken?: string;
 
+  @VisibleTo(UserRole.ADMIN)
   @Column('text', { array: true, default: [] })
   passwordHistory: string[];
 
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
+  @Column({ default: false })
+  isMfaEnabled: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  totpSecret?: string;
+
+  @Column('text', { array: true, default: [] })
+  mfaRecoveryCodes: string[];
+
+  // ── Localization ──────────────────────────────────────────────────────────
+
+  /** Billing country name (e.g. "Nigeria"). Populated by localization. */
+  @Column({ type: 'varchar', nullable: true })
+  country?: string;
+
+  /** ISO 3166-1 alpha-2 country code (e.g. "DE"). */
+  @Column({ name: 'country_code', type: 'varchar', length: 2, nullable: true })
+  @Index('IDX_users_country_code')
+  countryCode?: string;
+
+  /** IANA timezone name (e.g. "Africa/Lagos"). */
+  @Column({ type: 'varchar', nullable: true })
+  timezone?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  city?: string;
+
+  /** Preferred currency code (ISO 4217). */
+  @Column({
+    name: 'preferred_currency',
+    type: 'varchar',
+    length: 3,
+    default: 'USD',
+    nullable: true,
+  })
+  @Index('IDX_users_preferred_currency')
+  preferredCurrency?: string;
+
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable()
   roles: Role[];
 
   get role(): UserRole {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
     if (this.roles && this.roles.length > 0) {
       return this.roles[0].name as UserRole;
     }
     return UserRole.STUDENT;
+  }
+
+  hasRole(...roleNames: UserRole[]): boolean {
+    if (this.roles === undefined) {
+      throw new Error('User.roles relation not loaded. Include relations: ["roles"] in the query.');
+    }
+    return this.roles.some((role) => {
+      const name = typeof role === 'string' ? role : role.name;
+      return roleNames.includes(name as UserRole);
+    });
   }
 
   @OneToMany(() => Course, (course) => course.instructor)
@@ -126,6 +187,7 @@ export class User {
   enrollments: Enrollment[];
 
   @CreateDateColumn()
+  @Index('IDX_users_createdAt')
   createdAt: Date;
 
   @UpdateDateColumn()

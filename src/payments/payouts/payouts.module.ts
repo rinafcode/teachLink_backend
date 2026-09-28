@@ -9,6 +9,7 @@ import { Payment } from '../entities/payment.entity';
 import { Refund } from '../entities/refund.entity';
 import { User } from '../../users/entities/user.entity';
 import { NotificationsModule } from '../../notifications/notifications.module';
+import { IdempotencyModule } from '../../common/modules/idempotency.module';
 
 @Module({
   imports: [
@@ -21,6 +22,11 @@ import { NotificationsModule } from '../../notifications/notifications.module';
       User,
     ]),
     NotificationsModule,
+    // Issue #824 — IdempotencyModule is registered globally in AppModule;
+    // importing it here is defensive so the @Idempotent() decorator on
+    // PayoutsController.processPayout always resolves a wired
+    // IdempotencyService even if AppModule ordering ever changes.
+    IdempotencyModule,
   ],
   controllers: [PayoutsController],
   providers: [PayoutsService],

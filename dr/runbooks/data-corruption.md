@@ -2,11 +2,11 @@
 
 ## Quick Reference
 
-| Metric | Value |
-|--------|-------|
-| **Alert**: | DATA_INTEGRITY_CHECK_FAILED or BACKUP_CORRUPTION_DETECTED |
-| **RTO**: | ≤ 15 minutes (to degraded mode) |
-| **RPO**: | ≤ 7 days (to last known-good backup) |
+| Metric          | Value                                                       |
+| --------------- | ----------------------------------------------------------- |
+| **Alert**:      | DATA_INTEGRITY_CHECK_FAILED or BACKUP_CORRUPTION_DETECTED   |
+| **RTO**:        | ≤ 15 minutes (to degraded mode)                             |
+| **RPO**:        | ≤ 7 days (to last known-good backup)                        |
 | **Escalation**: | On-call Engineer → CTO (requires approval for data restore) |
 
 ---
@@ -16,12 +16,14 @@
 ### Symptom 1: Data Integrity Alerts
 
 **PagerDuty Alerts**:
+
 - `DATA_INTEGRITY_CHECK_FAILED` (CRITICAL)
 - `BACKUP_CORRUPTION_DETECTED` (CRITICAL)
 - `ORPHANED_RECORDS_DETECTED` (CRITICAL)
 - `FOREIGN_KEY_CONSTRAINT_VIOLATION` (CRITICAL)
 
 **System Logs**:
+
 ```
 ERROR: [IntegrityCheckService] Foreign key constraint violation detected
   Table: assessments
@@ -37,6 +39,7 @@ ERROR: [DataValidation] Checksum mismatch in course: 12345
 ### Symptom 2: Application Anomalies
 
 **Observable Issues**:
+
 ```
 GET /api/courses/{id} → 200 OK, but course.name = NULL
 GET /api/users/{id} → 500 error (constraint violation on update)
@@ -45,6 +48,7 @@ Dashboard shows 0 courses (data invisible but not deleted)
 ```
 
 **Root Causes**:
+
 1. Failed database migration (partial schema update)
 2. Corrupted backup file (compression error, transmission failure)
 3. Hardware failure on database volume (bit flip)
@@ -124,12 +128,12 @@ curl -s "https://api.teachlink.local/admin/data-integrity-check/summary" \
 
 **Decision Matrix**:
 
-| Corruption % | Scope | Action |
-|----------|-------|--------|
-| < 0.1% | Isolated records | Repair in-place (Step 2) |
-| 0.1% - 1% | Multiple tables | Restore to point-in-time (Step 3) |
-| 1% - 10% | Major tables | Restore from backup (Step 4) |
-| > 10% | Catastrophic | Enterprise backup + legal review |
+| Corruption % | Scope            | Action                            |
+| ------------ | ---------------- | --------------------------------- |
+| < 0.1%       | Isolated records | Repair in-place (Step 2)          |
+| 0.1% - 1%    | Multiple tables  | Restore to point-in-time (Step 3) |
+| 1% - 10%     | Major tables     | Restore from backup (Step 4)      |
+| > 10%        | Catastrophic     | Enterprise backup + legal review  |
 
 ### Step 3: Identify Last Known-Good State
 
@@ -370,7 +374,7 @@ for i in {1..180}; do
   progress=$(curl -s "https://api.teachlink.local/backup/restore/status" \
     -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.percent')
   echo "Restore progress: $progress% (attempt $i/180)"
-  
+
   if [ "$progress" == "100" ]; then
     echo "Restore complete!"
     break
@@ -450,6 +454,7 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
 **Ask these questions**:
 
 1. **Was this a backup corruption?**
+
    ```
    ✓ Check backup transfer logs
    ✓ Verify checksums during transfer
@@ -457,6 +462,7 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
    ```
 
 2. **Was this a migration failure?**
+
    ```
    ✓ Review migration script (what query caused corruption?)
    ✓ Implement pre-migration integrity check
@@ -465,6 +471,7 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
    ```
 
 3. **Was this application-induced corruption?**
+
    ```
    ✓ Review application logs for time of corruption
    ✓ Find the API call/transaction that corrupted data
@@ -484,6 +491,7 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
 ### Improvements to Prevent Recurrence
 
 **Short-term (Immediate - 1 week)**:
+
 ```
 ✓ Run full integrity checks daily (not just scheduled backups)
 ✓ Add monitoring alert for corruption patterns
@@ -492,6 +500,7 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
 ```
 
 **Medium-term (Planned - 1 month)**:
+
 ```
 ✓ Automate pre-migration integrity checks
 ✓ Implement point-in-time recovery capability
@@ -500,6 +509,7 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
 ```
 
 **Long-term (Roadmap - Q3 2026)**:
+
 ```
 ✓ Implement transaction-level disaster recovery
 ✓ Add full-database replication (synchronous)
@@ -513,39 +523,39 @@ curl -X POST "https://api.teachlink.local/admin/notify/data-recovery" \
 
 ### When to Escalate
 
-| Condition | Action | Contact |
-|-----------|--------|---------|
-| Corruption > 1% | Immediate CTO approval | Page CTO |
-| Data loss likely | Legal review required | Contact legal@teachlink.local |
-| Customer data affected | Customer notification required | Notify customers within 24h |
-| Affects multiple regions | Enterprise backup required | AWS Enterprise Support |
+| Condition                | Action                         | Contact                       |
+| ------------------------ | ------------------------------ | ----------------------------- |
+| Corruption > 1%          | Immediate CTO approval         | Page CTO                      |
+| Data loss likely         | Legal review required          | Contact legal@teachlink.local |
+| Customer data affected   | Customer notification required | Notify customers within 24h   |
+| Affects multiple regions | Enterprise backup required     | AWS Enterprise Support        |
 
 ### Stakeholder Notification
 
 **Timeline for communications**:
 
-| Time | Audience | Message | Method |
-|------|----------|---------|--------|
-| Immediate | Internal | Data corruption detected; assessing scope | #incidents |
-| +5 min | Engineering | Initiating recovery procedure [Path A/B/C] | #incidents |
-| +10 min | Executives | RTO target: 15 minutes; data loss: [X days] | email |
-| +15 min | Customers* | Service may have data integrity issue; investigating | statuspage.io |
-| +60 min | All | Recovery complete; details in post-incident report | statuspage.io + email |
+| Time      | Audience    | Message                                              | Method                |
+| --------- | ----------- | ---------------------------------------------------- | --------------------- |
+| Immediate | Internal    | Data corruption detected; assessing scope            | #incidents            |
+| +5 min    | Engineering | Initiating recovery procedure [Path A/B/C]           | #incidents            |
+| +10 min   | Executives  | RTO target: 15 minutes; data loss: [X days]          | email                 |
+| +15 min   | Customers\* | Service may have data integrity issue; investigating | statuspage.io         |
+| +60 min   | All         | Recovery complete; details in post-incident report   | statuspage.io + email |
 
-*Only notify customers if corruption affects customer data or visible features.
+\*Only notify customers if corruption affects customer data or visible features.
 
 ---
 
 ## Appendix: Common Data Corruption Patterns
 
-| Pattern | Cause | Solution |
-|---------|-------|----------|
-| All dates NULL in table | Migration set wrong default | Restore from backup or set defaults |
-| Foreign key violations | Deleted parent without cascading | Delete orphaned children |
-| Duplicated records | Failed uniqueness constraint | Identify & delete duplicates |
-| Checksums mismatched | Backup corruption in transfer | Re-download from S3 / restore |
-| Negative balances | Integer overflow or business logic bug | Reverse transaction + fix code |
-| Missing recent data | Backup taken during crash | Restore and add recovered logs |
+| Pattern                 | Cause                                  | Solution                            |
+| ----------------------- | -------------------------------------- | ----------------------------------- |
+| All dates NULL in table | Migration set wrong default            | Restore from backup or set defaults |
+| Foreign key violations  | Deleted parent without cascading       | Delete orphaned children            |
+| Duplicated records      | Failed uniqueness constraint           | Identify & delete duplicates        |
+| Checksums mismatched    | Backup corruption in transfer          | Re-download from S3 / restore       |
+| Negative balances       | Integer overflow or business logic bug | Reverse transaction + fix code      |
+| Missing recent data     | Backup taken during crash              | Restore and add recovered logs      |
 
 ---
 

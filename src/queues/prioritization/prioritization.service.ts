@@ -148,6 +148,10 @@ export class PrioritizationService {
     return optionsMap[priority];
   }
 
+  toBullPriority(priority: JobPriority): number {
+    return Math.max(0, priority - 1);
+  }
+
   /**
    * Adjust priority dynamically based on job age
    */

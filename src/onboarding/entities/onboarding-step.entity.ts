@@ -22,8 +22,6 @@ export enum OnboardingStepStatus {
 }
 
 @Entity('onboarding_steps')
-@Index(['order'])
-@Index(['type'])
 export class OnboardingStep {
   @PrimaryGeneratedColumn('uuid')
   id: string;

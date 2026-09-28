@@ -26,7 +26,7 @@ export class RubricCriterion {
   rubric: Rubric;
 
   @Column({ name: 'rubric_id', type: 'uuid' })
-  @Index()
+  @Index('IDX_rubric_criteria_rubric')
   rubricId: string;
 
   @Column()

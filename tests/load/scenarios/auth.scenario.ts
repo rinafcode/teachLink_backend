@@ -16,11 +16,7 @@ export default function () {
     'Content-Type': 'application/json',
   };
 
-  const res = http.post(
-    'http://localhost:3000/auth/login',
-    payload,
-    { headers }
-  );
+  const res = http.post('http://localhost:3000/auth/login', payload, { headers });
 
   check(res, {
     'login success or handled': (r) => r.status === 200 || r.status === 401,

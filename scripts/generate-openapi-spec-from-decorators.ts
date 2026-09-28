@@ -1,10 +1,10 @@
 /**
  * Generate OpenAPI spec from NestJS Swagger decorators
  * This script scans NestJS controllers and generates an OpenAPI spec automatically
- * 
+ *
  * When controllers are properly decorated with @ApiTags, @ApiOperation, @ApiResponse,
  * etc., this script can extract the metadata and generate the spec automatically.
- * 
+ *
  * Usage: npx ts-node scripts/generate-openapi-spec-from-decorators.ts
  * Or after building: node dist/scripts/generate-openapi-spec-from-decorators.js
  */

@@ -16,11 +16,13 @@ This document summarizes the automatic API documentation system implemented for 
 **Current Status**: Already in place, enhanced
 
 **Files**:
+
 - `src/main.ts` - Runtime Swagger UI at `http://localhost:3000/api/docs`
 - `scripts/generate-api-docs.js` - Static spec generation
 - `scripts/generate-openapi-spec-from-decorators.ts` - Decorator-based alternative
 
 **Usage**:
+
 ```bash
 # View runtime docs
 open http://localhost:3000/api/docs
@@ -36,6 +38,7 @@ npm run docs:generate
 ```
 
 **Features**:
+
 - OpenAPI 3.0.3 specification
 - Bearer token authentication documentation
 - Multiple server environments (dev, staging, prod)
@@ -50,6 +53,7 @@ npm run docs:generate
 **File**: `scripts/generate-examples-multi-language.js`
 
 **Usage**:
+
 ```bash
 npm run docs:generate:examples
 ```
@@ -65,6 +69,7 @@ npm run docs:generate:examples
 7. **C#** - HttpClient
 
 **Example Files**:
+
 - `docs/examples/README.md` - Index of all examples
 - `docs/examples/1_login.ts`, `.py`, `.js`, `.go`, `.java`, `.cs`
 - `docs/examples/2_register.ts`, `.py`, `.js`, etc.
@@ -77,6 +82,7 @@ npm run docs:generate:examples
 **File**: `scripts/manage-doc-versions.js`
 
 **Usage**:
+
 ```bash
 # Archive current docs as version
 npm run docs:version
@@ -92,6 +98,7 @@ npm run docs:versions:diff v1.0 v1.1
 ```
 
 **Structure**:
+
 ```
 docs/versions/
 ├── VERSIONS.md        # Version index
@@ -113,6 +120,7 @@ docs/versions/
 ```
 
 **Features**:
+
 - Version metadata (timestamp, git hash, package version)
 - Endpoint change tracking (added, removed, modified)
 - Breaking changes detection
@@ -232,27 +240,32 @@ npm run docs:check
 ### Viewing Documentation
 
 **Runtime Swagger UI**:
+
 ```bash
 npm run start:dev
 # Open http://localhost:3000/api/docs
 ```
 
 **Interactive Static Site**:
+
 ```bash
 npm run docs:view
 # Open http://localhost:8080
 ```
 
 **Raw OpenAPI Spec**:
+
 - Root: `openapi-spec.json`
 - API docs: `docs/api/openapi-spec.json`
 - Site: `docs/site/openapi-spec.json`
 
 **Code Examples**:
+
 - Index: `docs/examples/README.md`
 - By endpoint: `docs/examples/1_login.ts`, `.py`, `.js`, etc.
 
 **Version History**:
+
 - Versions: `docs/versions/` with `v1.0.0/`, `v1.1.0/`, etc.
 - Index: `docs/versions/VERSIONS.md`
 - Changelog: `docs/versions/CHANGELOG.md`
@@ -262,6 +275,7 @@ npm run docs:view
 ### ✅ Swagger/OpenAPI Generation
 
 **What Works**:
+
 - Runtime Swagger UI for interactive exploration
 - Static OpenAPI JSON spec generation
 - Schema and security definitions
@@ -269,6 +283,7 @@ npm run docs:view
 - Complete endpoint documentation
 
 **How to Verify**:
+
 ```bash
 curl http://localhost:3000/api/docs-json | jq '.paths | keys'
 # Should show all endpoints
@@ -280,12 +295,14 @@ cat openapi-spec.json | jq '.info.version'
 ### ✅ Example Code Generation
 
 **What Works**:
+
 - 7 programming languages supported
 - Complete request/response examples
 - Authentication included in examples
 - All endpoints documented with examples
 
 **How to Verify**:
+
 ```bash
 npm run docs:generate:examples
 ls docs/examples/
@@ -295,6 +312,7 @@ ls docs/examples/
 ### ✅ Documentation Versioning
 
 **What Works**:
+
 - Automatic version archival on release
 - Version metadata tracking
 - Breaking change detection
@@ -302,6 +320,7 @@ ls docs/examples/
 - Changelog generation
 
 **How to Verify**:
+
 ```bash
 npm run docs:versions:list
 # Should show all archived versions
@@ -313,6 +332,7 @@ npm run docs:versions:diff v1.0 v1.1
 ### ✅ Multi-Language Support
 
 **What Works**:
+
 - TypeScript/JavaScript examples
 - Python examples
 - Go examples
@@ -322,6 +342,7 @@ npm run docs:versions:diff v1.0 v1.1
 - Each with authentication and error handling
 
 **How to Verify**:
+
 ```bash
 cat docs/examples/1_login.ts   # TypeScript
 cat docs/examples/1_login.py   # Python
@@ -337,6 +358,7 @@ cat docs/examples/1_login.cs   # C#
 Use provided GitHub Actions workflow template in `.github/workflows/api-docs.yml` (create if not exists)
 
 Benefits:
+
 - Auto-generate docs on every commit
 - Auto-archive versions on release
 - Auto-publish to GitHub Pages
@@ -362,6 +384,7 @@ See `docs/API_DOCUMENTATION_BEST_PRACTICES.md` for examples.
 ### 3. **SDK Distribution** (Optional)
 
 Generated SDKs are in `sdk/`:
+
 - `sdk/typescript/` - Published to npm
 - `sdk/python/` - Published to PyPI
 
@@ -370,6 +393,7 @@ Set up CI/CD to publish automatically.
 ### 4. **Documentation Portal** (Optional)
 
 Host documentation at custom domain:
+
 - Option 1: GitHub Pages + custom domain
 - Option 2: Deploy to CDN (AWS S3 + CloudFront)
 - Option 3: Use dedicated docs platform (ReadTheDocs, Stoplight, etc.)
@@ -379,6 +403,7 @@ Host documentation at custom domain:
 ### `package.json` Scripts
 
 All new scripts are documented:
+
 ```bash
 npm run docs:generate          # Main generation
 npm run docs:generate:examples # Examples
@@ -389,6 +414,7 @@ npm run docs:view             # Local preview
 ### Environment Variables
 
 If needed, add to `.env`:
+
 ```
 API_VERSION=1.0.0
 API_DOCS_DOMAIN=api-docs.teachlink.com
@@ -404,6 +430,7 @@ API_DOCS_DOMAIN=api-docs.teachlink.com
 ## Support
 
 For issues or questions:
+
 1. Check `docs/API_DOCUMENTATION_GUIDE.md` troubleshooting section
 2. Review `docs/API_DOCUMENTATION_BEST_PRACTICES.md`
 3. Run `npm run docs:check` to validate

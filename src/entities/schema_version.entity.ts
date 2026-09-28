@@ -5,10 +5,15 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { SchemaChange } from './schema_change.entity';
 
 @Entity('schema_version')
+@Index('IDX_schema_version_schemaName', ['schemaName'])
+@Index('IDX_schema_version_checksum', ['checksum'])
+@Index('IDX_schema_version_createdAt', ['createdAt'])
+@Index('IDX_schema_version_schemaName_createdAt', ['schemaName', 'createdAt'])
 export class SchemaVersion {
   @PrimaryGeneratedColumn('uuid')
   id: string;

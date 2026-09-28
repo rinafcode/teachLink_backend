@@ -87,11 +87,14 @@ export class TenantCustomization {
     [key: string]: unknown;
   };
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   customDomain?: string;
 
   @Column({ default: false })
   customDomainVerified: boolean;
+
+  @Column({ nullable: true })
+  domainVerificationToken?: string;
 
   @Column({ type: 'jsonb', nullable: true })
   socialLinks?: {

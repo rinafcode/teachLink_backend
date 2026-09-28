@@ -29,15 +29,15 @@ duplicated — and adds three new modules: `dns-failover`, `replication`, and
 
 ### What gets created
 
-| Concern              | Primary region          | Secondary region                       |
-| -------------------- | ----------------------- | -------------------------------------- |
-| Networking           | VPC + subnets + SGs     | VPC + subnets + SGs (non-overlapping)  |
-| Compute              | ECS/Fargate + ALB (active) | ECS/Fargate + ALB (warm standby)    |
-| Database             | RDS PostgreSQL (R/W)    | Cross-region **read replica**          |
-| Cache                | ElastiCache Redis       | Standby Redis (warmed on failover)     |
-| Storage              | S3 uploads + backups    | S3 uploads + backups (**CRR target**)  |
-| DNS                  | Route 53 failover record + health check | Route 53 failover record + health check |
-| Monitoring           | CloudWatch              | CloudWatch                             |
+| Concern    | Primary region                          | Secondary region                        |
+| ---------- | --------------------------------------- | --------------------------------------- |
+| Networking | VPC + subnets + SGs                     | VPC + subnets + SGs (non-overlapping)   |
+| Compute    | ECS/Fargate + ALB (active)              | ECS/Fargate + ALB (warm standby)        |
+| Database   | RDS PostgreSQL (R/W)                    | Cross-region **read replica**           |
+| Cache      | ElastiCache Redis                       | Standby Redis (warmed on failover)      |
+| Storage    | S3 uploads + backups                    | S3 uploads + backups (**CRR target**)   |
+| DNS        | Route 53 failover record + health check | Route 53 failover record + health check |
+| Monitoring | CloudWatch                              | CloudWatch                              |
 
 ## Acceptance criteria mapping (#620)
 
@@ -74,10 +74,10 @@ terraform apply -var-file=terraform.tfvars
 
 ## Recovery objectives
 
-| Objective | Target | How this design meets it |
-| --------- | ------ | ------------------------ |
-| **RTO** | ≤ 15 min | Standby fleet always running; Route 53 fails over automatically within `health_check_interval × failure_threshold` (~90s); replica promotion is the only manual step. |
-| **RPO** | seconds (DB), async (S3) | RDS read replica streams continuously; S3 CRR replicates new objects asynchronously. This improves on the backup-only RPO in `dr/procedures/RTO-RPO.md`. |
+| Objective | Target                   | How this design meets it                                                                                                                                              |
+| --------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RTO**   | ≤ 15 min                 | Standby fleet always running; Route 53 fails over automatically within `health_check_interval × failure_threshold` (~90s); replica promotion is the only manual step. |
+| **RPO**   | seconds (DB), async (S3) | RDS read replica streams continuously; S3 CRR replicates new objects asynchronously. This improves on the backup-only RPO in `dr/procedures/RTO-RPO.md`.              |
 
 ## Cost & topology notes
 

@@ -15,10 +15,7 @@ export default function () {
 
   check(res, {
     'handles failures gracefully': (r) =>
-      r.status === 200 ||
-      r.status === 400 ||
-      r.status === 401 ||
-      r.status === 0,
+      r.status === 200 || r.status === 400 || r.status === 401 || r.status === 0,
   });
 
   sleep(1);

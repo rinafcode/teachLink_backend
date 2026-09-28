@@ -1,6 +1,7 @@
 import { ComputationCacheService } from './computation-cache.service';
 import { CachingService } from './caching.service';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 import { COMPUTATION_TTL } from './caching.constants';
 
 describe('ComputationCacheService', () => {
@@ -17,10 +18,12 @@ describe('ComputationCacheService', () => {
       get: jest.fn(),
       set: jest.fn().mockResolvedValue(undefined),
       delete: jest.fn().mockResolvedValue(undefined),
+      getCurrentTenantId: jest.fn().mockReturnValue('tenant-a'),
     };
     metrics = { updateCacheHitRate: jest.fn() };
     service = new ComputationCacheService(
       caching as unknown as CachingService,
+      { getTenantId: jest.fn().mockReturnValue('tenant-a') } as unknown as IsolationService,
       metrics as unknown as MetricsCollectionService,
     );
   });

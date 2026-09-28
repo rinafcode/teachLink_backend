@@ -47,7 +47,7 @@ function getCommitsSinceLastTag() {
   const output = runGit(`git log ${range} --pretty=format:"%H%n%s%n%b%n__COMMIT_END__"`);
   return output
     .split('\n__COMMIT_END__')
-    .map(block => block.trim())
+    .map((block) => block.trim())
     .filter(Boolean);
 }
 
@@ -74,8 +74,9 @@ function parseCommit(commitBlock) {
     breaking = true;
   }
 
-  const issueMatches = [subject, body]
-    .flatMap(text => [...text.matchAll(/#(\d+)/g)].map(match => `#${match[1]}`));
+  const issueMatches = [subject, body].flatMap((text) =>
+    [...text.matchAll(/#(\d+)/g)].map((match) => `#${match[1]}`),
+  );
   const issueRef = issueMatches.length ? ` (${[...new Set(issueMatches)].join(', ')})` : '';
 
   return {
@@ -117,7 +118,7 @@ function categorizeCommits(commits) {
     revert: 'reverted',
   };
 
-  commits.forEach(commitBlock => {
+  commits.forEach((commitBlock) => {
     const commit = parseCommit(commitBlock);
     if (commit.breaking) {
       categories.breaking.push(commit);
@@ -154,7 +155,7 @@ function buildChangelogEntry(version, categories) {
     { key: 'other', title: 'Other Changes' },
   ];
 
-  sectionDefinitions.forEach(section => {
+  sectionDefinitions.forEach((section) => {
     const entries = categories[section.key] || [];
     if (!entries.length) {
       return;
@@ -167,13 +168,13 @@ function buildChangelogEntry(version, categories) {
     if (section.key === 'ci' && categories.build.length) {
       const mergedEntries = [...categories.ci, ...categories.build];
       lines.push(`### ${section.title}`, '');
-      mergedEntries.forEach(commit => lines.push(formatCommitLine(commit)));
+      mergedEntries.forEach((commit) => lines.push(formatCommitLine(commit)));
       lines.push('');
       return;
     }
 
     lines.push(`### ${section.title}`, '');
-    entries.forEach(commit => lines.push(formatCommitLine(commit)));
+    entries.forEach((commit) => lines.push(formatCommitLine(commit)));
     lines.push('');
   });
 
@@ -187,7 +188,8 @@ function updateChangelog(changelogEntry) {
   try {
     existing = fs.readFileSync(changelogPath, 'utf8');
   } catch (error) {
-    existing = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n' +
+    existing =
+      '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n' +
       'The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n' +
       'and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n';
   }
@@ -201,13 +203,17 @@ function updateChangelog(changelogEntry) {
     intro = headerMatch[1].trimEnd() + '\n\n';
     body = existing.slice(headerMatch[1].length).trimStart();
   } else {
-    intro = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n' +
+    intro =
+      '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n' +
       'The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\n' +
       'and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n';
     body = existing.trimStart();
   }
 
-  const newChangelog = [intro.trimEnd(), '', changelogEntry.trimEnd(), '', body.trimStart()].filter(Boolean).join('\n\n') + '\n';
+  const newChangelog =
+    [intro.trimEnd(), '', changelogEntry.trimEnd(), '', body.trimStart()]
+      .filter(Boolean)
+      .join('\n\n') + '\n';
   fs.writeFileSync(changelogPath, newChangelog, 'utf8');
 }
 
@@ -228,7 +234,7 @@ try {
   }
 
   const categories = categorizeCommits(commits);
-  const hasEntries = Object.values(categories).some(entries => entries.length > 0);
+  const hasEntries = Object.values(categories).some((entries) => entries.length > 0);
   if (!hasEntries) {
     console.error('No conventional commits found since the last tag. No changelog generated.');
     process.exit(1);

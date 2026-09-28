@@ -63,13 +63,13 @@ CREATE TABLE webhook_retries (
   processedAt TIMESTAMP
 );
 
-CREATE UNIQUE INDEX idx_webhook_provider_event 
+CREATE UNIQUE INDEX idx_webhook_provider_event
   ON webhook_retries(provider, externalEventId);
-  
-CREATE INDEX idx_webhook_status_retry 
+
+CREATE INDEX idx_webhook_status_retry
   ON webhook_retries(status, nextRetryTime);
-  
-CREATE INDEX idx_webhook_created 
+
+CREATE INDEX idx_webhook_created
   ON webhook_retries(createdAt);
 ```
 
@@ -101,12 +101,15 @@ For a webhook that fails immediately:
 ### Webhook Processing
 
 #### POST /webhooks/stripe
+
 Receives and queues Stripe webhook events.
 
 **Request Headers:**
+
 - `stripe-signature`: Webhook signature for verification
 
 **Response:**
+
 ```json
 {
   "received": true,
@@ -115,9 +118,11 @@ Receives and queues Stripe webhook events.
 ```
 
 #### POST /webhooks/paypal
+
 Receives and queues PayPal webhook events.
 
 **Request Headers:**
+
 - `paypal-transmission-id`: Transmission ID
 - `paypal-transmission-time`: Transmission time
 - `paypal-transmission-sig`: Transmission signature
@@ -127,9 +132,11 @@ Receives and queues PayPal webhook events.
 ### Webhook Management
 
 #### GET /webhooks/status/:id
+
 Get the current status of a webhook.
 
 **Response:**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -145,12 +152,15 @@ Get the current status of a webhook.
 ```
 
 #### GET /webhooks/dead-letter?limit=100
+
 Get dead letter webhooks.
 
 **Query Parameters:**
+
 - `limit` (optional, default: 100): Maximum number of results
 
 **Response:**
+
 ```json
 [
   {
@@ -169,15 +179,19 @@ Get dead letter webhooks.
 ```
 
 #### GET /webhooks/pending?limit=100
+
 Get pending webhooks awaiting processing.
 
 #### GET /webhooks/processing
+
 Get currently processing webhooks.
 
 #### POST /webhooks/requeue/:id
+
 Requeue a dead letter webhook for reprocessing.
 
 **Response:**
+
 ```json
 {
   "success": true
@@ -196,6 +210,7 @@ Requeue a dead letter webhook for reprocessing.
 ### Error Details
 
 Each failed webhook stores:
+
 - `lastError`: Human-readable error message
 - `errorDetails`: Additional error context (stack trace, timestamp)
 - `retryCount`: Number of retry attempts made

@@ -10,7 +10,10 @@ function replaceAny(node, context) {
   }
 
   if (ts.isAsExpression(node) && node.type.kind === ts.SyntaxKind.AnyKeyword) {
-    return ts.factory.createAsExpression(node.expression, ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword));
+    return ts.factory.createAsExpression(
+      node.expression,
+      ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword),
+    );
   }
 
   return ts.visitEachChild(node, (child) => replaceAny(child, context), context);
@@ -21,7 +24,13 @@ function transformerFactory(context) {
 }
 
 function transformSourceText(text, filePath) {
-  const sourceFile = ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
   const result = ts.transform(sourceFile, [transformerFactory]);
   const transformed = result.transformed[0];
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });

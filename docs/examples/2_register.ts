@@ -9,8 +9,14 @@ const apiClient = axios.create({
 
 async function register() {
   try {
-    const response = await apiClient.post('/auth/register', {"email":"newuser@example.com","password":"SecurePass123!","firstName":"Grace","lastName":"Hopper","role":"student"});
-    
+    const response = await apiClient.post('/auth/register', {
+      email: 'newuser@example.com',
+      password: 'SecurePass123!',
+      firstName: 'Grace',
+      lastName: 'Hopper',
+      role: 'student',
+    });
+
     console.log('Response:', response.data);
     return response.data;
   } catch (error) {

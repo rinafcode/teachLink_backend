@@ -5,7 +5,7 @@ import {
   InvalidTokenException,
 } from '../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { UnsubscribeToken } from './entities/unsubscribe-token.entity';
 import { EmailSubscription } from '../email-marketing/entities/email-subscription.entity';
@@ -21,6 +21,7 @@ export class EmailUnsubscribeService {
     private readonly tokenRepository: Repository<UnsubscribeToken>,
     @InjectRepository(EmailSubscription)
     private readonly subscriptionRepository: Repository<EmailSubscription>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async generateUnsubscribeToken(
@@ -46,27 +47,35 @@ export class EmailUnsubscribeService {
     if (record.used) throw new BusinessValidationException('Token already used');
     if (record.expiresAt < new Date()) throw new InvalidTokenException('Token has expired');
 
-    await this.tokenRepository.update(record.id, { used: true });
+    // Consuming the token and updating the subscription are one logical
+    // operation: if the subscription write fails, the token must stay usable
+    // (issue #1344).
+    await this.dataSource.transaction(async (manager) => {
+      const tokenRepository = manager.getRepository(UnsubscribeToken);
+      const subscriptionRepository = manager.getRepository(EmailSubscription);
 
-    let subscription = await this.subscriptionRepository.findOne({
-      where: { email: record.email },
-    });
-    if (!subscription) {
-      subscription = this.subscriptionRepository.create({
-        email: record.email,
-        userId: record.userId,
+      await tokenRepository.update(record.id, { used: true });
+
+      let subscription = await subscriptionRepository.findOne({
+        where: { email: record.email },
       });
-    }
+      if (!subscription) {
+        subscription = subscriptionRepository.create({
+          email: record.email,
+          userId: record.userId,
+        });
+      }
 
-    subscription.isSubscribed = false;
-    subscription.unsubscribedAt = new Date();
+      subscription.isSubscribed = false;
+      subscription.unsubscribedAt = new Date();
 
-    if (record.emailType && subscription.preferences) {
-      subscription.preferences = subscription.preferences.filter((p) => p !== record.emailType);
-    }
+      if (record.emailType && subscription.preferences) {
+        subscription.preferences = subscription.preferences.filter((p) => p !== record.emailType);
+      }
 
-    await this.subscriptionRepository.save(subscription);
-    this.logger.log(`Unsubscribed: ${record.email}`);
+      await subscriptionRepository.save(subscription);
+      this.logger.log(`Unsubscribed: ${record.email}`);
+    });
   }
 
   async resubscribe(dto: ResubscribeDto): Promise<void> {

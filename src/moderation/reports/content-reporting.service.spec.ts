@@ -7,6 +7,8 @@ import { ContentReportStatus } from './content-report-status.enum';
 import { ContentReport } from './content-report.entity';
 import { ContentReportingService } from './content-reporting.service';
 import { ContentReportDisposition } from './dto/review-content-report.dto';
+import { ReportAssignmentService } from '../assignment/report-assignment.service';
+import { User } from '../../users/entities/user.entity';
 
 const mockRepo = {
   create: jest.fn(),
@@ -20,18 +22,22 @@ const mockManualReviewService = {
   markReviewed: jest.fn(),
 };
 
+const mockReportAssignmentService = {
+  assignReport: jest.fn((report) => Promise.resolve(report)),
+};
+
 describe('ContentReportingService', () => {
   let service: ContentReportingService;
 
-  const reporter = {
+  const reporter = Object.assign(new User(), {
     id: 'reporter-1',
     roles: [{ name: 'student' }],
-  } as any;
+  }) as User;
 
-  const moderator = {
+  const moderator = Object.assign(new User(), {
     id: 'moderator-1',
     roles: [{ name: 'moderator' }],
-  } as any;
+  }) as User;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -39,6 +45,7 @@ describe('ContentReportingService', () => {
         ContentReportingService,
         { provide: getRepositoryToken(ContentReport), useValue: mockRepo },
         { provide: ManualReviewService, useValue: mockManualReviewService },
+        { provide: ReportAssignmentService, useValue: mockReportAssignmentService },
       ],
     }).compile();
 

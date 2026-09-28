@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import axios from 'axios';
+import { MetricsService } from '../../utils/masking/metrics.service';
 
 export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
@@ -132,7 +133,18 @@ export class AlertingService {
   private readonly emailFrom: string;
   private mailerTransport: nodemailer.Transporter | null = null;
 
-  constructor(private readonly configService: ConfigService) {
+  /** Timeout applied to every outbound alert delivery HTTP call. */
+  private readonly alertDeliveryTimeoutMs: number;
+
+  /** Bounded retry count for transient 5xx responses (does not include the initial attempt). */
+  private readonly maxDeliveryRetries = 2;
+  private readonly retryBaseBackoffMs = 200;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly metricsService: MetricsService,
+  ) {
+    this.alertDeliveryTimeoutMs = this.configService.get<number>('ALERT_DELIVERY_TIMEOUT_MS', 5000);
     this.emailFrom = this.configService.get<string>('EMAIL_FROM', 'noreply@teachlink.io');
     const recipientRaw = this.configService.get<string>('ALERT_EMAIL_RECIPIENTS', '');
     this.alertEmailRecipients = recipientRaw
@@ -389,7 +401,7 @@ export class AlertingService {
       ],
     };
 
-    await axios.post(this.slackWebhookUrl, body);
+    await this.postWithRetry('slack', this.slackWebhookUrl, body);
   }
 
   private async sendPagerDutyAlert(event: IAlertEvent): Promise<void> {
@@ -410,6 +422,46 @@ export class AlertingService {
       },
     };
 
-    await axios.post('https://events.pagerduty.com/v2/enqueue', payload);
+    await this.postWithRetry('pagerduty', 'https://events.pagerduty.com/v2/enqueue', payload);
+  }
+
+  /**
+   * POST an alert payload with a bounded timeout. Transient 5xx responses are
+   * retried with jittered backoff up to `maxDeliveryRetries` times; every
+   * failed attempt (transient or not) increments the failure counter, and
+   * exhausted retries are surfaced as a warning log.
+   */
+  private async postWithRetry(
+    channel: 'slack' | 'pagerduty',
+    url: string,
+    payload: unknown,
+    attempt = 0,
+  ): Promise<void> {
+    try {
+      await axios.post(url, payload, { timeout: this.alertDeliveryTimeoutMs });
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      this.metricsService.alertDeliveryFailuresCounter.inc({ channel });
+
+      const isTransient5xx = typeof status === 'number' && status >= 500 && status < 600;
+      if (isTransient5xx && attempt < this.maxDeliveryRetries) {
+        const backoffMs =
+          this.retryBaseBackoffMs * 2 ** attempt + Math.random() * this.retryBaseBackoffMs;
+        this.logger.warn(
+          `${channel} alert delivery failed with status ${status}, retrying ` +
+            `(attempt ${attempt + 1}/${this.maxDeliveryRetries}) in ${Math.round(backoffMs)}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        return this.postWithRetry(channel, url, payload, attempt + 1);
+      }
+
+      if (isTransient5xx) {
+        this.logger.warn(
+          `${channel} alert delivery exhausted retries after ${attempt + 1} attempts`,
+        );
+      }
+
+      throw error;
+    }
   }
 }

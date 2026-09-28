@@ -45,7 +45,8 @@ export class SearchController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Invalid filters JSON' })
+  @ApiResponse({ status: 400, description: 'Invalid filters JSON, or invalid filter values' })
+  @ApiResponse({ status: 503, description: 'Search is temporarily unavailable' })
   async search(
     @Query('q') query: string,
     @Query('filters') filters?: string,
@@ -76,6 +77,7 @@ export class SearchController {
     description: 'Autocomplete suggestions',
     schema: { example: ['javascript', 'java fundamentals', 'java spring'] },
   })
+  @ApiResponse({ status: 503, description: 'Search is temporarily unavailable' })
   async autocomplete(
     @Query('q')
     query: string,

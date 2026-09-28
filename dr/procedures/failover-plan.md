@@ -9,17 +9,20 @@ This document describes the failover procedures for TeachLink in the event of a 
 ## Architecture & Redundancy
 
 ### Primary Region: us-east-1
+
 - **PostgreSQL**: Primary database (read/write)
 - **Redis**: Primary cache layer
 - **NestJS API**: Primary compute resources
 - **S3**: Primary backup storage
 
 ### Secondary Region: us-west-2
+
 - **S3 Replication**: Cross-region replicated backups
 - **Standby Database**: Empty instance (provisioned on-demand)
 - **Standby API**: Auto-scaling group (scale-to-zero, activate on demand)
 
 ### Cross-Region Components
+
 - **Route 53**: DNS with active-passive failover
 - **CloudFront**: Edge distribution (cache minimizes latency post-failover)
 - **KMS Keys**: Replicated encryption keys in both regions
@@ -31,6 +34,7 @@ This document describes the failover procedures for TeachLink in the event of a 
 ### Scenario 1: Database Component Failure (Primary Region OK)
 
 **Symptoms**:
+
 - API returns 500 errors for database queries
 - Health check: `GET /health` returns `"database": "down"`
 - Error logs show PostgreSQL connection refused
@@ -73,6 +77,7 @@ Step 5: Resume operations
 ### Scenario 2: Primary Region Outage (Catastrophic Failure)
 
 **Symptoms**:
+
 - All services unreachable from global healthcheck
 - AWS Console shows regional incident message
 - Route 53 health check fails for all endpoints in us-east-1
@@ -127,6 +132,7 @@ Step 5: Communication
 ### Scenario 3: Regional Infrastructure Degradation (50% Capacity)
 
 **Symptoms**:
+
 - Services responding slower (p99 latency > 5 seconds)
 - Some pods failing to start (insufficient capacity)
 - AWS Console shows capacity warnings
@@ -170,17 +176,18 @@ Step 4: Gradual load-balancing
 
 For failover to execute within RTO target:
 
-| Component | Requirement | Cost | Status |
-|-----------|------------|------|--------|
-| Secondary S3 bucket | us-west-2 with cross-region replication | $50/mo | ✅ Active |
-| Standby RDS snapshot | Latest backup accessible in us-west-2 | $100/mo storage | ✅ Active |
-| Route 53 health checks | 30-second interval, multi-region | $20/mo | ✅ Active |
-| Network capacity | 1 Gbps between regions | Included | ✅ Active |
-| Deployment automation | Failover scripts in `/infra/scripts/failover.sh` | Operational | ✅ Ready |
+| Component              | Requirement                                      | Cost            | Status    |
+| ---------------------- | ------------------------------------------------ | --------------- | --------- |
+| Secondary S3 bucket    | us-west-2 with cross-region replication          | $50/mo          | ✅ Active |
+| Standby RDS snapshot   | Latest backup accessible in us-west-2            | $100/mo storage | ✅ Active |
+| Route 53 health checks | 30-second interval, multi-region                 | $20/mo          | ✅ Active |
+| Network capacity       | 1 Gbps between regions                           | Included        | ✅ Active |
+| Deployment automation  | Failover scripts in `/infra/scripts/failover.sh` | Operational     | ✅ Ready  |
 
 ### Auto-Scaling Groups Configuration
 
 **us-east-1 (Primary)**
+
 ```yaml
 Min: 3 pods
 Max: 20 pods
@@ -188,6 +195,7 @@ Desired: 10 pods (normal) → 15 pods (scaling)
 ```
 
 **us-west-2 (Secondary)**
+
 ```yaml
 Min: 0 pods (standby; scale-to-zero on recovery)
 Max: 20 pods
@@ -342,19 +350,19 @@ Location: `/infra/scripts/failover.sh`
 
 ### Key Metrics to Watch
 
-| Metric | During Failover | Target | Alert If |
-|--------|---|--------|-----------|
-| Route 53 health check status | 🔴→🟢 | Green | Stays red > 2 min |
-| API error rate (4xx/5xx) | 0% (target) | 0.1% | > 1% |
-| Database connection latency | 50-200ms | < 100ms | > 500ms |
-| Replication lag | N/A | < 1 second | > 5 sec |
+| Metric                       | During Failover | Target     | Alert If          |
+| ---------------------------- | --------------- | ---------- | ----------------- |
+| Route 53 health check status | 🔴→🟢           | Green      | Stays red > 2 min |
+| API error rate (4xx/5xx)     | 0% (target)     | 0.1%       | > 1%              |
+| Database connection latency  | 50-200ms        | < 100ms    | > 500ms           |
+| Replication lag              | N/A             | < 1 second | > 5 sec           |
 
 ### Alerting Rules
 
 ```yaml
 AlertRule: FailoverInProgress
   Condition: route53_health_check_status == RED for 30 seconds
-  Action: 
+  Action:
     - PagerDuty escalate to CTO
     - Slack: #incidents
 
@@ -371,13 +379,13 @@ AlertRule: FailoverExceededRTO
 
 ### Timeline for Stakeholder Updates
 
-| Time | Audience | Message | Channel |
-|------|----------|---------|---------|
-| T+0 (outage detected) | Internal team | Incident detected, investigating | #incidents |
-| T+3 min | Customers | Service unavailable; working on it | statuspage.io |
-| T+8 min | Executive team | Regional outage; activating failover | email + #exec |
-| T+13 min | All stakeholders | Service restored (failover complete) | statuspage.io + email |
-| T+60 min | All | Summary of incident + RCA timeline | statuspage.io |
+| Time                  | Audience         | Message                              | Channel               |
+| --------------------- | ---------------- | ------------------------------------ | --------------------- |
+| T+0 (outage detected) | Internal team    | Incident detected, investigating     | #incidents            |
+| T+3 min               | Customers        | Service unavailable; working on it   | statuspage.io         |
+| T+8 min               | Executive team   | Regional outage; activating failover | email + #exec         |
+| T+13 min              | All stakeholders | Service restored (failover complete) | statuspage.io + email |
+| T+60 min              | All              | Summary of incident + RCA timeline   | statuspage.io         |
 
 ---
 
@@ -388,6 +396,7 @@ AlertRule: FailoverExceededRTO
 **Schedule**: Third Tuesday of month, 2-4 AM UTC (off-peak)
 
 **Procedure**:
+
 1. Take backup of us-east-1 DB
 2. Run failover script against staging environment
 3. Verify failover completes within 15 minutes
@@ -396,6 +405,7 @@ AlertRule: FailoverExceededRTO
 6. Failback and verify data integrity
 
 **Success Criteria**:
+
 - [ ] Failover activates without manual intervention
 - [ ] RTO < 15 minutes
 - [ ] All health checks green in target region

@@ -1,20 +1,19 @@
 # openapi_client.HealthApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**health_get**](HealthApi.md#health_get) | **GET** /health | Health check
-[**health_liveness_get**](HealthApi.md#health_liveness_get) | **GET** /health/liveness | Liveness probe
-
+| Method                                                      | HTTP request             | Description    |
+| ----------------------------------------------------------- | ------------------------ | -------------- |
+| [**health_get**](HealthApi.md#health_get)                   | **GET** /health          | Health check   |
+| [**health_liveness_get**](HealthApi.md#health_liveness_get) | **GET** /health/liveness | Liveness probe |
 
 # **health_get**
+
 > health_get()
 
 Health check
 
 ### Example
-
 
 ```python
 import openapi_client
@@ -40,8 +39,6 @@ with openapi_client.ApiClient(configuration) as api_client:
         print("Exception when calling HealthApi->health_get: %s\n" % e)
 ```
 
-
-
 ### Parameters
 
 This endpoint does not need any parameter.
@@ -56,24 +53,24 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: Not defined
+- **Content-Type**: Not defined
+- **Accept**: Not defined
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | Service is healthy |  -  |
+| Status code | Description        | Response headers |
+| ----------- | ------------------ | ---------------- |
+| **200**     | Service is healthy | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **health_liveness_get**
+
 > health_liveness_get()
 
 Liveness probe
 
 ### Example
-
 
 ```python
 import openapi_client
@@ -99,8 +96,6 @@ with openapi_client.ApiClient(configuration) as api_client:
         print("Exception when calling HealthApi->health_liveness_get: %s\n" % e)
 ```
 
-
-
 ### Parameters
 
 This endpoint does not need any parameter.
@@ -115,14 +110,13 @@ No authorization required
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: Not defined
+- **Content-Type**: Not defined
+- **Accept**: Not defined
 
 ### HTTP response details
 
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | Service is alive |  -  |
+| Status code | Description      | Response headers |
+| ----------- | ---------------- | ---------------- |
+| **200**     | Service is alive | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

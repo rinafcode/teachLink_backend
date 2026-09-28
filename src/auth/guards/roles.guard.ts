@@ -3,10 +3,11 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-  Logger,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { SecurityEventLogger, SecurityEventType } from '../../security/audit/security-event-logger';
 
 /**
  * Protects execution paths based on roles extracted from the user object.
@@ -14,9 +15,10 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  private readonly logger = new Logger(RolesGuard.name);
-
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    @Optional() private readonly securityEventLogger?: SecurityEventLogger,
+  ) {}
 
   /**
    * Evaluates if the current user has the required roles.
@@ -37,7 +39,16 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user) {
-      this.logger.warn('Access denied: User object is missing from the request context.');
+      this.securityEventLogger?.emit({
+        eventType: SecurityEventType.AUTH_FAILURE,
+        ip: request.ip,
+        severity: 'high',
+        details: {
+          reason: 'missing_user_context',
+          action: 'roles_guard',
+          requiredRoles,
+        },
+      });
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -47,9 +58,18 @@ export class RolesGuard implements CanActivate {
     const hasRole = requiredRoles.some((role) => userRoles.includes(role.toLowerCase()));
 
     if (!hasRole) {
-      this.logger.warn(
-        `Access denied: User does not possess any of the required roles [${requiredRoles.join(', ')}]. Extracted user roles: [${userRoles.join(', ')}]`,
-      );
+      this.securityEventLogger?.emit({
+        eventType: SecurityEventType.PRIVILEGE_ESCALATION,
+        userId: user.id ?? user.sub ?? null,
+        ip: request.ip,
+        severity: 'high',
+        details: {
+          reason: 'missing_required_role',
+          action: 'roles_guard',
+          requiredRoles,
+          userRoles,
+        },
+      });
     }
 
     return hasRole;

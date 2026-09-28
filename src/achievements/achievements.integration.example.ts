@@ -88,7 +88,7 @@ export class AchievementsIntegrationExample {
   async awardAchievementManually(userId: string, achievementName: string): Promise<void> {
     // 1. Find achievement by name
     const achievements = await this.achievementsService.getAllAchievements();
-    const achievement = achievements.find((a) => a.name === achievementName);
+    const achievement = achievements.data.find((a) => a.name === achievementName);
 
     if (!achievement) {
       // console.error(`Achievement not found: ${achievementName}`);
@@ -118,12 +118,12 @@ export class AchievementsIntegrationExample {
 
     return {
       summary: overview,
-      progress: userProgress.map((p) => ({
+      progress: userProgress.data.map((p) => ({
         achievement: p.achievement.name,
         progress: `${p.currentProgress}/${p.targetProgress}`,
         percentage: p.percentageComplete,
       })),
-      unlocked: userUnlocked.map((a) => ({
+      unlocked: userUnlocked.data.map((a) => ({
         achievement: a.achievement.name,
         unlockedAt: a.unlockedAt,
         pointsEarned: a.pointsEarned,
@@ -140,7 +140,7 @@ export class AchievementsIntegrationExample {
     const leaderboard = await this.achievementsService.getAchievementsLeaderboard(10);
 
     const statsByAchievement = await Promise.all(
-      achievements.map(async (achievement) => {
+      achievements.data.map(async (achievement) => {
         const stats = await this.achievementsService.getAchievementStatistics(achievement.id);
         return {
           name: achievement.name,
@@ -155,7 +155,7 @@ export class AchievementsIntegrationExample {
     return {
       topAchievements: statsByAchievement.sort((a, b) => b.totalUnlocked - a.totalUnlocked),
       topUsers: leaderboard,
-      totalAchievements: achievements.length,
+      totalAchievements: achievements.total,
     };
   }
 
@@ -195,7 +195,7 @@ export class AchievementsIntegrationExample {
     achievementName: string,
   ): Promise<boolean> {
     const achievements = await this.achievementsService.getAllAchievements();
-    const achievement = achievements.find((a) => a.name === achievementName);
+    const achievement = achievements.data.find((a) => a.name === achievementName);
 
     if (!achievement) {
       return false;
@@ -210,7 +210,7 @@ export class AchievementsIntegrationExample {
    */
   async bulkUnlockAchievementsForUser(userId: string, count: number): Promise<void> {
     const achievements = await this.achievementsService.getAllAchievements();
-    const achievementsToUnlock = achievements.slice(0, count).map((a) => a.id);
+    const achievementsToUnlock = achievements.data.slice(0, count).map((a) => a.id);
 
     await this.achievementsService.batchUnlockAchievements(userId, achievementsToUnlock);
 

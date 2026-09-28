@@ -53,6 +53,18 @@ export class ContentReport {
   @Column({ name: 'reviewer_id', nullable: true })
   reviewerId?: string;
 
+  /** The moderator currently assigned to handle this report (round-robin assigned). */
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  assignedModerator?: User;
+
+  @Column({ name: 'assigned_moderator_id', nullable: true })
+  @Index()
+  assignedModeratorId?: string;
+
+  /** Set when the report is escalated to a senior moderator after SLA breach. */
+  @Column({ type: 'timestamp', nullable: true })
+  escalatedAt?: Date;
+
   @Column({
     type: 'enum',
     enum: ContentReportStatus,

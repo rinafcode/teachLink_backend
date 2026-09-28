@@ -56,11 +56,12 @@ export class EmailWebhookController {
 
     for (const event of eventInstances) {
       try {
+        const customArgs = event.custom_args ?? {};
         const baseData = {
-          to: event.email,
           campaignId: (event.asm?.group_id ?? null) as string,
           recipientId: event.email,
-          metadata: event.custom_args ?? {},
+          workflowId: (customArgs.workflowId ?? null) as string,
+          metadata: customArgs,
         };
         switch (event.event as string) {
           case 'processed':

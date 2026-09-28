@@ -5,6 +5,7 @@ A comprehensive achievement and progression tracking system for TeachLink that a
 ## Features
 
 ### 1. **Achievement Definition System**
+
 - Create and manage achievement definitions with various types and difficulties
 - Support for multiple achievement types: Milestone, Challenge, Streaks, Skill-based, Engagement, Contribution
 - Difficulty levels: Easy, Medium, Hard, Legendary
@@ -12,6 +13,7 @@ A comprehensive achievement and progression tracking system for TeachLink that a
 - Points and experience rewards per achievement
 
 ### 2. **Progress Tracking**
+
 - Track user progress toward achievements with incremental progress
 - Automatic unlock when targets are reached
 - Percentage-based progress visualization
@@ -19,12 +21,14 @@ A comprehensive achievement and progression tracking system for TeachLink that a
 - Progress history and last update tracking
 
 ### 3. **Achievement Notifications**
+
 - Automatic notifications when achievements are unlocked
 - Points and XP earned information
 - Customizable notification messages
 - Failed notification retry mechanisms
 
 ### 4. **Statistics and Analytics**
+
 - Achievement unlock rates and trends
 - User achievement leaderboards
 - Achievement overview per user
@@ -37,6 +41,7 @@ A comprehensive achievement and progression tracking system for TeachLink that a
 ### Entities
 
 #### `Achievement`
+
 Main achievement definition entity.
 
 ```typescript
@@ -61,6 +66,7 @@ Main achievement definition entity.
 ```
 
 #### `AchievementProgress`
+
 Tracks a user's progress toward an achievement.
 
 ```typescript
@@ -80,6 +86,7 @@ Tracks a user's progress toward an achievement.
 ```
 
 #### `UserAchievement`
+
 Records when a user unlocks an achievement.
 
 ```typescript
@@ -99,6 +106,7 @@ Records when a user unlocks an achievement.
 ```
 
 #### `AchievementStatistics`
+
 Daily statistics for achievements.
 
 ```typescript
@@ -124,6 +132,7 @@ Daily statistics for achievements.
 ### Achievement Management
 
 #### Create Achievement
+
 ```
 POST /achievements
 Body: {
@@ -142,24 +151,28 @@ Response: AchievementResponseDto
 ```
 
 #### Get All Achievements
+
 ```
 GET /achievements?includeHidden=false
 Response: AchievementResponseDto[]
 ```
 
 #### Get Achievement by ID
+
 ```
 GET /achievements/:achievementId
 Response: AchievementResponseDto
 ```
 
 #### Get Achievements by Type
+
 ```
 GET /achievements/type/:type
 Response: AchievementResponseDto[]
 ```
 
 #### Update Achievement
+
 ```
 PUT /achievements/:achievementId
 Body: Partial<AchievementUpdateDto>
@@ -167,6 +180,7 @@ Response: AchievementResponseDto
 ```
 
 #### Deactivate Achievement
+
 ```
 DELETE /achievements/:achievementId
 Response: 204 No Content
@@ -175,18 +189,21 @@ Response: 204 No Content
 ### Progress Tracking
 
 #### Initialize Progress
+
 ```
 POST /achievements/:achievementId/progress/:userId
 Response: AchievementProgressDto
 ```
 
 #### Get User Progress for Achievement
+
 ```
 GET /achievements/:achievementId/progress/:userId
 Response: AchievementProgressDto
 ```
 
 #### Update Progress
+
 ```
 PUT /achievements/:achievementId/progress/:userId
 Body: {
@@ -197,6 +214,7 @@ Response: AchievementProgressDto
 ```
 
 #### Increment Progress
+
 ```
 POST /achievements/:achievementId/progress/:userId/increment
 Body: {
@@ -207,6 +225,7 @@ Response: AchievementProgressDto
 ```
 
 #### Get All User Progress
+
 ```
 GET /achievements/progress/:userId
 Response: AchievementProgressDto[]
@@ -215,6 +234,7 @@ Response: AchievementProgressDto[]
 ### Achievement Unlocking
 
 #### Unlock Achievement
+
 ```
 POST /achievements/:achievementId/unlock/:userId
 Body?: { metadata?: object }
@@ -222,24 +242,28 @@ Response: AchievementUnlockedEventDto
 ```
 
 #### Get User Achievements
+
 ```
 GET /achievements/user/:userId/unlocked
 Response: UserAchievementDto[]
 ```
 
 #### Check If User Has Achievement
+
 ```
 GET /achievements/:achievementId/user/:userId/has
 Response: { hasAchievement: boolean }
 ```
 
 #### Get User Achievement Count
+
 ```
 GET /achievements/user/:userId/count
 Response: { count: number }
 ```
 
 #### Batch Unlock Achievements
+
 ```
 POST /achievements/batch-unlock/:userId
 Body: { achievementIds: string[] }
@@ -249,12 +273,14 @@ Response: AchievementUnlockedEventDto[]
 ### Statistics & Analytics
 
 #### Get Achievement Statistics
+
 ```
 GET /achievements/:achievementId/statistics
 Response: AchievementStatisticsDto
 ```
 
 #### Get User Achievement Overview
+
 ```
 GET /achievements/user/:userId/overview
 Response: AchievementOverviewDto
@@ -269,12 +295,14 @@ Response: AchievementOverviewDto
 ```
 
 #### Get Achievements Leaderboard
+
 ```
 GET /achievements/leaderboard?limit=10
 Response: AchievementLeaderboardDto[]
 ```
 
 #### Get All Statistics
+
 ```
 GET /achievements/statistics/all
 Response: AchievementStatisticsDto[]
@@ -296,12 +324,12 @@ const achievement = await achievementsService.createAchievement({
   experienceReward: 250,
   criteria: {
     type: 'COURSES_COMPLETED',
-    target: 10
+    target: 10,
   },
   progressConfig: {
     trackingType: 'incremental',
-    maxProgress: 10
-  }
+    maxProgress: 10,
+  },
 });
 ```
 
@@ -314,7 +342,7 @@ await achievementsService.initializeProgress(userId, achievementId);
 // Increment progress (e.g., when course is completed)
 await achievementsService.incrementProgress(userId, achievementId, 1, {
   courseId: 'course-123',
-  courseName: 'Advanced TypeScript'
+  courseName: 'Advanced TypeScript',
 });
 
 // Get progress
@@ -328,7 +356,7 @@ console.log(`Progress: ${progress.percentageComplete}%`);
 // Manual unlock
 const unlockedEvent = await achievementsService.unlockAchievement(userId, achievementId, {
   reason: 'course_completion',
-  courseId: 'course-123'
+  courseId: 'course-123',
 });
 
 console.log(`Earned ${unlockedEvent.pointsEarned} points!`);
@@ -342,7 +370,9 @@ const hasAchievement = await achievementsService.hasAchievement(userId, achievem
 ```typescript
 // User overview
 const overview = await achievementsService.getUserAchievementOverview(userId);
-console.log(`User has unlocked ${overview.unlockedAchievements} of ${overview.totalAchievements} achievements`);
+console.log(
+  `User has unlocked ${overview.unlockedAchievements} of ${overview.totalAchievements} achievements`,
+);
 
 // Leaderboard
 const leaderboard = await achievementsService.getAchievementsLeaderboard(10);
@@ -356,22 +386,27 @@ console.log(`${stats.totalUnlocked} users have this achievement`);
 ## Integration Points
 
 ### With Notifications
+
 The achievements system is designed to integrate with the existing notifications module. When an achievement is unlocked, a notification is automatically created.
 
 ### With User Progression
+
 Achievements track user progression and contribute to overall user engagement metrics.
 
 ### With Gamification
+
 Works alongside the existing gamification module for badges and points.
 
 ## Testing
 
 Run tests with:
+
 ```bash
 npm run test -- src/achievements
 ```
 
 Test coverage includes:
+
 - Achievement CRUD operations
 - Progress tracking logic
 - Auto-unlock functionality

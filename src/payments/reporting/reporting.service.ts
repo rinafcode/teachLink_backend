@@ -4,6 +4,7 @@ import { Repository, Between, In } from 'typeorm';
 import { Payment, PaymentStatus } from '../entities/payment.entity';
 import { Refund, RefundStatus } from '../entities/refund.entity';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
+import { add, subtract, toMoneyNumber } from '../utils/money';
 
 @Injectable()
 export class ReportingService {
@@ -32,7 +33,7 @@ export class ReportingService {
       },
     });
 
-    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalRevenue = payments.reduce((sum, p) => add(sum, p.amount), 0);
     const totalTransactions = payments.length;
 
     return {
@@ -42,7 +43,7 @@ export class ReportingService {
       currency: 'USD',
       transactions: payments.map((p) => ({
         id: p.id,
-        amount: p.amount,
+        amount: toMoneyNumber(p.amount),
         provider: p.provider,
         providerPaymentId: p.providerPaymentId,
       })),
@@ -58,7 +59,7 @@ export class ReportingService {
       relations: ['payment'],
     });
 
-    const totalRefunded = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
+    const totalRefunded = refunds.reduce((sum, r) => add(sum, r.amount), 0);
     const refundCount = refunds.length;
 
     return {
@@ -69,7 +70,7 @@ export class ReportingService {
       refunds: refunds.map((r) => ({
         id: r.id,
         paymentId: r.paymentId,
-        amount: r.amount,
+        amount: toMoneyNumber(r.amount),
         reason: r.reason,
         refundMethod: r.refundMethod,
       })),
@@ -91,21 +92,33 @@ export class ReportingService {
       },
     });
 
-    const grossRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const totalRefunds = refunds.reduce((sum, r) => sum + Number(r.amount), 0);
-    const netRevenue = grossRevenue - totalRefunds;
+    const grossRevenue = payments.reduce((sum, p) => add(sum, p.amount), 0);
+    const totalRefunds = refunds.reduce((sum, r) => add(sum, r.amount), 0);
+    const netRevenue = subtract(grossRevenue, totalRefunds);
 
     const subscriptionRevenue = payments
       .filter((p) => p.isSubscription)
-      .reduce((sum, p) => sum + Number(p.amount), 0);
+      .reduce((sum, p) => add(sum, p.amount), 0);
 
-    const oneOffRevenue = grossRevenue - subscriptionRevenue;
+    const oneOffRevenue = subtract(grossRevenue, subscriptionRevenue);
+
+    // Tax recorded on invoices issued in the period. Invoices carry the tax
+    // collected for each sale (see InvoicesService), so the revenue
+    // recognition report reflects the actual tax liability instead of zero.
+    const invoices = await this.invoiceRepository.find({
+      where: {
+        issuedDate: Between(startDate, endDate),
+        status: In([InvoiceStatus.PAID, InvoiceStatus.SENT]),
+      },
+    });
+    const totalTaxCollected = invoices.reduce((sum, inv) => add(sum, inv.taxAmount || 0), 0);
 
     return {
       period: { startDate, endDate },
       grossRevenue,
       totalRefunds,
       netRevenue,
+      totalTaxCollected,
       breakdown: {
         subscriptionRevenue,
         oneOffRevenue,
@@ -122,8 +135,8 @@ export class ReportingService {
       },
     });
 
-    const totalTaxableAmount = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
-    const totalTaxCollected = invoices.reduce((sum, inv) => sum + Number(inv.taxAmount), 0);
+    const totalTaxableAmount = invoices.reduce((sum, inv) => add(sum, inv.amount), 0);
+    const totalTaxCollected = invoices.reduce((sum, inv) => add(sum, inv.taxAmount), 0);
 
     return {
       period: { startDate, endDate },

@@ -207,7 +207,7 @@ export class CoursesController {
   @Roles(Role.INSTRUCTOR)
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body() dto: CreateCourseDto,   // validated & whitelisted by global ValidationPipe
+    @Body() dto: CreateCourseDto, // validated & whitelisted by global ValidationPipe
     @CurrentUser() user: User,
   ) {
     return this.coursesService.create(dto, user.id);
@@ -267,47 +267,55 @@ const privateKey = this.encryptionService.decrypt(payload);
 Use this checklist when reviewing a PR that touches security-sensitive code.
 
 ### Authentication & Authorization
+
 - [ ] All non-public endpoints have `@UseGuards(JwtAuthGuard)`
 - [ ] Role-restricted endpoints have `@UseGuards(RolesGuard)` and `@Roles(...)`
 - [ ] Ownership is verified from the JWT, not from a request body field
 - [ ] Admin-only endpoints are tested with a non-admin token (expect 403)
 
 ### Input Handling
+
 - [ ] Every `@Body()` parameter uses a DTO with `class-validator` decorators
 - [ ] `ValidationPipe` is applied globally with `whitelist: true`
 - [ ] Path/query params are typed (`@IsUUID()`, `@IsInt()`, etc.)
 - [ ] User-supplied strings are not interpolated into raw SQL or shell commands
 
 ### Secrets & Configuration
+
 - [ ] No secrets, API keys, or passwords in source code or committed `.env` files
 - [ ] New environment variables are documented in `.env.example`
 - [ ] Secrets are loaded via `ConfigService` or `SecretsManagerService`
 
 ### Cryptography
+
 - [ ] Passwords hashed with bcrypt (`BCRYPT_ROUNDS` ≥ 10 in production)
 - [ ] Sensitive fields encrypted with `EncryptionService` (AES-256-GCM)
 - [ ] No use of MD5 or SHA-1 for security purposes
 
 ### Webhooks & External Integrations
+
 - [ ] Incoming webhook signatures verified before processing payload
 - [ ] Replay attack prevention in place (timestamp + event ID check)
 - [ ] Outbound HTTP requests use allowlisted base URLs from config
 
 ### Logging & Monitoring
+
 - [ ] Security events logged via `AuditLoggerService`
 - [ ] No PII, passwords, or tokens in log output
 - [ ] Sensitive operations decorated with `@SensitiveOperation()`
 
 ### Rate Limiting & Abuse Prevention
+
 - [ ] Mutating endpoints covered by throttle guard
 - [ ] Expensive operations (search, export) have quota limits
 - [ ] Idempotency key used on payment and enrollment endpoints
 
 ### Dependencies
+
 - [ ] `npm audit` passes with no high/critical findings
 - [ ] New packages are well-known and actively maintained
 - [ ] Package versions are pinned for security-sensitive libraries
 
 ---
 
-*For questions or to report a vulnerability, contact the security team or open a confidential issue.*
+_For questions or to report a vulnerability, contact the security team or open a confidential issue._

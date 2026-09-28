@@ -103,6 +103,7 @@ response = requests.post(
 The middleware implements comprehensive error handling:
 
 ### Decompression Errors
+
 If decompression fails (e.g., corrupted compressed data), the middleware returns:
 
 ```json
@@ -114,16 +115,19 @@ If decompression fails (e.g., corrupted compressed data), the middleware returns
 ```
 
 ### Unsupported Encodings
+
 Unsupported encodings are logged and the request passes through unchanged. If the client expects the server to handle an unsupported encoding, the downstream application will handle it appropriately.
 
 ## Performance Considerations
 
 ### Bandwidth Savings
+
 - **gzip**: Typically achieves 40-70% size reduction for JSON payloads
 - **brotli**: Typically achieves 45-75% size reduction for JSON payloads (better than gzip)
 - **deflate**: Similar compression to gzip, usually 40-70% reduction
 
 ### CPU Impact
+
 - Decompression is generally faster than compression and has minimal CPU impact
 - Node.js zlib module is highly optimized and uses native bindings
 
@@ -168,10 +172,10 @@ Potential configuration options for future versions:
 export interface DecompressionConfig {
   // Maximum decompressed size (default: 10MB)
   maxDecompressedSize?: number;
-  
+
   // Compression formats to support
   supportedFormats?: ('gzip' | 'deflate' | 'br')[];
-  
+
   // Timeout for decompression
   decompressionTimeoutMs?: number;
 }
@@ -200,6 +204,7 @@ session middleware
 ```
 
 This ordering ensures:
+
 1. Security headers are set first
 2. Decompression happens before body parsing
 3. Decompressed data is properly parsed as JSON/URL-encoded
@@ -212,6 +217,7 @@ This ordering ensures:
 **Cause**: The compressed data is corrupted or not actually gzip-compressed
 
 **Solution**:
+
 1. Verify the data is properly compressed with the specified algorithm
 2. Check for network transmission issues
 3. Ensure no intermediate proxies are double-compressing
@@ -221,6 +227,7 @@ This ordering ensures:
 **Cause**: The middleware might not have been applied or the encoding header is missing
 
 **Solution**:
+
 1. Verify the middleware is registered in main.ts
 2. Check that the `Content-Encoding` header is set correctly
 3. Ensure no other middleware is intercepting requests
@@ -230,6 +237,7 @@ This ordering ensures:
 **Cause**: Decompression of very large payloads consumes CPU
 
 **Solution**:
+
 1. Consider compression on client-side only for payloads > 1KB
 2. Monitor decompression times in production
 3. Scale horizontally if decompression CPU usage is high

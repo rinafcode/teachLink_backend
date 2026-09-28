@@ -5,6 +5,7 @@ This guide covers the automated release process for TeachLink backend.
 ## Overview
 
 The release automation system provides:
+
 - **Semantic Versioning** (Major.Minor.Patch)
 - **Conventional Commits** support for automatic version determination
 - **Automated Changelog Generation** using Keep a Changelog format
@@ -76,11 +77,11 @@ Use GitHub's manual workflow trigger:
 
 Version format: `MAJOR.MINOR.PATCH`
 
-| Type | Increment | When | Example |
-|------|-----------|------|---------|
-| Major | X.0.0 | Breaking API changes, major features | 1.0.0 → 2.0.0 |
-| Minor | X.Y.0 | New features, backwards compatible | 1.0.0 → 1.1.0 |
-| Patch | X.Y.Z | Bug fixes | 1.0.0 → 1.0.1 |
+| Type  | Increment | When                                 | Example       |
+| ----- | --------- | ------------------------------------ | ------------- |
+| Major | X.0.0     | Breaking API changes, major features | 1.0.0 → 2.0.0 |
+| Minor | X.Y.0     | New features, backwards compatible   | 1.0.0 → 1.1.0 |
+| Patch | X.Y.Z     | Bug fixes                            | 1.0.0 → 1.0.1 |
 
 ### Conventional Commits
 
@@ -101,16 +102,16 @@ Changelog is automatically generated from commits using the [Keep a Changelog](h
 
 Commits are organized by type:
 
-| Type | Changelog Section | Example |
-|------|------------------|---------|
-| `feat!:` or `BREAKING CHANGE:` | ⚠️ Breaking Changes | `feat!: change API endpoint` |
-| `feat:` | Added | `feat: add email notifications` |
-| `fix:` | Fixed | `fix: resolve null pointer error` |
-| `perf:` | Performance | `perf: optimize query execution` |
-| `refactor:` | Changed | `refactor: simplify validation logic` |
-| `docs:` | Documentation | `docs: update API guide` |
-| `test:` | Tests | `test: add unit tests for auth` |
-| `chore:` | Skip | `chore: update dependencies` |
+| Type                           | Changelog Section   | Example                               |
+| ------------------------------ | ------------------- | ------------------------------------- |
+| `feat!:` or `BREAKING CHANGE:` | ⚠️ Breaking Changes | `feat!: change API endpoint`          |
+| `feat:`                        | Added               | `feat: add email notifications`       |
+| `fix:`                         | Fixed               | `fix: resolve null pointer error`     |
+| `perf:`                        | Performance         | `perf: optimize query execution`      |
+| `refactor:`                    | Changed             | `refactor: simplify validation logic` |
+| `docs:`                        | Documentation       | `docs: update API guide`              |
+| `test:`                        | Tests               | `test: add unit tests for auth`       |
+| `chore:`                       | Skip                | `chore: update dependencies`          |
 
 ### Example Changelog Entry
 
@@ -152,6 +153,7 @@ git status
 ### 2. Pre-Release Validation
 
 The release workflow automatically:
+
 - ✓ Runs all tests
 - ✓ Checks linting
 - ✓ Verifies TypeScript types
@@ -229,6 +231,7 @@ bash scripts/bump-version.sh patch --dry-run
 ```
 
 Dry run shows:
+
 - Next version number
 - Changelog preview
 - Files to be modified
@@ -265,6 +268,7 @@ git push origin v$(node -p "require('./package.json').version")
 **Cause**: `NPM_TOKEN` secret not configured or expired
 
 **Solution**:
+
 1. Regenerate npm token: https://www.npmjs.com/settings/tokens
 2. Update secret in GitHub: Settings → Secrets → NPM_TOKEN
 
@@ -273,6 +277,7 @@ git push origin v$(node -p "require('./package.json').version")
 **Cause**: `SLACK_WEBHOOK_RELEASES` secret not configured
 
 **Solution**:
+
 1. Create Slack webhook: https://api.slack.com/messaging/webhooks
 2. Update secret in GitHub: Settings → Secrets → SLACK_WEBHOOK_RELEASES
 
@@ -280,10 +285,10 @@ git push origin v$(node -p "require('./package.json').version")
 
 Configure these in GitHub repository settings (Settings → Secrets and variables):
 
-| Secret | Description | Example |
-|--------|-------------|---------|
-| `NPM_TOKEN` | npm authentication for publishing | `npm_xxxx...` |
-| `SLACK_WEBHOOK_RELEASES` | Slack webhook for notifications | `https://hooks.slack.com/services/...` |
+| Secret                   | Description                       | Example                                |
+| ------------------------ | --------------------------------- | -------------------------------------- |
+| `NPM_TOKEN`              | npm authentication for publishing | `npm_xxxx...`                          |
+| `SLACK_WEBHOOK_RELEASES` | Slack webhook for notifications   | `https://hooks.slack.com/services/...` |
 
 ## Scripts Reference
 
@@ -335,6 +340,7 @@ bash scripts/bump-version.sh auto
 ```
 
 Actions:
+
 1. Validates git state
 2. Calculates next version
 3. Generates changelog
@@ -389,11 +395,11 @@ npm run changelog:generate | head -30
 
 ## Release Frequency Recommendations
 
-| Project Size | Recommended Frequency |
-|--------------|----------------------|
-| Small | Weekly or bi-weekly |
-| Medium | 2-4 times per month |
-| Large | On-demand (multiple times daily) |
+| Project Size | Recommended Frequency            |
+| ------------ | -------------------------------- |
+| Small        | Weekly or bi-weekly              |
+| Medium       | 2-4 times per month              |
+| Large        | On-demand (multiple times daily) |
 
 For TeachLink: **Weekly releases** (every Monday morning)
 
@@ -402,17 +408,20 @@ For TeachLink: **Weekly releases** (every Monday morning)
 ### GitHub Actions
 
 Monitor releases in real-time:
+
 - Dashboard: [Actions → Release Automation](https://github.com/teachLink/teachLink_backend/actions/workflows/release.yml)
 - Get status: `gh workflow view release.yml`
 
 ### npm Registry
 
 Verify published package:
+
 - https://www.npmjs.com/package/teachLink_backend
 
 ### GitHub Releases
 
 View all releases:
+
 - https://github.com/teachLink/teachLink_backend/releases
 
 ## Support & Questions

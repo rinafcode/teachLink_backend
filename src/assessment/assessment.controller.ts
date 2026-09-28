@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AssessmentsService } from './assessments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SubmitAssessmentDto } from './dto/submit-assessment.dto';
@@ -14,6 +14,20 @@ export class AssessmentsController {
   constructor(private readonly service: AssessmentsService) {}
 
   /**
+   * Lists all assessments with pagination.
+   */
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List assessments (paginated, no question bodies)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({ status: 200, description: 'Paginated list of assessments' })
+  @ApiResponse({ status: 401, description: 'Authentication required' })
+  list(@Query('page') page?: number, @Query('limit') limit?: number): any {
+    return this.service.findAll(page ?? 1, limit ?? 10);
+  }
+
+  /**
    * Starts start.
    * @param req The req.
    * @param id The identifier.
@@ -24,6 +38,7 @@ export class AssessmentsController {
   @ApiOperation({ summary: 'Start an assessment attempt' })
   @ApiResponse({ status: 201, description: 'Assessment attempt started' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Assessment not found' })
   start(@Request() req: any, @Param('id') id: string): any {
     const studentId = req.user.id;
     if (!studentId) {
@@ -43,7 +58,9 @@ export class AssessmentsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Submit assessment answers' })
   @ApiResponse({ status: 201, description: 'Assessment submitted and scored' })
+  @ApiResponse({ status: 400, description: 'Invalid answers payload' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Assessment attempt not found' })
   async submit(
     @Request() req: any,
     @Param('id') id: string,
@@ -63,6 +80,7 @@ export class AssessmentsController {
   @ApiOperation({ summary: 'Get assessment attempt results' })
   @ApiResponse({ status: 200, description: 'Assessment attempt results' })
   @ApiResponse({ status: 401, description: 'Authentication required' })
+  @ApiResponse({ status: 404, description: 'Assessment attempt not found' })
   results(@Request() req: any, @Param('id') id: string): any {
     return this.service.getResults(id);
   }

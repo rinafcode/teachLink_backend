@@ -1,5 +1,5 @@
 import { AuditAction, AuditSeverity, AuditCategory } from '../enums/audit-action.enum';
-import { AuditLog } from '../audit-log.entity';
+import { AuditLog, HttpMethod } from '../audit-log.entity';
 
 /**
  * Audit log entry data structure for logging operations
@@ -21,7 +21,7 @@ export interface IAuditLogEntry {
   sessionId?: string;
   requestId?: string;
   apiEndpoint?: string;
-  httpMethod?: string;
+  httpMethod?: HttpMethod;
   statusCode?: number;
   responseTimeMs?: number;
   tenantId?: string;
@@ -44,7 +44,7 @@ export interface IAuditLogSearchFilters {
   startDate?: Date;
   endDate?: Date;
   apiEndpoint?: string;
-  httpMethod?: string;
+  httpMethod?: HttpMethod;
   statusCode?: number;
 }
 
@@ -52,11 +52,13 @@ export interface IAuditLogSearchFilters {
  * Paginated search results for audit logs
  */
 export interface IAuditLogSearchResult {
-  logs: AuditLog[];
+  data: AuditLog[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 /**

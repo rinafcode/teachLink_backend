@@ -3,16 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Enrollment } from '../courses/entities/enrollment.entity';
 
-/**
- * Implements user-based collaborative filtering.
- *
- * Algorithm:
- * 1. Load all active/completed enrollments.
- * 2. Build a user→course set map.
- * 3. Compute Jaccard similarity between the target user and every other user.
- * 4. Aggregate course scores from the most similar users (weighted by similarity).
- * 5. Return ranked course IDs the target user has NOT yet enrolled in.
- */
 @Injectable()
 export class CollaborativeFilteringService {
   private readonly logger = new Logger(CollaborativeFilteringService.name);
@@ -27,45 +17,74 @@ export class CollaborativeFilteringService {
     excludeCourseIds: Set<string>,
     topN: number,
   ): Promise<Array<{ courseId: string; score: number }>> {
-    const enrollments = await this.enrollmentRepo.find({
-      select: ['userId', 'courseId'],
-      where: [{ status: 'active' }, { status: 'completed' }],
+    const targetEnrollments = await this.enrollmentRepo.find({
+      select: ['courseId'],
+      where: [
+        { userId, status: 'active' },
+        { userId, status: 'completed' },
+      ],
     });
 
-    const userCourses = new Map<string, Set<string>>();
-    for (const e of enrollments) {
-      if (!userCourses.has(e.userId)) userCourses.set(e.userId, new Set());
-      userCourses.get(e.userId)!.add(e.courseId);
-    }
+    if (targetEnrollments.length === 0) return [];
 
-    const targetCourses = userCourses.get(userId) ?? new Set<string>();
-    const courseScores = new Map<string, number>();
+    const excludeArray = [...excludeCourseIds];
+    const maxNeighbors = Math.max(topN * 3, 50);
 
-    for (const [otherUserId, otherCourses] of userCourses) {
-      if (otherUserId === userId) continue;
+    const rows: Array<{ courseId: string; score: number }> = await this.enrollmentRepo.query(
+      `
+      WITH target_courses AS (
+        SELECT course_id FROM enrollment
+        WHERE user_id = $1 AND status IN ($2, $3) AND deleted_at IS NULL
+      ),
+      target_count AS (
+        SELECT COUNT(*)::int AS cnt FROM target_courses
+      ),
+      candidates AS (
+        SELECT DISTINCT e.user_id
+        FROM enrollment e
+        WHERE e.status IN ($2, $3)
+          AND e.user_id <> $1
+          AND e.deleted_at IS NULL
+          AND e.course_id IN (SELECT course_id FROM target_courses)
+      ),
+      user_stats AS (
+        SELECT
+          e.user_id,
+          COUNT(DISTINCT e.course_id)::int AS other_count,
+          COUNT(DISTINCT CASE WHEN tc.course_id IS NOT NULL THEN e.course_id END)::int AS intersection
+        FROM enrollment e
+        JOIN candidates c ON c.user_id = e.user_id
+        LEFT JOIN target_courses tc ON e.course_id = tc.course_id
+        WHERE e.status IN ($2, $3) AND e.deleted_at IS NULL
+        GROUP BY e.user_id
+        HAVING COUNT(DISTINCT CASE WHEN tc.course_id IS NOT NULL THEN e.course_id END) > 0
+      ),
+      ranked_users AS (
+        SELECT
+          us.user_id,
+          us.intersection::float / GREATEST(tc.cnt + us.other_count - us.intersection, 1) AS similarity
+        FROM user_stats us, target_count tc
+        ORDER BY similarity DESC
+        LIMIT $4
+      ),
+      candidate_courses AS (
+        SELECT
+          e.course_id,
+          SUM(ru.similarity)::float AS score
+        FROM enrollment e
+        JOIN ranked_users ru ON ru.user_id = e.user_id
+        WHERE e.status IN ($2, $3)
+          AND e.deleted_at IS NULL
+          AND e.course_id <> ALL($5::text[])
+        GROUP BY e.course_id
+        ORDER BY score DESC
+        LIMIT $6
+      )
+      SELECT course_id AS "courseId", score FROM candidate_courses
+      `,
+      [userId, 'active', 'completed', maxNeighbors, excludeArray, topN],
+    );
 
-      const similarity = this.jaccardSimilarity(targetCourses, otherCourses);
-      if (similarity === 0) continue;
-
-      for (const courseId of otherCourses) {
-        if (targetCourses.has(courseId) || excludeCourseIds.has(courseId)) continue;
-        courseScores.set(courseId, (courseScores.get(courseId) ?? 0) + similarity);
-      }
-    }
-
-    return [...courseScores.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, topN)
-      .map(([courseId, score]) => ({ courseId, score }));
-  }
-
-  private jaccardSimilarity(a: Set<string>, b: Set<string>): number {
-    if (a.size === 0 && b.size === 0) return 0;
-    let intersection = 0;
-    for (const id of a) {
-      if (b.has(id)) intersection++;
-    }
-    const union = a.size + b.size - intersection;
-    return union === 0 ? 0 : intersection / union;
+    return rows;
   }
 }

@@ -38,6 +38,7 @@ export class Assessment {
   questions: Question[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @DeleteDateColumn()

@@ -11,7 +11,7 @@ import {
   RoutingConditionType,
   RoutingOperator,
   RoutingActionType,
-  DynamicRoutingConfig
+  DynamicRoutingConfig,
 } from '../src/routing/interfaces/routing.interface';
 
 async function demonstrateRouting() {
@@ -19,7 +19,7 @@ async function demonstrateRouting() {
 
   // Initialize services
   const routingEngine = new RoutingEngineService();
-  
+
   // Create demo configuration
   const demoConfig: DynamicRoutingConfig = {
     rules: [
@@ -35,8 +35,8 @@ async function demonstrateRouting() {
             field: 'x-api-version',
             operator: RoutingOperator.EQUALS,
             value: 'v2',
-            caseSensitive: false
-          }
+            caseSensitive: false,
+          },
         ],
         action: {
           type: RoutingActionType.REWRITE,
@@ -46,10 +46,10 @@ async function demonstrateRouting() {
               type: 'header',
               operation: 'add',
               field: 'x-routed-by',
-              value: 'content-router'
-            }
-          ]
-        }
+              value: 'content-router',
+            },
+          ],
+        },
       },
       {
         id: 'mobile-optimization',
@@ -63,8 +63,8 @@ async function demonstrateRouting() {
             field: 'x-client-type',
             operator: RoutingOperator.EQUALS,
             value: 'mobile',
-            caseSensitive: false
-          }
+            caseSensitive: false,
+          },
         ],
         action: {
           type: RoutingActionType.FORWARD,
@@ -74,10 +74,10 @@ async function demonstrateRouting() {
               type: 'header',
               operation: 'add',
               field: 'x-mobile-optimized',
-              value: 'true'
-            }
-          ]
-        }
+              value: 'true',
+            },
+          ],
+        },
       },
       {
         id: 'admin-access-control',
@@ -90,23 +90,23 @@ async function demonstrateRouting() {
             type: RoutingConditionType.PATH_PATTERN,
             field: 'path',
             operator: RoutingOperator.STARTS_WITH,
-            value: '/admin'
+            value: '/admin',
           },
           {
             type: RoutingConditionType.CUSTOM,
             field: 'user.role',
             operator: RoutingOperator.NOT_EQUALS,
-            value: 'ADMIN'
-          }
+            value: 'ADMIN',
+          },
         ],
         action: {
           type: RoutingActionType.BLOCK,
           target: 'unauthorized',
           parameters: {
             statusCode: 403,
-            message: 'Admin access required'
-          }
-        }
+            message: 'Admin access required',
+          },
+        },
       },
       {
         id: 'beta-features',
@@ -120,8 +120,8 @@ async function demonstrateRouting() {
             field: 'beta',
             operator: RoutingOperator.EQUALS,
             value: 'true',
-            caseSensitive: false
-          }
+            caseSensitive: false,
+          },
         ],
         action: {
           type: RoutingActionType.FORWARD,
@@ -131,23 +131,23 @@ async function demonstrateRouting() {
               type: 'header',
               operation: 'add',
               field: 'x-beta-features',
-              value: 'enabled'
-            }
-          ]
-        }
-      }
+              value: 'enabled',
+            },
+          ],
+        },
+      },
     ],
     defaultAction: {
       type: RoutingActionType.FORWARD,
-      target: '/api'
+      target: '/api',
     },
     enableLogging: true,
     enableMetrics: true,
     cacheConfig: {
       enabled: true,
       ttl: 300000,
-      maxSize: 1000
-    }
+      maxSize: 1000,
+    },
   };
 
   // Update routing engine with demo config
@@ -165,10 +165,10 @@ async function demonstrateRouting() {
           path: '/users',
           headers: { 'x-api-version': 'v2' },
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: { test: true }
-      }
+        metadata: { test: true },
+      },
     },
     {
       name: '📱 Mobile Client Optimization',
@@ -178,10 +178,10 @@ async function demonstrateRouting() {
           path: '/dashboard',
           headers: { 'x-client-type': 'mobile' },
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: { test: true }
-      }
+        metadata: { test: true },
+      },
     },
     {
       name: '🔒 Admin Access Control (Blocked)',
@@ -191,15 +191,15 @@ async function demonstrateRouting() {
           path: '/admin/users',
           headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
         user: {
           id: 'user-1',
           role: 'USER',
-          permissions: []
+          permissions: [],
         },
-        metadata: { test: true }
-      }
+        metadata: { test: true },
+      },
     },
     {
       name: '🔒 Admin Access Control (Allowed)',
@@ -209,15 +209,15 @@ async function demonstrateRouting() {
           path: '/admin/users',
           headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
         user: {
           id: 'admin-1',
           role: 'ADMIN',
-          permissions: ['admin:read', 'admin:write']
+          permissions: ['admin:read', 'admin:write'],
         },
-        metadata: { test: true }
-      }
+        metadata: { test: true },
+      },
     },
     {
       name: '🧪 Beta Features Routing',
@@ -227,10 +227,10 @@ async function demonstrateRouting() {
           path: '/features',
           headers: {},
           query: { beta: 'true' },
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: { test: true }
-      }
+        metadata: { test: true },
+      },
     },
     {
       name: '🚫 No Rule Match (Default Action)',
@@ -240,33 +240,33 @@ async function demonstrateRouting() {
           path: '/regular-endpoint',
           headers: {},
           query: {},
-          ip: '127.0.0.1'
+          ip: '127.0.0.1',
         },
-        metadata: { test: true }
-      }
-    }
+        metadata: { test: true },
+      },
+    },
   ];
 
   // Run test scenarios
   for (const scenario of testScenarios) {
     console.log(`\n${scenario.name}`);
     console.log('─'.repeat(50));
-    
+
     try {
       const result = await routingEngine.evaluateRouting(scenario.context as RoutingContext);
-      
+
       if (result.matched) {
         console.log('✅ Rule matched:', result.rule?.name);
         console.log('🎯 Action:', result.action?.type);
         console.log('📍 Target:', result.action?.target);
-        
+
         if (result.transformedRequest) {
           console.log('🔄 Transformations applied');
           if (result.transformedRequest.headers) {
             console.log('   Headers:', Object.keys(result.transformedRequest.headers));
           }
         }
-        
+
         if (result.action?.parameters) {
           console.log('⚙️  Parameters:', result.action.parameters);
         }

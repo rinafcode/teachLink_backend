@@ -38,7 +38,7 @@ export const INCIDENT_DETECTION_RULES: IncidentDetectionRule[] = [
     incidentTitle: 'High HTTP Error Rate Detected',
     incidentDescription: 'HTTP error rate (5xx) has increased significantly',
     runbookId: 'error-rate-investigation',
-    requiredConsecutiveAlerts: 1,
+    requiredConsecutiveAlerts: 2,
   },
   {
     name: 'cache_hit_rate_degradation',

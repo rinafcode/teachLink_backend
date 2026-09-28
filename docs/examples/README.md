@@ -23,7 +23,6 @@ This directory contains example code for calling TeachLink API endpoints in mult
 
 ---
 
-
 ## Login
 
 **POST** /auth/login
@@ -61,7 +60,6 @@ curl -X POST "http://localhost:3000/auth/login" \
 }
 ```
 
-
 ## Register
 
 **POST** /auth/register
@@ -94,7 +92,6 @@ curl -X POST "http://localhost:3000/auth/register" \
   }
 }
 ```
-
 
 ## List Courses
 
@@ -131,7 +128,6 @@ curl -X GET "http://localhost:3000/courses?page=1&limit=20" \
 }
 ```
 
-
 ## Create Course
 
 **POST** /courses
@@ -166,7 +162,6 @@ curl -X POST "http://localhost:3000/courses" \
   }
 }
 ```
-
 
 ## Search Courses
 
@@ -209,7 +204,6 @@ curl -X GET "http://localhost:3000/search?q=javascript&filters={"category":"prog
 }
 ```
 
-
 ## Create Payment Intent
 
 **POST** /payments/create-intent
@@ -243,4 +237,3 @@ curl -X POST "http://localhost:3000/payments/create-intent" \
   }
 }
 ```
-

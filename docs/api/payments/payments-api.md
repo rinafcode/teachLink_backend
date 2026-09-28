@@ -3,6 +3,7 @@
 Complete documentation for TeachLink payment processing endpoints.
 
 ## Table of Contents
+
 - [Create Payment Intent](#create-payment-intent)
 - [Create Subscription](#create-subscription)
 - [Process Refund](#process-refund)
@@ -17,15 +18,18 @@ Complete documentation for TeachLink payment processing endpoints.
 Create a payment intent for course purchase.
 
 ### Endpoint
+
 ```
 POST /payments/create-intent
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `STUDENT` or `TEACHER`
 
 ### Idempotency
+
 **Required**: `X-Idempotency-Key` header  
 This endpoint is idempotent - safe to retry with the same key.
 
@@ -41,13 +45,13 @@ X-Idempotency-Key: unique-key-123456
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| courseId | string | Yes | Course ID to purchase | Valid course UUID |
-| amount | number | Yes | Payment amount in cents | Positive integer |
-| currency | string | No | Currency code | ISO 4217 (default: `USD`) |
-| paymentMethod | string | Yes | Payment method | `CARD`, `PAYPAL`, `CRYPTO` |
-| metadata | object | No | Additional metadata | Key-value pairs |
+| Field         | Type   | Required | Description             | Validation                 |
+| ------------- | ------ | -------- | ----------------------- | -------------------------- |
+| courseId      | string | Yes      | Course ID to purchase   | Valid course UUID          |
+| amount        | number | Yes      | Payment amount in cents | Positive integer           |
+| currency      | string | No       | Currency code           | ISO 4217 (default: `USD`)  |
+| paymentMethod | string | Yes      | Payment method          | `CARD`, `PAYPAL`, `CRYPTO` |
+| metadata      | object | No       | Additional metadata     | Key-value pairs            |
 
 ### Example Request
 
@@ -131,15 +135,18 @@ const idempotencyKey = require('crypto').randomUUID();
 Create a subscription for premium courses or platform access.
 
 ### Endpoint
+
 ```
 POST /payments/subscriptions
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `STUDENT` or `TEACHER`
 
 ### Idempotency
+
 **Required**: `X-Idempotency-Key` header
 
 ### Headers
@@ -154,20 +161,20 @@ X-Idempotency-Key: unique-key-789012
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| planId | string | Yes | Subscription plan ID | Valid plan ID |
-| paymentMethod | string | Yes | Payment method | `CARD`, `PAYPAL` |
-| billingCycle | string | No | Billing frequency | `MONTHLY`, `YEARLY` (default: `MONTHLY`) |
-| couponCode | string | No | Discount coupon | Valid coupon code |
+| Field         | Type   | Required | Description          | Validation                               |
+| ------------- | ------ | -------- | -------------------- | ---------------------------------------- |
+| planId        | string | Yes      | Subscription plan ID | Valid plan ID                            |
+| paymentMethod | string | Yes      | Payment method       | `CARD`, `PAYPAL`                         |
+| billingCycle  | string | No       | Billing frequency    | `MONTHLY`, `YEARLY` (default: `MONTHLY`) |
+| couponCode    | string | No       | Discount coupon      | Valid coupon code                        |
 
 ### Subscription Plans
 
-| Plan ID | Name | Monthly Price | Yearly Price | Features |
-|---------|------|---------------|--------------|----------|
-| `basic` | Basic | $9.99/mo | $99.99/yr | Access to basic courses |
-| `pro` | Professional | $29.99/mo | $299.99/yr | All courses + certificates |
-| `enterprise` | Enterprise | $99.99/mo | $999.99/yr | Team management + analytics |
+| Plan ID      | Name         | Monthly Price | Yearly Price | Features                    |
+| ------------ | ------------ | ------------- | ------------ | --------------------------- |
+| `basic`      | Basic        | $9.99/mo      | $99.99/yr    | Access to basic courses     |
+| `pro`        | Professional | $29.99/mo     | $299.99/yr   | All courses + certificates  |
+| `enterprise` | Enterprise   | $99.99/mo     | $999.99/yr   | Team management + analytics |
 
 ### Example Request
 
@@ -227,15 +234,18 @@ curl -X POST http://localhost:3000/payments/subscriptions \
 Process a refund for a payment (Admins and Teachers only).
 
 ### Endpoint
+
 ```
 POST /payments/refund
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `ADMIN` or `TEACHER`
 
 ### Idempotency
+
 **Required**: `X-Idempotency-Key` header
 
 ### Headers
@@ -250,11 +260,11 @@ X-Idempotency-Key: unique-key-345678
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| paymentId | string | Yes | Original payment ID | Valid payment UUID |
-| amount | number | No | Refund amount in cents | ≤ original amount |
-| reason | string | Yes | Refund reason | 10-500 characters |
+| Field     | Type   | Required | Description            | Validation         |
+| --------- | ------ | -------- | ---------------------- | ------------------ |
+| paymentId | string | Yes      | Original payment ID    | Valid payment UUID |
+| amount    | number | No       | Refund amount in cents | ≤ original amount  |
+| reason    | string | Yes      | Refund reason          | 10-500 characters  |
 
 ### Example Request
 
@@ -325,11 +335,13 @@ curl -X POST http://localhost:3000/payments/refund \
 Retrieve invoice for a specific payment.
 
 ### Endpoint
+
 ```
 GET /payments/invoices/:paymentId
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `STUDENT`, `TEACHER`, or `ADMIN`
 
@@ -341,9 +353,9 @@ Authorization: Bearer <access-token>
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| paymentId | string | Yes | Payment ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| paymentId | string | Yes      | Payment ID  |
 
 ### Example Request
 
@@ -411,11 +423,13 @@ curl http://localhost:3000/payments/invoices/payment-123456/download \
 Retrieve user's payment history.
 
 ### Endpoint
+
 ```
 GET /payments/user/payments
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `STUDENT`, `TEACHER`, or `ADMIN`
 
@@ -427,13 +441,13 @@ Authorization: Bearer <access-token>
 
 ### Query Parameters
 
-| Parameter | Type | Required | Description | Default |
-|-----------|------|----------|-------------|---------|
-| limit | number | No | Items per page | 10 |
-| page | number | No | Page number | 1 |
-| status | string | No | Filter by status | All |
-| startDate | date | No | Filter from date | - |
-| endDate | date | No | Filter to date | - |
+| Parameter | Type   | Required | Description      | Default |
+| --------- | ------ | -------- | ---------------- | ------- |
+| limit     | number | No       | Items per page   | 10      |
+| page      | number | No       | Page number      | 1       |
+| status    | string | No       | Filter by status | All     |
+| startDate | date   | No       | Filter from date | -       |
+| endDate   | date   | No       | Filter to date   | -       |
 
 ### Status Values
 
@@ -499,11 +513,13 @@ curl "http://localhost:3000/payments/user/payments?limit=10&page=1&status=succee
 Retrieve user's active and past subscriptions.
 
 ### Endpoint
+
 ```
 GET /payments/user/subscriptions
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `STUDENT`, `TEACHER`, or `ADMIN`
 
@@ -558,11 +574,11 @@ curl http://localhost:3000/payments/user/subscriptions \
 
 ### Supported Payment Methods
 
-| Method | Description | Processing Time | Fees |
-|--------|-------------|-----------------|------|
-| `CARD` | Credit/Debit cards | Instant | 2.9% + $0.30 |
-| `PAYPAL` | PayPal account | Instant | 3.49% + $0.49 |
-| `CRYPTO` | Cryptocurrency | 10-30 min | 1% |
+| Method   | Description        | Processing Time | Fees          |
+| -------- | ------------------ | --------------- | ------------- |
+| `CARD`   | Credit/Debit cards | Instant         | 2.9% + $0.30  |
+| `PAYPAL` | PayPal account     | Instant         | 3.49% + $0.49 |
+| `CRYPTO` | Cryptocurrency     | 10-30 min       | 1%            |
 
 ### Accepted Cards
 
@@ -579,15 +595,15 @@ Payment webhooks notify your system of payment events:
 
 ### Event Types
 
-| Event | Description |
-|-------|-------------|
-| `payment.succeeded` | Payment completed successfully |
-| `payment.failed` | Payment failed |
-| `payment.refunded` | Payment refunded |
-| `subscription.created` | New subscription created |
-| `subscription.renewed` | Subscription renewed |
-| `subscription.cancelled` | Subscription cancelled |
-| `subscription.expired` | Subscription expired |
+| Event                    | Description                    |
+| ------------------------ | ------------------------------ |
+| `payment.succeeded`      | Payment completed successfully |
+| `payment.failed`         | Payment failed                 |
+| `payment.refunded`       | Payment refunded               |
+| `subscription.created`   | New subscription created       |
+| `subscription.renewed`   | Subscription renewed           |
+| `subscription.cancelled` | Subscription cancelled         |
+| `subscription.expired`   | Subscription expired           |
 
 ### Webhook Payload Example
 
@@ -613,11 +629,8 @@ Payment webhooks notify your system of payment events:
 const crypto = require('crypto');
 
 function verifyWebhook(payload, signature, secret) {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex');
-  
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
   return signature === expected;
 }
 ```
@@ -643,7 +656,7 @@ async function createPayment(paymentData) {
         'X-Idempotency-Key': idempotencyKey,
         // ... other headers
       },
-      body: JSON.stringify(paymentData)
+      body: JSON.stringify(paymentData),
     });
   } catch (error) {
     // Retry with same key - won't create duplicate
@@ -653,7 +666,7 @@ async function createPayment(paymentData) {
         'X-Idempotency-Key': idempotencyKey,
         // ... other headers
       },
-      body: JSON.stringify(paymentData)
+      body: JSON.stringify(paymentData),
     });
   }
 }
@@ -682,12 +695,11 @@ async function handlePayment(courseId, amount) {
     const result = await createPaymentIntent({
       courseId,
       amount,
-      paymentMethod: 'CARD'
+      paymentMethod: 'CARD',
     });
-    
+
     // Redirect to payment provider
     window.location.href = result.checkoutUrl;
-    
   } catch (error) {
     if (error.code === 'CARD_DECLINED') {
       showErrorMessage('Your card was declined. Please try another payment method.');
@@ -706,12 +718,12 @@ async function handlePayment(courseId, amount) {
 
 ### Test Cards (Stripe)
 
-| Card Number | Description |
-|-------------|-------------|
-| 4242 4242 4242 4242 | Success |
+| Card Number         | Description                   |
+| ------------------- | ----------------------------- |
+| 4242 4242 4242 4242 | Success                       |
 | 4000 0000 0000 9995 | Declined (insufficient funds) |
-| 4000 0000 0000 9987 | Declined (expired card) |
-| 4000 0000 0000 0069 | Requires 3D Secure |
+| 4000 0000 0000 9987 | Declined (expired card)       |
+| 4000 0000 0000 0069 | Requires 3D Secure            |
 
 ### Test with cURL
 

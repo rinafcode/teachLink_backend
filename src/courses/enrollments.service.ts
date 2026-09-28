@@ -3,19 +3,34 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OutboxService } from '../common/events/outbox.service';
 
 import { Course, CourseStatus } from './entities/course.entity';
 import { Enrollment } from './entities/enrollment.entity';
-import { User, UserRole } from '../users/entities/user.entity';
+import { User, PRIVILEGED_ROLES } from '../users/entities/user.entity';
 
 import { CACHE_EVENTS } from '../caching/caching.constants';
 import { APP_EVENTS } from '../common/constants/event.constants';
 import { APP_CONSTANTS } from '../common/constants/app.constants';
+
+/**
+ * True when the error is a PostgreSQL unique-violation (23505). Used to treat
+ * the database constraint as the authoritative "already enrolled" signal
+ * instead of relying only on the application-level pre-check (issue #1343).
+ */
+function isUniqueViolation(err: unknown): boolean {
+  const error = err as any;
+  return (
+    error?.code === '23505' ||
+    error?.driverError?.code === '23505' ||
+    (typeof error?.message === 'string' && error.message.includes('unique'))
+  );
+}
 
 @Injectable()
 export class EnrollmentsService {
@@ -32,7 +47,7 @@ export class EnrollmentsService {
     @InjectRepository(Course)
     private readonly courseRepo: Repository<Course>,
 
-    private readonly eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -67,7 +82,7 @@ export class EnrollmentsService {
       });
 
       if (existing) {
-        throw new BadRequestException('User is already enrolled in this course');
+        throw new ConflictException('User is already enrolled in this course');
       }
 
       await this.validatePrerequisites(userId, course, enrollmentRepo);
@@ -79,11 +94,23 @@ export class EnrollmentsService {
         progress: 0,
       });
 
-      const saved = await enrollmentRepo.save(enrollment);
+      let saved: Enrollment;
+      try {
+        saved = await enrollmentRepo.save(enrollment);
+      } catch (error) {
+        // The partial unique index (user_id, course_id) WHERE "deletedAt" IS NULL
+        // is the authoritative guard: a concurrent request may have inserted the
+        // same active enrollment between our pre-check and this save.
+        if (isUniqueViolation(error)) {
+          throw new ConflictException('User is already enrolled in this course');
+        }
+        throw error;
+      }
 
-      this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
-
-      this.eventEmitter.emit(APP_EVENTS.COURSE_ENROLLED, {
+      // Events are enlisted in the SAME transaction so a rollback never
+      // leaves ghost cache entries or recommendation updates (issue #1221).
+      await this.outbox.enqueue(manager, CACHE_EVENTS.ENROLLMENT_CREATED, { id: saved.id });
+      await this.outbox.enqueue(manager, APP_EVENTS.COURSE_ENROLLED, {
         userId,
         courseId,
       });
@@ -92,6 +119,113 @@ export class EnrollmentsService {
 
       return saved;
     });
+  }
+
+  /**
+   * Bulk enroll users.
+   */
+  async bulkEnroll(
+    enrollments: { userId: string; courseId: string }[],
+  ): Promise<{ enrolled: number; skipped: number; failed: number; errors: any[] }> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let enrolledCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    const errors: any[] = [];
+    const successfulEnrollments: any[] = [];
+
+    try {
+      const enrollmentRepo = queryRunner.manager.getRepository(Enrollment);
+      const courseRepo = queryRunner.manager.getRepository(Course);
+
+      for (const item of enrollments) {
+        const { userId, courseId } = item;
+        try {
+          const course = await courseRepo.findOne({
+            where: { id: courseId },
+            relations: ['prerequisite'],
+          });
+
+          if (!course) {
+            failedCount++;
+            errors.push({ userId, courseId, error: `Course ${courseId} not found` });
+            continue;
+          }
+
+          if (course.status !== CourseStatus.PUBLISHED) {
+            failedCount++;
+            errors.push({
+              userId,
+              courseId,
+              error: `Cannot enroll in course with status "${course.status}".`,
+            });
+            continue;
+          }
+
+          const existing = await enrollmentRepo.findOne({
+            where: { userId, courseId },
+          });
+
+          if (existing) {
+            skippedCount++;
+            errors.push({ userId, courseId, error: 'User is already enrolled in this course' });
+            continue;
+          }
+
+          await this.validatePrerequisites(userId, course, enrollmentRepo);
+
+          const enrollment = enrollmentRepo.create({
+            userId,
+            courseId,
+            status: APP_CONSTANTS.ENROLLMENT_STATUS.ACTIVE,
+            progress: 0,
+          });
+
+          const saved = await enrollmentRepo.save(enrollment);
+          enrolledCount++;
+          successfulEnrollments.push(saved);
+        } catch (error) {
+          failedCount++;
+          errors.push({
+            userId,
+            courseId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      if (failedCount > 0) {
+        await queryRunner.rollbackTransaction();
+        enrolledCount = 0;
+      } else {
+        await queryRunner.commitTransaction();
+
+        // Enqueue events for successful enrollments after commit (durable,
+        // delivered at-least-once by the outbox relay — issue #1221).
+        for (const saved of successfulEnrollments) {
+          await this.outbox.enqueueStandalone(CACHE_EVENTS.ENROLLMENT_CREATED, {
+            id: saved.id,
+          });
+          await this.outbox.enqueueStandalone(APP_EVENTS.COURSE_ENROLLED, {
+            userId: saved.userId,
+            courseId: saved.courseId,
+          });
+        }
+        if (enrolledCount > 0) {
+          this.logger.log(`Bulk enrolled ${enrolledCount} users successfully`);
+        }
+      }
+
+      return { enrolled: enrolledCount, skipped: skippedCount, failed: failedCount, errors };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
@@ -178,18 +312,21 @@ export class EnrollmentsService {
 
     enrollment.progress = progress;
 
-    if (progress === 100 && !alreadyCompleted) {
+    const wasCompleted = !alreadyCompleted && progress === 100;
+    if (wasCompleted) {
       enrollment.status = APP_CONSTANTS.ENROLLMENT_STATUS.COMPLETED;
-
-      this.eventEmitter.emit(APP_EVENTS.COURSE_COMPLETED, {
-        userId: enrollment.userId,
-        courseId: enrollment.courseId,
-      });
     }
 
     const saved = await this.enrollmentRepo.save(enrollment);
 
-    this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_UPDATED, {
+    // Enqueue after the write so a failed save never produces a ghost event.
+    if (wasCompleted) {
+      await this.outbox.enqueueStandalone(APP_EVENTS.COURSE_COMPLETED, {
+        userId: enrollment.userId,
+        courseId: enrollment.courseId,
+      });
+    }
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.ENROLLMENT_UPDATED, {
       id: saved.id,
     });
 
@@ -215,11 +352,10 @@ export class EnrollmentsService {
 
     await this.enrollmentRepo.remove(enrollment);
 
-    this.eventEmitter.emit(CACHE_EVENTS.ENROLLMENT_UPDATED, {
+    await this.outbox.enqueueStandalone(CACHE_EVENTS.ENROLLMENT_UPDATED, {
       id: enrollment.id,
     });
-
-    this.eventEmitter.emit(APP_EVENTS.COURSE_UNENROLLED, {
+    await this.outbox.enqueueStandalone(APP_EVENTS.COURSE_UNENROLLED, {
       userId,
       courseId,
     });
@@ -272,7 +408,7 @@ export class EnrollmentsService {
    * Check admin/moderator role.
    */
   private isPrivileged(user: User): boolean {
-    return [UserRole.ADMIN, UserRole.MODERATOR].includes(user.role);
+    return user.hasRole(...PRIVILEGED_ROLES);
   }
 
   /**

@@ -9,6 +9,7 @@ This document outlines the architectural standards and implementation guidelines
 When building queries using TypeORM's `QueryBuilder`, **never** concatenate or interpolate variables directly into the query string. Always use parameter placeholders and bind the values using the parameters object.
 
 ### ❌ Vulnerable (Direct Interpolation)
+
 ```typescript
 // DANGEROUS: Allows SQL Injection if query is malicious
 const courses = await courseRepository
@@ -18,6 +19,7 @@ const courses = await courseRepository
 ```
 
 ### ✅ Secure (Parameterized Query)
+
 ```typescript
 // SAFE: Parameterized placeholders (:query)
 const courses = await courseRepository
@@ -33,20 +35,17 @@ const courses = await courseRepository
 When execution of raw SQL queries is necessary (e.g. using `dataSource.query` or `manager.query`), you must always use parameter placeholders (`$1`, `$2` for PostgreSQL) and pass parameters in an array.
 
 ### ❌ Vulnerable (Direct Interpolation)
+
 ```typescript
 // DANGEROUS: Executes raw input strings
-const result = await dataSource.query(
-  `SELECT * FROM courses WHERE price >= ${minPrice}`
-);
+const result = await dataSource.query(`SELECT * FROM courses WHERE price >= ${minPrice}`);
 ```
 
 ### ✅ Secure (Parameterized Array)
+
 ```typescript
 // SAFE: Uses postgres placeholders and passes values separately
-const result = await dataSource.query(
-  'SELECT * FROM courses WHERE price >= $1',
-  [minPrice]
-);
+const result = await dataSource.query('SELECT * FROM courses WHERE price >= $1', [minPrice]);
 ```
 
 ---
@@ -56,10 +55,12 @@ const result = await dataSource.query(
 In rare cases where identifiers like table names, column names, or savepoint names must be dynamic (since SQL parameters cannot bind to identifiers), you must run strict validation against a whitelist regex:
 
 ### Whitelist Regex Validation
-* **Pattern**: `/^[a-zA-Z_][a-zA-Z0-9_]*$/`
-* **Rule**: Throw a validation error immediately if the identifier does not match this pattern.
+
+- **Pattern**: `/^[a-zA-Z_][a-zA-Z0-9_]*$/`
+- **Rule**: Throw a validation error immediately if the identifier does not match this pattern.
 
 ### ✅ Secure Identifier Validation Pattern
+
 ```typescript
 function validateSqlIdentifier(name: string): void {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
@@ -93,8 +94,8 @@ await tenantRepository
 
 ## 5. Security Checklist for Code Reviews
 
-* [ ] No template strings or `+` concatenations are present inside `where()`, `andWhere()`, or `orWhere()` clauses.
-* [ ] No raw queries are executed using interpolated templates (e.g., `dataSource.query("SELECT ... ${var}")`).
-* [ ] Any custom table names, column names, or transaction savepoint names are validated using the identifier regex pattern `/^[a-zA-Z_][a-zA-Z0-9_]*$/`.
-* [ ] Transaction timeouts are validated as positive integer numbers before execution.
-* [ ] User searches matching standard text are sanitized using `sanitizeSqlLike` and utilize the `ESCAPE '\\'` operator.
+- [ ] No template strings or `+` concatenations are present inside `where()`, `andWhere()`, or `orWhere()` clauses.
+- [ ] No raw queries are executed using interpolated templates (e.g., `dataSource.query("SELECT ... ${var}")`).
+- [ ] Any custom table names, column names, or transaction savepoint names are validated using the identifier regex pattern `/^[a-zA-Z_][a-zA-Z0-9_]*$/`.
+- [ ] Transaction timeouts are validated as positive integer numbers before execution.
+- [ ] User searches matching standard text are sanitized using `sanitizeSqlLike` and utilize the `ESCAPE '\\'` operator.

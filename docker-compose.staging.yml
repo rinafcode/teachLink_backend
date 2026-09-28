@@ -108,7 +108,11 @@ services:
           cpus: '0.25'
           memory: 128M
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER:-teachlink_staging} -d ${DATABASE_NAME:-teachlink_staging}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${DATABASE_USER:-teachlink_staging} -d ${DATABASE_NAME:-teachlink_staging}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -184,7 +188,10 @@ services:
           memory: 512M
     healthcheck:
       test:
-        ['CMD-SHELL', 'curl -s http://localhost:9200/_cluster/health | grep -qv "\"status\":\"red\""']
+        [
+          'CMD-SHELL',
+          'curl -s http://localhost:9200/_cluster/health | grep -qv "\"status\":\"red\""',
+        ]
       interval: 30s
       timeout: 10s
       retries: 5

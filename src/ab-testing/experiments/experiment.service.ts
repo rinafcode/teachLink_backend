@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Experiment, ExperimentStatus } from '../entities/experiment.entity';
 import { IExperimentVariant } from '../entities/experiment-variant.entity';
 import { ExperimentMetric } from '../entities/experiment-metric.entity';
@@ -13,6 +13,7 @@ import { VariantMetric } from '../entities/variant-metric.entity';
 export class ExperimentService {
   private readonly logger = new Logger(ExperimentService.name);
 
+  // Injecting the repositories for experiments, variants, and metrics
   constructor(
     @InjectRepository(Experiment)
     private experimentRepository: Repository<Experiment>,
@@ -22,8 +23,10 @@ export class ExperimentService {
     private experimentMetricRepository: Repository<ExperimentMetric>,
     @InjectRepository(VariantMetric)
     private variantMetricRepository: Repository<VariantMetric>,
+    private readonly dataSource: DataSource,
   ) {}
 
+  // Method to create a new experiment
   async updateExperiment(id: string, updateData: Partial<Experiment>): Promise<Experiment> {
     this.logger.log(`Updating experiment: ${id}`);
     const experiment = await this.experimentRepository.findOne({
@@ -38,6 +41,7 @@ export class ExperimentService {
     return updatedExperiment;
   }
 
+  // Method to delete an experiment
   async addVariant(
     experimentId: string,
     variantData: Partial<IExperimentVariant>,
@@ -87,12 +91,17 @@ export class ExperimentService {
       throw new Error('Traffic allocations must sum to 1 (e.g. 0.5 + 0.5)');
     }
 
-    for (const variant of experiment.variants) {
-      if (allocations[variant.id] !== undefined) {
-        variant.trafficAllocation = allocations[variant.id];
-        await this.variantRepository.save(variant);
+    // All variant allocation updates are one logical operation: they commit
+    // together or not at all (issue #1344).
+    await this.dataSource.transaction(async (manager) => {
+      const variantRepository = manager.getRepository(IExperimentVariant);
+      for (const variant of experiment.variants) {
+        if (allocations[variant.id] !== undefined) {
+          variant.trafficAllocation = allocations[variant.id];
+          await variantRepository.save(variant);
+        }
       }
-    }
+    });
     this.logger.log(`Traffic allocation updated for experiment: ${experiment.name}`);
   }
 

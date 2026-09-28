@@ -1,4 +1,7 @@
+import { Logger } from '@nestjs/common';
 import { AchievementType, AchievementDifficulty } from './entities/achievement.entity';
+
+const logger = new Logger('AchievementsSeed');
 
 /**
  * Seed data for default achievements
@@ -313,8 +316,12 @@ export async function seedAchievements(achievementsService: any): Promise<void> 
     for (const achievementData of DEFAULT_ACHIEVEMENTS) {
       await achievementsService.createAchievement(achievementData);
     }
-    console.log(`✅ Seeded ${DEFAULT_ACHIEVEMENTS.length} achievements`);
+    logger.log(`Seeded ${DEFAULT_ACHIEVEMENTS.length} achievements`);
   } catch (error) {
-    console.error('❌ Error seeding achievements:', error);
+    logger.error(
+      'Error seeding achievements',
+      error instanceof Error ? error.stack : String(error),
+    );
+    throw error;
   }
 }

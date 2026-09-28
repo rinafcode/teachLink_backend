@@ -5,21 +5,25 @@ This module provides comprehensive cache optimization with TTL analytics, hit ra
 ## Features
 
 ### 1. TTL Analytics
+
 - Real-time tracking of cache hit rates, access frequency, and data sizes
 - Performance metrics collection and analysis
 - Automated cleanup of old metrics data
 
 ### 2. Hit Rate Optimization
+
 - Identifies underperforming cache keys
 - Automatically adjusts TTL values based on performance
 - Removes low-performing keys to free memory
 
 ### 3. Adaptive TTL Adjustment
+
 - Dynamic TTL adjustment based on usage patterns
 - Rule-based configuration for different key patterns
 - Automatic optimization runs via cron jobs
 
 ### 4. Configuration Recommendations
+
 - Generates TTL recommendations based on analytics
 - Provides confidence scores and potential savings estimates
 - Admin interface for cache management
@@ -38,13 +42,13 @@ export class MyService {
   async getData(key: string) {
     // Enhanced get with analytics tracking
     let data = await this.cacheService.get<MyData>(key);
-    
+
     if (!data) {
       data = await this.fetchFromDatabase(key);
       // Enhanced set with adaptive TTL
       await this.cacheService.set(key, data, 300); // 5 minutes default
     }
-    
+
     return data;
   }
 }
@@ -79,7 +83,7 @@ export class CacheReportingService {
 
   async generateReport() {
     const report = await this.analyticsService.generateAnalyticsReport();
-    
+
     console.log(`Total cache keys: ${report.totalKeys}`);
     console.log(`Overall hit rate: ${report.overallHitRate}`);
     console.log(`Memory usage: ${report.memoryUsage} bytes`);
@@ -126,12 +130,13 @@ REDIS_PORT=6379
 The system includes default rules for different cache key patterns:
 
 - User profiles: 5 minutes - 1 hour TTL
-- Course data: 3 minutes - 30 minutes TTL  
+- Course data: 3 minutes - 30 minutes TTL
 - Search results: 1 minute - 10 minutes TTL
 - Popular content: 10 minutes - 2 hours TTL
 - Enrollment data: 2 minutes - 15 minutes TTL
 
 Rules automatically adjust TTL based on:
+
 - Hit rate thresholds
 - Access frequency patterns
 - Performance metrics

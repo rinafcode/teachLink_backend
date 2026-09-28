@@ -44,7 +44,12 @@ export class SyncService {
     await this.cacheInvalidation.handleDataChange('entity', resolvedData.id);
 
     // Replicate to other regions
-    await this.replicationService.broadcastToAllRegions(resolvedData.id, resolvedData.data);
+    await this.replicationService.broadcastToAllRegions(
+      resolvedData.id,
+      resolvedData.data.entity,
+      resolvedData.data.version,
+      resolvedData.data,
+    );
 
     this.logger.log(`Synchronization completed for ${resolvedData.id}`);
     return resolvedData;
@@ -58,6 +63,11 @@ export class SyncService {
     await this.cacheInvalidation.handleDataChange(payload.entity, payload.id);
 
     // Broadcast change
-    await this.replicationService.broadcastToAllRegions(payload.id, payload.data);
+    await this.replicationService.broadcastToAllRegions(
+      payload.id,
+      payload.entity,
+      payload.data.version,
+      payload.data,
+    );
   }
 }

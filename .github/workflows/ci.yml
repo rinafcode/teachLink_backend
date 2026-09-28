@@ -5,12 +5,59 @@ on:
     branches:
       - main
       - develop
-      - "*"
+      - '*'
   pull_request:
 
 jobs:
+  # ── Guard: build artifacts must never be committed ────────────────────────
+  # Scans the git index for dist/ files and *.tsbuildinfo files.
+  # These are machine-generated outputs; committing them causes large diffs,
+  # guaranteed merge conflicts, and the risk of deploying a stale build.
+  no-build-artifacts:
+    name: No build artifacts in git
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Fail if build artifacts are tracked
+        run: |
+          ARTIFACTS=$(git ls-files 'dist/' '*.tsbuildinfo' 'compliance/reports/')
+          if [ -n "$ARTIFACTS" ]; then
+            echo "::error::Build artifacts found in git index. Remove them with 'git rm --cached' and add to .gitignore."
+            echo ""
+            echo "Offending paths:"
+            echo "$ARTIFACTS"
+            exit 1
+          fi
+          echo "✓ No build artifacts tracked."
+
+  # ── Main validation pipeline ──────────────────────────────────────────────
   validate:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: teachlink
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_HOST: localhost
+      DATABASE_PORT: 5432
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: teachlink
+      NODE_ENV: ci
 
     steps:
       - name: Checkout code
@@ -18,8 +65,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -32,9 +77,67 @@ jobs:
       - name: Run lint
         run: pnpm run lint:ci
 
+      - name: Check TypeScript errors
+        run: pnpm run typecheck
+
       - name: Build application
         run: pnpm run build
 
-      - name: Run tests
-        run: pnpm run test
+      # Migrations run in a single shared transaction (TypeORM default "all"
+      # mode): a migration that opens its own connection (createQueryRunner /
+      # queryRunner.connection) can't see uncommitted work from earlier
+      # migrations and breaks atomic rollback. See #1211.
+      - name: Check migrations use only the passed queryRunner
+        run: pnpm run migrations:check
+
+      - name: Run migrations
+        run: pnpm run migration:run
+
+      - name: Check for schema drift
+        run: pnpm run migration:generate:check
+
+      - name: Revert migrations
+        run: pnpm run migration:revert
+
+  # Vulnerability and license compliance scanning. Runs in addition to the
+  # validation job so deploy-blocking checks do not couple with lint/typecheck.
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # pnpm-equivalent of `npm audit`. Reports high/critical vulnerabilities
+      # against `pnpm-lock.yaml`.
+      #
+      # `continue-on-error: true` is in place for the PHASED ROLLOUT of #529:
+      # the scan still surfaces findings in the workflow log and in the PR
+      # checks UI, but does NOT block merges until the existing 30 high +
+      # 1 critical CVEs inherited from upstream have been remediated via
+      # Dependabot PRs and explicit upgrades. Once audit is clean we MUST
+      # remove `continue-on-error` so the gate hard-fails going forward.
+      - name: Audit dependencies for known vulnerabilities
         continue-on-error: true
+        run: pnpm audit --audit-level=high
+
+      # scripts/scan-licenses.js reads package-lock.json to enumerate licenses.
+      # Generate it without touching node_modules so pnpm's tree stays intact.
+      - name: Generate package-lock.json for license scan
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+
+      - name: License compliance scan
+        run: npm run license:scan

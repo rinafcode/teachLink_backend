@@ -11,6 +11,9 @@ describe('database config read replicas', () => {
     delete process.env.DATABASE_REPLICA_USER;
     delete process.env.DATABASE_REPLICA_PASSWORD;
     delete process.env.DATABASE_REPLICA_NAME;
+    delete process.env.DATABASE_SYNCHRONIZE;
+    delete process.env.TYPEORM_SYNCHRONIZE;
+    delete process.env.NODE_ENV;
   });
 
   afterAll(() => {
@@ -87,5 +90,39 @@ describe('database config read replicas', () => {
         database: 'teachlink',
       },
     ]);
+  });
+
+  describe('schema synchronization (synchronize)', () => {
+    it.each(['development', 'test', 'ci', 'production', undefined])(
+      'defaults synchronize to false when NODE_ENV is %s',
+      (nodeEnv) => {
+        if (nodeEnv !== undefined) {
+          process.env.NODE_ENV = nodeEnv;
+        }
+        const config = getDatabaseConfig() as Record<string, unknown>;
+        expect(config.synchronize).toBe(false);
+      },
+    );
+
+    it.each(['true', '1', 'TRUE'])('enables synchronize when DATABASE_SYNCHRONIZE is %s', (val) => {
+      process.env.DATABASE_SYNCHRONIZE = val;
+      const config = getDatabaseConfig() as Record<string, unknown>;
+      expect(config.synchronize).toBe(true);
+    });
+
+    it.each(['true', '1', 'TRUE'])('enables synchronize when TYPEORM_SYNCHRONIZE is %s', (val) => {
+      process.env.TYPEORM_SYNCHRONIZE = val;
+      const config = getDatabaseConfig() as Record<string, unknown>;
+      expect(config.synchronize).toBe(true);
+    });
+
+    it.each(['false', '0', 'random', ''])(
+      'keeps synchronize false when DATABASE_SYNCHRONIZE is %s',
+      (val) => {
+        process.env.DATABASE_SYNCHRONIZE = val;
+        const config = getDatabaseConfig() as Record<string, unknown>;
+        expect(config.synchronize).toBe(false);
+      },
+    );
   });
 });

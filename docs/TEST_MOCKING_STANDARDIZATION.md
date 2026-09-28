@@ -15,6 +15,7 @@ This document summarizes the standardization of mocking patterns across the Teac
 ### 1. **Documentation Created**
 
 #### [docs/testing-standards.md](testing-standards.md)
+
 - Comprehensive guide covering all mocking patterns
 - Detailed explanations of when to use each approach
 - Best practices for Jest mocks and TypeORM testing
@@ -22,6 +23,7 @@ This document summarizes the standardization of mocking patterns across the Teac
 - Troubleshooting guide
 
 #### [docs/TESTING_GUIDELINES.md](TESTING_GUIDELINES.md)
+
 - Quick-start guide for developers
 - Three testing patterns with examples
 - Mock factory reference
@@ -32,6 +34,7 @@ This document summarizes the standardization of mocking patterns across the Teac
 ### 2. **Mock Factory Library Created**
 
 #### [test/utils/mock-factories.ts](test/utils/mock-factories.ts)
+
 Provides 13 reusable mock factory functions:
 
 - **`createMockRepository<T>()`** - TypeORM Repository with all standard methods
@@ -49,6 +52,7 @@ Provides 13 reusable mock factory functions:
 - **`createPartialMock<T>()`** - Helper for deep partial mocks
 
 Each factory:
+
 - Uses proper `jest.Mocked<T>` typing
 - Includes all commonly-used methods
 - Has sensible default implementations
@@ -59,6 +63,7 @@ Each factory:
 Three test files were refactored to demonstrate the standardized approach:
 
 #### [src/users/users.service.spec.ts](src/users/users.service.spec.ts)
+
 - Replaced untyped `any` mocks with properly typed mocks
 - Added mock factories usage
 - Added `afterEach` cleanup
@@ -66,12 +71,14 @@ Three test files were refactored to demonstrate the standardized approach:
 - Better variable naming (`mockRepository` instead of `repo`)
 
 #### [src/caching/caching.service.spec.ts](src/caching/caching.service.spec.ts)
+
 - Replaced inline Redis mock with `createMockRedisClient()`
 - Replaced inline ConfigService mock with `createMockConfigService()`
 - Added `afterEach` cleanup
 - Improved consistency and maintainability
 
 #### [src/media/media.service.spec.ts](src/media/media.service.spec.ts)
+
 - Replaced untyped mocks with `jest.Mocked<any>` typing
 - Improved comments and organization
 - Added `afterEach` cleanup
@@ -127,6 +134,7 @@ beforeEach(() => {
 ## Three Testing Patterns
 
 ### Pattern A: NestJS Integration Testing
+
 For controllers, complex services, infrastructure testing
 
 ```typescript
@@ -137,6 +145,7 @@ const module: TestingModule = await Test.createTestingModule({
 ```
 
 ### Pattern B: Direct Service Instantiation
+
 For unit testing service logic in isolation
 
 ```typescript
@@ -144,6 +153,7 @@ service = new UserService(mockRepository, mockCache);
 ```
 
 ### Pattern C: Pure Function Testing
+
 For utilities and validators with no mocks
 
 ```typescript
@@ -157,14 +167,13 @@ expect(validateEmail('test@example.com')).toBe(true);
 ### For New Tests
 
 1. Import mock factories at top of file:
+
    ```typescript
-   import {
-     createMockRepository,
-     createMockCachingService,
-   } from 'test/utils/mock-factories';
+   import { createMockRepository, createMockCachingService } from 'test/utils/mock-factories';
    ```
 
 2. Use in `beforeEach`:
+
    ```typescript
    beforeEach(() => {
      mockRepository = createMockRepository<User>();
@@ -183,6 +192,7 @@ expect(validateEmail('test@example.com')).toBe(true);
 ### For Existing Tests
 
 Refactor gradually:
+
 1. Identify pattern (A, B, or C)
 2. Replace manual mocks with factory functions
 3. Add type annotations (`jest.Mocked<T>`)
@@ -196,6 +206,7 @@ Reference [docs/TESTING_GUIDELINES.md](TESTING_GUIDELINES.md) "Migration Guide" 
 ## Benefits of Standardization
 
 ### Before
+
 - ❌ Inconsistent mocking approaches across codebase
 - ❌ Manual mock setup (100+ lines for complex services)
 - ❌ Untyped mocks leading to runtime errors
@@ -203,6 +214,7 @@ Reference [docs/TESTING_GUIDELINES.md](TESTING_GUIDELINES.md) "Migration Guide" 
 - ❌ Difficult to maintain/update mocks
 
 ### After
+
 - ✅ Single standardized approach per pattern
 - ✅ Reusable mock factories (copy-paste mocking patterns)
 - ✅ Full TypeScript type safety with `jest.Mocked<T>`
@@ -217,11 +229,13 @@ Reference [docs/TESTING_GUIDELINES.md](TESTING_GUIDELINES.md) "Migration Guide" 
 ## Quick Reference
 
 ### Import Factories
+
 ```typescript
 import { createMockRepository, createMockRedisClient } from 'test/utils/mock-factories';
 ```
 
 ### Create Mocks
+
 ```typescript
 const mockRepo = createMockRepository<User>();
 const mockRedis = createMockRedisClient();
@@ -231,6 +245,7 @@ const mockHttp = createMockHttpClient();
 ```
 
 ### Set Mock Return Values
+
 ```typescript
 // Async
 mockRepo.findOne.mockResolvedValue({ id: '1' });
@@ -244,6 +259,7 @@ mockService.process.mockImplementation((x) => x * 2);
 ```
 
 ### Assert Mock Calls
+
 ```typescript
 expect(mockRepo.findOne).toHaveBeenCalled();
 expect(mockRepo.findOne).toHaveBeenCalledWith({ where: { id: '1' } });
@@ -251,6 +267,7 @@ expect(mockService.save).toHaveBeenCalledTimes(1);
 ```
 
 ### Clean Up
+
 ```typescript
 afterEach(() => {
   jest.clearAllMocks();
@@ -263,11 +280,11 @@ afterEach(() => {
 
 All documentation is in the `docs/` directory:
 
-| File | Purpose |
-|------|---------|
-| [testing-standards.md](testing-standards.md) | Comprehensive mocking patterns and best practices |
-| [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md) | Quick-start guide for developers |
-| [test/utils/mock-factories.ts](../test/utils/mock-factories.ts) | Mock factory implementations |
+| File                                                            | Purpose                                           |
+| --------------------------------------------------------------- | ------------------------------------------------- |
+| [testing-standards.md](testing-standards.md)                    | Comprehensive mocking patterns and best practices |
+| [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md)                  | Quick-start guide for developers                  |
+| [test/utils/mock-factories.ts](../test/utils/mock-factories.ts) | Mock factory implementations                      |
 
 ---
 
@@ -296,21 +313,23 @@ All documentation is in the `docs/` directory:
 ## Examples for Reference
 
 ### Refactored Test File Example
+
 See [src/users/users.service.spec.ts](src/users/users.service.spec.ts) for a complete example of standardized mocking.
 
 ### Factory Usage Examples
+
 See [test/utils/mock-factories.ts](../test/utils/mock-factories.ts) JSDoc comments for detailed usage of each factory.
 
 ---
 
 ## Troubleshooting
 
-| Issue | Solution | Docs |
-|-------|----------|------|
-| Import fails | Check `tsconfig.json` has `"baseUrl": "."` | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#11-troubleshooting) |
-| Type errors | Ensure `"jest"` in `types` array | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#11-troubleshooting) |
-| Mock not called | Use `mockResolvedValue` for async | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#3-mock-return-values) |
-| Tests fail in CI | Add `afterEach` cleanup | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#11-troubleshooting) |
+| Issue            | Solution                                   | Docs                                                                |
+| ---------------- | ------------------------------------------ | ------------------------------------------------------------------- |
+| Import fails     | Check `tsconfig.json` has `"baseUrl": "."` | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#11-troubleshooting)   |
+| Type errors      | Ensure `"jest"` in `types` array           | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#11-troubleshooting)   |
+| Mock not called  | Use `mockResolvedValue` for async          | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#3-mock-return-values) |
+| Tests fail in CI | Add `afterEach` cleanup                    | [TESTING_GUIDELINES.md](TESTING_GUIDELINES.md#11-troubleshooting)   |
 
 ---
 
@@ -351,6 +370,7 @@ npm run test:ci
 ## Questions?
 
 Refer to:
+
 1. [docs/TESTING_GUIDELINES.md](TESTING_GUIDELINES.md) - Quick answers for developers
 2. [docs/testing-standards.md](testing-standards.md) - Deep dive into patterns
 3. [test/utils/mock-factories.ts](../test/utils/mock-factories.ts) - Implementation details

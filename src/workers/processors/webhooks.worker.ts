@@ -1,5 +1,6 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 import { WebhookDeliveryService, WebhookTarget } from '../../webhooks/webhook-delivery.service';
 
@@ -21,8 +22,8 @@ export class WebhooksWorker extends BaseWorker {
   // The delivery service is injected under Nest DI, but the worker is also
   // instantiated manually by the orchestration pool (`new WebhooksWorker()`),
   // so fall back to a self-contained default when none is provided.
-  constructor(@Optional() delivery?: WebhookDeliveryService) {
-    super('webhooks');
+  constructor(configService: ConfigService, @Optional() delivery?: WebhookDeliveryService) {
+    super('webhooks', configService);
     this.delivery = delivery ?? WebhookDeliveryService.createDefault();
   }
 

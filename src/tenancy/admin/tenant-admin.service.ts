@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { sanitizeSqlLike } from '../../common/utils/sanitization.utils';
 import { Tenant, TenantStatus, TenantPlan } from '../entities/tenant.entity';
 import { TenantConfig } from '../entities/tenant-config.entity';
@@ -37,6 +37,7 @@ export class TenantAdminService {
     private readonly billingRepository: Repository<TenantBilling>,
     @InjectRepository(TenantCustomization)
     private readonly customizationRepository: Repository<TenantCustomization>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getTenantStatistics(tenantId: string): Promise<ITenantStatistics> {
@@ -168,15 +169,23 @@ export class TenantAdminService {
       throw new ResourceNotFoundException('Tenant', tenantId);
     }
 
-    tenant.currentUserCount = 0;
-    tenant.currentStorageUsage = 0;
-    await this.tenantRepository.save(tenant);
+    // Resetting the tenant counters and clearing billing usage are one logical
+    // operation: if the billing write fails, the tenant counters must not be
+    // reset (issue #1344).
+    await this.dataSource.transaction(async (manager) => {
+      const tenantRepository = manager.getRepository(Tenant);
+      const billingRepository = manager.getRepository(TenantBilling);
 
-    const billing = await this.billingRepository.findOne({ where: { tenantId } });
-    if (billing) {
-      billing.usageMetrics = {};
-      await this.billingRepository.save(billing);
-    }
+      tenant.currentUserCount = 0;
+      tenant.currentStorageUsage = 0;
+      await tenantRepository.save(tenant);
+
+      const billing = await billingRepository.findOne({ where: { tenantId } });
+      if (billing) {
+        billing.usageMetrics = {};
+        await billingRepository.save(billing);
+      }
+    });
   }
 
   async exportTenantData(tenantId: string): Promise<any> {

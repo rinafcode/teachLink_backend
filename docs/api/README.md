@@ -5,12 +5,14 @@ Welcome to the comprehensive API documentation for the TeachLink platform. This 
 ## Quick Links
 
 ### Core APIs
+
 - [**Authentication API**](./auth/auth-api.md) - User registration, login, and session management
 - [**Users API**](./users/users-api.md) - User profile and account management
 - [**Courses API**](./courses/courses-api.md) - Course creation, management, and enrollment
 - [**Payments API**](./payments/payments-api.md) - Payment processing and subscriptions
 
 ### Additional APIs
+
 - [Assessments API](./assessments/assessments-api.md) - Quizzes and assessments
 - [Notifications API](./notifications/notifications-api.md) - User notifications
 - [Search API](./search/search-api.md) - Search and discovery
@@ -18,21 +20,25 @@ Welcome to the comprehensive API documentation for the TeachLink platform. This 
 
 ## API Overview
 
-**Base URL**: 
+**Base URL**:
+
 - Development: `http://localhost:3000`
 - Production: `https://api.teachlink.com`
 
 **API Version**: v1.0.0
 
 **Versioning**: Header-based versioning is enforced with `X-API-Version`.
+
 - Use `X-API-Version: 1` for current versioned requests.
 - Deprecated version headers return `Deprecation`, `Sunset`, `Link`, and `X-API-Deprecation-Notice` response headers.
 - For migration guidance, see [API Versioning and Deprecation Policy](./versioning.md).
 
-**Interactive Documentation**: 
+**Interactive Documentation**:
+
 - Swagger UI: http://localhost:3000/api/docs
 
 **Generated Artifacts**:
+
 - OpenAPI JSON: [openapi-spec.json](./openapi-spec.json)
 - Example requests/responses: [examples.md](./examples.md)
 - Static docs site source: [../site/index.html](../site/index.html)
@@ -62,6 +68,7 @@ Most API endpoints require authentication using JWT (JSON Web Tokens).
 ### API Keys
 
 For server-to-server communication, use API keys:
+
 ```
 X-API-Key: your-api-key-here
 ```
@@ -125,7 +132,9 @@ List endpoints support pagination:
 ```json
 {
   "success": true,
-  "data": [/* items */],
+  "data": [
+    /* items */
+  ],
   "meta": {
     "total": 100,
     "page": 1,
@@ -137,30 +146,31 @@ List endpoints support pagination:
 
 ## HTTP Status Codes
 
-| Code | Description | Common Usage |
-|------|-------------|--------------|
-| 200 | OK | Successful request |
-| 201 | Created | Resource created successfully |
-| 400 | Bad Request | Validation errors, invalid input |
-| 401 | Unauthorized | Missing or invalid authentication |
-| 403 | Forbidden | Insufficient permissions |
-| 404 | Not Found | Resource not found |
-| 409 | Conflict | Resource already exists |
-| 429 | Too Many Requests | Rate limit exceeded |
-| 500 | Internal Server Error | Server error |
+| Code | Description           | Common Usage                      |
+| ---- | --------------------- | --------------------------------- |
+| 200  | OK                    | Successful request                |
+| 201  | Created               | Resource created successfully     |
+| 400  | Bad Request           | Validation errors, invalid input  |
+| 401  | Unauthorized          | Missing or invalid authentication |
+| 403  | Forbidden             | Insufficient permissions          |
+| 404  | Not Found             | Resource not found                |
+| 409  | Conflict              | Resource already exists           |
+| 429  | Too Many Requests     | Rate limit exceeded               |
+| 500  | Internal Server Error | Server error                      |
 
 ## Rate Limiting
 
 API endpoints have rate limits to prevent abuse:
 
-| Endpoint Type | Limit | Window |
-|---------------|-------|--------|
-| Authentication | 10 requests | 1 minute |
-| General | 100 requests | 1 minute |
-| Search | 60 requests | 1 minute |
-| Payments | 10 requests | 1 hour |
+| Endpoint Type  | Limit        | Window   |
+| -------------- | ------------ | -------- |
+| Authentication | 10 requests  | 1 minute |
+| General        | 100 requests | 1 minute |
+| Search         | 60 requests  | 1 minute |
+| Payments       | 10 requests  | 1 hour   |
 
 Rate limit headers are included in responses:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -171,67 +181,67 @@ X-RateLimit-Reset: 1609459200
 
 ### Authentication (`/auth`)
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/auth/register` | Register new user | No |
-| POST | `/auth/login` | Login user | No |
-| POST | `/auth/refresh` | Refresh access token | No |
-| POST | `/auth/logout` | Logout user | Yes |
-| POST | `/auth/forgot-password` | Request password reset | No |
-| POST | `/auth/reset-password` | Reset password | No |
-| POST | `/auth/change-password` | Change password | Yes |
-| POST | `/auth/verify-email` | Verify email | No |
+| Method | Endpoint                | Description            | Auth Required |
+| ------ | ----------------------- | ---------------------- | ------------- |
+| POST   | `/auth/register`        | Register new user      | No            |
+| POST   | `/auth/login`           | Login user             | No            |
+| POST   | `/auth/refresh`         | Refresh access token   | No            |
+| POST   | `/auth/logout`          | Logout user            | Yes           |
+| POST   | `/auth/forgot-password` | Request password reset | No            |
+| POST   | `/auth/reset-password`  | Reset password         | No            |
+| POST   | `/auth/change-password` | Change password        | Yes           |
+| POST   | `/auth/verify-email`    | Verify email           | No            |
 
 ### Users (`/users`)
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/users` | Create user (Admin) | Yes (Admin) |
-| GET | `/users` | Get all users (Admin) | Yes (Admin) |
-| GET | `/users/:id` | Get user by ID | Yes |
-| PATCH | `/users/:id` | Update user | Yes |
-| DELETE | `/users/:id` | Delete user (Admin) | Yes (Admin) |
-| PATCH | `/users/bulk-update` | Bulk update users (Admin) | Yes (Admin) |
-| DELETE | `/users/bulk-delete` | Bulk delete users (Admin) | Yes (Admin) |
-| POST | `/users/me/export` | Export user data | Yes |
-| GET | `/users/me/export/history` | Get export history | Yes |
-| GET | `/users/me/export/:exportId` | Download export | Yes |
+| Method | Endpoint                     | Description               | Auth Required |
+| ------ | ---------------------------- | ------------------------- | ------------- |
+| POST   | `/users`                     | Create user (Admin)       | Yes (Admin)   |
+| GET    | `/users`                     | Get all users (Admin)     | Yes (Admin)   |
+| GET    | `/users/:id`                 | Get user by ID            | Yes           |
+| PATCH  | `/users/:id`                 | Update user               | Yes           |
+| DELETE | `/users/:id`                 | Delete user (Admin)       | Yes (Admin)   |
+| PATCH  | `/users/bulk-update`         | Bulk update users (Admin) | Yes (Admin)   |
+| DELETE | `/users/bulk-delete`         | Bulk delete users (Admin) | Yes (Admin)   |
+| POST   | `/users/me/export`           | Export user data          | Yes           |
+| GET    | `/users/me/export/history`   | Get export history        | Yes           |
+| GET    | `/users/me/export/:exportId` | Download export           | Yes           |
 
 ### Courses (`/courses`)
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/courses` | Create course | Yes (Instructor) |
-| GET | `/courses` | List all courses | No |
-| GET | `/courses/cursor` | List with cursor pagination | No |
-| GET | `/courses/analytics` | Course analytics | Yes (Instructor) |
-| GET | `/courses/:id` | Get course details | No |
-| PATCH | `/courses/:id` | Update course | Yes (Owner/Admin) |
-| DELETE | `/courses/:id` | Delete course | Yes (Owner/Admin) |
-| POST | `/courses/:id/modules` | Create module | Yes (Owner/Admin) |
-| POST | `/courses/modules/:moduleId/lessons` | Create lesson | Yes (Owner/Admin) |
-| POST | `/courses/:id/enroll` | Enroll in course | Yes |
+| Method | Endpoint                             | Description                 | Auth Required     |
+| ------ | ------------------------------------ | --------------------------- | ----------------- |
+| POST   | `/courses`                           | Create course               | Yes (Instructor)  |
+| GET    | `/courses`                           | List all courses            | No                |
+| GET    | `/courses/cursor`                    | List with cursor pagination | No                |
+| GET    | `/courses/analytics`                 | Course analytics            | Yes (Instructor)  |
+| GET    | `/courses/:id`                       | Get course details          | No                |
+| PATCH  | `/courses/:id`                       | Update course               | Yes (Owner/Admin) |
+| DELETE | `/courses/:id`                       | Delete course               | Yes (Owner/Admin) |
+| POST   | `/courses/:id/modules`               | Create module               | Yes (Owner/Admin) |
+| POST   | `/courses/modules/:moduleId/lessons` | Create lesson               | Yes (Owner/Admin) |
+| POST   | `/courses/:id/enroll`                | Enroll in course            | Yes               |
 
 ### Payments (`/payments`)
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/payments/create-intent` | Create payment intent | Yes |
-| POST | `/payments/subscriptions` | Create subscription | Yes |
-| POST | `/payments/refund` | Process refund | Yes (Admin/Teacher) |
-| GET | `/payments/invoices/:paymentId` | Get invoice | Yes |
-| GET | `/payments/user/payments` | Get payment history | Yes |
-| GET | `/payments/user/subscriptions` | Get subscriptions | Yes |
+| Method | Endpoint                        | Description           | Auth Required       |
+| ------ | ------------------------------- | --------------------- | ------------------- |
+| POST   | `/payments/create-intent`       | Create payment intent | Yes                 |
+| POST   | `/payments/subscriptions`       | Create subscription   | Yes                 |
+| POST   | `/payments/refund`              | Process refund        | Yes (Admin/Teacher) |
+| GET    | `/payments/invoices/:paymentId` | Get invoice           | Yes                 |
+| GET    | `/payments/user/payments`       | Get payment history   | Yes                 |
+| GET    | `/payments/user/subscriptions`  | Get subscriptions     | Yes                 |
 
 ## User Roles
 
 The API supports role-based access control (RBAC):
 
-| Role | Description | Permissions |
-|------|-------------|-------------|
-| `STUDENT` | Learner | Browse courses, enroll, submit assessments |
-| `INSTRUCTOR` / `TEACHER` | Course creator | Create/manage courses, view analytics |
-| `ADMIN` | Platform administrator | Full access to all features |
+| Role                     | Description            | Permissions                                |
+| ------------------------ | ---------------------- | ------------------------------------------ |
+| `STUDENT`                | Learner                | Browse courses, enroll, submit assessments |
+| `INSTRUCTOR` / `TEACHER` | Course creator         | Create/manage courses, view analytics      |
+| `ADMIN`                  | Platform administrator | Full access to all features                |
 
 ## SDKs & Libraries
 
@@ -291,17 +301,13 @@ const axios = require('axios');
 
 async function createCourse(token, courseData) {
   try {
-    const response = await axios.post(
-      'http://localhost:3000/courses',
-      courseData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    
+    const response = await axios.post('http://localhost:3000/courses', courseData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
     return response.data;
   } catch (error) {
     console.error('Error creating course:', error.response?.data || error.message);
@@ -316,7 +322,7 @@ createCourse('your-jwt-token', {
   category: 'Web Development',
   level: 'BEGINNER',
   price: 3999,
-  tags: ['javascript', 'web development', 'programming']
+  tags: ['javascript', 'web development', 'programming'],
 });
 ```
 
@@ -331,9 +337,9 @@ def enroll_in_course(token, course_id):
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json'
     }
-    
+
     response = requests.post(url, headers=headers)
-    
+
     if response.status_code == 200:
         print("Successfully enrolled!")
         return response.json()
@@ -356,11 +362,11 @@ async function apiCall(endpoint, options) {
   try {
     const response = await fetch(endpoint, options);
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.message || 'Request failed');
     }
-    
+
     return data;
   } catch (error) {
     // Handle errors appropriately
@@ -382,18 +388,18 @@ async function getValidToken() {
   if (accessToken && tokenExpiry > Date.now()) {
     return accessToken;
   }
-  
+
   // Token expired or doesn't exist, refresh it
   const response = await fetch('/auth/refresh', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken: getRefreshToken() })
+    body: JSON.stringify({ refreshToken: getRefreshToken() }),
   });
-  
+
   const data = await response.json();
   accessToken = data.data.accessToken;
-  tokenExpiry = Date.now() + (data.data.expiresIn * 1000);
-  
+  tokenExpiry = Date.now() + data.data.expiresIn * 1000;
+
   return accessToken;
 }
 ```
@@ -407,22 +413,19 @@ async function getAllItems(endpoint, token) {
   let allItems = [];
   let page = 1;
   let hasMore = true;
-  
+
   while (hasMore) {
-    const response = await fetch(
-      `${endpoint}?page=${page}&limit=100`,
-      {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }
-    );
-    
+    const response = await fetch(`${endpoint}?page=${page}&limit=100`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
     const data = await response.json();
     allItems = allItems.concat(data.data);
-    
+
     hasMore = data.meta.page < data.meta.totalPages;
     page++;
   }
-  
+
   return allItems;
 }
 ```
@@ -434,17 +437,17 @@ For critical operations (payments, subscriptions), use idempotency keys:
 ```javascript
 async function createPayment(paymentData) {
   const idempotencyKey = generateUniqueId();
-  
+
   const response = await fetch('/payments/create-intent', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'X-Idempotency-Key': idempotencyKey
+      'X-Idempotency-Key': idempotencyKey,
     },
-    body: JSON.stringify(paymentData)
+    body: JSON.stringify(paymentData),
   });
-  
+
   return response.json();
 }
 ```
@@ -480,10 +483,12 @@ curl -X POST http://localhost:3000/courses \
 ## Interactive Documentation
 
 Access the interactive Swagger UI at:
+
 - **Local**: http://localhost:3000/api/docs
 - **Production**: https://api.teachlink.com/api/docs
 
 Features:
+
 - Try out API endpoints directly
 - View request/response schemas
 - Test authentication flows

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AchievementsController } from '../achievements.controller';
 import { AchievementsService } from '../achievements.service';
@@ -95,12 +96,20 @@ describe('AchievementsController', () => {
 
   describe('getAllAchievements', () => {
     it('should get all achievements', async () => {
-      jest.spyOn(service, 'getAllAchievements').mockResolvedValue([mockAchievementResponseDto]);
+      jest.spyOn(service, 'getAllAchievements').mockResolvedValue({
+        data: [mockAchievementResponseDto],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
 
-      const result = await controller.getAllAchievements();
+      const result = await controller.getAllAchievements({});
 
-      expect(result).toEqual([mockAchievementResponseDto]);
-      expect(service.getAllAchievements).toHaveBeenCalledWith(false);
+      expect(result.data).toEqual([mockAchievementResponseDto]);
+      expect(service.getAllAchievements).toHaveBeenCalledWith(false, undefined);
     });
   });
 
@@ -168,12 +177,20 @@ describe('AchievementsController', () => {
         },
       ];
 
-      jest.spyOn(service, 'getUserAchievements').mockResolvedValue(mockUserAchievements);
+      jest.spyOn(service, 'getUserAchievements').mockResolvedValue({
+        data: mockUserAchievements,
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
 
       const result = await controller.getUserAchievements('user-123');
 
-      expect(result).toEqual(mockUserAchievements);
-      expect(service.getUserAchievements).toHaveBeenCalledWith('user-123');
+      expect(result.data).toEqual(mockUserAchievements);
+      expect(service.getUserAchievements).toHaveBeenCalledWith('user-123', undefined);
     });
   });
 
@@ -238,6 +255,59 @@ describe('AchievementsController', () => {
 
       expect(result).toEqual(mockOverview);
       expect(service.getUserAchievementOverview).toHaveBeenCalledWith('user-123');
+    });
+  });
+
+  describe('incrementProgress', () => {
+    const mockProgressDto = {
+      id: 'prog-1',
+      achievementId: 'ach-123',
+      userId: 'user-123',
+      currentProgress: 1,
+      targetProgress: 10,
+      percentageComplete: 10,
+      isUnlocked: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should pass incrementBy: 0 through as 0', async () => {
+      jest.spyOn(service, 'incrementProgress').mockResolvedValue({
+        ...mockProgressDto,
+        currentProgress: 0,
+        percentageComplete: 0,
+      });
+
+      const result = await controller.incrementProgress('ach-123', 'user-123', {
+        incrementBy: 0,
+        metadata: { source: 'noop' },
+      });
+
+      expect(result.currentProgress).toBe(0);
+      expect(service.incrementProgress).toHaveBeenCalledWith('user-123', 'ach-123', 0, {
+        source: 'noop',
+      });
+    });
+
+    it('should default incrementBy to 1 when omitted', async () => {
+      jest.spyOn(service, 'incrementProgress').mockResolvedValue(mockProgressDto);
+
+      const result = await controller.incrementProgress('ach-123', 'user-123', {});
+
+      expect(result).toEqual(mockProgressDto);
+      expect(service.incrementProgress).toHaveBeenCalledWith('user-123', 'ach-123', 1, undefined);
+    });
+
+    it('should reject negative or non-integer incrementBy values', async () => {
+      await expect(
+        controller.incrementProgress('ach-123', 'user-123', { incrementBy: -1 }),
+      ).rejects.toThrow(BadRequestException);
+
+      await expect(
+        controller.incrementProgress('ach-123', 'user-123', { incrementBy: 1.5 }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(service.incrementProgress).not.toHaveBeenCalled();
     });
   });
 });

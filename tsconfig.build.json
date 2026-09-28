@@ -5,5 +5,14 @@
     "rootDir": "./src"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "src/modules"]
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "scripts",
+    "src/test-auth0.ts",
+    "src/test-slack.ts",
+    "**/*spec.ts",
+    "src/modules"
+  ]
 }

@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -16,6 +17,7 @@ export class EmailTemplate {
   })
   key: string;
 
+  @Index('IDX_email_templates_name')
   @Column()
   name: string;
 
@@ -33,6 +35,7 @@ export class EmailTemplate {
   })
   variables: string[];
 
+  @Index('IDX_email_templates_created_at')
   @CreateDateColumn()
   createdAt: Date;
 

@@ -51,10 +51,14 @@ export class QuotaGuard implements CanActivate {
     if (this.isWhitelisted(req)) return true;
     if (this.isAdminUser(req.user)) return true;
 
-    const userId: string = req.user?.id ?? req.user?.sub ?? this.resolveIp(req);
+    // Use user:{id} format for authenticated users, ip:{address} for unauthenticated
+    const identifier: string =
+      (req.user?.id ?? req.user?.sub)
+        ? `user:${req.user?.id ?? req.user?.sub}`
+        : this.resolveIp(req);
     const tier: UserTier = options?.tier ?? this.resolveTier(req.user);
 
-    const result = await this.tracking.checkAndIncrement(userId, tier);
+    const result = await this.tracking.checkAndIncrement(identifier, tier);
 
     res.setHeader('X-RateLimit-Limit-Minute', result.limit.minute);
     res.setHeader('X-RateLimit-Limit-Hour', result.limit.hour);
@@ -64,11 +68,14 @@ export class QuotaGuard implements CanActivate {
     res.setHeader('X-RateLimit-Remaining-Day', result.remaining.day);
 
     if (!result.allowed) {
-      res.setHeader('Retry-After', result.retryAfter ?? 60);
+      const retryAfter = result.retryAfter ?? 60;
+      const resetTime = Math.floor(Date.now() / 1000) + retryAfter;
+      res.setHeader('Retry-After', retryAfter);
+      res.setHeader('X-RateLimit-Reset', resetTime);
       this.logger.warn(
-        `Quota exceeded userId=${userId} tier=${tier} retryAfter=${result.retryAfter}s`,
+        `Quota exceeded identifier=${identifier} tier=${tier} retryAfter=${retryAfter}s`,
       );
-      throw new RateLimitExceededException(result.retryAfter);
+      throw new RateLimitExceededException(retryAfter);
     }
 
     return true;
@@ -98,7 +105,7 @@ export class QuotaGuard implements CanActivate {
   }
 
   private resolveTier(user?: any): UserTier {
-    if (!user) return UserTier.FREE;
+    if (!user) return UserTier.UNAUTHENTICATED;
     const raw = (user.tier ?? user.plan ?? 'FREE').toString().toUpperCase();
     return UserTier[raw as keyof typeof UserTier] ?? UserTier.FREE;
   }

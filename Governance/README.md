@@ -115,3 +115,101 @@ expectations:
 - **Keep it short.** A governance document nobody reads has no effect. Prefer
   editing an existing section over adding a new file, and prefer a table row
   over a paragraph.
+# Governance
+
+This folder holds the **governance** of this TeachLink repository: the documents,
+policies, roles, and processes that define how the project is run, how decisions
+are made, and how contributors participate.
+
+Everything in `Governance/` is documentation and policy. It is self-contained:
+changes to governance are made **only** inside this folder and do not affect
+application code.
+
+## Purpose
+
+- Make the project's decision-making transparent and predictable.
+- Define clear roles, responsibilities, and expectations for contributors and maintainers.
+- Give the community a single, versioned home for policies (contribution, conduct,
+  security disclosure, releases, licensing, and on-chain/community governance).
+
+## Structure
+
+The governance documents are organised into the following areas. Individual
+documents are added and refined over time (tracked as issues):
+
+- **Foundations** — charter, mission, values, principles, and glossary.
+- **Roles & membership** — contributor ladder, maintainer/reviewer roles, and the
+  onboarding/offboarding lifecycle, including
+  [working group dissolution](processes/WORKING_GROUP_DISSOLUTION.md).
+- **Decision-making** — consensus and voting rules, the RFC/proposal process,
+  [proposal lifecycle](processes/PROPOSAL_LIFECYCLE.md), and decision records.
+- **Community & conduct** — code of conduct, enforcement, moderation, and conflict
+  resolution.
+- **Contribution governance** — review policy, triage, labels, and roadmap governance.
+- **Operations & reliability** — service ownership, on-call, incident response,
+  [service-level objectives](domains/SLA_SLO.md), backup, and disaster recovery.
+- **Security & disclosure** — vulnerability reporting, embargo, advisory processes, [incident postmortems](domains/POSTMORTEM_POLICY.md), and [access control](domains/ACCESS_CONTROL.md).
+- **Releases & change** — versioning, release cadence, deprecation, change policy, and [environment promotion](domains/ENV_PROMOTION.md).
+- **Legal & IP** — licensing, contributor sign-off, trademark, and attribution.
+- **Community & on-chain governance** — treasury, grants, and proposal governance.
+
+## Policies
+
+Standalone policies live in `Governance/policies/`:
+
+- [`policies/INACTIVITY.md`](policies/INACTIVITY.md) — inactivity thresholds per
+  role, the notification process, consequences, and the reinstatement path.
+  Versioned policies live in [`Governance/policies/`](policies/):
+
+- [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
+  privileges, who can initiate revocation, and the appeal path.
+- [Voting Quorum Policy](policies/QUORUM.md) — the quorum threshold for a
+  formal vote, how quorum is measured, and what happens when it is not met.
+- [Supermajority Policy](policies/SUPERMAJORITY.md) — which decisions require
+  a supermajority, the two-thirds threshold, and how it is calculated.
+- [Asynchronous Decision Policy](policies/ASYNC_DECISIONS.md) — when a decision
+  may be taken asynchronously, the minimum response window, and the recording
+  requirement.
+- [Transparency Report Policy](policies/TRANSPARENCY_REPORTS.md) — the report
+  cadence, the metrics disclosed, and where reports are published.
+- [Public Metrics Policy](policies/PUBLIC_METRICS.md) — which metrics the
+  scrape endpoints expose, how often they change, and where each metric
+  family's data comes from.
+- [Changelog Policy](policies/CHANGELOG_POLICY.md) — the required changelog
+  format, change categories, and when entries are required.
+
+## Processes
+
+Standalone process documents live in `Governance/processes/`:
+
+- [`processes/NOMINATION.md`](processes/NOMINATION.md) — role nomination process.
+- [`processes/OFFBOARDING.md`](processes/OFFBOARDING.md) — contributor offboarding checklist and timeline.
+- [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
+- [`processes/PROPOSAL_LIFECYCLE.md`](processes/PROPOSAL_LIFECYCLE.md) — stages from draft to decision, stage ownership, and exit criteria.
+- [`processes/RELEASE_SIGNOFF.md`](processes/RELEASE_SIGNOFF.md) — required release sign-offs, gating checks, and final production release authority.
+- [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
+
+## Templates
+
+Reusable templates live in `Governance/templates/`:
+
+- [`templates/AGENDA_TEMPLATE.md`](templates/AGENDA_TEMPLATE.md) — the standard sections,
+  time-boxing guidance, and submission process for a governance meeting agenda.
+- [`templates/MINUTES_TEMPLATE.md`](templates/MINUTES_TEMPLATE.md) — the structure used to
+  record decisions and action items from a meeting.
+- [`templates/RFC_TEMPLATE.md`](templates/RFC_TEMPLATE.md) — the starting point for a
+  request for comments.
+- [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPLATE.md) — the starting point for an
+  architecture decision record.
+
+## Recognition
+
+- [`RECOGNITION.md`](RECOGNITION.md) — contributor recognition tiers, the criteria
+  for each, and the nomination process.
+
+## Contributing to governance
+
+Proposals to add or change governance are made by opening an issue or a pull
+request that touches **only** this `Governance/` folder. Keep changes small and
+focused (at most two files), and document what changed.
+

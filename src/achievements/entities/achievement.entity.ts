@@ -1,5 +1,6 @@
 import {
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
@@ -31,6 +32,18 @@ export enum AchievementDifficulty {
  * Achievements are goals that users can unlock by meeting specific criteria.
  */
 @Entity('achievements')
+@Index('IDX_achievements_active_hidden_difficulty_createdAt', [
+  'isActive',
+  'isHidden',
+  'difficulty',
+  'createdAt',
+])
+@Index('IDX_achievements_type_active_hidden_difficulty', [
+  'type',
+  'isActive',
+  'isHidden',
+  'difficulty',
+])
 export class Achievement {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -37,7 +37,7 @@ export class SubmissionGrade {
 
   /** The graded assessment attempt. */
   @Column({ name: 'attempt_id', type: 'uuid' })
-  @Index()
+  @Index('IDX_submission_grades_attempt')
   attemptId: string;
 
   @ManyToOne(() => Rubric, { onDelete: 'RESTRICT' })
@@ -45,7 +45,7 @@ export class SubmissionGrade {
   rubric: Rubric;
 
   @Column({ name: 'rubric_id', type: 'uuid' })
-  @Index()
+  @Index('IDX_submission_grades_rubric')
   rubricId: string;
 
   /** Optional grader (admin/instructor). Null when auto-graded. */
@@ -82,9 +82,9 @@ export class SubmissionGrade {
   @OneToMany(() => CriterionGrade, (cg) => cg.grade, { cascade: true })
   criterionGrades: CriterionGrade[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

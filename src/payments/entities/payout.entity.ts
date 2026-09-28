@@ -9,6 +9,7 @@ import {
   Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { columnNumericTransformer } from '../utils/money';
 
 export enum PayoutStatus {
   PENDING = 'pending',
@@ -30,7 +31,12 @@ export class InstructorPayout {
   @JoinColumn({ name: 'instructor_id' })
   instructor: User;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: columnNumericTransformer,
+  })
   amount: number;
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })

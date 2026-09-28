@@ -5,9 +5,10 @@ This guide provides a comprehensive walkthrough to validate that the Automated R
 ## 📋 Prerequisites
 
 Before testing, ensure:
+
 - Node.js 18+ is installed
 - PostgreSQL 14+ is running
-- Redis 6+ is running  
+- Redis 6+ is running
 - Backend dependencies are installed: `npm install`
 - Database migrations are up to date
 
@@ -31,6 +32,7 @@ npm run start:dev
 #### 1.2 Verify Module Registration
 
 Check that the application starts without errors:
+
 ```bash
 # Look for log output confirming module initialization
 # Expected output:
@@ -340,6 +342,7 @@ curl -X POST http://localhost:3000/incidents/$INCIDENT_ID/escalate \
 #### 5.2 Verify Escalation Notifications
 
 Check application logs for notification output:
+
 ```bash
 # Look for log entries like:
 # [NotificationService] Escalating incident: incident-uuid to oncall@example.com
@@ -533,6 +536,7 @@ echo "🎉 End-to-End test completed successfully!"
 ```
 
 Run this script:
+
 ```bash
 chmod +x test-e2e.sh
 ./test-e2e.sh
@@ -545,6 +549,7 @@ chmod +x test-e2e.sh
 Use this checklist to verify all requirements are met:
 
 ### ✓ Incident Detection
+
 - [ ] Alert processing service correctly identifies alert patterns
 - [ ] Multiple consecutive alerts trigger incident creation
 - [ ] Incident created with appropriate severity level
@@ -552,6 +557,7 @@ Use this checklist to verify all requirements are met:
 - [ ] No false positives for unrelated alerts
 
 ### ✓ Automatic Remediation Actions
+
 - [ ] Service restart action executes successfully
 - [ ] Cache clearing action executes successfully
 - [ ] Resource scaling action executes successfully
@@ -561,6 +567,7 @@ Use this checklist to verify all requirements are met:
 - [ ] Remediation history tracked in database
 
 ### ✓ Runbook Execution
+
 - [ ] Runbook files parsed correctly (database-failure, region-outage, data-corruption)
 - [ ] Steps executed sequentially
 - [ ] Step outputs captured and stored
@@ -569,6 +576,7 @@ Use this checklist to verify all requirements are met:
 - [ ] Runbook executions linked to incidents
 
 ### ✓ Notification and Escalation
+
 - [ ] Incident detection triggers notifications
 - [ ] Escalation to on-call engineer works
 - [ ] Incident resolution notifications sent
@@ -578,6 +586,7 @@ Use this checklist to verify all requirements are met:
 - [ ] Notifications retry on failure
 
 ### ✓ API Endpoints
+
 - [ ] `POST /incidents` - Create incident
 - [ ] `GET /incidents` - List incidents with filtering
 - [ ] `GET /incidents/:id` - Get incident details
@@ -592,6 +601,7 @@ Use this checklist to verify all requirements are met:
 - [ ] `GET /incidents/statistics/overview` - Get statistics
 
 ### ✓ Database
+
 - [ ] `incidents` table created with proper schema
 - [ ] `remediation_actions` table created with proper schema
 - [ ] `runbook_executions` table created with proper schema
@@ -599,6 +609,7 @@ Use this checklist to verify all requirements are met:
 - [ ] Relationships maintained between tables
 
 ### ✓ Error Handling
+
 - [ ] Invalid incident IDs return 404
 - [ ] Invalid remediation parameters handled gracefully
 - [ ] Runbook not found scenarios handled
@@ -625,18 +636,22 @@ All of the following must be true for successful implementation:
 ## 🐛 Troubleshooting
 
 ### Issue: "Database connection refused"
+
 - Verify PostgreSQL is running: `docker ps | grep postgres`
 - Check connection string in `.env`
 
 ### Issue: "Module IncidentManagementModule not found"
+
 - Ensure module is imported in `app.module.ts`
 - Run `npm run build` to compile TypeScript
 
 ### Issue: "Runbook files not found"
+
 - Ensure `dr/runbooks/` directory exists
 - Check runbook file names match: `database-failure.md`, `region-outage.md`, `data-corruption.md`
 
 ### Issue: "Tests failing with "Cannot find module"
+
 - Run `npm install` to ensure all dependencies are installed
 - Run `npm run build` to compile TypeScript
 

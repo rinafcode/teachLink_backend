@@ -31,11 +31,11 @@ export class CriterionGrade {
   grade: SubmissionGrade;
 
   @Column({ name: 'grade_id', type: 'uuid' })
-  @Index()
+  @Index('IDX_criterion_grades_grade')
   gradeId: string;
 
   @Column({ name: 'criterion_id', type: 'uuid' })
-  @Index()
+  @Index('IDX_criterion_grades_criterion')
   criterionId: string;
 
   /** Selected rubric level (optional when `points` is provided directly). */

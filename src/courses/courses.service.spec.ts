@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { OutboxService } from '../common/events/outbox.service';
 import { CoursesService } from './courses.service';
 import { Course, CourseStatus } from './entities/course.entity';
 import { CourseReview } from './entities/course-review.entity';
@@ -36,8 +36,24 @@ const mockBulkOpRepo = {
   findOne: jest.fn(),
 };
 
-const mockEventEmitter = {
-  emit: jest.fn(),
+const mockOutbox = {
+  enqueue: jest.fn(),
+  enqueueStandalone: jest.fn(),
+};
+
+const mockDataSource = {
+  transaction: jest.fn((cb: (manager: any) => Promise<any>) => {
+    const manager = {
+      getRepository: jest.fn((entity: any) => {
+        if (entity === Course) return mockCourseRepo;
+        if (entity === CourseVersion) return mockVersionRepo;
+        if (entity === CourseReview) return mockReviewRepo;
+        if (entity === BulkOperation) return mockBulkOpRepo;
+        return null;
+      }),
+    };
+    return cb(manager);
+  }),
 };
 
 const instructor: User = {
@@ -66,7 +82,8 @@ describe('CoursesService', () => {
         { provide: getRepositoryToken(CourseReview), useValue: mockReviewRepo },
         { provide: getRepositoryToken(CourseVersion), useValue: mockVersionRepo },
         { provide: getRepositoryToken(BulkOperation), useValue: mockBulkOpRepo },
-        { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: OutboxService, useValue: mockOutbox },
+        { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
 
@@ -86,7 +103,6 @@ describe('CoursesService', () => {
 
       mockCourseRepo.create.mockReturnValue(savedCourse);
       mockCourseRepo.save.mockResolvedValue(savedCourse);
-      mockVersionRepo.findOne.mockResolvedValue(null);
       mockVersionRepo.create.mockReturnValue({});
       mockVersionRepo.save.mockResolvedValue({ ...savedCourse, versionNumber: 1 });
 
@@ -183,6 +199,79 @@ describe('CoursesService', () => {
           eventType: CourseVersionEventType.ROLLEDBACK,
         }),
       );
+    });
+  });
+
+  describe('concurrent updates', () => {
+    it('should produce versions 2 and 3 for two sequential updates', async () => {
+      const existingCourse = {
+        ...baseCourse,
+        instructorId: 'instr-1',
+      };
+      const updated1 = { ...existingCourse, title: 'Update A' };
+      const updated2 = { ...existingCourse, title: 'Update B' };
+
+      mockCourseRepo.findOne
+        .mockResolvedValueOnce(existingCourse)
+        .mockResolvedValueOnce(existingCourse);
+
+      mockCourseRepo.save.mockResolvedValueOnce(updated1).mockResolvedValueOnce(updated2);
+
+      mockVersionRepo.findOne
+        .mockResolvedValueOnce({ versionNumber: 1 } as CourseVersion)
+        .mockResolvedValueOnce({ versionNumber: 2 } as CourseVersion);
+
+      mockVersionRepo.create.mockReturnValueOnce({}).mockReturnValueOnce({});
+
+      mockVersionRepo.save
+        .mockResolvedValueOnce({ versionNumber: 2 })
+        .mockResolvedValueOnce({ versionNumber: 3 });
+
+      await service.update('course-1', { title: 'Update A' } as any, instructor);
+      await service.update('course-1', { title: 'Update B' } as any, instructor);
+
+      expect(mockVersionRepo.create).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ versionNumber: 2 }),
+      );
+      expect(mockVersionRepo.create).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ versionNumber: 3 }),
+      );
+    });
+
+    it('should retry once on unique violation and succeed', async () => {
+      const existingCourse = {
+        ...baseCourse,
+        instructorId: 'instr-1',
+      };
+      const updatedCourse = { ...existingCourse, title: 'Retried update' };
+
+      const uniqueViolationError = new Error('duplicate key value violates unique constraint');
+      (uniqueViolationError as any).code = '23505';
+
+      mockCourseRepo.findOne.mockResolvedValue(existingCourse);
+      mockCourseRepo.save.mockResolvedValue(updatedCourse);
+      mockVersionRepo.findOne.mockResolvedValue({ versionNumber: 1 } as CourseVersion);
+      mockVersionRepo.create.mockReturnValue({});
+
+      let saveCallCount = 0;
+      mockVersionRepo.save.mockImplementation(() => {
+        saveCallCount++;
+        if (saveCallCount === 1) {
+          return Promise.reject(uniqueViolationError);
+        }
+        return Promise.resolve({ versionNumber: 2 });
+      });
+
+      const result = await service.update(
+        'course-1',
+        { title: 'Retried update' } as any,
+        instructor,
+      );
+
+      expect(result).toEqual(updatedCourse);
+      expect(mockVersionRepo.save).toHaveBeenCalledTimes(2);
     });
   });
 });

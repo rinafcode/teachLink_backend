@@ -122,6 +122,103 @@ const schemas = {
       query: { type: 'string', example: 'javascript basics' },
     },
   },
+  AwardActivityRequest: {
+    type: 'object',
+    required: ['userId', 'activityType'],
+    properties: {
+      userId: { type: 'string', example: 'user_123' },
+      activityType: {
+        type: 'string',
+        enum: [
+          'COURSE_COMPLETED',
+          'LESSON_COMPLETED',
+          'QUIZ_PASSED',
+          'DAILY_LOGIN',
+          'PROFILE_COMPLETED',
+          'FIRST_COURSE_ENROLLED',
+          'REVIEW_SUBMITTED',
+          'STREAK_BONUS',
+        ],
+        example: 'COURSE_COMPLETED',
+      },
+    },
+  },
+  AddPointsRequest: {
+    type: 'object',
+    required: ['userId', 'points', 'activityType'],
+    properties: {
+      userId: { type: 'string', example: 'user_123' },
+      points: { type: 'integer', minimum: 1, example: 100 },
+      activityType: { type: 'string', example: 'COURSE_COMPLETED' },
+    },
+  },
+  UpsertRewardRequest: {
+    type: 'object',
+    required: ['title', 'description'],
+    properties: {
+      title: { type: 'string', example: 'Gold Badge' },
+      description: { type: 'string', example: 'Awarded for reaching Gold tier' },
+      badgeId: { type: 'string', example: 'badge_gold' },
+      bonusPoints: { type: 'integer', minimum: 0, example: 500 },
+      metadata: { type: 'object' },
+    },
+  },
+  RunEtlRequest: {
+    type: 'object',
+    required: ['source', 'data'],
+    properties: {
+      source: { type: 'string', example: 'sales_csv' },
+      data: { type: 'array', items: { type: 'object' }, example: [{ id: 1, name: 'example' }] },
+    },
+  },
+  RouteShardRequest: {
+    type: 'object',
+    required: ['key'],
+    properties: {
+      key: { type: 'string', example: 'user_123' },
+      strategy: {
+        type: 'string',
+        enum: ['tenant_based', 'hash_based', 'range_based', 'read_replica'],
+        example: 'hash_based',
+      },
+      forRead: { type: 'boolean', example: false },
+    },
+  },
+  StartMigrationRequest: {
+    type: 'object',
+    required: [
+      'sourceShardId',
+      'targetShardId',
+      'entityType',
+      'estimatedRowCount',
+      'batchSize',
+      'dryRun',
+    ],
+    properties: {
+      sourceShardId: { type: 'string', example: 'shard-00' },
+      targetShardId: { type: 'string', example: 'shard-01' },
+      entityType: { type: 'string', example: 'users' },
+      estimatedRowCount: { type: 'integer', minimum: 1, example: 50000 },
+      batchSize: { type: 'integer', minimum: 1, example: 1000 },
+      dryRun: { type: 'boolean', example: false },
+    },
+  },
+  ManualRebalanceRequest: {
+    type: 'object',
+    required: ['migrations', 'dryRun'],
+    properties: {
+      migrations: { type: 'array', items: { type: 'object' } },
+      dryRun: { type: 'boolean', example: false },
+    },
+  },
+  AutoRebalanceRequest: {
+    type: 'object',
+    required: ['entityTypes', 'autoExecute'],
+    properties: {
+      entityTypes: { type: 'array', items: { type: 'string' }, example: ['users', 'courses'] },
+      autoExecute: { type: 'boolean', example: false },
+    },
+  },
 };
 
 const response = (status, description, example, schemaRef = '#/components/schemas/ApiSuccess') => ({
@@ -170,6 +267,9 @@ const spec = {
     { name: 'Payments', description: 'Payments, subscriptions, and refunds' },
     { name: 'Search', description: 'Search, filters, autocomplete, and analytics' },
     { name: 'Debugging', description: 'Admin-only request capture and replay tools' },
+    { name: 'Gamification', description: 'Points, leaderboards, and tier rewards' },
+    { name: 'Data Pipeline', description: 'ETL jobs and data warehouse operations' },
+    { name: 'Sharding', description: 'Database shard management and migrations' },
   ],
   paths: {
     '/': {
@@ -198,9 +298,23 @@ const spec = {
           role: 'student',
         }),
         responses: {
-          201: response(201, 'Registration successful', successEnvelope(examples.user, 'Registration successful')),
-          400: response(400, 'Invalid registration data', errorEnvelope('Validation failed', 'email'), '#/components/schemas/ApiError'),
-          409: response(409, 'Email already exists', errorEnvelope('Email already exists'), '#/components/schemas/ApiError'),
+          201: response(
+            201,
+            'Registration successful',
+            successEnvelope(examples.user, 'Registration successful'),
+          ),
+          400: response(
+            400,
+            'Invalid registration data',
+            errorEnvelope('Validation failed', 'email'),
+            '#/components/schemas/ApiError',
+          ),
+          409: response(
+            409,
+            'Email already exists',
+            errorEnvelope('Email already exists'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -214,12 +328,24 @@ const spec = {
           password: 'Password123!',
         }),
         responses: {
-          200: response(200, 'Login successful', successEnvelope({
-            accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-            refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
-            user: examples.user,
-          }, 'Login successful')),
-          401: response(401, 'Invalid credentials', errorEnvelope('Invalid credentials'), '#/components/schemas/ApiError'),
+          200: response(
+            200,
+            'Login successful',
+            successEnvelope(
+              {
+                accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+                refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
+                user: examples.user,
+              },
+              'Login successful',
+            ),
+          ),
+          401: response(
+            401,
+            'Invalid credentials',
+            errorEnvelope('Invalid credentials'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -231,11 +357,21 @@ const spec = {
         security: bearerSecurity,
         parameters: [
           { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, maximum: 100 } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, maximum: 100 },
+          },
         ],
         responses: {
           200: response(200, 'Users found', successEnvelope([examples.user])),
-          401: response(401, 'Authentication required', errorEnvelope('Authentication required'), '#/components/schemas/ApiError'),
+          401: response(
+            401,
+            'Authentication required',
+            errorEnvelope('Authentication required'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
       post: {
@@ -251,8 +387,17 @@ const spec = {
           role: 'teacher',
         }),
         responses: {
-          201: response(201, 'User created', successEnvelope({ ...examples.user, role: 'teacher' }, 'User created')),
-          400: response(400, 'Invalid user data', errorEnvelope('Validation failed'), '#/components/schemas/ApiError'),
+          201: response(
+            201,
+            'User created',
+            successEnvelope({ ...examples.user, role: 'teacher' }, 'User created'),
+          ),
+          400: response(
+            400,
+            'Invalid user data',
+            errorEnvelope('Validation failed'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -263,7 +408,12 @@ const spec = {
         operationId: 'listCourses',
         parameters: [
           { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20, maximum: 100 } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20, maximum: 100 },
+          },
         ],
         responses: {
           200: response(200, 'Courses found', successEnvelope([examples.course])),
@@ -283,7 +433,12 @@ const spec = {
         }),
         responses: {
           201: response(201, 'Course created', successEnvelope(examples.course, 'Course created')),
-          400: response(400, 'Invalid course data', errorEnvelope('Validation failed', 'title'), '#/components/schemas/ApiError'),
+          400: response(
+            400,
+            'Invalid course data',
+            errorEnvelope('Validation failed', 'title'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -308,8 +463,17 @@ const spec = {
           currency: 'USD',
         }),
         responses: {
-          201: response(201, 'Payment intent created', successEnvelope(examples.payment, 'Payment intent created')),
-          409: response(409, 'Duplicate idempotency key', errorEnvelope('Request already processed'), '#/components/schemas/ApiError'),
+          201: response(
+            201,
+            'Payment intent created',
+            successEnvelope(examples.payment, 'Payment intent created'),
+          ),
+          409: response(
+            409,
+            'Duplicate idempotency key',
+            errorEnvelope('Request already processed'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -319,7 +483,13 @@ const spec = {
         summary: 'Search courses and learning content',
         operationId: 'searchContent',
         parameters: [
-          { name: 'q', in: 'query', required: true, schema: { type: 'string' }, example: 'javascript basics' },
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            example: 'javascript basics',
+          },
           {
             name: 'filters',
             in: 'query',
@@ -327,20 +497,36 @@ const spec = {
             schema: { type: 'string' },
             example: '{"category":"programming","level":"beginner"}',
           },
-          { name: 'sort', in: 'query', required: false, schema: { type: 'string' }, example: 'relevance' },
+          {
+            name: 'sort',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            example: 'relevance',
+          },
           { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
           { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 20 } },
         ],
         responses: {
-          200: response(200, 'Search results', {
-            results: [examples.course],
-            total: 1,
-            page: 1,
-            limit: 20,
-            filters: { category: 'programming', level: 'beginner' },
-            query: 'javascript basics',
-          }, '#/components/schemas/SearchResponse'),
-          400: response(400, 'Invalid filters JSON', errorEnvelope('filters must be valid JSON', 'filters'), '#/components/schemas/ApiError'),
+          200: response(
+            200,
+            'Search results',
+            {
+              results: [examples.course],
+              total: 1,
+              page: 1,
+              limit: 20,
+              filters: { category: 'programming', level: 'beginner' },
+              query: 'javascript basics',
+            },
+            '#/components/schemas/SearchResponse',
+          ),
+          400: response(
+            400,
+            'Invalid filters JSON',
+            errorEnvelope('filters must be valid JSON', 'filters'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -349,9 +535,15 @@ const spec = {
         tags: ['Search'],
         summary: 'Get search autocomplete suggestions',
         operationId: 'getAutocomplete',
-        parameters: [{ name: 'q', in: 'query', required: true, schema: { type: 'string' }, example: 'java' }],
+        parameters: [
+          { name: 'q', in: 'query', required: true, schema: { type: 'string' }, example: 'java' },
+        ],
         responses: {
-          200: response(200, 'Autocomplete suggestions', ['javascript', 'java fundamentals', 'java spring']),
+          200: response(200, 'Autocomplete suggestions', [
+            'javascript',
+            'java fundamentals',
+            'java spring',
+          ]),
         },
       },
     },
@@ -361,7 +553,9 @@ const spec = {
         summary: 'List recently captured requests',
         operationId: 'listCapturedRequests',
         security: bearerSecurity,
-        parameters: [{ name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 50 } }],
+        parameters: [
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 50 } },
+        ],
         responses: {
           200: response(200, 'Captured request summaries', {
             total: 1,
@@ -386,6 +580,344 @@ const spec = {
         security: bearerSecurity,
         responses: {
           200: response(200, 'Capture buffer cleared', { message: 'Debug capture buffer cleared' }),
+        },
+      },
+    },
+    '/gamification/points/award-activity': {
+      post: {
+        tags: ['Gamification'],
+        summary: 'Award points for a user activity',
+        operationId: 'awardActivity',
+        requestBody: requestBody('#/components/schemas/AwardActivityRequest', {
+          userId: 'user_123',
+          activityType: 'COURSE_COMPLETED',
+        }),
+        responses: {
+          200: response(
+            200,
+            'Activity awarded',
+            successEnvelope({ pointsAwarded: 500, totalPoints: 2500 }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'activityType'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+    },
+    '/gamification/points/add': {
+      post: {
+        tags: ['Gamification'],
+        summary: 'Add points to a user',
+        operationId: 'addPoints',
+        requestBody: requestBody('#/components/schemas/AddPointsRequest', {
+          userId: 'user_123',
+          points: 100,
+          activityType: 'COURSE_COMPLETED',
+        }),
+        responses: {
+          200: response(
+            200,
+            'Points added',
+            successEnvelope({ pointsAdded: 100, totalPoints: 2600 }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'points'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+    },
+    '/gamification/tiers/rewards/{tier}': {
+      post: {
+        tags: ['Gamification'],
+        summary: 'Create or update a tier reward',
+        operationId: 'upsertReward',
+        parameters: [
+          {
+            name: 'tier',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', enum: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'] },
+            example: 'GOLD',
+          },
+        ],
+        requestBody: requestBody('#/components/schemas/UpsertRewardRequest', {
+          title: 'Gold Badge',
+          description: 'Awarded for reaching Gold tier',
+          badgeId: 'badge_gold',
+          bonusPoints: 500,
+        }),
+        responses: {
+          200: response(200, 'Reward saved', successEnvelope({ id: 'reward_001', tier: 'GOLD' })),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'title'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+    },
+    '/gamification/points/progress/{userId}': {
+      get: {
+        tags: ['Gamification'],
+        summary: 'Get user progress and points',
+        operationId: 'getUserProgress',
+        parameters: [
+          {
+            name: 'userId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            example: 'user_123',
+          },
+        ],
+        responses: {
+          200: response(
+            200,
+            'User progress',
+            successEnvelope({
+              userId: 'user_123',
+              totalPoints: 2500,
+              tier: 'GOLD',
+              pointsToNextTier: 500,
+            }),
+          ),
+        },
+      },
+    },
+    '/gamification/leaderboard': {
+      get: {
+        tags: ['Gamification'],
+        summary: 'Get leaderboard',
+        operationId: 'getLeaderboard',
+        parameters: [
+          { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
+          {
+            name: 'pageSize',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 20 },
+          },
+        ],
+        responses: {
+          200: response(
+            200,
+            'Leaderboard',
+            successEnvelope({
+              entries: [{ userId: 'user_123', rank: 1, points: 2500 }],
+              page: 1,
+              pageSize: 20,
+              total: 1,
+            }),
+          ),
+        },
+      },
+    },
+    '/data-pipeline/etl/run': {
+      post: {
+        tags: ['Data Pipeline'],
+        summary: 'Run an ETL job',
+        operationId: 'runEtl',
+        requestBody: requestBody('#/components/schemas/RunEtlRequest', {
+          source: 'sales_csv',
+          data: [{ id: 1, name: 'example' }],
+        }),
+        responses: {
+          200: response(
+            200,
+            'ETL job completed',
+            successEnvelope({ recordsProcessed: 1000, durationMs: 1500 }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'source'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+    },
+    '/sharding/route': {
+      post: {
+        tags: ['Sharding'],
+        summary: 'Resolve which shard a key routes to',
+        operationId: 'routeShard',
+        requestBody: requestBody('#/components/schemas/RouteShardRequest', {
+          key: 'user_123',
+          strategy: 'hash_based',
+          forRead: false,
+        }),
+        responses: {
+          200: response(
+            200,
+            'Routing result',
+            successEnvelope({
+              shardId: 'shard-01',
+              host: 'db-shard-01.example.com',
+              port: 5432,
+              isReplica: false,
+              routingKey: 'user_123',
+              resolutionTimeMs: 2,
+            }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'key'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+    },
+    '/sharding/migrations': {
+      post: {
+        tags: ['Sharding'],
+        summary: 'Start a cross-shard data migration',
+        operationId: 'startMigration',
+        requestBody: requestBody('#/components/schemas/StartMigrationRequest', {
+          sourceShardId: 'shard-00',
+          targetShardId: 'shard-01',
+          entityType: 'users',
+          estimatedRowCount: 50000,
+          batchSize: 1000,
+          dryRun: false,
+        }),
+        responses: {
+          202: response(
+            202,
+            'Migration started',
+            successEnvelope({ planId: 'plan_001', message: 'Migration started' }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'sourceShardId'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+      get: {
+        tags: ['Sharding'],
+        summary: 'List all migration plans and their statuses',
+        operationId: 'listMigrations',
+        responses: {
+          200: response(
+            200,
+            'Migration plans',
+            successEnvelope({ migrations: [{ planId: 'plan_001', status: 'running' }] }),
+          ),
+        },
+      },
+    },
+    '/sharding/migrations/{planId}': {
+      get: {
+        tags: ['Sharding'],
+        summary: 'Get the status of a specific migration plan',
+        operationId: 'getMigrationStatus',
+        parameters: [
+          {
+            name: 'planId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            example: 'plan_001',
+          },
+        ],
+        responses: {
+          200: response(
+            200,
+            'Migration status',
+            successEnvelope({
+              planId: 'plan_001',
+              status: 'running',
+              migratedRows: 10000,
+              totalRows: 50000,
+            }),
+          ),
+        },
+      },
+      delete: {
+        tags: ['Sharding'],
+        summary: 'Roll back a completed migration',
+        operationId: 'rollbackMigration',
+        parameters: [
+          {
+            name: 'planId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            example: 'plan_001',
+          },
+        ],
+        responses: {
+          200: response(
+            200,
+            'Migration rolled back',
+            successEnvelope({ message: 'Migration "plan_001" rolled back' }),
+          ),
+        },
+      },
+    },
+    '/sharding/rebalance': {
+      post: {
+        tags: ['Sharding'],
+        summary: 'Trigger a manual shard rebalance',
+        operationId: 'manualRebalance',
+        requestBody: requestBody('#/components/schemas/ManualRebalanceRequest', {
+          migrations: [
+            {
+              sourceShardId: 'shard-00',
+              targetShardId: 'shard-01',
+              entityType: 'users',
+              estimatedRowCount: 50000,
+              batchSize: 1000,
+              dryRun: false,
+            },
+          ],
+          dryRun: false,
+        }),
+        responses: {
+          202: response(
+            202,
+            'Rebalance plan created',
+            successEnvelope({ planId: 'plan_002', plan: {} }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'migrations'),
+            '#/components/schemas/ApiError',
+          ),
+        },
+      },
+    },
+    '/sharding/rebalance/auto': {
+      post: {
+        tags: ['Sharding'],
+        summary: 'Run automated rebalance analysis',
+        operationId: 'autoRebalance',
+        requestBody: requestBody('#/components/schemas/AutoRebalanceRequest', {
+          entityTypes: ['users', 'courses'],
+          autoExecute: false,
+        }),
+        responses: {
+          202: response(
+            202,
+            'Auto-rebalance plan created',
+            successEnvelope({ planId: 'plan_003', plan: {} }),
+          ),
+          400: response(
+            400,
+            'Invalid request',
+            errorEnvelope('Validation failed', 'entityTypes'),
+            '#/components/schemas/ApiError',
+          ),
         },
       },
     },
@@ -420,11 +952,14 @@ function generateExamplesMarkdown() {
         '  -H "Content-Type: application/json" \\',
         `  -d '${JSON.stringify({ email: 'learner@example.com', password: 'Password123!' })}'`,
       ].join('\n'),
-      response: successEnvelope({
-        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
-        user: examples.user,
-      }, 'Login successful'),
+      response: successEnvelope(
+        {
+          accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+          refreshToken: 'refresh_01JZ0D4R8R2Y3R9H2W6E5R4T1P',
+          user: examples.user,
+        },
+        'Login successful',
+      ),
     },
     {
       title: 'Create Course',

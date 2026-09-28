@@ -8,34 +8,34 @@ Integrates the [Segment Node.js SDK](https://segment.com/docs/connections/source
 
 ### New files
 
-| File | Description |
-|---|---|
-| `src/analytics/segment/segment.service.ts` | Core service — wraps Segment SDK, exposes `track()` and `identify()`, flushes on graceful shutdown |
-| `src/analytics/segment/segment-destination-config.entity.ts` | TypeORM entity persisting destination name, enabled flag, and JSON settings |
-| `src/analytics/segment/segment.dto.ts` | Validated DTOs: `TrackEventDto`, `IdentifyUserDto`, `CreateDestinationConfigDto`, `UpdateDestinationConfigDto` |
-| `src/analytics/segment/segment.controller.ts` | REST controller for event tracking and destination config CRUD |
-| `src/analytics/segment/segment.module.ts` | NestJS module wiring the above together |
-| `src/analytics/segment/segment.service.spec.ts` | Unit tests (8 passing) |
+| File                                                         | Description                                                                                                    |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `src/analytics/segment/segment.service.ts`                   | Core service — wraps Segment SDK, exposes `track()` and `identify()`, flushes on graceful shutdown             |
+| `src/analytics/segment/segment-destination-config.entity.ts` | TypeORM entity persisting destination name, enabled flag, and JSON settings                                    |
+| `src/analytics/segment/segment.dto.ts`                       | Validated DTOs: `TrackEventDto`, `IdentifyUserDto`, `CreateDestinationConfigDto`, `UpdateDestinationConfigDto` |
+| `src/analytics/segment/segment.controller.ts`                | REST controller for event tracking and destination config CRUD                                                 |
+| `src/analytics/segment/segment.module.ts`                    | NestJS module wiring the above together                                                                        |
+| `src/analytics/segment/segment.service.spec.ts`              | Unit tests (8 passing)                                                                                         |
 
 ### Modified files
 
-| File | Change |
-|---|---|
-| `src/analytics/analytics.module.ts` | Imports and exports `SegmentModule` |
-| `src/config/env.validation.ts` | Adds optional `SEGMENT_WRITE_KEY` env var |
-| `package.json` / `package-lock.json` | Adds `@segment/analytics-node@2.1.2` |
+| File                                 | Change                                    |
+| ------------------------------------ | ----------------------------------------- |
+| `src/analytics/analytics.module.ts`  | Imports and exports `SegmentModule`       |
+| `src/config/env.validation.ts`       | Adds optional `SEGMENT_WRITE_KEY` env var |
+| `package.json` / `package-lock.json` | Adds `@segment/analytics-node@2.1.2`      |
 
 ## API endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/analytics/segment/track` | Track an analytics event |
-| `POST` | `/analytics/segment/identify` | Identify a user with traits |
-| `POST` | `/analytics/segment/destinations` | Create a destination configuration |
-| `GET` | `/analytics/segment/destinations` | List all destination configurations |
-| `GET` | `/analytics/segment/destinations/:id` | Get a destination configuration |
-| `PATCH` | `/analytics/segment/destinations/:id` | Update a destination configuration |
-| `DELETE` | `/analytics/segment/destinations/:id` | Delete a destination configuration |
+| Method   | Path                                  | Description                         |
+| -------- | ------------------------------------- | ----------------------------------- |
+| `POST`   | `/analytics/segment/track`            | Track an analytics event            |
+| `POST`   | `/analytics/segment/identify`         | Identify a user with traits         |
+| `POST`   | `/analytics/segment/destinations`     | Create a destination configuration  |
+| `GET`    | `/analytics/segment/destinations`     | List all destination configurations |
+| `GET`    | `/analytics/segment/destinations/:id` | Get a destination configuration     |
+| `PATCH`  | `/analytics/segment/destinations/:id` | Update a destination configuration  |
+| `DELETE` | `/analytics/segment/destinations/:id` | Delete a destination configuration  |
 
 ## Configuration
 
@@ -58,4 +58,4 @@ SEGMENT_WRITE_KEY=your_segment_write_key
 - [x] Event tracking to Segment
 - [x] User identification
 - [x] Destination configuration UI (REST API)
-closes [#596](https://github.com/rinafcode/teachLink_backend/issues/596)
+      closes [#596](https://github.com/rinafcode/teachLink_backend/issues/596)

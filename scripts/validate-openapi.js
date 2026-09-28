@@ -148,10 +148,11 @@ for (const [routePath, pathItem] of Object.entries(spec.paths || {})) {
       for (const secReq of operation.security) {
         for (const schemeName of Object.keys(secReq)) {
           const defined =
-            spec.components?.securitySchemes &&
-            schemeName in spec.components.securitySchemes;
+            spec.components?.securitySchemes && schemeName in spec.components.securitySchemes;
           if (!defined) {
-            fail(`${loc}: security scheme "${schemeName}" not defined in components.securitySchemes`);
+            fail(
+              `${loc}: security scheme "${schemeName}" not defined in components.securitySchemes`,
+            );
           }
         }
       }
@@ -283,6 +284,8 @@ if (errors.length > 0) {
   errors.forEach((e) => console.error(e));
   process.exit(1);
 } else {
-  console.log(`\n✅ OpenAPI spec is valid (${operationCount} operations, 0 errors, ${warnings.length} warnings)`);
+  console.log(
+    `\n✅ OpenAPI spec is valid (${operationCount} operations, 0 errors, ${warnings.length} warnings)`,
+  );
   process.exit(0);
 }

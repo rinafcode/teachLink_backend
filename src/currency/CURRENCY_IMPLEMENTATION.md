@@ -25,28 +25,36 @@ This document describes the implementation of currency conversion and localized 
 ### Services
 
 #### CurrencyService
+
 Handles currency conversion and formatting:
+
 - `convertCurrency(amount, fromCurrency, toCurrency)` - Convert amounts between currencies
 - `formatPrice(amount, currency, locale)` - Format prices for display
 - `getCurrencyDetails(currencyCode)` - Get currency symbol and name
 - `roundAmount(amount, currency)` - Round to currency precision
 
 #### ExchangeRateService
+
 Manages exchange rates:
+
 - Fetches rates from external API (exchangerate-api.com)
 - Falls back to cached rates if API is unavailable
 - Auto-refreshes rates every 24 hours
 - Supports configurable API endpoints
 
 #### CurrencyDetectionService
+
 Detects user currency from location:
+
 - Maps country codes to currencies
 - Provides timezone-based hints
 - Supports 50+ countries and their currencies
 - Validates location information
 
 #### PricingService
+
 Handles pricing calculations:
+
 - `getLocalizedPrice()` - Get price in user's currency
 - `getPricingForPayment()` - Prepare price for payment processing
 - `getMultiCurrencyPricing()` - Get pricing in multiple currencies
@@ -54,7 +62,9 @@ Handles pricing calculations:
 - `applyTax()` - Apply tax calculations
 
 #### LocalizedCourseService
+
 Provides localized pricing for courses:
+
 - Get course with localized pricing
 - Detect currency from user location
 - Get pricing by region
@@ -63,7 +73,9 @@ Provides localized pricing for courses:
 ## Database Schema Changes
 
 ### User Entity
+
 New fields added:
+
 - `country` (varchar, nullable) - Country name
 - `countryCode` (varchar(2), nullable, indexed) - ISO country code
 - `timezone` (varchar, nullable) - IANA timezone
@@ -71,7 +83,9 @@ New fields added:
 - `preferredCurrency` (varchar(3), default: 'USD', indexed) - Preferred currency code
 
 ### Course Entity
+
 New fields added:
+
 - `currency` (varchar(3), default: 'USD', indexed) - Base currency for course pricing
 
 ## API Endpoints
@@ -79,6 +93,7 @@ New fields added:
 ### Currency Endpoints
 
 #### Convert Currency
+
 ```
 POST /currency/convert
 Body: {
@@ -97,6 +112,7 @@ Response: {
 ```
 
 #### Convert to Multiple Currencies
+
 ```
 POST /currency/convert-multiple
 Body: {
@@ -113,6 +129,7 @@ Response: {
 ```
 
 #### Get Currency Details
+
 ```
 GET /currency/details/:currencyCode
 Response: {
@@ -123,6 +140,7 @@ Response: {
 ```
 
 #### Detect Currency
+
 ```
 POST /currency/detect
 Body: {
@@ -140,18 +158,21 @@ Response: {
 ```
 
 #### Get Supported Currencies
+
 ```
 GET /currency/supported
 Response: Record<string, string> // Country code to currency mapping
 ```
 
 #### Get Exchange Rates
+
 ```
 GET /currency/rates
 Response: Record<string, number> // Exchange rates from USD
 ```
 
 #### Refresh Rates
+
 ```
 POST /currency/rates/refresh
 Response: { message: string, timestamp: Date }
@@ -160,6 +181,7 @@ Response: { message: string, timestamp: Date }
 ### Pricing Endpoints
 
 #### Get Localized Price
+
 ```
 POST /pricing/localize
 Body: {
@@ -172,6 +194,7 @@ Response: LocalizedPriceDto
 ```
 
 #### Get Payment Pricing
+
 ```
 POST /pricing/for-payment
 Body: {
@@ -183,6 +206,7 @@ Response: PricingDto
 ```
 
 #### Get Multi-Currency Pricing
+
 ```
 POST /pricing/multi-currency
 Body: {
@@ -194,6 +218,7 @@ Response: Record<string, PricingDto>
 ```
 
 #### Apply Discount
+
 ```
 POST /pricing/apply-discount
 Body: {
@@ -204,6 +229,7 @@ Response: PricingDto
 ```
 
 #### Apply Tax
+
 ```
 POST /pricing/apply-tax
 Body: {
@@ -242,12 +268,14 @@ The system supports 50+ countries with their respective currencies:
 ## Usage Examples
 
 ### Example 1: Convert USD to EUR
+
 ```typescript
 const convertedAmount = await currencyService.convertCurrency(99.99, 'USD', 'EUR');
 // Returns: 92.04 (approximately)
 ```
 
 ### Example 2: Detect User Currency from Location
+
 ```typescript
 const currency = currencyDetectionService.detectCurrency({
   countryCode: 'DE',
@@ -256,6 +284,7 @@ const currency = currencyDetectionService.detectCurrency({
 ```
 
 ### Example 3: Get Localized Course Pricing
+
 ```typescript
 const course = await courseService.findOne(courseId);
 const localizedCourse = await localizedCourseService.getLocalizedCoursePrice(
@@ -267,6 +296,7 @@ const localizedCourse = await localizedCourseService.getLocalizedCoursePrice(
 ```
 
 ### Example 4: Process Payment in User's Currency
+
 ```typescript
 // User in India wants to buy a $99.99 course
 const pricing = await pricingService.getPricingForPayment(
@@ -280,10 +310,12 @@ const pricing = await pricingService.getPricingForPayment(
 ## Migration
 
 Two migrations have been added:
+
 1. `1685000001000-add-currency-and-location-fields-to-users.ts` - Adds location fields to users table
 2. `1685000001001-add-currency-field-to-courses.ts` - Adds currency field to courses table
 
 Run migrations with:
+
 ```bash
 npm run migrate:run
 ```

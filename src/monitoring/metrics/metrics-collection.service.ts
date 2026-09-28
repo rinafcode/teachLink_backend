@@ -86,10 +86,28 @@ export class MetricsCollectionService implements OnModuleInit {
   /** Cache hit rate percentage, labelled by cache_type */
   public cacheHitRate: Gauge;
 
+  /** Duration of a cache warming pass in seconds, labelled by warm target */
+  public cacheWarmDuration: Histogram;
+
+  /** Total cache entries warmed, labelled by warm target */
+  public cacheWarmEntries: Counter;
+
+  /** Number of entries warmed on the most recent pass, labelled by warm target */
+  public cacheWarmLastEntries: Gauge;
+
   // ── Business Metrics – Queues ──────────────────────────────────────────────
 
   /** Queue job processing duration, labelled by queue_name and job_type */
   public queueProcessingTime: Histogram;
+
+  /** Current number of waiting jobs per queue */
+  public queueWaitingJobs: Gauge;
+
+  /** Current number of active jobs per queue */
+  public queueActiveJobs: Gauge;
+
+  /** Total number of failed jobs per queue */
+  public queueFailedJobs: Gauge;
 
   // ── Business Metrics – Email ───────────────────────────────────────────────
 
@@ -105,6 +123,14 @@ export class MetricsCollectionService implements OnModuleInit {
 
   /** Total API errors (≥ 400), labelled by route and error_code */
   public apiErrors: Counter;
+
+  /** Total security events emitted, labelled by event type */
+  public securityEventsTotal: Counter;
+
+  // ── Business Metrics – Workers ────────────────────────────────────────────
+
+  /** Total worker restarts, labelled by worker_name */
+  public workerRestartsTotal: Counter;
 
   // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -207,10 +233,35 @@ export class MetricsCollectionService implements OnModuleInit {
     this.cacheHitRate.set({ cache_type: cacheType }, hitRate);
   }
 
+  /**
+   * Records the outcome of a cache warming pass.
+   *
+   * @param target           Warm target (e.g. COURSES_LIST, USER_PROFILE)
+   * @param entries          Number of entries warmed on this pass
+   * @param durationSeconds  Wall-clock duration of the pass in **seconds**
+   */
+  recordCacheWarming(target: string, entries: number, durationSeconds: number): void {
+    this.cacheWarmDuration.observe({ target }, durationSeconds);
+    this.cacheWarmEntries.inc({ target }, entries);
+    this.cacheWarmLastEntries.set({ target }, entries);
+  }
+
   // ── Recording helpers – Queues ────────────────────────────────────────────
 
   recordQueueProcessingTime(queueName: string, jobType: string, duration: number): void {
     this.queueProcessingTime.observe({ queue_name: queueName, job_type: jobType }, duration);
+  }
+
+  updateQueueWaitingJobs(queueName: string, count: number): void {
+    this.queueWaitingJobs.set({ queue_name: queueName }, count);
+  }
+
+  updateQueueActiveJobs(queueName: string, count: number): void {
+    this.queueActiveJobs.set({ queue_name: queueName }, count);
+  }
+
+  updateQueueFailedJobs(queueName: string, count: number): void {
+    this.queueFailedJobs.set({ queue_name: queueName }, count);
   }
 
   // ── Recording helpers – Email ─────────────────────────────────────────────
@@ -229,6 +280,16 @@ export class MetricsCollectionService implements OnModuleInit {
 
   recordApiError(route: string, errorCode: string): void {
     this.apiErrors.inc({ route, error_code: errorCode });
+  }
+
+  recordSecurityEvent(type: string): void {
+    this.securityEventsTotal.inc({ type });
+  }
+
+  // ── Recording helpers – Workers ──────────────────────────────────────────
+
+  recordWorkerRestart(workerName: string): void {
+    this.workerRestartsTotal.inc({ worker_name: workerName });
   }
 
   // ── Private – metric registration ─────────────────────────────────────────
@@ -395,12 +456,55 @@ export class MetricsCollectionService implements OnModuleInit {
       registers: [this.registry],
     });
 
+    this.cacheWarmDuration = new Histogram({
+      name: 'cache_warm_duration_seconds',
+      help: 'Duration of cache warming passes in seconds',
+      labelNames: ['target'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmEntries = new Counter({
+      name: 'cache_warm_entries_total',
+      help: 'Total number of cache entries warmed',
+      labelNames: ['target'],
+      registers: [this.registry],
+    });
+
+    this.cacheWarmLastEntries = new Gauge({
+      name: 'cache_warm_last_entries',
+      help: 'Number of cache entries warmed on the most recent pass',
+      labelNames: ['target'],
+      registers: [this.registry],
+    });
+
     // Queues
     this.queueProcessingTime = new Histogram({
       name: 'queue_processing_duration_seconds',
       help: 'Duration of queue job processing in seconds',
       labelNames: ['queue_name', 'job_type'],
       buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60],
+      registers: [this.registry],
+    });
+
+    this.queueWaitingJobs = new Gauge({
+      name: 'queue_waiting_jobs',
+      help: 'Current number of waiting jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
+    this.queueActiveJobs = new Gauge({
+      name: 'queue_active_jobs',
+      help: 'Current number of active jobs per queue',
+      labelNames: ['queue_name'],
+      registers: [this.registry],
+    });
+
+    this.queueFailedJobs = new Gauge({
+      name: 'queue_failed_jobs_total',
+      help: 'Total number of failed jobs per queue',
+      labelNames: ['queue_name'],
       registers: [this.registry],
     });
 
@@ -425,6 +529,22 @@ export class MetricsCollectionService implements OnModuleInit {
       name: 'api_errors_total',
       help: 'Total number of API errors (HTTP 4xx/5xx)',
       labelNames: ['route', 'error_code'],
+      registers: [this.registry],
+    });
+
+    // Security
+    this.securityEventsTotal = new Counter({
+      name: 'security_events_total',
+      help: 'Total number of structured security events emitted',
+      labelNames: ['type'],
+      registers: [this.registry],
+    });
+
+    // Workers
+    this.workerRestartsTotal = new Counter({
+      name: 'worker_restarts_total',
+      help: 'Total number of worker restarts due to stalling',
+      labelNames: ['worker_name'],
       registers: [this.registry],
     });
   }

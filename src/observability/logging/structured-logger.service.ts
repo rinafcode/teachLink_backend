@@ -1,5 +1,6 @@
 import { Injectable, Logger, LoggerService, Scope } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
+import { trace } from '@opentelemetry/api';
 import {
   ILogContext,
   IStructuredLog,
@@ -179,7 +180,10 @@ export class StructuredLoggerService implements LoggerService {
   }
 
   /**
-   * Write structured log
+   * Write structured log. Trace metadata is read from the active
+   * OpenTelemetry span at write time so logs are always correlated even
+   * when the logger instance lives in a different scope than the trace
+   * observer.
    */
   private writeLog(
     level: LogLevel,
@@ -187,10 +191,11 @@ export class StructuredLoggerService implements LoggerService {
     metadata?: Record<string, any>,
     error?: IErrorDetails,
   ): void {
+    const { traceId, spanId } = this.resolveActiveTraceInfo();
     const logContext: ILogContext = {
       correlationId: this.context.correlationId || uuidv4(),
-      traceId: this.context.traceId,
-      spanId: this.context.spanId,
+      traceId: traceId ?? this.context.traceId,
+      spanId: spanId ?? this.context.spanId,
       userId: this.context.userId,
       requestId: this.context.requestId,
       service: this.context.service || this.serviceName,
@@ -226,6 +231,30 @@ export class StructuredLoggerService implements LoggerService {
       case LogLevel.FATAL:
         this.nestLogger.fatal(logOutput);
         break;
+    }
+  }
+
+  /**
+   * Resolve trace/span ids from the current OpenTelemetry active span, if
+   * any. Falls back to undefined when no SDK is installed or no span is
+   * active for the current async context. Filters out the all-zero
+   * placeholder span ids emitted by the noop tracer.
+   */
+  private resolveActiveTraceInfo(): { traceId?: string; spanId?: string } {
+    try {
+      const span = trace.getActiveSpan();
+      if (!span) {
+        return {};
+      }
+      const ctx = span.spanContext();
+      const traceId =
+        ctx?.traceId && ctx.traceId !== '00000000000000000000000000000000'
+          ? ctx.traceId
+          : undefined;
+      const spanId = ctx?.spanId && ctx.spanId !== '0000000000000000' ? ctx.spanId : undefined;
+      return { traceId, spanId };
+    } catch {
+      return {};
     }
   }
 

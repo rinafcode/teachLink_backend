@@ -11,11 +11,13 @@ verification, manual failover, and failback.
 ## 1. Initial deployment
 
 **Prerequisites**
+
 - Terraform >= 1.5.0; AWS credentials valid in both regions.
 - ACM certificates in **each** region (for HTTPS).
 - A registered domain (provide `hosted_zone_id` or let Terraform create a zone).
 
 **Steps**
+
 ```bash
 cd tf/multi-region
 cp terraform.tfvars.example terraform.tfvars   # edit values
@@ -25,6 +27,7 @@ terraform apply -var-file=terraform.tfvars
 ```
 
 **Post-deploy validation**
+
 ```bash
 # Static checks (no creds needed)
 infra/scripts/validate-multiregion.sh
@@ -34,6 +37,7 @@ export PRIMARY_ALB_URL="https://<primary-alb-dns>"
 export SECONDARY_ALB_URL="https://<secondary-alb-dns>"
 infra/scripts/failover-drill.sh
 ```
+
 If `hosted_zone_id` was empty, delegate your domain to the
 `hosted_zone_name_servers` output before traffic will resolve.
 
@@ -46,6 +50,7 @@ Run on the **third Tuesday, 02:00 UTC** (see [dr/README.md](../README.md)).
 ```bash
 infra/scripts/failover-drill.sh   # non-destructive; exits non-zero on failure
 ```
+
 Confirms: both ALBs healthy, replica lag within RPO, S3 CRR enabled.
 
 Record results in the DR drill log. Investigate any ❌ before relying on failover.
@@ -95,13 +100,13 @@ Only after the primary is fully restored and **data re-synced** to it.
 
 ## 5. Troubleshooting
 
-| Symptom | Likely cause | Action |
-| ------- | ------------ | ------ |
-| Traffic not failing over | Health check too lenient / DNS TTL cached | Check `primary_health_check_id` status; wait for interval × threshold |
-| Replica promotion fails | Replica mid-update | `aws rds wait db-instance-available`; retry |
-| App errors after failover | Still pointing at dead primary | Update `DB_HOST`/`REDIS_HOST`, redeploy |
-| S3 objects missing in secondary | Written before CRR enabled, or async lag | One-time `aws s3 sync`; check replication metrics |
-| `terraform apply` global-name clash | Reused single-region state | Use a separate state key for `tf/multi-region` |
+| Symptom                             | Likely cause                              | Action                                                                |
+| ----------------------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| Traffic not failing over            | Health check too lenient / DNS TTL cached | Check `primary_health_check_id` status; wait for interval × threshold |
+| Replica promotion fails             | Replica mid-update                        | `aws rds wait db-instance-available`; retry                           |
+| App errors after failover           | Still pointing at dead primary            | Update `DB_HOST`/`REDIS_HOST`, redeploy                               |
+| S3 objects missing in secondary     | Written before CRR enabled, or async lag  | One-time `aws s3 sync`; check replication metrics                     |
+| `terraform apply` global-name clash | Reused single-region state                | Use a separate state key for `tf/multi-region`                        |
 
 ---
 

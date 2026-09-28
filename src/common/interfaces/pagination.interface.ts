@@ -13,10 +13,12 @@ export interface CursorPaginatedResponse<T> {
 
 export interface OffsetPaginatedResponse<T> {
   data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  cursor?: string;
+  nextCursor?: string | null;
 }

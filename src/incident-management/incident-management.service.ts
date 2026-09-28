@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Incident, IncidentStatus, IncidentSeverity } from './entities/incident.entity';
 import { RemediationAction, RemediationStatus } from './entities/remediation-action.entity';
@@ -31,6 +31,7 @@ export class IncidentManagementService {
     private autoRemediationService: AutoRemediationService,
     private runbookExecutionService: RunbookExecutionService,
     private notificationService: NotificationAndEscalationService,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -78,32 +79,43 @@ export class IncidentManagementService {
         return;
       }
 
-      const remediationIds: string[] = [];
+      // Remediation actions + the incident update are one logical operation: if
+      // any action write fails, none of them (nor the incident update) persist
+      // (issue #1344). Notifications fire only after the commit succeeds.
+      const created: {
+        action: RemediationAction;
+        autoRollback: boolean;
+      }[] = [];
 
-      for (const suggestion of suggestedActions) {
-        const remediationAction = await this.autoRemediationService.executeRemediationAction(
-          incident,
-          suggestion.actionType,
-          suggestion.description,
-          suggestion.parameters,
-          suggestion.autoRollback,
-        );
+      await this.dataSource.transaction(async (manager) => {
+        const incidentRepo = manager.getRepository(Incident);
 
-        remediationIds.push(remediationAction.id);
+        for (const suggestion of suggestedActions) {
+          const remediationAction = await this.autoRemediationService.executeRemediationAction(
+            incident,
+            suggestion.actionType,
+            suggestion.description,
+            suggestion.parameters,
+            suggestion.autoRollback,
+            manager,
+          );
+          created.push({ action: remediationAction, autoRollback: suggestion.autoRollback });
+        }
 
-        // Notify remediation action execution
+        incident.remediationActionIds = created.map((c) => c.action.id);
+        await incidentRepo.save(incident);
+      });
+
+      // Side effects run only after the transaction has committed.
+      for (const { action: remediationAction, autoRollback } of created) {
         await this.notificationService.notifyRemediationExecuted(incident, remediationAction);
 
         // Auto-rollback on failure if configured
-        if (suggestion.autoRollback && remediationAction.status === RemediationStatus.FAILED) {
+        if (autoRollback && remediationAction.status === RemediationStatus.FAILED) {
           this.logger.log(`Auto-rolling back failed remediation action: ${remediationAction.id}`);
           await this.autoRemediationService.rollbackRemediationAction(remediationAction);
         }
       }
-
-      // Update incident with remediation action IDs
-      incident.remediationActionIds = remediationIds;
-      await this.incidentRepository.save(incident);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`Error executing auto remediation: ${errorMsg}`);

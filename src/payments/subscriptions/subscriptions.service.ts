@@ -1,21 +1,43 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 import {
   Subscription,
   SubscriptionStatus,
   SubscriptionInterval,
 } from '../entities/subscription.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { QUEUE_NAMES, JOB_NAMES } from '../../common/constants/queue.constants';
+import { OutboxService } from '../../common/events/outbox.service';
 import {
   PauseSubscriptionDto,
   ResumeSubscriptionDto,
   UpgradeSubscriptionDto,
   DowngradeSubscriptionDto,
 } from './dto/subscription-action.dto';
+import { PaymentProviderService } from '../providers/payment-provider.service';
+import Decimal from 'decimal.js';
+import { subtract, multiply, roundToCents } from '../utils/money';
 
 /**
- * Handles subscription lifecycle management including pause, resume, upgrade, downgrade
+ * Handles subscription lifecycle management including pause, resume, upgrade, downgrade.
+ *
+ * Issue #1007 — upgradeSubscription and downgradeSubscription now:
+ *  1. Compute the prorated amount/credit BEFORE mutating the subscription.
+ *  2. Attempt the charge or credit via PaymentProviderService.
+ *  3. Only persist the plan change after the payment succeeds.
+ *  4. Leave the subscription on its original plan if the charge fails.
+ *  5. Record the provider chargeId / creditId on the subscription for reconciliation.
+ *  6. Honour prorationType='none' by deferring the plan change to currentPeriodEnd.
  */
 @Injectable()
 export class SubscriptionsService {
@@ -25,6 +47,10 @@ export class SubscriptionsService {
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
     private eventEmitter: EventEmitter2,
+    @InjectQueue(QUEUE_NAMES.SUBSCRIPTIONS)
+    private subscriptionQueue: Queue,
+    private readonly outbox: OutboxService,
+    private paymentProviderService: PaymentProviderService,
   ) {}
 
   /**
@@ -54,6 +80,22 @@ export class SubscriptionsService {
   }
 
   /**
+   * Get subscription by ID, verifying it belongs to the given user
+   */
+  async getSubscriptionForUser(subscriptionId: string, userId: string): Promise<Subscription> {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId, userId },
+      relations: ['user'],
+    });
+
+    if (!subscription) {
+      throw new NotFoundException(`Subscription with ID ${subscriptionId} not found for this user`);
+    }
+
+    return subscription;
+  }
+
+  /**
    * Pause a subscription
    */
   async pauseSubscription(
@@ -68,7 +110,19 @@ export class SubscriptionsService {
       );
     }
 
+    let delay: number | undefined;
+    if (dto.resumeAt) {
+      const resumeDate = new Date(dto.resumeAt);
+      const now = Date.now();
+      if (isNaN(resumeDate.getTime()) || resumeDate.getTime() <= now) {
+        throw new BadRequestException('resumeAt must be a future date');
+      }
+      delay = resumeDate.getTime() - now;
+    }
+
     // Update subscription with pause metadata without canceling the subscription.
+    // Update subscription status to PAUSED
+    subscription.status = SubscriptionStatus.PAUSED;
     subscription.properties = {
       ...subscription.properties,
       pausedAt: new Date(),
@@ -79,7 +133,36 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for downstream processing (notify user, analytics, etc.)
+    // Schedule delayed automatic resume if resumeAt is specified
+    if (delay !== undefined) {
+      await this.subscriptionQueue.add(
+        JOB_NAMES.RESUME_SUBSCRIPTION,
+        {
+          subscriptionId: updated.id,
+          userId: updated.userId,
+        },
+        {
+          delay,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+          removeOnComplete: true,
+        },
+      );
+    }
+
+    // Enqueue event for downstream processing (notify user, analytics, etc.).
+    if (this.outbox) {
+      await this.outbox.enqueueStandalone('subscription.paused', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        resumeAt: dto.resumeAt,
+        reason: dto.reason,
+      });
+    }
+
     this.eventEmitter.emit('subscription.paused', {
       subscriptionId: updated.id,
       userId: updated.userId,
@@ -101,11 +184,10 @@ export class SubscriptionsService {
   ): Promise<Subscription> {
     const subscription = await this.getSubscription(subscriptionId);
 
-    if (!subscription.properties?.isPaused) {
+    if (subscription.status !== SubscriptionStatus.PAUSED) {
       throw new BadRequestException('Subscription is not paused');
     }
 
-    // Update subscription to active
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.cancelAtPeriodEnd = false;
     subscription.properties = {
@@ -117,7 +199,14 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for downstream processing
+    if (this.outbox) {
+      await this.outbox.enqueueStandalone('subscription.resumed', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        reason: dto.reason,
+      });
+    }
+
     this.eventEmitter.emit('subscription.resumed', {
       subscriptionId: updated.id,
       userId: updated.userId,
@@ -130,7 +219,14 @@ export class SubscriptionsService {
   }
 
   /**
-   * Upgrade subscription to a different plan
+   * Upgrade subscription to a higher-priced plan.
+   *
+   * Order of operations (Issue #1007):
+   *  1. Validate state.
+   *  2. Compute proratedAmount (net charge = new prorated charge − old prorated credit).
+   *  3. Charge the customer via the payment provider.
+   *  4. Only if the charge succeeds: update the plan and persist.
+   *  5. On charge failure: leave subscription unchanged and rethrow.
    */
   async upgradeSubscription(
     subscriptionId: string,
@@ -153,14 +249,50 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated amount
+    // Compute proration — do this before any mutation so a failed charge
+    // leaves the subscription record untouched.
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCredit = (oldAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedAmount = proratedCharge - proratedCredit;
+    const proratedCredit = this.calculateProratedAmount(
+      oldAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const proratedCharge = this.calculateProratedAmount(
+      newAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const proratedAmount = subtract(proratedCharge, proratedCredit);
 
-    // Update subscription
+    // Attempt the charge BEFORE mutating the subscription (Issue #1007).
+    let chargeId: string;
+    try {
+      const chargeResult = await this.paymentProviderService.chargeCustomer(
+        subscription.userId,
+        proratedAmount,
+        subscription.currency,
+        {
+          subscriptionId,
+          oldPlanAmount: oldAmount,
+          newPlanId: dto.planId,
+          type: 'subscription_upgrade_proration',
+        },
+      );
+      chargeId = chargeResult.chargeId;
+    } catch (err) {
+      // Charge failed — subscription is NOT mutated. Propagate so the
+      // controller returns 402 / 400 and the DB record stays on the old plan.
+      this.logger.warn(
+        `Prorated upgrade charge failed for subscription ${subscriptionId}: ${(err as Error).message}`,
+      );
+      throw new HttpException(
+        `Prorated charge of ${proratedAmount} ${subscription.currency} failed: ${(err as Error).message}`,
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
+    // Payment confirmed — now update the subscription.
     subscription.amount = newAmount;
     subscription.interval = dto.billingCycle
       ? (dto.billingCycle as SubscriptionInterval)
@@ -172,29 +304,39 @@ export class SubscriptionsService {
       proratedAmount,
       proratedCredit,
       proratedCharge,
+      // Record the provider charge ID for reconciliation (Issue #1007).
+      upgradeChargeId: chargeId,
     };
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for payment processing
-    this.eventEmitter.emit('subscription.upgraded', {
+    await this.outbox.enqueueStandalone('subscription.upgraded', {
       subscriptionId: updated.id,
       userId: updated.userId,
       oldAmount,
       newAmount,
       proratedAmount,
+      chargeId,
       planId: dto.planId,
     });
 
     this.logger.log(
-      `Subscription ${subscriptionId} upgraded from $${oldAmount} to $${newAmount} (prorated: $${proratedAmount})`,
+      `Subscription ${subscriptionId} upgraded from $${oldAmount} to $${newAmount} ` +
+        `(prorated charge: $${proratedAmount}, chargeId: ${chargeId})`,
     );
 
     return updated;
   }
 
   /**
-   * Downgrade subscription to a different plan
+   * Downgrade subscription to a lower-priced plan.
+   *
+   * prorationType controls behaviour (Issue #1007):
+   *  - 'credit'  (default) — issue a prorated credit immediately, then apply the lower plan now.
+   *  - 'none'              — defer the plan change to currentPeriodEnd (no credit issued now).
+   *
+   * In both cases the subscription record is only mutated after the provider
+   * call returns successfully.
    */
   async downgradeSubscription(
     subscriptionId: string,
@@ -217,15 +359,89 @@ export class SubscriptionsService {
       );
     }
 
-    // Calculate prorated credit based on prorationType
+    const prorationType = dto.prorationType ?? 'credit';
+
+    // 'none' — defer the plan change to the end of the current period.
+    // No charge or credit is issued now; the actual plan switch will be
+    // handled when the subscription renews.
+    if (prorationType === 'none') {
+      subscription.cancelAtPeriodEnd = false;
+      subscription.properties = {
+        ...subscription.properties,
+        pendingDowngrade: {
+          planId: dto.planId,
+          amount: newAmount,
+          billingCycle: dto.billingCycle,
+          scheduledAt: new Date(),
+          effectiveAt: subscription.currentPeriodEnd,
+        },
+        downgradedFrom: { planId: subscription.properties?.planId, amount: oldAmount },
+        prorationType,
+      };
+
+      const updated = await this.subscriptionRepository.save(subscription);
+
+      await this.outbox.enqueueStandalone('subscription.downgraded', {
+        subscriptionId: updated.id,
+        userId: updated.userId,
+        oldAmount,
+        newAmount,
+        prorationType,
+        deferred: true,
+        effectiveAt: subscription.currentPeriodEnd,
+        planId: dto.planId,
+      });
+
+      this.logger.log(
+        `Subscription ${subscriptionId} downgrade deferred to ${subscription.currentPeriodEnd.toISOString()} ` +
+          `(new plan: ${dto.planId}, prorationType: none)`,
+      );
+
+      return updated;
+    }
+
+    // 'credit' (or any other value) — issue the prorated credit immediately
+    // and apply the lower plan now.
     const daysRemaining = this.calculateDaysRemaining(subscription.currentPeriodEnd);
     const totalDaysInPeriod = this.calculateDaysInPeriod(subscription.interval);
-    const proratedCharge = (newAmount * daysRemaining) / totalDaysInPeriod;
-    const oldProratedCharge = (oldAmount * daysRemaining) / totalDaysInPeriod;
-    const proratedCredit = oldProratedCharge - proratedCharge;
-    const prorationType = dto.prorationType || 'credit';
+    const oldProratedCharge = this.calculateProratedAmount(
+      oldAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const newProratedCharge = this.calculateProratedAmount(
+      newAmount,
+      daysRemaining,
+      totalDaysInPeriod,
+    );
+    const proratedCredit = subtract(oldProratedCharge, newProratedCharge);
 
-    // Update subscription
+    // Issue the credit BEFORE mutating the subscription (Issue #1007).
+    let creditId: string;
+    try {
+      const creditResult = await this.paymentProviderService.issueCredit(
+        subscription.userId,
+        proratedCredit,
+        subscription.currency,
+        {
+          subscriptionId,
+          oldPlanAmount: oldAmount,
+          newPlanId: dto.planId,
+          type: 'subscription_downgrade_proration',
+        },
+      );
+      creditId = creditResult.creditId;
+    } catch (err) {
+      // Credit issuance failed — subscription is NOT mutated.
+      this.logger.warn(
+        `Prorated credit issuance failed for subscription ${subscriptionId}: ${(err as Error).message}`,
+      );
+      throw new BadRequestException(
+        `Failed to issue prorated credit of ${proratedCredit} ${subscription.currency}: ${(err as Error).message}`,
+      );
+    }
+
+    // Credit confirmed — now apply the lower plan.
     subscription.amount = newAmount;
     subscription.interval = dto.billingCycle
       ? (dto.billingCycle as SubscriptionInterval)
@@ -236,24 +452,27 @@ export class SubscriptionsService {
       downgradedAt: new Date(),
       prorationType,
       proratedCredit,
-      proratedCharge,
+      // Record the provider credit ID for reconciliation (Issue #1007).
+      downgradeCreditId: creditId,
     };
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    // Emit event for payment/credit processing
-    this.eventEmitter.emit('subscription.downgraded', {
+    await this.outbox.enqueueStandalone('subscription.downgraded', {
       subscriptionId: updated.id,
       userId: updated.userId,
       oldAmount,
       newAmount,
       proratedCredit,
+      creditId,
       prorationType,
+      deferred: false,
       planId: dto.planId,
     });
 
     this.logger.log(
-      `Subscription ${subscriptionId} downgraded from $${oldAmount} to $${newAmount} (credit: $${proratedCredit})`,
+      `Subscription ${subscriptionId} downgraded from $${oldAmount} to $${newAmount} ` +
+        `(prorated credit: $${proratedCredit}, creditId: ${creditId})`,
     );
 
     return updated;
@@ -277,7 +496,7 @@ export class SubscriptionsService {
 
     const updated = await this.subscriptionRepository.save(subscription);
 
-    this.eventEmitter.emit('subscription.cancelled', {
+    await this.outbox.enqueueStandalone('subscription.cancelled', {
       subscriptionId: updated.id,
       userId: updated.userId,
     });
@@ -291,6 +510,12 @@ export class SubscriptionsService {
    */
   async processRenewal(subscriptionId: string, maxRetries = 3): Promise<boolean> {
     const subscription = await this.getSubscription(subscriptionId);
+
+    // Skip paused subscriptions - they should not be renewed
+    if (subscription.status === SubscriptionStatus.PAUSED) {
+      this.logger.log(`Skipping renewal for paused subscription ${subscriptionId}`);
+      return false;
+    }
 
     if (
       subscription.status !== SubscriptionStatus.ACTIVE &&
@@ -308,8 +533,7 @@ export class SubscriptionsService {
           `Attempting renewal for subscription ${subscriptionId} (attempt ${attempt}/${maxRetries})`,
         );
 
-        // Emit event for payment processor to handle
-        this.eventEmitter.emit('subscription.renewal_attempt', {
+        await this.outbox.enqueueStandalone('subscription.renewal_attempt', {
           subscriptionId,
           userId: subscription.userId,
           amount: subscription.amount,
@@ -330,7 +554,7 @@ export class SubscriptionsService {
 
         await this.subscriptionRepository.save(subscription);
 
-        this.eventEmitter.emit('subscription.renewed', {
+        await this.outbox.enqueueStandalone('subscription.renewed', {
           subscriptionId: subscription.id,
           userId: subscription.userId,
         });
@@ -345,7 +569,6 @@ export class SubscriptionsService {
         );
 
         if (attempt === maxRetries) {
-          // Mark as past due after all retries exhausted
           subscription.status = SubscriptionStatus.PAST_DUE;
           subscription.properties = {
             ...subscription.properties,
@@ -355,7 +578,7 @@ export class SubscriptionsService {
 
           await this.subscriptionRepository.save(subscription);
 
-          this.eventEmitter.emit('subscription.renewal_failed', {
+          await this.outbox.enqueueStandalone('subscription.renewal_failed', {
             subscriptionId: subscription.id,
             userId: subscription.userId,
             attempts: maxRetries,
@@ -365,7 +588,6 @@ export class SubscriptionsService {
           return false;
         }
 
-        // Exponential backoff before next attempt
         const backoffMs = Math.pow(2, attempt - 1) * 1000;
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
@@ -387,9 +609,12 @@ export class SubscriptionsService {
     }, delayMs);
   }
 
+  // ---------------------------------------------------------------------------
   // Helper methods
+  // ---------------------------------------------------------------------------
+
   private async getNewPlanAmount(planId: string, billingCycle?: string): Promise<number> {
-    // For now, use an in-app plan price map; replace with a plan service or database lookup when available.
+    // Static plan price map — replace with a PlanService / DB lookup when available.
     const planPrices: Record<string, number> = {
       'plan-basic': 9.99,
       'plan-pro': 19.99,
@@ -402,11 +627,11 @@ export class SubscriptionsService {
     }
 
     if (billingCycle === SubscriptionInterval.YEARLY) {
-      amount = Number((amount * 10).toFixed(2));
+      amount = multiply(amount, 10);
     } else if (billingCycle === SubscriptionInterval.QUARTERLY) {
-      amount = Number((amount * 2.75).toFixed(2));
+      amount = multiply(amount, 2.75);
     } else if (billingCycle === SubscriptionInterval.WEEKLY) {
-      amount = Number((amount / 4).toFixed(2));
+      amount = roundToCents(new Decimal(amount).div(4));
     }
 
     return amount;
@@ -416,6 +641,14 @@ export class SubscriptionsService {
     const now = new Date();
     const diffMs = endDate.getTime() - now.getTime();
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  private calculateProratedAmount(
+    amount: number,
+    daysRemaining: number,
+    totalDaysInPeriod: number,
+  ): number {
+    return roundToCents(new Decimal(amount).times(daysRemaining).div(totalDaysInPeriod));
   }
 
   private calculateDaysInPeriod(interval: SubscriptionInterval): number {
@@ -439,7 +672,6 @@ export class SubscriptionsService {
    * Legacy placeholder - for backward compatibility
    */
   async processSubscription(): Promise<unknown> {
-    // Logic to process subscription payments
     return { success: true };
   }
 }

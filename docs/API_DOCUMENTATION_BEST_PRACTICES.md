@@ -20,12 +20,12 @@ import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('courses')
-@ApiTags('Courses')  // Group endpoints in documentation
+@ApiTags('Courses') // Group endpoints in documentation
 export class CoursesController {
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'List all courses',
-    description: 'Retrieve a paginated list of all available courses'
+    description: 'Retrieve a paginated list of all available courses',
   })
   @ApiResponse({
     status: 200,
@@ -35,10 +35,10 @@ export class CoursesController {
         success: { type: 'boolean' },
         data: {
           type: 'array',
-          items: { $ref: '#/components/schemas/Course' }
-        }
-      }
-    }
+          items: { $ref: '#/components/schemas/Course' },
+        },
+      },
+    },
   })
   async listCourses() {
     return { success: true, data: [] };
@@ -50,7 +50,14 @@ export class CoursesController {
 
 ```typescript
 import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { CourseResponseDto } from './dto/course-response.dto';
@@ -63,7 +70,8 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Create a new course',
-    description: 'Create a new course with title, description, and pricing info. Requires authentication.',
+    description:
+      'Create a new course with title, description, and pricing info. Requires authentication.',
   })
   @ApiResponse({
     status: 201,
@@ -131,7 +139,7 @@ export class CoursesController {
         success: { type: 'boolean' },
         data: {
           type: 'array',
-          items: { $ref: '#/components/schemas/Course' }
+          items: { $ref: '#/components/schemas/Course' },
         },
         pagination: {
           type: 'object',
@@ -139,10 +147,10 @@ export class CoursesController {
             page: { type: 'number' },
             limit: { type: 'number' },
             total: { type: 'number' },
-          }
-        }
-      }
-    }
+          },
+        },
+      },
+    },
   })
   async listCourses(
     @Query('page') page: number = 1,
@@ -160,7 +168,16 @@ export class CoursesController {
 
 ```typescript
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, MaxLength, IsEnum, IsNumber, Min, IsUUID } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsEnum,
+  IsNumber,
+  Min,
+  IsUUID,
+} from 'class-validator';
 
 export enum CourseLevel {
   BEGINNER = 'beginner',
@@ -420,9 +437,7 @@ describe('API Documentation', () => {
     }).compile();
 
     const app = moduleRef.createNestApplication();
-    const config = new DocumentBuilder()
-      .setTitle('TeachLink API')
-      .build();
+    const config = new DocumentBuilder().setTitle('TeachLink API').build();
 
     const document = SwaggerModule.createDocument(app, config);
 

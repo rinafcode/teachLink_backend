@@ -10,6 +10,7 @@ import {
 import { Cohort } from './cohort.entity';
 
 @Entity('cohort_members')
+@Index(['cohortId', 'createdAt'])
 export class CohortMember {
   @PrimaryGeneratedColumn('uuid')
   id: string;

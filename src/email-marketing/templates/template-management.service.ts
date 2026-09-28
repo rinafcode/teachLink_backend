@@ -3,6 +3,7 @@ import { ResourceNotFoundException } from '../../common/exceptions/app.exception
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as Handlebars from 'handlebars';
+import sanitizeHtml from 'sanitize-html';
 import { EmailTemplate } from '../entities/email-template.entity';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
@@ -96,6 +97,34 @@ export class TemplateManagementService {
     });
     return this.templateRepository.save(duplicate);
   }
+  private sanitizeContext(context: Record<string, unknown>): Record<string, unknown> {
+    const sanitized: Record<string, unknown> = {};
+    const sanitizeOptions: any = {
+      allowedTags: [], // Disallow all HTML tags for most user input
+      allowedAttributes: {},
+    };
+
+    for (const [key, value] of Object.entries(context)) {
+      if (typeof value === 'string') {
+        // URLs are an exception - we need to allow them to work properly
+        if (key.includes('url') || key.includes('link') || key.includes('href')) {
+          sanitized[key] = sanitizeHtml(value, {
+            allowedTags: [],
+            allowedAttributes: {},
+            allowedSchemes: ['http', 'https', 'mailto'],
+          });
+        } else {
+          sanitized[key] = sanitizeHtml(value, sanitizeOptions);
+        }
+      } else if (value && typeof value === 'object') {
+        sanitized[key] = this.sanitizeContext(value as Record<string, unknown>);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+    return sanitized;
+  }
+
   /**
    * Render a template with variables
    */
@@ -108,13 +137,16 @@ export class TemplateManagementService {
     subject: string;
   }> {
     const template = await this.findOne(templateId);
+    const sanitizedVariables = this.sanitizeContext(variables);
     const htmlTemplate = Handlebars.compile(template.htmlContent);
     const subjectTemplate = Handlebars.compile(template.subject);
     const textTemplate = template.textContent ? Handlebars.compile(template.textContent) : null;
     return {
-      html: htmlTemplate(variables),
-      text: textTemplate ? textTemplate(variables) : this.stripHtml(htmlTemplate(variables)),
-      subject: subjectTemplate(variables),
+      html: htmlTemplate(sanitizedVariables),
+      text: textTemplate
+        ? textTemplate(sanitizedVariables)
+        : this.stripHtml(htmlTemplate(sanitizedVariables)),
+      subject: subjectTemplate(sanitizedVariables),
     };
   }
   /**

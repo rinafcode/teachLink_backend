@@ -6,6 +6,7 @@ module.exports = {
     '^.+\\.(t|j)s$': [
       'ts-jest',
       {
+        isolatedModules: true,
         tsconfig: {
           types: ['node', 'jest'],
           skipLibCheck: true,
@@ -73,6 +74,9 @@ module.exports = {
 
   // ─── Ignore patterns ───────────────────────────────────────────────────────
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/', '\\.integration\\.spec\\.ts$'],
+  transformIgnorePatterns: [
+    '[/\\\\]node_modules[/\\\\](?!(\\.pnpm|sanitize-html|htmlparser2|entities|dom-serializer|domelementtype|domhandler|domutils)[/\\\\])',
+  ],
 
   // ─── Output & lifecycle ────────────────────────────────────────────────────
   verbose: true,

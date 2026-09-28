@@ -12,6 +12,7 @@ import { Cohort } from './cohort.entity';
 import { CohortComment } from './cohort-comment.entity';
 
 @Entity('cohort_threads')
+@Index(['cohortId', 'createdAt'])
 export class CohortThread {
   @PrimaryGeneratedColumn('uuid')
   id: string;

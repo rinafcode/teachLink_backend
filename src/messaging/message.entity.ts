@@ -29,11 +29,11 @@ export class Message {
   readAt: Date | null;
 
   // Optional relations for convenience (may be lazy loaded)
-  @ManyToOne(() => User, { eager: false })
+  @ManyToOne(() => User, { eager: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'senderId' })
   sender: User;
 
-  @ManyToOne(() => User, { eager: false })
+  @ManyToOne(() => User, { eager: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'recipientId' })
   recipient: User;
 }

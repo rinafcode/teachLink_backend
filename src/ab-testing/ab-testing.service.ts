@@ -1,10 +1,11 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Experiment, ExperimentStatus, ExperimentType } from './entities/experiment.entity';
 import { IExperimentVariant } from './entities/experiment-variant.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
+// DTOs for creating experiments, variants, and metrics
 export interface ICreateExperimentDto {
   name: string;
   description: string;
@@ -25,6 +26,7 @@ export interface ICreateExperimentDto {
   templateName?: string;
 }
 
+// DTO for creating a variant
 export interface ICreateVariantDto {
   name: string;
   description: string;
@@ -113,6 +115,8 @@ export class ABTestingService {
     @InjectRepository(IExperimentVariant)
     private variantRepository: Repository<IExperimentVariant>,
     private eventEmitter: EventEmitter2,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -158,19 +162,25 @@ export class ABTestingService {
       templateUsed: createExperimentDto.templateName,
     };
 
-    const savedExperiment = await this.experimentRepository.save(experiment);
+    const savedExperiment = await this.dataSource.transaction(async (manager) => {
+      const experimentRepository = manager.getRepository(Experiment);
+      const variantRepository = manager.getRepository(IExperimentVariant);
 
-    const variants = createExperimentDto.variants.map((variantDto) => {
-      const variant = new IExperimentVariant();
-      variant.name = variantDto.name;
-      variant.description = variantDto.description;
-      variant.configuration = variantDto.configuration;
-      variant.isControl = variantDto.isControl;
-      variant.experiment = savedExperiment;
-      return variant;
+      const persistedExperiment = await experimentRepository.save(experiment);
+
+      const variants = createExperimentDto.variants.map((variantDto) => {
+        const variant = new IExperimentVariant();
+        variant.name = variantDto.name;
+        variant.description = variantDto.description;
+        variant.configuration = variantDto.configuration;
+        variant.isControl = variantDto.isControl;
+        variant.experiment = persistedExperiment;
+        return variant;
+      });
+
+      await variantRepository.save(variants);
+      return persistedExperiment;
     });
-
-    await this.variantRepository.save(variants);
 
     this.logger.log(`Experiment created successfully: ${savedExperiment.name}`);
     return savedExperiment;

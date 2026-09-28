@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { WorkerOrchestrationService } from '../orchestration/worker-orchestration.service';
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+import { getSharedRedisClient } from '../../config/cache.config';
 import { IWorkerHealthCheck, IWorkerMetrics } from '../interfaces/worker.interfaces';
 
 /**
@@ -7,11 +10,37 @@ import { IWorkerHealthCheck, IWorkerMetrics } from '../interfaces/worker.interfa
  * Monitors and manages worker pool health
  */
 @Injectable()
-export class WorkerHealthCheckService {
+export class WorkerHealthCheckService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WorkerHealthCheckService.name);
   private healthCheckInterval: NodeJS.Timeout;
+  private stallCheckInterval: NodeJS.Timeout;
+  private redis: Redis;
+  private readonly workerStallThreshold: number;
 
-  constructor(private readonly orchestrationService: WorkerOrchestrationService) {}
+  constructor(
+    private readonly orchestrationService: WorkerOrchestrationService,
+    private readonly configService: ConfigService,
+  ) {
+    this.redis = getSharedRedisClient(configService);
+    this.workerStallThreshold =
+      configService.get<number>('WORKER_STALL_THRESHOLD_SECONDS', 300) ?? 300;
+  }
+
+  /**
+   * On module init - start all checks
+   */
+  onModuleInit(): void {
+    this.startHealthChecks();
+    this.startStallDetector();
+  }
+
+  /**
+   * On module destroy - stop all checks
+   */
+  onModuleDestroy(): void {
+    this.stopHealthChecks();
+    this.stopStallDetector();
+  }
 
   /**
    * Start periodic health checks
@@ -27,6 +56,76 @@ export class WorkerHealthCheckService {
     }, intervalMs);
 
     this.logger.log(`Worker health checks started (interval: ${intervalMs}ms)`);
+  }
+
+  /**
+   * Start the stalled worker detector (checks every 60s)
+   */
+  startStallDetector(intervalMs: number = 60000): void {
+    if (this.stallCheckInterval) {
+      this.logger.warn('Stall detector already running');
+      return;
+    }
+
+    this.stallCheckInterval = setInterval(async () => {
+      await this.checkStalledWorkers();
+    }, intervalMs);
+
+    this.logger.log(
+      `Worker stall detector started (interval: ${intervalMs}ms, stall threshold: ${this.workerStallThreshold}s)`,
+    );
+  }
+
+  /**
+   * Stop the stalled worker detector
+   */
+  stopStallDetector(): void {
+    if (this.stallCheckInterval) {
+      clearInterval(this.stallCheckInterval);
+      this.stallCheckInterval = null;
+      this.logger.log('Worker stall detector stopped');
+    }
+  }
+
+  /**
+   * Check all workers for stalled heartbeats
+   */
+  async checkStalledWorkers(): Promise<void> {
+    try {
+      const activeWorkers = this.orchestrationService.getActiveWorkers();
+      const now = Date.now();
+      const stallThresholdMs = this.workerStallThreshold * 1000;
+
+      for (const worker of activeWorkers) {
+        const workerId = worker.getId();
+        const heartbeatKey = `worker:heartbeat:${workerId}`;
+        const lastHeartbeatStr = await this.redis.get(heartbeatKey);
+
+        if (!lastHeartbeatStr) {
+          // If no heartbeat found, check if worker has been active recently
+          const lastActivity = worker.getMetrics().lastUpdate.getTime();
+          if (now - lastActivity > stallThresholdMs) {
+            this.logger.warn(
+              `Worker ${workerId} has no heartbeat and exceeded stall threshold, restarting...`,
+            );
+            await this.orchestrationService.restartWorker(workerId);
+          }
+          continue;
+        }
+
+        const lastHeartbeat = parseInt(lastHeartbeatStr, 10);
+        if (isNaN(lastHeartbeat)) continue;
+
+        if (now - lastHeartbeat > stallThresholdMs) {
+          this.logger.warn(
+            `Worker ${workerId} heartbeat is stale (last heartbeat: ${new Date(lastHeartbeat).toISOString()}), restarting...`,
+          );
+          await this.orchestrationService.restartWorker(workerId);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Failed to check for stalled workers:', error);
+    }
   }
 
   /**

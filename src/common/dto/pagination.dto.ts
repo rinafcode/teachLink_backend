@@ -52,6 +52,19 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ description: 'Opaque cursor token for cursor-based pagination' })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @ApiPropertyOptional({ description: 'Item offset count for offset-based pagination', minimum: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsNumber()
+  offset?: number;
 }
 
 export class CursorPaginationQueryDto {

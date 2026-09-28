@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Cohort } from './entities/cohort.entity';
 import { CohortMember } from './entities/cohort-member.entity';
 import { CohortThread } from './entities/cohort-thread.entity';
@@ -16,6 +16,9 @@ import { AddCohortMemberDto } from './dto/add-cohort-member.dto';
 import { CreateCohortThreadDto } from './dto/create-cohort-thread.dto';
 import { CreateCohortCommentDto } from './dto/create-cohort-comment.dto';
 import { CreateCohortAssignmentDto } from './dto/create-cohort-assignment.dto';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { buildOffsetResponse, clampLimit } from '../common/utils/pagination.utils';
 
 @Injectable()
 export class CohortsService {
@@ -30,32 +33,49 @@ export class CohortsService {
     private readonly commentRepo: Repository<CohortComment>,
     @InjectRepository(CohortAssignment)
     private readonly assignmentRepo: Repository<CohortAssignment>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createCohort(dto: CreateCohortDto, ownerId: string): Promise<Cohort> {
-    const cohort = this.cohortRepo.create({
-      name: dto.name,
-      description: dto.description,
-      ownerId,
-    });
+    // The cohort and its owner membership are one logical operation: if the
+    // owner-member write fails, the cohort must not survive as an orphan that
+    // rejects everyone (issue #1344).
+    return this.dataSource.transaction(async (manager) => {
+      const cohortRepo = manager.getRepository(Cohort);
+      const memberRepo = manager.getRepository(CohortMember);
 
-    const saved = await this.cohortRepo.save(cohort);
-    const ownerMembership = this.memberRepo.create({
-      cohortId: saved.id,
-      userId: ownerId,
-      role: 'owner',
-    });
+      const cohort = cohortRepo.create({
+        name: dto.name,
+        description: dto.description,
+        ownerId,
+      });
 
-    await this.memberRepo.save(ownerMembership);
-    return saved;
+      const saved = await cohortRepo.save(cohort);
+      const ownerMembership = memberRepo.create({
+        cohortId: saved.id,
+        userId: ownerId,
+        role: 'owner',
+      });
+
+      await memberRepo.save(ownerMembership);
+      return saved;
+    });
   }
 
-  async getCohorts(userId: string): Promise<Cohort[]> {
-    return this.cohortRepo
+  async getCohorts(
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<Cohort>> {
+    const page = query?.page ?? 1;
+    const limit = clampLimit(query?.limit);
+    const [data, total] = await this.cohortRepo
       .createQueryBuilder('cohort')
       .innerJoin('cohort.members', 'member', 'member.userId = :userId', { userId })
       .orderBy('cohort.createdAt', 'DESC')
-      .getMany();
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async getCohort(cohortId: string, userId: string): Promise<Cohort> {
@@ -106,9 +126,23 @@ export class CohortsService {
     await this.memberRepo.remove(membership);
   }
 
-  async listMembers(cohortId: string, userId: string): Promise<CohortMember[]> {
+  async listMembers(
+    cohortId: string,
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<CohortMember>> {
     await this.requireMembership(cohortId, userId);
-    return this.memberRepo.find({ where: { cohortId }, order: { createdAt: 'ASC' } });
+    const limit = clampLimit(query?.limit);
+    const page = query?.page ?? 1;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.memberRepo.findAndCount({
+      where: { cohortId },
+      order: { createdAt: 'ASC' },
+      skip,
+      take: limit,
+    });
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async createThread(
@@ -127,12 +161,23 @@ export class CohortsService {
     return this.threadRepo.save(thread);
   }
 
-  async listThreads(cohortId: string, userId: string): Promise<CohortThread[]> {
+  async listThreads(
+    cohortId: string,
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<CohortThread>> {
     await this.requireMembership(cohortId, userId);
-    return this.threadRepo.find({
+    const limit = clampLimit(query?.limit);
+    const page = query?.page ?? 1;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.threadRepo.findAndCount({
       where: { cohortId },
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async getThread(threadId: string, userId: string): Promise<CohortThread> {
@@ -189,9 +234,23 @@ export class CohortsService {
     return this.assignmentRepo.save(assignment);
   }
 
-  async listAssignments(cohortId: string, userId: string): Promise<CohortAssignment[]> {
+  async listAssignments(
+    cohortId: string,
+    userId: string,
+    query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<CohortAssignment>> {
     await this.requireMembership(cohortId, userId);
-    return this.assignmentRepo.find({ where: { cohortId }, order: { createdAt: 'DESC' } });
+    const limit = clampLimit(query?.limit);
+    const page = query?.page ?? 1;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.assignmentRepo.findAndCount({
+      where: { cohortId },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+    return buildOffsetResponse(data, total, page, limit);
   }
 
   async getAssignment(

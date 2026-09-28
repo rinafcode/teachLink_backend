@@ -9,6 +9,7 @@ This document describes the request timeout handling system implemented for the 
 ### Default Timeout
 
 The default request timeout is set to **30 seconds (30000ms)** globally for all endpoints. This can be found in:
+
 - [src/common/interceptors/request-timeout.interceptor.ts](../../src/common/interceptors/request-timeout.interceptor.ts#L17)
 
 ### Per-Endpoint Configuration
@@ -81,7 +82,7 @@ The timeout interceptor (`RequestTimeoutInterceptor`):
 1. **Reads configuration**: Checks for `@UseRequestTimeout()` decorator on the handler
 2. **Sets timeout**: Uses decorator value or falls back to 30s default
 3. **Monitors execution**: Wraps the observable with RxJS `timeout()` operator
-4. **Handles timeout**: 
+4. **Handles timeout**:
    - Increments timeout counter metric
    - Records request duration metric
    - Returns 504 error response with correlation ID
@@ -90,6 +91,7 @@ The timeout interceptor (`RequestTimeoutInterceptor`):
 ### Metrics Recording
 
 When a timeout occurs:
+
 - `http_request_timeouts_total` counter incremented for the route
 - `http_request_duration_seconds` histogram records the elapsed time with 504 status
 

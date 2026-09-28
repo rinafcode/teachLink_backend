@@ -18,9 +18,14 @@ export interface IUploadValidationFileLike {
 export interface IUploadFilterCallback {
   (error: Error | null, acceptFile: boolean): void;
 }
+const fileUploadMaxBytes = parseInt(
+  process.env.FILE_UPLOAD_MAX_BYTES || `${MAX_UPLOAD_FILE_SIZE}`,
+  10,
+);
+
 export const MEDIA_UPLOAD_INTERCEPTOR_OPTIONS = {
   limits: {
-    fileSize: MAX_UPLOAD_FILE_SIZE,
+    fileSize: fileUploadMaxBytes,
     files: 1,
   },
   fileFilter: (
@@ -52,6 +57,6 @@ export function buildUploadValidationDetails() {
   return {
     allowedTypes: ALL_ALLOWED_FILE_TYPES,
     sizeLimits: FILE_SIZE_LIMITS,
-    maxUploadSize: MAX_UPLOAD_FILE_SIZE,
+    maxUploadSize: fileUploadMaxBytes,
   };
 }

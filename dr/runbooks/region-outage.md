@@ -2,11 +2,11 @@
 
 ## Quick Reference
 
-| Metric | Value |
-|--------|-------|
-| **Alert**: | AWS_REGION_OUTAGE or ALL_SERVICES_UNREACHABLE |
-| **RTO**: | ≤ 15 minutes to failover region |
-| **RPO**: | ≤ 7 days (latest backup) |
+| Metric          | Value                                              |
+| --------------- | -------------------------------------------------- |
+| **Alert**:      | AWS_REGION_OUTAGE or ALL_SERVICES_UNREACHABLE      |
+| **RTO**:        | ≤ 15 minutes to failover region                    |
+| **RPO**:        | ≤ 7 days (latest backup)                           |
 | **Escalation**: | On-call Engineer → Platform Lead → CTO (immediate) |
 
 ---
@@ -16,6 +16,7 @@
 ### Symptom 1: All Services Unreachable
 
 **Observable Indicators**:
+
 ```
 curl https://api.teachlink.local → Connection timeout (after 30s)
 curl https://app.teachlink.local → Connection timeout
@@ -24,6 +25,7 @@ No response to any region
 ```
 
 **Root Causes (in order of likelihood)**:
+
 1. AWS region us-east-1 complete power outage
 2. Network partition between region and internet
 3. All availability zones (AZs) in us-east-1 down
@@ -34,7 +36,7 @@ No response to any region
 
 ```
 Check: https://status.aws.amazon.com/
-Look for: 
+Look for:
   ❌ us-east-1 showing "Service Degradation" or "Service Disruption"
   ❌ Multiple AWS services affected (EC2, RDS, S3, etc.)
   ❌ No ETA provided or ETA > 2 hours
@@ -43,6 +45,7 @@ Look for:
 ### Symptom 3: Alerts in Monitoring
 
 **PagerDuty alerts that trigger this runbook**:
+
 - `AWS_REGION_OUTAGE` (CRITICAL, auto-acknowledged)
 - `ALL_SERVICES_UNREACHABLE` (CRITICAL)
 - `ROUTE_53_FAILOVER_TRIGGERED` (CRITICAL)
@@ -65,6 +68,7 @@ curl -s https://status.aws.amazon.com/index.json | \
 ```
 
 **Expected output on outage**:
+
 ```json
 {
   "title": "AWS Region us-east-1 service disruption",
@@ -224,7 +228,7 @@ watch -n 5 "curl -s http://api.teachlink.local/health | jq '.status'"
 
 # Expected progression:
 # T+0s:   DNS still points to us-east-1 (no response)
-# T+30s:  pods starting to stand up in us-west-2 
+# T+30s:  pods starting to stand up in us-west-2
 # T+60s:  initial pods healthy, but limited capacity
 # T+120s: all pods healthy
 # T+150s: DNS updated to us-west-2
@@ -353,13 +357,13 @@ curl -s https://api.teachlink.local/admin/data-integrity-check \
 
 ### Stakeholder Updates
 
-| Time | Audience | Message | Channel |
-|------|----------|---------|---------|
-| T+0 (outage detected) | Internal | AWS us-east-1 outage detected, failover initiated | #incidents |
-| T+2 min | Customers | Service disrupted; activating backup region | statuspage.io |
-| T+10 min | Customers | Service failover in progress; most users can connect | statuspage.io |
-| T+15 min | All | Service restored in us-west-2; degraded latency expected | statuspage.io + social |
-| T+2 hrs | All | Incident summary + RCA timeline | statuspage.io + email |
+| Time                  | Audience  | Message                                                  | Channel                |
+| --------------------- | --------- | -------------------------------------------------------- | ---------------------- |
+| T+0 (outage detected) | Internal  | AWS us-east-1 outage detected, failover initiated        | #incidents             |
+| T+2 min               | Customers | Service disrupted; activating backup region              | statuspage.io          |
+| T+10 min              | Customers | Service failover in progress; most users can connect     | statuspage.io          |
+| T+15 min              | All       | Service restored in us-west-2; degraded latency expected | statuspage.io + social |
+| T+2 hrs               | All       | Incident summary + RCA timeline                          | statuspage.io + email  |
 
 ### Status Page Update
 
@@ -500,6 +504,7 @@ aws rds delete-db-instance \
 ### Troubleshooting: RDS Restore Slow (> 8 minutes)
 
 **Symptoms**:
+
 ```
 Database restoration in progress for 10+ minutes
 Restore status shows "80% complete" after 5 minutes
@@ -508,6 +513,7 @@ Restore status shows "80% complete" after 5 minutes
 **Solutions** (in order):
 
 1. **Check database restore logs**
+
 ```bash
 aws rds describe-event-subscriptions \
   --region us-west-2 | jq '.EventSubscriptionsList[0]'
@@ -516,6 +522,7 @@ aws rds describe-event-subscriptions \
 ```
 
 2. **If restore > 12 minutes**: Skip to data-corruption runbook
+
 ```
 Consider: Is 7-day old backup acceptable, or do we need more recent data?
 ```
@@ -523,6 +530,7 @@ Consider: Is 7-day old backup acceptable, or do we need more recent data?
 ### Troubleshooting: DNS Not Updating
 
 **Symptoms**:
+
 ```
 DNS still resolves to us-east-1 after 5 minutes
 Route 53 change confirmed, but dig shows old IP
@@ -531,6 +539,7 @@ Route 53 change confirmed, but dig shows old IP
 **Solutions**:
 
 1. Force DNS cache clear on client:
+
 ```bash
 # On local machine
 sudo dscacheutil -flushcache  # macOS
@@ -538,12 +547,14 @@ sudo systemctl restart systemd-resolved  # Linux
 ```
 
 2. Manually update dev/test machines:
+
 ```bash
 # Update /etc/hosts temporarily
 echo "10.1.1.5  api.teachlink.local" >> /etc/hosts
 ```
 
 3. If Route 53 not updating:
+
 ```bash
 # Verify change was applied
 aws route53 list-resource-record-sets \
@@ -557,12 +568,14 @@ aws route53 list-resource-record-sets \
 ### Troubleshooting: Partial Service Restoration
 
 **Symptoms**:
+
 ```
 API responds, but database queries fail
 Some services reachable in us-west-2, others timeout
 ```
 
 **Diagnosis**:
+
 ```bash
 # Check which pods are running
 kubectl get pods -n production -o wide --context=us-west-2
@@ -575,6 +588,7 @@ kubectl logs -n production --all-containers=true | grep -i error
 ```
 
 **Resolution**:
+
 ```bash
 # Scale pods to 0, then back to 10
 kubectl scale deployment api -n production --replicas 0
@@ -591,12 +605,12 @@ kubectl rollout restart deployment/api -n production
 
 ### When to Escalate (Triggers)
 
-| Condition | Action | Contact |
-|-----------|--------|---------|
-| RTO exceeded (> 15 min) | Immediate executive escalation | CTO, VP Eng |
-| Failover script fails | Manual intervention required | Page 3+ senior engineers |
-| Both regions unreachable | Enterprise-level issue | AWS Enterprise Support |
-| Data integrity issues post-failover | Critical data loss risk | CTO + legal |
+| Condition                           | Action                         | Contact                  |
+| ----------------------------------- | ------------------------------ | ------------------------ |
+| RTO exceeded (> 15 min)             | Immediate executive escalation | CTO, VP Eng              |
+| Failover script fails               | Manual intervention required   | Page 3+ senior engineers |
+| Both regions unreachable            | Enterprise-level issue         | AWS Enterprise Support   |
+| Data integrity issues post-failover | Critical data loss risk        | CTO + legal              |
 
 ### Emergency Contacts
 

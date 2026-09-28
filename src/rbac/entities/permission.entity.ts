@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
+  Index,
 } from 'typeorm';
 import { Role } from './role.entity';
 
@@ -30,6 +31,7 @@ export class Permission {
   roles: Role[];
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @UpdateDateColumn()

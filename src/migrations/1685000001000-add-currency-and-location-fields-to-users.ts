@@ -15,7 +15,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
     // Add country field
     if (!table.findColumnByName('country')) {
       await queryRunner.addColumn(
-        'users',
+        table,
         new TableColumn({
           name: 'country',
           type: 'varchar',
@@ -27,7 +27,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
     // Add countryCode field
     if (!table.findColumnByName('country_code')) {
       await queryRunner.addColumn(
-        'users',
+        table,
         new TableColumn({
           name: 'country_code',
           type: 'varchar',
@@ -37,7 +37,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
       );
       // Add index
       await queryRunner.createIndex(
-        'users',
+        table,
         new TableIndex({
           columnNames: ['country_code'],
           name: 'IDX_users_country_code',
@@ -48,7 +48,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
     // Add timezone field
     if (!table.findColumnByName('timezone')) {
       await queryRunner.addColumn(
-        'users',
+        table,
         new TableColumn({
           name: 'timezone',
           type: 'varchar',
@@ -60,7 +60,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
     // Add city field
     if (!table.findColumnByName('city')) {
       await queryRunner.addColumn(
-        'users',
+        table,
         new TableColumn({
           name: 'city',
           type: 'varchar',
@@ -72,7 +72,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
     // Add preferredCurrency field
     if (!table.findColumnByName('preferred_currency')) {
       await queryRunner.addColumn(
-        'users',
+        table,
         new TableColumn({
           name: 'preferred_currency',
           type: 'varchar',
@@ -83,7 +83,7 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
       );
       // Add index
       await queryRunner.createIndex(
-        'users',
+        table,
         new TableIndex({
           columnNames: ['preferred_currency'],
           name: 'IDX_users_preferred_currency',
@@ -102,35 +102,35 @@ export class AddCurrencyAndLocationFieldsToUsers1685000001000 implements Migrati
     // Drop indices first
     const countryCodeIndex = table.indices.find((i) => i.name === 'IDX_users_country_code');
     if (countryCodeIndex) {
-      await queryRunner.dropIndex('users', countryCodeIndex);
+      await queryRunner.dropIndex(table, countryCodeIndex);
     }
 
     const preferredCurrencyIndex = table.indices.find(
       (i) => i.name === 'IDX_users_preferred_currency',
     );
     if (preferredCurrencyIndex) {
-      await queryRunner.dropIndex('users', preferredCurrencyIndex);
+      await queryRunner.dropIndex(table, preferredCurrencyIndex);
     }
 
     // Drop columns
     if (table.findColumnByName('country')) {
-      await queryRunner.dropColumn('users', 'country');
+      await queryRunner.dropColumn(table, 'country');
     }
 
     if (table.findColumnByName('country_code')) {
-      await queryRunner.dropColumn('users', 'country_code');
+      await queryRunner.dropColumn(table, 'country_code');
     }
 
     if (table.findColumnByName('timezone')) {
-      await queryRunner.dropColumn('users', 'timezone');
+      await queryRunner.dropColumn(table, 'timezone');
     }
 
     if (table.findColumnByName('city')) {
-      await queryRunner.dropColumn('users', 'city');
+      await queryRunner.dropColumn(table, 'city');
     }
 
     if (table.findColumnByName('preferred_currency')) {
-      await queryRunner.dropColumn('users', 'preferred_currency');
+      await queryRunner.dropColumn(table, 'preferred_currency');
     }
   }
 }

@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { ResourceNotFoundException } from '../../common/exceptions/app.exceptions';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantCustomization } from '../entities/tenant-customization.entity';
 import { UpdateTenantCustomizationDto } from '../dto/tenant.dto';
+import * as crypto from 'crypto';
+import * as dns from 'dns';
 
 /**
  * Provides customization operations.
@@ -103,21 +105,82 @@ export class CustomizationService {
     };
     return await this.customizationRepository.save(customization);
   }
+  private readonly DOMAIN_REGEX =
+    /^(?![.-])(?!.*--)[a-zA-Z0-9-]{1,63}(?:\.[a-zA-Z0-9-]{1,63})*\.[a-zA-Z]{2,}$/;
+  private readonly BLOCKED_SUFFIXES = ['.local', '.localhost', '.internal', '.example'];
+
+  private validateDomain(domain: string): void {
+    if (!domain || typeof domain !== 'string') {
+      throw new BadRequestException('Domain must be a non-empty string');
+    }
+    const trimmed = domain.toLowerCase().trim();
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(trimmed)) {
+      throw new BadRequestException('IP literals are not allowed as custom domains');
+    }
+    if (trimmed.startsWith('localhost') || this.BLOCKED_SUFFIXES.some((s) => trimmed.endsWith(s))) {
+      throw new BadRequestException('Localhost and internal suffixes are not allowed');
+    }
+    if (!this.DOMAIN_REGEX.test(trimmed)) {
+      throw new BadRequestException('Domain must be a valid hostname');
+    }
+  }
+
   /**
    * Set custom domain
    */
   async setCustomDomain(tenantId: string, domain: string): Promise<TenantCustomization> {
+    this.validateDomain(domain);
+    const normalized = domain.toLowerCase().trim();
+
+    const existing = await this.customizationRepository.findOne({
+      where: { customDomain: normalized },
+    });
+    if (existing && existing.tenantId !== tenantId) {
+      throw new ConflictException('This domain is already claimed by another tenant');
+    }
+
     const customization = await this.getCustomization(tenantId);
-    customization.customDomain = domain;
+    const token = crypto.randomBytes(32).toString('hex');
+    customization.customDomain = normalized;
     customization.customDomainVerified = false;
+    customization.domainVerificationToken = token;
     return await this.customizationRepository.save(customization);
   }
+
   /**
    * Verify custom domain
    */
   async verifyCustomDomain(tenantId: string): Promise<TenantCustomization> {
     const customization = await this.getCustomization(tenantId);
-    // TODO: Implement actual domain verification logic
+    if (!customization.customDomain) {
+      throw new BadRequestException('No custom domain has been set');
+    }
+    if (!customization.domainVerificationToken) {
+      throw new BadRequestException('No verification token found. Re-set the custom domain.');
+    }
+
+    const domain = customization.customDomain;
+    const expectedPrefix = '_teachlink-verify';
+    const fqdn = `${expectedPrefix}.${domain}`;
+
+    let records: string[][];
+    try {
+      records = await dns.promises.resolveTxt(fqdn);
+    } catch {
+      throw new BadRequestException(
+        `Could not resolve TXT record at ${fqdn}. Ensure the DNS record is published and propagated.`,
+      );
+    }
+
+    const token = customization.domainVerificationToken;
+    const matched = records.some((recordSet) => recordSet.some((entry) => entry.trim() === token));
+
+    if (!matched) {
+      throw new BadRequestException(
+        `TXT record at ${fqdn} does not match the expected verification token.`,
+      );
+    }
+
     customization.customDomainVerified = true;
     return await this.customizationRepository.save(customization);
   }

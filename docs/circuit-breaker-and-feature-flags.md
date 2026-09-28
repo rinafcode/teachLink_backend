@@ -3,6 +3,7 @@
 ## Overview
 
 This document describes the implementation of two critical reliability and flexibility features:
+
 1. **Circuit Breaker Pattern** (Issue #390)
 2. **Feature Toggle System** (Issue #391)
 
@@ -13,23 +14,27 @@ This document describes the implementation of two critical reliability and flexi
 ### Features Implemented
 
 ✅ **Enhanced Circuit Breaker with Opossum**
+
 - Production-ready circuit breaker using the opossum library
 - Three states: CLOSED (normal), OPEN (failing), HALF_OPEN (testing recovery)
 - Configurable thresholds and timeouts
 - Automatic fallback handling
 
 ✅ **Circuit Breaker Decorator & Interceptor**
+
 - Easy-to-use `@UseCircuitBreaker()` decorator
 - Per-endpoint configuration
 - Automatic fallback function support
 
 ✅ **Health Monitoring & Metrics**
+
 - Real-time circuit breaker statistics
 - Health status endpoint
 - Admin API for manual control (reset, enable, disable)
 - Error rate tracking
 
 ✅ **Fallback Handlers**
+
 - Graceful degradation when services fail
 - Custom fallback functions per endpoint
 - Default fallback responses
@@ -107,14 +112,14 @@ async processPayment(@Body() paymentDto: PaymentDto) {
 
 All endpoints require **ADMIN** role and JWT authentication.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/circuit-breakers` | Get all circuit breaker statistics |
-| GET | `/circuit-breakers/health` | Get overall health status |
-| GET | `/circuit-breakers/:key` | Get specific circuit breaker stats |
-| POST | `/circuit-breakers/:key/reset` | Reset a circuit breaker |
-| POST | `/circuit-breakers/:key/disable` | Disable a circuit breaker |
-| POST | `/circuit-breakers/:key/enable` | Enable a circuit breaker |
+| Method | Endpoint                         | Description                        |
+| ------ | -------------------------------- | ---------------------------------- |
+| GET    | `/circuit-breakers`              | Get all circuit breaker statistics |
+| GET    | `/circuit-breakers/health`       | Get overall health status          |
+| GET    | `/circuit-breakers/:key`         | Get specific circuit breaker stats |
+| POST   | `/circuit-breakers/:key/reset`   | Reset a circuit breaker            |
+| POST   | `/circuit-breakers/:key/disable` | Disable a circuit breaker          |
+| POST   | `/circuit-breakers/:key/enable`  | Enable a circuit breaker           |
 
 ### Circuit Breaker States
 
@@ -149,23 +154,27 @@ All endpoints require **ADMIN** role and JWT authentication.
 ### Features Implemented
 
 ✅ **Dynamic Feature Flag Configuration**
+
 - Runtime feature evaluation
 - Boolean, string, number, and JSON flag types
 - Per-flag configuration and metadata
 
 ✅ **Advanced Targeting & Rollout**
+
 - User-specific targeting rules
 - Gradual rollout percentages
 - A/B testing integration
 - Prerequisite flag support
 
 ✅ **Admin API**
+
 - CRUD operations for feature flags
 - Enable/disable flags instantly
 - Evaluate flags for specific users
 - Bulk evaluation for all flags
 
 ✅ **Analytics & Tracking**
+
 - Flag evaluation tracking
 - Impression tracking for experiments
 - Performance metrics
@@ -214,19 +223,17 @@ import { FlagEvaluationService } from './feature-flags/evaluation/flag-evaluatio
 
 @Injectable()
 export class CheckoutService {
-  constructor(
-    private readonly flagService: FlagEvaluationService,
-  ) {}
+  constructor(private readonly flagService: FlagEvaluationService) {}
 
   async getCheckoutFlow(userId: string) {
     const userContext = {
       userId,
       email: 'user@example.com',
-      attributes: { plan: 'premium' }
+      attributes: { plan: 'premium' },
     };
 
     const result = this.flagService.evaluate('new-checkout-flow', userContext);
-    
+
     if (result.value === true) {
       return this.newCheckoutFlow();
     }
@@ -244,7 +251,7 @@ const isEnabled = this.flagService.evaluateBoolean('new-feature', userContext);
 // String evaluation
 const theme = this.flagService.evaluateString('ui-theme', userContext, 'light');
 
-// Number evaluation  
+// Number evaluation
 const maxItems = this.flagService.evaluateNumber('page-size', userContext, 10);
 ```
 
@@ -252,22 +259,22 @@ const maxItems = this.flagService.evaluateNumber('page-size', userContext, 10);
 
 #### Admin Endpoints (Require ADMIN role)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/feature-flags` | Get all feature flags |
-| GET | `/feature-flags/:key` | Get specific flag |
-| POST | `/feature-flags` | Create new flag |
-| PUT | `/feature-flags/:key` | Update flag |
-| DELETE | `/feature-flags/:key` | Delete flag |
-| POST | `/feature-flags/:key/enable` | Enable flag |
-| POST | `/feature-flags/:key/disable` | Disable flag |
+| Method | Endpoint                      | Description           |
+| ------ | ----------------------------- | --------------------- |
+| GET    | `/feature-flags`              | Get all feature flags |
+| GET    | `/feature-flags/:key`         | Get specific flag     |
+| POST   | `/feature-flags`              | Create new flag       |
+| PUT    | `/feature-flags/:key`         | Update flag           |
+| DELETE | `/feature-flags/:key`         | Delete flag           |
+| POST   | `/feature-flags/:key/enable`  | Enable flag           |
+| POST   | `/feature-flags/:key/disable` | Disable flag          |
 
 #### Public Endpoints (Authenticated users)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/feature-flags/evaluate?key=xxx` | Evaluate single flag |
-| POST | `/feature-flags/evaluate-all` | Evaluate all flags |
+| Method | Endpoint                          | Description          |
+| ------ | --------------------------------- | -------------------- |
+| POST   | `/feature-flags/evaluate?key=xxx` | Evaluate single flag |
+| POST   | `/feature-flags/evaluate-all`     | Evaluate all flags   |
 
 ### Flag Configuration Structure
 
@@ -286,7 +293,7 @@ const maxItems = this.flagService.evaluateNumber('page-size', userContext, 10);
   defaultValue: false,
   defaultVariationKey: "on",
   offVariationKey: "off",
-  
+
   // Optional: Targeting rules
   targeting: {
     rules: [
@@ -298,13 +305,13 @@ const maxItems = this.flagService.evaluateNumber('page-size', userContext, 10);
       }
     ]
   },
-  
+
   // Optional: Gradual rollout
   rollout: {
     percentage: 50,  // 50% of users
     variationKey: "on"
   },
-  
+
   // Optional: A/B test
   experiment: {
     id: "exp_123",
@@ -332,6 +339,7 @@ const maxItems = this.flagService.evaluateNumber('page-size', userContext, 10);
 ### Recommended Services to Protect
 
 1. **Payment Gateway** (Stripe)
+
 ```typescript
 @Post('charge')
 @UseCircuitBreaker({
@@ -345,6 +353,7 @@ async chargeCard() { ... }
 ```
 
 2. **Email Service** (SendGrid/SMTP)
+
 ```typescript
 @Post('send-email')
 @UseCircuitBreaker({
@@ -358,6 +367,7 @@ async sendEmail() { ... }
 ```
 
 3. **AWS S3**
+
 ```typescript
 @Post('upload')
 @UseCircuitBreaker({
@@ -370,6 +380,7 @@ async uploadFile() { ... }
 ```
 
 4. **Elasticsearch**
+
 ```typescript
 @Get('search')
 @UseCircuitBreaker({
@@ -449,17 +460,20 @@ Monitor these metrics and set alerts:
 ### Circuit Breaker Issues
 
 **Circuit opens too frequently:**
+
 - Increase error threshold percentage
 - Check external service health
 - Review timeout settings
 - Implement better error handling
 
 **Circuit never closes:**
+
 - Check if fallback is masking real issues
 - Verify reset timeout is appropriate
 - Review external service recovery
 
 **Performance degradation:**
+
 - Reduce rolling count timeout
 - Monitor circuit breaker overhead
 - Check for too many circuit breakers
@@ -467,12 +481,14 @@ Monitor these metrics and set alerts:
 ### Feature Flag Issues
 
 **Flag not evaluating correctly:**
+
 - Verify flag is enabled
 - Check targeting rules
 - Review user context attributes
 - Check prerequisite flags
 
 **Slow evaluation:**
+
 - Reduce number of targeting rules
 - Cache evaluation results
 - Monitor analytics service performance

@@ -10,6 +10,8 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { Payment } from './payment.entity';
+import { columnNumericTransformer } from '../utils/money';
+
 export enum RefundStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
@@ -29,7 +31,13 @@ export class Refund {
   @VersionColumn()
   version: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: columnNumericTransformer,
+  })
   amount: number;
 
   @Column({ type: 'text', nullable: true })

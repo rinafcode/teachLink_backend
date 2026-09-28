@@ -6,7 +6,6 @@ async function listCourses() {
       headers: {
         'Content-Type': 'application/json',
       },
-      
     });
 
     if (!response.ok) {

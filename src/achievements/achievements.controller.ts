@@ -9,7 +9,14 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AchievementsService } from './achievements.service';
 import {
   CreateAchievementDto,
@@ -27,6 +34,9 @@ import {
   AchievementOverviewDto,
 } from './dto/achievement-statistics.dto';
 import { AchievementType } from './entities/achievement.entity';
+import { OffsetPaginatedResponse } from '../common/interfaces/pagination.interface';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
+import { AchievementListQueryDto } from './dto/achievement-list-query.dto';
 
 /**
  * Achievements Controller
@@ -36,6 +46,8 @@ import { AchievementType } from './entities/achievement.entity';
  * - Achievement unlocking
  * - Statistics and leaderboards
  */
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('achievements')
 export class AchievementsController {
   constructor(private readonly achievementsService: AchievementsService) {}
@@ -49,6 +61,7 @@ export class AchievementsController {
    * POST /achievements
    */
   @Post()
+  @Roles('admin')
   @HttpCode(HttpStatus.CREATED)
   async createAchievement(@Body() dto: CreateAchievementDto): Promise<AchievementResponseDto> {
     return this.achievementsService.createAchievement(dto);
@@ -60,9 +73,12 @@ export class AchievementsController {
    */
   @Get()
   async getAllAchievements(
-    @Query('includeHidden') includeHidden?: string,
-  ): Promise<AchievementResponseDto[]> {
-    return this.achievementsService.getAllAchievements(includeHidden === 'true');
+    @Req() req: any = {},
+    @Query() query?: AchievementListQueryDto,
+  ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
+    const isAdmin = req.user?.role === 'admin';
+    const allowHidden = isAdmin && query?.includeHidden === 'true';
+    return this.achievementsService.getAllAchievements(allowHidden, query);
   }
 
   /**
@@ -72,8 +88,9 @@ export class AchievementsController {
   @Get('type/:type')
   async getAchievementsByType(
     @Param('type') type: AchievementType,
-  ): Promise<AchievementResponseDto[]> {
-    return this.achievementsService.getAchievementsByType(type);
+    @Query() query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<AchievementResponseDto>> {
+    return this.achievementsService.getAchievementsByType(type, query);
   }
 
   /**
@@ -92,6 +109,7 @@ export class AchievementsController {
    * PUT /achievements/:achievementId
    */
   @Put(':achievementId')
+  @Roles('admin')
   async updateAchievement(
     @Param('achievementId') achievementId: string,
     @Body() dto: UpdateAchievementDto,
@@ -104,6 +122,7 @@ export class AchievementsController {
    * DELETE /achievements/:achievementId
    */
   @Delete(':achievementId')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deactivateAchievement(@Param('achievementId') achievementId: string): Promise<void> {
     return this.achievementsService.deactivateAchievement(achievementId);
@@ -160,13 +179,18 @@ export class AchievementsController {
   async incrementProgress(
     @Param('achievementId') achievementId: string,
     @Param('userId') userId: string,
-    @Body() body: { incrementBy?: number; metadata?: any },
+    @Body() body: { incrementBy?: number; metadata?: any } = {},
   ): Promise<AchievementProgressDto> {
+    const incrementBy = body?.incrementBy ?? 1;
+    if (!Number.isInteger(incrementBy) || incrementBy < 0) {
+      throw new BadRequestException('incrementBy must be a non-negative integer');
+    }
+
     return this.achievementsService.incrementProgress(
       userId,
       achievementId,
-      body.incrementBy || 1,
-      body.metadata,
+      incrementBy,
+      body?.metadata,
     );
   }
 
@@ -175,8 +199,11 @@ export class AchievementsController {
    * GET /achievements/progress/:userId
    */
   @Get('progress/:userId')
-  async getUserAllProgress(@Param('userId') userId: string): Promise<AchievementProgressDto[]> {
-    return this.achievementsService.getUserAllProgress(userId);
+  async getUserAllProgress(
+    @Param('userId') userId: string,
+    @Query() query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<AchievementProgressDto>> {
+    return this.achievementsService.getUserAllProgress(userId, query);
   }
 
   // =====================================================
@@ -202,8 +229,11 @@ export class AchievementsController {
    * GET /achievements/user/:userId/unlocked
    */
   @Get('user/:userId/unlocked')
-  async getUserAchievements(@Param('userId') userId: string): Promise<UserAchievementDto[]> {
-    return this.achievementsService.getUserAchievements(userId);
+  async getUserAchievements(
+    @Param('userId') userId: string,
+    @Query() query?: PaginationQueryDto,
+  ): Promise<OffsetPaginatedResponse<UserAchievementDto>> {
+    return this.achievementsService.getUserAchievements(userId, query);
   }
 
   /**

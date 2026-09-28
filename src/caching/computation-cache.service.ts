@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { CachingService } from './caching.service';
 import { MetricsCollectionService } from '../monitoring/metrics/metrics-collection.service';
 import { buildComputationKey } from './cache-key.builder';
+import { IsolationService } from '../tenancy/isolation/isolation.service';
 
 export interface ComputationCacheStats {
   hits: number;
@@ -47,6 +48,7 @@ export class ComputationCacheService {
 
   constructor(
     private readonly caching: CachingService,
+    private readonly isolationService: IsolationService,
     @Optional() private readonly metrics?: MetricsCollectionService,
   ) {}
 
@@ -65,7 +67,11 @@ export class ComputationCacheService {
     factory: () => Promise<T>,
     ttlSeconds: number,
   ): Promise<T> {
-    const key = buildComputationKey(type, identifier);
+    const tenantId = this.isolationService.getTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped computation cache');
+    }
+    const key = buildComputationKey(tenantId, type, identifier);
 
     // ── Cache hit ──────────────────────────────────────────────────────────
     const cached = await this.caching.get<T>(key);
@@ -103,7 +109,11 @@ export class ComputationCacheService {
    * Invalidates a specific computation cache entry.
    */
   async invalidate(type: string, identifier: string): Promise<void> {
-    const key = buildComputationKey(type, identifier);
+    const tenantId = this.isolationService.getTenantId();
+    if (!tenantId) {
+      throw new Error('Tenant context is required for tenant-scoped computation cache');
+    }
+    const key = buildComputationKey(tenantId, type, identifier);
     await this.caching.delete(key);
     this.logger.debug(`Invalidated computation cache [${type}] key: ${key}`);
   }

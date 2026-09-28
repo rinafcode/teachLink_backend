@@ -11,6 +11,9 @@ import {
   CurrencyDetailsDto,
   DetectCurrencyDto,
   DetectCurrencyResponseDto,
+  FormatPriceDto,
+  FormatPriceResponseDto,
+  RefreshRatesResponseDto,
 } from '../dtos/currency.dto';
 
 /**
@@ -38,6 +41,7 @@ export class CurrencyController {
     description: 'Conversion successful',
     type: ConvertCurrencyResponseDto,
   })
+  @ApiResponse({ status: 400, description: 'Invalid amount or currency code' })
   async convertCurrency(@Body() dto: ConvertCurrencyDto): Promise<ConvertCurrencyResponseDto> {
     const convertedAmount = await this.currencyService.convertCurrency(
       dto.amount,
@@ -72,6 +76,7 @@ export class CurrencyController {
     description: 'Conversion successful',
     type: MultiCurrencyConversionResponseDto,
   })
+  @ApiResponse({ status: 400, description: 'Invalid amount or currency code' })
   async convertToMultiple(
     @Body() dto: MultiCurrencyConversionDto,
   ): Promise<MultiCurrencyConversionResponseDto> {
@@ -102,6 +107,7 @@ export class CurrencyController {
     description: 'Currency details retrieved',
     type: CurrencyDetailsDto,
   })
+  @ApiResponse({ status: 404, description: 'Unknown currency code' })
   getCurrencyDetails(@Query('code') currencyCode: string): CurrencyDetailsDto {
     return this.currencyService.getCurrencyDetails(currencyCode);
   }
@@ -118,6 +124,7 @@ export class CurrencyController {
     description: 'Currency detected',
     type: DetectCurrencyResponseDto,
   })
+  @ApiResponse({ status: 400, description: 'Invalid detection inputs' })
   detectCurrency(@Body() dto: DetectCurrencyDto): DetectCurrencyResponseDto {
     const detectedCurrency = this.currencyDetectionService.detectCurrency({
       country: dto.country,
@@ -155,6 +162,15 @@ export class CurrencyController {
    */
   @Get('supported')
   @ApiOperation({ summary: 'Get list of all supported currencies and countries' })
+  @ApiResponse({
+    status: 200,
+    description: 'Map of currency codes to country names',
+    schema: {
+      type: 'object',
+      additionalProperties: { type: 'string' },
+      example: { USD: 'United States', EUR: 'European Union' },
+    },
+  })
   getSupportedCurrencies(): Record<string, string> {
     return this.currencyDetectionService.getSupportedCountries();
   }
@@ -165,6 +181,15 @@ export class CurrencyController {
    */
   @Get('rates')
   @ApiOperation({ summary: 'Get current exchange rates' })
+  @ApiResponse({
+    status: 200,
+    description: 'Map of currency pairs to exchange rates',
+    schema: {
+      type: 'object',
+      additionalProperties: { type: 'number' },
+      example: { 'USD/EUR': 0.915, 'EUR/USD': 1.093 },
+    },
+  })
   getExchangeRates(): Record<string, number> {
     return this.exchangeRateService.getAvailableRates();
   }
@@ -176,6 +201,11 @@ export class CurrencyController {
   @Post('rates/refresh')
   @HttpCode(200)
   @ApiOperation({ summary: 'Manually refresh exchange rates' })
+  @ApiResponse({
+    status: 200,
+    description: 'Exchange rates refreshed',
+    type: RefreshRatesResponseDto,
+  })
   async refreshRates(): Promise<{ message: string; timestamp: Date }> {
     await this.exchangeRateService.refreshExchangeRates();
     return {
@@ -191,9 +221,13 @@ export class CurrencyController {
   @Post('format-price')
   @HttpCode(200)
   @ApiOperation({ summary: 'Format price for display' })
-  formatPrice(@Body() body: { amount: number; currency: string; locale?: string }): {
-    formattedPrice: string;
-  } {
+  @ApiResponse({
+    status: 200,
+    description: 'Formatted price',
+    type: FormatPriceResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid amount or currency code' })
+  formatPrice(@Body() body: FormatPriceDto): FormatPriceResponseDto {
     const formattedPrice = this.currencyService.formatPrice(
       body.amount,
       body.currency,

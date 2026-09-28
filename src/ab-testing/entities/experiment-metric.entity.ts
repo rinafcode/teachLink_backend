@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   VersionColumn,
+  Index,
 } from 'typeorm';
 import { Experiment } from './experiment.entity';
 export enum MetricType {
@@ -20,6 +21,10 @@ export enum MetricType {
  * Represents the experiment Metric entity.
  */
 @Entity({ name: 'experiment_metrics' })
+@Index('IDX_experiment_metrics_experiment_id', ['experiment'])
+@Index('IDX_experiment_metrics_type', ['type'])
+@Index('IDX_experiment_metrics_created_at', ['createdAt'])
+@Index('IDX_experiment_metrics_experiment_is_primary', ['experiment', 'isPrimary'])
 export class ExperimentMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;

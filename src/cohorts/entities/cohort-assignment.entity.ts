@@ -15,6 +15,7 @@ export enum CohortAssignmentStatus {
 }
 
 @Entity('cohort_assignments')
+@Index(['cohortId', 'createdAt'])
 export class CohortAssignment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

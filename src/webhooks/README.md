@@ -7,16 +7,16 @@ monitoring.
 > Implements issue **#615 — Add webhook delivery retries with exponential backoff**.
 >
 > This is distinct from [`src/payments/webhooks`](../payments/webhooks), which
-> handles *inbound* Stripe/PayPal webhooks.
+> handles _inbound_ Stripe/PayPal webhooks.
 
 ## Acceptance criteria mapping
 
-| Criterion | Where |
-| --------- | ----- |
+| Criterion                           | Where                                                                                                                                                                                   |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Retry queue for failed webhooks** | Bull queue re-enqueues retryable failures; `WebhookDeliveryService.buildJobOptions()` sets `attempts` + `backoff`. The worker re-throws `WebhookRetryableError` so the job is requeued. |
-| **Exponential backoff implemented** | [`webhook-backoff.util.ts`](./webhook-backoff.util.ts) → `calculateBackoffDelay()` (exponential + equal jitter + max-delay cap). |
-| **Max retry count configured** | [`webhook-retry.config.ts`](./webhook-retry.config.ts) → `maxRetries` (env `WEBHOOK_MAX_RETRIES`, default 5). |
-| **Monitoring for failures** | [`webhook-monitor.service.ts`](./webhook-monitor.service.ts) → counters + alert-thresholded metrics via `CustomMetricsService`, plus `webhook.*` events. |
+| **Exponential backoff implemented** | [`webhook-backoff.util.ts`](./webhook-backoff.util.ts) → `calculateBackoffDelay()` (exponential + equal jitter + max-delay cap).                                                        |
+| **Max retry count configured**      | [`webhook-retry.config.ts`](./webhook-retry.config.ts) → `maxRetries` (env `WEBHOOK_MAX_RETRIES`, default 5).                                                                           |
+| **Monitoring for failures**         | [`webhook-monitor.service.ts`](./webhook-monitor.service.ts) → counters + alert-thresholded metrics via `CustomMetricsService`, plus `webhook.*` events.                                |
 
 ## Components
 
@@ -49,14 +49,14 @@ attempt 3 ──fail────────────────────
 
 ## Configuration
 
-| Env var | Default | Meaning |
-| ------- | ------- | ------- |
-| `WEBHOOK_MAX_RETRIES` | `5` | Max delivery attempts before dead-letter |
-| `WEBHOOK_INITIAL_DELAY_MS` | `1000` | Base backoff delay |
-| `WEBHOOK_BACKOFF_MULTIPLIER` | `2` | Exponential growth factor |
-| `WEBHOOK_MAX_DELAY_MS` | `3600000` | Backoff cap (1h) |
-| `WEBHOOK_JITTER` | `true` | Apply equal jitter |
-| `WEBHOOK_TIMEOUT_MS` | `10000` | Per-request timeout |
+| Env var                      | Default   | Meaning                                  |
+| ---------------------------- | --------- | ---------------------------------------- |
+| `WEBHOOK_MAX_RETRIES`        | `5`       | Max delivery attempts before dead-letter |
+| `WEBHOOK_INITIAL_DELAY_MS`   | `1000`    | Base backoff delay                       |
+| `WEBHOOK_BACKOFF_MULTIPLIER` | `2`       | Exponential growth factor                |
+| `WEBHOOK_MAX_DELAY_MS`       | `3600000` | Backoff cap (1h)                         |
+| `WEBHOOK_JITTER`             | `true`    | Apply equal jitter                       |
+| `WEBHOOK_TIMEOUT_MS`         | `10000`   | Per-request timeout                      |
 
 ## Usage
 

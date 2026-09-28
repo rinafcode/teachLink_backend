@@ -60,7 +60,7 @@ export class BulkOperation {
   @JoinColumn({ name: 'initiated_by_id' })
   initiatedBy?: User;
 
-  @Index()
+  @Index('IDX_course_bulk_ops_initiator')
   @Column({
     name: 'initiated_by_id',
     type: 'uuid',
@@ -83,7 +83,7 @@ export class BulkOperation {
   })
   undoneById?: string;
 
-  @Index()
+  @Index('IDX_course_bulk_ops_type')
   @Column({
     type: 'enum',
     enum: BulkOperationType,
@@ -161,7 +161,7 @@ export class BulkOperation {
   /**
    * Optimistic locking to prevent concurrent updates.
    */
-  @VersionColumn()
+  @VersionColumn({ default: 1 })
   version: number;
 
   @Index()

@@ -16,6 +16,7 @@ sequenceDiagram
 ```
 
 ### Steps:
+
 1. **Register** — `POST /auth/register` with email, password, and name
 2. **Login** — `POST /auth/login` to receive JWT tokens
 3. **Get Profile** — `GET /users/me` with the access token
@@ -40,6 +41,7 @@ sequenceDiagram
 ```
 
 ### Steps:
+
 1. **Create Course** — `POST /courses` with title, description, price
 2. **Add Modules** — `POST /courses/:id/modules` for each module
 3. **Add Lessons** — `POST /courses/:id/modules/:modId/lessons` for each lesson
@@ -62,6 +64,7 @@ sequenceDiagram
 ```
 
 ### Steps:
+
 1. **Create Payment Intent** — `POST /payments/intent` with courseId, amount, currency
 2. **Confirm on Client** — Use Stripe.js to confirm the payment
 3. **Confirm on Server** — `POST /payments/confirm` with the payment intent ID
@@ -82,6 +85,7 @@ sequenceDiagram
 ```
 
 ### Steps:
+
 1. **Search** — `GET /search?q=<term>` for full-text search
 2. **Filter** — Add `?category=`, `?price[gte]=`, `?sort=` for refinement
 3. **View Course** — `GET /courses/:id` for details
@@ -102,6 +106,7 @@ sequenceDiagram
 ```
 
 ### Steps:
+
 1. **Connect** — Open WebSocket connection with JWT in query params
 2. **Join** — Send `JoinSession` message to start collaborating
 3. **Operate** — Send `CollaborativeOperation` messages in real-time
@@ -121,6 +126,7 @@ sequenceDiagram
 ```
 
 ### Steps:
+
 1. **Report Content** — `POST /moderation/reports` with resource type, ID, and reason
 2. **Review Queue** — `GET /moderation/queue` for pending reports (moderator role)
 3. **Take Action** — `PATCH /moderation/reports/:id/action` to resolve

@@ -95,6 +95,84 @@
           <td><code>/debug/requests</code></td>
           <td>Clear the captured request buffer</td>
           <td>Debugging</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/gamification/points/award-activity</code></td>
+          <td>Award points for a user activity</td>
+          <td>Gamification</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/gamification/points/add</code></td>
+          <td>Add points to a user</td>
+          <td>Gamification</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/gamification/tiers/rewards/{tier}</code></td>
+          <td>Create or update a tier reward</td>
+          <td>Gamification</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/gamification/points/progress/{userId}</code></td>
+          <td>Get user progress and points</td>
+          <td>Gamification</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/gamification/leaderboard</code></td>
+          <td>Get leaderboard</td>
+          <td>Gamification</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/data-pipeline/etl/run</code></td>
+          <td>Run an ETL job</td>
+          <td>Data Pipeline</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/sharding/route</code></td>
+          <td>Resolve which shard a key routes to</td>
+          <td>Sharding</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/sharding/migrations</code></td>
+          <td>Start a cross-shard data migration</td>
+          <td>Sharding</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/sharding/migrations</code></td>
+          <td>List all migration plans and their statuses</td>
+          <td>Sharding</td>
+        </tr>
+        <tr>
+          <td><span class="method method-get">GET</span></td>
+          <td><code>/sharding/migrations/{planId}</code></td>
+          <td>Get the status of a specific migration plan</td>
+          <td>Sharding</td>
+        </tr>
+        <tr>
+          <td><span class="method method-delete">DELETE</span></td>
+          <td><code>/sharding/migrations/{planId}</code></td>
+          <td>Roll back a completed migration</td>
+          <td>Sharding</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/sharding/rebalance</code></td>
+          <td>Trigger a manual shard rebalance</td>
+          <td>Sharding</td>
+        </tr>
+        <tr>
+          <td><span class="method method-post">POST</span></td>
+          <td><code>/sharding/rebalance/auto</code></td>
+          <td>Run automated rebalance analysis</td>
+          <td>Sharding</td>
         </tr></tbody>
       </table>
     </section>

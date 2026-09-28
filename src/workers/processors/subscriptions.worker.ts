@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
+import { ConfigService } from '@nestjs/config';
 import { BaseWorker } from '../base/base.worker';
 
 /**
@@ -8,8 +9,8 @@ import { BaseWorker } from '../base/base.worker';
  */
 @Injectable()
 export class SubscriptionsWorker extends BaseWorker {
-  constructor() {
-    super('subscriptions');
+  constructor(configService: ConfigService) {
+    super('subscriptions', configService);
   }
 
   /**

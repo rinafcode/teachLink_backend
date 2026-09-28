@@ -20,6 +20,15 @@ import { Course } from './course.entity';
 @Index(['courseId', 'status'])
 @Index(['userId', 'enrolledAt'])
 @Index(['courseId', 'enrolledAt'])
+// Partial unique index (userId, courseId) WHERE "deletedAt" IS NULL, created by
+// migration 1799000000000. A plain unique index would also cover soft-deleted
+// rows and block re-enrollment after unenroll; the partial predicate excludes
+// them. The `where` predicate mirrors the migration so the schema drift check
+// (migration:generate --check) stays green.
+@Index('UQ_enrollments_active_user_course', ['userId', 'courseId'], {
+  unique: true,
+  where: '"deletedAt" IS NULL',
+})
 export class Enrollment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

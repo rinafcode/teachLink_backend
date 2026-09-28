@@ -175,6 +175,7 @@ export function createMockRedisClient(): jest.Mocked<Redis> {
     // ─── String Commands ────────────────────────────────────────────────────
     get: jest.fn(),
     set: jest.fn(),
+    setex: jest.fn(),
     getex: jest.fn(),
     getdel: jest.fn(),
     append: jest.fn(),

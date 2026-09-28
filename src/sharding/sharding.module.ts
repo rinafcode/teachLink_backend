@@ -7,6 +7,7 @@ import { ShardMigrationService } from './migration/shard-migration.service';
 import { ShardRebalanceService } from './rebalance/shard-rebalance.service';
 import { ShardHealthService } from './health/shard-health.service';
 import { ShardingController } from './sharding.controller';
+import { IpAllowlistGuard } from '../common/guards/ip-allowlist.guard';
 
 /**
  * ShardingModule
@@ -39,6 +40,7 @@ import { ShardingController } from './sharding.controller';
     ShardMigrationService,
     ShardRebalanceService,
     ShardHealthService,
+    IpAllowlistGuard,
   ],
   exports: [
     ShardConfigService,

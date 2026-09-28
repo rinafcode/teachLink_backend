@@ -1,13 +1,15 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Index } from 'typeorm';
 
 @Entity('user_consents')
 export class UserConsent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
   @Column()
   userId: string;
 
+  @Index()
   @Column()
   consentType: string;
 

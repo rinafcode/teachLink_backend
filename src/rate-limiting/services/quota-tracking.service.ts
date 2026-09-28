@@ -31,10 +31,15 @@ export class QuotaTrackingService {
    */
   async checkAndIncrement(userId: string, tier: UserTier): Promise<QuotaCheckResult> {
     const baseLimits = await this.definitionService.resolveForUser(userId, tier);
+    const [requestsPerMinute, requestsPerHour, requestsPerDay] = await Promise.all([
+      this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
+      this.adaptive.adjustLimit(baseLimits.requestsPerHour),
+      this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+    ]);
     const limits = {
-      requestsPerMinute: this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
-      requestsPerHour: this.adaptive.adjustLimit(baseLimits.requestsPerHour),
-      requestsPerDay: this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+      requestsPerMinute,
+      requestsPerHour,
+      requestsPerDay,
     };
     const now = new Date();
 
@@ -60,7 +65,7 @@ export class QuotaTrackingService {
     } else {
       await this.markOverage({ minute, hour, day }, { withinMinute, withinHour, withinDay });
       this.logger.warn(
-        `Quota exceeded userId=${userId} tier=${tier} ` +
+        `Quota exceeded identifier=${userId} tier=${tier} ` +
           `min=${minute.count}/${limits.requestsPerMinute} ` +
           `hr=${hour.count}/${limits.requestsPerHour} ` +
           `day=${day.count}/${limits.requestsPerDay}`,
@@ -86,10 +91,15 @@ export class QuotaTrackingService {
   /** Get quota status without incrementing (for status endpoint). */
   async getStatus(userId: string, tier: UserTier): Promise<QuotaStatusDto> {
     const baseLimits = await this.definitionService.resolveForUser(userId, tier);
+    const [requestsPerMinute, requestsPerHour, requestsPerDay] = await Promise.all([
+      this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
+      this.adaptive.adjustLimit(baseLimits.requestsPerHour),
+      this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+    ]);
     const limits = {
-      requestsPerMinute: this.adaptive.adjustLimit(baseLimits.requestsPerMinute),
-      requestsPerHour: this.adaptive.adjustLimit(baseLimits.requestsPerHour),
-      requestsPerDay: this.adaptive.adjustLimit(baseLimits.requestsPerDay),
+      requestsPerMinute,
+      requestsPerHour,
+      requestsPerDay,
     };
     const now = new Date();
 
@@ -115,7 +125,7 @@ export class QuotaTrackingService {
   async resetUser(userId: string, period?: QuotaResetPeriod): Promise<void> {
     const where = period ? { userId, period } : { userId };
     await this.usageRepo.delete(where);
-    this.logger.log(`Quota reset for userId=${userId} period=${period ?? 'ALL'}`);
+    this.logger.log(`Quota reset for identifier=${userId} period=${period ?? 'ALL'}`);
   }
 
   /** Called by the scheduler — deletes expired windows so they're recreated fresh. */

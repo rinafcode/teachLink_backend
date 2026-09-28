@@ -177,7 +177,27 @@ export class AdaptiveTTLService {
       return null;
     }
 
-    const rules: AdaptiveTTLRule[] = JSON.parse(rulesData);
+    let rules: AdaptiveTTLRule[];
+    try {
+      rules = JSON.parse(rulesData) as AdaptiveTTLRule[];
+    } catch {
+      this.logger.warn(
+        'Corrupt adaptive TTL rules data in cache – treating as miss and falling back to defaults',
+      );
+      // Emit a counter for cache-deserialization failures so poisoning is observable
+      try {
+        await this.redis.incr('cache:metrics:deserialization_failures_total');
+      } catch {
+        // Silently ignore counter increment failures
+      }
+      return null;
+    }
+
+    // Validate the parsed shape is an array before using
+    if (!Array.isArray(rules)) {
+      this.logger.warn('Adaptive TTL rules data is not an array – treating as miss');
+      return null;
+    }
 
     return rules.find((rule) => this.matchesPattern(key, rule.keyPattern)) || null;
   }
@@ -236,7 +256,20 @@ export class AdaptiveTTLService {
   async getRecentAdjustments(limit: number = 50): Promise<TTLAdjustmentEvent[]> {
     const adjustments = await this.redis.zrevrange(this.adjustmentsKey, 0, limit - 1);
 
-    return adjustments.map((data) => JSON.parse(data));
+    const results: TTLAdjustmentEvent[] = [];
+    for (const data of adjustments) {
+      try {
+        results.push(JSON.parse(data) as TTLAdjustmentEvent);
+      } catch {
+        this.logger.warn('Corrupt TTL adjustment record found – skipping');
+        try {
+          await this.redis.incr('cache:metrics:deserialization_failures_total');
+        } catch {
+          // Silently ignore counter increment failures
+        }
+      }
+    }
+    return results;
   }
 
   /**
@@ -252,7 +285,19 @@ export class AdaptiveTTLService {
     const since = Date.now() - hours * 60 * 60 * 1000;
     const adjustments = await this.redis.zrangebyscore(this.adjustmentsKey, since, '+inf');
 
-    const parsed = adjustments.map((data) => JSON.parse(data) as TTLAdjustmentEvent);
+    const parsed: TTLAdjustmentEvent[] = [];
+    for (const data of adjustments) {
+      try {
+        parsed.push(JSON.parse(data) as TTLAdjustmentEvent);
+      } catch {
+        this.logger.warn('Corrupt TTL adjustment record in stats query – skipping');
+        try {
+          await this.redis.incr('cache:metrics:deserialization_failures_total');
+        } catch {
+          // Silently ignore counter increment failures
+        }
+      }
+    }
 
     const increased = parsed.filter((adj) => adj.newTtl > adj.oldTtl).length;
     const decreased = parsed.filter((adj) => adj.newTtl < adj.oldTtl).length;
@@ -288,7 +333,19 @@ export class AdaptiveTTLService {
    */
   async getRules(): Promise<AdaptiveTTLRule[]> {
     const rulesData = await this.redis.get(this.rulesKey);
-    return rulesData ? JSON.parse(rulesData) : this.defaultRules;
+    if (!rulesData) {
+      return this.defaultRules;
+    }
+    try {
+      const parsed = JSON.parse(rulesData) as AdaptiveTTLRule[];
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      this.logger.warn('Adaptive TTL rules data is not an array – falling back to defaults');
+    } catch {
+      this.logger.warn('Corrupt adaptive TTL rules data – falling back to defaults');
+    }
+    return this.defaultRules;
   }
 
   /**

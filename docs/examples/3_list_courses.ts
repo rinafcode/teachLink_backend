@@ -10,7 +10,7 @@ const apiClient = axios.create({
 async function listCourses() {
   try {
     const response = await apiClient.get('/courses');
-    
+
     console.log('Response:', response.data);
     return response.data;
   } catch (error) {

@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   DeleteDateColumn,
   Entity,
   Index,
@@ -37,6 +38,10 @@ export class Question {
 
   @Column({ default: 1 })
   points: number;
+
+  @CreateDateColumn()
+  @Index()
+  createdAt: Date;
 
   @ManyToOne(() => Assessment, (a) => a.questions, {
     onDelete: 'CASCADE',

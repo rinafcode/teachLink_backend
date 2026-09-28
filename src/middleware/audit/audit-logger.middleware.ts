@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { AuditLogService } from '../../audit-log/audit-log.service';
+import { HttpMethod } from '../../audit-log/audit-log.entity';
 import { AuditSeverity } from '../../audit-log/enums/audit-action.enum';
 import { resolveUserAction } from './user-action-tracker';
 
@@ -51,7 +52,7 @@ export function createAuditLoggerMiddleware(auditLogService: AuditLogService) {
           severity,
           description: userAction.description,
           apiEndpoint: endpoint,
-          httpMethod: req.method,
+          httpMethod: req.method as HttpMethod,
           statusCode,
           responseTimeMs,
           ipAddress: req.ip,

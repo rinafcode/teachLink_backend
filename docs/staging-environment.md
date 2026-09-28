@@ -6,12 +6,12 @@ Staging is a production-parity environment used for final validation before rele
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `.env.staging` | Environment variables – mirrors prod shape, staging-specific values |
-| `docker-compose.staging.yml` | Full service stack (app, postgres, redis, elasticsearch, prometheus, grafana, exporters) |
-| `scripts/staging/sanitize-and-sync.sh` | Dumps prod DB, sanitizes PII, restores to staging |
-| `.github/workflows/staging-sync.yml` | Scheduled (daily 02:00 UTC) and on-demand sync workflow |
+| File                                   | Purpose                                                                                  |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `.env.staging`                         | Environment variables – mirrors prod shape, staging-specific values                      |
+| `docker-compose.staging.yml`           | Full service stack (app, postgres, redis, elasticsearch, prometheus, grafana, exporters) |
+| `scripts/staging/sanitize-and-sync.sh` | Dumps prod DB, sanitizes PII, restores to staging                                        |
+| `.github/workflows/staging-sync.yml`   | Scheduled (daily 02:00 UTC) and on-demand sync workflow                                  |
 
 ---
 
@@ -27,16 +27,16 @@ docker compose -f docker-compose.staging.yml --env-file .env.staging.local up -d
 
 Staging ports are offset by +1 from the default prod ports to allow both stacks to run on the same host:
 
-| Service | Staging port | Prod port |
-|---|---|---|
-| App | 3000 | 3000 |
-| PostgreSQL | 5433 | 5432 |
-| Redis | 6380 | 6379 |
-| Elasticsearch | 9201 | 9200 |
-| Prometheus | 9091 | 9090 |
-| Grafana | 3002 | 3001 |
-| Redis exporter | 9122 | 9121 |
-| Postgres exporter | 9188 | 9187 |
+| Service           | Staging port | Prod port |
+| ----------------- | ------------ | --------- |
+| App               | 3000         | 3000      |
+| PostgreSQL        | 5433         | 5432      |
+| Redis             | 6380         | 6379      |
+| Elasticsearch     | 9201         | 9200      |
+| Prometheus        | 9091         | 9090      |
+| Grafana           | 3002         | 3001      |
+| Redis exporter    | 9122         | 9121      |
+| Postgres exporter | 9188         | 9187      |
 
 ---
 
@@ -86,18 +86,18 @@ A `concurrency` group prevents two syncs from running simultaneously. On failure
 
 Add these in **Settings → Secrets and variables → Actions**:
 
-| Secret | Description |
-|---|---|
-| `PROD_DB_HOST` | Production DB hostname |
-| `PROD_DB_PORT` | Production DB port |
-| `PROD_DB_USER` | Production DB user |
-| `PROD_DB_PASSWORD` | Production DB password |
-| `PROD_DB_NAME` | Production DB name |
-| `STAGING_DB_HOST` | Staging DB hostname |
-| `STAGING_DB_PORT` | Staging DB port |
-| `STAGING_DB_USER` | Staging DB user |
-| `STAGING_DB_PASSWORD` | Staging DB password |
-| `STAGING_DB_NAME` | Staging DB name |
+| Secret                       | Description                                 |
+| ---------------------------- | ------------------------------------------- |
+| `PROD_DB_HOST`               | Production DB hostname                      |
+| `PROD_DB_PORT`               | Production DB port                          |
+| `PROD_DB_USER`               | Production DB user                          |
+| `PROD_DB_PASSWORD`           | Production DB password                      |
+| `PROD_DB_NAME`               | Production DB name                          |
+| `STAGING_DB_HOST`            | Staging DB hostname                         |
+| `STAGING_DB_PORT`            | Staging DB port                             |
+| `STAGING_DB_USER`            | Staging DB user                             |
+| `STAGING_DB_PASSWORD`        | Staging DB password                         |
+| `STAGING_DB_NAME`            | Staging DB name                             |
 | `STAGING_SYNC_SLACK_WEBHOOK` | (Optional) Slack webhook for failure alerts |
 
 ---

@@ -94,14 +94,10 @@ export class MyService {
   }
 
   async traceHttpCall() {
-    return this.tracing.traceHttpRequest(
-      'POST',
-      '/api/users',
-      async (span) => {
-        // Make HTTP call
-        return await this.httpClient.post('/api/users', data);
-      },
-    );
+    return this.tracing.traceHttpRequest('POST', '/api/users', async (span) => {
+      // Make HTTP call
+      return await this.httpClient.post('/api/users', data);
+    });
   }
 }
 ```
@@ -148,10 +144,7 @@ export class MyService {
 
   async checkForAnomalies() {
     // Detect anomalies in a metric
-    const anomalies = this.anomalyDetection.detectAnomalies(
-      'api.response_time',
-      100,
-    );
+    const anomalies = this.anomalyDetection.detectAnomalies('api.response_time', 100);
 
     if (anomalies.length > 0) {
       console.log('Anomalies detected:', anomalies);
@@ -173,6 +166,7 @@ GET /observability/dashboard
 ```
 
 Response:
+
 ```json
 {
   "logs": {
@@ -233,6 +227,7 @@ GET /observability/metrics/api.response_time/statistics
 ```
 
 Response:
+
 ```json
 {
   "name": "api.response_time",
@@ -272,6 +267,7 @@ GET /observability/health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",
@@ -317,25 +313,33 @@ const traceContext = this.tracing.extractTraceContext(req.headers);
 ## Metrics Types
 
 ### Counter
+
 Monotonically increasing value:
+
 ```typescript
 this.metrics.incrementCounter('requests.total', 1);
 ```
 
 ### Gauge
+
 Current value that can go up or down:
+
 ```typescript
 this.metrics.recordGauge('queue.size', 150);
 ```
 
 ### Histogram
+
 Distribution of values:
+
 ```typescript
 this.metrics.recordHistogram('request.duration', 250);
 ```
 
 ### Summary
+
 Similar to histogram with percentiles:
+
 ```typescript
 this.metrics.recordSummary('response.size', 1024);
 ```
@@ -343,23 +347,29 @@ this.metrics.recordSummary('response.size', 1024);
 ## Anomaly Detection Methods
 
 ### Statistical (Z-Score)
+
 Detects values beyond 3 standard deviations:
+
 ```typescript
 const anomalies = this.anomalyDetection.detectAnomalies('metric.name');
 ```
 
 ### Moving Average
+
 Detects deviations from moving average:
+
 ```typescript
 const anomalies = this.anomalyDetection.detectAnomaliesMovingAverage(
   'metric.name',
   20, // window size
-  2,  // threshold
+  2, // threshold
 );
 ```
 
 ### Sudden Spikes
+
 Detects sudden changes:
+
 ```typescript
 const anomaly = this.anomalyDetection.detectSuddenSpike('metric.name', 3);
 ```
@@ -371,9 +381,7 @@ const anomaly = this.anomalyDetection.detectSuddenSpike('metric.name', 3);
 ```typescript
 @Injectable()
 export class ObservabilityInterceptor implements NestInterceptor {
-  constructor(
-    private readonly observability: ObservabilityService,
-  ) {}
+  constructor(private readonly observability: ObservabilityService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
@@ -381,10 +389,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
     const startTime = Date.now();
 
     // Initialize observability
-    this.observability.initializeRequestObservability(
-      correlationId,
-      request.user?.id,
-    );
+    this.observability.initializeRequestObservability(correlationId, request.user?.id);
 
     return next.handle().pipe(
       tap(() => {
@@ -392,18 +397,9 @@ export class ObservabilityInterceptor implements NestInterceptor {
         const logger = this.observability.getLogger();
         const metrics = this.observability.getMetrics();
 
-        logger.logRequest(
-          request.method,
-          request.url,
-          200,
-          duration,
-        );
+        logger.logRequest(request.method, request.url, 200, duration);
 
-        metrics.trackApiResponseTime(
-          request.url,
-          duration,
-          200,
-        );
+        metrics.trackApiResponseTime(request.url, duration, 200);
       }),
       catchError((error) => {
         const duration = Date.now() - startTime;
@@ -411,11 +407,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
         const metrics = this.observability.getMetrics();
 
         logger.error('Request failed', error);
-        metrics.trackApiResponseTime(
-          request.url,
-          duration,
-          500,
-        );
+        metrics.trackApiResponseTime(request.url, duration, 500);
 
         throw error;
       }),
@@ -436,7 +428,7 @@ export class DatabaseLogger implements Logger {
 
   logQuery(query: string, parameters?: any[]) {
     const startTime = Date.now();
-    
+
     return () => {
       const duration = Date.now() - startTime;
       this.logger.logQuery(query, duration);
@@ -461,6 +453,7 @@ GET /observability/metrics/export/prometheus
 ```
 
 Response:
+
 ```
 # TYPE api_response_time histogram
 api_response_time{endpoint="/api/users",status="200"} 125.5
@@ -538,6 +531,7 @@ private async sendAlert(anomaly: AnomalyDetectionResult): Promise<void> {
 ### High Memory Usage
 
 Check metrics and clean old data:
+
 ```typescript
 await this.logAggregation.clearOldLogs(new Date(Date.now() - 24 * 60 * 60 * 1000));
 await this.tracing.clearOldSpans(new Date(Date.now() - 24 * 60 * 60 * 1000));
@@ -547,6 +541,7 @@ await this.metrics.clearOldMetrics(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000
 ### Missing Traces
 
 Ensure spans are properly closed:
+
 ```typescript
 const span = this.tracing.startSpan('operation');
 try {
@@ -559,6 +554,7 @@ try {
 ### Anomaly False Positives
 
 Adjust thresholds:
+
 ```typescript
 // In anomaly-detection.service.ts
 private readonly thresholds = {

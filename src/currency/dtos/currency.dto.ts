@@ -165,6 +165,34 @@ export class DetectCurrencyResponseDto {
   detectionMethod: string;
 }
 
+export class FormatPriceDto {
+  @ApiProperty({ description: 'Amount to format', example: 49.99 })
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty({ description: 'Currency code (ISO 4217)', example: 'USD' })
+  @IsString()
+  currency: string;
+
+  @ApiPropertyOptional({ description: 'Locale for formatting', example: 'en-US' })
+  @IsOptional()
+  @IsString()
+  locale?: string;
+}
+
+export class FormatPriceResponseDto {
+  @ApiProperty({ description: 'Price formatted for the given locale', example: '$49.99' })
+  formattedPrice: string;
+}
+
+export class RefreshRatesResponseDto {
+  @ApiProperty({ description: 'Status message', example: 'Exchange rates refreshed successfully' })
+  message: string;
+
+  @ApiProperty({ description: 'Timestamp of the refresh' })
+  timestamp: Date;
+}
+
 export class PricingDto {
   @ApiProperty({ description: 'Base price', example: 49.99 })
   basePrice: number;

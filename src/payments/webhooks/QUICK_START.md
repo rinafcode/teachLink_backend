@@ -17,11 +17,12 @@ The webhook retry system automatically handles failed webhook deliveries from pa
 1. **Files are already created** - All necessary files have been added to `src/payments/webhooks/`
 
 2. **Database Migration** - Run this SQL to create the webhook_retries table:
+
    ```bash
    # Development (TypeORM auto-sync)
    npm run start:dev
    # Table auto-created via TypeORM synchronization
-   
+
    # Production
    # Use the migration SQL from src/payments/webhooks/migration-helper.ts
    ```
@@ -45,7 +46,7 @@ Body: <raw webhook payload>
 
 # PayPal webhook (existing endpoint - now with retry)
 POST /webhooks/paypal
-Headers: 
+Headers:
   - paypal-transmission-id: <id>
   - paypal-transmission-time: <time>
   - paypal-transmission-sig: <sig>
@@ -92,7 +93,7 @@ curl -X POST http://localhost:3000/webhooks/requeue/{webhookRetryId}
 # List pending webhooks
 curl http://localhost:3000/webhooks/pending
 
-# List processing webhooks  
+# List processing webhooks
 curl http://localhost:3000/webhooks/processing
 
 # Get status of specific webhook
@@ -105,12 +106,12 @@ curl http://localhost:3000/webhooks/status/{id}
 
 The system comes with these defaults:
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| Initial Delay | 1 second | First retry after 1 second |
-| Backoff Multiplier | 2 | Each retry doubles the delay |
-| Max Retries | 3 | 3 retry attempts total |
-| Max Delay | 1 hour | Caps retry delay at 1 hour |
+| Setting            | Value    | Notes                        |
+| ------------------ | -------- | ---------------------------- |
+| Initial Delay      | 1 second | First retry after 1 second   |
+| Backoff Multiplier | 2        | Each retry doubles the delay |
+| Max Retries        | 3        | 3 retry attempts total       |
+| Max Delay          | 1 hour   | Caps retry delay at 1 hour   |
 
 ### Customizing Settings
 
@@ -148,12 +149,14 @@ npm test -- webhooks
 ### Manual Testing
 
 1. **Using Stripe CLI**:
+
    ```bash
    stripe listen --forward-to localhost:3000/webhooks/stripe
    stripe trigger payment_intent.succeeded
    ```
 
 2. **Using curl**:
+
    ```bash
    curl -X POST http://localhost:3000/webhooks/stripe \
      -H "stripe-signature: test" \
@@ -204,11 +207,13 @@ LIMIT 10;
 ### How to Requeue a Failed Webhook
 
 1. **Find the webhook**:
+
    ```bash
    curl http://localhost:3000/webhooks/dead-letter
    ```
 
 2. **Requeue it**:
+
    ```bash
    curl -X POST http://localhost:3000/webhooks/requeue/{webhookRetryId}
    ```
@@ -254,12 +259,14 @@ AND "createdAt" < NOW() - INTERVAL '90 days';
 ### Webhooks Not Being Processed
 
 1. **Check Redis connection**:
+
    ```bash
    redis-cli ping
    # Should respond: PONG
    ```
 
 2. **Check webhook status**:
+
    ```bash
    curl http://localhost:3000/webhooks/status/{webhookRetryId}
    # Status should not be "processing" indefinitely
@@ -273,6 +280,7 @@ AND "createdAt" < NOW() - INTERVAL '90 days';
 ### High Dead Letter Queue
 
 1. **List dead letter webhooks**:
+
    ```bash
    curl http://localhost:3000/webhooks/dead-letter?limit=10
    ```
@@ -290,6 +298,7 @@ AND "createdAt" < NOW() - INTERVAL '90 days';
 ### Memory Issues
 
 1. Reduce concurrent job processors in `.env`:
+
    ```bash
    BULL_CONCURRENCY=1  # Default is 10
    ```
@@ -306,6 +315,7 @@ AND "createdAt" < NOW() - INTERVAL '90 days';
 ### PaymentsService
 
 The webhook processor automatically calls PaymentsService methods:
+
 - `updatePaymentStatus()` - Updates payment status
 - `processRefundFromWebhook()` - Processes refunds
 - `handleSubscriptionEvent()` - Handles subscription changes
@@ -313,6 +323,7 @@ The webhook processor automatically calls PaymentsService methods:
 ### ProviderFactory
 
 Webhook processor uses ProviderFactory to:
+
 - Verify Stripe signatures
 - Parse Stripe events
 - Handle PayPal events
@@ -377,6 +388,7 @@ No changes needed in these services - they work transparently.
 ## Questions?
 
 Refer to the comprehensive documentation in:
+
 - `src/payments/webhooks/README.md` - Full documentation
 - `WEBHOOK_RETRY_IMPLEMENTATION.md` - Implementation details
 - Test files for implementation examples

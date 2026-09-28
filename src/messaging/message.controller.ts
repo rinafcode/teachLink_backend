@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, UseGuards, Query, Req } from '@nestjs/common';
 import { MessagingService } from './messaging.service';
 import { CreateMessageDto } from './message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationQueryDto } from '../common/dto/pagination.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('messages')
@@ -17,10 +18,14 @@ export class MessagingController {
   @Get('conversation/:otherUserId')
   async getConversation(
     @Param('otherUserId') otherUserId: string,
-    @Param('userId') userId: string,
+    @Req() req: any,
+    @Query() query?: PaginationQueryDto,
   ) {
-    // Assuming userId is retrieved from auth token via a custom decorator; placeholder for now
-    const conversation = await this.messagingService.getConversation(userId, otherUserId);
+    const conversation = await this.messagingService.getConversation(
+      req.user.id,
+      otherUserId,
+      query,
+    );
     return { success: true, conversation };
   }
 

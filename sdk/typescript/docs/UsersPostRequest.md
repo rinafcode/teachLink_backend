@@ -1,14 +1,13 @@
 # UsersPostRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**email** | **string** |  | [default to undefined]
-**password** | **string** |  | [default to undefined]
-**firstName** | **string** |  | [default to undefined]
-**lastName** | **string** |  | [default to undefined]
+| Name          | Type       | Description | Notes                  |
+| ------------- | ---------- | ----------- | ---------------------- |
+| **email**     | **string** |             | [default to undefined] |
+| **password**  | **string** |             | [default to undefined] |
+| **firstName** | **string** |             | [default to undefined] |
+| **lastName**  | **string** |             | [default to undefined] |
 
 ## Example
 
@@ -16,10 +15,10 @@ Name | Type | Description | Notes
 import { UsersPostRequest } from './api';
 
 const instance: UsersPostRequest = {
-    email,
-    password,
-    firstName,
-    lastName,
+  email,
+  password,
+  firstName,
+  lastName,
 };
 ```
 

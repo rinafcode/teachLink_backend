@@ -57,18 +57,20 @@ export class UserPreference {
   language: AppLanguage;
 
   // NEW — REQUIRED FOR LOCALE FORMATTING
-  @Column({
-    type: 'enum',
-    enum: AppLocale,
-    default: AppLocale.EN_US,
-  })
-  locale: AppLocale;
+  @Column({ type: 'varchar', default: 'en-US', nullable: true })
+  locale: string;
 
   // =========================
   // TIMEZONE SUPPORT (REQUIRED)
   // =========================
-  @Column({ default: 'UTC' })
+  @Column({ default: 'UTC', nullable: true })
   timezone: string; // e.g. Africa/Lagos, Europe/London
+
+  // =========================
+  // Currency preference
+  // =========================
+  @Column({ type: 'varchar', default: 'USD', nullable: true })
+  currency: string;
 
   // =========================
   // Notification Settings

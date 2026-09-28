@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AnalyticsService } from './analytics.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { GetEventsQueryDto } from './dto/get-events-query.dto';
 import { AnalyticsEvent, EventType } from './entities/event.entity';
 
 @ApiTags('Analytics')
@@ -33,6 +34,7 @@ export class AnalyticsController {
     return { success: true };
   }
 
+  // Compatibility endpoint for tracking feature events
   @Post('event')
   @ApiOperation({ summary: 'Track a feature event (compatibility endpoint)' })
   @ApiResponse({ status: 201, description: 'Feature event tracked successfully' })
@@ -63,23 +65,19 @@ export class AnalyticsController {
     description: 'Events retrieved',
     schema: { example: { events: [], total: 0 } },
   })
+  @ApiResponse({ status: 400, description: 'Invalid pagination parameters' })
   async getEvents(
-    @Query('eventType') eventType?: string,
-    @Query('category') category?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query() query: GetEventsQueryDto,
   ): Promise<{ events: AnalyticsEvent[]; total: number }> {
     return this.analyticsService.getEvents({
-      eventType: eventType
-        ? (EventType[eventType as keyof typeof EventType] as EventType)
+      eventType: query.eventType
+        ? (EventType[query.eventType as keyof typeof EventType] as EventType)
         : undefined,
-      category,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-      limit: limit ? parseInt(limit, 10) : 100,
-      offset: offset ? parseInt(offset, 10) : 0,
+      category: query.category,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+      limit: query.limit,
+      offset: query.offset,
     });
   }
 

@@ -95,10 +95,15 @@ export interface IFeatureFlagsConfig {
    *  `false`: MigrationModule is skipped. */
   ENABLE_MIGRATIONS: boolean;
 
-  /** Gates the RateLimitingModule — controls per-route request throttling.
-   *  `true`: RateLimitingModule is loaded, advanced rate-limit rules active.
-   *  `false`: RateLimitingModule is skipped (basic ThrottlerModule still active). */
-  ENABLE_RATE_LIMITING: boolean;
+  /** Disables the RateLimitingModule — opt-out flag for per-route request throttling.
+   *  `true`  : RateLimitingModule is SKIPPED. The QuotaGuard is also unregistered.
+   *             A WARN log is emitted at startup.
+   *  `false` (default): RateLimitingModule is loaded and QuotaGuard is registered globally.
+   *
+   *  Rate limiting is **ON by default** — operators must explicitly opt out.
+   *  Issue #808.
+   */
+  DISABLE_RATE_LIMITING: boolean;
 
   /** Gates the ObservabilityModule — controls distributed tracing and metrics.
    *  `true`: ObservabilityModule is loaded, traces and custom metrics exported.
@@ -197,7 +202,9 @@ export const defaultFeatureFlags: IFeatureFlagsConfig = {
   ENABLE_GRAPHQL: false,
   ENABLE_SYNC: true,
   ENABLE_MIGRATIONS: true,
-  ENABLE_RATE_LIMITING: true,
+  // Issue #808 — rate limiting is ON by default; operators opt out with
+  // DISABLE_RATE_LIMITING=true. Logged at startup if disabled.
+  DISABLE_RATE_LIMITING: false,
   ENABLE_OBSERVABILITY: true,
   ENABLE_CACHING: true,
   ENABLE_FEATURE_FLAGS: true,
@@ -240,10 +247,12 @@ export function loadFeatureFlags(): IFeatureFlagsConfig {
     ENABLE_GRAPHQL: getBooleanEnv('ENABLE_GRAPHQL', defaultFeatureFlags.ENABLE_GRAPHQL),
     ENABLE_SYNC: getBooleanEnv('ENABLE_SYNC', defaultFeatureFlags.ENABLE_SYNC),
     ENABLE_MIGRATIONS: getBooleanEnv('ENABLE_MIGRATIONS', defaultFeatureFlags.ENABLE_MIGRATIONS),
-    ENABLE_RATE_LIMITING: getBooleanEnv(
-      'ENABLE_RATE_LIMITING',
-      defaultFeatureFlags.ENABLE_RATE_LIMITING,
-    ),
+    // Issue #808: prefer the new opt-out flag. Keep ENABLE_RATE_LIMITING as
+    // a transitional back-compat alias — `ENABLE_RATE_LIMITING=false|0` is
+    // treated as `DISABLE_RATE_LIMITING=true`.
+    DISABLE_RATE_LIMITING:
+      getBooleanEnv('DISABLE_RATE_LIMITING', defaultFeatureFlags.DISABLE_RATE_LIMITING) ||
+      getBooleanEnv('ENABLE_RATE_LIMITING', true) === false,
     ENABLE_OBSERVABILITY: getBooleanEnv(
       'ENABLE_OBSERVABILITY',
       defaultFeatureFlags.ENABLE_OBSERVABILITY,
@@ -316,7 +325,7 @@ export function getEnabledModules(flags: IFeatureFlagsConfig): string[] {
   if (flags.ENABLE_GRAPHQL) modules.push('GraphQLModule');
   if (flags.ENABLE_SYNC) modules.push('SyncModule');
   if (flags.ENABLE_MIGRATIONS) modules.push('MigrationModule');
-  if (flags.ENABLE_RATE_LIMITING) modules.push('RateLimitingModule');
+  if (!flags.DISABLE_RATE_LIMITING) modules.push('RateLimitingModule');
   if (flags.ENABLE_OBSERVABILITY) modules.push('ObservabilityModule');
   if (flags.ENABLE_CACHING) modules.push('CachingModule');
   if (flags.ENABLE_FEATURE_FLAGS) modules.push('FeatureFlagsModule');
@@ -345,6 +354,13 @@ export function getDisabledModules(flags: IFeatureFlagsConfig): string[] {
     .map((key) => `${key.replace('ENABLE_', '')}Module`);
 
   const enabledModules = getEnabledModules(flags);
+  const disabled = allModules.filter((module) => !enabledModules.includes(module));
 
-  return allModules.filter((module) => !enabledModules.includes(module));
+  // Issue #808 — the opt-out naming convention. RateLimitingModule can also
+  // be disabled via DISABLE_RATE_LIMITING=true; surface that here too.
+  if (flags.DISABLE_RATE_LIMITING && !disabled.includes('RateLimitingModule')) {
+    disabled.push('RateLimitingModule');
+  }
+
+  return disabled;
 }

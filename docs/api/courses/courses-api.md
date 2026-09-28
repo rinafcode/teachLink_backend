@@ -3,6 +3,7 @@
 Complete documentation for TeachLink course management endpoints.
 
 ## Table of Contents
+
 - [Create Course](#create-course)
 - [Get All Courses](#get-all-courses)
 - [Get Courses with Cursor Pagination](#get-courses-with-cursor-pagination)
@@ -21,11 +22,13 @@ Complete documentation for TeachLink course management endpoints.
 Create a new course (Instructors and Admins only).
 
 ### Endpoint
+
 ```
 POST /courses
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `INSTRUCTOR` or `ADMIN`
 
@@ -40,16 +43,16 @@ Content-Type: application/json
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description | Validation |
-|-------|------|----------|-------------|------------|
-| title | string | Yes | Course title | 3-100 characters |
-| description | string | Yes | Course description | Min 10 characters |
-| category | string | Yes | Course category | Valid category |
-| level | string | Yes | Difficulty level | `BEGINNER`, `INTERMEDIATE`, `ADVANCED` |
-| price | number | No | Course price (0 for free) | Non-negative number |
-| tags | string[] | No | Course tags | Array of strings |
-| thumbnailUrl | string | No | Course thumbnail URL | Valid URL |
-| isPublished | boolean | No | Publication status | Default: `false` |
+| Field        | Type     | Required | Description               | Validation                             |
+| ------------ | -------- | -------- | ------------------------- | -------------------------------------- |
+| title        | string   | Yes      | Course title              | 3-100 characters                       |
+| description  | string   | Yes      | Course description        | Min 10 characters                      |
+| category     | string   | Yes      | Course category           | Valid category                         |
+| level        | string   | Yes      | Difficulty level          | `BEGINNER`, `INTERMEDIATE`, `ADVANCED` |
+| price        | number   | No       | Course price (0 for free) | Non-negative number                    |
+| tags         | string[] | No       | Course tags               | Array of strings                       |
+| thumbnailUrl | string   | No       | Course thumbnail URL      | Valid URL                              |
+| isPublished  | boolean  | No       | Publication status        | Default: `false`                       |
 
 ### Example Request
 
@@ -118,28 +121,30 @@ curl -X POST http://localhost:3000/courses \
 Retrieve a list of all published courses with search and filtering.
 
 ### Endpoint
+
 ```
 GET /courses
 ```
 
 ### Authentication
+
 **Not Required** (Public endpoint)
 
 ### Query Parameters
 
-| Parameter | Type | Required | Description | Default |
-|-----------|------|----------|-------------|---------|
-| page | number | No | Page number | 1 |
-| limit | number | No | Items per page | 20 |
-| search | string | No | Search in title/description | - |
-| category | string | No | Filter by category | All |
-| level | string | No | Filter by level | All |
-| minPrice | number | No | Minimum price | 0 |
-| maxPrice | number | No | Maximum price | ∞ |
-| instructorId | string | No | Filter by instructor | All |
-| tags | string[] | No | Filter by tags (comma-separated) | - |
-| sortBy | string | No | Sort field | `createdAt` |
-| sortOrder | string | No | Sort order (`ASC`/`DESC`) | `DESC` |
+| Parameter    | Type     | Required | Description                      | Default     |
+| ------------ | -------- | -------- | -------------------------------- | ----------- |
+| page         | number   | No       | Page number                      | 1           |
+| limit        | number   | No       | Items per page                   | 20          |
+| search       | string   | No       | Search in title/description      | -           |
+| category     | string   | No       | Filter by category               | All         |
+| level        | string   | No       | Filter by level                  | All         |
+| minPrice     | number   | No       | Minimum price                    | 0           |
+| maxPrice     | number   | No       | Maximum price                    | ∞           |
+| instructorId | string   | No       | Filter by instructor             | All         |
+| tags         | string[] | No       | Filter by tags (comma-separated) | -           |
+| sortBy       | string   | No       | Sort field                       | `createdAt` |
+| sortOrder    | string   | No       | Sort order (`ASC`/`DESC`)        | `DESC`      |
 
 ### Example Request
 
@@ -189,21 +194,23 @@ curl "http://localhost:3000/courses?category=Web+Development&level=BEGINNER&sort
 Retrieve courses using cursor-based pagination for infinite scroll.
 
 ### Endpoint
+
 ```
 GET /courses/cursor
 ```
 
 ### Authentication
+
 **Not Required** (Public endpoint)
 
 ### Query Parameters
 
-| Parameter | Type | Required | Description | Default |
-|-----------|------|----------|-------------|---------|
-| limit | number | No | Items per page | 20 |
-| cursor | string | No | Cursor for next page | - |
-| search | string | No | Search query | - |
-| category | string | No | Filter by category | - |
+| Parameter | Type   | Required | Description          | Default |
+| --------- | ------ | -------- | -------------------- | ------- |
+| limit     | number | No       | Items per page       | 20      |
+| cursor    | string | No       | Cursor for next page | -       |
+| search    | string | No       | Search query         | -       |
+| category  | string | No       | Filter by category   | -       |
 
 ### Example Request
 
@@ -249,11 +256,13 @@ curl "http://localhost:3000/courses/cursor?limit=10&cursor=eyJpZCI6ImNvdXJzZS0xM
 Get analytics data for courses (Instructors and Admins).
 
 ### Endpoint
+
 ```
 GET /courses/analytics
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Role**: `INSTRUCTOR` or `ADMIN`
 
@@ -280,14 +289,14 @@ curl http://localhost:3000/courses/analytics \
   "data": {
     "totalCourses": 25,
     "totalEnrollments": 5420,
-    "totalRevenue": 125430.50,
+    "totalRevenue": 125430.5,
     "averageRating": 4.6,
     "topCourses": [
       {
         "courseId": "course-123456",
         "title": "Complete Web Development Bootcamp",
         "enrollments": 1250,
-        "revenue": 62375.00,
+        "revenue": 62375.0,
         "rating": 4.8
       }
     ],
@@ -312,18 +321,20 @@ curl http://localhost:3000/courses/analytics \
 Retrieve detailed information about a specific course.
 
 ### Endpoint
+
 ```
 GET /courses/:id
 ```
 
 ### Authentication
+
 **Not Required** (Public endpoint)
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | Course ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | Course ID   |
 
 ### Example Request
 
@@ -396,11 +407,13 @@ curl http://localhost:3000/courses/course-123456
 Update course information (Course instructor or Admin only).
 
 ### Endpoint
+
 ```
 PATCH /courses/:id
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Authorization**: Course instructor or Admin
 
@@ -413,9 +426,9 @@ Content-Type: application/json
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | Course ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | Course ID   |
 
 ### Request Body
 
@@ -423,16 +436,16 @@ Content-Type: application/json
 
 All fields are optional. Only provided fields will be updated.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| title | string | No | Course title |
-| description | string | No | Course description |
-| category | string | No | Course category |
-| level | string | No | Difficulty level |
-| price | number | No | Course price |
-| tags | string[] | No | Course tags |
-| thumbnailUrl | string | No | Course thumbnail URL |
-| isPublished | boolean | No | Publication status |
+| Field        | Type     | Required | Description          |
+| ------------ | -------- | -------- | -------------------- |
+| title        | string   | No       | Course title         |
+| description  | string   | No       | Course description   |
+| category     | string   | No       | Course category      |
+| level        | string   | No       | Difficulty level     |
+| price        | number   | No       | Course price         |
+| tags         | string[] | No       | Course tags          |
+| thumbnailUrl | string   | No       | Course thumbnail URL |
+| isPublished  | boolean  | No       | Publication status   |
 
 ### Example Request
 
@@ -485,11 +498,13 @@ curl -X PATCH http://localhost:3000/courses/course-123456 \
 Delete a course (Course instructor or Admin only).
 
 ### Endpoint
+
 ```
 DELETE /courses/:id
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Authorization**: Course instructor or Admin
 
@@ -501,9 +516,9 @@ Authorization: Bearer <access-token>
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | Course ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | Course ID   |
 
 ### Example Request
 
@@ -524,6 +539,7 @@ curl -X DELETE http://localhost:3000/courses/course-123456 \
 ```
 
 **Warning**: This action is irreversible and will:
+
 - Remove all modules and lessons
 - Cancel all enrollments
 - Delete associated analytics data
@@ -535,11 +551,13 @@ curl -X DELETE http://localhost:3000/courses/course-123456 \
 Add a new module to a course (Course instructor or Admin only).
 
 ### Endpoint
+
 ```
 POST /courses/:id/modules
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Authorization**: Course instructor or Admin
 
@@ -552,19 +570,19 @@ Content-Type: application/json
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | Course ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | Course ID   |
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| title | string | Yes | Module title |
-| description | string | No | Module description |
-| order | number | Yes | Module order in course |
+| Field       | Type   | Required | Description            |
+| ----------- | ------ | -------- | ---------------------- |
+| title       | string | Yes      | Module title           |
+| description | string | No       | Module description     |
+| order       | number | Yes      | Module order in course |
 
 ### Example Request
 
@@ -606,11 +624,13 @@ curl -X POST http://localhost:3000/courses/course-123456/modules \
 Add a new lesson to a module (Course instructor or Admin only).
 
 ### Endpoint
+
 ```
 POST /courses/modules/:moduleId/lessons
 ```
 
 ### Authentication
+
 **Required**: Bearer Token  
 **Authorization**: Course instructor or Admin
 
@@ -623,23 +643,23 @@ Content-Type: application/json
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| moduleId | string | Yes | Module ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| moduleId  | string | Yes      | Module ID   |
 
 ### Request Body
 
 **Content-Type**: `application/json`
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| title | string | Yes | Lesson title |
-| content | string | Yes | Lesson content (HTML/Markdown) |
-| type | string | Yes | Lesson type | `VIDEO`, `TEXT`, `QUIZ`, `ASSIGNMENT` |
-| order | number | Yes | Lesson order in module |
-| videoUrl | string | No | Video URL (for VIDEO type) |
-| duration | number | No | Duration in minutes |
-| resources | string[] | No | Additional resource URLs |
+| Field     | Type     | Required | Description                    |
+| --------- | -------- | -------- | ------------------------------ | ------------------------------------- |
+| title     | string   | Yes      | Lesson title                   |
+| content   | string   | Yes      | Lesson content (HTML/Markdown) |
+| type      | string   | Yes      | Lesson type                    | `VIDEO`, `TEXT`, `QUIZ`, `ASSIGNMENT` |
+| order     | number   | Yes      | Lesson order in module         |
+| videoUrl  | string   | No       | Video URL (for VIDEO type)     |
+| duration  | number   | No       | Duration in minutes            |
+| resources | string[] | No       | Additional resource URLs       |
 
 ### Example Request
 
@@ -688,11 +708,13 @@ curl -X POST http://localhost:3000/courses/modules/module-001/lessons \
 Enroll in a course (Authenticated users only).
 
 ### Endpoint
+
 ```
 POST /courses/:id/enroll
 ```
 
 ### Authentication
+
 **Required**: Bearer Token
 
 ### Headers
@@ -703,9 +725,9 @@ Authorization: Bearer <access-token>
 
 ### Path Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | string | Yes | Course ID |
+| Parameter | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| id        | string | Yes      | Course ID   |
 
 ### Example Request
 
@@ -759,17 +781,18 @@ For paid courses, payment must be completed first:
 
 ## Course Levels
 
-| Level | Description | Target Audience |
-|-------|-------------|-----------------|
-| `BEGINNER` | Foundational concepts | New learners with no prior experience |
-| `INTERMEDIATE` | Building on basics | Learners with basic knowledge |
-| `ADVANCED` | Complex topics | Experienced learners |
+| Level          | Description           | Target Audience                       |
+| -------------- | --------------------- | ------------------------------------- |
+| `BEGINNER`     | Foundational concepts | New learners with no prior experience |
+| `INTERMEDIATE` | Building on basics    | Learners with basic knowledge         |
+| `ADVANCED`     | Complex topics        | Experienced learners                  |
 
 ---
 
 ## Course Categories
 
 Common course categories include:
+
 - Web Development
 - Data Science
 - Mobile Development
@@ -795,11 +818,13 @@ Common course categories include:
 ### Pagination Strategy
 
 **Offset-based pagination** (`GET /courses`):
+
 - Best for traditional page navigation
 - Supports jumping to specific pages
 - Total count available
 
 **Cursor-based pagination** (`GET /courses/cursor`):
+
 - Best for infinite scroll
 - Better performance on large datasets
 - Consistent results with frequent updates

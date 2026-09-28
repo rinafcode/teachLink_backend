@@ -5,6 +5,7 @@
 - **Request tracing**: Each HTTP request gets an `x-request-id` header and two logs: `request_start` and `request_end` with `durationMs` and `statusCode`.
 
 Recommendations for aggregation and parsing:
+
 - Send stdout/stderr to your log collector (CloudWatch, Datadog, ELK, Splunk). The logs are JSON so they can be indexed and searched.
 - Use `service` and `requestId` fields to correlate traces across services.
 

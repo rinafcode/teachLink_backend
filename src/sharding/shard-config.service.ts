@@ -1,6 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
+import { getSharedRedisClient } from '../config/cache.config';
 import { ShardConfig, ShardStatus, ReadReplicaConfig } from './interfaces/shard.interface';
+
+export const SHARD_CONFIG_UPDATED_CHANNEL = 'shard:config:updated';
+
+type ShardConfigUpdateListener = (message?: string) => void | Promise<void>;
 
 /**
  * ShardConfigService
@@ -29,12 +35,25 @@ import { ShardConfig, ShardStatus, ReadReplicaConfig } from './interfaces/shard.
  * development environments require zero additional configuration.
  */
 @Injectable()
-export class ShardConfigService {
+export class ShardConfigService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ShardConfigService.name);
+  private readonly reloadDeadlineMs = 5000;
   private shards: Map<string, ShardConfig> = new Map();
+  private configUpdateSubscriber?: Redis;
+  private readonly configUpdateListeners = new Set<ShardConfigUpdateListener>();
 
   constructor(private readonly configService: ConfigService) {
     this.loadShardConfiguration();
+  }
+
+  async onModuleInit(): Promise<void> {
+    await this.subscribeToConfigUpdates();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.configUpdateSubscriber && this.configUpdateSubscriber.status !== 'end') {
+      await this.configUpdateSubscriber.quit();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -58,6 +77,28 @@ export class ShardConfigService {
     return this.shards.get(id);
   }
 
+  /**
+   * Reload shard topology from the current configuration source.
+   *
+   * The map is rebuilt off to the side, then swapped in one assignment so
+   * readers never observe a partially populated configuration.
+   */
+  reloadConfig(): ShardConfig[] {
+    const nextShards = this.buildShardConfiguration();
+    this.shards = nextShards;
+    this.logger.log(`Reloaded ${this.shards.size} shard(s) from configuration`);
+    return this.getAllShards();
+  }
+
+  /**
+   * Register a listener for runtime shard config update events.
+   * Returns an unsubscribe function for module teardown/tests.
+   */
+  onConfigUpdated(listener: ShardConfigUpdateListener): () => void {
+    this.configUpdateListeners.add(listener);
+    return () => this.configUpdateListeners.delete(listener);
+  }
+
   /** Update a shard's status at runtime (e.g. during draining) */
   updateShardStatus(id: string, status: ShardStatus): void {
     const shard = this.shards.get(id);
@@ -74,19 +115,26 @@ export class ShardConfigService {
   // ---------------------------------------------------------------------------
 
   private loadShardConfiguration(): void {
+    this.shards = this.buildShardConfiguration();
+    this.logger.log(`Loaded ${this.shards.size} shard(s) from environment configuration`);
+  }
+
+  private buildShardConfiguration(): Map<string, ShardConfig> {
+    const shards = new Map<string, ShardConfig>();
     const shardCount = parseInt(this.configService.get<string>('SHARD_COUNT', '0'), 10);
 
     if (shardCount === 0) {
-      this.loadFallbackSingleShard();
-      return;
+      const fallbackShard = this.buildFallbackSingleShard();
+      shards.set(fallbackShard.id, fallbackShard);
+      return shards;
     }
 
     for (let i = 0; i < shardCount; i++) {
       const shard = this.buildShardFromEnv(i);
-      this.shards.set(shard.id, shard);
+      shards.set(shard.id, shard);
     }
 
-    this.logger.log(`Loaded ${this.shards.size} shard(s) from environment configuration`);
+    return shards;
   }
 
   private buildShardFromEnv(index: number): ShardConfig {
@@ -132,8 +180,8 @@ export class ShardConfigService {
   }
 
   /** Fall back to the legacy DATABASE_* variables as a single shard */
-  private loadFallbackSingleShard(): void {
-    const shard: ShardConfig = {
+  private buildFallbackSingleShard(): ShardConfig {
+    return {
       id: 'shard-00',
       name: 'Default Shard',
       host: this.configService.get<string>('DATABASE_HOST', 'localhost'),
@@ -146,8 +194,70 @@ export class ShardConfigService {
       weight: 100,
       status: ShardStatus.ACTIVE,
     };
+  }
 
-    this.shards.set(shard.id, shard);
-    this.logger.log('SHARD_COUNT not set — running in single-shard (fallback) mode');
+  private async subscribeToConfigUpdates(): Promise<void> {
+    if (!this.isConfigReloadSubscriptionEnabled()) {
+      this.logger.log('Shard config Redis reload subscription disabled');
+      return;
+    }
+
+    try {
+      this.configUpdateSubscriber = getSharedRedisClient(this.configService).duplicate();
+      this.configUpdateSubscriber.on('error', (error) => {
+        this.logger.warn(`Shard config Redis subscriber error: ${(error as Error).message}`);
+      });
+      this.configUpdateSubscriber.on('message', (channel, message) => {
+        if (channel === SHARD_CONFIG_UPDATED_CHANNEL) {
+          void this.notifyConfigUpdated(message);
+        }
+      });
+
+      await this.configUpdateSubscriber.subscribe(SHARD_CONFIG_UPDATED_CHANNEL);
+      this.logger.log(`Subscribed to Redis channel "${SHARD_CONFIG_UPDATED_CHANNEL}"`);
+    } catch (error) {
+      this.logger.warn(
+        `Unable to subscribe to "${SHARD_CONFIG_UPDATED_CHANNEL}": ${(error as Error).message}`,
+      );
+    }
+  }
+
+  private isConfigReloadSubscriptionEnabled(): boolean {
+    const configured = this.configService.get<string>('SHARD_CONFIG_RELOAD_SUBSCRIBE_ENABLED');
+    if (configured !== undefined) {
+      return configured.toLowerCase() !== 'false';
+    }
+
+    return process.env.NODE_ENV !== 'test';
+  }
+
+  private async notifyConfigUpdated(message?: string): Promise<void> {
+    if (this.configUpdateListeners.size === 0) {
+      this.logger.warn(
+        `Received "${SHARD_CONFIG_UPDATED_CHANNEL}" but no shard config listeners are registered`,
+      );
+      return;
+    }
+
+    this.logger.log(`Received "${SHARD_CONFIG_UPDATED_CHANNEL}" event; reloading shard topology`);
+
+    const timeout = setTimeout(() => {
+      this.logger.warn(
+        `Shard config reload listeners are still running after ${this.reloadDeadlineMs}ms`,
+      );
+    }, this.reloadDeadlineMs);
+
+    try {
+      await Promise.all(
+        Array.from(this.configUpdateListeners).map(async (listener) => listener(message)),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Shard config reload listener failed: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 }

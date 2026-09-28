@@ -18,6 +18,7 @@ curl -X POST http://localhost:3000/queues/jobs \
 ```
 
 Response:
+
 ```json
 {
   "jobId": "1",
@@ -105,6 +106,7 @@ curl http://localhost:3000/queues/jobs/scheduled
 ```
 
 Response:
+
 ```json
 [
   {
@@ -126,6 +128,7 @@ curl http://localhost:3000/queues/metrics
 ```
 
 Response:
+
 ```json
 {
   "queueName": "default",
@@ -148,6 +151,7 @@ curl http://localhost:3000/queues/health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",
@@ -169,6 +173,7 @@ curl http://localhost:3000/queues/statistics
 ```
 
 Response:
+
 ```json
 {
   "current": {
@@ -196,6 +201,7 @@ curl http://localhost:3000/queues/jobs/failed?limit=10
 ```
 
 Response:
+
 ```json
 [
   {
@@ -224,6 +230,7 @@ curl http://localhost:3000/queues/jobs/1
 ```
 
 Response:
+
 ```json
 {
   "jobId": "1",
@@ -290,6 +297,7 @@ curl http://localhost:3000/queues/counts
 ```
 
 Response:
+
 ```json
 {
   "waiting": 45,
@@ -327,6 +335,7 @@ curl -X POST http://localhost:3000/queues/jobs/bulk \
 ```
 
 Response:
+
 ```json
 {
   "count": 3,
@@ -389,11 +398,7 @@ export class PaymentService {
 
     const options = this.prioritizationService.getJobOptions(priority);
 
-    await this.queueService.addJob(
-      'process-payment',
-      { userId, amount },
-      options,
-    );
+    await this.queueService.addJob('process-payment', { userId, amount }, options);
   }
 }
 ```
@@ -406,20 +411,10 @@ import { JobSchedulerService } from './queues/scheduler/job-scheduler.service';
 
 @Injectable()
 export class ReminderService {
-  constructor(
-    private readonly schedulerService: JobSchedulerService,
-  ) {}
+  constructor(private readonly schedulerService: JobSchedulerService) {}
 
-  async scheduleReminder(
-    userId: string,
-    message: string,
-    sendAt: Date,
-  ): Promise<string> {
-    return this.schedulerService.scheduleJob(
-      'send-reminder',
-      { userId, message },
-      sendAt,
-    );
+  async scheduleReminder(userId: string, message: string, sendAt: Date): Promise<string> {
+    return this.schedulerService.scheduleJob('send-reminder', { userId, message }, sendAt);
   }
 
   async setupDailyReports(): void {
@@ -442,9 +437,7 @@ import { QueueMonitoringService } from './queues/monitoring/queue-monitoring.ser
 
 @Injectable()
 export class AdminService {
-  constructor(
-    private readonly monitoringService: QueueMonitoringService,
-  ) {}
+  constructor(private readonly monitoringService: QueueMonitoringService) {}
 
   async getQueueDashboard() {
     const [metrics, health, statistics] = await Promise.all([
@@ -462,7 +455,7 @@ export class AdminService {
 
   async investigateFailures() {
     const failedJobs = await this.monitoringService.getFailedJobs(50);
-    
+
     // Group by error type
     const errorGroups = failedJobs.reduce((acc, job) => {
       const error = job.failedReason || 'Unknown';
@@ -483,9 +476,7 @@ import { RetryLogicService } from './queues/retry/retry-logic.service';
 
 @Injectable()
 export class CustomProcessor {
-  constructor(
-    private readonly retryLogicService: RetryLogicService,
-  ) {}
+  constructor(private readonly retryLogicService: RetryLogicService) {}
 
   async processWithCustomRetry(data: any): Promise<void> {
     const strategy = {
@@ -503,15 +494,12 @@ export class CustomProcessor {
         return;
       } catch (error) {
         attempt++;
-        
+
         if (!this.retryLogicService.shouldRetry(error, attempt, strategy.maxAttempts)) {
           throw error;
         }
 
-        const delay = this.retryLogicService.calculateBackoffDelay(
-          attempt,
-          strategy,
-        );
+        const delay = this.retryLogicService.calculateBackoffDelay(attempt, strategy);
 
         await this.sleep(delay);
       }
@@ -519,7 +507,7 @@ export class CustomProcessor {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 ```
@@ -531,7 +519,7 @@ export class CustomProcessor {
 ```typescript
 async sendEmailCampaign(campaignId: string): Promise<void> {
   const recipients = await this.getRecipients(campaignId);
-  
+
   const jobs = recipients.map(recipient => ({
     name: 'send-email',
     data: {
@@ -554,7 +542,7 @@ async sendEmailCampaign(campaignId: string): Promise<void> {
 ```typescript
 async scheduleMonthlyReports(): Promise<void> {
   const users = await this.getPremiumUsers();
-  
+
   for (const user of users) {
     // Schedule for first day of next month at 9 AM
     const nextMonth = new Date();
@@ -626,16 +614,16 @@ async getQueueDashboard() {
 async performMaintenance(): Promise<void> {
   // Clean completed jobs older than 24 hours
   await this.queueService.cleanQueue(24 * 60 * 60 * 1000, 'completed');
-  
+
   // Clean failed jobs older than 7 days
   await this.queueService.cleanQueue(7 * 24 * 60 * 60 * 1000, 'failed');
-  
+
   // Check for stuck jobs
   const stuckJobs = await this.monitoringService.getStuckJobs();
   if (stuckJobs.length > 0) {
     this.logger.warn(`Found ${stuckJobs.length} stuck jobs during maintenance`);
   }
-  
+
   // Log metrics
   const metrics = await this.monitoringService.getQueueMetrics();
   this.logger.log('Maintenance complete', metrics);

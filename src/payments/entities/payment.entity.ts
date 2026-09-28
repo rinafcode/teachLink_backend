@@ -12,6 +12,8 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Course } from '../../courses/entities/course.entity';
+import { columnNumericTransformer } from '../utils/money';
+
 export enum PaymentStatus {
   PENDING = 'pending',
   PROCESSING = 'processing',
@@ -40,7 +42,12 @@ export class Payment {
   @VersionColumn()
   version: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: columnNumericTransformer,
+  })
   amount: number;
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })

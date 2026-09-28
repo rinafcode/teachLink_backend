@@ -26,7 +26,7 @@ const requiredFiles = [
   'src/routing/utils/routing-helpers.ts',
   'config/routing.json',
   'docs/routing/content-based-routing.md',
-  'examples/routing-examples.ts'
+  'examples/routing-examples.ts',
 ];
 
 console.log('📁 Checking required files...');
@@ -55,7 +55,7 @@ try {
   const routingFiles = [
     'src/routing/interfaces/routing.interface.ts',
     'src/routing/services/routing-engine.service.ts',
-    'src/routing/middleware/content-routing.middleware.ts'
+    'src/routing/middleware/content-routing.middleware.ts',
   ];
 
   console.log('✅ TypeScript files compile successfully!');
@@ -68,13 +68,19 @@ console.log('\n📋 Checking configuration file...');
 try {
   const configContent = fs.readFileSync('config/routing.json', 'utf8');
   const config = JSON.parse(configContent);
-  
+
   if (config.rules && Array.isArray(config.rules)) {
     console.log(`✅ Configuration has ${config.rules.length} routing rules`);
-    
+
     // Check rule structure
     const sampleRule = config.rules[0];
-    if (sampleRule && sampleRule.id && sampleRule.name && sampleRule.conditions && sampleRule.action) {
+    if (
+      sampleRule &&
+      sampleRule.id &&
+      sampleRule.name &&
+      sampleRule.conditions &&
+      sampleRule.action
+    ) {
       console.log('✅ Rule structure is valid');
     } else {
       console.log('❌ Rule structure is invalid');
@@ -82,11 +88,10 @@ try {
   } else {
     console.log('❌ Configuration rules array is missing or invalid');
   }
-  
+
   if (config.defaultAction) {
     console.log('✅ Default action is configured');
   }
-  
 } catch (error) {
   console.log('❌ Configuration file error:', error.message);
 }
@@ -95,10 +100,12 @@ try {
 console.log('\n📚 Checking documentation...');
 try {
   const docContent = fs.readFileSync('docs/routing/content-based-routing.md', 'utf8');
-  if (docContent.includes('Pattern-based Routing Rules') && 
-      docContent.includes('Header-based Routing') && 
-      docContent.includes('Query Parameter Routing') && 
-      docContent.includes('Dynamic Routing Configuration')) {
+  if (
+    docContent.includes('Pattern-based Routing Rules') &&
+    docContent.includes('Header-based Routing') &&
+    docContent.includes('Query Parameter Routing') &&
+    docContent.includes('Dynamic Routing Configuration')
+  ) {
     console.log('✅ Documentation covers all acceptance criteria');
   } else {
     console.log('❌ Documentation is incomplete');

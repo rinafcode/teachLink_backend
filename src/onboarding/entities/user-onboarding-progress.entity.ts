@@ -21,7 +21,6 @@ export enum OnboardingProgressStatus {
 @Entity('user_onboarding_progress')
 @Index(['userId', 'stepId'], { unique: true })
 @Index(['userId', 'status'])
-@Index(['completedAt'])
 export class UserOnboardingProgress {
   @PrimaryGeneratedColumn('uuid')
   id: string;

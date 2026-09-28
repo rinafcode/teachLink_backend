@@ -11,6 +11,8 @@ export class CreateEmailTemplatesTable implements MigrationInterface {
             name: 'id',
             type: 'uuid',
             isPrimary: true,
+            generationStrategy: 'uuid',
+            default: 'uuid_generate_v4()',
           },
           {
             name: 'key',
@@ -32,14 +34,17 @@ export class CreateEmailTemplatesTable implements MigrationInterface {
           {
             name: 'variables',
             type: 'json',
+            default: "'[]'",
           },
           {
             name: 'createdAt',
             type: 'timestamp',
+            default: 'now()',
           },
           {
             name: 'updatedAt',
             type: 'timestamp',
+            default: 'now()',
           },
         ],
       }),

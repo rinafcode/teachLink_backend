@@ -4,13 +4,13 @@ This document contains the complete OpenAPI 3.0 specification for the TeachLink 
 
 ## OpenAPI Specification (YAML)
 
-```yaml
+````yaml
 openapi: 3.0.0
 info:
   title: TeachLink API
   description: |
     TeachLink is a decentralized knowledge marketplace enabling educators and learners to connect through blockchain technology.
-    
+
     ## Features
     - User authentication and authorization
     - Course management
@@ -19,13 +19,13 @@ info:
     - Real-time collaboration
     - Multi-tenancy support
     - Analytics and reporting
-    
+
     ## Authentication
     All protected endpoints require a JWT Bearer token in the Authorization header:
     ```
     Authorization: Bearer <your-jwt-token>
     ```
-    
+
     Obtain tokens via the `/auth/login` endpoint.
   version: 1.0.0
   contact:
@@ -77,11 +77,11 @@ paths:
             schema:
               $ref: '#/components/schemas/RegisterDto'
             example:
-              email: "john.doe@example.com"
-              password: "StrongPass123!"
-              firstName: "John"
-              lastName: "Doe"
-              role: "STUDENT"
+              email: 'john.doe@example.com'
+              password: 'StrongPass123!'
+              firstName: 'John'
+              lastName: 'Doe'
+              role: 'STUDENT'
       responses:
         '201':
           description: User successfully registered
@@ -91,10 +91,10 @@ paths:
                 $ref: '#/components/schemas/AuthResponse'
               example:
                 success: true
-                message: "User registered successfully"
+                message: 'User registered successfully'
                 data:
-                  userId: "uuid-string"
-                  email: "john.doe@example.com"
+                  userId: 'uuid-string'
+                  email: 'john.doe@example.com'
                   verificationEmailSent: true
         '400':
           description: Bad request - Validation error
@@ -104,12 +104,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "Validation failed"
+                message: 'Validation failed'
                 errors:
-                  - field: "email"
-                    message: "Must be a valid email address"
-                  - field: "password"
-                    message: "Password must be stronger"
+                  - field: 'email'
+                    message: 'Must be a valid email address'
+                  - field: 'password'
+                    message: 'Password must be stronger'
         '409':
           description: Conflict - Email already exists
           content:
@@ -118,7 +118,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "Email already registered"
+                message: 'Email already registered'
 
   /auth/login:
     post:
@@ -134,8 +134,8 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginDto'
             example:
-              email: "john.doe@example.com"
-              password: "StrongPass123!"
+              email: 'john.doe@example.com'
+              password: 'StrongPass123!'
       responses:
         '200':
           description: Login successful
@@ -145,17 +145,17 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
               example:
                 success: true
-                message: "Login successful"
+                message: 'Login successful'
                 data:
-                  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                  refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
                   expiresIn: 3600
                   user:
-                    id: "uuid-string"
-                    email: "john.doe@example.com"
-                    firstName: "John"
-                    lastName: "Doe"
-                    role: "STUDENT"
+                    id: 'uuid-string'
+                    email: 'john.doe@example.com'
+                    firstName: 'John'
+                    lastName: 'Doe'
+                    role: 'STUDENT'
         '401':
           description: Unauthorized - Invalid credentials
           content:
@@ -164,7 +164,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 success: false
-                message: "Invalid email or password"
+                message: 'Invalid email or password'
 
   /auth/refresh:
     post:
@@ -298,28 +298,28 @@ components:
         email:
           type: string
           format: email
-          example: "john.doe@example.com"
+          example: 'john.doe@example.com'
         password:
           type: string
           format: password
           minLength: 8
-          example: "StrongPass123!"
+          example: 'StrongPass123!'
           description: Must contain uppercase, lowercase, number, and special character
         firstName:
           type: string
           minLength: 1
           maxLength: 50
-          example: "John"
+          example: 'John'
         lastName:
           type: string
           minLength: 1
           maxLength: 50
-          example: "Doe"
+          example: 'Doe'
         role:
           type: string
           enum: [STUDENT, INSTRUCTOR, ADMIN]
           default: STUDENT
-          example: "STUDENT"
+          example: 'STUDENT'
 
     LoginDto:
       type: object
@@ -330,11 +330,11 @@ components:
         email:
           type: string
           format: email
-          example: "john.doe@example.com"
+          example: 'john.doe@example.com'
         password:
           type: string
           format: password
-          example: "StrongPass123!"
+          example: 'StrongPass123!'
 
     RefreshTokenDto:
       type: object
@@ -343,7 +343,7 @@ components:
       properties:
         refreshToken:
           type: string
-          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
 
     ForgotPasswordDto:
       type: object
@@ -353,7 +353,7 @@ components:
         email:
           type: string
           format: email
-          example: "john.doe@example.com"
+          example: 'john.doe@example.com'
 
     ResetPasswordDto:
       type: object
@@ -363,12 +363,12 @@ components:
       properties:
         token:
           type: string
-          example: "reset-token-from-email"
+          example: 'reset-token-from-email'
         newPassword:
           type: string
           format: password
           minLength: 8
-          example: "NewStrongPass123!"
+          example: 'NewStrongPass123!'
 
     ChangePasswordDto:
       type: object
@@ -379,12 +379,12 @@ components:
         currentPassword:
           type: string
           format: password
-          example: "OldPass123!"
+          example: 'OldPass123!'
         newPassword:
           type: string
           format: password
           minLength: 8
-          example: "NewPass123!"
+          example: 'NewPass123!'
 
     VerifyEmailDto:
       type: object
@@ -393,7 +393,7 @@ components:
       properties:
         token:
           type: string
-          example: "email-verification-token"
+          example: 'email-verification-token'
 
     AuthResponse:
       type: object
@@ -403,7 +403,7 @@ components:
           example: true
         message:
           type: string
-          example: "User registered successfully"
+          example: 'User registered successfully'
         data:
           type: object
           properties:
@@ -423,7 +423,7 @@ components:
           example: true
         message:
           type: string
-          example: "Login successful"
+          example: 'Login successful'
         data:
           type: object
           properties:
@@ -461,7 +461,7 @@ components:
           example: false
         message:
           type: string
-          example: "Validation failed"
+          example: 'Validation failed'
         errors:
           type: array
           items:
@@ -471,15 +471,17 @@ components:
                 type: string
               message:
                 type: string
-```
+````
 
 ## Interactive Documentation
 
 Access the interactive Swagger UI at:
+
 - **Local**: http://localhost:3000/api/docs
 - **Production**: https://api.teachlink.com/api/docs
 
 The interactive documentation provides:
+
 - Try-it-out functionality for all endpoints
 - Request/response schemas
 - Authentication management
@@ -507,11 +509,13 @@ Requests to missing or invalid API version headers return a client error before 
 ## Rate Limiting
 
 API endpoints have rate limits applied:
+
 - **Authentication endpoints**: 10 requests per minute
 - **General endpoints**: 100 requests per minute
 - **Search endpoints**: 60 requests per minute
 
 Rate limit headers are included in responses:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95

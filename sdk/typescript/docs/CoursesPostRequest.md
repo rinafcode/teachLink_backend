@@ -1,12 +1,11 @@
 # CoursesPostRequest
 
-
 ## Properties
 
-Name | Type | Description | Notes
------------- | ------------- | ------------- | -------------
-**title** | **string** |  | [default to undefined]
-**description** | **string** |  | [optional] [default to undefined]
+| Name            | Type       | Description | Notes                             |
+| --------------- | ---------- | ----------- | --------------------------------- |
+| **title**       | **string** |             | [default to undefined]            |
+| **description** | **string** |             | [optional] [default to undefined] |
 
 ## Example
 
@@ -14,8 +13,8 @@ Name | Type | Description | Notes
 import { CoursesPostRequest } from './api';
 
 const instance: CoursesPostRequest = {
-    title,
-    description,
+  title,
+  description,
 };
 ```
 

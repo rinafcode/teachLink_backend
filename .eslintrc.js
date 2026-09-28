@@ -68,8 +68,8 @@ module.exports = {
       },
     ],
 
-    // ── Potential bugs ──
-    'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+    // ── Potential bugs & Logging Enforcements ──
+    'no-console': 'error', // Enforce zero unindexed console logging by default
     'no-debugger': 'error',
     'no-duplicate-imports': 'error',
     '@typescript-eslint/no-shadow': 'warn',
@@ -97,8 +97,8 @@ module.exports = {
     ],
 
     // ── Formatting ──
-    'semi': ['error', 'always'],
-    'quotes': ['error', 'single', { avoidEscape: true }],
+    semi: ['error', 'always'],
+    quotes: ['error', 'single', { avoidEscape: true }],
   },
 
   overrides: [
@@ -119,9 +119,14 @@ module.exports = {
       },
     },
     {
-      files: ['src/**/*.config.ts', 'src/**/*.seed.ts'],
+      files: [
+        'src/**/*.config.ts',
+        'src/**/*.seed.ts',
+        'src/cli/**/*.ts',
+        'src/scripts/**/*.ts',
+      ],
       rules: {
-        'no-console': 'off',
+        'no-console': 'off', // Exempt CLI, seed scripts, and configuration setups
       },
     },
   ],
