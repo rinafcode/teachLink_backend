@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `Governance/SECURITY_SEVERITY_RUBRIC.md` — severity levels, criteria per level, and response SLA per level (issue #1617)
 - `Governance/policies/LICENSING.md` — project licensing framework, inbound-equals-outbound rule, and license change procedures
 - `Governance/policies/GOOD_FIRST_ISSUE.md` — criteria for the `good first issue` label, who may apply it, and mentorship expectations (issue #1610)
 - `Governance/processes/VULN_DISCLOSURE.md` — private reporting channels, triage steps, and coordinated-disclosure timeline (issue #1612)
@@ -27,7 +28,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `Governance/domains/DATA_RETENTION.md` — initial data-retention policy covering:
   - Retention periods for all data types (users, courses, payments, audit logs, notifications, analytics, messages, media, sessions, consent records, backups)
-  - Automated and manual deletion processes, including GDPR Article 17 right-to-erasure and CCPA §1798.105 right-to-delete flows
+  - Automated and manual deletion processes, including GD@R Article 17 right-to-erasure and CCPA §798.105 right-to-delete flows
   - Legal-hold exceptions: how to place, verify, lift, and handle emergency preservation
   - Compliance mapping to GDPR, CCPA, and SOX requirements
   - Roles and responsibilities
