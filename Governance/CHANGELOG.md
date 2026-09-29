@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `Governance/policies/LICENSING.md` — project licensing framework, inbound-equals-outbound rule, and license change procedures
 - `Governance/policies/GOOD_FIRST_ISSUE.md` — criteria for the `good first issue` label, who may apply it, and mentorship expectations (issue #1610)
 - `Governance/processes/VULN_DISCLOSURE.md` — private reporting channels, triage steps, and coordinated-disclosure timeline (issue #1612)
 - `Governance/processes/COORDINATED_DISCLOSURE.md` — reporter coordination, public-disclosure timing, and credit policy (issue #1616)
