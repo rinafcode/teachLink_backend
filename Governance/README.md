@@ -180,6 +180,10 @@ Standalone policies live in `Governance/policies/`:
 - [Code Review Policy](policies/REVIEW_POLICY.md) — the requirements that must be
   met before a change is merged, what reviewers check, and the reviewer
   independence rule.
+- [Deprecation Policy](policies/DEPRECATION.md) — the deprecation notice
+  period, communication channels, and removal criteria, with
+  [`domains/API_DEPRECATION.md`](domains/API_DEPRECATION.md) as the
+  authoritative policy for API surfaces.
 
 ## Processes
 
