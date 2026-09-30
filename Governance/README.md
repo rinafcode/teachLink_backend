@@ -202,6 +202,8 @@ Reusable templates live in `Governance/templates/`:
   request for comments.
 - [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPLATE.md) — the starting point for an
   architecture decision record.
+- [`templates/WORKING_GROUP_CHARTER.md`](templates/WORKING_GROUP_CHARTER.md) — the starting point for a
+  working group charter.
 
 ## Recognition
 
