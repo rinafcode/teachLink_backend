@@ -60,6 +60,7 @@ Entries are added newest-first. Format: date · version · summary · pull reque
 
 | Date       | Version | Change                                                                                                                                                                         | PR                |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| 2026-09-30 | 1.0.0   | Added `roles/RELEASE_MANAGER.md` — release duties, sign-off authority and its limits, and a per-release rotation (issue #1558).                                                | This pull request |
 | 2026-09-28 | 1.0.0   | **Initial release.** Added `policies/COMMUNICATION_NORMS.md` and created the `Governance/` tree. Covers tone and etiquette, official channels, and response-time expectations. | This pull request |
 
 ### 2026-09-28 — v1.0.0 (initial)
@@ -196,6 +197,24 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/RELEASE_SIGNOFF.md`](processes/RELEASE_SIGNOFF.md) — required release sign-offs, gating checks, and final production release authority.
 - [`processes/ESCALATION_PATH.md`](processes/ESCALATION_PATH.md) — incident escalation tiers, role-based contacts, and response SLAs.
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
+
+## Roles
+
+Role definitions live in `Governance/roles/`. They describe what a role is
+responsible for, not how to reach it — progression between the core community
+roles follows [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md).
+
+- [`roles/CONTRIBUTOR.md`](roles/CONTRIBUTOR.md) — who a contributor is, the rights
+  the role grants, and how a person becomes one.
+- [`roles/MAINTAINER.md`](roles/MAINTAINER.md) — maintainer responsibilities,
+  review and merge authority, and accountability.
+- [`roles/TREASURER.md`](roles/TREASURER.md) — community treasury custody,
+  spending authority limits, and reporting obligations.
+- [`roles/RELEASE_MANAGER.md`](roles/RELEASE_MANAGER.md) — release duties, sign-off
+  authority and its limits, and the per-release rotation. A delegated functional
+  appointment held by a maintainer, sitting outside the promotion ladder; final
+  release authorization stays with the lead maintainer per
+  [`processes/RELEASE_SIGNOFF.md`](processes/RELEASE_SIGNOFF.md) §4.
 
 ## Templates
 
