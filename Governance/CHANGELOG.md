@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `Governance/templates/ADVISORY_TEMPLATE.md` — security advisory sections including severity, CVSS, and remediation fields (issue #1615)
 - `Governance/policies/EMBARGO.md` — default embargo durations by severity, embargo list membership, and early-disclosure exceptions (issue #1613)
 - `Governance/policies/DCO.md` — Developer Certificate of Origin sign-off requirement, verification, and remediation (issue #1609)
+- `Governance/SECURITY_SEVERITY_RUBRIC.md` — severity levels, criteria per level, and response SLAs per level (issue #1617)
 
 
 ## [1.0.0] – 2026-09-27

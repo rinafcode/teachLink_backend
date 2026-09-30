@@ -61,6 +61,7 @@ Entries are added newest-first. Format: date · version · summary · pull reque
 | Date       | Version | Change                                                                                                                                                                         | PR                |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
 | 2026-09-30 | 1.0.0   | Added `roles/RELEASE_MANAGER.md` — release duties, sign-off authority and its limits, and a per-release rotation (issue #1558).                                                | This pull request |
+| 2026-09-30 | 1.0.0   | Added `processes/ONBOARDING.md` — onboarding ownership, phased steps, and the resources a new contributor receives (issue #1565).                                              | This pull request |
 | 2026-09-28 | 1.0.0   | **Initial release.** Added `policies/COMMUNICATION_NORMS.md` and created the `Governance/` tree. Covers tone and etiquette, official channels, and response-time expectations. | This pull request |
 
 ### 2026-09-28 — v1.0.0 (initial)
@@ -185,12 +186,18 @@ Standalone policies live in `Governance/policies/`:
   period, communication channels, and removal criteria, with
   [`domains/API_DEPRECATION.md`](domains/API_DEPRECATION.md) as the
   authoritative policy for API surfaces.
+- [Backport Policy](policies/BACKPORT.md) — which release branches receive
+  backports, the eligibility criteria for backporting a fix, and the approval
+  and verification process a backport must pass.
 
 ## Processes
 
 Standalone process documents live in `Governance/processes/`:
 
 - [`processes/NOMINATION.md`](processes/NOMINATION.md) — role nomination process.
+- [`processes/ONBOARDING.md`](processes/ONBOARDING.md) — contributor onboarding
+  process: who owns onboarding, the phased onboarding steps, and the resources
+  provided to a new contributor.
 - [`processes/OFFBOARDING.md`](processes/OFFBOARDING.md) — contributor offboarding checklist and timeline.
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
 - [`processes/PROPOSAL_LIFECYCLE.md`](processes/PROPOSAL_LIFECYCLE.md) — stages from draft to decision, stage ownership, and exit criteria.
@@ -217,9 +224,9 @@ roles follows [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.m
   [`processes/RELEASE_SIGNOFF.md`](processes/RELEASE_SIGNOFF.md) §4.
 
 ## Templates
-
 Reusable templates live in `Governance/templates/`:
-
+- [`templates/RELEASE_CHECKLIST.md`](templates/RELEASE_CHECKLIST.md) — the
+  pre-release, approval, deployment, and post-release checklist.
 - [`templates/AGENDA_TEMPLATE.md`](templates/AGENDA_TEMPLATE.md) — the standard sections,
   time-boxing guidance, and submission process for a governance meeting agenda.
 - [`templates/MINUTES_TEMPLATE.md`](templates/MINUTES_TEMPLATE.md) — the structure used to
@@ -228,6 +235,8 @@ Reusable templates live in `Governance/templates/`:
   request for comments.
 - [`templates/ADR_TEMPLATE.md`](templates/ADR_TEMPLATE.md) — the starting point for an
   architecture decision record.
+- [`templates/WORKING_GROUP_CHARTER.md`](templates/WORKING_GROUP_CHARTER.md) — the starting point for a
+  working group charter.
 
 ## Recognition
 
