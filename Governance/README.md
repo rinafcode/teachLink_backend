@@ -184,6 +184,9 @@ Standalone policies live in `Governance/policies/`:
   period, communication channels, and removal criteria, with
   [`domains/API_DEPRECATION.md`](domains/API_DEPRECATION.md) as the
   authoritative policy for API surfaces.
+- [Backport Policy](policies/BACKPORT.md) — which release branches receive
+  backports, the eligibility criteria for backporting a fix, and the approval
+  and verification process a backport must pass.
 
 ## Processes
 
