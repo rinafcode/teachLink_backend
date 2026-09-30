@@ -60,6 +60,7 @@ Entries are added newest-first. Format: date · version · summary · pull reque
 
 | Date       | Version | Change                                                                                                                                                                         | PR                |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| 2026-09-30 | 1.0.0   | Added `processes/ONBOARDING.md` — onboarding ownership, phased steps, and the resources a new contributor receives (issue #1565).                                              | This pull request |
 | 2026-09-28 | 1.0.0   | **Initial release.** Added `policies/COMMUNICATION_NORMS.md` and created the `Governance/` tree. Covers tone and etiquette, official channels, and response-time expectations. | This pull request |
 
 ### 2026-09-28 — v1.0.0 (initial)
@@ -193,6 +194,9 @@ Standalone policies live in `Governance/policies/`:
 Standalone process documents live in `Governance/processes/`:
 
 - [`processes/NOMINATION.md`](processes/NOMINATION.md) — role nomination process.
+- [`processes/ONBOARDING.md`](processes/ONBOARDING.md) — contributor onboarding
+  process: who owns onboarding, the phased onboarding steps, and the resources
+  provided to a new contributor.
 - [`processes/OFFBOARDING.md`](processes/OFFBOARDING.md) — contributor offboarding checklist and timeline.
 - [`processes/PROMOTION_CRITERIA.md`](processes/PROMOTION_CRITERIA.md) — objective promotion criteria per role.
 - [`processes/PROPOSAL_LIFECYCLE.md`](processes/PROPOSAL_LIFECYCLE.md) — stages from draft to decision, stage ownership, and exit criteria.
