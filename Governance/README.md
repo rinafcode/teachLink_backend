@@ -198,9 +198,9 @@ Standalone process documents live in `Governance/processes/`:
 - [`processes/WORKING_GROUP_DISSOLUTION.md`](processes/WORKING_GROUP_DISSOLUTION.md) — dissolution triggers, artifact handover, and archival steps for working groups.
 
 ## Templates
-
 Reusable templates live in `Governance/templates/`:
-
+- [`templates/RELEASE_CHECKLIST.md`](templates/RELEASE_CHECKLIST.md) — the
+  pre-release, approval, deployment, and post-release checklist.
 - [`templates/AGENDA_TEMPLATE.md`](templates/AGENDA_TEMPLATE.md) — the standard sections,
   time-boxing guidance, and submission process for a governance meeting agenda.
 - [`templates/MINUTES_TEMPLATE.md`](templates/MINUTES_TEMPLATE.md) — the structure used to
