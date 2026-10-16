@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `Governance/policies/CERTIFICATE_MANAGEMENT.md` — certificate management
+  policy covering issuance standards (key length, algorithm, CA, validity,
+  SAN), ownership and operator assignment, renewal lead times and the
+  automation-first requirement, expiry-monitoring alert thresholds, revocation
+  grounds and process, prohibited practices, and regression-test requirements
+  for future TLS code changes.
 - `Governance/compliance/SANCTIONS.md` — sanctions screening requirements for
   project-controlled financial relationships and transfers, prohibited-party
   handling, confidential recordkeeping, and escalation.
