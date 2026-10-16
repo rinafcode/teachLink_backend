@@ -165,6 +165,9 @@ Standalone policies live in `Governance/policies/`:
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
+- [Vendor Risk Policy](policies/VENDOR_RISK.md) — vetting criteria for external
+  vendors, risk tier classification (Critical / Significant / Standard), scheduled
+  review cadence, remediation levels, and the vendor register.
 - [Voting Quorum Policy](policies/QUORUM.md) — the quorum threshold for a
   formal vote, how quorum is measured, and what happens when it is not met.
 - [Supermajority Policy](policies/SUPERMAJORITY.md) — which decisions require
