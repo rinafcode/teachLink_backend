@@ -43,6 +43,9 @@ Versioned policies live in [`Governance/policies/`](policies/):
 
 - [Privilege Revocation Policy](policies/REVOCATION.md) — grounds for revoking
   privileges, who can initiate revocation, and the appeal path.
+- [Vendor Risk Policy](policies/VENDOR_RISK.md) — vetting criteria for external
+  vendors, risk tier classification (Critical / Significant / Standard), scheduled
+  review cadence, remediation levels, and the vendor register.
 
 ## Contributing to governance
 
