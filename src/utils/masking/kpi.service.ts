@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { subDays, startOfDay, endOfDay, startOfMonth, format } from 'date-fns';
 
 import { MetricsService } from './metrics.service';
@@ -129,27 +129,41 @@ export class KpiService {
   }
 
   async calculateUserRetention(): Promise<void> {
-    // Calculate 3-month cohort retention
+    // Calculate 3-month cohort retention with set-based aggregates.
+    // Cohort/retention windows keep the exact JS definitions from before
+    // (rolling 30-day approximations); only the querying is set-based.
     const now = new Date();
     this.metricsService.userRetentionGauge.reset();
 
+    interface CohortWindow {
+      start: Date;
+      end: Date;
+      label: string;
+    }
+
+    const cohortWindows: CohortWindow[] = [];
     for (let i = 1; i <= 3; i++) {
       const cohortMonthStart = startOfMonth(subDays(now, i * 30));
       const cohortMonthEnd = endOfDay(subDays(startOfMonth(subDays(now, (i - 1) * 30)), 1));
-
-      const cohortUsers = await this.userRepository.find({
-        select: ['id'],
-        where: { createdAt: Between(cohortMonthStart, cohortMonthEnd) },
+      cohortWindows.push({
+        start: cohortMonthStart,
+        end: cohortMonthEnd,
+        label: format(cohortMonthStart, 'yyyy-MM'),
       });
+    }
 
-      const cohortUserIds = cohortUsers.map((u) => u.id);
-      const cohortSize = cohortUserIds.length;
+    interface RetentionPair {
+      cohortLabel: string;
+      retainedLabel: string;
+      cohortStart: Date;
+      cohortEnd: Date;
+      retentionStart: Date;
+      retentionEnd: Date;
+    }
 
-      if (cohortSize === 0) continue;
-
-      const cohortMonthLabel = format(cohortMonthStart, 'yyyy-MM');
-
-      // Check retention for subsequent months
+    const pairs: RetentionPair[] = [];
+    for (let i = 1; i <= 3; i++) {
+      const cohort = cohortWindows[i - 1];
       for (let j = 1; j < i; j++) {
         const retentionMonthStart = startOfMonth(subDays(now, (i - j) * 30));
         const retentionMonthEnd = endOfDay(
@@ -158,24 +172,122 @@ export class KpiService {
 
         if (retentionMonthStart > now) continue;
 
-        const retainedUsersCount = await this.eventRepository
-          .createQueryBuilder('event')
-          .select('COUNT(DISTINCT event.userId)', 'count')
-          .where('event.userId IN (:...cohortUserIds)', { cohortUserIds })
-          .andWhere('event.createdAt BETWEEN :start AND :end', {
-            start: retentionMonthStart,
-            end: retentionMonthEnd,
-          })
-          .getRawOne();
-
-        const retainedCount = parseInt(retainedUsersCount?.count ?? '0', 10);
-        const retentionRate = (retainedCount / cohortSize) * 100;
-
-        const retainedMonthLabel = format(retentionMonthStart, 'yyyy-MM');
-        this.metricsService.userRetentionGauge
-          .labels(cohortMonthLabel, retainedMonthLabel)
-          .set(retentionRate);
+        pairs.push({
+          cohortLabel: cohort.label,
+          retainedLabel: format(retentionMonthStart, 'yyyy-MM'),
+          cohortStart: cohort.start,
+          cohortEnd: cohort.end,
+          retentionStart: retentionMonthStart,
+          retentionEnd: retentionMonthEnd,
+        });
       }
+    }
+
+    if (pairs.length === 0) {
+      this.logger.log('Calculated user retention cohorts.');
+      return;
+    }
+
+    // 1) Cohort sizes in a single grouped query (no per-cohort find()).
+    const cohortCaseWhens: string[] = [];
+    const cohortParams: Record<string, unknown> = {};
+    cohortWindows.forEach((cohort, idx) => {
+      cohortCaseWhens.push(
+        `WHEN cohortUser.createdAt BETWEEN :c${idx}start AND :c${idx}end THEN :c${idx}label`,
+      );
+      cohortParams[`c${idx}start`] = cohort.start;
+      cohortParams[`c${idx}end`] = cohort.end;
+      cohortParams[`c${idx}label`] = cohort.label;
+    });
+    const cohortWhere = cohortWindows
+      .map((_, idx) => `cohortUser.createdAt BETWEEN :c${idx}start AND :c${idx}end`)
+      .join(' OR ');
+
+    const cohortRows: Array<{ cohort_month: string; cohort_size: string }> =
+      await this.userRepository
+        .createQueryBuilder('cohortUser')
+        .select(`CASE ${cohortCaseWhens.join(' ')} END`, 'cohort_month')
+        .addSelect('COUNT(cohortUser.id)', 'cohort_size')
+        .where(`(${cohortWhere})`, cohortParams)
+        .setParameters(cohortParams)
+        .groupBy('cohort_month')
+        .getRawMany();
+
+    const cohortSizeByLabel = new Map<string, number>();
+    for (const row of cohortRows) {
+      if (!row.cohort_month) continue;
+      cohortSizeByLabel.set(row.cohort_month, Number(row.cohort_size ?? 0));
+    }
+
+    // 2) Retained distinct users in a single joined + grouped query (no IN-lists).
+    const uniqueRetentionWindows = new Map<string, { start: Date; end: Date }>();
+    for (const pair of pairs) {
+      if (!uniqueRetentionWindows.has(pair.retainedLabel)) {
+        uniqueRetentionWindows.set(pair.retainedLabel, {
+          start: pair.retentionStart,
+          end: pair.retentionEnd,
+        });
+      }
+    }
+    const retentionLabels = [...uniqueRetentionWindows.keys()];
+    const retentionCaseWhens: string[] = [];
+    const retentionParams: Record<string, unknown> = { ...cohortParams };
+    retentionLabels.forEach((label, idx) => {
+      const window = uniqueRetentionWindows.get(label)!;
+      retentionCaseWhens.push(
+        `WHEN event.createdAt BETWEEN :r${idx}start AND :r${idx}end THEN :r${idx}label`,
+      );
+      retentionParams[`r${idx}start`] = window.start;
+      retentionParams[`r${idx}end`] = window.end;
+      retentionParams[`r${idx}label`] = label;
+    });
+
+    const pairClauses: string[] = [];
+    pairs.forEach((pair, idx) => {
+      pairClauses.push(
+        `(cohortUser.createdAt BETWEEN :p${idx}cStart AND :p${idx}cEnd AND event.createdAt BETWEEN :p${idx}rStart AND :p${idx}rEnd)`,
+      );
+      retentionParams[`p${idx}cStart`] = pair.cohortStart;
+      retentionParams[`p${idx}cEnd`] = pair.cohortEnd;
+      retentionParams[`p${idx}rStart`] = pair.retentionStart;
+      retentionParams[`p${idx}rEnd`] = pair.retentionEnd;
+    });
+
+    const retentionRows: Array<{
+      cohort_month: string;
+      retained_month: string;
+      retained_count: string;
+    }> = await this.eventRepository
+      .createQueryBuilder('event')
+      .innerJoin('event.user', 'cohortUser')
+      .select(`CASE ${cohortCaseWhens.join(' ')} END`, 'cohort_month')
+      .addSelect(`CASE ${retentionCaseWhens.join(' ')} END`, 'retained_month')
+      .addSelect('COUNT(DISTINCT event.userId)', 'retained_count')
+      .where(`(${pairClauses.join(' OR ')})`, retentionParams)
+      .setParameters(retentionParams)
+      .groupBy('cohort_month')
+      .addGroupBy('retained_month')
+      .getRawMany();
+
+    const retainedByPair = new Map<string, number>();
+    for (const row of retentionRows) {
+      if (!row.cohort_month || !row.retained_month) continue;
+      retainedByPair.set(
+        `${row.cohort_month}|${row.retained_month}`,
+        Number(row.retained_count ?? 0),
+      );
+    }
+
+    for (const pair of pairs) {
+      const cohortSize = cohortSizeByLabel.get(pair.cohortLabel) ?? 0;
+      if (cohortSize === 0) continue;
+
+      const retainedCount = retainedByPair.get(`${pair.cohortLabel}|${pair.retainedLabel}`) ?? 0;
+      const retentionRate = (retainedCount / cohortSize) * 100;
+
+      this.metricsService.userRetentionGauge
+        .labels(pair.cohortLabel, pair.retainedLabel)
+        .set(retentionRate);
     }
     this.logger.log('Calculated user retention cohorts.');
   }
