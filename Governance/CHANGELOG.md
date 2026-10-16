@@ -8,6 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `Governance/compliance/SANCTIONS.md` — sanctions screening requirements for
+  project-controlled financial relationships and transfers, prohibited-party
+  handling, confidential recordkeeping, and escalation.
+
 ## [1.0.0] – 2026-09-27
 
 ### Added
