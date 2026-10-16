@@ -22,6 +22,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `Governance/policies/TAGGING.md` — tagging policy covering the `v<version>`
+  naming convention, one-tag-per-version and immutability rules, which roles may
+  create a release tag, the annotated signed-tag requirement with key and
+  verification standards, the tag creation procedure, and the handling of a
+  non-conforming tag.
 - `Governance/policies/CERTIFICATE_MANAGEMENT.md` — certificate management
   policy covering issuance standards (key length, algorithm, CA, validity,
   SAN), ownership and operator assignment, renewal lead times and the
