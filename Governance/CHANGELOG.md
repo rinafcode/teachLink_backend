@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `Governance/policies/CODE_FREEZE.md` — code freeze policy covering when a freeze applies (release stabilization, release sign-off, security embargo, incident, error-budget exhaustion, scheduled maintenance) and how it is declared and ended, what is allowed and prohibited during a freeze with the requirements for changes that land, the exception process (who approves, how to request, decision timelines, recording and expiry), enforcement, roles, and regression-test guidance (issue #1840)
 - `Governance/community/AMBASSADOR_PROGRAM.md` — ambassador program policy covering ambassador responsibilities, selection criteria and process, recognition and rewards, and review/offboarding.
 # Governance Changelog
 
