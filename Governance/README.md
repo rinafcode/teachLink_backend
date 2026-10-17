@@ -59,6 +59,14 @@ Standalone policies live in `Governance/policies/`:
   scrape endpoints expose, how often they change, and where each metric
   family's data comes from.
 
+## Reporting
+
+Periodic reports live in `Governance/reporting/`:
+
+- [Security Posture Report](reporting/SECURITY_POSTURE_REPORT.md) — the
+  metrics disclosed in each security posture report, the publication cadence,
+  the audience, and the correction process.
+
 ## Processes
 
 Standalone process documents live in `Governance/processes/`:
