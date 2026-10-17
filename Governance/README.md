@@ -193,6 +193,14 @@ Standalone policies live in `Governance/policies/`:
   backports, the eligibility criteria for backporting a fix, and the approval
   and verification process a backport must pass.
 
+## Reporting
+
+Periodic reports live in `Governance/reporting/`:
+
+- [Security Posture Report](reporting/SECURITY_POSTURE_REPORT.md) — the
+  metrics disclosed in each security posture report, the publication cadence,
+  the audience, and the correction process.
+
 ## Processes
 
 Standalone process documents live in `Governance/processes/`:
